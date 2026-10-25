@@ -1,6 +1,6 @@
 /* Документы «Фруктовый Дом»: сервис-воркер для установки на телефон.
    Всегда берёт свежую версию из сети; без сети открывает последнюю сохранённую. */
-const C = "fd-docs-v1";
+const C = "fd-docs-v2";
 self.addEventListener("install", e => { self.skipWaiting(); e.waitUntil(caches.open(C).then(c => c.addAll(["./", "./icon-192.png"]).catch(()=>{}))); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== C).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener("fetch", e => {
