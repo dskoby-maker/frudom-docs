@@ -821,10 +821,13 @@ let syncT=null, flushing=false;
 function changed(){ saveLocal(); if(!online()) return; setStatus("wait","Есть несохранённое"); clearTimeout(syncT); syncT=setTimeout(flush,1200); }
 const hasPending = () => Object.values(pend).some(m=>m.size) || evq.length>0;
 
-async function api(payload){
-  const r = await fetch(API_URL, {method:"POST", body:JSON.stringify(Object.assign({key:pass(), user:curUser()}, payload))});
-  const j = await r.json(); if(!j.ok) throw new Error(j.error||"ошибка хранилища"); return j;
-}
+/* запрос к таблице: не дольше 45 секунд; при ошибке понятно, что случилось — нет интернета, Google не ответил или таблица вернула ошибку */
+async function apiFetch(url, opt){ const ac=window.AbortController?new AbortController():null, tm=ac&&setTimeout(()=>ac.abort(),45000);
+  let r; try{ r=await fetch(url, Object.assign({}, opt||{}, ac?{signal:ac.signal}:{})); }
+  catch(e){ const x=new Error(e&&e.name==="AbortError"?"Google Таблица не ответила за 45 секунд":"нет интернета или Google недоступен"); x.net=true; throw x; } finally{ if(tm) clearTimeout(tm); }
+  let j; try{ j=await r.json(); }catch(e){ const x=new Error("Google вернул ошибку "+(r.status||"")+" вместо данных — сервис временно перегружен"); x.net=true; throw x; }
+  if(!j.ok){ const x=new Error(j.error||"ошибка хранилища"); x.resp=j; throw x; } return j; }
+async function api(payload){ return apiFetch(API_URL, {method:"POST", body:JSON.stringify(Object.assign({key:pass(), user:curUser()}, payload))}); }
 function buildChanges(){
   const ch={}, sent={};
   ["suppliers","customers","products","contracts","journal","costs","doccosts","psettings","daytasks"].forEach(t=>{
@@ -842,15 +845,15 @@ function buildChanges(){
   return Object.keys(ch).length ? {ch, sent, evn} : null;
 }
 function jRow(e){ if(!e) return null; return {id:e.id, supplierId:e.supplierId, customerId:e.customerId, number:String(e.number), date:e.date, sum:String(e.sum), updated:e.updated||"", snap:JSON.stringify(e.snap)}; }
+function sentOk(b){ Object.keys(b.sent).forEach(t=>b.sent[t].forEach((v,id)=>{ const cur=pend[t].get(id); if(cur&&cur.s===v.s) pend[t].delete(id); }));
+  if(b.evn){ evq.splice(0,b.evn); lsSet(EKEY, JSON.stringify(evq)); } }
 async function flush(){
   if(!online()) return;
   if(flushing){ clearTimeout(syncT); syncT=setTimeout(flush,700); return; }
   const b=buildChanges(); if(!b){ setStatus("ok"); return; }
   flushing=true; setStatus("saving","Сохраняю…");
   try{
-    await api({action:"sync", changes:b.ch});
-    Object.keys(b.sent).forEach(t=>b.sent[t].forEach((v,id)=>{ const cur=pend[t].get(id); if(cur&&cur.s===v.s) pend[t].delete(id); }));
-    if(b.evn){ evq.splice(0,b.evn); lsSet(EKEY, JSON.stringify(evq)); }
+    await api({action:"sync", changes:b.ch}); sentOk(b);
     setStatus(hasPending()?"wait":"ok", hasPending()?"Есть несохранённое":"");
     if(hasPending()){ clearTimeout(syncT); syncT=setTimeout(flush,500); }
   }catch(e){ handleErr(e); clearTimeout(syncT); syncT=setTimeout(flush,15000); }
@@ -885,7 +888,8 @@ function toast(type, title, text, opt){
 }
 let netToastAt=0;
 function handleErr(e){ if(e.message==="auth"){ showLogin("Неверный пароль"); setStatus("err","Нужен вход"); toast("err","Неверный пароль","Таблица не приняла пароль. Введите его ещё раз в окне входа."); }
-  else { setStatus("err","Не сохранено — нет связи, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Нет связи с Google Таблицей","Всё сохранено на этом устройстве и отправится автоматически, когда связь появится. Ничего делать не нужно."); } } }
+  else if(e && !e.net){ setStatus("err","Ошибка таблицы, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Таблица ответила ошибкой","«"+String(e.message||e).slice(0,160)+"». Всё сохранено на этом устройстве, повторю сам. Если повторяется — пришлите этот текст Claude."); } }
+  else { setStatus("err","Не сохранено — нет связи, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Нет связи с Google Таблицей",(e&&e.message?"Причина: "+e.message+". ":"")+"Всё сохранено на этом устройстве и отправится автоматически, когда связь появится. Ничего делать не нужно."); } } }
 
 function applyServer(d){
   D.suppliers = d.suppliers.map(x=>Object.assign(x,{next:+x.next||1, vat:x.vat||"none"}));
@@ -904,13 +908,13 @@ function applyServer(d){
   if(!isStaff()) patchAll(); saveLocal();
   if(!isStaff() && Array.isArray(d.daytasks) && !lsGet("frudom-auto-bf1")){ const t=todayISO(); docTasks(D.journal.filter(j=>j.snap && !isArch(j) && j.date>=t).map(j=>j.date), true); lsSet("frudom-auto-bf1","1"); }
 }
+let lastPullAt=0;
 async function pull(force){
   if(!online()) return;
   if(hasPending()){ await flush(); if(hasPending()) return; }
   setStatus("saving","Загружаю…");
   try{
-    const r = await fetch(API_URL+"?action=load&key="+encodeURIComponent(pass())+"&user="+encodeURIComponent(curUser()));
-    const j = await r.json(); if(!j.ok) throw new Error(j.error||"ошибка");
+    const j = await apiFetch(API_URL+"?action=load&key="+encodeURIComponent(pass())+"&user="+encodeURIComponent(curUser())); lastPullAt=Date.now();
     if(j.me){ lsSet(MKEY, JSON.stringify(j.me)); applyRole(); }
     if("prefs" in j) serverPrefs(j.prefs); if(prefsDirty) pushPrefs();
     if(!j.data.suppliers.length){ // пустая таблица: выгрузить то, что есть здесь
@@ -972,7 +976,7 @@ async function logout(){
 $("#fd-user").onclick=()=>{ const c=$("#fd-user"); if(c.classList.contains("armed")){ logout(); return; } c.classList.add("armed"); c.innerHTML="Выйти из «"+esc(curUser())+"»?"; setTimeout(()=>{ if(c.classList.contains("armed")) applyRole(); },4000); };
 $("#fd-pass").addEventListener("keydown",e=>{ if(e.key==="Enter") $("#fd-enter").click(); });
 $("#fd-status").onclick=()=>{ if(online()) pull(true); };
-document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && online() && $("#pv").hidden) pull(); });
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && online() && $("#pv").hidden && Date.now()-lastPullAt>45000) pull(); });
 window.addEventListener("beforeunload",e=>{ if(online() && hasPending()){ flush(); e.preventDefault(); e.returnValue=""; } });
 
 /* ---------- вкладки ---------- */
@@ -1201,8 +1205,10 @@ async function commitDoc(dr0, opt){
   if(online()){
     setStatus("saving","Сохраняю документ…");
     try{
-      if(hasPending()) await flush();
-      let j=await api({action:"saveDoc", entry:jRow(entry)});
+      let bp=null; if(flushing) await flush(); else bp=buildChanges();
+      let j; try{ j=await api(Object.assign({action:"saveDoc", entry:jRow(entry)}, bp?{changes:bp.ch}:{})); }
+      catch(x){ if(bp && x.resp && x.resp.synced) sentOk(bp); throw x; }
+      if(bp){ if(j.synced) sentOk(bp); else await flush(); }   /* старый скрипт таблицы не берёт правки вместе с документом — отправим отдельно */
       const liveClash = () => D.journal.some(x=>x.id!==dr.id && !isArch(x) && x.supplierId===dr.supplierId && x.customerId===dr.customerId && String(x.number)===String(dr.number));
       if(j.conflict && !liveClash()){ setStatus("ok"); await forceSave(); LC={n:dr.number, created:!old}; if(own) msg.textContent="Сохранено в журнал. Следующий номер для этого заказчика: "+nextNum(dr.supplierId, dr.customerId); return ""; }
       if(j.conflict && old && String(old.number)===String(dr.number)){ setStatus("ok"); await forceSave(); LC={n:dr.number, created:false, warn:"Номер "+dr.number+" есть и у другого документа."}; if(own) msg.textContent="Сохранено в журнал (номер "+dr.number+" повторяется у другого документа)."; return ""; }

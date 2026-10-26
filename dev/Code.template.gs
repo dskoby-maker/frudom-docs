@@ -106,11 +106,7 @@ function handle_(p) {
     if (p.action === 'profit')  { if (!me.admin) return { ok: false, error: 'forbidden' }; return { ok: true, costs: read_('costs'), doccosts: read_('doccosts'), psettings: read_('psettings') }; }
     if (p.action === 'setPrefs') { upsertList_('uprefs', { upsert: [{ id: me.name, data: String(p.data || '').slice(0, 20000), updated: new Date().toISOString() }] }); return { ok: true }; }
     if (p.action === 'events')  { if (!me.admin) return { ok: false, error: 'forbidden' }; return { ok: true, events: readEvents_(+p.limit || 1000) }; }
-    if (p.action === 'sync')    { let ch = p.changes || {};
-      if (me.role === 'staff') { const j = ch.journal ? { upsert: (ch.journal.upsert || []).filter(staffOk_), del: [] } : null;
-        let dt = ch.daytasks || null; if (dt) { const own = {}; read_('daytasks').forEach(r => { if (r.by === me.name) own[r.id] = 1; }); dt = { upsert: dt.upsert || [], del: (dt.del || []).filter(id => own[id]) }; }
-        ch = { journal: j, events: ch.events, daytasks: dt }; if (!j) delete ch.journal; if (!dt) delete ch.daytasks; }
-      applySync_(ch, me); if (Array.isArray(ch.events)) log_(me, ch.events); return { ok: true }; }
+    if (p.action === 'sync')    { syncIn_(p.changes, me); return { ok: true }; }
     if (p.action === 'addPhoto') return addPhoto_(p, me);
     if (p.action === 'photo')    { const r = read_('taskphotos').find(x => x.id === String(p.id)); if (!r) return { ok: false, error: 'фото не найдено' };
       const b = DriveApp.getFileById(r.file).getBlob(); return { ok: true, data: 'data:' + (b.getContentType() || 'image/jpeg') + ';base64,' + Utilities.base64Encode(b.getBytes()) }; }
@@ -119,7 +115,9 @@ function handle_(p) {
       if (me.role === 'staff' && r.by !== me.name) return { ok: false, error: 'forbidden' };
       try { DriveApp.getFileById(r.file).setTrashed(true); } catch (x) {}
       write_('taskphotos', rows.filter(x => x.id !== r.id)); log_(me, [{ action: 'Задача на день', text: 'Удалено фото из задачи' }]); return { ok: true }; }
-    if (p.action === 'saveDoc') { if (me.role === 'staff' && !staffOk_(p.entry || {})) return { ok: false, error: 'forbidden' }; return saveDoc_(p.entry, me); }
+    if (p.action === 'saveDoc') { const synced = !!p.changes; if (synced) syncIn_(p.changes, me);   /* несохранённые правки едут вместе с документом — один запрос вместо двух */
+      if (me.role === 'staff' && !staffOk_(p.entry || {})) return { ok: false, error: 'forbidden', synced: synced };
+      const r = saveDoc_(p.entry, me); r.synced = synced; return r; }
     return { ok: false, error: 'unknown action' };
   } catch (err) {
     return { ok: false, error: String(err) };
@@ -128,7 +126,23 @@ function handle_(p) {
   }
 }
 
+function syncIn_(ch, me) { ch = ch || {};
+  if (me.role === 'staff') { const j = ch.journal ? { upsert: (ch.journal.upsert || []).filter(staffOk_), del: [] } : null;
+    let dt = ch.daytasks || null; if (dt) { const own = {}; read_('daytasks').forEach(r => { if (r.by === me.name) own[r.id] = 1; }); dt = { upsert: dt.upsert || [], del: (dt.del || []).filter(id => own[id]) }; }
+    ch = { journal: j, events: ch.events, daytasks: dt }; if (!j) delete ch.journal; if (!dt) delete ch.daytasks; }
+  applySync_(ch, me); if (Array.isArray(ch.events)) log_(me, ch.events);
+}
+
+/* ускорение: каждый лист читаем один раз за запрос; заголовки проверяем, только когда поменялась версия скрипта */
+const MEMO_ = {}, SH_ = {};
 function sheet_(t) {
+  if (SH_[t]) return SH_[t];
+  const ss = SpreadsheetApp.getActive(), want = S[t].cols.map(c => c[1]), pr = PropertiesService.getScriptProperties(), pk = 'hdr_' + t, sig = want.join('|');
+  let sh = ss.getSheetByName(S[t].title);
+  if (sh && pr.getProperty(pk) === sig) return SH_[t] = sh;
+  sh = sheet0_(t); pr.setProperty(pk, sig); return SH_[t] = sh;
+}
+function sheet0_(t) {
   const ss = SpreadsheetApp.getActive();
   let sh = ss.getSheetByName(S[t].title);
   if (!sh) {
@@ -148,20 +162,21 @@ function sheet_(t) {
 }
 
 function read_(t) {
+  if (MEMO_[t]) return MEMO_[t].map(o => Object.assign({}, o));
   const sh = sheet_(t), n = sh.getLastRow(), cols = S[t].cols;
-  if (n < 2) return [];
-  return sh.getRange(2, 1, n - 1, cols.length).getDisplayValues()
+  if (n < 2) { MEMO_[t] = []; return []; }
+  MEMO_[t] = sh.getRange(2, 1, n - 1, cols.length).getDisplayValues()
     .map(r => { const o = {}; cols.forEach((c, i) => o[c[0]] = r[i]); return o; })
     .filter(o => (t === 'prices' || t === 'specs') ? (o.customerId && o.productId) : o.id);
+  return MEMO_[t].map(o => Object.assign({}, o));
 }
 
 function write_(t, rows) {
+  delete MEMO_[t];
   const sh = sheet_(t), n = sh.getLastRow(), cols = S[t].cols;
-  if (n > 1) sh.getRange(2, 1, n - 1, cols.length).clearContent();
-  if (!rows.length) return;
-  const rng = sh.getRange(2, 1, rows.length, cols.length);
-  rng.setNumberFormat('@');
-  rng.setValues(rows.map(o => cols.map(c => o[c[0]] == null ? '' : String(o[c[0]]))));
+  if (rows.length) { const rng = sh.getRange(2, 1, rows.length, cols.length); rng.setNumberFormat('@');
+    rng.setValues(rows.map(o => cols.map(c => o[c[0]] == null ? '' : String(o[c[0]])))); }
+  if (n - 1 > rows.length) sh.getRange(rows.length + 2, 1, n - 1 - rows.length, cols.length).clearContent();   /* лишние старые строки снизу */
 }
 
 function mergeSeen_(a, b) {
@@ -191,6 +206,8 @@ function addPhoto_(p, me) {
 /* фото, у которых задачу удалили (или не дописали) больше 3 дней назад, убираем в корзину Диска */
 function photosClean_() {
   const rows = read_('taskphotos'); if (!rows.length) return rows;
+  const pr = PropertiesService.getScriptProperties(), today = new Date().toISOString().slice(0, 10);
+  if (pr.getProperty('photosCleaned') === today) return rows; pr.setProperty('photosCleaned', today);
   const tasks = {}; read_('daytasks').forEach(r => tasks[r.id] = 1);
   const old = Date.now() - 3 * 86400000, keep = [], gone = [];
   rows.forEach(r => (tasks[r.taskId] || !(new Date(r.created).getTime() < old) ? keep : gone).push(r));
