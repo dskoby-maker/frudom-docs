@@ -1,0 +1,66 @@
+/* ======== печатные формы (бумага: всегда чёрное на белом) ======== */
+.doc{font-family:Arial,"Liberation Sans",Helvetica,sans-serif;color:#000;font-size:8pt;line-height:1.2}
+.doc table{border-collapse:collapse;width:100%}
+.doc .g td,.doc .g th{border:1px solid #000;padding:2px 3px;vertical-align:top}
+.doc .g th{font-weight:normal;text-align:center;vertical-align:middle}
+.doc .r{text-align:right;white-space:nowrap}.doc .c{text-align:center}
+.doc .b{font-weight:bold}
+.doc .sm{font-size:6.5pt}
+.doc .u{border-bottom:1px solid #000;min-height:11pt}
+.doc .sig .u{white-space:nowrap}
+.doc .cap{font-size:6pt;text-align:center;color:#000}
+.doc h1{font-size:13pt;margin:10px 0 4px}
+.doc hr.thick{border:0;border-top:2px solid #000;margin:6px 0}
+.doc .lbl td{padding:2px 4px;vertical-align:bottom}
+.doc-invoice{font-size:9pt}
+.doc-invoice .g td{padding:3px 5px}
+.doc .sig{display:grid;grid-template-columns:auto 1fr 8px 1fr;align-items:end;gap:0 4px;margin-top:4px}
+.doc .nobr{white-space:nowrap}
+
+.doc .lab{width:1%;white-space:nowrap;padding-right:4px;vertical-align:top;padding-top:3px}
+.doc .lbl td{vertical-align:top}
+.doc .codes{border-collapse:collapse;margin-top:2px}.doc .codes td{padding:1px 3px;height:15px}
+.doc .codes .box,.doc .bx td,.doc .bx th{border:1px solid #000;width:38%}
+.doc .codes tr:nth-child(2) .box{border:1.5px solid #000}
+.doc .pgno{text-align:right;font-style:italic;font-size:7.5pt;margin:2px 0}
+.doc .items{font-size:7pt}.doc .items td{padding:1px 2px;vertical-align:top}
+.doc .items tr.nums th{font-size:6.5pt;padding:0}
+.doc .items thead{display:table-header-group}
+.doc .tot td{border:1px solid #000}.doc .tot td.nb{border:0}
+.doc .s3{display:grid;grid-template-columns:24% 22% 18% 1fr;gap:0 8px;align-items:end;margin-top:7px}
+.doc .s4{display:grid;grid-template-columns:1fr 1fr 1.3fr auto;gap:0 6px;align-items:end;margin:3px 0 5px}
+.doc .ib{display:inline-block;min-width:60px;vertical-align:bottom}
+.doc .mp{display:flex;gap:90px;margin:12px 0 0 90px}
+.doc .t12f{margin-top:6px}.doc .t12f td{padding:1px 2px;vertical-align:bottom}
+.doc .updleft{width:14%;vertical-align:top;border-right:2px solid #000;padding-right:6px}
+.doc .updh td{padding:0 2px;vertical-align:bottom}.doc .updh td.v{width:100%}.doc .updh td.n{width:1%}
+.doc .updh .lab{white-space:normal;min-width:120px;max-width:300px;width:auto}
+.doc .updh.fx{table-layout:fixed}.doc .updh.fx td.lab{white-space:normal;width:auto;max-width:none;min-width:0}
+.doc .updh td.lab.nobr{white-space:nowrap;min-width:0;max-width:none}
+.doc .upd2{margin-top:4px}.doc .upd2 td{vertical-align:top;width:50%}.doc .upd2 td.l{border-right:1px solid #000;padding-right:8px}.doc .upd2 td.r2{padding-left:8px}
+.doc .upd2 .udl{margin:3px 0}.doc .mpu{margin-top:4px;padding-left:40px}
+.doc.upd{font-size:7.5pt}.doc.upd .items{font-size:7.5pt}
+.doc .t12h .lbl td{padding:1px 4px}.doc .t12h .codes td{height:13px}.doc .t12h .codes td[style*="height:30px"]{height:20px!important}.doc .t12h .codes td[style*="height:22px"]{height:18px!important}
+.doc .t12f{margin-top:3px}.doc .t12f .s3{margin-top:3px}.doc .t12f .mp{margin-top:5px}.doc .t12f .row2[style*="margin-top:8px"],.doc .t12f .b[style*="margin-top:8px"]{margin-top:4px!important}.doc .t12f .u[style*="margin-top:12px"]{margin-top:7px!important}
+/* УПД компактнее: шапка, заголовок таблицы и подписи — чтобы несколько строк помещались на один лист */
+.doc.upd{line-height:1.18}
+.doc.upd .updh td{padding:0 2px;line-height:1.15}
+.doc.upd .updleft p.sm{margin-top:3px!important}
+.doc.upd .items thead th{padding:1px 2px;line-height:1.05;font-size:6pt}
+.doc.upd .items td{padding:1px 2px}
+.doc.upd .m-foot{font-size:7pt;line-height:1.1}
+.doc.upd .m-foot .cap{font-size:6pt;line-height:1.05;margin-bottom:1px}
+.doc.upd .m-foot .s4{margin:1px 0}
+.doc.upd .m-foot .u{min-height:0}
+.doc.upd .upd2{margin-top:2px}.doc.upd .upd2 .udl{margin:1px 0}.doc.upd .mpu{margin-top:1px}
+.doc.upd .m-foot > div[style*="border-top"]{margin:3px 0!important}
+.doc.upd .items{table-layout:fixed}
+.doc.upd .items thead th{overflow-wrap:anywhere;-webkit-hyphens:auto;hyphens:auto}
+/* факсимиле: подпись над линией, печать у «М.П.» */
+.doc .sgu{position:relative}
+.doc .sgi{position:absolute;left:50%;bottom:-3mm;height:11mm;max-width:34mm;object-fit:contain;transform:translateX(-50%) rotate(-3deg);pointer-events:none}
+.doc .mp,.doc .mpu,.doc .signbox{position:relative}
+.doc .sti{position:absolute;width:36mm;height:36mm;object-fit:contain;opacity:.93;pointer-events:none}
+.doc .sti.t12{left:-14mm;top:-24mm}
+.doc .sti.upd{left:8mm;top:-24mm;width:32mm;height:32mm}
+.doc .sti.inv{right:2mm;top:-12mm}
