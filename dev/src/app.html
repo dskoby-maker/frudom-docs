@@ -202,7 +202,10 @@
 #fd-app .dt-hint{font-size:12px;color:var(--muted);margin-left:auto;transition:color .3s}#fd-app .dt-hint.ok{color:#2f7d4f}
 #fd-app .dt-cbar .btn{border-radius:99px;padding:7px 16px}
 #fd-app .dt-cam{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;color:#a07a3c;cursor:pointer;transition:background .15s,color .15s,transform .15s}#fd-app .dt-cam:hover{background:#f6ead0;color:#7a4b08}#fd-app .dt-cam:active{transform:scale(.9)}
-#fd-app .dt.dt-ed{padding:0;border:0;background:none;display:block}#fd-app .dt-ed .dt-comp{margin:0}
+#fd-app .dt.dt-ed{padding:0;border:0;background:none;display:block}
+#fd-app .dt-pen{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;border:0;background:none;color:#a07a3c;cursor:pointer;transition:background .15s,color .15s}#fd-app .dt-pen:hover{background:#f6ead0;color:#7a4b08}#fd-app .dt-pen svg{width:16px;height:16px}
+#fd-app .dt-edrow input[type=date],#fd-app .dt-cbar input[type=date]{flex:0 0 auto;width:auto;padding:5px 10px;font-size:13.5px;border-radius:99px;background:#fbf6ec;border-color:#f0e2c4}
+#fd-app .dt-edrow{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:2px 4px 6px}#fd-app .dt-edrow select[hidden]{display:none}#fd-app .dt-edrow select{flex:0 1 230px;width:auto;min-width:140px;padding:6px 10px;font-size:13.5px;border-radius:99px;background:#fbf6ec;border-color:#f0e2c4}#fd-app .dt-edrow .muted{font-size:12.5px}#fd-app .dt-ed .dt-comp{margin:0}
 @media (pointer:coarse){#fd-app .dt-hint{display:none}#fd-app .dt-cbar .btn:first-of-type{margin-left:auto}#fd-app .dt-add .dt-cbar .btn.pri{margin-left:auto}}
 #fd-app .dt-phs{display:flex;gap:8px;flex-wrap:wrap}#fd-app .dt-phs:empty{display:none}
 #fd-app .dt-comp .dt-phs{padding:2px 10px 9px}#fd-app .dt-b .dt-phs{margin-top:8px}
@@ -1748,6 +1751,7 @@ const hhmm = iso => { if(!iso) return ""; const d=new Date(iso); return isNaN(d)
 const dtCan = x => !isStaff() || x.by===curUser();
 const dtSeen = x => { try{ const o=JSON.parse(x.seen||"{}"); return o&&typeof o==="object"?o:{}; }catch(e){ return {}; } };
 const dtNew = x => { const me=curUser(); return !!me && x.by!==me && !dtSeen(x)[me]; };
+const IPEN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
 const ICAM='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.3l1.4-2h5.6l1.4 2h1.3A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.4"/></svg>';
 /* черновик новой задачи и открытый редактор хранятся на устройстве — свернули браузер, вернулись, продолжаете с того же места */
 const DRK = () => "frudom-dt-draft-"+(curUser()||""), EDK = () => "frudom-dt-edit-"+(curUser()||"");
@@ -1760,6 +1764,9 @@ const edSave = () => lsSet(EDK(), ED ? JSON.stringify(ED) : null);
 function dtEdRow(x){ const e=EDf();
   return `<div class="dt dt-ed" data-dt="${esc(x.id)}"><div class="dt-comp">
     <textarea class="dt-in dt-edit" rows="2" maxlength="1000" aria-label="Текст задачи">${esc(e.text)}</textarea>
+    ${isAuto(x)?`<div class="dt-edrow"><span class="muted">Задача из накладной — дата и заказчик как в накладной</span></div>`:`<div class="dt-edrow"><input type="date" data-edf="date" value="${esc(e.date||x.date)}" aria-label="Дата задачи">
+      <select data-edf="cus" aria-label="Заказчик"><option value="">Без заказчика</option>${opts(D.customers, e.cus!=null?e.cus:x.customerId)}</select>${(()=>{ const L=cusAddrs(cus(e.cus!=null?e.cus:x.customerId)), a=e.addr!=null?e.addr:x.addr;
+        return `<select data-edf="addr" aria-label="Точка доставки"${L.length<2?" hidden":""}><option value="">Точка не выбрана</option>${L.map(o=>`<option value="${esc(o.a)}"${o.a===a?" selected":""}>${esc(o.label)}</option>`).join("")}</select>`; })()}</div>`}
     <div class="dt-phs" data-phs="${esc(x.id)}" data-x="1">${phItems(x.id,x.photos,true)}</div>
     <div class="dt-cbar"><label class="dt-pbtn">${ICAM}<span>Фото</span><input type="file" accept="image/*" multiple hidden data-phfile></label>
       <span class="dt-hint">Enter — сохранить · Shift+Enter — новая строка</span>
@@ -1772,7 +1779,7 @@ function dtRow(x){ const e=EDf(); if(e && e.id===x.id && dtCan(x)) return dtEdRo
       <div class="dt-phs" data-phs="${esc(x.id)}">${phItems(x.id,x.photos,false)}</div>
       <small>${esc(x.by||"")}${x.created?" · "+(x.created.slice(0,10)===todayISO()?"сегодня ":fd(x.created.slice(0,10))+" ")+hhmm(x.created):""}</small>
       <div class="dt-seen" aria-label="Кто видел">${who}</div></div>
-    <div class="dt-a"><label class="dt-cam" title="Прикрепить фото" aria-label="Прикрепить фото">${ICAM}<input type="file" accept="image/*" multiple hidden data-phfile></label>${dtCan(x)?`<button type="button" class="dt-x" data-dtdel title="Удалить" aria-label="Удалить">×</button>`:""}</div></div>`; }
+    <div class="dt-a">${dtCan(x)?`<button type="button" class="dt-pen" data-dtpen title="Изменить задачу" aria-label="Изменить задачу">${IPEN}</button>`:""}<label class="dt-cam" title="Прикрепить фото" aria-label="Прикрепить фото">${ICAM}<input type="file" accept="image/*" multiple hidden data-phfile></label>${dtCan(x)?`<button type="button" class="dt-x" data-dtdel title="Удалить" aria-label="Удалить">×</button>`:""}</div></div>`; }
 /* отмечаем «видел» за текущего пользователя — только когда задачи дня реально показаны на экране */
 function dtMarkSeen(L){ const me=curUser(); if(!me) return; const now=new Date().toISOString();
   L.forEach(x=>{ if(x.by===me) return; const sn=dtSeen(x); if(sn[me]) return; x._new=1; sn[me]=now; x.seen=JSON.stringify(sn); dirty("daytasks", x.id); }); }
@@ -1805,7 +1812,11 @@ function dtPtFill(){ const ps=$("#dt-pt"), L=cusAddrs(cus($("#dt-cus").value)), 
   ps.hidden=L.length<2; ps.innerHTML=`<option value="">Точка не выбрана</option>`+L.map(o=>`<option value="${esc(o.a)}" title="${esc(o.a)}">${esc(o.label)}</option>`).join("");
   ps.value = L.some(o=>o.a===keep) ? keep : ""; }
 function dtEdFinish(save){ const e=EDf(); if(!e) return; const x=DTS().find(y=>y.id===e.id); ED=null; edSave();
-  if(save && x){ const v=e.text.trim(); if(v && v!==x.text){ x.text=v; x.seen=""; dtSave(x,"Изменена: "+v); toast("ok","Задача исправлена","Отметки «видел» начнутся заново."); return; } }
+  if(save && x){ const v=e.text.trim(), nd=!isAuto(x)&&e.date&&e.date!==x.date?e.date:"", nc=!isAuto(x)&&e.cus!=null&&e.cus!==x.customerId, na=!isAuto(x)&&e.addr!=null&&e.addr!==(x.addr||"");
+    const tch=!!v && v!==x.text; if(tch||nd||nc||na){ const was=x.date; if(tch) x.text=v; if(nd) x.date=nd; if(nc){ x.customerId=e.cus; x.addr=e.addr||""; } else if(na) x.addr=e.addr;
+      if(tch||nd) x.seen="";
+      dtSave(x,"Изменена"+(nd?" (перенесена с "+fd(was)+" на "+fd(nd)+")":"")+": "+x.text);
+      toast("ok", nd?"Задача перенесена на "+fd(nd):"Задача исправлена", (tch||nd)?"Отметки «видел» начнутся заново.":"", nd?{action:{label:"Открыть "+fd(nd), fn:()=>{ const c=CAL(); c.sel=nd; c.ym=nd.slice(0,7); saveLocal(); renderCalendar(); }}}:undefined); return; } }
   renderCalendar(); }
 /* поле задачи: Enter — сохранить, Shift+Enter — новая строка (на телефоне Enter = новая строка, сохраняет кнопка) */
 const dtTouch = () => { try{ return matchMedia("(pointer:coarse)").matches; }catch(e){ return false; } };
@@ -1844,7 +1855,8 @@ dtKeys($("#dt-text"), ()=>$("#dt-add").requestSubmit());
 $("#dt-text").addEventListener("input",()=>{ DRf().text=$("#dt-text").value; drSave(); });
 $("#dt-cus").addEventListener("change",()=>{ DRf().cus=$("#dt-cus").value; DRf().pt=""; $("#dt-pt").value=""; dtPtFill(); drSave(); });
 $("#dt-pt").addEventListener("change",()=>{ DRf().pt=$("#dt-pt").value; drSave(); });
-$("#dt-box").addEventListener("change",e=>{ const f=e.target.closest("[data-phfile]"); if(!f) return; const row=e.target.closest("[data-dt]"), files=[...f.files]; f.value="";
+$("#dt-box").addEventListener("change",e=>{ const ef=e.target.dataset&&e.target.dataset.edf; if(ef){ const E=EDf(); if(!E) return; E[ef]=e.target.value; if(ef==="cus") E.addr=""; edSave(); if(ef==="cus"){ E.text=($("#dt-list .dt-edit")||{}).value||E.text; drawDayTasks(); } return; }
+  const f=e.target.closest("[data-phfile]"); if(!f) return; const row=e.target.closest("[data-dt]"), files=[...f.files]; f.value="";
   if(files.length) phAdd(row ? row.dataset.dt : DRf().id, files); });
 $("#dt-box").addEventListener("click",e=>{
   const ph=e.target.closest(".ph[data-ph]");
@@ -1858,6 +1870,7 @@ $("#dt-box").addEventListener("click",e=>{
   if(e.target.closest("[data-dtdel]")){ const b=e.target.closest("[data-dtdel]"); if(!b.dataset.armed){ b.dataset.armed=1; b.textContent="Удалить?"; b.classList.add("armed"); setTimeout(()=>{ if(b.isConnected){ delete b.dataset.armed; b.textContent="×"; b.classList.remove("armed"); } },3000); return; }
     const i=DTS().indexOf(x); DTS().splice(i,1); dirty("daytasks",x.id,true); saveLocal(); logEv("Задача на день","Удалена ("+fd(x.date)+"): "+x.text); renderCalendar();
     toast("info","Задача удалена",x.text,{action:{label:"Вернуть", fn:()=>{ DTS().push(x); dtSave(x,"Возвращена: "+x.text); }}}); return; }
+  if(e.target.closest("[data-dtpen]")){ if(EDf()) dtEdFinish(true); const y=DTS().find(z=>z.id===row.dataset.dt); if(!y) return; ED={u:curUser(), id:y.id, text:y.text, a:y.text.length, focus:1, date:y.date, cus:y.customerId||"", addr:y.addr||""}; edSave(); drawDayTasks(); return; }
   if(e.target.closest("[data-dtedit]") && !EDf()){ ED={u:curUser(), id:x.id, text:x.text, a:x.text.length, focus:1}; edSave(); drawDayTasks(); } });
 
 /* ---------- фото к задачам ---------- */
