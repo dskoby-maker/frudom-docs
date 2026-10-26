@@ -326,6 +326,7 @@
 #fd-app .dvp{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:6px;margin-bottom:10px}
 #fd-app .dvp h3{margin:0;font-size:15px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}#fd-app .dvp h3 i{font-style:normal;background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:inline-grid;place-items:center;font-size:12px;flex:none}
 #fd-app .dvp .ad{color:var(--muted);font-size:13px}#fd-app .dvp ul{margin:0;padding-left:18px;font-size:14px}#fd-app .dvp .ct{font-size:13px}#fd-app .dvp .ct.miss{color:var(--warn)}
+#fd-app .dvp .dv-more{justify-self:start;background:none;border:0;padding:2px 0;color:var(--accent);font:inherit;font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}#fd-app .dvp li[hidden]{display:none}
 #fd-app .dvp details summary{cursor:pointer;color:var(--accent);font-size:13px}#fd-app .dvp .grid{margin-top:8px}
 #fd-app .dvbtns .btn{flex:1 1 180px}
 #fd-app .pfcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
@@ -893,6 +894,7 @@ function applyServer(d){
   if(!D.suppliers.some(x=>x.id===D.draft.supplierId) && D.suppliers[0]) D.draft.supplierId=D.suppliers[0].id;
   if(!D.customers.some(x=>x.id===D.draft.customerId)) D.draft.customerId=(D.customers[0]||{}).id||"";
   if(!isStaff()) patchAll(); saveLocal();
+  if(!isStaff() && Array.isArray(d.daytasks) && !lsGet("frudom-auto-bf1")){ const t=todayISO(); docTasks(D.journal.filter(j=>j.snap && !isArch(j) && j.date>=t).map(j=>j.date), true); lsSet("frudom-auto-bf1","1"); }
 }
 async function pull(force){
   if(!online()) return;
@@ -1185,7 +1187,7 @@ async function commitDoc(dr0, opt){
   const forceSave=async()=>{ const i=D.journal.findIndex(j=>j.id===entry.id); if(i>=0) D.journal[i]=entry; else D.journal.unshift(entry);
     logEv("Документ",(old?"Изменён":"Создан")+" документ № "+dr.number+" от "+fd(dr.date)+" — "+shortCus(calc(dr))+(dr.ship?", "+dr.ship:"")+", сумма "+fm(calc(dr).t.sum)+" ₽"+(liveDup()?" (номер повторяется)":""), dr.id);
     dirty("journal", entry.id); if(+dr.number>=(+s.next||1)){ s.next=(+dr.number)+1; dirty("suppliers", s.id); }
-    saveLocal(); if(online()){ try{ await flush(); }catch(e){ handleErr(e); } } };
+    docTasks([old&&old.date, entry.date]); saveLocal(); if(online()){ try{ await flush(); }catch(e){ handleErr(e); } } };
   if(opt&&opt.force){ await forceSave(); LC={n:dr.number, created:!old, warn:"Номер "+dr.number+" повторяется — сохранён по вашему решению."}; if(own) msg.textContent="Сохранено в журнал с повторяющимся номером "+dr.number+"."; return ""; }
   if(online()){
     setStatus("saving","Сохраняю документ…");
@@ -1202,7 +1204,7 @@ async function commitDoc(dr0, opt){
     }catch(e){ dirty("journal", entry.id); handleErr(e); note="Сохранено на этом устройстве, в таблицу отправлю при появлении связи. "; }
   } else if(+dr.number>=(+s.next||1)) s.next=(+dr.number)+1;
   const i=D.journal.findIndex(j=>j.id===entry.id); if(i>=0) D.journal[i]=entry; else D.journal.unshift(entry);
-  saveLocal(); if(own) msg.textContent=note+"Сохранено в журнал. Следующий номер для этого заказчика: "+nextNum(dr.supplierId, dr.customerId);
+  docTasks([old&&old.date, entry.date]); saveLocal(); if(own) msg.textContent=note+"Сохранено в журнал. Следующий номер для этого заказчика: "+nextNum(dr.supplierId, dr.customerId);
   LC={n:dr.number, created:!old, warn:note.trim()};
   return note;
 }
@@ -1538,7 +1540,7 @@ const ptKey = a => norm(a).replace(/[^a-zа-я0-9]/g,"");
 const ptsOf = c => { try{ const o=JSON.parse(c.points||"{}"); return o&&typeof o==="object"?o:{}; }catch(e){ return {}; } };
 const ptInfo = (cid, addr) => ptsOf(cus(cid)||{})[ptKey(addr)] || {};
 const DV = () => (D.dv = D.dv || {date:"", sup:"", phone:"", full:false, load:true});
-let dvTouched=false;
+let dvTouched=false; const dvOpen=new Set(), DV_SHOW=3;
 const ptTime = pi => { if(pi.from||pi.to) return (pi.from||"…")+"–"+(pi.to||"…"); return pi.time||""; };
 function ptFields(cid, addr){ const pi=ptInfo(cid,addr); let f=pi.from||"", to=pi.to||""; if(!f && !to && pi.time){ const m=String(pi.time).match(/(\d{1,2})[:.](\d\d)\s*[–-]\s*(\d{1,2})[:.](\d\d)/); if(m){ f=m[1].padStart(2,"0")+":"+m[2]; to=m[3].padStart(2,"0")+":"+m[4]; } }
   return `<div class="ptg" data-cid="${esc(cid)}" data-addr="${esc(addr)}">
@@ -1581,7 +1583,7 @@ const cusShort = n => { n=String(n||""); const q=n.match(/«([^»]+)»/); if(q) 
 const ptName = (p) => { const l=stLabel(p.addr,p.c.address), m=l.match(/^ст ([\d, ]+)$/); const s = m ? "Столовая №"+m[1] : l; return s.charAt(0).toUpperCase()+s.slice(1); };
 const itemShort = n => String(n||"").replace(/\s*\([^)]*\)/g,"").replace(/\s+(свеж\S*|продовольственн\S*|столов\S*)(?=\s|$)/gi,"").replace(/\s+/g," ").trim();
 function dvText(P){
-  const f=DV(), TK=DTS().filter(x=>x.date===f.date); if(!P.length && !TK.length) return "";
+  const f=DV(), TK=DTS().filter(x=>x.date===f.date && !isAuto(x)); if(!P.length && !TK.length) return "";
   const tkLines = TK.length ? ["Задачи на день:", ...TK.map(x=>"• "+(x.customerId?cusShort(cus(x.customerId).name)+(x.addr?" ("+x.addr+")":"")+": ":"")+String(x.text).replace(/\n/g,"\n   ")+(x.photos&&x.photos.length?" (фото на сайте: "+x.photos.length+")":"")), ""] : [];
   const short=a=>a.replace(/^\d{6},\s*/,"").replace(/^г\.\s*Москва,\s*/i,"").replace(/\s*\([^)]*\)\s*$/,"");
   const L=[], groups=[]; P.forEach(p=>{ const g=cusShort(cus(p.cid).name||p.c.name); let G=groups.find(x=>x.g===g); if(!G){ G={g, P:[]}; groups.push(G); } G.P.push(p); });
@@ -1614,13 +1616,19 @@ function renderDriver(){
   $("#dv-points").innerHTML = P.length ? P.map((p,i)=>{ const pi=ptInfo(p.cid,p.addr), has=pi.phone||pi.contact||ptTime(pi)||pi.note||pi.phone2||pi.tag;
       return `<div class="dvp"><h3><i>${i+1}</i>${esc(dvWho(p))}<span class="muted" style="font-weight:400">${esc(stLabel(p.addr,p.c.address))}</span></h3>
         <div class="ad">${esc(pi.daddr||p.addr)} · накладн. № ${esc(p.docs.map(j=>j.number).join(", "))}</div>
-        <ul>${Object.values(p.items).map(it=>`<li>${esc(it.name)} — <b>${esc(qfmt(it.qty,it.unit))}</b></li>`).join("")}</ul>
+        ${(()=>{ const IT=Object.values(p.items), k=p.cid+"|"+p.addr, op=dvOpen.has(k), more=IT.length-DV_SHOW;
+          return `<ul>${IT.map((it,n)=>`<li${n>=DV_SHOW&&!op?" hidden":""}>${esc(it.name)} — <b>${esc(qfmt(it.qty,it.unit))}</b></li>`).join("")}</ul>`
+            + (more>0?`<button type="button" class="dv-more" data-dvmore="${esc(k)}" aria-expanded="${op}">${op?"Свернуть список":"Раскрыть весь список (ещё "+more+")"}</button>`:""); })()}
         <div class="ct${has?"":" miss"}">${has?esc([pi.tag&&("("+pi.tag+")"), pi.phone&&("📞 "+pi.phone+(pi.contact?" — "+pi.contact:"")), !pi.phone&&pi.contact&&("👤 "+pi.contact), pi.phone2&&("📞 "+pi.phone2), ptTime(pi)&&("🕗 "+ptTime(pi)), pi.note&&("⚠️ "+pi.note)].filter(Boolean).join("   ")):"Контакты точки не заполнены — для наёмного водителя лучше заполнить"}</div>
         ${isStaff()?"":`<details><summary>${has?"Изменить контакты точки":"Заполнить контакты точки"}</summary>${ptFields(p.cid,p.addr)}</details>`}</div>`; }).join("")
     : `<p class="muted">На ${fd(f.date)} накладных нет. Маршрут собирается из накладных с этой датой — создайте их во вкладках «Заявка» или «Новый документ», или выберите другую дату.</p>`;
   $("#dv-text").value=dvText(P);
 }
 const dvSet=(k,v)=>{ DV()[k]=v; saveLocal(); renderDriver(); };
+$("#dv-points").addEventListener("click",e=>{ const b=e.target.closest("[data-dvmore]"); if(!b) return; const k=b.dataset.dvmore, op=!dvOpen.has(k);
+  if(op) dvOpen.add(k); else dvOpen.delete(k);
+  b.closest(".dvp").querySelectorAll("li").forEach((li,n)=>{ if(n>=DV_SHOW) li.hidden=!op; });
+  b.setAttribute("aria-expanded", op); b.textContent = op ? "Свернуть список" : "Раскрыть весь список (ещё "+(b.closest(".dvp").querySelectorAll("li").length-DV_SHOW)+")"; });
  $("#dv-sup").onchange=e=>dvSet("sup",e.target.value);
 $("#dv-full").onchange=e=>dvSet("full",e.target.checked); $("#dv-load").onchange=e=>dvSet("load",e.target.checked);
 $("#dv-points").addEventListener("change",e=>{ const el=e.target; if(!el.dataset.pt) return; const r=savePt(el); if(!r) return;
@@ -1641,7 +1649,7 @@ function pointsOn(docs){ const m={}; docs.forEach(j=>{ const dr=j.snap.dr, k=j.c
 function cusAddrs(c){ if(!c||!c.id) return []; const o=[], seen={}; const add=(a,legal)=>{ if(a && !seen[a]){ seen[a]=1; o.push({a, label:stLabel(a,legal)}); } };
   branches(c).forEach(b=>{ addrs(b).forEach(a=>add(a,b.address)); }); addrs(c).forEach(a=>add(a,c.address)); return o; }
 function dayPoints(iso, docs, cf){ const m={}; docs.forEach(j=>{ m[j.customerId+"|"+(j.snap.dr.ship||"")]=1; });
-  DTS().forEach(x=>{ if(x.date!==iso || (cf && x.customerId && x.customerId!==cf)) return;
+  DTS().forEach(x=>{ if(x.date!==iso || isAuto(x) || (cf && x.customerId && x.customerId!==cf)) return;
     if(x.customerId){ const L=cusAddrs(cus(x.customerId)), a=x.addr || (L.length===1?L[0].a:""); m[a ? x.customerId+"|"+a : "t#"+x.id]=1; } else m["t#"+x.id]=1; });
   return Object.keys(m).length; }
 function renderCalendar(){
@@ -1729,6 +1737,26 @@ const dtGrow = t => { if(!t) return; t.style.height="auto"; t.style.height=Math.
 function dtKeys(t, onEnter, onEsc){ t.addEventListener("input",()=>dtGrow(t));
   t.addEventListener("keydown",k=>{ if(k.key==="Enter" && !k.shiftKey && !k.isComposing && !dtTouch()){ k.preventDefault(); onEnter(); } else if(k.key==="Escape" && onEsc){ k.preventDefault(); onEsc(); } }); }
 function dtSave(x, ev){ dirty("daytasks", x.id); saveLocal(); if(ev) logEv("Задача на день", ev); renderCalendar(); }
+/* авто‑задачи из накладных: на каждую точку дня одна задача «Отвезти товар на … общий вес … кг».
+   Пересчитываются при сохранении, изменении и архивации накладной; ID задачи постоянный (дата+заказчик+точка), поэтому дублей не бывает */
+const AUTO_T="auto-", isAuto = x => String((x&&x.id)||"").startsWith(AUTO_T);
+const hsh = s => { let h=5381; for(const ch of String(s)) h=((h<<5)+h+ch.charCodeAt(0))|0; return (h>>>0).toString(36); };
+const wfmt = n => String(+(+n).toFixed(1)).replace(".",",");
+function docTasks(dates, quiet){ const now=new Date().toISOString(); let ch=0;
+  [...new Set((dates||[]).filter(Boolean))].forEach(date=>{ const want={};
+    D.journal.filter(j=>j.snap && !isArch(j) && j.date===date).forEach(j=>{ const dr=j.snap.dr, c=j.snap.c||{}, ship=dr.ship||"";
+      const id=AUTO_T+hsh(date+"|"+j.customerId+"|"+(dr.branchId||"")+"|"+ship);
+      const w=want[id]=want[id]||{id, cid:j.customerId, addr:ship, who:"", kg:0, other:{}};
+      if(!w.who){ const b=(c.branchLabel||"").replace(/^ОП\s*/,"").replace(/[«»"]/g,""), n=cusShort(cus(j.customerId).name||c.name); w.who = b ? n+", "+b : n; }
+      calc(dr, j.snap).lines.forEach(l=>{ const u=String(l.unit||"").trim().toLowerCase().replace(/\.$/,""), q=+l.qty||0;
+        if(u==="кг") w.kg+=q; else if(u==="г"||u==="гр") w.kg+=q/1000; else if(u==="т") w.kg+=q*1000; else { const k=l.unit||"шт"; w.other[k]=(w.other[k]||0)+q; } }); });
+    DTS().filter(x=>x.date===date && isAuto(x) && !want[x.id]).forEach(x=>{ DTS().splice(DTS().indexOf(x),1); dirty("daytasks",x.id,true); ch++; });
+    Object.values(want).forEach(w=>{ const ex=Object.keys(w.other).map(u=>qfmt(w.other[u],u)).join(", ");
+      const text="Отвезти товар на "+w.who+(w.kg?", общий вес "+wfmt(w.kg)+" кг":"")+(ex?(w.kg?" + ":", ")+ex:"");
+      const x=DTS().find(y=>y.id===w.id);
+      if(!x){ DTS().push({id:w.id, date, customerId:w.cid, addr:w.addr, text, done:"", by:curUser()||"", created:now, doneBy:"", doneAt:"", seen:"", photos:[]}); dirty("daytasks",w.id); ch++; }
+      else if(x.text!==text){ x.text=text; x.seen=""; dirty("daytasks",x.id); ch++; } }); });
+  if(ch){ saveLocal(); if(!quiet && curTab==="calendar") renderCalendar(); } return ch; }
 $("#dt-add").addEventListener("submit",e=>{ e.preventDefault(); const inp=$("#dt-text"), D0=DRf(); let v=inp.value.trim();
   if(!v && !D0.photos.length){ inp.focus(); return; } if(!v) v="Фото";
   const x={id:D0.id, date:CAL().sel, customerId:$("#dt-cus").value||"", addr:($("#dt-cus").value&&!$("#dt-pt").hidden&&$("#dt-pt").value)||"", text:v, done:"", by:curUser()||"", created:new Date().toISOString(), doneBy:"", doneAt:"", seen:"", photos:D0.photos.slice()};
@@ -2197,7 +2225,7 @@ function setArch(list, on){
   list.forEach(j=>{ const m=j.snap.meta=j.snap.meta||{}; if(on) m.arch=now; else { delete m.arch;
       const y=String(j.date).slice(0,4); if(D.journal.some(x=>x.id!==j.id && !isArch(x) && x.supplierId===j.supplierId && String(x.date).slice(0,4)===y && String(x.number)===String(j.number))) clash.push(j.number); }
     dirty("journal", j.id); });
-  saveLocal(); renderJournal(); if(curTab==="archive") renderArchive(); if(curTab==="calendar") renderCalendar();
+  docTasks(list.map(j=>j.date), true); saveLocal(); renderJournal(); if(curTab==="archive") renderArchive(); if(curTab==="calendar") renderCalendar();
   return clash;
 }
 /* кнопка с подтверждением вторым нажатием */
