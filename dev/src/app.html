@@ -492,7 +492,7 @@
     <div class="card">
       <h2>Что скачать</h2>
       <div class="row"><label class="chk"><input type="checkbox" id="o-k-invoice" checked>Счёт</label><label class="chk"><input type="checkbox" id="o-k-torg12" checked>ТОРГ‑12</label><label class="chk"><input type="checkbox" id="o-k-upd">УПД</label></div>
-      <div class="row"><button class="btn pri" id="o-go">Создать документы и скачать PDF</button><span class="muted" id="o-msg"></span></div>
+      <div class="row"><button class="btn pri" id="o-go">Создать документы и скачать PDF</button><button class="btn" id="o-save">Сохранить в журнал без PDF</button><span class="muted" id="o-msg"></span></div>
       <div class="done" id="o-done"></div>
     </div>
   </section>
@@ -1579,9 +1579,11 @@ async function manyPdf(kinds, ks, name){
   st.pdf.save(fileSafe(name)+".pdf"); ks.forEach(k=>markDownloaded(k.dr.id, kinds, true));
   if(ks.length) logEv("Скачивание","Скачан PDF комплекта ("+kinds.map(x=>KSHORT[x]).join(" + ")+"): "+ks.length+" док., № "+ks.map(k=>k.dr.number).join(", ")+" от "+fd(ks[0].dr.date)+" — "+shortCus(ks[0]));
 }
-$("#o-go").onclick=async()=>{
-  const o=O(), P=oProds(o), {all}=oAddrs(o), msg=$("#o-msg"), btn=$("#o-go");
-  const kinds=["invoice","torg12","upd"].filter(k=>$("#o-k-"+k).checked);
+$("#o-save").onclick=()=>oGo(true);
+$("#o-go").onclick=()=>oGo(false);
+async function oGo(noPdf){
+  const o=O(), P=oProds(o), {all}=oAddrs(o), msg=$("#o-msg"), btn=$("#o-go"), sb=$("#o-save");
+  const kinds=noPdf?[]:["invoice","torg12","upd"].filter(k=>$("#o-k-"+k).checked);
   const rows=all.filter(a=>P.some(p=>+((o.qty[a]||{})[p.id])>0));
   if(!rows.length){ msg.textContent="Впишите количество хотя бы по одному адресу."; toast("err","Нет количества","Впишите цифры из заявки хотя бы в одну строку таблицы."); return; }
   if(!o.supplierId){ msg.textContent="Выберите поставщика."; toast("err","Не выбран поставщик","Выберите поставщика вверху страницы."); return; }
@@ -1593,7 +1595,7 @@ $("#o-go").onclick=async()=>{
   if(warn.length && btn.dataset.force!==sig){ btn.dataset.force=sig; btn.textContent="Всё равно создать с этими номерами";
     msg.innerHTML=`<b style="color:#b45309">Внимание:</b> ${esc([...new Set(warn)].join("; "))}. Если так и нужно — нажмите кнопку ещё раз. Или поменяйте номер / сотрите его, чтобы сайт подставил свободный.`; toast("warn","Повторяющийся номер", [...new Set(warn)].join("; ")+". Если так и нужно — нажмите кнопку ещё раз."); return; }
   btn.dataset.force=""; btn.textContent="Создать документы и скачать PDF";
-  const x=oCtr(o), made=[], notes=[], batch=uid()+uid(); btn.disabled=true;
+  const x=oCtr(o), made=[], notes=[], batch=uid()+uid(); btn.disabled=sb.disabled=true;
   try{
     for(const [i,a] of rows.entries()){
       msg.textContent="Сохраняю документ "+(i+1)+" из "+rows.length+"…";
@@ -1610,13 +1612,13 @@ $("#o-go").onclick=async()=>{
       const nums=made.map(k=>+k.dr.number), rng=nums.length>1?Math.min(...nums)+"–"+Math.max(...nums):String(nums[0]);
       await manyPdf(kinds, made, kinds.map(k=>KSHORT[k]).join(" и ")+" № "+rng+" от "+fd(o.date)+" — "+shortCus(made[0]));
       msg.textContent="Готово: "+lbl+" — сохранены в журнал, PDF скачан."; }
-    else msg.textContent="Готово: "+lbl+" — сохранены в журнал (PDF не выбран).";
+    else msg.textContent="Готово: "+lbl+" — сохранены в журнал"+(noPdf?". Распечатать можно кнопками рядом с каждым документом или из журнала.":" (PDF не выбран).");
     logEv("Заявка","Создан комплект по заявке: "+made.length+" док., № "+made.map(k=>k.dr.number).join(", ")+" от "+fd(o.date)+" — "+shortCus(made[0])+" ("+made.map(k=>stLabel(k.dr.ship,k.c.address)).join(", ")+"), сумма "+fm(r2(made.reduce((a,k)=>a+k.t.sum,0)))+" ₽");
     toast(notes.length?"warn":"ok", "Создано "+made.length+" "+docsWord(made.length)+": "+lbl, (notes.length?notes.join(" ")+" ":"")+(made.length>1?"Комплект в журнале":"Документ в журнале")+(kinds.length?", PDF скачан.":"."));
     if(notes.length) msg.textContent+=" "+notes.join(" ");
   }catch(e){ toast("err","Документы созданы не полностью", e.message+(made.length?". Уже создано: "+made.map(k=>"№ "+k.dr.number).join(", ")+" — они в журнале, остальное создайте ещё раз.":". Проверьте интернет и нажмите кнопку ещё раз.")); msg.textContent="Ошибка: "+e.message+(made.length?" Уже создано: "+made.map(k=>"№ "+k.dr.number).join(", ")+" — они в журнале.":""); }
-  finally{ btn.disabled=false; }
-};
+  finally{ btn.disabled=sb.disabled=false; }
+}
 $("#o-done").addEventListener("click",e=>{ const b=e.target.closest("[data-ov]"); if(!b) return; const j=D.journal.find(z=>z.id===b.dataset.id); if(j) showPreview(b.dataset.ov, calc(j.snap.dr, j.snap)); });
 
 /* ================= маршрут для водителя ================= */
