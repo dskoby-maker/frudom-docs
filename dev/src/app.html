@@ -234,6 +234,14 @@
 #fd-app .calgrid .dtb{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:#e08a1e;color:#fff;font:700 10px/16px var(--ui,inherit);font-style:normal;text-align:center}
 #fd-app .calgrid .dtb.new{background:#c0392b}
 #fd-app .calgrid button.sel .dtb{box-shadow:0 0 0 2px #fff}
+#fd-app .mulhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 12px}#fd-app .mulhead b{font-size:15px}
+#fd-app .mul h2{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}#fd-app .mul h2 .ok{color:#2f7d4f;font-size:13px;font-weight:600}#fd-app .mul h2 .ch{color:#a3620c;font-size:13px;font-weight:600}
+#fd-app .mul .mmeta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:8px}#fd-app .mul .mmeta input{width:80px}
+#fd-app .mt{width:100%;border-collapse:collapse;font-size:14px}#fd-app .mt th{text-align:left;font-weight:600;color:var(--muted);font-size:12.5px;padding:4px 6px;border-bottom:1px solid var(--line)}
+#fd-app .mt td{padding:4px 6px;border-bottom:1px solid var(--line);vertical-align:middle}#fd-app .mt .n{text-align:right;white-space:nowrap}#fd-app .mt input{width:86px;text-align:right}
+#fd-app .mt tfoot td{border:0;font-weight:700}#fd-app .mt .an{font-size:12px;color:#a3620c}
+#fd-app .mul .make,#fd-app .mul .make2{margin-top:10px}#fd-app .mulbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 12px}
+@media (max-width:640px){#fd-app .mt input{width:70px}#fd-app .mt th:nth-child(3),#fd-app .mt td:nth-child(3){display:none}}
 #fd-app .imphead{font-size:13px;color:var(--muted);margin-top:10px}
 #fd-app .tkadd input{flex:1;min-width:200px}
 #fd-app .tklist{display:grid;gap:6px;margin-top:10px}
@@ -419,7 +427,9 @@
       </div>
       <div id="imp-res"></div>
     </div>
-    <div class="card">
+    <div id="mul"></div>
+    <div class="mulbar" id="mulbar" hidden><button class="btn sm" type="button" id="mul-back">← Ко всем накладным заявки</button><span class="muted" id="mulbar-t"></span></div>
+    <div class="card dform">
       <h2>Стороны <small id="d-editing"></small></h2>
       <div class="grid">
         <label class="f">Поставщик<select id="d-sup"></select><span id="d-supwarn" class="ctrinfo warn" hidden></span></label>
@@ -433,14 +443,14 @@
         <label class="f wide" id="d-shipwrap">Другой адрес<input id="d-ship" placeholder="Впишите адрес доставки"></label>
       </div>
     </div>
-    <div class="card">
+    <div class="card dform">
       <h2>Товары <small id="d-pricehint"></small></h2>
       <div class="lines" id="d-lines"></div>
       <div class="lfoot" id="d-lfoot"></div>
       <div class="row"><button class="btn" id="d-add">+ Добавить товар</button><button class="btn ghost" id="d-addall">Добавить весь прайс заказчика</button></div>
       <div class="totals" id="d-totals"></div>
     </div>
-    <div class="card">
+    <div class="card dform">
       <h2>Сформировать <small>документ сохранится в журнал</small></h2>
       <div class="make">
         <button class="btn pri" data-make="invoice">Счёт<small>на оплату</small></button>
@@ -986,6 +996,7 @@ $("#hideDemo").onclick=()=>{ D.demo=false; saveLocal(); $("#demoNote").hidden=tr
 /* ---------- новый документ ---------- */
 function opts(list, sel){ return list.map(x=>`<option value="${x.id}"${x.id===sel?" selected":""}>${esc(x.name||"(без названия)")}</option>`).join(""); }
 function renderDoc(){
+  drawMulti();
   const dr=D.draft;
   if(dr.contractId===undefined || (!dr.contractId && !dr.noCtr && !D.journal.some(j=>j.id===dr.id) && ctrs(dr.customerId).length)){ dr.contractId=pickCtr(); const x=ctr(dr.contractId); if(x){ dr.basis=x.basis||""; if(x.supplierId && x.supplierId!==dr.supplierId){ dr.supplierId=x.supplierId; } } }
   $("#d-sup").innerHTML=opts(D.suppliers, dr.supplierId); $("#d-cus").innerHTML=opts(D.customers, dr.customerId);
@@ -3020,6 +3031,8 @@ function drawImp(){
   const box=$("#imp-res"); if(!IMP){ box.innerHTML=""; return; }
   if(IMP.err){ box.innerHTML=`<div class="impg"><ul><li class="e">Файл «${esc(IMP.file)}» не прочитан: ${esc(IMP.err)}.</li></ul></div>`; return; }
   const R=IMP.r, many=R.groups.length>1;
+  if(many && mulOn()){ box.innerHTML=`<div class="imphead">Файл «${esc(IMP.file)}» · ${esc(R.c.name)} · ${esc(R.k?R.k.basis||"договор":"без договора")} · поставка ${fd(R.date)} · ${esc(supShort(R.s.name))} · накладных: ${R.groups.length} — каждая отдельным блоком ниже</div>`
+    + (R.warn.length?`<div class="impg"><ul>${R.warn.map(w=>`<li class="${w.t}">${esc(w.m)}</li>`).join("")}</ul></div>`:""); return; }
   box.innerHTML = `<div class="imphead">Файл «${esc(IMP.file)}» · ${esc(R.c.name)} · ${esc(R.k?R.k.basis||"договор":"без договора")} · поставка ${fd(R.date)} · ${esc(supShort(R.s.name))}${many?" · документов: "+R.groups.length:""}</div>`
    + (R.warn.length?`<div class="impg"><ul>${R.warn.map(w=>`<li class="${w.t}">${esc(w.m)}</li>`).join("")}</ul></div>`:"")
    + R.groups.map((g,i)=>`<div class="impg${IMP.cur===i?" cur":""}"><div class="ih"><b>${many?"Документ "+(i+1)+(g.num?" · № "+esc(g.num):""):"Позиций: "+g.items.length}${(()=>{ const b=branches(R.c).find(x=>x.id===g.branchId); return b&&(g.br||many)?" · "+esc(b.label||b.fullName):""; })()}</b><small>${esc(g.ship?(()=>{ const l=stLabel(g.ship,R.c.address); return /юр\. адрес/.test(l)?g.ship:l; })()+" · ":"")}${many?g.items.length+" поз. · ":""}${fm(g.sum)} ₽</small><span style="flex:1"></span>
@@ -3033,21 +3046,78 @@ async function impLoad(f){
   try{ let rows;
     if(/\.json$/i.test(f.name)){ const x=JSON.parse(await f.text()); rows=[]; Object.entries(x.meta||{}).forEach(([k,v])=>rows.push([k,v])); rows.push(["№ док.","Адрес доставки","Товар","Кол-во","Ед.","Цена, ₽","Примечание","В заявке"]); (x.lines||[]).forEach(l=>rows.push([l.num||"",l.addr||"",l.name||"",l.qty??"",l.unit||"",l.price??"",l.note||"",l.orig||""])); }
     else { const X=await loadXLSX(); const wb=X.read(await f.arrayBuffer(),{type:"array", cellDates:true}); const sn=wb.SheetNames.find(n=>/заказ/i.test(n))||wb.SheetNames[0]; rows=X.utils.sheet_to_json(wb.Sheets[sn],{header:1, raw:true, defval:""}); }
-    IMP.r=impResolve(impParse(rows)); IMP.cur=-1; drawImp(); impFill(0);
-    if(IMP.r.groups.length>1) toast("info","В файле "+IMP.r.groups.length+" документа(ов)","Первый уже в форме. Сформируйте его, затем нажмите «Заполнить форму» у следующего.");
+    IMP.r=impResolve(impParse(rows)); IMP.cur=-1;
+    if(IMP.r.groups.length>1){ mulStart(); drawImp(); renderDoc(); toast("info","В заявке "+IMP.r.groups.length+" "+plural(IMP.r.groups.length,["накладная","накладные","накладных"]),"Каждая — отдельным блоком ниже, уже заполнена. Проверьте количество и сформируйте документы."); }
+    else { D.multi=null; drawImp(); impFill(0); }
   }catch(e){ IMP.err=e.message||String(e); drawImp(); toast("err","Не получилось прочитать заказ", IMP.err+"."); }
 }
 $("#imp-file").addEventListener("change",e=>{ const f=e.target.files[0]; e.target.value=""; impLoad(f); });
 (function(){ const z=$("#imp-drop"); ["dragenter","dragover"].forEach(ev=>z.addEventListener(ev,e=>{ e.preventDefault(); z.classList.add("over"); }));
   ["dragleave","drop"].forEach(ev=>z.addEventListener(ev,e=>{ e.preventDefault(); z.classList.remove("over"); }));
   z.addEventListener("drop",e=>{ const f=e.dataTransfer&&e.dataTransfer.files[0]; if(f) impLoad(f); }); })();
-$("#imp-res").addEventListener("change",e=>{ const s=e.target.closest("[data-impmiss]"); if(!s||!s.value) return;
-  const [gi,mi]=s.dataset.impmiss.split(":").map(Number), R=IMP.r, g=R.groups[gi], l=g.miss[mi], p=prod(s.value); if(!l||!p) return;
+function impMissPick(e){ const s=e.target.closest("[data-impmiss]"); if(!s||!s.value||!IMP||!IMP.r) return;
+  const [gi,mi]=s.dataset.impmiss.split(":").map(Number), R=IMP.r, g=R.groups[gi], l=g&&g.miss[mi], p=prod(s.value); if(!l||!p) return;
   const al=aliasesOf(p); if(!al.some(a=>norm(a)===norm(l.name))){ al.push(l.name); p.aliases=JSON.stringify(al.slice(-20)); dirty("products",p.id); saveLocal(); }
   g.miss.splice(mi,1); const it=impItem(g,l,R.c,p);
-  if(IMP.cur===gi && D.draft && D.draft.customerId===R.c.id){ D.draft.lines=D.draft.lines.filter(x=>x.productId); D.draft.lines.push(Object.assign({},it)); saveLocal(); renderLines(); }
-  drawImp(); toast("ok","Запомнил название", "«"+l.name+"» = «"+p.name+"». В следующих заказах подставлю сам."); });
+  const M=mulOn()?D.multi.docs[gi]:null;
+  if(M){ M.dr.lines=M.dr.lines.filter(x=>x.productId); M.dr.lines.push(Object.assign({},it)); M.ch=1; saveLocal(); drawMulti(); }
+  else if(IMP.cur===gi && D.draft && D.draft.customerId===R.c.id){ D.draft.lines=D.draft.lines.filter(x=>x.productId); D.draft.lines.push(Object.assign({},it)); saveLocal(); renderLines(); }
+  drawImp(); toast("ok","Запомнил название", "«"+l.name+"» = «"+p.name+"». В следующих заказах подставлю сам."); }
+$("#imp-res").addEventListener("change",impMissPick);
 $("#imp-res").addEventListener("click",e=>{ const b=e.target.closest("[data-impfill]"); if(b){ impFill(+b.dataset.impfill); return; } if(e.target.closest("#imp-close")){ IMP=null; drawImp(); } });
+/* ---------- несколько накладных из одной заявки: на «Новом документе» блок на каждую, уже заполненный ---------- */
+const mulOn = () => !!(D.multi && Array.isArray(D.multi.docs) && D.multi.docs.length);
+function mulStart(){ const R=IMP.r, taken=[];
+  D.multi={file:IMP.file, view:-1, docs:R.groups.map(g=>{ const dr=newDraft(D);
+    Object.assign(dr,{supplierId:R.s.id, customerId:R.c.id, branchId:g.branchId||"", contractId:R.k?R.k.id:"", noCtr:!R.k, basis:R.k?(R.k.basis||""):"", date:R.date, ship:g.ship||"",
+      number:g.num||nextNum(R.s.id, R.c.id, taken), numManual:!!g.num, lines:g.items.map(x=>Object.assign({},x))});
+    taken.push(dr.number); g.filled=dr.number; return {dr, saved:"", ch:0}; })};
+  saveLocal(); logEv("Документ","Заказ из файла «"+IMP.file+"»: "+(R.c.name||"")+", накладных: "+R.groups.length); }
+const mulLabel = dr => { const b=branches(cus(dr.customerId)).find(x=>x.id===dr.branchId); return b ? (b.label||b.fullName||"") : ""; };
+function mulBlock(M,i){ const dr=M.dr, k=calc(dr), lbl=mulLabel(dr), g=IMP&&IMP.r&&IMP.file===D.multi.file?IMP.r.groups[i]:null, inJ=D.journal.some(j=>j.id===dr.id);
+  const st = M.saved && !M.ch ? `<span class="ok">✓ сохранена в журнал</span>` : M.saved && M.ch ? `<span class="ch">изменена — сформируйте заново</span>` : "";
+  const rows = dr.lines.map((l,li)=>{ const p=prod(l.productId); if(!p) return ""; const q=+l.qty||0;
+    return `<tr><td>${esc(p.name)}${l.auto?`<div class="an">⚠ ${esc(l.auto)}</div>`:""}</td><td class="n"><input data-mq="${li}" inputmode="decimal" value="${esc(String(l.qty||"").replace(".",","))}" placeholder="0" aria-label="Количество"> ${esc(p.unit||"")}</td><td class="n">${fm(+l.price||0)}</td><td class="n">${fm(r2(q*(+l.price||0)))}</td></tr>`; }).join("");
+  return `<div class="card mul" data-m="${i}"><h2>Накладная ${i+1}${lbl?" · "+esc(lbl):""} <small>${esc(dr.ship?stLabel(dr.ship,cus(dr.customerId).address):"")}</small>${st}</h2>
+    <div class="mmeta"><label>№ <input data-mnum value="${esc(dr.number)}" inputmode="numeric"${inJ?" readonly title=\"Номер уже в журнале — менять в полной форме\"":""}></label><span>от ${fd(dr.date)}</span><span>${esc(supShort(sup(dr.supplierId).name||""))}</span></div>
+    <table class="mt"><thead><tr><th>Товар</th><th class="n">Кол-во</th><th class="n">Цена</th><th class="n">Сумма</th></tr></thead><tbody>${rows||`<tr><td colspan="4" class="muted">Нет товаров</td></tr>`}</tbody>
+      <tfoot><tr><td>Итого: ${k.lines.length} поз.</td><td></td><td></td><td class="n">${fm(k.t.sum)} ₽</td></tr></tfoot></table>
+    ${g&&(g.miss||[]).length?g.miss.map((l,mi)=>`<div class="impmiss"><span class="e">Не найден товар «${esc(l.name)}»${l.qty!==""?" — "+esc(String(l.qty).replace(".",","))+" "+esc(l.unit||""):""}. Это:</span><select data-impmiss="${i}:${mi}"><option value="">— выберите товар из прайса —</option>${D.products.filter(p=>custPrice(dr.customerId,p.id)!=null&&custPrice(dr.customerId,p.id)!=="").map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select></div>`).join(""):""}
+    ${g&&g.warn.length?`<div class="impg"><ul>${g.warn.map(w=>`<li class="${w.t}">${esc(w.m)}</li>`).join("")}</ul></div>`:""}
+    <div class="make"><button class="btn pri" data-mmake="invoice">Счёт<small>на оплату</small></button><button class="btn pri" data-mmake="torg12">ТОРГ‑12<small>товарная накладная</small></button><button class="btn pri" data-mmake="upd">УПД<small>универсальный</small></button></div>
+    <div class="make2"><button class="btn" data-mcombo="invoice,torg12">Скачать счёт + ТОРГ‑12<small>одним PDF</small></button><button class="btn" data-mcombo="invoice,upd">Скачать счёт + УПД<small>одним PDF</small></button></div>
+    <div class="row"><button class="btn ghost sm" type="button" data-medit>Открыть в полной форме</button></div></div>`; }
+function drawMulti(){ const box=$("#mul"), on=mulOn(), all=on && D.multi.view<0;
+  document.querySelectorAll("#tab-doc .dform").forEach(x=>x.hidden=all);
+  $("#mulbar").hidden = !(on && D.multi.view>=0); if(on && D.multi.view>=0) $("#mulbar-t").textContent="Накладная "+(D.multi.view+1)+" из "+D.multi.docs.length;
+  if(!all){ box.innerHTML=""; return; }
+  const tot=r2(D.multi.docs.reduce((a,M)=>a+calc(M.dr).t.sum,0)), done=D.multi.docs.filter(M=>M.saved&&!M.ch).length;
+  box.innerHTML=`<div class="mulhead"><b>Заявка «${esc(D.multi.file||"")}» — ${D.multi.docs.length} ${plural(D.multi.docs.length,["накладная","накладные","накладных"])} · ${fm(tot)} ₽</b>${done?`<span class="muted">сохранено: ${done} из ${D.multi.docs.length}</span>`:""}<span style="flex:1"></span>
+    <button class="btn pri sm" type="button" id="mul-saveall">Сохранить все в журнал</button><button class="btn ghost sm" type="button" id="mul-close">Закончить</button></div>`
+    + D.multi.docs.map(mulBlock).join(""); }
+async function mulCommit(i){ const M=D.multi.docs[i]; if(!calc(M.dr).lines.length){ toast("err","Нет товаров в накладной "+(i+1),"Укажите количество больше нуля."); return false; }
+  await commitDoc(M.dr); M.saved=M.dr.number; M.ch=0; saveLocal(); return true; }
+$("#mul").addEventListener("input",e=>{ const el=e.target, bx=el.closest("[data-m]"); if(!bx) return; const M=D.multi.docs[+bx.dataset.m];
+  if(el.dataset.mq!=null){ const l=M.dr.lines[+el.dataset.mq]; if(!l) return; l.qty=String(el.value).replace(",",".").replace(/[^\d.]/g,""); delete l.auto; M.ch=M.saved?1:0; saveLocal();
+    const k=calc(M.dr), tr=el.closest("tr"); tr.lastElementChild.textContent=fm(r2((+l.qty||0)*(+l.price||0))); bx.querySelector("tfoot").innerHTML=`<tr><td>Итого: ${k.lines.length} поз.</td><td></td><td></td><td class="n">${fm(k.t.sum)} ₽</td></tr>`; }
+  else if(el.dataset.mnum!=null){ M.dr.number=el.value.replace(/\D/g,""); M.dr.numManual=true; saveLocal(); } });
+$("#mul").addEventListener("change",e=>{ if(e.target.closest("[data-impmiss]")) impMissPick(e); else if(e.target.dataset.mq!=null) drawMulti(); });
+$("#mul").addEventListener("click",async e=>{
+  if(e.target.closest("#mul-close")){ D.multi=null; saveLocal(); if(IMP) IMP=null; drawImp(); renderDoc(); return; }
+  if(e.target.closest("#mul-saveall")){ const b=e.target.closest("#mul-saveall"); b.disabled=true; let n=0;
+    try{ for(let i=0;i<D.multi.docs.length;i++){ const M=D.multi.docs[i]; if(M.saved && !M.ch) continue; if(await mulCommit(i)) n++; } toast("ok","Сохранено в журнал: "+n,"Распечатать можно здесь же или из журнала."); }
+    catch(x){ toast("err","Не получилось сохранить", x.message+". Проверьте интернет и нажмите ещё раз."); } finally{ drawMulti(); } return; }
+  const bx=e.target.closest("[data-m]"); if(!bx) return; const i=+bx.dataset.m, M=D.multi.docs[i];
+  if(e.target.closest("[data-medit]")){ D.draft=M.dr; D.multi.view=i; saveLocal(); renderDoc(); window.scrollTo({top:$("#mulbar").getBoundingClientRect().top+scrollY-70, behavior:"smooth"}); return; }
+  const mk=e.target.closest("[data-mmake]"), cb=e.target.closest("[data-mcombo]"); if(!mk && !cb) return; const b=mk||cb, html=b.innerHTML; b.disabled=true;
+  try{ if(!(await mulCommit(i))) return;
+    if(mk){ showPreview(mk.dataset.mmake, calc(M.dr)); docToast("Сохранён в журнал. Скачать — кнопкой «Скачать PDF» вверху."); }
+    else { b.textContent="Готовлю PDF…"; await comboPdf(cb.dataset.mcombo.split(","), calc(M.dr)); docToast("PDF скачан — ищите его в папке «Загрузки»."); } }
+  catch(x){ toast("err","Не получилось", x.message+". Проверьте интернет и попробуйте ещё раз."); }
+  finally{ b.disabled=false; b.innerHTML=html; drawMulti(); } });
+$("#mul-back").onclick=()=>{ const v=D.multi&&D.multi.view; if(v==null||v<0) return; const M=D.multi.docs[v];
+  if(M){ if(D.draft && D.draft.id===M.dr.id) M.dr=D.draft; const j=D.journal.find(x=>x.id===M.dr.id); if(j){ M.dr=clone(j.snap.dr); M.saved=String(j.number); M.ch=0; } }
+  D.multi.view=-1; D.draft=newDraft(D); saveLocal(); renderDoc(); window.scrollTo({top:0, behavior:"smooth"}); };
 $("#imp-tpl").onclick=async()=>{
   try{ const X=await loadXLSX(), dr=D.draft, c=liveCus(dr)||{}, k=ctr(dr.contractId), s=sup(dr.supplierId)||{};
     const P=D.products.filter(p=>custPrice(dr.customerId,p.id)!=null&&custPrice(dr.customerId,p.id)!=="");
