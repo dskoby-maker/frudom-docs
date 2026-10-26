@@ -45,6 +45,8 @@ const S = {
     ['name','Поставщик'],['tax','Налог, % от выручки'],['id','ID поставщика']]},
   daytasks: { title: 'Задачи на день', key: 'id', cols: [
     ['date','Дата'],['customerName','Заказчик'],['text','Задача'],['done','Выполнено'],['by','Кто добавил'],['created','Добавлено'],['doneBy','Кто выполнил'],['doneAt','Когда выполнено'],['id','ID'],['customerId','ID заказчика'],['seen','Кто видел']]},
+  taskphotos: { title: 'Фото задач', key: 'id', cols: [
+    ['taskId','ID задачи'],['by','Кто добавил'],['created','Добавлено'],['file','Файл на Google Диске'],['w','Ширина'],['h','Высота'],['id','ID'],['thumb','Миниатюра (не редактировать)']]},
   uprefs: { title: 'Настройки пользователей', key: 'id', cols: [
     ['id','Пользователь'],['data','Настройки (JSON, не редактировать)'],['updated','Изменено']]},
   events: { title: 'События', key: null, cols: [
@@ -97,7 +99,9 @@ function handle_(p) {
     if (p.action === 'load') return { ok: true, me: me, prefs: (read_('uprefs').find(r => r.id === me.name) || {}).data || '', data: {
       suppliers: me.role === 'staff' ? read_('suppliers').map(s => { const x = Object.assign({}, s); delete x.stamp; delete x.sign; return x; }) : read_('suppliers'), customers: read_('customers'), products: read_('products'),
       prices: read_('prices'), specs: read_('specs'), contracts: read_('contracts'), journal: read_('journal').slice(-2000),
-      daytasks: (function () { const d = new Date(); d.setDate(d.getDate() - 120); const from = Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd'); return read_('daytasks').filter(r => String(r.date) >= from); })() } };
+      daytasks: (function () { const d = new Date(); d.setDate(d.getDate() - 120); const from = Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+        const ph = {}; photosClean_().forEach(r => (ph[r.taskId] = ph[r.taskId] || []).push({ id: r.id, by: r.by, w: +r.w || 0, h: +r.h || 0 }));
+        return read_('daytasks').filter(r => String(r.date) >= from).map(r => { if (ph[r.id]) r.photos = ph[r.id]; return r; }); })() } };
     if (p.action === 'login')   { log_(me, [{ action: 'Вход', text: 'Вход в систему' + (p.device ? ' (' + String(p.device).slice(0, 60) + ')' : '') }]); return { ok: true, me: me }; }
     if (p.action === 'profit')  { if (!me.admin) return { ok: false, error: 'forbidden' }; return { ok: true, costs: read_('costs'), doccosts: read_('doccosts'), psettings: read_('psettings') }; }
     if (p.action === 'setPrefs') { upsertList_('uprefs', { upsert: [{ id: me.name, data: String(p.data || '').slice(0, 20000), updated: new Date().toISOString() }] }); return { ok: true }; }
@@ -107,6 +111,14 @@ function handle_(p) {
         let dt = ch.daytasks || null; if (dt) { const own = {}; read_('daytasks').forEach(r => { if (r.by === me.name) own[r.id] = 1; }); dt = { upsert: dt.upsert || [], del: (dt.del || []).filter(id => own[id]) }; }
         ch = { journal: j, events: ch.events, daytasks: dt }; if (!j) delete ch.journal; if (!dt) delete ch.daytasks; }
       applySync_(ch, me); if (Array.isArray(ch.events)) log_(me, ch.events); return { ok: true }; }
+    if (p.action === 'addPhoto') return addPhoto_(p, me);
+    if (p.action === 'photo')    { const r = read_('taskphotos').find(x => x.id === String(p.id)); if (!r) return { ok: false, error: 'фото не найдено' };
+      const b = DriveApp.getFileById(r.file).getBlob(); return { ok: true, data: 'data:' + (b.getContentType() || 'image/jpeg') + ';base64,' + Utilities.base64Encode(b.getBytes()) }; }
+    if (p.action === 'thumbs')   { const want = {}; (p.ids || []).slice(0, 200).forEach(id => want[id] = 1); const t = {}; read_('taskphotos').forEach(r => { if (want[r.id]) t[r.id] = r.thumb; }); return { ok: true, thumbs: t }; }
+    if (p.action === 'delPhoto') { const rows = read_('taskphotos'), r = rows.find(x => x.id === String(p.id)); if (!r) return { ok: true };
+      if (me.role === 'staff' && r.by !== me.name) return { ok: false, error: 'forbidden' };
+      try { DriveApp.getFileById(r.file).setTrashed(true); } catch (x) {}
+      write_('taskphotos', rows.filter(x => x.id !== r.id)); log_(me, [{ action: 'Задача на день', text: 'Удалено фото из задачи' }]); return { ok: true }; }
     if (p.action === 'saveDoc') { if (me.role === 'staff' && !staffOk_(p.entry || {})) return { ok: false, error: 'forbidden' }; return saveDoc_(p.entry, me); }
     return { ok: false, error: 'unknown action' };
   } catch (err) {
@@ -156,6 +168,34 @@ function mergeSeen_(a, b) {
   const p = v => { try { const o = JSON.parse(v || '{}'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } };
   const A = p(a), B = p(b); Object.keys(B).forEach(k => { if (!A[k] || String(B[k]) < String(A[k])) A[k] = B[k]; });
   return Object.keys(A).length ? JSON.stringify(A) : '';
+}
+
+/* ---------- фото к задачам: сами снимки лежат в папке на Google Диске владельца таблицы, в таблице — только миниатюры ---------- */
+function photoFolder_() {
+  const pr = PropertiesService.getScriptProperties(), id = pr.getProperty('photoFolder');
+  if (id) { try { const f = DriveApp.getFolderById(id); if (!f.isTrashed()) return f; } catch (x) {} }
+  const f = DriveApp.createFolder('Документы ФД — фото задач'); pr.setProperty('photoFolder', f.getId()); return f;
+}
+function addPhoto_(p, me) {
+  const data = String(p.data || ''), thumb = String(p.thumb || '');
+  if (!p.taskId || !data || data.length > 9000000 || thumb.length > 45000 || !/^data:image\//.test(thumb)) return { ok: false, error: 'неверное фото' };
+  const id = 'ph' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const blob = Utilities.newBlob(Utilities.base64Decode(data), 'image/jpeg', String(p.taskId) + '_' + id + '.jpg');
+  const file = photoFolder_().createFile(blob);
+  const rows = read_('taskphotos'); rows.push({ taskId: String(p.taskId), by: me.name, created: new Date().toISOString(), file: file.getId(), w: String(+p.w || 0), h: String(+p.h || 0), id: id, thumb: thumb });
+  write_('taskphotos', rows);
+  const t = read_('daytasks').find(x => x.id === String(p.taskId));
+  log_(me, [{ action: 'Задача на день', text: 'Добавлено фото к задаче' + (t ? ': ' + String(t.text).slice(0, 120) : '') }]);
+  return { ok: true, id: id };
+}
+/* фото, у которых задачу удалили (или не дописали) больше 3 дней назад, убираем в корзину Диска */
+function photosClean_() {
+  const rows = read_('taskphotos'); if (!rows.length) return rows;
+  const tasks = {}; read_('daytasks').forEach(r => tasks[r.id] = 1);
+  const old = Date.now() - 3 * 86400000, keep = [], gone = [];
+  rows.forEach(r => (tasks[r.taskId] || !(new Date(r.created).getTime() < old) ? keep : gone).push(r));
+  if (gone.length) { gone.forEach(r => { try { DriveApp.getFileById(r.file).setTrashed(true); } catch (x) {} }); write_('taskphotos', keep); }
+  return keep;
 }
 
 function nameMap_(t) { const m = {}; read_(t).forEach(o => m[o.id] = o.name); return m; }

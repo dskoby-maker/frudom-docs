@@ -187,7 +187,48 @@
 #fd-app .dt-seen{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}#fd-app .dt-seen i{font-style:normal;font-size:11.5px;border-radius:99px;padding:1px 8px;background:#f1efe9;color:#8a8577}#fd-app .dt-seen i.y{background:#e3f2e8;color:#2f7d4f;font-weight:600}
 #fd-app textarea.dt-in{resize:none;overflow:hidden;min-height:38px;line-height:1.35;font:inherit;font-size:14.5px}
 #fd-app .dt-empty{color:var(--muted);font-size:13px;padding:2px 0 4px}
-#fd-app .dt-add{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}#fd-app .dt-add select{flex:0 1 210px;min-width:150px}#fd-app .dt-add textarea{flex:1 1 260px;min-width:0}#fd-app .dt-add{align-items:flex-start}
+#fd-app .dt-comp{margin-top:10px;background:#fff;border:1px solid #ecd9b0;border-radius:14px;padding:3px 4px 7px;transition:border-color .2s,box-shadow .25s}
+#fd-app .dt-comp:focus-within{border-color:#d9a441;box-shadow:0 0 0 4px rgba(217,164,65,.17)}
+#fd-app .dt-comp textarea.dt-in{border:0;background:transparent;box-shadow:none;outline:none;padding:9px 10px 6px;min-height:48px;font-size:15px;border-radius:10px}
+#fd-app .dt-cbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:2px 4px 0}
+#fd-app .dt-cbar select{flex:0 1 230px;width:auto;min-width:140px;padding:6px 10px;font-size:13.5px;border-radius:99px;background:#fbf6ec;border-color:#f0e2c4}
+#fd-app .dt-pbtn{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:99px;border:1px solid #f0e2c4;background:#fbf6ec;color:#7a4b08;font-size:13.5px;font-weight:500;cursor:pointer;transition:background .15s,transform .15s;user-select:none}
+#fd-app .dt-pbtn:hover{background:#f6ead0}#fd-app .dt-pbtn:active{transform:scale(.95)}#fd-app .dt-pbtn svg,#fd-app .dt-cam svg{width:17px;height:17px;flex:none}
+#fd-app .dt-hint{font-size:12px;color:var(--muted);margin-left:auto;transition:color .3s}#fd-app .dt-hint.ok{color:#2f7d4f}
+#fd-app .dt-cbar .btn{border-radius:99px;padding:7px 16px}
+#fd-app .dt-cam{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;color:#a07a3c;cursor:pointer;transition:background .15s,color .15s,transform .15s}#fd-app .dt-cam:hover{background:#f6ead0;color:#7a4b08}#fd-app .dt-cam:active{transform:scale(.9)}
+#fd-app .dt.dt-ed{padding:0;border:0;background:none;display:block}#fd-app .dt-ed .dt-comp{margin:0}
+@media (pointer:coarse){#fd-app .dt-hint{display:none}#fd-app .dt-cbar .btn:first-of-type{margin-left:auto}#fd-app .dt-add .dt-cbar .btn.pri{margin-left:auto}}
+#fd-app .dt-phs{display:flex;gap:8px;flex-wrap:wrap}#fd-app .dt-phs:empty{display:none}
+#fd-app .dt-comp .dt-phs{padding:2px 10px 9px}#fd-app .dt-b .dt-phs{margin-top:8px}
+#fd-app .ph{position:relative;display:block;width:68px;height:68px;border-radius:12px;overflow:hidden;border:0;padding:0;margin:0;flex:none;cursor:zoom-in;background:linear-gradient(110deg,#f1e8d8 30%,#faf5ec 50%,#f1e8d8 70%) 0 0/200% 100%;animation:fdphsh 1.2s linear infinite;box-shadow:0 1px 3px rgba(60,40,10,.2);transition:transform .22s cubic-bezier(.2,.8,.2,1),box-shadow .22s}
+#fd-app .ph.ld{animation:none;background:#eee}#fd-app .ph.pop{animation:fdphin .38s cubic-bezier(.2,.9,.25,1.2)}
+#fd-app button.ph:hover{transform:translateY(-2px) scale(1.04);box-shadow:0 7px 18px rgba(60,40,10,.25)}#fd-app button.ph:active{transform:scale(.96)}
+#fd-app .ph img{width:100%;height:100%;object-fit:cover;display:block;opacity:0;transition:opacity .35s,filter .35s;-webkit-user-drag:none}#fd-app .ph img.on{opacity:1}
+#fd-app .ph.up{cursor:progress}#fd-app .ph.up img{filter:saturate(.6) brightness(1.08)}
+#fd-app .ph.up::after{content:"";position:absolute;left:50%;top:50%;width:24px;height:24px;margin:-12px;border-radius:50%;border:2.5px solid rgba(255,255,255,.55);border-top-color:#fff;animation:fdphsp .8s linear infinite;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35))}
+#fd-app .ph .phx{position:absolute;top:4px;right:4px;width:22px;height:22px;border-radius:50%;background:rgba(20,16,10,.6);color:#fff;font:600 15px/22px system-ui,sans-serif;text-align:center;cursor:pointer;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);transition:background .15s,transform .15s}#fd-app .ph .phx:hover{background:#c0392b;transform:scale(1.1)}
+#fd-app .ph.arm::before{content:"Удалить?";position:absolute;inset:0;display:grid;place-items:center;background:rgba(192,57,43,.82);color:#fff;font:600 11.5px system-ui,sans-serif;z-index:1;animation:fdphfade .18s ease}
+@keyframes fdphsh{to{background-position:-200% 0}}@keyframes fdphsp{to{transform:rotate(360deg)}}@keyframes fdphin{from{transform:scale(.55);opacity:0}}@keyframes fdphfade{from{opacity:0}}
+#fd-lb{position:fixed;inset:0;z-index:2147483100;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;font-family:"Onest","Inter",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;overflow:hidden}
+#fd-lb[hidden]{display:none}
+#fd-lb .lb-bg{position:absolute;inset:0;background:rgba(14,11,8,.93);opacity:0;transition:opacity .34s ease;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+#fd-lb.open .lb-bg{opacity:1}
+#fd-lb .lb-img{position:absolute;left:50%;top:50%;max-width:none;max-height:none;margin:0;transform-origin:50% 50%;will-change:transform;border-radius:4px;box-shadow:0 24px 70px rgba(0,0,0,.55);-webkit-user-drag:none;pointer-events:none;background:#222}
+#fd-lb.anim .lb-img{transition:transform .36s cubic-bezier(.2,.8,.2,1),clip-path .36s cubic-bezier(.2,.8,.2,1),width .36s cubic-bezier(.2,.8,.2,1),height .36s cubic-bezier(.2,.8,.2,1),margin .36s cubic-bezier(.2,.8,.2,1),opacity .22s ease}
+#fd-lb .lb-ui{opacity:0;transition:opacity .28s ease}#fd-lb.open .lb-ui{opacity:1}#fd-lb.open.zen .lb-ui{opacity:0;pointer-events:none}
+#fd-lb .lb-top{position:absolute;left:0;right:0;top:0;display:flex;align-items:center;gap:8px;padding:max(12px,env(safe-area-inset-top)) 12px 26px;background:linear-gradient(rgba(0,0,0,.55),rgba(0,0,0,0));color:#fff}
+#fd-lb .lb-cnt{font-weight:600;font-size:15px;margin-left:6px;font-variant-numeric:tabular-nums;white-space:nowrap;flex:none}#fd-lb .lb-by{font-size:12.5px;opacity:.7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+#fd-lb .lb-b{flex:none;width:42px;height:42px;border-radius:50%;border:0;padding:0;background:rgba(255,255,255,.13);color:#fff;display:grid;place-items:center;cursor:pointer;transition:background .15s,transform .15s,width .2s;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font:600 13px inherit}
+#fd-lb .lb-b:hover{background:rgba(255,255,255,.24)}#fd-lb .lb-b:active{transform:scale(.9)}#fd-lb .lb-b:focus-visible{outline:2px solid #fff;outline-offset:2px}#fd-lb .lb-b svg{width:20px;height:20px}
+#fd-lb .lb-b.armed{width:auto;padding:0 15px;border-radius:99px;background:#c0392b;font-family:inherit}#fd-lb .lb-b[hidden]{display:none}
+#fd-lb .lb-nav{position:absolute;top:50%;margin-top:-25px;width:50px;height:50px}#fd-lb .lb-prev{left:16px}#fd-lb .lb-next{right:16px}#fd-lb .lb-nav:disabled{opacity:0;pointer-events:none}
+#fd-lb .lb-bot{position:absolute;left:50%;bottom:max(18px,env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:4px;padding:4px;border-radius:99px;background:rgba(255,255,255,.12);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:#fff}
+#fd-lb .lb-bot .lb-b{width:36px;height:36px;background:transparent}#fd-lb .lb-bot .lb-b:hover{background:rgba(255,255,255,.18)}
+#fd-lb .lb-z{min-width:52px;text-align:center;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums;cursor:pointer}
+#fd-lb .lb-spin{position:absolute;left:50%;top:50%;width:36px;height:36px;margin:-18px;border-radius:50%;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;animation:fdphsp .8s linear infinite;opacity:0;transition:opacity .25s;pointer-events:none}
+#fd-lb.loading .lb-spin{opacity:1}
+@media (pointer:coarse){#fd-lb .lb-nav,#fd-lb .lb-bot{display:none}}
 #fd-app .dt-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 #fd-app .dt-chip{border:1px dashed #d9a441;background:#fff;color:#7a4b08;border-radius:99px;padding:3px 10px;font-size:12.5px;cursor:pointer}#fd-app .dt-chip:hover{background:#fff1d6}
 #fd-app .calgrid button{position:relative}
@@ -448,9 +489,16 @@
         <div class="dt-head"><b>Задачи на день</b><button class="hq" type="button" data-hq="Задачи на день" aria-label="Подсказка">?</button><small>видят все, в том числе водитель</small><span style="flex:1"></span><span class="dt-count" id="dt-count"></span></div>
         <div id="dt-list" class="dt-list"></div>
                 <form class="dt-add" id="dt-add" autocomplete="off">
-          <select id="dt-cus" aria-label="Заказчик"></select>
-          <textarea id="dt-text" class="dt-in" rows="1" placeholder="Что сделать — например, «заменить картофель»" maxlength="1000"></textarea>
-          <button class="btn pri" type="submit">Добавить</button>
+          <div class="dt-comp">
+            <textarea id="dt-text" class="dt-in" rows="2" placeholder="Что сделать — например, «заменить картофель»" maxlength="1000"></textarea>
+            <div class="dt-phs" id="dt-addph" data-phs="" data-x="1"></div>
+            <div class="dt-cbar">
+              <select id="dt-cus" aria-label="Заказчик"></select>
+              <label class="dt-pbtn" title="Прикрепить фото"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.3l1.4-2h5.6l1.4 2h1.3A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.4"/></svg><span>Фото</span><input type="file" accept="image/*" multiple hidden data-phfile></label>
+              <span class="dt-hint">Shift+Enter — новая строка</span>
+              <button class="btn pri" type="submit">Добавить</button>
+            </div>
+          </div>
         </form>
         <div class="dt-chips" id="dt-chips"></div>
       </div>
@@ -1531,7 +1579,7 @@ const ptName = (p) => { const l=stLabel(p.addr,p.c.address), m=l.match(/^ст ([
 const itemShort = n => String(n||"").replace(/\s*\([^)]*\)/g,"").replace(/\s+(свеж\S*|продовольственн\S*|столов\S*)(?=\s|$)/gi,"").replace(/\s+/g," ").trim();
 function dvText(P){
   const f=DV(), TK=DTS().filter(x=>x.date===f.date); if(!P.length && !TK.length) return "";
-  const tkLines = TK.length ? ["Задачи на день:", ...TK.map(x=>"• "+(x.customerId?cusShort(cus(x.customerId).name)+": ":"")+String(x.text).replace(/\n/g,"\n   ")), ""] : [];
+  const tkLines = TK.length ? ["Задачи на день:", ...TK.map(x=>"• "+(x.customerId?cusShort(cus(x.customerId).name)+": ":"")+String(x.text).replace(/\n/g,"\n   ")+(x.photos&&x.photos.length?" (фото на сайте: "+x.photos.length+")":"")), ""] : [];
   const short=a=>a.replace(/^\d{6},\s*/,"").replace(/^г\.\s*Москва,\s*/i,"").replace(/\s*\([^)]*\)\s*$/,"");
   const L=[], groups=[]; P.forEach(p=>{ const g=cusShort(cus(p.cid).name||p.c.name); let G=groups.find(x=>x.g===g); if(!G){ G={g, P:[]}; groups.push(G); } G.P.push(p); });
   if(f.full){ const d=new Date(f.date+"T12:00:00"); L.push("Доставка "+fd(f.date)+" ("+wdays[d.getDay()]+")"); L.push(""); }
@@ -1606,13 +1654,31 @@ const hhmm = iso => { if(!iso) return ""; const d=new Date(iso); return isNaN(d)
 const dtCan = x => !isStaff() || x.by===curUser();
 const dtSeen = x => { try{ const o=JSON.parse(x.seen||"{}"); return o&&typeof o==="object"?o:{}; }catch(e){ return {}; } };
 const dtNew = x => { const me=curUser(); return !!me && x.by!==me && !dtSeen(x)[me]; };
-function dtRow(x){ const c=x.customerId?cus(x.customerId):null, cn=c&&c.id?cusShort(c.name):"", sn=dtSeen(x), me=curUser();
+const ICAM='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.3l1.4-2h5.6l1.4 2h1.3A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.4"/></svg>';
+/* черновик новой задачи и открытый редактор хранятся на устройстве — свернули браузер, вернулись, продолжаете с того же места */
+const DRK = () => "frudom-dt-draft-"+(curUser()||""), EDK = () => "frudom-dt-edit-"+(curUser()||"");
+let DR=null, ED;
+function DRf(){ if(DR && DR.u===curUser()) return DR; let o=null; try{ o=JSON.parse(lsGet(DRK())||"null"); }catch(e){}
+  if(!o||!o.id) o={id:uid()+uid(), text:"", cus:"", photos:[]}; o.u=curUser(); o.photos=o.photos||[]; return DR=o; }
+const drSave = () => lsSet(DRK(), JSON.stringify(DRf()));
+function EDf(){ if(ED===undefined || (ED && ED.u!==curUser())){ try{ ED=JSON.parse(lsGet(EDK())||"null"); }catch(e){ ED=null; } } return ED; }
+const edSave = () => lsSet(EDK(), ED ? JSON.stringify(ED) : null);
+function dtEdRow(x){ const e=EDf();
+  return `<div class="dt dt-ed" data-dt="${esc(x.id)}"><div class="dt-comp">
+    <textarea class="dt-in dt-edit" rows="2" maxlength="1000" aria-label="Текст задачи">${esc(e.text)}</textarea>
+    <div class="dt-phs" data-phs="${esc(x.id)}" data-x="1">${phItems(x.id,x.photos,true)}</div>
+    <div class="dt-cbar"><label class="dt-pbtn">${ICAM}<span>Фото</span><input type="file" accept="image/*" multiple hidden data-phfile></label>
+      <span class="dt-hint">Enter — сохранить · Shift+Enter — новая строка</span>
+      <button type="button" class="btn sm" data-edno>Отмена</button><button type="button" class="btn pri sm" data-edok>Сохранить</button></div></div></div>`; }
+function dtRow(x){ const e=EDf(); if(e && e.id===x.id && dtCan(x)) return dtEdRow(x);
+  const c=x.customerId?cus(x.customerId):null, cn=c&&c.id?cusShort(c.name):"", sn=dtSeen(x);
   const who=USERS_LIST.filter(n=>n!==x.by).map(n=>sn[n]?`<i class="y" title="Увидел ${esc(fd(sn[n].slice(0,10)))} в ${hhmm(sn[n])}">✓ ${esc(n)} ${hhmm(sn[n])}</i>`:`<i title="Ещё не открывал">${esc(n)}</i>`).join("");
   return `<div class="dt${x._new?" new":""}" data-dt="${esc(x.id)}">
     <div class="dt-b">${cn?`<span class="dt-c">${esc(cn)}</span>`:""}<span class="dt-t"${dtCan(x)?' data-dtedit title="Нажмите, чтобы исправить"':""}>${esc(x.text)}</span>
+      <div class="dt-phs" data-phs="${esc(x.id)}">${phItems(x.id,x.photos,false)}</div>
       <small>${esc(x.by||"")}${x.created?" · "+(x.created.slice(0,10)===todayISO()?"сегодня ":fd(x.created.slice(0,10))+" ")+hhmm(x.created):""}</small>
       <div class="dt-seen" aria-label="Кто видел">${who}</div></div>
-    <div class="dt-a">${dtCan(x)?`<button type="button" class="dt-x" data-dtdel title="Удалить" aria-label="Удалить">×</button>`:""}</div></div>`; }
+    <div class="dt-a"><label class="dt-cam" title="Прикрепить фото" aria-label="Прикрепить фото">${ICAM}<input type="file" accept="image/*" multiple hidden data-phfile></label>${dtCan(x)?`<button type="button" class="dt-x" data-dtdel title="Удалить" aria-label="Удалить">×</button>`:""}</div></div>`; }
 /* отмечаем «видел» за текущего пользователя — только когда задачи дня реально показаны на экране */
 function dtMarkSeen(L){ const me=curUser(); if(!me) return; const now=new Date().toISOString();
   L.forEach(x=>{ if(x.by===me) return; const sn=dtSeen(x); if(sn[me]) return; x._new=1; sn[me]=now; x.seen=JSON.stringify(sn); dirty("daytasks", x.id); }); }
@@ -1620,36 +1686,223 @@ function drawDayTasks(){
   const c=CAL(), sel=c.sel, all=DTS().filter(x=>!c.cus||!x.customerId||x.customerId===c.cus);
   const L=all.filter(x=>x.date===sel).sort((a,b)=>String(a.created).localeCompare(String(b.created)));
   if(curTab==="calendar" && !document.hidden) dtMarkSeen(L);
+  const e=EDf(); if(e && !DTS().some(x=>x.id===e.id)){ ED=null; edSave(); }
+  const ae=document.activeElement, hadFocus=!!(ae && ae.classList && ae.classList.contains("dt-edit"));
   $("#dt-list").innerHTML = L.length ? L.map(x=>dtRow(x)).join("") : `<div class="dt-empty">Задач нет. Добавьте, если на этот день нужно что-то кроме заказа: заменить товар, привезти документы, забрать возврат.</div>`;
   L.forEach(x=>delete x._new);
+  const ta=$("#dt-list .dt-edit"); if(ta){ dtGrow(ta); const E=EDf();
+    ta.addEventListener("input",()=>{ E.text=ta.value; E.a=ta.selectionStart; edSave(); });
+    ta.addEventListener("keyup",()=>{ E.a=ta.selectionStart; edSave(); });
+    dtKeys(ta, ()=>dtEdFinish(true), ()=>dtEdFinish(false));
+    if(hadFocus || E.focus){ delete E.focus; edSave(); ta.focus({preventScroll:hadFocus}); const a=Math.min(E.a==null?ta.value.length:E.a, ta.value.length); ta.setSelectionRange(a,a); } }
   $("#dt-count").textContent = L.length ? L.length+" "+plural(L.length,["задача","задачи","задач"]) : "";
-  const cs=$("#dt-cus"), keep=cs.value; const ids=new Set(calDocs(sel,"").map(j=>j.customerId));
+  const cs=$("#dt-cus"), keep=cs.value, D0=DRf(); const ids=new Set(calDocs(sel,"").map(j=>j.customerId));
   const first=D.customers.filter(x=>ids.has(x.id)), rest=D.customers.filter(x=>!ids.has(x.id));
   cs.innerHTML=`<option value="">Без заказчика</option>`+(first.length?`<optgroup label="Заказы на этот день">${opts(first)}</optgroup><optgroup label="Остальные">${opts(rest)}</optgroup>`:opts(rest));
-  if(keep && D.customers.some(x=>x.id===keep)) cs.value=keep; else if(c.cus) cs.value=c.cus; else cs.value="";
+  const has=id=>id && D.customers.some(x=>x.id===id);
+  cs.value = has(keep) ? keep : has(D0.cus) ? D0.cus : (c.cus||"");
+  const tt=$("#dt-text"); if(document.activeElement!==tt && tt.value!==D0.text){ tt.value=D0.text; }
+  dtGrow(tt);
+  const ap=$("#dt-addph"); ap.dataset.phs=D0.id; ap.innerHTML=phItems(D0.id, D0.photos, true);
   $("#dt-chips").innerHTML=DT_CHIPS.map(s=>`<button type="button" class="dt-chip" data-chip="${esc(s)}">${esc(s)}</button>`).join("");
+  phThumbs($("#dt-box"));
 }
+function dtEdFinish(save){ const e=EDf(); if(!e) return; const x=DTS().find(y=>y.id===e.id); ED=null; edSave();
+  if(save && x){ const v=e.text.trim(); if(v && v!==x.text){ x.text=v; x.seen=""; dtSave(x,"Изменена: "+v); toast("ok","Задача исправлена","Отметки «видел» начнутся заново."); return; } }
+  renderCalendar(); }
 /* поле задачи: Enter — сохранить, Shift+Enter — новая строка (на телефоне Enter = новая строка, сохраняет кнопка) */
 const dtTouch = () => { try{ return matchMedia("(pointer:coarse)").matches; }catch(e){ return false; } };
-const dtGrow = t => { t.style.height="auto"; t.style.height=Math.min(t.scrollHeight+2, 260)+"px"; };
+const dtGrow = t => { if(!t) return; t.style.height="auto"; t.style.height=Math.min(t.scrollHeight+2, 320)+"px"; };
 function dtKeys(t, onEnter, onEsc){ t.addEventListener("input",()=>dtGrow(t));
-  t.addEventListener("keydown",k=>{ if(k.key==="Enter" && !k.shiftKey && !k.isComposing && !dtTouch()){ k.preventDefault(); onEnter(); } else if(k.key==="Escape" && onEsc) onEsc(); }); }
+  t.addEventListener("keydown",k=>{ if(k.key==="Enter" && !k.shiftKey && !k.isComposing && !dtTouch()){ k.preventDefault(); onEnter(); } else if(k.key==="Escape" && onEsc){ k.preventDefault(); onEsc(); } }); }
 function dtSave(x, ev){ dirty("daytasks", x.id); saveLocal(); if(ev) logEv("Задача на день", ev); renderCalendar(); }
-$("#dt-add").addEventListener("submit",e=>{ e.preventDefault(); const inp=$("#dt-text"), v=inp.value.trim(); if(!v){ inp.focus(); return; }
-  const x={id:uid(), date:CAL().sel, customerId:$("#dt-cus").value||"", text:v, done:"", by:curUser()||"", created:new Date().toISOString(), doneBy:"", doneAt:"", seen:""};
-  DTS().push(x); inp.value=""; dtGrow(inp); $("#dt-cus").value=""; dtSave(x, "Добавлена на "+fd(x.date)+": "+(x.customerId?cusShort(cus(x.customerId).name)+" — ":"")+v);
+$("#dt-add").addEventListener("submit",e=>{ e.preventDefault(); const inp=$("#dt-text"), D0=DRf(); let v=inp.value.trim();
+  if(!v && !D0.photos.length){ inp.focus(); return; } if(!v) v="Фото";
+  const x={id:D0.id, date:CAL().sel, customerId:$("#dt-cus").value||"", text:v, done:"", by:curUser()||"", created:new Date().toISOString(), doneBy:"", doneAt:"", seen:"", photos:D0.photos.slice()};
+  DTS().push(x); DR=null; lsSet(DRK(), null); inp.value=""; dtGrow(inp); $("#dt-cus").value="";
+  dtSave(x, "Добавлена на "+fd(x.date)+": "+(x.customerId?cusShort(cus(x.customerId).name)+" — ":"")+v+(x.photos.length?" (фото: "+x.photos.length+")":""));
   toast("ok","Задача добавлена","На "+fd(x.date)+". Её увидят все, в том числе водитель."); setTimeout(()=>$("#dt-text").focus(),50); });
 dtKeys($("#dt-text"), ()=>$("#dt-add").requestSubmit());
+$("#dt-text").addEventListener("input",()=>{ DRf().text=$("#dt-text").value; drSave(); });
+$("#dt-cus").addEventListener("change",()=>{ DRf().cus=$("#dt-cus").value; drSave(); });
 $("#dt-chips").addEventListener("click",e=>{ const b=e.target.closest("[data-chip]"); if(!b) return; const inp=$("#dt-text"); const v=inp.value.trim();
-  inp.value = v ? v+", "+b.dataset.chip.toLowerCase() : b.dataset.chip+": "; dtGrow(inp); inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); });
-$("#dt-box").addEventListener("click",e=>{ const row=e.target.closest("[data-dt]"); if(!row) return; const x=DTS().find(y=>y.id===row.dataset.dt); if(!x) return;
+  inp.value = v ? v+", "+b.dataset.chip.toLowerCase() : b.dataset.chip+": "; DRf().text=inp.value; drSave(); dtGrow(inp); inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); });
+$("#dt-box").addEventListener("change",e=>{ const f=e.target.closest("[data-phfile]"); if(!f) return; const row=e.target.closest("[data-dt]"), files=[...f.files]; f.value="";
+  if(files.length) phAdd(row ? row.dataset.dt : DRf().id, files); });
+$("#dt-box").addEventListener("click",e=>{
+  const ph=e.target.closest(".ph[data-ph]");
+  if(ph){ e.preventDefault(); const tid=ph.closest("[data-phs]").dataset.phs, list=phList(tid), p=list.find(z=>z.id===ph.dataset.ph); if(!p) return;
+    if(e.target.closest("[data-phx]")){ if(!ph.classList.contains("arm")){ ph.classList.add("arm"); setTimeout(()=>ph.isConnected&&ph.classList.remove("arm"),2500); return; } phDel(tid, p); return; }
+    if(ph.classList.contains("arm")){ ph.classList.remove("arm"); return; }
+    lbOpen(tid, list.indexOf(p), ph); return; }
+  const row=e.target.closest("[data-dt]"); if(!row) return; const x=DTS().find(y=>y.id===row.dataset.dt); if(!x) return;
+  if(e.target.closest("[data-edok]")){ dtEdFinish(true); return; }
+  if(e.target.closest("[data-edno]")){ dtEdFinish(false); return; }
   if(e.target.closest("[data-dtdel]")){ const b=e.target.closest("[data-dtdel]"); if(!b.dataset.armed){ b.dataset.armed=1; b.textContent="Удалить?"; b.classList.add("armed"); setTimeout(()=>{ if(b.isConnected){ delete b.dataset.armed; b.textContent="×"; b.classList.remove("armed"); } },3000); return; }
     const i=DTS().indexOf(x); DTS().splice(i,1); dirty("daytasks",x.id,true); saveLocal(); logEv("Задача на день","Удалена ("+fd(x.date)+"): "+x.text); renderCalendar();
     toast("info","Задача удалена",x.text,{action:{label:"Вернуть", fn:()=>{ DTS().push(x); dtSave(x,"Возвращена: "+x.text); }}}); return; }
-  const te=e.target.closest("[data-dtedit]"); if(te && !row.querySelector(".dt-edit")){ const inp=document.createElement("textarea"); inp.className="dt-edit dt-in"; inp.rows=1; inp.maxLength=1000; inp.value=x.text; te.replaceWith(inp); dtGrow(inp); inp.focus(); inp.select();
-    /* текст изменили — отметки «видел» начинаются заново, чтобы все прочитали новую версию */
-    const fin=save=>{ if(!inp.isConnected) return; const v=inp.value.trim(); if(save && v && v!==x.text){ x.text=v; x.seen=""; dtSave(x,"Изменена: "+v); } else renderCalendar(); };
-    dtKeys(inp, ()=>fin(true), ()=>fin(false)); inp.addEventListener("blur",()=>fin(true)); } });
+  if(e.target.closest("[data-dtedit]") && !EDf()){ ED={u:curUser(), id:x.id, text:x.text, a:x.text.length, focus:1}; edSave(); drawDayTasks(); } });
+
+/* ---------- фото к задачам ---------- */
+const PHC={th:new Map(), full:new Map()}, PHUP=new Map(); let phQ=new Set(), phT=null;
+async function phCache(kind, id, val){ try{ if(!window.caches) return null; const c=await caches.open("fd-photos-v1"), u=location.origin+"/__fdph/"+kind+"/"+encodeURIComponent(id);
+  if(val===undefined){ const r=await c.match(u); return r ? await r.text() : null; } await c.put(u, new Response(val)); }catch(e){ return null; } }
+const phCanDel = p => !isStaff() || p.by===curUser();
+function phList(tid){ const t=DTS().find(x=>x.id===tid); if(t) return t.photos||(t.photos=[]); const d=DRf(); return d.id===tid ? d.photos : []; }
+function phItems(tid, list, x){
+  return (list||[]).map(p=>`<button type="button" class="ph" data-ph="${esc(p.id)}" aria-label="Открыть фото"><img alt="" draggable="false">${x&&phCanDel(p)?`<span class="phx" data-phx role="button" aria-label="Убрать фото">×</span>`:""}</button>`).join("")
+    + [...PHUP.values()].filter(u=>u.tid===tid).map(u=>`<span class="ph ld up${u.fresh?" pop":""}" title="Загружается…"><img alt="" class="${u.thumb?"on":""}" src="${u.thumb||""}"></span>`).join(""); }
+function phStripUpd(tid){ document.querySelectorAll("#fd-app [data-phs]").forEach(el=>{ if(el.dataset.phs!==tid) return; el.innerHTML=phItems(tid, phList(tid), el.dataset.x==="1"); phThumbs(el); });
+  [...PHUP.values()].forEach(u=>{ if(u.tid===tid) u.fresh=false; }); }
+function phPut(el, src){ const im=el.querySelector("img"); if(!im) return; const done=()=>{ el.classList.add("ld"); im.classList.add("on"); };
+  if(im.getAttribute("src")===src){ if(im.complete) done(); else im.onload=done; return; } im.onload=done; im.src=src; }
+function phThumbs(root){ (root||document).querySelectorAll(".ph[data-ph]").forEach(el=>{ const id=el.dataset.ph; if(PHC.th.has(id)) phPut(el, PHC.th.get(id)); else phQ.add(id); });
+  if(phQ.size){ clearTimeout(phT); phT=setTimeout(phFetch, 30); } }
+async function phFetch(){ const ids=[...phQ]; phQ.clear(); const need=[];
+  for(const id of ids){ if(PHC.th.has(id)) continue; const v=await phCache("t", id); if(v) PHC.th.set(id, v); else need.push(id); }
+  if(need.length && online()){ try{ const j=await api({action:"thumbs", ids:need}); Object.keys(j.thumbs||{}).forEach(id=>{ const v=j.thumbs[id]; if(v){ PHC.th.set(id, v); phCache("t", id, v); } }); }catch(e){} }
+  document.querySelectorAll("#fd-app .ph[data-ph]").forEach(el=>{ const v=PHC.th.get(el.dataset.ph); if(v) phPut(el, v); }); }
+async function phFull(id){ if(PHC.full.has(id)) return PHC.full.get(id); let v=await phCache("f", id);
+  if(!v){ const j=await api({action:"photo", id}); v=j.data; phCache("f", id, v); } PHC.full.set(id, v); return v; }
+/* сжимаем на устройстве: снимок до 1800 px (~300–500 КБ) и миниатюра для списка */
+async function phPrep(file){ let src, url=null;
+  try{ src=await createImageBitmap(file, {imageOrientation:"from-image"}); }
+  catch(e){ src=await new Promise((ok,no)=>{ url=URL.createObjectURL(file); const im=new Image(); im.onload=()=>ok(im); im.onerror=()=>no(new Error("img")); im.src=url; }); }
+  const W=src.width||src.naturalWidth, H=src.height||src.naturalHeight; if(!W||!H) throw new Error("img");
+  const draw=(max,q)=>{ const k=Math.min(1,max/Math.max(W,H)), w=Math.max(1,Math.round(W*k)), h=Math.max(1,Math.round(H*k)), c=document.createElement("canvas"); c.width=w; c.height=h;
+    const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,w,h); g.imageSmoothingQuality="high"; g.drawImage(src,0,0,w,h); return {url:c.toDataURL("image/jpeg",q), w, h}; };
+  const f=draw(1800,.82); let t=draw(360,.74); for(let q=.62; t.url.length>42000 && q>.25; q-=.12) t=draw(280,q);
+  if(src.close) src.close(); if(url) URL.revokeObjectURL(url);
+  return {data:f.url.split(",")[1], full:f.url, thumb:t.url, w:f.w, h:f.h}; }
+async function phAdd(tid, files){
+  if(!online()){ toast("warn","Фото не прикрепить","Нужна связь с Google Таблицей — фото хранятся там."); return; }
+  for(const file of files){ if(file.type && !/^image\//.test(file.type)){ toast("warn","Это не фото",file.name); continue; }
+    const k="up"+uid(), u={tid, thumb:"", fresh:true}; PHUP.set(k,u); phStripUpd(tid);
+    try{ const r=await phPrep(file); u.thumb=r.thumb; phStripUpd(tid);
+      const j=await api({action:"addPhoto", taskId:tid, data:r.data, thumb:r.thumb, w:r.w, h:r.h});
+      PHC.th.set(j.id, r.thumb); PHC.full.set(j.id, r.full); phCache("t", j.id, r.thumb); phCache("f", j.id, r.full);
+      PHUP.delete(k); const list=phList(tid); list.push({id:j.id, by:curUser()||"", w:r.w, h:r.h});
+      if(DRf().id===tid) drSave(); else saveLocal(); phStripUpd(tid);
+    }catch(e){ PHUP.delete(k); phStripUpd(tid); toast("err","Фото не загрузилось", e.message==="img" ? "Не получилось открыть «"+file.name+"». Попробуйте снимок в формате JPG или PNG." : "Проверьте связь и попробуйте ещё раз."); } } }
+async function phDel(tid, p){ const list=phList(tid), i=list.indexOf(p); if(i<0) return;
+  try{ await api({action:"delPhoto", id:p.id}); }catch(e){ toast("err","Фото не удалено", e.message==="forbidden"?"Удалить можно только своё фото.":"Проверьте связь и попробуйте ещё раз."); return false; }
+  list.splice(i,1); if(DRf().id===tid) drSave(); else saveLocal(); phStripUpd(tid); toast("info","Фото удалено",""); return true; }
+
+/* ---------- просмотр фото: приближение (колесо, щипок, двойное касание), поворот, листание, смахнуть вниз — закрыть ---------- */
+const LB={el:null, img:null, tid:"", list:[], i:0, s:1, tx:0, ty:0, r:0, fw:0, fh:0, open:false, pushed:false};
+const LBI={rl:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v5h5"/><path d="M4.6 9A8 8 0 1 1 6 16.5"/></svg>',
+  rr:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4v5h-5"/><path d="M19.4 9A8 8 0 1 0 18 16.5"/></svg>',
+  dl:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10.5l5 5 5-5M5 20h14"/></svg>',
+  del:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12.5A1.5 1.5 0 0 0 8.5 21h7a1.5 1.5 0 0 0 1.5-1.5L18 7M9 7V4.5h6V7"/></svg>',
+  x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  l:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  r:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>'};
+function lbBuild(){ if(LB.el) return;
+  const d=document.createElement("div"); d.id="fd-lb"; d.hidden=true; d.setAttribute("role","dialog"); d.setAttribute("aria-modal","true"); d.setAttribute("aria-label","Просмотр фото");
+  d.innerHTML=`<div class="lb-bg"></div><img class="lb-img" alt="" draggable="false"><div class="lb-spin"></div>
+    <div class="lb-top lb-ui"><span class="lb-cnt"></span><span class="lb-by"></span><span style="flex:1"></span>
+      <button class="lb-b" data-lb="rl" title="Повернуть влево (Shift+R)">${LBI.rl}</button><button class="lb-b" data-lb="rr" title="Повернуть вправо (R)">${LBI.rr}</button>
+      <button class="lb-b" data-lb="dl" title="Скачать">${LBI.dl}</button><button class="lb-b" data-lb="del" title="Удалить фото">${LBI.del}</button>
+      <button class="lb-b" data-lb="x" title="Закрыть (Esc)">${LBI.x}</button></div>
+    <button class="lb-b lb-nav lb-prev lb-ui" data-lb="prev" title="Предыдущее (←)">${LBI.l}</button><button class="lb-b lb-nav lb-next lb-ui" data-lb="next" title="Следующее (→)">${LBI.r}</button>
+    <div class="lb-bot lb-ui"><button class="lb-b" data-lb="zo" title="Отдалить (−)">−</button><span class="lb-z" data-lb="z0" title="Вписать в экран (0)">100%</span><button class="lb-b" data-lb="zi" title="Приблизить (+)">+</button></div>`;
+  document.body.appendChild(d); LB.el=d; LB.img=d.querySelector(".lb-img");
+  d.addEventListener("click", lbClick); d.addEventListener("pointerdown", lbDown); d.addEventListener("pointermove", lbMove);
+  d.addEventListener("pointerup", lbUp); d.addEventListener("pointercancel", lbUp); d.addEventListener("wheel", lbWheel, {passive:false});
+  ["gesturestart","gesturechange","gestureend"].forEach(t=>d.addEventListener(t, e=>e.preventDefault()));
+  window.addEventListener("resize", ()=>{ if(LB.open){ lbAnim(false); lbFit(); lbClamp(); lbApply(); } });
+  window.addEventListener("popstate", ()=>{ if(LB.open){ LB.pushed=false; lbClose(true); } });
+  document.addEventListener("keydown", e=>{ if(!LB.open) return; const k=e.key;
+    if(k==="Escape") lbClose(); else if(k==="ArrowLeft") lbGo(-1); else if(k==="ArrowRight") lbGo(1);
+    else if(k==="r"||k==="R"||k==="к"||k==="К") lbRot(e.shiftKey?-90:90); else if(k==="+"||k==="=") lbZoomBtn(1.5); else if(k==="-") lbZoomBtn(1/1.5); else if(k==="0") lbReset(); else return;
+    e.preventDefault(); }); }
+const lbOdd = () => (((Math.round(LB.r/90))%2)+2)%2===1;
+function lbAnim(on){ LB.el.classList.toggle("anim", !!on); }
+function lbFit(){ const p=LB.list[LB.i]||{}, W=p.w||LB.img.naturalWidth||1200, H=p.h||LB.img.naturalHeight||900, o=lbOdd(), vw=innerWidth, vh=innerHeight, sm=vw<700;
+  const rw=o?H:W, rh=o?W:H, k=Math.min((vw-(sm?0:120))/rw, (vh-(sm?0:150))/rh, Math.max(1, 2*Math.min(1600/W, 1))*(W<600?2:1));
+  LB.fw=W*k; LB.fh=H*k; const s=LB.img.style; s.width=LB.fw+"px"; s.height=LB.fh+"px"; s.marginLeft=(-LB.fw/2)+"px"; s.marginTop=(-LB.fh/2)+"px"; }
+function lbApply(){ LB.img.style.transform=`translate3d(${LB.tx}px,${LB.ty}px,0) rotate(${LB.r}deg) scale(${LB.s})`; const z=LB.el.querySelector(".lb-z"); if(z) z.textContent=Math.round(LB.s*100)+"%"; }
+function lbBounds(){ const o=lbOdd(), dw=(o?LB.fh:LB.fw)*LB.s, dh=(o?LB.fw:LB.fh)*LB.s; return {mx:Math.max(0,(dw-innerWidth)/2), my:Math.max(0,(dh-innerHeight)/2)}; }
+function lbClamp(){ LB.s=Math.min(8, Math.max(1, LB.s)); const b=lbBounds(); LB.tx=Math.min(b.mx, Math.max(-b.mx, LB.tx)); LB.ty=Math.min(b.my, Math.max(-b.my, LB.ty)); }
+function lbZoomAt(ns, px, py){ const cx=innerWidth/2, cy=innerHeight/2, k=ns/LB.s; LB.tx=px-cx-(px-cx-LB.tx)*k; LB.ty=py-cy-(py-cy-LB.ty)*k; LB.s=ns; }
+function lbZoomBtn(f){ lbAnim(true); lbZoomAt(Math.min(8,Math.max(1,LB.s*f)), innerWidth/2, innerHeight/2); lbClamp(); lbApply(); }
+function lbReset(){ lbAnim(true); LB.s=1; LB.tx=0; LB.ty=0; lbApply(); }
+function lbRot(d){ lbAnim(true); const fw0=LB.fw; LB.r+=d; lbFit(); LB.s=LB.s*fw0/LB.fw; lbClamp(); lbApply(); }
+function lbUi(){ const p=LB.list[LB.i], n=LB.list.length, q=s=>LB.el.querySelector(s);
+  q(".lb-cnt").textContent = n>1 ? (LB.i+1)+" / "+n : ""; q(".lb-by").textContent = p.by ? "добавил"+(/[ая]$/.test(p.by)&&p.by!=="Гриша"?"а":"")+" "+p.by : "";
+  q('[data-lb="prev"]').disabled=LB.i<=0; q('[data-lb="next"]').disabled=LB.i>=n-1; q('[data-lb="del"]').hidden=!phCanDel(p);
+  const del=q('[data-lb="del"]'); del.classList.remove("armed"); del.innerHTML=LBI.del; }
+function lbShow(i, fromEl, dir){ const p=LB.list[i]; if(!p) return; LB.i=i; LB.s=1; LB.tx=0; LB.ty=0; LB.r=0; const img=LB.img;
+  lbAnim(false); img.style.clipPath=""; img.style.opacity=""; img.src=PHC.full.get(p.id)||PHC.th.get(p.id)||""; lbFit(); lbUi();
+  if(fromEl){ const R=fromEl.getBoundingClientRect(), k=Math.max(R.width/LB.fw, R.height/LB.fh), ix=Math.max(0,(LB.fw-R.width/k)/2), iy=Math.max(0,(LB.fh-R.height/k)/2);
+    img.style.clipPath=`inset(${iy}px ${ix}px round ${12/k}px)`; img.style.transform=`translate3d(${R.left+R.width/2-innerWidth/2}px,${R.top+R.height/2-innerHeight/2}px,0) scale(${k})`;
+    void img.offsetWidth; lbAnim(true); LB.el.classList.add("open"); img.style.clipPath="inset(0px 0px round 4px)"; lbApply(); }
+  else if(dir){ img.style.opacity="0"; img.style.transform=`translate3d(${dir*70}px,0,0) scale(.96)`; void img.offsetWidth; lbAnim(true); img.style.opacity="1"; lbApply(); }
+  else lbApply();
+  if(!PHC.full.has(p.id)){ LB.el.classList.add("loading");
+    phFull(p.id).then(src=>{ if(LB.list[LB.i]===p && LB.open){ const pre=new Image(); pre.onload=()=>{ if(LB.list[LB.i]===p){ img.src=src; LB.el.classList.remove("loading"); } }; pre.src=src; } })
+      .catch(()=>{ if(LB.list[LB.i]===p) LB.el.classList.remove("loading"); toast("warn","Не удалось загрузить фото целиком","Показана уменьшенная копия. Проверьте связь."); }); }
+  else LB.el.classList.remove("loading");
+  [i-1,i+1].forEach(j=>{ const z=LB.list[j]; if(z && !PHC.full.has(z.id)) phFull(z.id).catch(()=>{}); }); }
+function lbOpen(tid, i, fromEl){ lbBuild(); LB.tid=tid; LB.list=phList(tid).slice(); if(!LB.list.length) return; LB.open=true; LB.from=fromEl;
+  LB.el.hidden=false; LB.el.classList.remove("open","zen"); document.documentElement.style.overflow="hidden";
+  try{ history.pushState({fdlb:1}, ""); LB.pushed=true; }catch(e){ LB.pushed=false; }
+  lbShow(i, fromEl); setTimeout(()=>{ const b=LB.el.querySelector('[data-lb="x"]'); if(b) b.focus({preventScroll:true}); }, 60); }
+function lbClose(fromPop){ if(!LB.open) return; LB.open=false; const p=LB.list[LB.i], img=LB.img;
+  const tile=p && [...document.querySelectorAll("#fd-app .ph[data-ph]")].find(el=>el.dataset.ph===p.id), R=tile && tile.getBoundingClientRect();
+  lbAnim(true); LB.el.classList.remove("open","loading");
+  if(R && R.width && R.bottom>0 && R.top<innerHeight && LB.s<1.05 && Math.abs(LB.r)%360===0){ const k=Math.max(R.width/LB.fw, R.height/LB.fh), ix=Math.max(0,(LB.fw-R.width/k)/2), iy=Math.max(0,(LB.fh-R.height/k)/2);
+    img.style.clipPath=`inset(${iy}px ${ix}px round ${12/k}px)`; img.style.transform=`translate3d(${R.left+R.width/2-innerWidth/2}px,${R.top+R.height/2-innerHeight/2}px,0) scale(${k})`; }
+  else { img.style.opacity="0"; img.style.transform=`translate3d(${LB.tx}px,${LB.ty+(LB.ty>0?60:0)}px,0) rotate(${LB.r}deg) scale(${LB.s*.9})`; }
+  setTimeout(()=>{ if(LB.open) return; LB.el.hidden=true; img.removeAttribute("src"); img.style.cssText=""; LB.el.querySelector(".lb-bg").style.opacity=""; }, 360);
+  document.documentElement.style.overflow="";
+  if(!fromPop && LB.pushed){ LB.pushed=false; try{ history.back(); }catch(e){} }
+  if(tile) try{ tile.focus({preventScroll:true}); }catch(e){} }
+function lbGo(d){ const j=LB.i+d; if(j<0 || j>=LB.list.length){ lbAnim(true); LB.tx=-d*40; lbApply(); setTimeout(()=>{ LB.tx=0; lbApply(); }, 180); return; }
+  lbAnim(true); LB.img.style.opacity="0"; LB.img.style.transform=`translate3d(${-d*90}px,0,0) scale(.96)`; setTimeout(()=>lbShow(j, null, d), 170); }
+async function lbClick(e){ const b=e.target.closest("[data-lb]"); if(!b) return; const a=b.dataset.lb, p=LB.list[LB.i]; e.stopPropagation();
+  if(a==="x") lbClose(); else if(a==="prev") lbGo(-1); else if(a==="next") lbGo(1); else if(a==="rl") lbRot(-90); else if(a==="rr") lbRot(90);
+  else if(a==="zi") lbZoomBtn(1.5); else if(a==="zo") lbZoomBtn(1/1.5); else if(a==="z0") lbReset();
+  else if(a==="dl"){ try{ const src=await phFull(p.id), l=document.createElement("a"); l.href=src; l.download="фото-задачи-"+(LB.i+1)+".jpg"; document.body.appendChild(l); l.click(); l.remove(); }catch(err){ toast("err","Не удалось скачать фото","Проверьте связь."); } }
+  else if(a==="del"){ if(!b.classList.contains("armed")){ b.classList.add("armed"); b.textContent="Удалить фото?"; setTimeout(()=>{ if(b.isConnected && b.classList.contains("armed")){ b.classList.remove("armed"); b.innerHTML=LBI.del; } }, 3000); return; }
+    const real=phList(LB.tid).find(z=>z.id===p.id); if(!real) return; if(await phDel(LB.tid, real)===false) return;
+    LB.list.splice(LB.i,1); if(!LB.list.length){ lbClose(); return; } lbShow(Math.min(LB.i, LB.list.length-1), null, 1); } }
+/* жесты */
+const LBP=new Map(); let LBG=null, lbTap=0, lbTapT=null;
+const lbMid = () => { const [a,b]=[...LBP.values()]; return {x:(a.x+b.x)/2, y:(a.y+b.y)/2, d:Math.hypot(b.x-a.x,b.y-a.y)||1, a:Math.atan2(b.y-a.y,b.x-a.x)}; };
+function lbStartPan(x,y){ LBG={m:"pan", x0:x, y0:y, tx0:LB.tx, ty0:LB.ty, ax:"", moved:LBG?LBG.moved:false, t0:Date.now(), pinched:LBG?LBG.pinched:false}; }
+function lbDown(e){ if(e.target.closest("[data-lb]") || !LB.open) return; if(e.pointerType==="mouse" && e.button!==0) return;
+  try{ LB.el.setPointerCapture(e.pointerId); }catch(x){} LBP.set(e.pointerId,{x:e.clientX,y:e.clientY}); lbAnim(false);
+  if(LBP.size===1) lbStartPan(e.clientX, e.clientY);
+  else if(LBP.size===2){ const m=lbMid(); LBG={m:"pinch", m0:m, s0:LB.s, r0:LB.r, tx0:LB.tx, ty0:LB.ty, moved:true, pinched:true, fw0:LB.fw}; LB.el.querySelector(".lb-bg").style.opacity=""; } }
+function lbMove(e){ if(!LBP.has(e.pointerId) || !LBG) return; LBP.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(LBG.m==="pinch" && LBP.size>=2){ const m=lbMid(), g=LBG, da=m.a-g.m0.a, k=m.d/g.m0.d, cx=innerWidth/2, cy=innerHeight/2;
+    LB.s=Math.min(10, Math.max(.5, g.s0*k)); LB.r=g.r0+da*180/Math.PI; const kk=LB.s/g.s0;
+    const vx=g.m0.x-cx-g.tx0, vy=g.m0.y-cy-g.ty0, c=Math.cos(da), s=Math.sin(da);
+    LB.tx=m.x-cx-(vx*c-vy*s)*kk; LB.ty=m.y-cy-(vx*s+vy*c)*kk; lbApply(); return; }
+  if(LBG.m!=="pan") return; const dx=e.clientX-LBG.x0, dy=e.clientY-LBG.y0; if(Math.abs(dx)+Math.abs(dy)>6) LBG.moved=true; if(!LBG.moved) return;
+  if(LB.s>1.02){ const b=lbBounds(), rub=(v,m)=>v>m?m+(v-m)*.35:v<-m?-m+(v+m)*.35:v; LB.tx=rub(LBG.tx0+dx,b.mx); LB.ty=rub(LBG.ty0+dy,b.my); lbApply(); return; }
+  if(!LBG.ax) LBG.ax = Math.abs(dx)>Math.abs(dy) ? "h" : "v";
+  if(LBG.ax==="h"){ const edge=(dx>0&&LB.i===0)||(dx<0&&LB.i===LB.list.length-1); LB.tx=edge?dx*.3:dx; LB.ty=0; }
+  else { LB.ty=dy; LB.tx=0; LB.el.querySelector(".lb-bg").style.opacity=String(Math.max(.15, 1-Math.abs(dy)/(innerHeight*.55))); }
+  lbApply(); }
+function lbUp(e){ if(!LBP.has(e.pointerId)) return; const pt=LBP.get(e.pointerId); LBP.delete(e.pointerId); if(!LBG) return;
+  if(LBG.m==="pinch"){ if(LBP.size===1){ const [q]=[...LBP.values()]; lbStartPan(q.x,q.y); } if(LBP.size) return;
+    const fw0=LB.fw; LB.r=Math.round(LB.r/90)*90; lbFit(); LB.s=LB.s*fw0/LB.fw; lbAnim(true); lbClamp(); lbApply(); LBG=null; return; }
+  if(LBP.size) return; const g=LBG; LBG=null;
+  if(g.pinched){ const fw0=LB.fw; LB.r=Math.round(LB.r/90)*90; lbFit(); LB.s=LB.s*fw0/LB.fw; lbAnim(true); lbClamp(); lbApply(); return; }
+  const dx=e.clientX-g.x0, dy=e.clientY-g.y0, dt=Math.max(1,Date.now()-g.t0);
+  if(!g.moved){ const now=Date.now();
+    if(now-lbTap<320){ clearTimeout(lbTapT); lbTap=0; lbAnim(true); if(LB.s>1.05){ LB.s=1; LB.tx=0; LB.ty=0; } else { lbZoomAt(2.5, pt.x, pt.y); lbClamp(); } lbApply(); return; }
+    lbTap=now; const r=LB.img.getBoundingClientRect(), inside=pt.x>=r.left&&pt.x<=r.right&&pt.y>=r.top&&pt.y<=r.bottom;
+    lbTapT=setTimeout(()=>{ lbTap=0; if(!inside && LB.s<1.05) lbClose(); else LB.el.classList.toggle("zen"); }, 330); return; }
+  lbAnim(true);
+  if(LB.s>1.02){ lbClamp(); lbApply(); return; }
+  if(g.ax==="h" && (Math.abs(dx)>80 || Math.abs(dx)/dt>.5) && !((dx>0&&LB.i===0)||(dx<0&&LB.i===LB.list.length-1))){ lbGo(dx<0?1:-1); return; }
+  if(g.ax==="v" && (Math.abs(dy)>110 || Math.abs(dy)/dt>.6)){ lbClose(); return; }
+  LB.tx=0; LB.ty=0; LB.el.querySelector(".lb-bg").style.opacity=""; lbApply(); }
+function lbWheel(e){ if(!LB.open) return; e.preventDefault(); lbAnim(false);
+  const f=Math.exp(-e.deltaY*(e.ctrlKey?.012:.0022)); lbZoomAt(Math.min(8, Math.max(1, LB.s*f)), e.clientX, e.clientY); lbClamp(); lbApply(); }
 function drawCalDay(){
   const c=CAL(), d=new Date(c.sel+"T12:00:00"), docs=calDocs(c.sel, c.cus).sort((a,b)=>-jNumSort(a,b)), staff=isStaff();
   $("#cal-dtitle").textContent=d.getDate()+" "+MONG[d.getMonth()]+" "+d.getFullYear()+", "+["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"][d.getDay()];
@@ -2901,7 +3154,7 @@ const HELP={
   "Количество по адресам":["Перепишите цифры из заявки.",["Строка — точка (столовая), столбец — товар.","Пустые строки пропускаются.","Серый номер в «№ док.» подставлен автоматически. Нажмите на него, чтобы исправить. Если сотрёте — номер снова подставится сам."]],
   "Что скачать":["Отметьте документы и нажмите кнопку.","Все накладные создадутся сразу, скачаются одним PDF и сохранятся в «Журнал» одним комплектом."],
   "Календарь":["Все заказы по дням поставки.",["На дне видно количество накладных и сумму.","Нажмите на день — ниже появятся его заказы, товар на день, маршрут водителю и текст для копирования.","Новые накладные появляются здесь сразу после создания."]],
-  "Задачи на день":["Дела на день, кроме самих заказов: замена товара, исправленные документы, возврат.",["Выберите заказчика (можно без него), впишите задачу и нажмите «Добавить». Кнопки ниже подставят частые фразы.","Писать можно в несколько строк: Enter — добавить задачу, Shift+Enter — новая строка (на телефоне новая строка — обычным Enter, добавить — кнопкой).","Задачи видят все, в том числе водитель. Они попадают и в текст маршрута.","Под задачей видно, кто её уже открыл (зелёным, со временем), а кто ещё нет. Отмечать ничего не нужно — достаточно открыть календарь на этот день. Красный флажок в календаре — есть задачи, которые вы ещё не видели.","Если текст задачи исправить, отметки «видел» сбрасываются, чтобы все прочитали новую версию."]],
+  "Задачи на день":["Дела на день, кроме самих заказов: замена товара, исправленные документы, возврат.",["Выберите заказчика (можно без него), впишите задачу и нажмите «Добавить». Кнопки ниже подставят частые фразы.","Писать можно в несколько строк: Enter — добавить задачу, Shift+Enter — новая строка (на телефоне новая строка — обычным Enter, добавить — кнопкой).","Задачи видят все, в том числе водитель. Они попадают и в текст маршрута.","Фото: кнопка «Фото» в поле задачи или значок фотоаппарата у готовой задачи. Нажмите на фото — оно откроется крупно: приближайте колесом мыши, двумя пальцами или двойным касанием, поворачивайте кнопками или двумя пальцами, листайте стрелками или смахиванием, смахните вниз — закроется.","Недописанная задача не пропадёт: если свернуть браузер или закрыть страницу, текст и фото останутся в поле до вашего возвращения.","Под задачей видно, кто её уже открыл (зелёным, со временем), а кто ещё нет. Отмечать ничего не нужно — достаточно открыть календарь на этот день. Красный флажок в календаре — есть задачи, которые вы ещё не видели.","Если текст задачи исправить, отметки «видел» сбрасываются, чтобы все прочитали новую версию."]],
   "Маршрут для водителя":["Собирается сам из накладных выбранного в календаре дня.",["Галочка «Подробно» — для наёмного водителя: телефоны, часы приёмки, получатель, документы.","Контакты точки можно поправить прямо в её карточке."]],
   "Текстом для копирования":["Готовое сообщение для рабочей группы в MAX.","Нажмите «Скопировать текст» и вставьте в чат."],
   "Журнал документов":["Все созданные документы.",["Фильтры — период, поставщик, заказчик; поиск — по номеру, адресу, товару.","«Комплект» — документы одной заявки, нажмите, чтобы развернуть.","«Изменить» — исправить документ под тем же номером. «Ещё» — XML, копия, архив."]],
