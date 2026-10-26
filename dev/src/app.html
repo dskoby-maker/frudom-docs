@@ -1567,8 +1567,9 @@ const wdays=["вс","пн","вт","ср","чт","пт","сб"];
 function dvPoints(){
   const f=DV(), map={};
   D.journal.filter(j=>j.snap && !isArch(j) && j.date===f.date && (!f.sup||j.supplierId===f.sup)).sort(jNumSort).forEach(j=>{
-    const dr=j.snap.dr, c=j.snap.c||{}, addr=dr.ship||c.address||"", key=j.customerId+"|"+(dr.branchId||"")+"|"+addr;
+    const dr=j.snap.dr, c=j.snap.c||{}, addr=dr.ship||c.address||"", key=j.customerId+"|"+ptKey(addr);
     const p=map[key]=map[key]||{cid:j.customerId, addr, c, docs:[], items:{}, order:Object.keys(map).length};
+    if(p.c!==c && (p.c.branchLabel||"")!==(c.branchLabel||"")) p.c=Object.assign({}, p.c, {branchLabel:""}); /* несколько ОП на одной точке (НМИЦ: бюджет/ОМС/внебюджет) — точка одна */
     p.docs.push(j); calc(dr, j.snap).lines.forEach(l=>{ const it=p.items[l.name]=p.items[l.name]||{name:l.name, unit:l.unit, qty:0}; it.qty+=l.qty; });
   });
   const n0 = p => Math.min(...p.docs.map(j=>parseInt(j.number,10)||1e9));
@@ -1642,7 +1643,7 @@ const CAL = () => (D.cal = D.cal || {ym:"", sel:"", cus:""});
 const MONTHS=["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
 const MONG=["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
 const calDocs = (date, cid) => D.journal.filter(j=>j.snap && !isArch(j) && j.date===date && (!cid||j.customerId===cid));
-function pointsOn(docs){ const m={}; docs.forEach(j=>{ const dr=j.snap.dr, k=j.customerId+"|"+(dr.branchId||"")+"|"+(dr.ship||""); m[k]=1; }); return Object.keys(m).length; }
+function pointsOn(docs){ const m={}; docs.forEach(j=>{ const dr=j.snap.dr, k=j.customerId+"|"+ptKey(dr.ship||(j.snap.c||{}).address||""); m[k]=1; }); return Object.keys(m).length; }
 /* точки дня: адреса из накладных + задачи (товар иногда возят без накладной): задача с заказчиком, у которого в этот день нет накладной, — отдельная точка; задача без заказчика — тоже */
 function cusAddrs(c){ if(!c||!c.id) return []; const o=[], seen={}; const add=(a,legal)=>{ if(a && !seen[a]){ seen[a]=1; o.push({a, label:stLabel(a,legal)}); } };
   branches(c).forEach(b=>{ addrs(b).forEach(a=>add(a,b.address)); }); addrs(c).forEach(a=>add(a,c.address)); return o; }
@@ -1741,8 +1742,9 @@ const wfmt = n => String(+(+n).toFixed(1)).replace(".",",");
 function docTasks(dates, quiet){ const now=new Date().toISOString(); let ch=0;
   [...new Set((dates||[]).filter(Boolean))].forEach(date=>{ const want={};
     D.journal.filter(j=>j.snap && !isArch(j) && j.date===date).forEach(j=>{ const dr=j.snap.dr, c=j.snap.c||{}, ship=dr.ship||"";
-      const id=AUTO_T+hsh(date+"|"+j.customerId+"|"+(dr.branchId||"")+"|"+ship);
-      const w=want[id]=want[id]||{id, cid:j.customerId, addr:ship, who:"", kg:0, other:{}};
+      const id=AUTO_T+hsh(date+"|"+j.customerId+"||"+ship);
+      const w=want[id]=want[id]||{id, cid:j.customerId, addr:ship, who:"", lbl:c.branchLabel||"", kg:0, other:{}};
+      if(w.who && w.lbl!==(c.branchLabel||"")) w.who=cusShort(cus(j.customerId).name||c.name);
       if(!w.who){ const b=(c.branchLabel||"").replace(/^ОП\s*/,"").replace(/[«»"]/g,""), n=cusShort(cus(j.customerId).name||c.name); w.who = b ? n+", "+b : n; }
       calc(dr, j.snap).lines.forEach(l=>{ const u=String(l.unit||"").trim().toLowerCase().replace(/\.$/,""), q=+l.qty||0;
         if(u==="кг") w.kg+=q; else if(u==="г"||u==="гр") w.kg+=q/1000; else if(u==="т") w.kg+=q*1000; else { const k=l.unit||"шт"; w.other[k]=(w.other[k]||0)+q; } }); });
@@ -2957,7 +2959,7 @@ function impParse(rows){
   for(let i=0;i<rows.length;i++){ const r=rows[i].map(x=>x instanceof Date?x:String(x==null?"":x).trim());
     const low=r.map(x=>typeof x==="string"?norm(x):"");
     const ni=low.findIndex(x=>/^(товар|наименование)/.test(x)), qi=low.findIndex(x=>/^кол/.test(x));
-    if(ni>=0 && qi>=0){ hi=i; cols.name=ni; cols.qty=qi; low.forEach((x,j)=>{ if(/^ед/.test(x)) cols.unit=j; else if(/^цен/.test(x)) cols.price=j; else if(/№\s*док|номер\s*док|^№\s*накл/.test(x)) cols.num=j; else if(/^адрес|^точка/.test(x)) cols.addr=j; else if(/^примеч|^коммент/.test(x)) cols.note=j; else if(/^в заявке|^как в заявке|^исходн/.test(x)) cols.orig=j; }); break; }
+    if(ni>=0 && qi>=0){ hi=i; cols.name=ni; cols.qty=qi; low.forEach((x,j)=>{ if(/^ед/.test(x)) cols.unit=j; else if(/^цен/.test(x)) cols.price=j; else if(/№\s*док|номер\s*док|^№\s*накл/.test(x)) cols.num=j; else if(/^адрес|^точка/.test(x)) cols.addr=j; else if(/^оп$|^подразд|^источник/.test(x)) cols.br=j; else if(/^примеч|^коммент/.test(x)) cols.note=j; else if(/^в заявке|^как в заявке|^исходн/.test(x)) cols.orig=j; }); break; }
     const k=low[0]; if(!k) continue; const v=rows[i].slice(1).find(x=>x!==""&&x!=null); if(v==null) continue;
     const m=K.find(([re])=>re.test(k)); if(m && meta[m[1]]==null) meta[m[1]]=v instanceof Date?v:String(v).trim();
   }
@@ -2969,7 +2971,7 @@ function impParse(rows){
     let qv=g(cols.qty), orig=String(g(cols.orig)).trim(); const note=String(g(cols.note)).trim();
     if(typeof qv==="string" && /[а-яё]/i.test(qv)){ if(!orig) orig=qv.trim(); const pk=parsePack(qv); qv = pk&&(pk.u==="кг") ? pk.n : pk&&pk.u==="г" ? pk.n/1000 : ""; }
     if(!orig && note){ const m=note.match(/[«"]([^»"]*\d[^»"]*)[»"]/); if(m && parsePack(m[1])) orig=m[1]; }
-    lines.push({name, qty:impNum(qv), unit:String(g(cols.unit)).trim(), price:impNum(g(cols.price)), num:String(g(cols.num)).trim(), addr:String(g(cols.addr)).trim(), note, orig});
+    lines.push({name, qty:impNum(qv), unit:String(g(cols.unit)).trim(), price:impNum(g(cols.price)), num:String(g(cols.num)).trim(), addr:String(g(cols.addr)).trim(), br:String(g(cols.br)).trim(), note, orig});
   }
   if(!lines.length) throw new Error("в таблице заказа нет ни одной строки с товаром");
   return {meta, lines};
@@ -2987,11 +2989,12 @@ function impResolve({meta, lines}){
   if(sinn){ const s2=D.suppliers.find(x=>dig(x.inn)===sinn); if(s2 && s && s2.id!==s.id) warn.push({t:"w", m:"В файле поставщик "+s2.name+", а по договору — "+s.name+". Взят поставщик по договору."}); if(!s) s=s2; }
   if(!s || !s.id) s=sup(D.draft.supplierId)||D.suppliers[0];
   const date=impDate(meta.date)||isoToday(); if(!impDate(meta.date)) warn.push({t:"w", m:"В файле нет даты поставки — стоит сегодняшняя."});
-  const bl=branches(c), brOf=a=>{ if(meta.branch){ const n=norm(meta.branch); const b=bl.find(x=>norm(x.label)===n||dig(x.kpp)===dig(meta.branch)||norm(x.label).includes(n)); if(b) return b; } return a?bl.find(b=>addrs(b).some(z=>ptKey(z)===ptKey(a)))||null:null; };
+  const bl=branches(c), brName=v=>{ if(!v) return null; const n=norm(v); return bl.find(x=>norm(x.label)===n)||bl.find(x=>dig(v)&&dig(x.kpp)===dig(v))||bl.find(x=>n.length>1&&norm(x.label).includes(n))||null; },
+    brOf=(a,lb)=>{ const b0=brName(lb)||brName(meta.branch); if(b0) return b0; return a?bl.find(b=>addrs(b).some(z=>ptKey(z)===ptKey(a)))||null:null; };
   const G=[], byKey={};
-  lines.forEach(l=>{ const addr=l.addr||String(meta.ship||""), key=(l.num||"")+"|"+ptKey(addr); let g=byKey[key]; if(!g){ g=byKey[key]={num:l.num||"", addr, lines:[], warn:[]}; G.push(g); } g.lines.push(l); });
+  lines.forEach(l=>{ const addr=l.addr||String(meta.ship||""), key=(l.num||"")+"|"+norm(l.br)+"|"+ptKey(addr); let g=byKey[key]; if(!g){ g=byKey[key]={num:l.num||"", addr, br:l.br||"", lines:[], warn:[]}; G.push(g); } g.lines.push(l); });
   G.forEach((g,gi)=>{ if(!g.num && G.length===1 && meta.num) g.num=String(meta.num).trim();
-    const br=brOf(g.addr); g.branchId=br?br.id:(bl.length?bl[0].id:""); if(bl.length && !br) g.warn.push({t:"w", m:"Подразделение не определено по адресу — выбрано «"+(bl[0].label||bl[0].fullName)+"». Проверьте."});
+    const br=brOf(g.addr, g.br); if(g.br && bl.length && !brName(g.br)) g.warn.push({t:"w", m:"ОП «"+g.br+"» не найдено у заказчика."}); g.branchId=br?br.id:(bl.length?bl[0].id:""); if(bl.length && !br) g.warn.push({t:"w", m:"Подразделение не определено по адресу — выбрано «"+(bl[0].label||bl[0].fullName)+"». Проверьте."});
     const all=[...addrs(br||c)]; if((br||c).address) all.push((br||c).address);
     if(g.addr){ const hit=all.find(a=>ptKey(a)===ptKey(g.addr))||all.find(a=>norm(a).includes(norm(g.addr))); g.ship=hit||g.addr; if(!hit) g.warn.push({t:"w", m:"Адреса «"+g.addr+"» нет в карточке заказчика — он будет вписан как «Другой адрес»."}); } else g.ship="";
     g.items=[]; g.miss=[]; g.lines.forEach(l=>{ const p=impMatch(l.name, c.id);
@@ -3019,7 +3022,7 @@ function drawImp(){
   const R=IMP.r, many=R.groups.length>1;
   box.innerHTML = `<div class="imphead">Файл «${esc(IMP.file)}» · ${esc(R.c.name)} · ${esc(R.k?R.k.basis||"договор":"без договора")} · поставка ${fd(R.date)} · ${esc(supShort(R.s.name))}${many?" · документов: "+R.groups.length:""}</div>`
    + (R.warn.length?`<div class="impg"><ul>${R.warn.map(w=>`<li class="${w.t}">${esc(w.m)}</li>`).join("")}</ul></div>`:"")
-   + R.groups.map((g,i)=>`<div class="impg${IMP.cur===i?" cur":""}"><div class="ih"><b>${many?"Документ "+(i+1)+(g.num?" · № "+esc(g.num):""):"Позиций: "+g.items.length}</b><small>${esc(g.ship?(()=>{ const l=stLabel(g.ship,R.c.address); return /юр\. адрес/.test(l)?g.ship:l; })()+" · ":"")}${many?g.items.length+" поз. · ":""}${fm(g.sum)} ₽</small><span style="flex:1"></span>
+   + R.groups.map((g,i)=>`<div class="impg${IMP.cur===i?" cur":""}"><div class="ih"><b>${many?"Документ "+(i+1)+(g.num?" · № "+esc(g.num):""):"Позиций: "+g.items.length}${(()=>{ const b=branches(R.c).find(x=>x.id===g.branchId); return b&&(g.br||many)?" · "+esc(b.label||b.fullName):""; })()}</b><small>${esc(g.ship?(()=>{ const l=stLabel(g.ship,R.c.address); return /юр\. адрес/.test(l)?g.ship:l; })()+" · ":"")}${many?g.items.length+" поз. · ":""}${fm(g.sum)} ₽</small><span style="flex:1"></span>
       ${many||IMP.cur!==i?`<button class="btn sm${IMP.cur===i?"":" pri"}" data-impfill="${i}" type="button">${g.filled?"Заполнить заново":"Заполнить форму"}</button>`:`<button class="btn ghost sm" data-impfill="${i}" type="button">Заполнить заново</button>`}</div>
       ${(g.miss||[]).map((l,mi)=>`<div class="impmiss"><span class="e">Не найден товар «${esc(l.name)}»${l.qty!==""?" — "+esc(String(l.qty).replace(".",","))+" "+esc(l.unit||""):""}${l.orig?" (в заявке «"+esc(l.orig)+"»)":""}. Это:</span><select data-impmiss="${i}:${mi}"><option value="">— выберите товар из прайса —</option>${D.products.filter(p=>custPrice(R.c.id,p.id)!=null&&custPrice(R.c.id,p.id)!=="").map(p=>`<option value="${p.id}">${esc(p.name)} — ${fm(+custPrice(R.c.id,p.id))} ₽</option>`).join("")}</select></div>`).join("")}
       ${g.warn.length?`<ul>${g.warn.map(w=>`<li class="${w.t}">${esc(w.m)}</li>`).join("")}</ul>`:(g.miss||[]).length?"":`<ul><li style="color:#2f7d4f">Все позиции найдены, цены по договору.</li></ul>`}</div>`).join("")
