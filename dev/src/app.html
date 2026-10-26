@@ -818,7 +818,10 @@ let stamp=0;
 function dirty(type,id,del){ pend[type].set(id,{s:++stamp, del:!!del}); changed(); }
 function dirtyPrice(c,p){ const v=custPrice(c,p); pend.prices.set(c+"|"+p,{s:++stamp, del:(v==null||v==="")}); changed(); }
 let syncT=null, flushing=false;
-function changed(){ saveLocal(); if(!online()) return; setStatus("wait","Есть несохранённое"); clearTimeout(syncT); syncT=setTimeout(flush,1200); }
+const PENDK="frudom-docs-pend";
+function savePend(){ try{ const o={}; Object.keys(pend).forEach(t=>{ if(pend[t].size) o[t]=[...pend[t].entries()]; }); lsSet(PENDK, Object.keys(o).length?JSON.stringify(o):null); }catch(e){} }
+(function(){ try{ const o=JSON.parse(lsGet(PENDK)||"null"); if(!o) return; Object.keys(o).forEach(t=>{ if(!pend[t]) return; (o[t]||[]).forEach(([id,v])=>{ pend[t].set(id,v); if(v&&v.s>stamp) stamp=v.s; }); }); }catch(e){} })();
+function changed(){ saveLocal(); savePend(); if(!online()) return; setStatus("wait","Есть несохранённое"); clearTimeout(syncT); syncT=setTimeout(flush,1200); }
 const hasPending = () => Object.values(pend).some(m=>m.size) || evq.length>0;
 
 /* запрос к таблице: не дольше 45 секунд; при ошибке понятно, что случилось — нет интернета, Google не ответил или таблица вернула ошибку */
@@ -845,7 +848,7 @@ function buildChanges(){
   return Object.keys(ch).length ? {ch, sent, evn} : null;
 }
 function jRow(e){ if(!e) return null; return {id:e.id, supplierId:e.supplierId, customerId:e.customerId, number:String(e.number), date:e.date, sum:String(e.sum), updated:e.updated||"", snap:JSON.stringify(e.snap)}; }
-function sentOk(b){ Object.keys(b.sent).forEach(t=>b.sent[t].forEach((v,id)=>{ const cur=pend[t].get(id); if(cur&&cur.s===v.s) pend[t].delete(id); }));
+function sentOk(b){ Object.keys(b.sent).forEach(t=>b.sent[t].forEach((v,id)=>{ const cur=pend[t].get(id); if(cur&&cur.s===v.s) pend[t].delete(id); })); savePend();
   if(b.evn){ evq.splice(0,b.evn); lsSet(EKEY, JSON.stringify(evq)); } }
 async function flush(){
   if(!online()) return;
@@ -899,8 +902,12 @@ function applyServer(d){
   if(Array.isArray(d.contracts)) D.contracts = d.contracts;
   if(Array.isArray(d.specs)){ D.specs={}; d.specs.forEach(r=>{ (D.specs[r.customerId]=D.specs[r.customerId]||{})[r.productId]={spec:r.spec, ste:r.ste, art:r.art}; }); }
   D.prices = {}; d.prices.forEach(r=>{ (D.prices[r.customerId]=D.prices[r.customerId]||{})[r.productId]=r.price; });
+  const wasDemo=!!D.demo, srv=new Set(d.journal.map(r=>r.id)), lost=wasDemo?[]:(D.journal||[]).filter(j=>j&&j.snap&&j.id&&!srv.has(j.id)&&(Date.now()-Date.parse(j.updated||0))<45*864e5);
   D.journal = d.journal.map(r=>{ let snap=null; try{ snap=JSON.parse(r.snap); }catch(e){} return {id:r.id, supplierId:r.supplierId, customerId:r.customerId, number:r.number, date:r.date, sum:+r.sum||0, updated:r.updated, snap}; })
     .filter(e=>e.snap).sort((a,b)=> (b.date+b.updated).localeCompare(a.date+a.updated));
+  if(lost.length){ lost.forEach(j=>{ D.journal.push(j); dirty("journal", j.id); });
+    logEv("Документ","Восстановлено и отправлено в таблицу (раньше не дошло): "+lost.map(j=>"№ "+j.number+" от "+fd(j.date)+" — "+((j.snap.c||{}).name||"")).join("; "));
+    setTimeout(()=>toast("warn","Найдены неотправленные документы: "+lost.length, lost.map(j=>"№ "+j.number+" от "+fd(j.date)).join(", ")+" — были только на этом устройстве, отправляю в таблицу."),300); }
   if(Array.isArray(d.daytasks)) D.daytasks = d.daytasks;
   D.demo=false; $("#demoNote").hidden=true;
   if(!D.suppliers.some(x=>x.id===D.draft.supplierId) && D.suppliers[0]) D.draft.supplierId=D.suppliers[0].id;
