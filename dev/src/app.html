@@ -1003,8 +1003,8 @@ window.addEventListener("beforeunload",e=>{ if(online() && hasPending()){ flush(
 /* ---------- вкладки ---------- */
 let curTab="doc";
 /* у кого сайт открывается сразу на календаре (на сегодняшнем дне) */
-const CAL_FIRST=["Гриша"];
-function startTab(){ if(!CAL_FIRST.includes(curUser()) || !pass()) return; const c=CAL(), t=todayISO(); c.sel=t; c.ym=t.slice(0,7); saveLocal(); showTab("calendar"); }
+const START_TAB={"Гриша":"calendar","Склад":"journal"};   /* с какой вкладки открывается сайт у пользователя */
+function startTab(){ const t0=START_TAB[curUser()]; if(!t0 || !pass()) return; if(t0==="calendar"){ const c=CAL(), t=todayISO(); c.sel=t; c.ym=t.slice(0,7); saveLocal(); } showTab(t0); }
 document.querySelectorAll("#fd-app nav.tabs button[data-tab]").forEach(b=>b.onclick=()=>{ if($("#fd-app nav.tabs").classList.contains("editing")) return; showTab(b.dataset.tab); });
 function showTab(t){
   curTab=t;
@@ -1244,7 +1244,18 @@ function showPreview(kind, k){
   $("#pv-xml").hidden = kind!=="upd"; $("#pv-edo").hidden = kind!=="upd";
   $("#pv").hidden=false; document.body.style.overflow="hidden"; fitSheets(); syncSignUI();
 }
-$("#pv-sign").onchange=e=>{ D.signOn=e.target.checked; saveLocal(); if(cur) showPreview(cur.kind, cur.k); syncSignUI(); };
+/* несколько документов в одном окне просмотра (Счёт + ТОРГ‑12, комплект): печать и скачивание — всё сразу */
+function showPreviewSet(items, title){
+  const all=[], w=new Set(); items.forEach(({kind,k})=>{ const K=KINDS[kind]; pagesFor(kind,k).forEach(h=>all.push({h,o:K.o})); warnings(k).forEach(x=>w.add(x)); });
+  $("#pv-warn").hidden=!w.size; $("#pv-warn").textContent=w.size?"Не заполнено: "+[...w].join(", ")+". Документ можно распечатать, но эти поля будут пустыми.":"";
+  $("#pv-title").textContent=title;
+  $("#pv-pages").innerHTML=all.map(p=>`<div class="sheet ${p.o}">${p.h}</div>`).join("");
+  cur={kind:items[0].kind, title, pages:all.map(p=>p.h), po:all.map(p=>p.o), o:all[0].o, k:items[0].k, set:items};
+  $("#pv-xml").hidden=$("#pv-edo").hidden=true;
+  $("#pv").hidden=false; document.body.style.overflow="hidden"; fitSheets(); syncSignUI();
+}
+const setDocs = set => { const m=new Map(); set.forEach(({kind,k})=>{ const id=k.dr.id; if(!m.has(id)) m.set(id,[]); m.get(id).push(kind); }); return m; };
+$("#pv-sign").onchange=e=>{ D.signOn=e.target.checked; saveLocal(); if(cur) { if(cur.set) showPreviewSet(cur.set, cur.title); else showPreview(cur.kind, cur.k); } syncSignUI(); };
 $("#d-sign").onchange=e=>{ D.signOn=e.target.checked; saveLocal(); syncSignUI(); toast("info", D.signOn?"С печатью и подписью":"Без печати и подписи", D.signOn?"Так будут и скачивание, и печать — здесь и в журнале. Снять галочку можно в любой момент.":""); };
 document.querySelectorAll("#fd-app [data-make]").forEach(b=>b.onclick=async()=>{
   const k0=calc(D.draft); if(!k0.lines.length){ $("#d-saved").textContent="Добавьте хотя бы один товар с количеством."; toast("err","Нет товаров в документе","Выберите товар и укажите количество больше нуля — затем нажмите кнопку снова."); return; }
@@ -1444,8 +1455,9 @@ function markDownloaded(id, kinds, silent){
 $("#pv-pdf").onclick=async()=>{
   const btn=$("#pv-pdf"), txt=btn.textContent; btn.disabled=true; btn.textContent="Готовлю PDF…";
   try{ await pdfLibs(); const box=$("#pv-pages"); box.classList.add("snap"); fitSheets(1); const st={};
-    await addSheets(st, box.querySelectorAll(".sheet"), cur.o==="landscape");
-    st.pdf.save(fileSafe(cur.title)+".pdf"); markDownloaded(cur.k.dr.id,[cur.kind]); toast("ok","PDF скачан", fileSafe(cur.title)+".pdf");
+    if(cur.set){ for(const sh of box.querySelectorAll(".sheet")) await addSheets(st, [sh], sh.classList.contains("landscape")); }
+    else await addSheets(st, box.querySelectorAll(".sheet"), cur.o==="landscape");
+    st.pdf.save(fileSafe(cur.title)+".pdf"); if(cur.set) setDocs(cur.set).forEach((kinds,id)=>markDownloaded(id,kinds)); else markDownloaded(cur.k.dr.id,[cur.kind]); toast("ok","PDF скачан", fileSafe(cur.title)+".pdf");
   }catch(e){ $("#pv-warn").hidden=false; $("#pv-warn").textContent="Не получилось сделать PDF: "+e.message+". Воспользуйтесь кнопкой «Печать» → «Сохранить как PDF»."; toast("err","Не получилось сделать PDF", e.message+". Нажмите «Печать» и выберите «Сохранить как PDF» — результат тот же."); }
   finally{ $("#pv-pages").classList.remove("snap"); fitSheets(); btn.disabled=false; btn.textContent=txt; }
 };
@@ -1453,7 +1465,7 @@ $("#pv-pdf").onclick=async()=>{
 function fitSheets(z){
   const sh=[...document.querySelectorAll("#pv-pages .sheet")]; if(!sh.length) return;
   sh.forEach(x=>x.style.zoom="");
-  if(z==null){ const w=sh[0].offsetWidth, avail=$("#pv-pages").clientWidth-16; z = w>avail ? avail/w : 1; }
+  if(z==null){ const avail=$("#pv-pages").clientWidth-16; sh.forEach(x=>{ const w=x.offsetWidth; if(w>avail) x.style.zoom=avail/w; }); return; }
   if(z!==1) sh.forEach(x=>x.style.zoom=z);
 }
 window.addEventListener("resize",()=>{ if(!$("#pv").hidden) fitSheets(); });
@@ -1480,12 +1492,13 @@ document.querySelectorAll("#fd-app [data-combo]").forEach(b=>b.onclick=async()=>
 $("#pv-close").onclick=()=>{ $("#pv").hidden=true; document.body.style.overflow=""; };
 $("#pv-print").onclick=()=>{
   const css=$("#fd-doc-css").textContent;
-  if(curUser()==="Склад" && cur && cur.k && cur.k.dr){ const j=D.journal.find(x=>x.id===cur.k.dr.id);
-    if(j && j.snap){ const m=j.snap.meta=j.snap.meta||{}; m.pr=new Date().toISOString(); m.prn=(+m.prn||0)+1; m.prk=[...new Set([...(m.prk||[]), cur.kind])];
-      dirty("journal", j.id); logEv("Печать","Распечатан со склада ("+KSHORT[cur.kind]+"): "+jDesc(j), j.id); if(curTab==="journal") renderJournal(); } }
+  if(curUser()==="Склад" && cur && cur.k && cur.k.dr){ const M=cur.set?setDocs(cur.set):new Map([[cur.k.dr.id,[cur.kind]]]);
+    M.forEach((kinds,id)=>{ const j=D.journal.find(x=>x.id===id); if(!j||!j.snap) return; const m=j.snap.meta=j.snap.meta||{}; m.pr=new Date().toISOString(); m.prn=(+m.prn||0)+1; m.prk=[...new Set([...(m.prk||[]), ...kinds])];
+      dirty("journal", j.id); logEv("Печать","Распечатан со склада ("+kinds.map(x=>KSHORT[x]).join(" + ")+"): "+jDesc(j), j.id); });
+    if(curTab==="journal") renderJournal(); }
   const html=`<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>${esc(cur.title)}</title><style>${css}
-    @page{size:A4 ${cur.o};margin:8mm} *{box-sizing:border-box} p{margin:0} html,body{margin:0;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact} .sheet{break-after:page} .sheet:last-child{break-after:auto} .doc tr{break-inside:avoid}</style></head>
-    <body>${cur.pages.map(h=>`<div class="sheet">${h}</div>`).join("")}</body></html>`;
+    @page{size:A4 ${cur.o};margin:8mm} @page pl{size:A4 landscape;margin:8mm} @page pp{size:A4 portrait;margin:8mm} .sheet.landscape{page:pl} .sheet.portrait{page:pp} *{box-sizing:border-box} p{margin:0} html,body{margin:0;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact} .sheet{break-after:page} .sheet:last-child{break-after:auto} .doc tr{break-inside:avoid}</style></head>
+    <body>${cur.pages.map((h,i)=>`<div class="sheet${cur.po?" "+cur.po[i]:""}">${h}</div>`).join("")}</body></html>`;
   const f=document.createElement("iframe"); f.setAttribute("aria-hidden","true");
   f.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden";
   document.body.appendChild(f); const d=f.contentWindow.document; d.open(); d.write(html); d.close();
@@ -2261,8 +2274,8 @@ function jRowHtml(j, kid, arch){ const w=jWho(j);
   const view=`<button class="btn sm" data-p="invoice" data-id="${j.id}">Счёт</button> <button class="btn sm" data-p="torg12" data-id="${j.id}">ТОРГ‑12</button> <button class="btn sm" data-p="upd" data-id="${j.id}">УПД</button>`;
   const acts = arch
     ? `${view} <button class="btn sm" data-unarch="${j.id}">Вернуть из архива</button>`
-    : isStaff() ? `<button class="btn sm" data-combo-j="${j.id}" title="Счёт и ТОРГ‑12 одним PDF">Счёт+ТОРГ</button> ${view} <button class="btn ghost sm" data-qty="${j.id}">Изменить количество</button>`
-    : `<button class="btn sm" data-combo-j="${j.id}" title="Счёт и ТОРГ‑12 одним PDF">Счёт+ТОРГ</button> ${view} <button class="btn ghost sm" data-edit="${j.id}">Изменить</button>
+    : isStaff() ? `<button class="btn sm" data-combo-j="${j.id}" title="Счёт и ТОРГ‑12 вместе — просмотр, печать, PDF">Счёт+ТОРГ</button> ${view} <button class="btn ghost sm" data-qty="${j.id}">Изменить количество</button>`
+    : `<button class="btn sm" data-combo-j="${j.id}" title="Счёт и ТОРГ‑12 вместе — просмотр, печать, PDF">Счёт+ТОРГ</button> ${view} <button class="btn ghost sm" data-edit="${j.id}">Изменить</button>
     <details class="more"><summary class="btn ghost sm">Ещё ▾</summary><div class="menu"><button class="btn sm" data-x="${j.id}">XML для Портала</button><button class="btn sm" data-xd="${j.id}">XML для Диадока</button><button class="btn sm" data-copy="${j.id}">Сделать копию</button><button class="btn sm danger" data-arch="${j.id}">В архив</button></div></details>`;
   const ad = arch ? `<span class="muted" title="Убран в архив">в архиве с ${dtShort(j.snap.meta.arch)}</span>` : jDl(j);
   return `<tr class="${kid?"kid":""}"><td>${fd(j.date)}</td><td>${esc(j.number)}</td><td><div class="who">${esc(kid&&w.pt?w.pt:w.main)}</div><small>${kid?"":esc(w.pt?w.pt+" · ":"")}${esc(supShort(j.snap.s.name))}</small></td><td class="num">${fm(j.sum)}</td><td>${ad}</td><td class="acts">${acts}</td></tr>`; }
@@ -2276,8 +2289,8 @@ function jBuild(rows, arch, openSet){
     const g=groups[k].slice().sort(jNumSort), w=jWho(g[0]), open=openSet.has(k);
     const nums=g.map(x=>x.number), sum=r2(g.reduce((a,x)=>a+(+x.sum||0),0)), dls=g.map(x=>x.snap.meta&&x.snap.meta.pr).filter(Boolean).sort();
     const gacts = arch ? `<button class="btn sm" data-gunarch>Вернуть комплект</button>`
-      : isStaff() ? `<button class="btn sm" data-gpdf="invoice,torg12">Скачать Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Скачать УПД</button>`
-      : `<button class="btn sm" data-gpdf="invoice,torg12">Скачать Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Скачать УПД</button> <button class="btn ghost sm danger" data-garch>Комплект в архив</button>`;
+      : isStaff() ? `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button>`
+      : `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button> <button class="btn ghost sm danger" data-garch>Комплект в архив</button>`;
     out.push(`<tr class="grp" data-g="${esc(k)}"><td>${fd(g[0].date)}</td><td>${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))}</td><td><div class="who"><span class="tag">Комплект · ${g.length}</span>${esc(w.main)}</div><small>${esc(g.map(x=>jWho(x).pt).filter(Boolean).join(", "))} · ${esc(supShort(g[0].snap.s.name))}</small></td><td class="num"><b>${fm(sum)}</b></td><td>${arch?`<span class="muted">в архиве</span>`:dls.length?`<span class="dl">${dtShort(dls[dls.length-1])}</span>`:`<span class="muted">—</span>`}</td>
       <td class="acts">${gacts} <button class="btn ghost sm" data-gt>${open?"Свернуть ▴":"Развернуть ▾"}</button></td></tr>`);
     if(open) g.forEach(x=>out.push(jRowHtml(x,true,arch)));
@@ -2339,6 +2352,8 @@ function onJClick(arch){ return async e=>{
   const b=e.target.closest("button"), msgEl=arch?$("#ar-msg"):$("#jr-msg");
   const tr=e.target.closest("tr.grp");
   if(tr){ const k=tr.dataset.g, g=D.journal.filter(j=>j.snap&&isArch(j)===arch&&jKey(j)===k).sort(jNumSort), openSet=arch?arOpen:jOpen;
+    if(b && b.dataset.gpdf){ const kinds=b.dataset.gpdf.split(","), ks=g.map(j=>calc(j.snap.dr, j.snap)), nums=g.map(j=>j.number);
+      showPreviewSet(ks.flatMap(k=>kinds.map(kind=>({kind,k}))), kinds.map(x=>KSHORT[x]).join(" и ")+" № "+(nums.length>1?nums[0]+"–"+nums[nums.length-1]:nums[0])+" от "+fd(g[0].date)+" — "+shortCus(ks[0])); return; }
     if(b && b.dataset.gpdf){ const kinds=b.dataset.gpdf.split(","), ks=g.map(j=>calc(j.snap.dr, j.snap)), nums=g.map(j=>j.number), t0=b.textContent; b.disabled=true; b.textContent="Готовлю PDF…";
       try{ await manyPdf(kinds, ks, kinds.map(x=>KSHORT[x]).join(" и ")+" № "+(nums.length>1?nums[0]+"–"+nums[nums.length-1]:nums[0])+" от "+fd(g[0].date)+" — "+shortCus(ks[0])); toast("ok","PDF комплекта скачан", g.length+" "+docsWord(g.length)+", № "+nums.join(", ")); }
       catch(err){ toast("err","Не получилось сделать PDF", err.message+". Попробуйте ещё раз или скачайте документы по одному."); } finally{ b.disabled=false; b.textContent=t0; } return; }
@@ -2353,6 +2368,7 @@ function onJClick(arch){ return async e=>{
   if(b.dataset.arch){ if(!armed(b,"Точно в архив?")) return; setArch([j],true); msgEl.textContent=""; toast("ok","Документ № "+j.number+" в архиве","Его номер снова свободен.",{action:{label:"Вернуть",fn:()=>{ setArch([j],false); toast("ok","Документ № "+j.number+" возвращён в журнал",""); }}}); return; }
   if(b.dataset.unarch){ const c=setArch([j],false); msgEl.textContent=""; toast(c.length?"warn":"ok","Документ № "+j.number+" возвращён в журнал", c.length?"Номер "+j.number+" уже занят другим документом — проверьте, чтобы не было путаницы.":""); return; }
   if(b.dataset.p){ showPreview(b.dataset.p, calc(j.snap.dr, j.snap)); return; }
+  if(b.dataset.comboJ){ const k=calc(j.snap.dr, j.snap); showPreviewSet([{kind:"invoice",k},{kind:"torg12",k}], "Счёт и ТОРГ-12 № "+j.number+" от "+fd(j.date)+(shortCus(k)?" — "+shortCus(k):"")); return; }
   if(b.dataset.comboJ){ const t=b.textContent; b.disabled=true; b.textContent="…"; comboPdf(["invoice","torg12"], calc(j.snap.dr, j.snap)).then(()=>toast("ok","PDF скачан","Счёт и ТОРГ‑12 № "+j.number)).catch(err=>toast("err","Не получилось сделать PDF", err.message+". Откройте документ и нажмите «Печать» → «Сохранить как PDF».")).finally(()=>{ b.disabled=false; b.textContent=t; }); return; }
   if(b.dataset.x){ showPreview("upd", calc(j.snap.dr, j.snap)); $("#pv-xml").click(); return; }
   if(b.dataset.xd){ showPreview("upd", calc(j.snap.dr, j.snap)); $("#pv-edo").click(); return; }
