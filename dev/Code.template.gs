@@ -44,7 +44,7 @@ const S = {
   psettings: { title: 'Налоги для прибыли', key: 'id', cols: [
     ['name','Поставщик'],['tax','Налог, % от выручки'],['id','ID поставщика']]},
   daytasks: { title: 'Задачи на день', key: 'id', cols: [
-    ['date','Дата'],['customerName','Заказчик'],['text','Задача'],['done','Выполнено'],['by','Кто добавил'],['created','Добавлено'],['doneBy','Кто выполнил'],['doneAt','Когда выполнено'],['id','ID'],['customerId','ID заказчика']]},
+    ['date','Дата'],['customerName','Заказчик'],['text','Задача'],['done','Выполнено'],['by','Кто добавил'],['created','Добавлено'],['doneBy','Кто выполнил'],['doneAt','Когда выполнено'],['id','ID'],['customerId','ID заказчика'],['seen','Кто видел']]},
   uprefs: { title: 'Настройки пользователей', key: 'id', cols: [
     ['id','Пользователь'],['data','Настройки (JSON, не редактировать)'],['updated','Изменено']]},
   events: { title: 'События', key: null, cols: [
@@ -97,7 +97,7 @@ function handle_(p) {
     if (p.action === 'load') return { ok: true, me: me, prefs: (read_('uprefs').find(r => r.id === me.name) || {}).data || '', data: {
       suppliers: me.role === 'staff' ? read_('suppliers').map(s => { const x = Object.assign({}, s); delete x.stamp; delete x.sign; return x; }) : read_('suppliers'), customers: read_('customers'), products: read_('products'),
       prices: read_('prices'), specs: read_('specs'), contracts: read_('contracts'), journal: read_('journal').slice(-2000),
-      daytasks: (function () { const d = new Date(); d.setDate(d.getDate() - 120); const from = Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd'); return read_('daytasks').filter(r => String(r.date) >= from || !r.done); })() } };
+      daytasks: (function () { const d = new Date(); d.setDate(d.getDate() - 120); const from = Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd'); return read_('daytasks').filter(r => String(r.date) >= from); })() } };
     if (p.action === 'login')   { log_(me, [{ action: 'Вход', text: 'Вход в систему' + (p.device ? ' (' + String(p.device).slice(0, 60) + ')' : '') }]); return { ok: true, me: me }; }
     if (p.action === 'profit')  { if (!me.admin) return { ok: false, error: 'forbidden' }; return { ok: true, costs: read_('costs'), doccosts: read_('doccosts'), psettings: read_('psettings') }; }
     if (p.action === 'setPrefs') { upsertList_('uprefs', { upsert: [{ id: me.name, data: String(p.data || '').slice(0, 20000), updated: new Date().toISOString() }] }); return { ok: true }; }
@@ -150,6 +150,12 @@ function write_(t, rows) {
   const rng = sh.getRange(2, 1, rows.length, cols.length);
   rng.setNumberFormat('@');
   rng.setValues(rows.map(o => cols.map(c => o[c[0]] == null ? '' : String(o[c[0]]))));
+}
+
+function mergeSeen_(a, b) {
+  const p = v => { try { const o = JSON.parse(v || '{}'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } };
+  const A = p(a), B = p(b); Object.keys(B).forEach(k => { if (!A[k] || String(B[k]) < String(A[k])) A[k] = B[k]; });
+  return Object.keys(A).length ? JSON.stringify(A) : '';
 }
 
 function nameMap_(t) { const m = {}; read_(t).forEach(o => m[o.id] = o.name); return m; }
@@ -216,7 +222,10 @@ function applySync_(ch, me) {
     upsertList_('journal', ch.journal);
   }
   if (ch.daytasks) {
-    const cn = nameMap_('customers'); (ch.daytasks.upsert || []).forEach(o => { o.customerName = o.customerId ? (cn[o.customerId] || '') : ''; });
+    const cn = nameMap_('customers'), was = {}; read_('daytasks').forEach(r => was[r.id] = r);
+    (ch.daytasks.upsert || []).forEach(o => { o.customerName = o.customerId ? (cn[o.customerId] || '') : '';
+      /* «кто видел» складываем с тем, что уже в таблице (двое могли открыть задачу одновременно); если текст поменяли — отметки начинаются заново */
+      const r = was[o.id]; if (r && String(r.text) === String(o.text == null ? r.text : o.text)) o.seen = mergeSeen_(r.seen, o.seen); });
     upsertList_('daytasks', ch.daytasks);
   }
   /* данные о прибыли меняет только администратор */

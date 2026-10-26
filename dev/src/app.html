@@ -177,26 +177,22 @@
 #fd-app .dt-count{font-size:12.5px;color:#a3620c;font-weight:600}
 #fd-app .dt-list{display:grid;gap:6px}
 #fd-app .dt{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid #f1e3c4;border-radius:10px;padding:8px 10px;animation:fdin .18s ease;transition:opacity .2s}
-#fd-app .dt.done{opacity:.6}#fd-app .dt.done .dt-t{text-decoration:line-through}
-#fd-app .dt.over{border-color:#f3c9c0;background:#fff7f5}
-#fd-app .dt-ck{position:relative;flex:none;margin-top:1px;cursor:pointer}#fd-app .dt-ck input{position:absolute;opacity:0;width:22px;height:22px;margin:0;cursor:pointer}
-#fd-app .dt-ck span{display:block;width:22px;height:22px;border-radius:50%;border:2px solid #d9a441;background:#fff;transition:background .15s,border-color .15s}
-#fd-app .dt-ck input:checked+span{background:#2f7d4f;border-color:#2f7d4f;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5 9-10'/%3E%3C/svg%3E");background-size:14px;background-position:center;background-repeat:no-repeat}
-#fd-app .dt-ck input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
-#fd-app .dt-b{flex:1;min-width:0}#fd-app .dt-t{font-size:14.5px;overflow-wrap:anywhere}#fd-app .dt-t[data-dtedit]{cursor:text}
+#fd-app .dt.new{border-color:#e9b75a;box-shadow:0 0 0 2px #fbe3b0}
+#fd-app .dt-b{flex:1;min-width:0}#fd-app .dt-t{font-size:14.5px;overflow-wrap:anywhere;white-space:pre-wrap}#fd-app .dt-t[data-dtedit]{cursor:text}
 #fd-app .dt-c{display:inline-block;background:#f6ead0;color:#7a4b08;border-radius:6px;padding:0 6px;margin-right:6px;font-size:12.5px;font-weight:600;vertical-align:1px}
 #fd-app .dt-b small{display:block;color:var(--muted);font-size:12px;margin-top:2px}#fd-app .dt-b small b{color:#2f7d4f;font-weight:600}
 #fd-app .dt-a{display:flex;gap:4px;align-items:center;flex:none}
 #fd-app .dt-x{border:0;background:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0 4px;border-radius:6px}#fd-app .dt-x.armed{font-size:12.5px;color:var(--err,#c0392b)}
 #fd-app .dt-edit{width:100%;font-size:14.5px}
+#fd-app .dt-seen{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}#fd-app .dt-seen i{font-style:normal;font-size:11.5px;border-radius:99px;padding:1px 8px;background:#f1efe9;color:#8a8577}#fd-app .dt-seen i.y{background:#e3f2e8;color:#2f7d4f;font-weight:600}
+#fd-app textarea.dt-in{resize:none;overflow:hidden;min-height:38px;line-height:1.35;font:inherit;font-size:14.5px}
 #fd-app .dt-empty{color:var(--muted);font-size:13px;padding:2px 0 4px}
-#fd-app .dt-ohead{margin:10px 0 6px;font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#b0412e}
-#fd-app .dt-add{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}#fd-app .dt-add select{flex:0 1 210px;min-width:150px}#fd-app .dt-add input{flex:1 1 260px;min-width:0}
+#fd-app .dt-add{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}#fd-app .dt-add select{flex:0 1 210px;min-width:150px}#fd-app .dt-add textarea{flex:1 1 260px;min-width:0}#fd-app .dt-add{align-items:flex-start}
 #fd-app .dt-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 #fd-app .dt-chip{border:1px dashed #d9a441;background:#fff;color:#7a4b08;border-radius:99px;padding:3px 10px;font-size:12.5px;cursor:pointer}#fd-app .dt-chip:hover{background:#fff1d6}
 #fd-app .calgrid button{position:relative}
 #fd-app .calgrid .dtb{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:#e08a1e;color:#fff;font:700 10px/16px var(--ui,inherit);font-style:normal;text-align:center}
-#fd-app .calgrid .dtb.late{background:#c0392b}#fd-app .calgrid .dtb.ok{background:#2f7d4f}
+#fd-app .calgrid .dtb.new{background:#c0392b}
 #fd-app .calgrid button.sel .dtb{box-shadow:0 0 0 2px #fff}
 #fd-app .imphead{font-size:13px;color:var(--muted);margin-top:10px}
 #fd-app .tkadd input{flex:1;min-width:200px}
@@ -451,10 +447,9 @@
       <div class="dtbox" id="dt-box">
         <div class="dt-head"><b>Задачи на день</b><button class="hq" type="button" data-hq="Задачи на день" aria-label="Подсказка">?</button><small>видят все, в том числе водитель</small><span style="flex:1"></span><span class="dt-count" id="dt-count"></span></div>
         <div id="dt-list" class="dt-list"></div>
-        <div id="dt-over"></div>
-        <form class="dt-add" id="dt-add" autocomplete="off">
+                <form class="dt-add" id="dt-add" autocomplete="off">
           <select id="dt-cus" aria-label="Заказчик"></select>
-          <input id="dt-text" placeholder="Что сделать — например, «заменить картофель, привезти исправленные документы»" maxlength="400">
+          <textarea id="dt-text" class="dt-in" rows="1" placeholder="Что сделать — например, «заменить картофель»" maxlength="1000"></textarea>
           <button class="btn pri" type="submit">Добавить</button>
         </form>
         <div class="dt-chips" id="dt-chips"></div>
@@ -1532,8 +1527,8 @@ const cusShort = n => { n=String(n||""); const q=n.match(/«([^»]+)»/); if(q) 
 const ptName = (p) => { const l=stLabel(p.addr,p.c.address), m=l.match(/^ст ([\d, ]+)$/); const s = m ? "Столовая №"+m[1] : l; return s.charAt(0).toUpperCase()+s.slice(1); };
 const itemShort = n => String(n||"").replace(/\s*\([^)]*\)/g,"").replace(/\s+(свеж\S*|продовольственн\S*|столов\S*)(?=\s|$)/gi,"").replace(/\s+/g," ").trim();
 function dvText(P){
-  const f=DV(), TK=DTS().filter(x=>x.date===f.date && !x.done); if(!P.length && !TK.length) return "";
-  const tkLines = TK.length ? ["Задачи на день:", ...TK.map(x=>"• "+(x.customerId?cusShort(cus(x.customerId).name)+": ":"")+x.text), ""] : [];
+  const f=DV(), TK=DTS().filter(x=>x.date===f.date); if(!P.length && !TK.length) return "";
+  const tkLines = TK.length ? ["Задачи на день:", ...TK.map(x=>"• "+(x.customerId?cusShort(cus(x.customerId).name)+": ":"")+String(x.text).replace(/\n/g,"\n   ")), ""] : [];
   const short=a=>a.replace(/^\d{6},\s*/,"").replace(/^г\.\s*Москва,\s*/i,"").replace(/\s*\([^)]*\)\s*$/,"");
   const L=[], groups=[]; P.forEach(p=>{ const g=cusShort(cus(p.cid).name||p.c.name); let G=groups.find(x=>x.g===g); if(!G){ G={g, P:[]}; groups.push(G); } G.P.push(p); });
   if(f.full){ const d=new Date(f.date+"T12:00:00"); L.push("Доставка "+fd(f.date)+" ("+wdays[d.getDay()]+")"); L.push(""); }
@@ -1594,11 +1589,11 @@ function renderCalendar(){
   const [y,m]=c.ym.split("-").map(Number); $("#cal-title").textContent=MONTHS[m-1]+" "+y;
   const first=new Date(y,m-1,1), start=new Date(first); start.setDate(1-((first.getDay()+6)%7));
   const byDate={}; D.journal.forEach(j=>{ if(!j.snap||isArch(j)||(c.cus&&j.customerId!==c.cus)) return; (byDate[j.date]=byDate[j.date]||[]).push(j); });
-  const dtBy={}; DTS().forEach(x=>{ if(c.cus && x.customerId && x.customerId!==c.cus) return; const o=dtBy[x.date]=dtBy[x.date]||{open:0,done:0}; if(x.done) o.done++; else o.open++; });
+  const dtBy={}; DTS().forEach(x=>{ if(c.cus && x.customerId && x.customerId!==c.cus) return; const o=dtBy[x.date]=dtBy[x.date]||{n:0,nw:0}; o.n++; if(dtNew(x) && x.date!==c.sel) o.nw++; });
   const staff=isStaff(); let h=["пн","вт","ср","чт","пт","сб","вс"].map(w=>`<div class="wd">${w}</div>`).join("");
   for(let i=0;i<42;i++){ const d=new Date(start); d.setDate(start.getDate()+i); const iso=jIso(d), L=byDate[iso]||[], sum=r2(L.reduce((a,j)=>a+(+j.sum||0),0));
     if(i>=35 && d.getMonth()!==m-1) break;
-    h+=`<button type="button" data-d="${iso}" class="${d.getMonth()!==m-1?"out ":""}${d.getDay()%6===0?"we ":""}${iso===today?"today ":""}${iso===c.sel?"sel":""}" aria-label="${d.getDate()} ${MONG[d.getMonth()]}${L.length?", заказов: "+L.length:""}"><span class="dn">${d.getDate()}</span>${(()=>{ const o=dtBy[iso]; if(!o) return ""; return o.open ? `<i class="dtb${iso<today?" late":""}" title="Задач: ${o.open}">⚑ ${o.open}</i>` : `<i class="dtb ok" title="Все задачи выполнены">✓</i>`; })()}${L.length?`<span class="cn">${L.length}</span>${staff?"":`<span class="cs">${fm(sum)} ₽</span>`}`:""}</button>`; }
+    h+=`<button type="button" data-d="${iso}" class="${d.getMonth()!==m-1?"out ":""}${d.getDay()%6===0?"we ":""}${iso===today?"today ":""}${iso===c.sel?"sel":""}" aria-label="${d.getDate()} ${MONG[d.getMonth()]}${L.length?", заказов: "+L.length:""}"><span class="dn">${d.getDate()}</span>${(()=>{ const o=dtBy[iso]; if(!o) return ""; return `<i class="dtb${o.nw?" new":""}" title="Задач: ${o.n}${o.nw?", новых для вас: "+o.nw:""}">⚑ ${o.n}</i>`; })()}${L.length?`<span class="cn">${L.length}</span>${staff?"":`<span class="cs">${fm(sum)} ₽</span>`}`:""}</button>`; }
   $("#cal-grid").innerHTML=h; drawCalDay(); drawDayTasks(); renderDriver();
 }
 /* ---------- задачи на день (общие для всех, включая водителя) ---------- */
@@ -1606,44 +1601,52 @@ const DTS = () => (D.daytasks = D.daytasks || []);
 const DT_CHIPS = ["Привезти исправленные документы","Замена товара","Забрать возврат","Подписать документы","Привезти сертификаты"];
 const hhmm = iso => { if(!iso) return ""; const d=new Date(iso); return isNaN(d)?"":String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); };
 const dtCan = x => !isStaff() || x.by===curUser();
-function dtRow(x, over){ const c=x.customerId?cus(x.customerId):null, cn=c&&c.id?cusShort(c.name):"";
-  return `<div class="dt${x.done?" done":""}${over?" over":""}" data-dt="${esc(x.id)}">
-    <label class="dt-ck"><input type="checkbox" data-dtdone${x.done?" checked":""} aria-label="Выполнено"><span></span></label>
-    <div class="dt-b">${cn?`<span class="dt-c">${esc(cn)}</span>`:""}<span class="dt-t"${dtCan(x)&&!over?' data-dtedit title="Нажмите, чтобы исправить"':""}>${esc(x.text)}</span>
-      <small>${over?"с "+fd(x.date)+" · ":""}${esc(x.by||"")}${x.created?" · "+(x.created.slice(0,10)===todayISO()?"сегодня ":fd(x.created.slice(0,10))+" ")+hhmm(x.created):""}${x.done?` · <b>выполнил ${esc(x.doneBy||"")} ${hhmm(x.doneAt)}</b>`:""}</small></div>
-    <div class="dt-a">${over?`<button type="button" class="btn sm" data-dtmove>На этот день</button>`:""}${dtCan(x)?`<button type="button" class="dt-x" data-dtdel title="Удалить" aria-label="Удалить">×</button>`:""}</div></div>`; }
+const dtSeen = x => { try{ const o=JSON.parse(x.seen||"{}"); return o&&typeof o==="object"?o:{}; }catch(e){ return {}; } };
+const dtNew = x => { const me=curUser(); return !!me && x.by!==me && !dtSeen(x)[me]; };
+function dtRow(x){ const c=x.customerId?cus(x.customerId):null, cn=c&&c.id?cusShort(c.name):"", sn=dtSeen(x), me=curUser();
+  const who=USERS_LIST.filter(n=>n!==x.by).map(n=>sn[n]?`<i class="y" title="Увидел ${esc(fd(sn[n].slice(0,10)))} в ${hhmm(sn[n])}">✓ ${esc(n)} ${hhmm(sn[n])}</i>`:`<i title="Ещё не открывал">${esc(n)}</i>`).join("");
+  return `<div class="dt${x._new?" new":""}" data-dt="${esc(x.id)}">
+    <div class="dt-b">${cn?`<span class="dt-c">${esc(cn)}</span>`:""}<span class="dt-t"${dtCan(x)?' data-dtedit title="Нажмите, чтобы исправить"':""}>${esc(x.text)}</span>
+      <small>${esc(x.by||"")}${x.created?" · "+(x.created.slice(0,10)===todayISO()?"сегодня ":fd(x.created.slice(0,10))+" ")+hhmm(x.created):""}</small>
+      <div class="dt-seen" aria-label="Кто видел">${who}</div></div>
+    <div class="dt-a">${dtCan(x)?`<button type="button" class="dt-x" data-dtdel title="Удалить" aria-label="Удалить">×</button>`:""}</div></div>`; }
+/* отмечаем «видел» за текущего пользователя — только когда задачи дня реально показаны на экране */
+function dtMarkSeen(L){ const me=curUser(); if(!me) return; const now=new Date().toISOString();
+  L.forEach(x=>{ if(x.by===me) return; const sn=dtSeen(x); if(sn[me]) return; x._new=1; sn[me]=now; x.seen=JSON.stringify(sn); dirty("daytasks", x.id); }); }
 function drawDayTasks(){
-  const c=CAL(), sel=c.sel, today=todayISO(), all=DTS().filter(x=>!c.cus||!x.customerId||x.customerId===c.cus);
-  const L=all.filter(x=>x.date===sel).sort((a,b)=>(a.done?1:0)-(b.done?1:0)||String(a.created).localeCompare(String(b.created)));
-  const open=L.filter(x=>!x.done).length;
+  const c=CAL(), sel=c.sel, all=DTS().filter(x=>!c.cus||!x.customerId||x.customerId===c.cus);
+  const L=all.filter(x=>x.date===sel).sort((a,b)=>String(a.created).localeCompare(String(b.created)));
+  if(curTab==="calendar" && !document.hidden) dtMarkSeen(L);
   $("#dt-list").innerHTML = L.length ? L.map(x=>dtRow(x)).join("") : `<div class="dt-empty">Задач нет. Добавьте, если на этот день нужно что-то кроме заказа: заменить товар, привезти документы, забрать возврат.</div>`;
-  $("#dt-count").textContent = L.length ? (open?open+" "+plural(open,["не выполнена","не выполнены","не выполнено"]):"все выполнены ✓") : "";
-  const over = sel===today ? all.filter(x=>!x.done && x.date<today).sort((a,b)=>a.date.localeCompare(b.date)) : [];
-  $("#dt-over").innerHTML = over.length ? `<div class="dt-ohead">Не выполнено в прошлые дни · ${over.length}</div>`+over.map(x=>dtRow(x,true)).join("") : "";
+  L.forEach(x=>delete x._new);
+  $("#dt-count").textContent = L.length ? L.length+" "+plural(L.length,["задача","задачи","задач"]) : "";
   const cs=$("#dt-cus"), keep=cs.value; const ids=new Set(calDocs(sel,"").map(j=>j.customerId));
   const first=D.customers.filter(x=>ids.has(x.id)), rest=D.customers.filter(x=>!ids.has(x.id));
   cs.innerHTML=`<option value="">Без заказчика</option>`+(first.length?`<optgroup label="Заказы на этот день">${opts(first)}</optgroup><optgroup label="Остальные">${opts(rest)}</optgroup>`:opts(rest));
   if(keep && D.customers.some(x=>x.id===keep)) cs.value=keep; else if(c.cus) cs.value=c.cus; else cs.value="";
   $("#dt-chips").innerHTML=DT_CHIPS.map(s=>`<button type="button" class="dt-chip" data-chip="${esc(s)}">${esc(s)}</button>`).join("");
 }
+/* поле задачи: Enter — сохранить, Shift+Enter — новая строка (на телефоне Enter = новая строка, сохраняет кнопка) */
+const dtTouch = () => { try{ return matchMedia("(pointer:coarse)").matches; }catch(e){ return false; } };
+const dtGrow = t => { t.style.height="auto"; t.style.height=Math.min(t.scrollHeight+2, 260)+"px"; };
+function dtKeys(t, onEnter, onEsc){ t.addEventListener("input",()=>dtGrow(t));
+  t.addEventListener("keydown",k=>{ if(k.key==="Enter" && !k.shiftKey && !k.isComposing && !dtTouch()){ k.preventDefault(); onEnter(); } else if(k.key==="Escape" && onEsc) onEsc(); }); }
 function dtSave(x, ev){ dirty("daytasks", x.id); saveLocal(); if(ev) logEv("Задача на день", ev); renderCalendar(); }
 $("#dt-add").addEventListener("submit",e=>{ e.preventDefault(); const inp=$("#dt-text"), v=inp.value.trim(); if(!v){ inp.focus(); return; }
-  const x={id:uid(), date:CAL().sel, customerId:$("#dt-cus").value||"", text:v, done:"", by:curUser()||"", created:new Date().toISOString(), doneBy:"", doneAt:""};
-  DTS().push(x); inp.value=""; $("#dt-cus").value=""; dtSave(x, "Добавлена на "+fd(x.date)+": "+(x.customerId?cusShort(cus(x.customerId).name)+" — ":"")+v);
+  const x={id:uid(), date:CAL().sel, customerId:$("#dt-cus").value||"", text:v, done:"", by:curUser()||"", created:new Date().toISOString(), doneBy:"", doneAt:"", seen:""};
+  DTS().push(x); inp.value=""; dtGrow(inp); $("#dt-cus").value=""; dtSave(x, "Добавлена на "+fd(x.date)+": "+(x.customerId?cusShort(cus(x.customerId).name)+" — ":"")+v);
   toast("ok","Задача добавлена","На "+fd(x.date)+". Её увидят все, в том числе водитель."); setTimeout(()=>$("#dt-text").focus(),50); });
+dtKeys($("#dt-text"), ()=>$("#dt-add").requestSubmit());
 $("#dt-chips").addEventListener("click",e=>{ const b=e.target.closest("[data-chip]"); if(!b) return; const inp=$("#dt-text"); const v=inp.value.trim();
-  inp.value = v ? v+", "+b.dataset.chip.toLowerCase() : b.dataset.chip+": "; inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); });
-$("#dt-box").addEventListener("change",e=>{ if(!e.target.matches("[data-dtdone]")) return; const x=DTS().find(y=>y.id===e.target.closest("[data-dt]").dataset.dt); if(!x) return;
-  x.done=e.target.checked?"1":""; x.doneBy=x.done?(curUser()||""):""; x.doneAt=x.done?new Date().toISOString():"";
-  dtSave(x, (x.done?"Выполнена: ":"Снова не выполнена: ")+x.text); if(x.done) toast("ok","Задача выполнена",x.text); });
+  inp.value = v ? v+", "+b.dataset.chip.toLowerCase() : b.dataset.chip+": "; dtGrow(inp); inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); });
 $("#dt-box").addEventListener("click",e=>{ const row=e.target.closest("[data-dt]"); if(!row) return; const x=DTS().find(y=>y.id===row.dataset.dt); if(!x) return;
-  if(e.target.closest("[data-dtmove]")){ const was=x.date; x.date=CAL().sel; dtSave(x,"Перенесена с "+fd(was)+" на "+fd(x.date)+": "+x.text); toast("info","Задача перенесена","С "+fd(was)+" на "+fd(x.date)+"."); return; }
   if(e.target.closest("[data-dtdel]")){ const b=e.target.closest("[data-dtdel]"); if(!b.dataset.armed){ b.dataset.armed=1; b.textContent="Удалить?"; b.classList.add("armed"); setTimeout(()=>{ if(b.isConnected){ delete b.dataset.armed; b.textContent="×"; b.classList.remove("armed"); } },3000); return; }
     const i=DTS().indexOf(x); DTS().splice(i,1); dirty("daytasks",x.id,true); saveLocal(); logEv("Задача на день","Удалена ("+fd(x.date)+"): "+x.text); renderCalendar();
     toast("info","Задача удалена",x.text,{action:{label:"Вернуть", fn:()=>{ DTS().push(x); dtSave(x,"Возвращена: "+x.text); }}}); return; }
-  const te=e.target.closest("[data-dtedit]"); if(te && !row.querySelector(".dt-edit")){ const inp=document.createElement("input"); inp.className="dt-edit"; inp.value=x.text; te.replaceWith(inp); inp.focus(); inp.select();
-    const fin=save=>{ if(!inp.isConnected) return; const v=inp.value.trim(); if(save && v && v!==x.text){ x.text=v; dtSave(x,"Изменена: "+v); } else renderCalendar(); };
-    inp.addEventListener("keydown",k=>{ if(k.key==="Enter"){ k.preventDefault(); fin(true); } if(k.key==="Escape") fin(false); }); inp.addEventListener("blur",()=>fin(true)); } });
+  const te=e.target.closest("[data-dtedit]"); if(te && !row.querySelector(".dt-edit")){ const inp=document.createElement("textarea"); inp.className="dt-edit dt-in"; inp.rows=1; inp.maxLength=1000; inp.value=x.text; te.replaceWith(inp); dtGrow(inp); inp.focus(); inp.select();
+    /* текст изменили — отметки «видел» начинаются заново, чтобы все прочитали новую версию */
+    const fin=save=>{ if(!inp.isConnected) return; const v=inp.value.trim(); if(save && v && v!==x.text){ x.text=v; x.seen=""; dtSave(x,"Изменена: "+v); } else renderCalendar(); };
+    dtKeys(inp, ()=>fin(true), ()=>fin(false)); inp.addEventListener("blur",()=>fin(true)); } });
 function drawCalDay(){
   const c=CAL(), d=new Date(c.sel+"T12:00:00"), docs=calDocs(c.sel, c.cus).sort((a,b)=>-jNumSort(a,b)), staff=isStaff();
   $("#cal-dtitle").textContent=d.getDate()+" "+MONG[d.getMonth()]+" "+d.getFullYear()+", "+["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"][d.getDay()];
@@ -2895,7 +2898,7 @@ const HELP={
   "Количество по адресам":["Перепишите цифры из заявки.",["Строка — точка (столовая), столбец — товар.","Пустые строки пропускаются.","Серый номер в «№ док.» подставлен автоматически. Нажмите на него, чтобы исправить. Если сотрёте — номер снова подставится сам."]],
   "Что скачать":["Отметьте документы и нажмите кнопку.","Все накладные создадутся сразу, скачаются одним PDF и сохранятся в «Журнал» одним комплектом."],
   "Календарь":["Все заказы по дням поставки.",["На дне видно количество накладных и сумму.","Нажмите на день — ниже появятся его заказы, товар на день, маршрут водителю и текст для копирования.","Новые накладные появляются здесь сразу после создания."]],
-  "Задачи на день":["Дела на день, кроме самих заказов: замена товара, исправленные документы, возврат.",["Выберите заказчика (можно без него), впишите задачу и нажмите «Добавить». Кнопки ниже подставят частые фразы.","Задачи видят все, в том числе водитель. Они попадают и в текст маршрута.","Сделали — отметьте кружок. Не выполненные в прошлые дни видны на сегодняшнем дне, их можно перенести."]],
+  "Задачи на день":["Дела на день, кроме самих заказов: замена товара, исправленные документы, возврат.",["Выберите заказчика (можно без него), впишите задачу и нажмите «Добавить». Кнопки ниже подставят частые фразы.","Писать можно в несколько строк: Enter — добавить задачу, Shift+Enter — новая строка (на телефоне новая строка — обычным Enter, добавить — кнопкой).","Задачи видят все, в том числе водитель. Они попадают и в текст маршрута.","Под задачей видно, кто её уже открыл (зелёным, со временем), а кто ещё нет. Отмечать ничего не нужно — достаточно открыть календарь на этот день. Красный флажок в календаре — есть задачи, которые вы ещё не видели.","Если текст задачи исправить, отметки «видел» сбрасываются, чтобы все прочитали новую версию."]],
   "Маршрут для водителя":["Собирается сам из накладных выбранного в календаре дня.",["Галочка «Подробно» — для наёмного водителя: телефоны, часы приёмки, получатель, документы.","Контакты точки можно поправить прямо в её карточке."]],
   "Текстом для копирования":["Готовое сообщение для рабочей группы в MAX.","Нажмите «Скопировать текст» и вставьте в чат."],
   "Журнал документов":["Все созданные документы.",["Фильтры — период, поставщик, заказчик; поиск — по номеру, адресу, товару.","«Комплект» — документы одной заявки, нажмите, чтобы развернуть.","«Изменить» — исправить документ под тем же номером. «Ещё» — XML, копия, архив."]],
