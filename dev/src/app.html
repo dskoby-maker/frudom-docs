@@ -769,18 +769,22 @@ const ctrUsed = (id, except) => r2(D.journal.filter(j=>j.snap && !isArch(j) && j
 function calc(dr, snap){
   const s = snap ? snap.s : sup(dr.supplierId), c = snap ? snap.c : liveCus(dr);
   const P = id => snap ? (snap.prods||{})[id] : prod(id);
-  const rate = s.vat==="none"||!s.vat ? null : +s.vat;
+  /* НДС: настройка заказчика («10+» — 10% сверху цены прайса, «10» — уже в цене) важнее настройки поставщика */
+  const cv = String((c && c.vat) || (!snap && (cus(dr.customerId)||{}).vat) || ""), cm = cv.match(/^(\d+)(\+?)$/);
+  const rate = cm ? +cm[1] : (s.vat==="none"||!s.vat ? null : +s.vat), add = !!(cm && cm[2]);
   const t12 = !!c && (c.t12c==="1" || (cus(dr.customerId)||{}).t12c==="1");
   const lines = dr.lines.filter(l=>l.productId && +l.qty>0).map((l,i)=>{
     const p=P(l.productId)||{}; const qty=+l.qty, price=+l.price||0;
-    const sum=r2(qty*price), vat=rate?r2(sum*rate/(100+rate)):0, net=r2(sum-vat);
+    let sum, vat, net, gp=price;
+    if(add){ net=r2(qty*price); vat=r2(net*rate/100); sum=r2(net+vat); gp=r2(price*(100+rate)/100); }
+    else { sum=r2(qty*price); vat=rate?r2(sum*rate/(100+rate)):0; net=r2(sum-vat); }
     const cty=p.country||(snap?(prod(l.productId)||{}).country:"")||"";
     const nm=(l.name&&String(l.name).trim())||p.name||"";
-    return {n:i+1, pid:l.productId, code:p.code||"", name:nm, unit:p.unit||"", okei:UNITS[p.unit]||"", country:cty, nameT:(t12&&COUNTRIES[cty])?nm+", страна происхождения — "+COUNTRIES[cty]:"", qty, price, sum, vat, net, priceNet: rate? r2(net/qty) : price};
+    return {n:i+1, pid:l.productId, code:p.code||"", name:nm, unit:p.unit||"", okei:UNITS[p.unit]||"", country:cty, nameT:(t12&&COUNTRIES[cty])?nm+", страна происхождения — "+COUNTRIES[cty]:"", qty, price:gp, sum, vat, net, priceNet: add ? price : rate? r2(net/qty) : price};
   });
   const t = lines.reduce((a,l)=>({sum:a.sum+l.sum, vat:a.vat+l.vat, net:a.net+l.net, qty:a.qty+l.qty, kg:a.kg+(l.unit==="кг"?l.qty:0)}),{sum:0,vat:0,net:0,qty:0,kg:0});
   ["sum","vat","net"].forEach(x=>t[x]=r2(t[x]));
-  return {s, c, rate, lines, t, dr, t12};
+  return {s, c, rate, add, lines, t, dr, t12};
 }
 const branches = c => { try{ const a=JSON.parse(c.branches||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; } };
 function liveCus(dr){
@@ -1041,7 +1045,7 @@ function renderLines(){
 }
 function renderTotals(){
   const k=calc(D.draft);
-  $("#d-totals").innerHTML=`<div class="muted">Позиций<b>${k.lines.length}</b></div>`+(k.rate?`<div class="muted">В т.ч. НДС ${k.rate}%<b>${fm(k.t.vat)}</b></div>`:`<div class="muted">НДС<b style="font-size:15px;padding-top:5px">не облагается</b></div>`)+`<div class="muted">Итого, ₽<b>${fm(k.t.sum)}</b></div>`;
+  $("#d-totals").innerHTML=`<div class="muted">Позиций<b>${k.lines.length}</b></div>`+(k.rate?`${k.add?`<div class="muted">Без НДС<b>${fm(k.t.net)}</b></div>`:""}<div class="muted">${k.add?"НДС "+k.rate+"% сверху":"В т.ч. НДС "+k.rate+"%"}<b>${fm(k.t.vat)}</b></div>`:`<div class="muted">НДС<b style="font-size:15px;padding-top:5px">не облагается</b></div>`)+`<div class="muted">Итого, ₽<b>${fm(k.t.sum)}</b></div>`;
   document.querySelectorAll("#d-lines .line[data-i]").forEach(el=>{ const l=D.draft.lines[+el.dataset.i]; el.querySelector(".sum").textContent=fm(r2((+l.qty||0)*(+l.price||0))); });
   { const byU={}; k.lines.forEach(l=>{ byU[l.unit||"ед."]=(byU[l.unit||"ед."]||0)+l.qty; }); const n=k.lines.length;
     $("#d-lfoot").innerHTML = n ? `<span>Всего позиций: <b>${n}</b></span>`+Object.entries(byU).map(([u,q])=>`<span>${u==="кг"?"Общий вес":"Итого, "+esc(u)}: <b>${String(+q.toFixed(3)).replace(".",",")} ${esc(u)}</b></span>`).join("") : ""; }
@@ -2019,7 +2023,7 @@ function docProfit(j){
   const k=calc(j.snap.dr, j.snap), dc=docCost(j.id), ov=dcLines(dc); let cost=0, miss=0;
   const lines=k.lines.map(l=>{ const o=ov[l.pid], e=(o!=null&&o!=="")?null:costFor(l.pid, j.customerId, j.date), c=(o!=null&&o!=="")?+o:(e?+e.price:null);
     if(c==null) miss++; else cost+=r2(c*l.qty); return {l, c, own:(o!=null&&o!==""), e}; });
-  const rev=k.t.sum, tax=r2(rev*taxOf(j.supplierId)/100), exp=+(dc&&dc.expense)||0; cost=r2(cost);
+  const rev=k.t.net, tax=r2(rev*taxOf(j.supplierId)/100), exp=+(dc&&dc.expense)||0; cost=r2(cost);
   return {j, k, lines, rev, cost, tax, exp, profit:r2(rev-cost-tax-exp), miss};
 }
 function pfRange(f){ const n=new Date(), iso=jIso;
@@ -2376,6 +2380,7 @@ function renderCustomers(){
       {k:"bik",l:"БИК / БИК ТОФК",num:1},{k:"rs",l:"Р/с или казначейский счёт",num:1},{k:"ks",l:"К/с или ЕКС",num:1},
       {k:"edo",l:"ID участника ЭДО в Диадоке (2BM-… / 2AE-… — узнать у заказчика)",wide:true},
       {k:"signs",l:"Подписи поставщика (с печатью и подписью)",opts:{"":"Одна — основная","3":"Во всех графах (ТОРГ‑12: разрешил, бухгалтер, произвёл; УПД: все)"}},
+      {k:"vat",l:"НДС в документах",opts:{"":"Без НДС (как у поставщика)","10+":"НДС 10% сверху цены прайса","22+":"НДС 22% сверху цены прайса","10":"НДС 10% — уже в цене прайса","22":"НДС 22% — уже в цене прайса"}},
       {k:"t12c",l:"Страна происхождения в документах",opts:{"":"Как обычно (в УПД — только у импортных)","1":"Всегда: в ТОРГ‑12 и УПД, включая Россию (если требует договор)"}},
 ],
     onSelect:id=>{ renderPrices(id); renderContracts(id); renderBranches(id); renderPoints(id); renderNums(id); }});

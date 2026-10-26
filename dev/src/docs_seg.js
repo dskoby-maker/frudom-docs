@@ -15,7 +15,7 @@ function sigLine(role, name, k){ return `<div class="sig"><span class="nobr">${r
 
 function docInvoice(k){
   const s=k.s, c=k.c, d=k.dr;
-  const rows=k.lines.map(l=>`<tr><td class="c">${l.n}</td><td>${esc(l.name)}</td><td class="r">${fq(l.qty)}</td><td class="c">${esc(l.unit)}</td><td class="r">${fm(l.price)}</td><td class="r">${fm(l.sum)}</td></tr>`).join("");
+  const rows=k.lines.map(l=>`<tr><td class="c">${l.n}</td><td>${esc(l.name)}</td><td class="r">${fq(l.qty)}</td><td class="c">${esc(l.unit)}</td><td class="r">${fm(k.add?l.priceNet:l.price)}</td><td class="r">${fm(k.add?l.net:l.sum)}</td></tr>`).join("");
   const signer = isIP(s) ? sigLine("Индивидуальный предприниматель", initials(s.fio), k) : sigLine("Руководитель", initials(s.fio), k) + sigLine("Бухгалтер", initials(s.fio), k);
   return `<div class="doc doc-invoice">
   <table class="g"><colgroup><col style="width:35%"><col style="width:25%"><col style="width:8%"><col></colgroup>
@@ -31,8 +31,8 @@ function docInvoice(k){
     <tr><td>Основание:</td><td class="b">${esc(d.basis)}</td></tr>
   </table><br>
   <table class="g"><thead><tr><th style="width:5%">№</th><th>Товары (работы, услуги)</th><th style="width:10%">Кол-во</th><th style="width:7%">Ед.</th><th style="width:13%">Цена</th><th style="width:14%">Сумма</th></tr></thead><tbody>${rows}</tbody></table>
-  <table style="margin-top:4px"><tr><td class="r b">Итого:</td><td class="r b" style="width:14%">${fm(k.t.sum)}</td></tr>
-    <tr><td class="r b">${k.rate?"В том числе НДС "+k.rate+"%:":"Без налога (НДС)"}</td><td class="r b">${k.rate?fm(k.t.vat):"—"}</td></tr>
+  <table style="margin-top:4px"><tr><td class="r b">Итого:</td><td class="r b" style="width:14%">${fm(k.add?k.t.net:k.t.sum)}</td></tr>
+    <tr><td class="r b">${k.add?"НДС "+k.rate+"%:":k.rate?"В том числе НДС "+k.rate+"%:":"Без налога (НДС)"}</td><td class="r b">${k.rate?fm(k.t.vat):"—"}</td></tr>
     <tr><td class="r b">Всего к оплате:</td><td class="r b">${fm(k.t.sum)}</td></tr></table>
   <p>Всего наименований ${k.lines.length}, на сумму ${fm(k.t.sum)} руб.<br><b>${moneyWords(k.t.sum)}</b></p>
   <hr class="thick"><div class="signbox" style="max-width:70%">${signer}${STI(k,"inv")}</div></div>`;
