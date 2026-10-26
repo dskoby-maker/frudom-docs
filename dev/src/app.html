@@ -180,13 +180,14 @@
 #fd-app .dtbox{margin:12px 0 14px;border:1px solid #f0dcb0;background:#fffaf0;border-radius:12px;padding:10px 12px}
 #fd-app .dt-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}#fd-app .dt-head b{font-size:15px}#fd-app .dt-head small{color:var(--muted);font-size:12.5px}
 #fd-app .dt-count{font-size:12.5px;color:#a3620c;font-weight:600}
-#fd-app .dt-list{display:grid;gap:6px}
+#fd-app .dt-list{display:grid;gap:6px;min-width:0}#fd-app .dt-list>*,#fd-app .card>*,#fd-app .dtbox{min-width:0}
+#fd-app .dt-c{max-width:100%;white-space:normal;overflow-wrap:anywhere}#fd-app .dt-cbar select,#fd-app .dt-edrow select{max-width:100%}#fd-app .dt-comp textarea.dt-in{width:100%;box-sizing:border-box}
 #fd-app .dt{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid #f1e3c4;border-radius:10px;padding:8px 10px;animation:fdin .18s ease;transition:opacity .2s}
 #fd-app .dt.new{border-color:#e9b75a;box-shadow:0 0 0 2px #fbe3b0}
 #fd-app .dt-b{flex:1;min-width:0}#fd-app .dt-t{font-size:14.5px;overflow-wrap:anywhere;white-space:pre-wrap}#fd-app .dt-t[data-dtedit]{cursor:text}
 #fd-app .dt-c{display:inline-block;background:#f6ead0;color:#7a4b08;border-radius:6px;padding:0 6px;margin-right:6px;font-size:12.5px;font-weight:600;vertical-align:1px}
 #fd-app .dt-b small{display:block;color:var(--muted);font-size:12px;margin-top:2px}#fd-app .dt-b small b{color:#2f7d4f;font-weight:600}
-#fd-app .dt-a{display:flex;gap:4px;align-items:center;flex:none}
+#fd-app .dt-a{display:flex;gap:4px;align-items:center;flex:none}@media (max-width:520px){#fd-app .dt-a{flex-direction:column;gap:2px;margin:-2px -4px 0 0}#fd-app .dt{gap:6px}}
 #fd-app .dt-x{border:0;background:none;color:var(--muted);font-size:18px;cursor:pointer;padding:0 4px;border-radius:6px}#fd-app .dt-x.armed{font-size:12.5px;color:var(--err,#c0392b)}
 #fd-app .dt-edit{width:100%;font-size:14.5px}
 #fd-app .dt-seen{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px}#fd-app .dt-seen i{font-style:normal;font-size:11.5px;border-radius:99px;padding:1px 8px;background:#f1efe9;color:#8a8577}#fd-app .dt-seen i.y{background:#e3f2e8;color:#2f7d4f;font-weight:600}
