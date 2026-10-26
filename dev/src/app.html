@@ -330,6 +330,8 @@
 #fd-app .dvbtns .btn{flex:1 1 180px}
 #fd-app .pfcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 #fd-app .pfcards div{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fbfbfa}#fd-app .pfcards small{display:block;color:var(--muted);font-size:12px}#fd-app .pfcards b{font-size:18px;white-space:nowrap}
+#fd-app .pfcards>div{min-width:0}#fd-app .pfcards b{display:block;overflow:hidden;text-overflow:ellipsis}
+#fd-app #cal-sum{display:flex;gap:8px}#fd-app #cal-sum>div{flex:1 1 auto;min-width:0;padding:9px 11px}#fd-app #cal-sum>div:nth-child(3){flex:100 1 auto}#fd-app #cal-sum b{font-size:clamp(15px,4.4vw,20px);font-variant-numeric:tabular-nums;text-overflow:clip}@media(min-width:701px){#fd-app #cal-sum{max-width:620px}#fd-app #cal-sum>div,#fd-app #cal-sum>div:nth-child(3){flex:1 1 0}}
 #fd-app .pfcards .main{background:var(--accent-soft);border-color:transparent}#fd-app .pfcards .main b{font-size:22px;color:var(--accent)}
 #fd-app .neg{color:var(--err)!important}#fd-app .pos{color:var(--ok)}
 #fd-app table.pf tr.pfd{cursor:pointer}#fd-app table.pf tr.pfd.open td{background:var(--accent-soft)}
