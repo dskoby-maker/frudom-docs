@@ -56,6 +56,16 @@ const S = {
     ['updated','Изменён'],['id','ID'],['supplierId','ID поставщика'],['customerId','ID заказчика'],['snap','Данные документа (не редактировать)']]}
 };
 
+/* ДОСТУП К GOOGLE ДИСКУ (для фото задач и «Моего прайса»).
+ * Один раз: вверху выберите функцию «authorize» → «Выполнить» → «Предоставить доступ» → ваш аккаунт →
+ * «Дополнительно» → «Перейти к проекту» → «Разрешить». Потом «Развернуть» → «Управление развёртываниями» → карандаш → «Новая версия». */
+function authorize() {
+  DriveApp.getRootFolder().getName();
+  const f = photoFolder_();
+  Logger.log('Доступ к Диску есть. Папка для фото: ' + f.getName());
+  return 'ok';
+}
+
 function doGet(e)  { return out_(handle_(Object.assign({}, e && e.parameter))); }
 function doPost(e) { let p = {}; try { p = JSON.parse(e.postData.contents); } catch (x) {} return out_(handle_(p)); }
 function out_(o)   { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
@@ -223,7 +233,7 @@ function plist_(p, me) {
   if (p.link) { const m = String(p.link).match(/[-\w]{25,}/); if (!m) return { ok: false, error: 'не похоже на ссылку на файл Google Диска' };
     pr.setProperty('plistFile', m[0]); log_(me, [{ action: 'Справочники', text: 'Изменена ссылка на мой прайс' }]); }
   const id = pr.getProperty('plistFile') || PLIST_DEFAULT;
-  let f; try { f = DriveApp.getFileById(id); } catch (x) { return { ok: false, error: 'файл прайса не открывается — проверьте ссылку' }; }
+  let f; try { f = DriveApp.getFileById(id); } catch (x) { return { ok: false, error: /permission|разрешени|authoriz/i.test(String(x)) ? 'нет доступа к Google Диску — в Apps Script выполните функцию authorize' : 'файл прайса не открывается — проверьте ссылку' }; }
   const r = { ok: true, id: id, name: f.getName(), modified: f.getLastUpdated().toISOString() };
   if (p.since && p.since === r.modified) return r;
   if (f.getMimeType() === 'application/vnd.google-apps.spreadsheet') r.rows = SpreadsheetApp.openById(id).getSheets()[0].getDataRange().getValues().map(x => x.slice(0, 6));

@@ -1940,7 +1940,10 @@ async function phAdd(tid, files){
       PHC.th.set(j.id, r.thumb); PHC.full.set(j.id, r.full); phCache("t", j.id, r.thumb); phCache("f", j.id, r.full);
       PHUP.delete(k); const list=phList(tid); list.push({id:j.id, by:curUser()||"", w:r.w, h:r.h});
       if(DRf().id===tid) drSave(); else saveLocal(); phStripUpd(tid);
-    }catch(e){ PHUP.delete(k); phStripUpd(tid); toast("err","Фото не загрузилось", e.message==="img" ? "Не получилось открыть «"+file.name+"». Попробуйте снимок в формате JPG или PNG." : "Проверьте связь и попробуйте ещё раз."); } } }
+    }catch(e){ PHUP.delete(k); phStripUpd(tid); const em=String(e.message||e);
+      if(/permission|разрешени|authoriz|DriveApp|authorize/i.test(em)){ toast("err","Фото не загрузилось: нет доступа к Google Диску", !!me().admin?"Откройте Apps Script таблицы, выберите функцию «authorize» → «Выполнить» → «Разрешить», затем «Развернуть → Новая версия».":"Сообщите Даниилу: скрипту таблицы нужен доступ к Google Диску.", {ms:15000}); continue; }
+      if(e.message!=="img" && !e.net){ toast("err","Фото не загрузилось", "Таблица ответила: «"+em.slice(0,180)+"»"); continue; }
+      toast("err","Фото не загрузилось", e.message==="img" ? "Не получилось открыть «"+file.name+"». Попробуйте снимок в формате JPG или PNG." : "Проверьте связь и попробуйте ещё раз."); } } }
 async function phDel(tid, p){ const list=phList(tid), i=list.indexOf(p); if(i<0) return;
   try{ await api({action:"delPhoto", id:p.id}); }catch(e){ toast("err","Фото не удалено", e.message==="forbidden"?"Удалить можно только своё фото.":"Проверьте связь и попробуйте ещё раз."); return false; }
   list.splice(i,1); if(DRf().id===tid) drSave(); else saveLocal(); phStripUpd(tid); toast("info","Фото удалено",""); return true; }
