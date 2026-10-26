@@ -65,7 +65,12 @@
 #fd-app .line{display:grid;grid-template-columns:26px minmax(0,1fr) 90px 44px 110px 110px 36px;gap:8px;align-items:center}
 #fd-app .line .ln{width:24px;height:24px;border-radius:50%;background:var(--soft,#f1ece6);color:var(--accent);font:600 12px/24px var(--ui,inherit);text-align:center;justify-self:center;transition:background .15s,color .15s}
 #fd-app .line:focus-within .ln{background:var(--accent);color:#fff}
-#fd-app .line .pc{display:flex;gap:6px;align-items:center;min-width:0}#fd-app .line .pc select{flex:1;min-width:0}
+#fd-app .line .pc{display:flex;gap:6px;align-items:center;min-width:0;position:relative}#fd-app .line .pc select{flex:1;min-width:0}
+#fd-app .line .pc .ps{flex:1;min-width:0}#fd-app .line .pc .ps.empty{border-style:dashed}
+#fd-app .psm{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,.14);max-height:320px;overflow:auto;padding:4px 0}
+#fd-app .psm button{display:flex;gap:10px;align-items:baseline;width:100%;text-align:left;background:none;border:0;padding:10px 14px;font:inherit;font-size:15px;color:var(--ink);cursor:pointer}
+#fd-app .psm button.on,#fd-app .psm button:hover{background:var(--accent-soft)}#fd-app .psm button span{flex:1;min-width:0}#fd-app .psm button small{color:var(--muted);white-space:nowrap;font-size:12.5px}
+#fd-app .psm b{font-weight:700}#fd-app .psm .pst{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:8px 14px 2px}#fd-app .psm .psn{padding:10px 14px;color:var(--muted);font-size:14px}
 #fd-app .line .ed{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:8px;width:34px;height:34px;flex:none;cursor:pointer;font-size:14px;transition:color .15s,border-color .15s}
 #fd-app .line .ed:hover,#fd-app .line .ed.on{color:var(--accent);border-color:var(--accent)}
 #fd-app .line .lname{grid-column:2/-1;display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:-2px}
@@ -1035,7 +1040,7 @@ function renderLines(){
   $("#d-lines").innerHTML=`<div class="line head"><span style="text-align:center">№</span><span>Товар</span><span>Кол-во</span><span>Ед.</span><span>Цена, ₽</span><span style="text-align:right">Сумма, ₽</span><span></span></div>`+
     dr.lines.map((l,i)=>{ const p=prod(l.productId), custom=l.productId && +l.price!==getPrice(dr.customerId,l.productId);
       const named=!!(l.name&&String(l.name).trim()), canEd=!ro && !!p, showN=named||l.edName;
-      return `<div class="line${named?" named":""}" data-i="${i}"><span class="ln">${i+1}</span><div class="pc"><select class="prod" aria-label="Товар"${qo?" disabled":""}>${qo&&p?`<option value="${p.id}" selected>${esc(p.name)}</option>`:productOptions(dr.customerId,l.productId)}</select>${canEd?`<button type="button" class="ed${showN?" on":""}" title="Изменить название в этом документе" aria-label="Изменить название">✎</button>`:""}</div>
+      return `<div class="line${named?" named":""}" data-i="${i}"><span class="ln">${i+1}</span><div class="pc"><input class="ps${p?"":" empty"}" value="${esc(p?p.name:"")}" placeholder="Начните вводить название товара" autocomplete="off" aria-label="Товар"${qo?" readonly":""}>${canEd?`<button type="button" class="ed${showN?" on":""}" title="Изменить название в этом документе" aria-label="Изменить название">✎</button>`:""}</div>
         <input class="qty" inputmode="decimal" placeholder="0" value="${esc(l.qty)}" aria-label="Количество"><span class="unit">${p?esc(p.unit):""}</span>
         <input class="price${custom?" custom":""}" inputmode="decimal" placeholder="0,00" value="${esc(l.price)}" aria-label="Цена"${ro?" readonly tabindex=\"-1\"":""}>
         <span class="sum">${fm(r2((+l.qty||0)*(+l.price||0)))}</span><button class="x" aria-label="Удалить строку"${qo?" hidden":""}>×</button>${showN&&p?`<div class="lname"><span>В документе:</span><input class="nmx" value="${esc(named?l.name:p.name)}" aria-label="Название в документе"${ro?" readonly":""}>${ro?"":`<button type="button" class="btn ghost sm" data-nmreset>Как в справочнике</button><button type="button" class="btn ghost sm" data-nmglob>Сохранить в справочник</button>`}</div>`:""}${l.auto?`<div class="lnote${l.autoEd?" ed":""}">${l.autoEd?"Исправлено вручную — сайт запомнит новый вес (в заявке «"+esc(l.pack&&l.pack.t||"")+"»)":"⚠ "+esc(l.auto)}</div>`:l.pack&&!(+l.qty>0)?`<div class="lnote">В заявке «${esc(l.pack.t)}» — впишите вес, сайт запомнит, сколько весит 1 ${esc(l.pack.u)}</div>`:""}</div>`; }).join("");
@@ -1087,10 +1092,43 @@ function applyCtr(id){
 }
 $("#d-ctr").onchange=e=>{ D.draft.noCtr = !e.target.value; applyCtr(e.target.value); };
 const dl=$("#d-lines");
+/* поиск товара по мере ввода: сначала прайс заказчика, потом остальные товары */
+let PS=null;
+function psFind(q){ const dr=D.draft, cid=dr.customerId, inP=p=>custPrice(cid,p.id)!=null&&custPrice(cid,p.id)!=="";
+  const words=norm(q).replace(/[«»"]/g,"").split(" ").filter(Boolean);
+  const pool=isStaff()?D.products.filter(inP):D.products;
+  const hit=p=>{ const t=[p.name,...aliasesOf(p)].map(x=>norm(x).replace(/[«»"]/g,"")); return words.every(w=>t.some(x=>x.includes(w))); };
+  const L=(words.length?pool.filter(hit):pool.filter(inP)).map(p=>{ const n=norm(p.name); return {p, inP:inP(p), st:words.length&&n.startsWith(words[0])?0:words.length&&n.includes(" "+words[0])?1:2}; });
+  L.sort((a,b)=>(b.inP-a.inP)||(a.st-b.st)||a.p.name.localeCompare(b.p.name,"ru"));
+  return L.slice(0,40); }
+const psMark = (name,q) => { const w=norm(q).split(" ").filter(Boolean)[0]; if(!w) return esc(name); const i=norm(name).indexOf(w); return i<0?esc(name):esc(name.slice(0,i))+"<b>"+esc(name.slice(i,i+w.length))+"</b>"+esc(name.slice(i+w.length)); };
+function psOpen(inp){ psClose(); const row=inp.closest(".line[data-i]"); if(!row) return; const q=inp.value, L=psFind(q), cid=D.draft.customerId;
+  const m=document.createElement("div"); m.className="psm"; m.setAttribute("role","listbox");
+  let h="", sec=null; L.forEach((x,k)=>{ const s=x.inP?"p":"o"; if(!isStaff() && s!==sec && L.some(y=>y.inP)){ sec=s; h+=`<div class="pst">${x.inP?"В прайсе заказчика":"Остальные товары"}</div>`; }
+    const pr=x.inP?custPrice(cid,x.p.id):x.p.price; h+=`<button type="button" data-psi="${k}"${k===0?' class="on"':""}><span>${psMark(x.p.name,q)}</span><small>${pr!=null&&pr!==""?fm(+pr)+" ₽/"+esc(x.p.unit||""):""}</small></button>`; });
+  m.innerHTML = h || `<div class="psn">${q.trim()?"Ничего не найдено. Проверьте название"+(isStaff()?"":" или добавьте товар во вкладке «Товары»"):"Начните вводить название"}</div>`;
+  inp.parentNode.appendChild(m); PS={inp, m, L, k:L.length?0:-1}; }
+function psClose(){ if(PS){ PS.m.remove(); PS=null; } }
+function psMove(d){ if(!PS||!PS.L.length) return; PS.k=(PS.k+d+PS.L.length)%PS.L.length; PS.m.querySelectorAll("[data-psi]").forEach(b=>b.classList.toggle("on", +b.dataset.psi===PS.k)); const on=PS.m.querySelector(".on"); on&&on.scrollIntoView({block:"nearest"}); }
+function psPick(k){ if(!PS) return; const x=PS.L[k], row=PS.inp.closest(".line[data-i]"); psClose(); if(!x||!row) return; const i=+row.dataset.i, l=D.draft.lines[i];
+  l.productId=x.p.id; delete l.name; l.edName=false; l.price=String(getPrice(D.draft.customerId,l.productId)); saveLocal(); renderLines();
+  const q=document.querySelector(`#d-lines .line[data-i="${i}"] .qty`); q&&q.focus(); }
+dl.addEventListener("focusin",e=>{ if(e.target.classList.contains("ps") && !e.target.readOnly){ e.target.select(); psOpen(e.target);
+  if(innerWidth<700){ const t=e.target; setTimeout(()=>{ const y=t.getBoundingClientRect().top; if(y>140) window.scrollBy({top:y-90, behavior:"smooth"}); },250); } } });
+dl.addEventListener("focusout",e=>{ if(!e.target.classList.contains("ps")) return; setTimeout(()=>{ if(PS && PS.inp===e.target && !PS.m.contains(document.activeElement)){ psClose(); }
+  const row=e.target.closest(".line[data-i]"); if(!row||!e.target.isConnected) return; const p=prod((D.draft.lines[+row.dataset.i]||{}).productId); e.target.value=p?p.name:""; },150); });
+dl.addEventListener("keydown",e=>{
+  if(e.target.classList.contains("ps")){ if(e.key==="ArrowDown"){ e.preventDefault(); if(!PS) psOpen(e.target); else psMove(1); } else if(e.key==="ArrowUp"){ e.preventDefault(); psMove(-1); }
+    else if(e.key==="Enter"){ e.preventDefault(); if(PS&&PS.k>=0) psPick(PS.k); } else if(e.key==="Escape"){ psClose(); e.target.blur(); } return; }
+  if(e.target.classList.contains("qty") && e.key==="Enter"){ e.preventDefault(); const i=+e.target.closest(".line[data-i]").dataset.i;
+    if(i===D.draft.lines.length-1){ D.draft.lines.push({productId:"",qty:"",price:""}); saveLocal(); renderLines(); }
+    const n=document.querySelector(`#d-lines .line[data-i="${i+1}"] .ps`); n&&n.focus(); } });
+dl.addEventListener("mousedown",e=>{ const b=e.target.closest(".psm [data-psi]"); if(b){ e.preventDefault(); psPick(+b.dataset.psi); } else if(e.target.closest(".psm")) e.preventDefault(); });
 dl.addEventListener("change",e=>{ const row=e.target.closest(".line[data-i]"); if(!row||!e.target.classList.contains("prod")) return; const i=+row.dataset.i, l=D.draft.lines[i];
   l.productId=e.target.value; delete l.name; l.edName=false; l.price=l.productId?String(getPrice(D.draft.customerId,l.productId)):""; saveLocal(); renderLines();
   const q=document.querySelector(`#d-lines .line[data-i="${i}"] .qty`); q&&q.focus(); });
 dl.addEventListener("input",e=>{ const row=e.target.closest(".line[data-i]"); if(!row) return; const l=D.draft.lines[+row.dataset.i];
+  if(e.target.classList.contains("ps")){ psOpen(e.target); return; }
   if(e.target.classList.contains("nmx")){ const p=prod(l.productId), v=e.target.value; if(p && v.trim()===p.name) delete l.name; else l.name=v; row.classList.toggle("named", !!(l.name&&l.name.trim())); saveLocal(); return; }
   if(e.target.classList.contains("qty")){ l.qty=num(e.target.value); if(l.auto && !l.autoEd){ l.autoEd=1; const ln=e.target.closest(".line").querySelector(".lnote"); if(ln){ ln.classList.add("ed"); ln.textContent="Исправлено вручную — сайт запомнит новый вес (в заявке «"+((l.pack&&l.pack.t)||"")+"»)"; } } }
   if(e.target.classList.contains("price") && !e.target.readOnly){ l.price=num(e.target.value); e.target.classList.toggle("custom", !!l.productId && +l.price!==getPrice(D.draft.customerId,l.productId)); }
@@ -1104,7 +1142,8 @@ dl.addEventListener("click",e=>{ const row=e.target.closest(".line[data-i]"); if
       toast("ok","Название сохранено в справочник","«"+old+"» → «"+v+"». Новые документы будут с этим названием, старые останутся как были.",{action:{label:"Отменить", fn:()=>{ p.name=old; dirty("products",p.id); saveLocal(); renderLines(); }}}); return; } }
   if(!e.target.classList.contains("x")) return; D.draft.lines.splice(+e.target.closest(".line").dataset.i,1);
   if(!D.draft.lines.length) D.draft.lines.push({productId:"",qty:"",price:""}); saveLocal(); renderLines(); });
-$("#d-add").onclick=()=>{ D.draft.lines.push({productId:"",qty:"",price:""}); saveLocal(); renderLines(); };
+$("#d-add").onclick=()=>{ const L=D.draft.lines; let i=L.findIndex(l=>!l.productId); if(i<0){ L.push({productId:"",qty:"",price:""}); i=L.length-1; } saveLocal(); renderLines();
+  const n=document.querySelector(`#d-lines .line[data-i="${i}"] .ps`); n&&n.focus(); };
 $("#d-addall").onclick=()=>{ const dr=D.draft, pl=D.prices[dr.customerId]||{}, have=new Set(dr.lines.map(l=>l.productId));
   dr.lines=dr.lines.filter(l=>l.productId); D.products.forEach(p=>{ if(pl[p.id]!=null&&pl[p.id]!==""&&!have.has(p.id)) dr.lines.push({productId:p.id,qty:"",price:String(pl[p.id])}); });
   if(!dr.lines.length) dr.lines.push({productId:"",qty:"",price:""}); saveLocal(); renderLines(); };
