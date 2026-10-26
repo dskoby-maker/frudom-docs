@@ -896,7 +896,7 @@ $("#fd-enter").onclick=async()=>{
     if(!j.ok){ $("#fd-loginmsg").textContent = j.error==="auth" ? "Неверный пароль для пользователя «"+u+"»." : "Ошибка: "+j.error; return; }
     lsSet(PKEY,p); lsSet(UKEY,u); lsSet("frudom-docs-lastuser",u); lsSet(MKEY, JSON.stringify(meObj||{name:u, admin:false}));
     try{ sessionStorage.setItem("fd-session","1"); }catch(e){}
-    $("#fd-pass").value=""; $("#fd-login").hidden=true; $("#fd-main").hidden=false; applyRole(); applyTabOrder();
+    $("#fd-pass").value=""; $("#fd-login").hidden=true; $("#fd-main").hidden=false; applyRole(); applyTabOrder(); startTab();
     toast("ok","Здравствуйте, "+u+"!","Вы вошли в систему.");
     await pull(); renderDoc();
   }catch(e){ $("#fd-loginmsg").textContent="Нет связи с хранилищем. Проверьте интернет и попробуйте ещё раз."; }
@@ -916,6 +916,9 @@ window.addEventListener("beforeunload",e=>{ if(online() && hasPending()){ flush(
 
 /* ---------- вкладки ---------- */
 let curTab="doc";
+/* у кого сайт открывается сразу на календаре (на сегодняшнем дне) */
+const CAL_FIRST=["Гриша"];
+function startTab(){ if(!CAL_FIRST.includes(curUser()) || !pass()) return; const c=CAL(), t=todayISO(); c.sel=t; c.ym=t.slice(0,7); saveLocal(); showTab("calendar"); }
 document.querySelectorAll("#fd-app nav.tabs button[data-tab]").forEach(b=>b.onclick=()=>{ if($("#fd-app nav.tabs").classList.contains("editing")) return; showTab(b.dataset.tab); });
 function showTab(t){
   curTab=t;
@@ -2949,7 +2952,7 @@ addHelp();
 /* ---------- старт ---------- */
 if(!API_URL) patchAll();
 renderDoc();
-applyRole(); applyTabOrder();
+applyRole(); applyTabOrder(); startTab();
 if(API_URL){ if(pass()){ let first=false; try{ first=!sessionStorage.getItem("fd-session"); sessionStorage.setItem("fd-session","1"); }catch(e){}
     if(first) logEv("Вход","Открыл систему (вход сохранён на устройстве, "+deviceName()+")"); pull(); } else { showLogin(); } } else setStatus("local");
 window.__fd = {D:()=>D, calc, layout, KINDS, showPreview, flush, pull, pend};
