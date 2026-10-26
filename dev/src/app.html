@@ -191,7 +191,7 @@
 #fd-app .dt-comp:focus-within{border-color:#d9a441;box-shadow:0 0 0 4px rgba(217,164,65,.17)}
 #fd-app .dt-comp textarea.dt-in{border:0;background:transparent;box-shadow:none;outline:none;padding:9px 10px 6px;min-height:48px;font-size:15px;border-radius:10px}
 #fd-app .dt-cbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:2px 4px 0}
-#fd-app .dt-cbar select{flex:0 1 230px;width:auto;min-width:140px;padding:6px 10px;font-size:13.5px;border-radius:99px;background:#fbf6ec;border-color:#f0e2c4}
+#fd-app .dt-cbar select[hidden]{display:none}#fd-app .dt-cbar select{flex:0 1 230px;width:auto;min-width:140px;padding:6px 10px;font-size:13.5px;border-radius:99px;background:#fbf6ec;border-color:#f0e2c4}
 #fd-app .dt-pbtn{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:99px;border:1px solid #f0e2c4;background:#fbf6ec;color:#7a4b08;font-size:13.5px;font-weight:500;cursor:pointer;transition:background .15s,transform .15s;user-select:none}
 #fd-app .dt-pbtn:hover{background:#f6ead0}#fd-app .dt-pbtn:active{transform:scale(.95)}#fd-app .dt-pbtn svg,#fd-app .dt-cam svg{width:17px;height:17px;flex:none}
 #fd-app .dt-hint{font-size:12px;color:var(--muted);margin-left:auto;transition:color .3s}#fd-app .dt-hint.ok{color:#2f7d4f}
@@ -494,6 +494,7 @@
             <div class="dt-phs" id="dt-addph" data-phs="" data-x="1"></div>
             <div class="dt-cbar">
               <select id="dt-cus" aria-label="Заказчик"></select>
+              <select id="dt-pt" aria-label="Точка доставки" hidden></select>
               <label class="dt-pbtn" title="Прикрепить фото"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.3l1.4-2h5.6l1.4 2h1.3A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.4"/></svg><span>Фото</span><input type="file" accept="image/*" multiple hidden data-phfile></label>
               <span class="dt-hint">Shift+Enter — новая строка</span>
               <button class="btn pri" type="submit">Добавить</button>
@@ -1579,7 +1580,7 @@ const ptName = (p) => { const l=stLabel(p.addr,p.c.address), m=l.match(/^ст ([
 const itemShort = n => String(n||"").replace(/\s*\([^)]*\)/g,"").replace(/\s+(свеж\S*|продовольственн\S*|столов\S*)(?=\s|$)/gi,"").replace(/\s+/g," ").trim();
 function dvText(P){
   const f=DV(), TK=DTS().filter(x=>x.date===f.date); if(!P.length && !TK.length) return "";
-  const tkLines = TK.length ? ["Задачи на день:", ...TK.map(x=>"• "+(x.customerId?cusShort(cus(x.customerId).name)+": ":"")+String(x.text).replace(/\n/g,"\n   ")+(x.photos&&x.photos.length?" (фото на сайте: "+x.photos.length+")":"")), ""] : [];
+  const tkLines = TK.length ? ["Задачи на день:", ...TK.map(x=>"• "+(x.customerId?cusShort(cus(x.customerId).name)+(x.addr?" ("+x.addr+")":"")+": ":"")+String(x.text).replace(/\n/g,"\n   ")+(x.photos&&x.photos.length?" (фото на сайте: "+x.photos.length+")":"")), ""] : [];
   const short=a=>a.replace(/^\d{6},\s*/,"").replace(/^г\.\s*Москва,\s*/i,"").replace(/\s*\([^)]*\)\s*$/,"");
   const L=[], groups=[]; P.forEach(p=>{ const g=cusShort(cus(p.cid).name||p.c.name); let G=groups.find(x=>x.g===g); if(!G){ G={g, P:[]}; groups.push(G); } G.P.push(p); });
   if(f.full){ const d=new Date(f.date+"T12:00:00"); L.push("Доставка "+fd(f.date)+" ("+wdays[d.getDay()]+")"); L.push(""); }
@@ -1635,8 +1636,11 @@ const MONG=["января","февраля","марта","апреля","мая"
 const calDocs = (date, cid) => D.journal.filter(j=>j.snap && !isArch(j) && j.date===date && (!cid||j.customerId===cid));
 function pointsOn(docs){ const m={}; docs.forEach(j=>{ const dr=j.snap.dr, k=j.customerId+"|"+(dr.branchId||"")+"|"+(dr.ship||""); m[k]=1; }); return Object.keys(m).length; }
 /* точки дня: адреса из накладных + задачи (товар иногда возят без накладной): задача с заказчиком, у которого в этот день нет накладной, — отдельная точка; задача без заказчика — тоже */
-function dayPoints(iso, docs, cf){ const m={}, has={}; docs.forEach(j=>{ const dr=j.snap.dr; m[j.customerId+"|"+(dr.branchId||"")+"|"+(dr.ship||"")]=1; has[j.customerId]=1; });
-  DTS().forEach(x=>{ if(x.date!==iso || (cf && x.customerId && x.customerId!==cf)) return; if(x.customerId){ if(!has[x.customerId]) m["t|"+x.customerId]=1; } else m["t#"+x.id]=1; });
+function cusAddrs(c){ if(!c||!c.id) return []; const o=[], seen={}; const add=(a,legal)=>{ if(a && !seen[a]){ seen[a]=1; o.push({a, label:stLabel(a,legal)}); } };
+  branches(c).forEach(b=>{ addrs(b).forEach(a=>add(a,b.address)); }); addrs(c).forEach(a=>add(a,c.address)); return o; }
+function dayPoints(iso, docs, cf){ const m={}; docs.forEach(j=>{ m[j.customerId+"|"+(j.snap.dr.ship||"")]=1; });
+  DTS().forEach(x=>{ if(x.date!==iso || (cf && x.customerId && x.customerId!==cf)) return;
+    if(x.customerId){ const L=cusAddrs(cus(x.customerId)), a=x.addr || (L.length===1?L[0].a:""); m[a ? x.customerId+"|"+a : "t#"+x.id]=1; } else m["t#"+x.id]=1; });
   return Object.keys(m).length; }
 function renderCalendar(){
   const c=CAL(), today=todayISO(); if(!c.sel) c.sel=today; if(!c.ym) c.ym=c.sel.slice(0,7);
@@ -1674,7 +1678,7 @@ function dtEdRow(x){ const e=EDf();
       <span class="dt-hint">Enter — сохранить · Shift+Enter — новая строка</span>
       <button type="button" class="btn sm" data-edno>Отмена</button><button type="button" class="btn pri sm" data-edok>Сохранить</button></div></div></div>`; }
 function dtRow(x){ const e=EDf(); if(e && e.id===x.id && dtCan(x)) return dtEdRow(x);
-  const c=x.customerId?cus(x.customerId):null, cn=c&&c.id?cusShort(c.name):"", sn=dtSeen(x);
+  const c=x.customerId?cus(x.customerId):null, cn=c&&c.id?cusShort(c.name)+(x.addr?" · "+stLabel(x.addr,c.address):""):"", sn=dtSeen(x);
   const who=USERS_LIST.filter(n=>n!==x.by).map(n=>sn[n]?`<i class="y" title="Увидел ${esc(fd(sn[n].slice(0,10)))} в ${hhmm(sn[n])}">✓ ${esc(n)} ${hhmm(sn[n])}</i>`:`<i title="Ещё не открывал">${esc(n)}</i>`).join("");
   return `<div class="dt${x._new?" new":""}" data-dt="${esc(x.id)}">
     <div class="dt-b">${cn?`<span class="dt-c">${esc(cn)}</span>`:""}<span class="dt-t"${dtCan(x)?' data-dtedit title="Нажмите, чтобы исправить"':""}>${esc(x.text)}</span>
@@ -1704,12 +1708,16 @@ function drawDayTasks(){
   cs.innerHTML=`<option value="">Без заказчика</option>`+(first.length?`<optgroup label="Заказы на этот день">${opts(first)}</optgroup><optgroup label="Остальные">${opts(rest)}</optgroup>`:opts(rest));
   const has=id=>id && D.customers.some(x=>x.id===id);
   cs.value = has(keep) ? keep : has(D0.cus) ? D0.cus : (c.cus||"");
+  dtPtFill();
   const tt=$("#dt-text"); if(document.activeElement!==tt && tt.value!==D0.text){ tt.value=D0.text; }
   dtGrow(tt);
   const ap=$("#dt-addph"); ap.dataset.phs=D0.id; ap.innerHTML=phItems(D0.id, D0.photos, true);
   $("#dt-chips").innerHTML=DT_CHIPS.map(s=>`<button type="button" class="dt-chip" data-chip="${esc(s)}">${esc(s)}</button>`).join("");
   phThumbs($("#dt-box"));
 }
+function dtPtFill(){ const ps=$("#dt-pt"), L=cusAddrs(cus($("#dt-cus").value)), keep=ps.value||DRf().pt||"";
+  ps.hidden=L.length<2; ps.innerHTML=`<option value="">Точка не выбрана</option>`+L.map(o=>`<option value="${esc(o.a)}" title="${esc(o.a)}">${esc(o.label)}</option>`).join("");
+  ps.value = L.some(o=>o.a===keep) ? keep : ""; }
 function dtEdFinish(save){ const e=EDf(); if(!e) return; const x=DTS().find(y=>y.id===e.id); ED=null; edSave();
   if(save && x){ const v=e.text.trim(); if(v && v!==x.text){ x.text=v; x.seen=""; dtSave(x,"Изменена: "+v); toast("ok","Задача исправлена","Отметки «видел» начнутся заново."); return; } }
   renderCalendar(); }
@@ -1721,13 +1729,14 @@ function dtKeys(t, onEnter, onEsc){ t.addEventListener("input",()=>dtGrow(t));
 function dtSave(x, ev){ dirty("daytasks", x.id); saveLocal(); if(ev) logEv("Задача на день", ev); renderCalendar(); }
 $("#dt-add").addEventListener("submit",e=>{ e.preventDefault(); const inp=$("#dt-text"), D0=DRf(); let v=inp.value.trim();
   if(!v && !D0.photos.length){ inp.focus(); return; } if(!v) v="Фото";
-  const x={id:D0.id, date:CAL().sel, customerId:$("#dt-cus").value||"", text:v, done:"", by:curUser()||"", created:new Date().toISOString(), doneBy:"", doneAt:"", seen:"", photos:D0.photos.slice()};
-  DTS().push(x); DR=null; lsSet(DRK(), null); inp.value=""; dtGrow(inp); $("#dt-cus").value="";
-  dtSave(x, "Добавлена на "+fd(x.date)+": "+(x.customerId?cusShort(cus(x.customerId).name)+" — ":"")+v+(x.photos.length?" (фото: "+x.photos.length+")":""));
+  const x={id:D0.id, date:CAL().sel, customerId:$("#dt-cus").value||"", addr:($("#dt-cus").value&&!$("#dt-pt").hidden&&$("#dt-pt").value)||"", text:v, done:"", by:curUser()||"", created:new Date().toISOString(), doneBy:"", doneAt:"", seen:"", photos:D0.photos.slice()};
+  DTS().push(x); DR=null; lsSet(DRK(), null); inp.value=""; dtGrow(inp); $("#dt-cus").value=""; dtPtFill();
+  dtSave(x, "Добавлена на "+fd(x.date)+": "+(x.customerId?cusShort(cus(x.customerId).name)+(x.addr?" ("+stLabel(x.addr,cus(x.customerId).address)+")":"")+" — ":"")+v+(x.photos.length?" (фото: "+x.photos.length+")":""));
   toast("ok","Задача добавлена","На "+fd(x.date)+". Её увидят все, в том числе водитель."); setTimeout(()=>$("#dt-text").focus(),50); });
 dtKeys($("#dt-text"), ()=>$("#dt-add").requestSubmit());
 $("#dt-text").addEventListener("input",()=>{ DRf().text=$("#dt-text").value; drSave(); });
-$("#dt-cus").addEventListener("change",()=>{ DRf().cus=$("#dt-cus").value; drSave(); });
+$("#dt-cus").addEventListener("change",()=>{ DRf().cus=$("#dt-cus").value; DRf().pt=""; $("#dt-pt").value=""; dtPtFill(); drSave(); });
+$("#dt-pt").addEventListener("change",()=>{ DRf().pt=$("#dt-pt").value; drSave(); });
 $("#dt-chips").addEventListener("click",e=>{ const b=e.target.closest("[data-chip]"); if(!b) return; const inp=$("#dt-text"); const v=inp.value.trim();
   inp.value = v ? v+", "+b.dataset.chip.toLowerCase() : b.dataset.chip+": "; DRf().text=inp.value; drSave(); dtGrow(inp); inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); });
 $("#dt-box").addEventListener("change",e=>{ const f=e.target.closest("[data-phfile]"); if(!f) return; const row=e.target.closest("[data-dt]"), files=[...f.files]; f.value="";
@@ -3156,7 +3165,7 @@ const HELP={
   "Заявка → документы":["Для заявок, где у одного заказчика много точек (столовые МГУ).",["Выберите заказчика, подразделение и день поставки.","Ниже впишите количество по каждой точке — на каждую будет своя накладная."]],
   "Количество по адресам":["Перепишите цифры из заявки.",["Строка — точка (столовая), столбец — товар.","Пустые строки пропускаются.","Серый номер в «№ док.» подставлен автоматически. Нажмите на него, чтобы исправить. Если сотрёте — номер снова подставится сам."]],
   "Что скачать":["Отметьте документы и нажмите кнопку.","Все накладные создадутся сразу, скачаются одним PDF и сохранятся в «Журнал» одним комплектом."],
-  "Календарь":["Все заказы по дням поставки.",["На дне видно количество точек доставки и сумму. Точки считаются по накладным и по задачам дня — если товар везут без накладной, добавьте задачу с заказчиком, и точка тоже посчитается.","Нажмите на день — ниже появятся его заказы, товар на день, маршрут водителю и текст для копирования.","Новые накладные появляются здесь сразу после создания."]],
+  "Календарь":["Все заказы по дням поставки.",["На дне видно количество точек доставки и сумму. Считаются все адреса доставки: по накладным и по задачам дня. Если товар везут на точку без накладной — добавьте задачу, выберите заказчика и точку (столовую, склад), и она посчитается.","Нажмите на день — ниже появятся его заказы, товар на день, маршрут водителю и текст для копирования.","Новые накладные появляются здесь сразу после создания."]],
   "Задачи на день":["Дела на день, кроме самих заказов: замена товара, исправленные документы, возврат.",["Выберите заказчика (можно без него), впишите задачу и нажмите «Добавить». Кнопки ниже подставят частые фразы.","Писать можно в несколько строк: Enter — добавить задачу, Shift+Enter — новая строка (на телефоне новая строка — обычным Enter, добавить — кнопкой).","Задачи видят все, в том числе водитель. Они попадают и в текст маршрута.","Фото: кнопка «Фото» в поле задачи или значок фотоаппарата у готовой задачи. Нажмите на фото — оно откроется крупно: приближайте колесом мыши, двумя пальцами или двойным касанием, поворачивайте кнопками или двумя пальцами, листайте стрелками или смахиванием, смахните вниз — закроется.","Недописанная задача не пропадёт: если свернуть браузер или закрыть страницу, текст и фото останутся в поле до вашего возвращения.","Под задачей видно, кто её уже открыл (зелёным, со временем), а кто ещё нет. Отмечать ничего не нужно — достаточно открыть календарь на этот день.","Если текст задачи исправить, отметки «видел» сбрасываются, чтобы все прочитали новую версию."]],
   "Маршрут для водителя":["Собирается сам из накладных выбранного в календаре дня.",["Галочка «Подробно» — для наёмного водителя: телефоны, часы приёмки, получатель, документы.","Контакты точки можно поправить прямо в её карточке."]],
   "Текстом для копирования":["Готовое сообщение для рабочей группы в MAX.","Нажмите «Скопировать текст» и вставьте в чат."],
