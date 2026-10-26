@@ -229,7 +229,6 @@
 #fd-lb .lb-spin{position:absolute;left:50%;top:50%;width:36px;height:36px;margin:-18px;border-radius:50%;border:3px solid rgba(255,255,255,.2);border-top-color:#fff;animation:fdphsp .8s linear infinite;opacity:0;transition:opacity .25s;pointer-events:none}
 #fd-lb.loading .lb-spin{opacity:1}
 @media (pointer:coarse){#fd-lb .lb-nav,#fd-lb .lb-bot{display:none}}
-#fd-app .dt-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
 #fd-app .dt-chip{border:1px dashed #d9a441;background:#fff;color:#7a4b08;border-radius:99px;padding:3px 10px;font-size:12.5px;cursor:pointer}#fd-app .dt-chip:hover{background:#fff1d6}
 #fd-app .calgrid button{position:relative}
 #fd-app .calgrid .dtb{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:#e08a1e;color:#fff;font:700 10px/16px var(--ui,inherit);font-style:normal;text-align:center}
@@ -504,7 +503,6 @@
             </div>
           </div>
         </form>
-        <div class="dt-chips" id="dt-chips"></div>
       </div>
       <div class="row calacts">
         <button class="btn pri" id="cal-route">Маршрут водителю ↓</button>
@@ -1666,7 +1664,6 @@ function renderCalendar(){
 }
 /* ---------- задачи на день (общие для всех, включая водителя) ---------- */
 const DTS = () => (D.daytasks = D.daytasks || []);
-const DT_CHIPS = ["Привезти исправленные документы","Замена товара","Забрать возврат","Подписать документы","Привезти сертификаты"];
 const hhmm = iso => { if(!iso) return ""; const d=new Date(iso); return isNaN(d)?"":String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); };
 const dtCan = x => !isStaff() || x.by===curUser();
 const dtSeen = x => { try{ const o=JSON.parse(x.seen||"{}"); return o&&typeof o==="object"?o:{}; }catch(e){ return {}; } };
@@ -1722,7 +1719,6 @@ function drawDayTasks(){
   const tt=$("#dt-text"); if(document.activeElement!==tt && tt.value!==D0.text){ tt.value=D0.text; }
   dtGrow(tt);
   const ap=$("#dt-addph"); ap.dataset.phs=D0.id; ap.innerHTML=phItems(D0.id, D0.photos, true);
-  $("#dt-chips").innerHTML=DT_CHIPS.map(s=>`<button type="button" class="dt-chip" data-chip="${esc(s)}">${esc(s)}</button>`).join("");
   phThumbs($("#dt-box"));
 }
 function dtPtFill(){ const ps=$("#dt-pt"), L=cusAddrs(cus($("#dt-cus").value)), keep=ps.value||DRf().pt||"";
@@ -1767,8 +1763,6 @@ dtKeys($("#dt-text"), ()=>$("#dt-add").requestSubmit());
 $("#dt-text").addEventListener("input",()=>{ DRf().text=$("#dt-text").value; drSave(); });
 $("#dt-cus").addEventListener("change",()=>{ DRf().cus=$("#dt-cus").value; DRf().pt=""; $("#dt-pt").value=""; dtPtFill(); drSave(); });
 $("#dt-pt").addEventListener("change",()=>{ DRf().pt=$("#dt-pt").value; drSave(); });
-$("#dt-chips").addEventListener("click",e=>{ const b=e.target.closest("[data-chip]"); if(!b) return; const inp=$("#dt-text"); const v=inp.value.trim();
-  inp.value = v ? v+", "+b.dataset.chip.toLowerCase() : b.dataset.chip+": "; DRf().text=inp.value; drSave(); dtGrow(inp); inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); });
 $("#dt-box").addEventListener("change",e=>{ const f=e.target.closest("[data-phfile]"); if(!f) return; const row=e.target.closest("[data-dt]"), files=[...f.files]; f.value="";
   if(files.length) phAdd(row ? row.dataset.dt : DRf().id, files); });
 $("#dt-box").addEventListener("click",e=>{
