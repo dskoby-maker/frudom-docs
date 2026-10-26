@@ -529,7 +529,7 @@
         <button class="btn" id="cal-order">Новая заявка на этот день</button>
         <button class="btn ghost" id="cal-new">Новый документ на эту дату</button>
       </div>
-      <div class="tbl"><table class="stack jt" data-full="2,5"><thead><tr><th>Дата</th><th>№</th><th>Заказчик и точка</th><th class="num">Сумма</th><th>Скачан</th><th class="acts"></th></tr></thead><tbody id="cal-body"></tbody></table></div>
+      <div class="tbl"><table class="stack jt" data-full="2,5"><thead><tr><th>Дата</th><th>№</th><th>Заказчик и точка</th><th class="num">Сумма</th><th>Распечатан со склада</th><th class="acts"></th></tr></thead><tbody id="cal-body"></tbody></table></div>
       <div id="cal-load"></div>
     </div>
     <div class="card" id="dv-card">
@@ -561,7 +561,7 @@
         <label class="f">Порядок<select id="jr-sort"><option value="cr_d">Сначала новые (по созданию)</option><option value="cr_a">Сначала старые (по созданию)</option><option value="dt_d">Дата документа: новые сверху</option><option value="dt_a">Дата документа: старые сверху</option><option value="nm_d">Номер: по убыванию</option><option value="nm_a">Номер: по возрастанию</option><option value="sm_d">Сумма: больше сверху</option><option value="sm_a">Сумма: меньше сверху</option><option value="cu_a">Заказчик: А–Я</option></select></label>
       </div>
       <div class="row jsum"><span id="jr-sum" class="muted"></span><span class="muted" id="jr-msg" style="color:var(--accent)"></span><span style="flex:1"></span><button class="btn ghost sm" id="jr-reset">Сбросить фильтры</button><button class="btn ghost sm" id="jr-refresh">Обновить</button></div>
-      <div class="tbl"><table class="stack jt" data-full="2,5"><thead id="jr-head"><tr><th data-js="dt">Дата</th><th data-js="nm">№</th><th data-js="cu">Заказчик и точка</th><th class="num" data-js="sm">Сумма</th><th>Скачан</th><th class="acts"></th></tr></thead><tbody id="jr-body"></tbody></table></div>
+      <div class="tbl"><table class="stack jt" data-full="2,5"><thead id="jr-head"><tr><th data-js="dt">Дата</th><th data-js="nm">№</th><th data-js="cu">Заказчик и точка</th><th class="num" data-js="sm">Сумма</th><th>Распечатан со склада</th><th class="acts"></th></tr></thead><tbody id="jr-body"></tbody></table></div>
       <p class="muted" style="font-size:12px">Документ открывается ровно в том виде, в каком был создан. «Комплект» — документы, созданные одной заявкой: нажмите на него, чтобы развернуть и открыть или исправить каждый документ.</p>
     </div>
   </section>
@@ -1480,6 +1480,9 @@ document.querySelectorAll("#fd-app [data-combo]").forEach(b=>b.onclick=async()=>
 $("#pv-close").onclick=()=>{ $("#pv").hidden=true; document.body.style.overflow=""; };
 $("#pv-print").onclick=()=>{
   const css=$("#fd-doc-css").textContent;
+  if(curUser()==="Склад" && cur && cur.k && cur.k.dr){ const j=D.journal.find(x=>x.id===cur.k.dr.id);
+    if(j && j.snap){ const m=j.snap.meta=j.snap.meta||{}; m.pr=new Date().toISOString(); m.prn=(+m.prn||0)+1; m.prk=[...new Set([...(m.prk||[]), cur.kind])];
+      dirty("journal", j.id); logEv("Печать","Распечатан со склада ("+KSHORT[cur.kind]+"): "+jDesc(j), j.id); if(curTab==="journal") renderJournal(); } }
   const html=`<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>${esc(cur.title)}</title><style>${css}
     @page{size:A4 ${cur.o};margin:8mm} *{box-sizing:border-box} p{margin:0} html,body{margin:0;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact} .sheet{break-after:page} .sheet:last-child{break-after:auto} .doc tr{break-inside:avoid}</style></head>
     <body>${cur.pages.map(h=>`<div class="sheet">${h}</div>`).join("")}</body></html>`;
@@ -2249,7 +2252,8 @@ const supShort = n => String(n||"").replace(/^ИП\s+/,"").replace(/^(\S+)\s+(\S
 /* ключ комплекта: явный (создан одной заявкой) или старый — по времени скачивания */
 function jKey(j){ const m=(j.snap&&j.snap.meta)||{}; if(m.batch) return "B"+m.batch; if(!m.dl) return "";
   return "L"+[j.supplierId,j.customerId,j.snap.dr.branchId||"",j.date,String(m.dl).slice(0,16),(m.kinds||[]).join()].join("|"); }
-function jDl(j){ const m=j.snap.meta; return m&&m.dl?`<span class="dl" title="${esc((m.kinds||[]).map(x=>KSHORT[x]).join(", "))}">${dtShort(m.dl)}</span>`:`<span class="muted">—</span>`; }
+/* «Распечатан со склада»: когда пользователь «Склад» открыл документ и нажал именно «Печать» */
+function jDl(j){ const m=j.snap.meta||{}; return m.pr?`<span class="dl" title="Склад нажал «Печать»: ${esc((m.prk||[]).map(x=>KSHORT[x]).join(", "))}${m.prn>1?" · раз: "+m.prn:""}">${dtShort(m.pr)}</span>`:`<span class="muted"${m.dl?` title="Не распечатан со склада. Скачан PDF: ${esc(dtShort(m.dl))}"`:""}>—</span>`; }
 const jNumSort = (a,b)=>(parseInt(a.number,10)||0)-(parseInt(b.number,10)||0);
 function jRowHtml(j, kid, arch){ const w=jWho(j);
   const view=`<button class="btn sm" data-p="invoice" data-id="${j.id}">Счёт</button> <button class="btn sm" data-p="torg12" data-id="${j.id}">ТОРГ‑12</button> <button class="btn sm" data-p="upd" data-id="${j.id}">УПД</button>`;
@@ -2268,7 +2272,7 @@ function jBuild(rows, arch, openSet){
   rows.forEach(j=>{ const k=jKey(j);
     if(!groups[k]){ out.push(jRowHtml(j,false,arch)); return; } if(done.has(k)) return; done.add(k);
     const g=groups[k].slice().sort(jNumSort), w=jWho(g[0]), open=openSet.has(k);
-    const nums=g.map(x=>x.number), sum=r2(g.reduce((a,x)=>a+(+x.sum||0),0)), dls=g.map(x=>x.snap.meta&&x.snap.meta.dl).filter(Boolean).sort();
+    const nums=g.map(x=>x.number), sum=r2(g.reduce((a,x)=>a+(+x.sum||0),0)), dls=g.map(x=>x.snap.meta&&x.snap.meta.pr).filter(Boolean).sort();
     const gacts = arch ? `<button class="btn sm" data-gunarch>Вернуть комплект</button>`
       : isStaff() ? `<button class="btn sm" data-gpdf="invoice,torg12">Скачать Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Скачать УПД</button>`
       : `<button class="btn sm" data-gpdf="invoice,torg12">Скачать Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Скачать УПД</button> <button class="btn ghost sm danger" data-garch>Комплект в архив</button>`;
