@@ -665,6 +665,7 @@
     </div>
     <div class="card">
       <h2>Цены для заказчика <small id="pr-name"></small></h2>
+      <div id="pl-box"></div>
       <p class="muted">Пустая цена — товара нет в прайсе заказчика, в документ подставится базовая цена. Товары общие для всех заказчиков, цены у каждого свои.</p>
       <div class="row"><select id="pr-copyfrom" style="max-width:320px"></select><button class="btn" id="pr-copy">Скопировать цены</button></div>
       <div class="tbl"><table class="stack" data-full="0"><thead><tr><th>Товар</th><th>Ед.</th><th class="num">Базовая</th><th style="width:130px">Цена заказчика</th><th style="width:150px">ID позиции спец. (СПГЗ)</th><th style="width:120px">ID СТЕ</th><th style="width:150px">Артикул оферты</th></tr></thead><tbody id="pr-body"></tbody></table></div>
@@ -935,7 +936,7 @@ async function pull(force){
       Object.keys(D.specs).forEach(c=>Object.keys(D.specs[c]).forEach(p=>dirtySpec(c,p)));
       await flush(); setStatus("ok","Таблица заполнена"); return;
     }
-    applyServer(j.data); setStatus("ok"); if(serverOld) setStatus("err","Обновите скрипт таблицы (новая версия)"); rerender();
+    applyServer(j.data); setStatus("ok"); if(serverOld) setStatus("err","Обновите скрипт таблицы (новая версия)"); rerender(); setTimeout(plAuto, 1500);
   }catch(e){ handleErr(e); }
 }
 function setStatus(s, text){
@@ -2310,9 +2311,55 @@ window.addEventListener("resize",closeMores);
 document.addEventListener("scroll",e=>{ if(e.target===document || !e.target.closest || !e.target.closest(".tbl")) return; const o=document.querySelector("#fd-app details.more[open]"); if(!o) return; if(!o.classList.contains("placed") || (moreAt && Date.now()-moreAt.t<350)){ placeMore(o); return; } closeMores(); },{capture:true, passive:true});
 $("#jr-refresh").onclick=()=>pull(true);
 
+/* ---------- «Мой прайс»: цены выбранных заказчиков берутся из файла прайса на Google Диске ---------- */
+const PL = () => (D.plist = D.plist || {});
+const plNorm = s => norm(s).replace(/[«»"'“”]/g,"").replace(/\s+/g," ").trim();
+function plParse(rows){ const out=[], seen={}; let sec="";
+  rows.forEach(r=>{ const a=String(r[0]==null?"":r[0]).replace(/\s+/g," ").trim(), b=r[1]; if(!a) return;
+    const n = typeof b==="number" ? b : parseFloat(String(b==null?"":b).replace(/\s/g,"").replace(",","."));
+    if(!(n>0) || (typeof b==="string" && /[а-яa-z]/i.test(b))){ if(!/^цен|^email|^мин|^бесплат/i.test(a)) sec=a; return; }
+    const k=plNorm(a); if(seen[k]) return; seen[k]=1; out.push({name:a, price:r2(n), sec}); });
+  return out; }
+async function plFetch(force){ const L=PL(); const j=await api(Object.assign({action:"plist"}, force?{}:{since:L.modified||""}));
+  const was=L.modified; Object.assign(L,{id:j.id, name:j.name, modified:j.modified, at:new Date().toISOString()});
+  if(j.rows||j.data){ let rows=j.rows; if(!rows){ const X=await loadXLSX(), wb=X.read(j.data,{type:"base64"}); rows=X.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1, raw:true, defval:""}); }
+    L.items=plParse(rows); }
+  saveLocal(); return was!==L.modified; }
+function plProd(it){ const n=plNorm(it.name);
+  let p=D.products.find(x=>plNorm(x.name)===n) || D.products.find(x=>aliasesOf(x).some(a=>plNorm(a)===n));
+  if(!p){ p={id:uid(), name:it.name, code:"", unit:"кг", country:"", price:String(it.price)}; D.products.push(p); dirty("products",p.id); p.__new=1; }
+  return p; }
+function plApply(c){ const L=PL(); if(!c||!c.id||!(L.items||[]).length) return {ch:0, add:0, del:0};
+  const want={}; let add=0; L.items.forEach(it=>{ const p=plProd(it); if(p.__new){ add++; delete p.__new; } want[p.id]=it.price; });
+  const cur=D.prices[c.id]=D.prices[c.id]||{}; let ch=0, del=0;
+  Object.keys(want).forEach(pid=>{ if(+cur[pid]!==+want[pid]){ cur[pid]=String(want[pid]); dirtyPrice(c.id,pid); ch++; } });
+  Object.keys(cur).forEach(pid=>{ if(!(pid in want)){ delete cur[pid]; dirtyPrice(c.id,pid); del++; } });
+  return {ch, add, del}; }
+let plBusy=false, plLast=0;
+async function plSync(o){ o=o||{}; if(isStaff() || !online() || plBusy) return;
+  const L=D.customers.filter(c=>c.plist==="1"); if(!L.length && !o.force) return;
+  plBusy=true; plLast=Date.now();
+  try{ const newer=await plFetch(!!o.force && !(PL().items||[]).length);
+    const R=(o.cid?L.filter(c=>c.id===o.cid):L).map(c=>({c, r:plApply(c)})).filter(x=>x.r.ch||x.r.del||x.r.add);
+    if(R.length){ saveLocal(); logEv("Справочники","Цены из моего прайса ("+(PL().name||"")+"): "+R.map(x=>cusShort(x.c.name)+" — изменено "+x.r.ch+(x.r.del?", убрано "+x.r.del:"")).join("; "));
+      toast("ok", newer&&!o.cid?"Прайс изменился — цены обновлены":"Цены из прайса подставлены", R.map(x=>cusShort(x.c.name)+": "+x.r.ch+" цен"+(x.r.add?", новых товаров "+x.r.add:"")).join("; ")); }
+    else if(o.force) toast("ok","Цены совпадают с прайсом", (PL().name||"")+" · "+(PL().items||[]).length+" поз.");
+    if(curTab==="customers"||curTab==="products") rerender(); }
+  catch(e){ if(o.force||o.cid) toast("err","Не получилось прочитать прайс", /unknown action/.test(e.message)?"Сначала вставьте новый Code.gs в таблицу (Развернуть → Новая версия).":e.message); }
+  finally{ plBusy=false; } }
+const plAuto = () => { if(Date.now()-plLast>10*60000) plSync(); };
+function plBox(c){ const box=$("#pl-box"); if(!box) return; const L=PL();
+  if(!c||!c.id){ box.innerHTML=""; return; }
+  if(c.plist!=="1"){ box.innerHTML=`<p class="muted">Чтобы цены этого заказчика брались из вашего прайса, в карточке выше выберите «Цены → Из моего прайса».</p>`; return; }
+  box.innerHTML=`<div class="note" style="margin:0 0 10px">Цены берутся из прайса <b>${esc(L.name||"…")}</b>${L.modified?" (изменён "+fd(L.modified.slice(0,10))+", позиций: "+(L.items||[]).length+")":""}. Меняйте цены в самом прайсе — сайт подставит их сам, править здесь не нужно.
+    <div class="row" style="margin-top:8px"><button class="btn sm" type="button" id="pl-now">Обновить сейчас</button>
+    <details style="flex:1;min-width:240px"><summary class="muted" style="cursor:pointer">Другой файл прайса</summary><div class="row" style="margin-top:6px"><input id="pl-link" placeholder="Ссылка на прайс в Google Диске" style="flex:1;min-width:200px"><button class="btn sm" type="button" id="pl-set">Сохранить</button></div></details></div></div>`;
+  $("#pl-now").onclick=()=>plSync({force:true});
+  $("#pl-set").onclick=async()=>{ const v=$("#pl-link").value.trim(); if(!v) return; try{ await api({action:"plist", link:v}); PL().modified=""; PL().items=[]; await plSync({force:true}); }catch(e){ toast("err","Ссылка не сохранена", e.message); } }; }
+
 /* ---------- карточки поставщиков и заказчиков ---------- */
 const editorSel={};
-function cardEditor({root, type, title, fields, make, onSelect}){
+function cardEditor({root, type, title, fields, make, onSelect, onChange}){
   const list=D[type]; let sel=editorSel[type]; if(!list.some(x=>x.id===sel)) sel=(list[0]||{}).id; let armed=false;
   function draw(){
     const it=list.find(x=>x.id===sel);
@@ -2326,7 +2373,7 @@ function cardEditor({root, type, title, fields, make, onSelect}){
       list.splice(list.findIndex(x=>x.id===sel),1); dirty(type,sel,true); if(type==="customers") delete D.prices[sel];
       sel=editorSel[type]=(list[0]||{}).id; armed=false; draw(); onSelect&&onSelect(sel); };
     root.querySelectorAll("[data-k]").forEach(inp=>inp.addEventListener(inp.tagName==="SELECT"?"change":"input",e=>{
-      it[e.target.dataset.k]=e.target.value; dirty(type,it.id);
+      it[e.target.dataset.k]=e.target.value; dirty(type,it.id); if(onChange) onChange(it, e.target.dataset.k);
       if(e.target.dataset.k==="name") root.querySelector(".pick").selectedOptions[0].textContent=e.target.value||"(без названия)"; }));
   }
   draw(); onSelect&&onSelect(sel);
@@ -2380,9 +2427,11 @@ function renderCustomers(){
       {k:"bik",l:"БИК / БИК ТОФК",num:1},{k:"rs",l:"Р/с или казначейский счёт",num:1},{k:"ks",l:"К/с или ЕКС",num:1},
       {k:"edo",l:"ID участника ЭДО в Диадоке (2BM-… / 2AE-… — узнать у заказчика)",wide:true},
       {k:"signs",l:"Подписи поставщика (с печатью и подписью)",opts:{"":"Одна — основная","3":"Во всех графах (ТОРГ‑12: разрешил, бухгалтер, произвёл; УПД: все)"}},
+      {k:"plist",l:"Цены",opts:{"":"Свои цены — заполняю вручную ниже","1":"Из моего прайса — подставляются и обновляются сами"}},
       {k:"vat",l:"НДС в документах",opts:{"":"Без НДС (как у поставщика)","10+":"НДС 10% сверху цены прайса","22+":"НДС 22% сверху цены прайса","10":"НДС 10% — уже в цене прайса","22":"НДС 22% — уже в цене прайса"}},
       {k:"t12c",l:"Страна происхождения в документах",opts:{"":"Как обычно (в УПД — только у импортных)","1":"Всегда: в ТОРГ‑12 и УПД, включая Россию (если требует договор)"}},
 ],
+    onChange:(c,k)=>{ if(k==="plist"){ if(c.plist==="1") plSync({cid:c.id, force:true}); else { renderPrices(c.id); toast("info","Цены — вручную","Текущие цены остались, дальше меняются только вручную."); } } },
     onSelect:id=>{ renderPrices(id); renderContracts(id); renderBranches(id); renderPoints(id); renderNums(id); }});
 }
 function renderNums(cid){
@@ -2428,7 +2477,7 @@ ctb.addEventListener("click",e=>{ const b=e.target.closest("[data-del]"); if(!b)
   if(!b.dataset.armed){ b.dataset.armed=1; b.textContent="Удалить?"; return; }
   const id=b.closest("tr").dataset.id, x=ctr(id); D.contracts=D.contracts.filter(c=>c.id!==id); dirty("contracts",id,true); if(D.draft.contractId===id) D.draft.contractId=""; renderContracts(x.customerId); });
 function renderPrices(cid){
-  const c=cus(cid); $("#pr-name").textContent=$("#im-name").textContent=c.name?"— "+c.name:"";
+  const c=cus(cid); $("#pr-name").textContent=$("#im-name").textContent=c.name?"— "+c.name:""; plBox(c);
   if(!cid){ $("#pr-body").innerHTML=""; return; }
   const pl=D.prices[cid]=D.prices[cid]||{};
   $("#pr-copyfrom").innerHTML=`<option value="">Скопировать цены другого заказчика…</option>`+opts(D.customers.filter(x=>x.id!==cid));

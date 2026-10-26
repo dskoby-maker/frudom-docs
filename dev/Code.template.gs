@@ -24,7 +24,7 @@ const S = {
   customers: { title: 'Заказчики', key: 'id', cols: [
     ['name','Наименование'],['inn','ИНН'],['kpp','КПП'],['address','Юр. адрес'],['ship','Адрес доставки'],
     ['contract','Основание'],['ikz','ИКЗ'],['acct','Тип счёта'],['bank','Банк'],['bik','БИК'],['rs','Р/с / казн. счёт'],['ks','К/с / ЕКС'],
-    ['id','ID (не менять)'],['branches','Обособленные подразделения (заполняется с сайта)'],['edo','ID участника ЭДО (Диадок)'],['points','Контакты точек доставки (заполняется с сайта)'],['t12c','Страна в ТОРГ-12 (1 = да)'],['nums','Нумерация: продолжить с № (заполняется с сайта)'],['signs','Подписи поставщика: 3 = во всех графах'],['vat','НДС в документах (10+ = 10% сверху цены)']]},
+    ['id','ID (не менять)'],['branches','Обособленные подразделения (заполняется с сайта)'],['edo','ID участника ЭДО (Диадок)'],['points','Контакты точек доставки (заполняется с сайта)'],['t12c','Страна в ТОРГ-12 (1 = да)'],['nums','Нумерация: продолжить с № (заполняется с сайта)'],['signs','Подписи поставщика: 3 = во всех графах'],['vat','НДС в документах (10+ = 10% сверху цены)'],['plist','Цены из моего прайса (1 = да)']]},
   products: { title: 'Товары', key: 'id', cols: [
     ['name','Наименование'],['code','Код'],['unit','Ед.'],['country','Страна (код)'],['price','Базовая цена'],['id','ID (не менять)'],['packs','Вес упаковки (заполняется с сайта)'],['aliases','Другие названия в заявках (заполняется с сайта)']]},
   prices: { title: 'Цены', key: null, cols: [
@@ -107,6 +107,7 @@ function handle_(p) {
     if (p.action === 'setPrefs') { upsertList_('uprefs', { upsert: [{ id: me.name, data: String(p.data || '').slice(0, 20000), updated: new Date().toISOString() }] }); return { ok: true }; }
     if (p.action === 'events')  { if (!me.admin) return { ok: false, error: 'forbidden' }; return { ok: true, events: readEvents_(+p.limit || 1000) }; }
     if (p.action === 'sync')    { syncIn_(p.changes, me); return { ok: true }; }
+    if (p.action === 'plist')    { if (me.role === 'staff') return { ok: false, error: 'forbidden' }; return plist_(p, me); }
     if (p.action === 'addPhoto') return addPhoto_(p, me);
     if (p.action === 'photo')    { const r = read_('taskphotos').find(x => x.id === String(p.id)); if (!r) return { ok: false, error: 'фото не найдено' };
       const b = DriveApp.getFileById(r.file).getBlob(); return { ok: true, data: 'data:' + (b.getContentType() || 'image/jpeg') + ';base64,' + Utilities.base64Encode(b.getBytes()) }; }
@@ -213,6 +214,21 @@ function photosClean_() {
   rows.forEach(r => (tasks[r.taskId] || !(new Date(r.created).getTime() < old) ? keep : gone).push(r));
   if (gone.length) { gone.forEach(r => { try { DriveApp.getFileById(r.file).setTrashed(true); } catch (x) {} }); write_('taskphotos', keep); }
   return keep;
+}
+
+/* «Мой прайс»: файл на Google Диске владельца (Excel или Google Таблица). Сайт берёт из него цены для выбранных заказчиков */
+const PLIST_DEFAULT = '1u-vIEVcVgk69ttd48kn3yzI-cA5pJn4b';
+function plist_(p, me) {
+  const pr = PropertiesService.getScriptProperties();
+  if (p.link) { const m = String(p.link).match(/[-\w]{25,}/); if (!m) return { ok: false, error: 'не похоже на ссылку на файл Google Диска' };
+    pr.setProperty('plistFile', m[0]); log_(me, [{ action: 'Справочники', text: 'Изменена ссылка на мой прайс' }]); }
+  const id = pr.getProperty('plistFile') || PLIST_DEFAULT;
+  let f; try { f = DriveApp.getFileById(id); } catch (x) { return { ok: false, error: 'файл прайса не открывается — проверьте ссылку' }; }
+  const r = { ok: true, id: id, name: f.getName(), modified: f.getLastUpdated().toISOString() };
+  if (p.since && p.since === r.modified) return r;
+  if (f.getMimeType() === 'application/vnd.google-apps.spreadsheet') r.rows = SpreadsheetApp.openById(id).getSheets()[0].getDataRange().getValues().map(x => x.slice(0, 6));
+  else r.data = Utilities.base64Encode(f.getBlob().getBytes());
+  return r;
 }
 
 function nameMap_(t) { const m = {}; read_(t).forEach(o => m[o.id] = o.name); return m; }
