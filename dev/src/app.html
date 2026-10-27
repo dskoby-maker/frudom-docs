@@ -1501,13 +1501,26 @@ $("#pv-print").onclick=()=>{
     M.forEach((kinds,id)=>{ const j=D.journal.find(x=>x.id===id); if(!j||!j.snap) return; const m=j.snap.meta=j.snap.meta||{}; m.pr=new Date().toISOString(); m.prn=(+m.prn||0)+1; m.prk=[...new Set([...(m.prk||[]), ...kinds])];
       dirty("journal", j.id); logEv("Печать","Распечатан со склада ("+kinds.map(x=>KSHORT[x]).join(" + ")+"): "+jDesc(j), j.id); });
     if(curTab==="journal") renderJournal(); }
+  /* СТРОГАЯ ПЕЧАТЬ: каждый лист — ровно A4 книжный (210×297 мм, поля браузера 0).
+     Альбомные листы (ТОРГ‑12, УПД) поворачиваются на нём целиком — так принтер не может ничего сжать или перенести.
+     Если содержимое не влезает в лист — оно уменьшается целиком, без переноса строк на другой лист. */
+  const po=cur.pages.map((h,i)=>cur.po?cur.po[i]:cur.o);
   const html=`<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>${esc(cur.title)}</title><style>${css}
-    @page{size:A4 ${cur.o};margin:8mm} @page pl{size:A4 landscape;margin:8mm} @page pp{size:A4 portrait;margin:8mm} .sheet.landscape{page:pl} .sheet.portrait{page:pp} *{box-sizing:border-box} p{margin:0} html,body{margin:0;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact} .sheet{break-after:page} .sheet:last-child{break-after:auto} .doc tr{break-inside:avoid}</style></head>
-    <body>${cur.pages.map((h,i)=>`<div class="sheet${cur.po?" "+cur.po[i]:""}">${h}</div>`).join("")}</body></html>`;
+    @page{size:210mm 297mm;margin:0} *{box-sizing:border-box} p{margin:0}
+    html,body{margin:0;padding:0;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .pg{width:210mm;height:297mm;position:relative;overflow:hidden;break-after:page;page-break-after:always;break-inside:avoid}
+    .pg:last-child{break-after:auto;page-break-after:auto}
+    .pg>.in{position:absolute;left:0;top:0;width:210mm;height:297mm;padding:8mm;overflow:hidden}
+    .pg.landscape>.in{width:297mm;height:210mm;transform-origin:0 0;transform:translateY(297mm) rotate(-90deg)}
+    .pg .fit{transform-origin:0 0}</style></head>
+    <body>${cur.pages.map((h,i)=>`<div class="pg ${po[i]}"><div class="in"><div class="fit">${h}</div></div></div>`).join("")}</body></html>`;
   const f=document.createElement("iframe"); f.setAttribute("aria-hidden","true");
-  f.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden";
+  f.style.cssText="position:fixed;left:-4000px;top:0;width:1200px;height:900px;border:0;visibility:hidden";
   document.body.appendChild(f); const d=f.contentWindow.document; d.open(); d.write(html); d.close();
-  setTimeout(()=>{ f.contentWindow.focus(); f.contentWindow.print(); setTimeout(()=>f.remove(), 60000); }, 400);
+  setTimeout(()=>{ try{ d.querySelectorAll(".pg").forEach(pg=>{ const inn=pg.firstElementChild, fit=inn.firstElementChild, cs=f.contentWindow.getComputedStyle(inn);
+        const aw=inn.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight), ah=inn.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
+        const k=Math.min(1, aw/Math.max(1,fit.scrollWidth), ah/Math.max(1,fit.scrollHeight)); if(k<0.999){ fit.style.transform="scale("+k.toFixed(4)+")"; fit.style.width=(100/k).toFixed(2)+"%"; } }); }catch(e){}
+    f.contentWindow.focus(); f.contentWindow.print(); setTimeout(()=>f.remove(), 60000); }, 400);
 };
 
 /* ---------- заявка: много адресов → по документу на каждый ---------- */
