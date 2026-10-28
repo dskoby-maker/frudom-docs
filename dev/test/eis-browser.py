@@ -31,7 +31,12 @@ async def main():
             assert await page.locator('#eis-save').is_disabled()
             await page.set_input_files('#eis-files',sample)
             await page.wait_for_selector('[data-eis-pos]')
+            if os.environ.get('EIS_CONTRACT'):
+                await page.set_input_files('#eis-files',os.environ['EIS_CONTRACT'])
+                await page.wait_for_function('document.querySelectorAll("[data-eis-pos]").length===61')
+                assert not await page.locator('#eis-ship').is_checked()
             pid=await page.evaluate('__fd.D().products[0].id')
+            await page.locator('[data-eis-pos]').first.focus()
             await page.locator('[data-eis-pos]').first.select_option(pid)
             await page.check('#eis-ship');await page.click('#eis-save');await page.wait_for_selector('#fd-eis',state='detached')
             async with page.expect_download() as info: await page.click('#pv-xml')
