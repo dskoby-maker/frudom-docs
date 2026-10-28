@@ -6,7 +6,7 @@ function eisSetup(k){
   let holder;try{holder=eisConfig(k);}catch(e){eisWarn(e.message);return;}
   let config=holder.cfg&&clone(holder.cfg);
   const dialog=document.createElement('dialog');dialog.id='fd-eis';dialog.style.cssText='box-sizing:border-box;max-width:calc(100vw - 24px);width:min(800px,94vw);max-height:88vh;overflow:auto;border:0;border-radius:16px;padding:22px;font:15px Arial;color:#29232a';
-  dialog.innerHTML='<h2 style="margin-top:0">Настройка выгрузки в ЕИС</h2><p>Загрузите архив УПД из ЕИС для нужного контракта, этапа и адреса поставки. Затем сопоставьте позиции с товарами на сайте. Подпись из архива не используется.</p><label>Образец из ЕИС: ZIP или два XML (основной и PRIL)<input id="eis-files" type="file" accept=".zip,.xml" multiple style="display:block;max-width:100%;margin:12px 0"></label><div id="eis-info"></div><p id="eis-error" role="alert" style="color:#a21c30;white-space:pre-wrap"></p><div style="display:flex;gap:12px;flex-wrap:wrap"><button class="btn pri" id="eis-save">Сохранить сопоставление</button><button class="btn" id="eis-close">Закрыть</button></div>';
+  dialog.innerHTML='<h2 style="margin-top:0">Настройка выгрузки в ЕИС</h2><p>После настройки кнопка «Скачать XML для ЕИС» скачивает один файл .xml для загрузки в ЕИС. Настройка выполняется один раз для контракта, этапа и адреса: выберите архив УПД или транспортный XML и сопоставьте товары. Подпись из образца не используется.</p><label>Файлы ЕИС: ZIP, основной XML + PRIL, транспортный XML или EDOInfo<input id="eis-files" type="file" accept=".zip,.xml" multiple style="display:block;max-width:100%;margin:12px 0"></label><div id="eis-source-info"></div><div id="eis-info"></div><p id="eis-error" role="alert" style="color:#a21c30;white-space:pre-wrap"></p><div style="display:flex;gap:12px;flex-wrap:wrap"><button class="btn pri" id="eis-save">Сохранить сопоставление</button><button class="btn" id="eis-close">Закрыть</button></div>';
   document.body.appendChild(dialog);const q=s=>dialog.querySelector(s),err=e=>{q('#eis-error').textContent=e.message||e;};
   function draw(){
     q('#eis-info').replaceChildren();q('#eis-save').disabled=!config;if(!config)return;
@@ -17,7 +17,12 @@ function eisSetup(k){
   q('#eis-files').onchange=async e=>{
     q('#eis-save').disabled=true;q('#eis-error').textContent='Читаю образец…';
     try{
-      const next=await Eis.read([...e.target.files]),t=Eis.inspect(next.main,next.pril);Eis.checkParty(t,k);
+      const next=await Eis.read([...e.target.files]);
+      if(next.kind==='edo-info'){
+        q('#eis-source-info').innerHTML='<p><b>Сведения ЕИС получены: '+esc(next.name)+'</b></p><p>Этот файл содержит участников ЭДО и ссылки на контракты. Полных товарных позиций, этапов и адресов в нём нет. Скачайте XML контракта по ссылке ниже и передайте его для подключения полной спецификации. Текущие настройки выгрузки сохранены.</p>'+next.contracts.map(c=>'<p>Контракт '+esc(c.register)+' · версия '+esc(c.version)+(c.url?'<br><a href="'+esc(c.url)+'" target="_blank" rel="noopener noreferrer">Скачать полный XML контракта из ЕИС</a>':'<br>В файле нет допустимой ссылки на XML контракта.')+'</p>').join('');
+        q('#eis-save').disabled=!config;q('#eis-error').textContent='EDOInfo сам по себе не является накладной и не заменяет полную спецификацию.';return;
+      }
+      const t=Eis.inspect(next.main,next.pril);Eis.checkParty(t,k);q('#eis-source-info').replaceChildren();
       // Only retain explicit mappings to positions that are still present in this contract template.
       if(config)Object.entries(config.mapping||{}).forEach(([pid,id])=>{if(t.positions.some(x=>x.id===id))next.mapping[pid]=id;});
       config=next;draw();q('#eis-error').textContent='';
@@ -43,9 +48,9 @@ $('#pv-eis-setup').onclick=()=>eisSetup(cur.k);
 $('#pv-xml').onclick=()=>{
   try{
     const {cfg}=eisConfig(cur.k);if(!cfg){eisSetup(cur.k);return;}
-    const r=Eis.generate(cfg,cur.k),a=document.createElement('a'),url=URL.createObjectURL(new Blob([r.bytes],{type:'application/xml'}));a.href=url;a.download='DP_PAKET_'+r.idf+'.xml';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+    const r=Eis.generate(cfg,cur.k),a=document.createElement('a'),url=URL.createObjectURL(new Blob([r.bytes],{type:'application/xml'}));a.href=url;a.download=r.filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
     logEv('XML','Скачан XML для ЕИС: УПД № '+cur.k.dr.number+' от '+fd(cur.k.dr.date)+' — '+shortCus(cur.k),cur.k.dr.id);
-    $('#pv-warn').hidden=false;$('#pv-warn').textContent='XML для ЕИС скачан. В личном кабинете поставщика откройте нужный контракт и этап → создайте документ о приёмке загрузкой XML. Проверьте суммы, позиции, адрес и подписанта в проекте ЕИС, затем подпишите. Файл содержит УПД и приложение; подпись из образца не переносится.';
+    $('#pv-warn').hidden=false;$('#pv-warn').textContent='Скачан один XML-файл для ЕИС. Его не нужно распаковывать или разделять. В личном кабинете поставщика откройте нужный контракт и этап → создайте документ о приёмке загрузкой XML. Проверьте суммы, позиции, адрес и подписанта в проекте ЕИС, затем подпишите. Файл содержит УПД и приложение; подпись из образца не переносится.';
     toast('ok','XML для ЕИС скачан','Загрузите файл в ЕИС как проект документа о приёмке.');
   }catch(e){eisWarn(e.message);}
 };
