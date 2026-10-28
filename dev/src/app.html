@@ -686,7 +686,7 @@
     </div>
     <div class="card">
       <h2>Сопоставить с Порталом поставщиков <small id="pp-name"></small></h2>
-      <p class="muted">Нужно один раз на контракт, чтобы выгружать УПД в XML. На Портале поставщиков откройте контракт → блок «Сведения о спецификациях» → «Выгрузить в xls», и загрузите этот файл сюда — позиции сопоставятся с вашими товарами по цене. ID СТЕ подтягиваются из УПД, уже отправленных через Портал: загрузите сюда XML такого документа.</p>
+      <p class="muted">Импорт спецификации и точных цен из Портала поставщиков. Для выгрузки в ЕИС используйте «Настроить ЕИС» на форме УПД. На Портале поставщиков откройте контракт → блок «Сведения о спецификациях» → «Выгрузить в xls», и загрузите этот файл сюда — позиции сопоставятся с вашими товарами по цене. ID СТЕ подтягиваются из УПД, уже отправленных через Портал: загрузите сюда XML такого документа.</p>
       <div class="row"><label class="btn">Загрузить выгрузку (.xlsx) или отправленный УПД (.xml)<input type="file" id="pp-file" accept=".xlsx,.xls,.csv,.xml,.txt" hidden></label><span class="muted" id="pp-msg"></span></div>
       <div class="tbl" id="pp-wrap" hidden><table class="stack" data-full="0,5"><thead><tr><th>Позиция в Портале</th><th style="width:110px">ID спец.</th><th style="width:100px">ID СТЕ</th><th style="width:130px">Артикул</th><th class="num" style="width:90px">Цена</th><th style="width:280px">Ваш товар</th></tr></thead><tbody id="pp-body"></tbody></table></div>
       <div class="row" id="pp-act" hidden><button class="btn pri" id="pp-save">Сохранить сопоставление</button></div>
@@ -727,7 +727,7 @@
 </main>
 
 <div class="modal" id="pv" hidden>
-  <div class="bar"><b id="pv-title"></b><button class="btn" id="pv-xml" hidden>XML для Портала поставщиков</button><button class="btn" id="pv-edo" hidden>XML для Диадок (ФНС)</button><label class="pvsign" id="pv-signw" hidden><input type="checkbox" id="pv-sign"> С печатью и подписью</label><label class="pvsign" id="pv-scanw" hidden title="Только в скачанном PDF: лёгкий наклон, серый фон и шум, как у скана"><input type="checkbox" id="pv-scan"> Вид скана (PDF)</label><button class="btn pri" id="pv-pdf">Скачать PDF</button><button class="btn" id="pv-print">Печать</button><button class="btn" id="pv-close">Закрыть</button></div>
+  <div class="bar"><b id="pv-title"></b><button class="btn" id="pv-xml" hidden>XML для ЕИС</button><button class="btn" id="pv-eis-setup" hidden>Настроить ЕИС</button><button class="btn" id="pv-edo" hidden>XML для Диадок (ФНС)</button><label class="pvsign" id="pv-signw" hidden><input type="checkbox" id="pv-sign"> С печатью и подписью</label><label class="pvsign" id="pv-scanw" hidden title="Только в скачанном PDF: лёгкий наклон, серый фон и шум, как у скана"><input type="checkbox" id="pv-scan"> Вид скана (PDF)</label><button class="btn pri" id="pv-pdf">Скачать PDF</button><button class="btn" id="pv-print">Печать</button><button class="btn" id="pv-close">Закрыть</button></div>
   <div class="warns" id="pv-warn" hidden></div>
   <div class="paper" id="pv-pages"></div>
 </div>
@@ -810,7 +810,7 @@ function liveCus(dr){
 function makeSnap(dr){
   const prods={}; dr.lines.forEach(l=>{ const p=prod(l.productId); if(p) prods[p.id]={name:p.name, code:p.code, unit:p.unit, country:p.country}; });
   const s=clone(sup(dr.supplierId)); delete s.stamp; delete s.sign;
-  return {dr:clone(dr), s, c:clone(liveCus(dr)), prods};
+  const saved=clone(dr); delete saved._editBase; return {dr:saved, s, c:clone(liveCus(dr)), prods};
 }
 
 /* ================= синхронизация с Google Таблицей ================= */
@@ -849,7 +849,11 @@ async function apiFetch(url, opt){ const ac=window.AbortController?new AbortCont
   catch(e){ const x=new Error(e&&e.name==="AbortError"?"Google Таблица не ответила за 45 секунд":"нет интернета или Google недоступен"); x.net=true; throw x; } finally{ if(tm) clearTimeout(tm); }
   let j; try{ j=await r.json(); }catch(e){ const x=new Error("Google вернул ошибку "+(r.status||"")+" вместо данных — сервис временно перегружен"); x.net=true; throw x; }
   if(!j.ok){ const x=new Error(j.error||"ошибка хранилища"); x.resp=j; throw x; } return j; }
-async function api(payload){ return apiFetch(API_URL, {method:"POST", body:JSON.stringify(Object.assign({key:pass(), user:curUser()}, payload))}); }
+async function api(payload){
+  const guarded=payload.action==="sync"||payload.action==="saveDoc";
+  return apiFetch(API_URL, {method:"POST", body:JSON.stringify(Object.assign({key:pass(), user:curUser()}, payload, guarded?{protocol:1,base:requestBase(payload)}:{}))});
+}
+/*__SYNC_GUARD__*/
 function buildChanges(){
   const ch={}, sent={};
   ["suppliers","customers","products","contracts","journal","costs","doccosts","psettings","daytasks"].forEach(t=>{
@@ -864,21 +868,22 @@ function buildChanges(){
     pend.prices.forEach((v,k)=>{ const [c,p]=k.split("|"); const pr=custPrice(c,p); if(v.del||pr==null||pr==="") del.push({customerId:c, productId:p}); else up.push({customerId:c, productId:p, price:String(pr)}); });
     ch.prices={upsert:up, del}; }
   const evn=Math.min(evq.length,100); if(evn) ch.events=evq.slice(0,evn);
-  return Object.keys(ch).length ? {ch, sent, evn} : null;
+  return Object.keys(ch).length ? {ch:clone(ch), sent, evn} : null;
 }
 function jRow(e){ if(!e) return null; return {id:e.id, supplierId:e.supplierId, customerId:e.customerId, number:String(e.number), date:e.date, sum:String(e.sum), updated:e.updated||"", snap:JSON.stringify(e.snap)}; }
 function sentOk(b){ Object.keys(b.sent).forEach(t=>b.sent[t].forEach((v,id)=>{ const cur=pend[t].get(id); if(cur&&cur.s===v.s) pend[t].delete(id); })); savePend();
   if(b.evn){ evq.splice(0,b.evn); lsSet(EKEY, JSON.stringify(evq)); } }
 async function flush(){
-  if(!online()) return;
+  if(!online() || syncBlocked) return;
+  if(docSaving){clearTimeout(syncT);syncT=setTimeout(flush,700);return;}
   if(flushing){ clearTimeout(syncT); syncT=setTimeout(flush,700); return; }
   const b=buildChanges(); if(!b){ setStatus("ok"); return; }
   flushing=true; setStatus("saving","Сохраняю…");
   try{
-    await api({action:"sync", changes:b.ch}); sentOk(b);
+    const result=await api({action:"sync", changes:b.ch}); sentOk(b); acceptRows(result.accepted,b.ch);
     setStatus(hasPending()?"wait":"ok", hasPending()?"Есть несохранённое":"");
     if(hasPending()){ clearTimeout(syncT); syncT=setTimeout(flush,500); }
-  }catch(e){ handleErr(e); clearTimeout(syncT); syncT=setTimeout(flush,15000); }
+  }catch(e){ if(e.resp&&e.resp.conflicts){showConflicts(e.resp.conflicts);return;} handleErr(e); clearTimeout(syncT); syncT=setTimeout(flush,15000); }
   finally{ flushing=false; }
 }
 /* ---------- всплывающие уведомления ---------- */
@@ -914,6 +919,7 @@ function handleErr(e){ if(e.message==="auth"){ showLogin("Неверный па�
   else { setStatus("err","Не сохранено — нет связи, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Нет связи с Google Таблицей",(e&&e.message?"Причина: "+e.message+". ":"")+"Всё сохранено на этом устройстве и отправится автоматически, когда связь появится. Ничего делать не нужно."); } } }
 
 function applyServer(d){
+  rememberBase(d);
   D.suppliers = d.suppliers.map(x=>Object.assign(x,{next:+x.next||1, vat:x.vat||"none"}));
   D.customers = d.customers.map(x=>Object.assign(x,{acct:x.acct||"bank"}));
   D.products = d.products;
@@ -924,9 +930,10 @@ function applyServer(d){
   const wasDemo=!!D.demo, srv=new Set(d.journal.map(r=>r.id)), lost=wasDemo?[]:(D.journal||[]).filter(j=>j&&j.snap&&j.id&&!srv.has(j.id)&&(Date.now()-Date.parse(j.updated||0))<45*864e5);
   D.journal = d.journal.map(r=>{ let snap=null; try{ snap=JSON.parse(r.snap); }catch(e){} return {id:r.id, supplierId:r.supplierId, customerId:r.customerId, number:r.number, date:r.date, sum:+r.sum||0, updated:r.updated, snap}; })
     .filter(e=>e.snap).sort((a,b)=> (b.date+b.updated).localeCompare(a.date+a.updated));
-  if(lost.length){ lost.forEach(j=>{ D.journal.push(j); dirty("journal", j.id); });
-    logEv("Документ","Восстановлено и отправлено в таблицу (раньше не дошло): "+lost.map(j=>"№ "+j.number+" от "+fd(j.date)+" — "+((j.snap.c||{}).name||"")).join("; "));
-    setTimeout(()=>toast("warn","Найдены неотправленные документы: "+lost.length, lost.map(j=>"№ "+j.number+" от "+fd(j.date)).join(", ")+" — были только на этом устройстве, отправляю в таблицу."),300); }
+  if(lost.length){
+    lost.forEach(j=>{D.journal.push(j);dirty("journal",j.id);});
+    showConflicts(lost.map(j=>({table:"journal",id:j.id,fields:["_missing"],current:null,base:jRow(j),proposed:jRow(j)})));
+  }
   if(Array.isArray(d.daytasks)) D.daytasks = d.daytasks;
   D.demo=false; $("#demoNote").hidden=true;
   if(!D.suppliers.some(x=>x.id===D.draft.supplierId) && D.suppliers[0]) D.draft.supplierId=D.suppliers[0].id;
@@ -936,11 +943,13 @@ function applyServer(d){
 }
 let lastPullAt=0;
 async function pull(force){
+  if(syncBlocked){showConflicts(conflictList);return;}
   if(!online()) return;
   if(hasPending()){ await flush(); if(hasPending()) return; }
   setStatus("saving","Загружаю…");
   try{
-    const j = await apiFetch(API_URL+"?action=load&key="+encodeURIComponent(pass())+"&user="+encodeURIComponent(curUser())); lastPullAt=Date.now();
+    const j = await apiFetch(API_URL+"?action=load&key="+encodeURIComponent(pass())+"&user="+encodeURIComponent(curUser())); lastPullAt=Date.now(); eisServerReady=j.eis===1;
+    if(hasPending()) { setStatus("wait","Есть несохранённое"); return; }
     if(j.me){ lsSet(MKEY, JSON.stringify(j.me)); applyRole(); }
     if("prefs" in j) serverPrefs(j.prefs); if(prefsDirty) pushPrefs();
     if(!j.data.suppliers.length){ // пустая таблица: выгрузить то, что есть здесь
@@ -950,7 +959,7 @@ async function pull(force){
       Object.keys(D.specs).forEach(c=>Object.keys(D.specs[c]).forEach(p=>dirtySpec(c,p)));
       await flush(); setStatus("ok","Таблица заполнена"); return;
     }
-    applyServer(j.data); setStatus("ok"); if(serverOld) setStatus("err","Обновите скрипт таблицы (новая версия)"); rerender(); setTimeout(plAuto, 1500);
+    applyServer(j.data); if(syncBlocked){rerender();return;} setStatus("ok"); if(j.concurrency!==1)toast("warn","Нужно обновить Code.gs","Защита от одновременных правок заработает после установки нового скрипта таблицы."); if(serverOld) setStatus("err","Обновите скрипт таблицы (новая версия)"); rerender(); setTimeout(plAuto, 1500);
   }catch(e){ handleErr(e); }
 }
 function setStatus(s, text){
@@ -1246,7 +1255,7 @@ function showPreview(kind, k){
   const pages = K.o==="landscape"&&k.lines.length ? layout(k,K.f) : [].concat(K.f(k));
   $("#pv-pages").innerHTML=pages.map(h=>`<div class="sheet ${K.o}">${h}</div>`).join("");
   cur={kind, title, pages, o:K.o, k};
-  $("#pv-xml").hidden = kind!=="upd"; $("#pv-edo").hidden = kind!=="upd";
+  $("#pv-eis-setup").hidden = kind!=="upd"; $("#pv-xml").hidden = kind!=="upd"; $("#pv-edo").hidden = kind!=="upd";
   $("#pv").hidden=false; document.body.style.overflow="hidden"; fitSheets(); syncSignUI();
 }
 /* несколько документов в одном окне просмотра (Счёт + ТОРГ‑12, комплект): печать и скачивание — всё сразу */
@@ -1256,7 +1265,7 @@ function showPreviewSet(items, title){
   $("#pv-title").textContent=title;
   $("#pv-pages").innerHTML=all.map(p=>`<div class="sheet ${p.o}">${p.h}</div>`).join("");
   cur={kind:items[0].kind, title, pages:all.map(p=>p.h), po:all.map(p=>p.o), o:all[0].o, k:items[0].k, set:items};
-  $("#pv-xml").hidden=$("#pv-edo").hidden=true;
+  $("#pv-eis-setup").hidden=$("#pv-xml").hidden=$("#pv-edo").hidden=true;
   $("#pv").hidden=false; document.body.style.overflow="hidden"; fitSheets(); syncSignUI();
 }
 const setDocs = set => { const m=new Map(); set.forEach(({kind,k})=>{ const id=k.dr.id; if(!m.has(id)) m.set(id,[]); m.get(id).push(kind); }); return m; };
@@ -1270,6 +1279,7 @@ document.querySelectorAll("#fd-app [data-make]").forEach(b=>b.onclick=async()=>{
 let LC={};
 const docToast = extra => toast(LC.warn?"warn":"ok", "Документ № "+LC.n+(LC.created?" создан":" изменён"), [LC.warn, extra].filter(Boolean).join(" "));
 async function commitDoc(dr0, opt){
+  if(syncBlocked){showConflicts(conflictList);throw new Error("Сначала разрешите конфликт правок");}
   const own=!dr0, dr=dr0||D.draft, s=sup(dr.supplierId), msg=$("#d-saved");
   const mk=()=>{ const o0=D.journal.find(j=>j.id===dr.id);
     if(dr.qtyOnly && o0 && o0.snap){ const sn=clone(o0.snap); sn.dr.lines=sn.dr.lines.map((l,i)=>Object.assign(l,{qty:String((dr.lines[i]||{}).qty||"0")})); delete sn.dr.qtyOnly;
@@ -1287,25 +1297,29 @@ async function commitDoc(dr0, opt){
   if(online()){
     setStatus("saving","Сохраняю документ…");
     try{
-      let bp=null; if(flushing) await flush(); else bp=buildChanges();
-      let j; try{ j=await api(Object.assign({action:"saveDoc", entry:jRow(entry)}, bp?{changes:bp.ch}:{})); }
+      let bp=null; while(flushing||docSaving) await new Promise(r=>setTimeout(r,50)); if(syncBlocked)throw new Error("Сначала разрешите конфликт правок"); docSaving=true; bp=buildChanges();
+      let j; try{ j=await api(Object.assign({action:"saveDoc", entry:jRow(entry), entryBase:clone(Object.prototype.hasOwnProperty.call(dr,"_editBase")?dr._editBase:(BASE.journal||{})[entry.id]||null)}, bp?{changes:bp.ch}:{})); }
       catch(x){ if(bp && x.resp && x.resp.synced) sentOk(bp); throw x; }
-      if(bp){ if(j.synced) sentOk(bp); else await flush(); }   /* старый скрипт таблицы не берёт правки вместе с документом — отправим отдельно */
+      if(bp && !j.conflict){ if(j.synced) sentOk(bp); else await flush(); }   /* старый скрипт таблицы не берёт правки вместе с документом — отправим отдельно */
       const liveClash = () => D.journal.some(x=>x.id!==dr.id && !isArch(x) && x.supplierId===dr.supplierId && x.customerId===dr.customerId && String(x.number)===String(dr.number));
-      if(j.conflict && !liveClash()){ setStatus("ok"); await forceSave(); LC={n:dr.number, created:!old}; if(own) msg.textContent="Сохранено в журнал. Следующий номер для этого заказчика: "+nextNum(dr.supplierId, dr.customerId); return ""; }
-      if(j.conflict && old && String(old.number)===String(dr.number)){ setStatus("ok"); await forceSave(); LC={n:dr.number, created:false, warn:"Номер "+dr.number+" есть и у другого документа."}; if(own) msg.textContent="Сохранено в журнал (номер "+dr.number+" повторяется у другого документа)."; return ""; }
-      if(j.conflict){ const nn=nextNum(dr.supplierId, dr.customerId, null, dr.id); note="Номер "+dr.number+" у этого заказчика уже занят — документу присвоен № "+nn+". ";
-        dr.number=nn; if(own) $("#d-num").value=dr.number; entry=keepMeta(mk()); j=await api({action:"saveDoc", entry:jRow(entry)}); }
+      if(!j.concurrency && j.conflict && !liveClash()){ setStatus("ok"); await forceSave(); LC={n:dr.number, created:!old}; if(own) msg.textContent="Сохранено в журнал. Следующий номер для этого заказчика: "+nextNum(dr.supplierId, dr.customerId); return ""; }
+      if(!j.concurrency && j.conflict && old && String(old.number)===String(dr.number)){ setStatus("ok"); await forceSave(); LC={n:dr.number, created:false, warn:"Номер "+dr.number+" есть и у другого документа."}; if(own) msg.textContent="Сохранено в журнал (номер "+dr.number+" повторяется у другого документа)."; return ""; }
+      if(j.conflict){ const nn=String(Math.max(+j.next||1,+nextNum(dr.supplierId, dr.customerId, null, dr.id))); note="Номер "+dr.number+" у этого заказчика уже занят — документу присвоен № "+nn+". ";
+        dr.number=nn; if(own) $("#d-num").value=dr.number; entry=keepMeta(mk()); j=await api(Object.assign({action:"saveDoc", entry:jRow(entry), entryBase:clone(Object.prototype.hasOwnProperty.call(dr,"_editBase")?dr._editBase:(BASE.journal||{})[entry.id]||null)},bp?{changes:bp.ch}:{})); if(j.conflict)throw new Error("Номер занят: повторите сохранение"); if(bp&&j.synced)sentOk(bp); }
       if(j.next) s.next=j.next;
+      acceptRows(j.accepted,Object.assign({},bp?bp.ch:{},{journal:{upsert:[jRow(entry)]}}));
       setStatus("ok");
-    }catch(e){ dirty("journal", entry.id); handleErr(e); note="Сохранено на этом устройстве, в таблицу отправлю при появлении связи. "; }
+    }catch(e){
+      if(Object.prototype.hasOwnProperty.call(dr,"_editBase"))(BASE.journal=BASE.journal||{})[entry.id]=clone(dr._editBase);
+      if(e.resp&&e.resp.conflicts){ const i=D.journal.findIndex(x=>x.id===entry.id);if(i>=0)D.journal[i]=entry;else D.journal.unshift(entry);dirty("journal",entry.id);saveLocal();showConflicts(e.resp.conflicts);throw new Error("Документ изменён другим пользователем. Сравните версии в окне конфликта"); }
+      dirty("journal", entry.id); handleErr(e); note="Сохранено на этом устройстве, в таблицу отправлю при появлении связи. "; } finally {docSaving=false;}
   } else if(+dr.number>=(+s.next||1)) s.next=(+dr.number)+1;
   const i=D.journal.findIndex(j=>j.id===entry.id); if(i>=0) D.journal[i]=entry; else D.journal.unshift(entry);
   docTasks([old&&old.date, entry.date]); saveLocal(); if(own) msg.textContent=note+"Сохранено в журнал. Следующий номер для этого заказчика: "+nextNum(dr.supplierId, dr.customerId);
   LC={n:dr.number, created:!old, warn:note.trim()};
   return note;
 }
-/* ---------- XML УПД для Портала поставщиков (сокращённый формат ФНС 5.01, схема Портала) ---------- */
+/* ---------- общие функции XML ---------- */
 const xa = v => String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 const dd = iso => fd(iso);
 const dec = (x,n) => (Math.round((+x||0)*Math.pow(10,n))/Math.pow(10,n)).toFixed(n);
@@ -1314,38 +1328,6 @@ function cp1251(str){
   const M={0x401:0xA8,0x451:0xB8,0x2116:0xB9,0xAB:0xAB,0xBB:0xBB,0x2013:0x96,0x2014:0x97,0xA0:0xA0,0x201C:0x93,0x201D:0x94,0x201E:0x84,0x2018:0x91,0x2019:0x92,0x2026:0x85,0x404:0xAA,0x454:0xBA,0x406:0xB2,0x456:0xB3,0xB0:0xB0};
   const out=[]; for(const ch of str){ const c=ch.codePointAt(0); out.push(c<128?c:(c>=0x410&&c<=0x44F?c-0x350:(M[c]!=null?M[c]:0x3F))); } return new Uint8Array(out);
 }
-function updXml(k){
-  const s=k.s, c=k.c, d=k.dr, cid=d.customerId, missing=[];
-  const ship = d.ship || firstAddr(c) || c.address || "";
-  const noSte=[];
-  const rows = k.lines.map(l=>{ const sp=specOf(cid,l.pid); if(!sp.spec) missing.push(l.name); else if(!sp.ste) noSte.push(l.name);
-    const art = sp.art || l.code || sp.ste || sp.spec || "";
-    const p=prod(l.pid)||{}, country=/^\d{3}$/.test(l.country||p.country||"") ? (l.country||p.country) : "643";
-    return `<СведТов КолТов="${qtyS(l.qty)}" ЦенаТов="${String(+(+l.priceNet).toFixed(11))}" СтТовБезНДС="${dec(l.net,2)}" СтТовУчНал="${dec(l.sum,2)}">`+
-      (country!=="643" ? `<СвДТ КодПроисх="${country}"/>` : "")+
-      `<ДопСведТов АртикулТов="${xa(art.slice(0,50))}"/>`+
-      `<ИнфПолФХЖ2 Идентиф="ИдСпецификации" Значен="${xa(sp.spec||"")}"/>`+(sp.ste?`<ИнфПолФХЖ2 Идентиф="ИдСТЕ" Значен="${xa(sp.ste)}"/>`:"")+`</СведТов>`; });
-  const vat = k.rate ? `<СумНал>${dec(k.t.vat,2)}</СумНал>` : `<БезНДС>без НДС</БезНДС>`;
-  const xml = `<?xml version="1.0" encoding="windows-1251"?>\n<Файл><Документ>`+
-    `<СвСчФакт НомерСчФ="${xa(d.number)}" ДатаСчФ="${dd(d.date)}">`+
-      `<ГрузОт><ГрузОтпр><Адрес><АдрИнф АдрТекст="${xa(s.address||"")}"/></Адрес></ГрузОтпр></ГрузОт>`+
-      `<ГрузПолуч><ИдСв><СвЮЛУч/></ИдСв><Адрес><АдрИнф АдрТекст="${xa(ship)}"/></Адрес></ГрузПолуч>`+
-    `</СвСчФакт>`+
-    `<ТаблСчФакт>${rows.join("")}<ВсегоОпл СтТовБезНДСВсего="${dec(k.t.net,2)}" СтТовУчНалВсего="${dec(k.t.sum,2)}"><СумНалВсего>${vat}</СумНалВсего></ВсегоОпл></ТаблСчФакт>`+
-    `<СвПродПер><СвПер ДатаПер="${dd(d.date)}" ДатаНачПер="${dd(d.date)}" ДатаОконПер="${dd(d.date)}"/></СвПродПер>`+
-    `</Документ></Файл>`;
-  const errs=[]; if(missing.length) errs.push("нет ID позиции спецификации у: "+missing.join("; "));
-  if(!s.address) errs.push("не заполнен адрес поставщика (грузоотправителя)"); if(!ship) errs.push("не указан адрес доставки");
-  return {xml, errs, noSte};
-}
-$("#pv-xml").onclick=()=>{
-  const r=updXml(cur.k);
-  if(r.errs.length){ toast("err","XML для Портала не сформирован", r.errs.join("; ")+". Заполните это во вкладке «Заказчики и цены» и нажмите снова."); $("#pv-warn").hidden=false; $("#pv-warn").textContent="XML не сформирован: "+r.errs.join(". ")+". Заполните во вкладке «Заказчики и цены» (блок «Сопоставить с Порталом поставщиков» или колонки в таблице цен)."; return; }
-  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([cp1251(r.xml)],{type:"application/xml"}));
-  a.download="UPD_"+String(cur.k.dr.number).replace(/[^\w-]/g,"_")+"_"+cur.k.dr.date+".xml"; document.body.appendChild(a); a.click(); a.remove();
-  logEv("XML","Скачан XML для Портала поставщиков: УПД № "+cur.k.dr.number+" от "+fd(cur.k.dr.date)+" — "+shortCus(cur.k), cur.k.dr.id);
-  toast(r.noSte.length?"warn":"ok","XML для Портала скачан", r.noSte.length?"У части товаров нет СТЕ — выберите их на форме Портала вручную.":"Импортируйте файл на Портале: исполнение контракта → «Импортировать xml»."); $("#pv-warn").hidden=false; $("#pv-warn").textContent="XML скачан. На Портале: исполнение контракта → «Импортировать xml» → выберите файл → проверьте форму и подпишите."+(r.noSte.length?" СТЕ не указана у: "+r.noSte.join("; ")+" — выберите СТЕ на форме Портала вручную.":"");
-};
 /* ---------- XML УПД в формате ФНС 5.03 (приказ ФНС № ЕА-7-26/970@) для отправки через Диадок ---------- */
 const DOP_NAME="Документ об отгрузке товаров (выполнении работ), передаче имущественных прав (документ об оказании услуг)";
 function fioParts(f){ const a=String(f||"").trim().split(/\s+/).filter(Boolean); return a.length?{F:a[0], I:a[1]||a[0], O:a.slice(2).join(" ")}:null; }
@@ -1424,6 +1406,7 @@ $("#pv-edo").onclick=()=>{
   toast(r.warn.length?"warn":"ok","XML для Диадока скачан", r.warn.length?"Не заполнено: "+r.warn.join(", ")+" — Диадок может не принять файл.":"Имя файла не меняйте. В Диадоке: «Отправить документ» → «Загрузить с компьютера»."); $("#pv-warn").hidden=false; $("#pv-warn").textContent="XML для Диадока скачан (формат ФНС 5.03, УПД № "+cur.k.dr.number+"). Имя файла не меняйте — Диадок сверяет его с содержимым. В Диадоке: «Отправить документ» → «Загрузить с компьютера» → выберите файл → проверьте получателя → подпишите и отправьте."+
     (r.warn.length?" Внимание, не заполнено: "+r.warn.join(", ")+" (вкладки «Поставщики» и «Заказчики и цены»).":"");
 };
+/*__EIS__*/
 /* ---------- скачивание PDF без окна печати ---------- */
 function loadScript(src, test){ return test() ? Promise.resolve() : new Promise((ok,bad)=>{ const sc=document.createElement("script"); sc.src=src; sc.onload=()=>ok(); sc.onerror=()=>bad(new Error("не загрузилась библиотека PDF")); document.head.appendChild(sc); }); }
 const fileSafe = t => t.replace(/[\\/:*?"<>|]+/g," ").replace(/\s+/g," ").trim();
@@ -2112,7 +2095,7 @@ const PF = () => (D.pf = D.pf || {per:"month", sup:"", cus:"", from:"", to:""});
 const pfArr = k => (D[k] = Array.isArray(D[k]) ? D[k] : []);
 async function loadProfit(quiet){
   if(!me().admin) return;
-  try{ if(hasPending()) await flush(); const j=await api({action:"profit"}); D.costs=j.costs||[]; D.doccosts=j.doccosts||[]; D.psettings=j.psettings||[]; pfLoaded=true; saveLocal(); $("#pf-msg").textContent=""; if(!quiet) toast("ok","Данные о прибыли обновлены",""); }
+  try{ if(hasPending()) await flush(); const j=await api({action:"profit"}); if(hasPending()||syncBlocked)return; rememberBase(j); D.costs=j.costs||[]; D.doccosts=j.doccosts||[]; D.psettings=j.psettings||[]; pfLoaded=true; saveLocal(); $("#pf-msg").textContent=""; if(!quiet) toast("ok","Данные о прибыли обновлены",""); }
   catch(e){ $("#pf-msg").textContent = /unknown action/.test(e.message) ? "Чтобы прибыль сохранялась в таблицу, обновите скрипт таблицы (новая версия). Пока данные хранятся только на этом устройстве." : "Не получилось загрузить: "+e.message; pfLoaded=true; }
   if(curTab==="profit") drawProfit();
 }
@@ -2300,7 +2283,7 @@ function jRowHtml(j, kid, arch){ const w=jWho(j);
     ? `${view} <button class="btn sm" data-unarch="${j.id}">Вернуть из архива</button>`
     : isStaff() ? `<button class="btn sm" data-combo-j="${j.id}" title="Счёт и ТОРГ‑12 вместе — просмотр, печать, PDF">Счёт+ТОРГ</button> ${view} <button class="btn ghost sm" data-qty="${j.id}">Изменить количество</button>`
     : `<button class="btn sm" data-combo-j="${j.id}" title="Счёт и ТОРГ‑12 вместе — просмотр, печать, PDF">Счёт+ТОРГ</button> ${view} <button class="btn ghost sm" data-edit="${j.id}">Изменить</button>
-    <details class="more"><summary class="btn ghost sm">Ещё ▾</summary><div class="menu"><button class="btn sm" data-x="${j.id}">XML для Портала</button><button class="btn sm" data-xd="${j.id}">XML для Диадока</button><button class="btn sm" data-copy="${j.id}">Сделать копию</button><button class="btn sm danger" data-arch="${j.id}">В архив</button></div></details>`;
+    <details class="more"><summary class="btn ghost sm">Ещё ▾</summary><div class="menu"><button class="btn sm" data-x="${j.id}">XML для ЕИС</button><button class="btn sm" data-xd="${j.id}">XML для Диадока</button><button class="btn sm" data-copy="${j.id}">Сделать копию</button><button class="btn sm danger" data-arch="${j.id}">В архив</button></div></details>`;
   const ad = arch ? `<span class="muted" title="Убран в архив">в архиве с ${dtShort(j.snap.meta.arch)}</span>` : jDl(j);
   return `<tr class="${kid?"kid":""}"><td>${fd(j.date)}</td><td>${esc(j.number)}</td><td><div class="who">${esc(kid&&w.pt?w.pt:w.main)}</div><small>${kid?"":esc(w.pt?w.pt+" · ":"")}${esc(supShort(j.snap.s.name))}</small></td><td class="num">${fm(j.sum)}</td><td>${ad}</td><td class="acts">${acts}</td></tr>`; }
 /* строки журнала с комплектами; arch — показываем архив */
@@ -2388,7 +2371,7 @@ function onJClick(arch){ return async e=>{
   if(!b) return; const det=b.closest("details"); if(det && !b.dataset.arch) det.removeAttribute("open");
   const id=b.dataset.id||b.dataset.edit||b.dataset.copy||b.dataset.x||b.dataset.xd||b.dataset.comboJ||b.dataset.arch||b.dataset.unarch||b.dataset.qty; const j=D.journal.find(x=>x.id===id); if(!j) return;
   if(isStaff() && (b.dataset.arch||b.dataset.unarch||b.dataset.edit||b.dataset.copy)) return;
-  if(b.dataset.qty){ const dr=clone(j.snap.dr); dr.qtyOnly=true; D.draft=dr; saveLocal(); $("#d-saved").textContent="Измените количество (например, по факту упаковок) и нажмите «Сохранить в журнал» или сформируйте документ — номер, цены и реквизиты останутся прежними."; showTab("doc"); return; }
+  if(b.dataset.qty){ const dr=clone(j.snap.dr); dr._editBase=clone((BASE.journal||{})[j.id]||jRow(j)); dr.qtyOnly=true; D.draft=dr; saveLocal(); $("#d-saved").textContent="Измените количество (например, по факту упаковок) и нажмите «Сохранить в журнал» или сформируйте документ — номер, цены и реквизиты останутся прежними."; showTab("doc"); return; }
   if(b.dataset.arch){ if(!armed(b,"Точно в архив?")) return; setArch([j],true); msgEl.textContent=""; toast("ok","Документ № "+j.number+" в архиве","Его номер снова свободен.",{action:{label:"Вернуть",fn:()=>{ setArch([j],false); toast("ok","Документ № "+j.number+" возвращён в журнал",""); }}}); return; }
   if(b.dataset.unarch){ const c=setArch([j],false); msgEl.textContent=""; toast(c.length?"warn":"ok","Документ № "+j.number+" возвращён в журнал", c.length?"Номер "+j.number+" уже занят другим документом — проверьте, чтобы не было путаницы.":""); return; }
   if(b.dataset.p){ showPreview(b.dataset.p, calc(j.snap.dr, j.snap)); return; }
@@ -2397,7 +2380,7 @@ function onJClick(arch){ return async e=>{
   if(b.dataset.x){ showPreview("upd", calc(j.snap.dr, j.snap)); $("#pv-xml").click(); return; }
   if(b.dataset.xd){ showPreview("upd", calc(j.snap.dr, j.snap)); $("#pv-edo").click(); return; }
   if(!b.dataset.edit && !b.dataset.copy) return;
-  const dr=clone(j.snap.dr);
+  const dr=clone(j.snap.dr); if(!b.dataset.copy)dr._editBase=clone((BASE.journal||{})[j.id]||jRow(j));
   if(b.dataset.copy){ dr.id=uid(); delete dr.numManual; dr.number=nextNum(dr.supplierId, dr.customerId); dr.date=todayISO(); dr.lines.forEach(l=>{ if(prod(l.productId)) l.price=String(getPrice(dr.customerId,l.productId)); }); }
   D.draft=dr; saveLocal(); $("#d-saved").textContent = b.dataset.copy ? "Создана копия — проверьте количество и цены." : "Правка документа: после «Сформировать» он обновится в журнале под тем же номером.";
   showTab("doc");
@@ -2945,7 +2928,7 @@ $("#dt-logout").onclick=()=>logout();
 $("#dt-export").onclick=()=>{ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(D,null,1)],{type:"application/json"}));
   a.download="frudom-docs-"+todayISO()+".json"; document.body.appendChild(a); a.click(); a.remove(); $("#dt-msg").textContent="Файл скачан."; };
 $("#dt-import").onchange=e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader();
-  r.onload=()=>{ try{ const x=JSON.parse(r.result); if(!x.suppliers||!x.products) throw 0; const dr=D.draft; D=migrate(x); D.draft=D.draft||dr; D.demo=false; $("#demoNote").hidden=true;
+  r.onload=()=>{ try{ const x=JSON.parse(r.result); if(!x.suppliers||!x.products) throw 0; const dr=D.draft; D=migrate(x); D.syncBase=BASE; D.syncConflicts=clone(conflictList); D.draft=D.draft||dr; D.demo=false; $("#demoNote").hidden=true;
       if(online()){ D.suppliers.forEach(o=>dirty("suppliers",o.id)); D.customers.forEach(o=>dirty("customers",o.id)); D.products.forEach(o=>dirty("products",o.id));
         Object.keys(D.prices).forEach(c=>Object.keys(D.prices[c]).forEach(p=>dirtyPrice(c,p))); (D.journal||[]).forEach(j=>j.snap&&dirty("journal",j.id)); }
       saveLocal(); $("#dt-msg").textContent="Загружено: "+D.customers.length+" заказчиков, "+D.products.length+" товаров, "+(D.journal||[]).length+" документов."; }

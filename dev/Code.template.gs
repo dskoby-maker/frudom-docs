@@ -27,7 +27,7 @@ const S = {
     ['customerId','ID заказчика'],['productId','ID товара']]},
   contracts: { title: 'Контракты', key: 'id', cols: [
     ['customerName','Заказчик'],['supplierName','Поставщик (исполнитель)'],['basis','Основание (номер и дата)'],['ikz','ИКЗ'],
-    ['maxSum','Цена контракта'],['dateTo','Действует до'],['id','ID (не менять)'],['customerId','ID заказчика'],['supplierId','ID поставщика']]},
+    ['maxSum','Цена контракта'],['dateTo','Действует до'],['id','ID (не менять)'],['customerId','ID заказчика'],['supplierId','ID поставщика'],['eis','Сопоставление ЕИС (заполняется с сайта)']]},
   costs: { title: 'Закупочные цены', key: 'id', cols: [
     ['productName','Товар'],['price','Закупочная цена'],['from','Действует с'],['customerName','Только для заказчика'],['note','Примечание'],
     ['id','ID (не менять)'],['productId','ID товара'],['customerId','ID заказчика']]},
@@ -93,6 +93,18 @@ function staffOk_(e) {
   return (ns.dr.lines || []).filter(l => +l.qty > 0).every(l => { const v = pm[ns.dr.customerId + '|' + l.productId]; return v != null && Math.abs(v - (+l.price || 0)) < 0.006; });
 }
 
+// Optional private EIS template, filled only in the owner's delivered Code.gs.
+// Never commit a real contract template to the public repository.
+const EIS_INITIAL = null;
+function seedEis_() {
+  if (!EIS_INITIAL) return;
+  const props=PropertiesService.getScriptProperties();
+  if(props.getProperty('eis_initial_v1')) return;
+  const c=read_('contracts').find(r=>r.id===EIS_INITIAL.id && r.customerId===EIS_INITIAL.customerId && r.supplierId===EIS_INITIAL.supplierId);
+  if(!c) return;
+  if(!c.eis)upsertList_('contracts',{upsert:[Object.assign({},c,{eis:JSON.stringify(EIS_INITIAL.config)})]});
+  props.setProperty('eis_initial_v1','1');
+}
 function handle_(p) {
   if (typeof USERS === 'undefined') return { ok: false, error: 'в Apps Script нет файла «Пароли» — создайте его по инструкции (dev/Passwords.template.gs)' };
   const me = auth_(p);
@@ -100,7 +112,8 @@ function handle_(p) {
   const lock = LockService.getScriptLock();
   lock.waitLock(25000);
   try {
-    if (p.action === 'load') return { ok: true, me: me, prefs: (read_('uprefs').find(r => r.id === me.name) || {}).data || '', data: {
+    if (p.action === 'load' && me.admin) seedEis_();
+    if (p.action === 'load') return { ok: true, concurrency: 1, eis: 1, me: me, prefs: (read_('uprefs').find(r => r.id === me.name) || {}).data || '', data: {
       suppliers: me.role === 'staff' ? read_('suppliers').map(s => { const x = Object.assign({}, s); delete x.stamp; delete x.sign; return x; }) : read_('suppliers'), customers: read_('customers'), products: read_('products'),
       prices: read_('prices'), specs: read_('specs'), contracts: read_('contracts'), journal: read_('journal').slice(-2000),
       daytasks: (function () { const d = new Date(); d.setDate(d.getDate() - 120); const from = Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd');
@@ -110,7 +123,7 @@ function handle_(p) {
     if (p.action === 'profit')  { if (!me.admin) return { ok: false, error: 'forbidden' }; return { ok: true, costs: read_('costs'), doccosts: read_('doccosts'), psettings: read_('psettings') }; }
     if (p.action === 'setPrefs') { upsertList_('uprefs', { upsert: [{ id: me.name, data: String(p.data || '').slice(0, 20000), updated: new Date().toISOString() }] }); return { ok: true }; }
     if (p.action === 'events')  { if (!me.admin) return { ok: false, error: 'forbidden' }; return { ok: true, events: readEvents_(+p.limit || 1000) }; }
-    if (p.action === 'sync')    { syncIn_(p.changes, me); return { ok: true }; }
+    if (p.action === 'sync') { const g = guardChanges_(p.changes, p.base, p.protocol, me); if (g.error) return g; syncIn_(g.changes, me); return { ok: true, concurrency: 1, accepted: syncState_(g.changes, me) }; }
     if (p.action === 'plist')    { if (me.role === 'staff') return { ok: false, error: 'forbidden' }; return plist_(p, me); }
     if (p.action === 'addPhoto') return addPhoto_(p, me);
     if (p.action === 'photo')    { const r = read_('taskphotos').find(x => x.id === String(p.id)); if (!r) return { ok: false, error: 'фото не найдено' };
@@ -120,9 +133,23 @@ function handle_(p) {
       if (me.role === 'staff' && r.by !== me.name) return { ok: false, error: 'forbidden' };
       try { DriveApp.getFileById(r.file).setTrashed(true); } catch (x) {}
       write_('taskphotos', rows.filter(x => x.id !== r.id)); log_(me, [{ action: 'Задача на день', text: 'Удалено фото из задачи' }]); return { ok: true }; }
-    if (p.action === 'saveDoc') { const synced = !!p.changes; if (synced) syncIn_(p.changes, me);   /* несохранённые правки едут вместе с документом — один запрос вместо двух */
-      if (me.role === 'staff' && !staffOk_(p.entry || {})) return { ok: false, error: 'forbidden', synced: synced };
-      const r = saveDoc_(p.entry, me); r.synced = synced; return r; }
+    if (p.action === 'saveDoc') {
+      const all = JSON.parse(JSON.stringify(p.changes || {}));
+      all.journal = all.journal || { upsert: [], del: [] };
+      all.journal.upsert = (all.journal.upsert || []).filter(x => x.id !== (p.entry || {}).id).concat([p.entry || {}]);
+      const g = guardChanges_(all, p.base, p.protocol, me); if (g.error) return g;
+      const entry = g.changes.journal.upsert.find(x => x.id === p.entry.id);
+      if (me.role === 'staff' && !staffOk_(entry)) return { ok: false, error: 'forbidden' };
+      // Check everything before the first write. Number conflicts must not acknowledge unsaved changes.
+      const rows = read_('journal');
+      const clash = rows.some(r => { let sn = {}; try { sn = JSON.parse(r.snap || '{}'); } catch(x) {}
+        return r.id !== entry.id && r.supplierId === entry.supplierId && r.customerId === entry.customerId && String(r.number) === String(entry.number) && !(sn.meta && sn.meta.arch); });
+      if (clash) return { ok: true, concurrency: 1, conflict: true, next: rows.filter(r => r.supplierId === entry.supplierId && r.customerId === entry.customerId).reduce((n,r) => Math.max(n,parseInt(r.number,10)||0),0)+1 };
+      g.changes.journal.upsert = g.changes.journal.upsert.filter(x => x.id !== entry.id);
+      syncIn_(g.changes, me);
+      const r = saveDoc_(entry, me); r.synced = !!p.changes; r.concurrency = 1;
+      g.changes.journal.upsert.push(entry); r.accepted = syncState_(g.changes, me); return r;
+    }
     return { ok: false, error: 'unknown action' };
   } catch (err) {
     return { ok: false, error: String(err) };
@@ -361,4 +388,54 @@ function saveDoc_(e, me) {
   const num = parseInt(e.number, 10);
   if (s && num && num + 1 > next) { next = num + 1; upsertList_('suppliers', { upsert: [{ id: s.id, next: String(next) }] }); }
   return { ok: true, next: next };
+}
+
+/* Optimistic concurrency: compare and merge under handle_'s script lock, before any mutation. */
+function rowKey_(t, r) { return S[t].key ? String(r.id || '') : String(r.customerId || '') + '|' + String(r.productId || ''); }
+function sameValue_(a,b) { return String(a == null ? '' : a) === String(b == null ? '' : b); }
+function guardChanges_(input, base, protocol, me) {
+  const changes = JSON.parse(JSON.stringify(input || {})), conflicts = [];
+  if (protocol !== 1) return { ok: false, error: 'Обновите страницу: для сохранения нужна новая версия сайта.' };
+  const allowed = me.role === 'staff' ? ['journal','daytasks'] : ['suppliers','customers','products','prices','specs','contracts','journal','daytasks'].concat(me.admin ? ['costs','doccosts','psettings'] : []);
+  for (const t of Object.keys(changes)) {
+    if (t === 'events') continue;
+    if (!allowed.includes(t)) return { ok: false, error: 'forbidden' };
+    const part = changes[t]; if (!part) continue;
+    const current = {}; read_(t).forEach(r => current[rowKey_(t,r)] = r);
+    const cols = S[t].cols.map(c => c[0]).filter(k => !['customerName','supplierName','productName'].includes(k));
+    const bases = (base || {})[t] || {};
+    const check = (o, deleting) => {
+      const id = deleting && S[t].key ? String(o) : rowKey_(t,o), now = current[id] || null;
+      const known = Object.prototype.hasOwnProperty.call(bases,id), old = known ? bases[id] : null;
+      let fields = [];
+      if (!known && now) fields = ['_base'];
+      else if (!old && now) { if (deleting || cols.some(k => o[k] != null && !sameValue_(o[k],now[k]))) fields = ['_created']; }
+      else if (old && !now) { if (!deleting) fields = ['_deleted']; }
+      else if (old && now) {
+        if (deleting || t === 'journal') {
+          if (cols.some(k => !sameValue_(old[k],now[k])) && (deleting || cols.some(k => o[k] != null && !sameValue_(o[k],now[k])))) fields = [t === 'journal' ? 'snap' : '_record'];
+        } else fields = cols.filter(k => o[k] != null && !sameValue_(o[k],old[k]) && !sameValue_(now[k],old[k]) && !sameValue_(o[k],now[k]) && !(t === 'daytasks' && k === 'seen') && !(t === 'suppliers' && k === 'next'));
+      }
+      if (fields.length) conflicts.push({table:t,id,fields,current:now,base:old,proposed:deleting?null:o});
+      if (deleting || !now || !old || fields.length || t === 'journal') return o;
+      const merged = Object.assign({},now);
+      cols.forEach(k => { if (o[k] != null && !sameValue_(o[k],old[k])) merged[k]=o[k]; });
+      if (t === 'suppliers') merged.next = String(Math.max(+now.next||1,+o.next||1));
+      return merged;
+    };
+    part.upsert = (part.upsert || []).map(o => check(o,false));
+    (part.del || []).forEach(o => check(o,true));
+    if (me.role === 'staff' && t === 'journal' && ((part.del || []).length || part.upsert.some(o => !staffOk_(o)))) return {ok:false,error:'forbidden'};
+  }
+  return conflicts.length ? {ok:false,error:'edit_conflict',conflicts} : {changes};
+}
+function syncState_(changes, me) {
+  const out = {};
+  Object.keys(changes).filter(t => S[t] && t !== 'events').forEach(t => {
+    const part=changes[t] || {}, keys={};
+    (part.upsert||[]).forEach(o => keys[rowKey_(t,o)]=1);
+    (part.del||[]).forEach(o => keys[S[t].key?String(o):rowKey_(t,o)]=1);
+    const rows={}; read_(t).forEach(r => { const key=rowKey_(t,r); if(keys[key]) { if(t==='suppliers' && me.role==='staff'){delete r.stamp;delete r.sign;} rows[key]=r; } });
+    out[t]={}; Object.keys(keys).forEach(k => out[t][k]=rows[k]||null);
+  }); return out;
 }
