@@ -76,7 +76,7 @@ const Eis = (() => {
     if(!ids||attr(pr,'ИдФайл')!==id)throw Error('Основной XML и PRIL должны относиться к одному документу ЕИС.');
     if(!['ДОП','СЧФДОП'].includes(attr(one(m,'Документ'),'Функция')))throw Error('Этот вид УПД не поддерживается.');
     // Do not reuse signature, payment, attachment or correction data from an old document.
-    const allowed=['СведКонт','СведПоставщик','СведЗаказчик','СведТов','СведМестаПоставки'];
+    const allowed=['СведКонт','СведПоставщик','СведЗаказчик','СведТов','СведМестаПоставки','Подписант'];
     if([...pr.children].some(n=>!allowed.includes(n.tagName)))throw Error('Образец содержит дополнительные сведения/вложения. Загрузите простой УПД на товары без приложенных файлов.');
     const rows=[...m.querySelectorAll('ТаблСчФакт > СведТов')],links=[...p.querySelectorAll('НедеталТРУ')];
     if(!rows.length||rows.length!==links.length||p.querySelector('ДеталТРУ'))throw Error('Поддерживаются обычные товарные позиции без детализации.');
@@ -136,6 +136,10 @@ const Eis = (() => {
     if(!ship||ship!==config.ship)throw Error('Этот образец ЕИС привязан к другому адресу доставки. Откройте «Настроить ЕИС» и загрузите образец для выбранного адреса.');
     if(!k.dr.number||!/^\d{4}-\d\d-\d\d$/.test(k.dr.date)||!k.lines.length)throw Error('Заполните номер, дату и товарные строки накладной.');
     const date=new Date(k.dr.date+'T12:00:00Z');if(!Number.isFinite(date.getTime())||date.toISOString().slice(0,10)!==k.dr.date)throw Error('Некорректная дата накладной.');
+    const today=new Date().toLocaleDateString('ru-RU',{timeZone:'Europe/Moscow'}).split('.').reverse().join('-');
+    if(!k.allowPast&&k.dr.date<today)throw Error('Дата документа ('+dd(k.dr.date)+') раньше сегодняшней — ЕИС такой документ не примет. Поставьте сегодняшнюю или более позднюю дату.');
+    const login=String((k.s&&k.s.eisLogin)||'').trim();
+    if(!/^[^\s"<>&]{1,100}$/.test(login))throw Error('Укажите «Логин ЕИС подписанта» в карточке поставщика (Справочники → Поставщики). Его можно посмотреть в профиле личного кабинета ЕИС.');
     if(k.rate&&!['5','7','10','20','22'].includes(String(k.rate)))throw Error('Такая ставка НДС пока не поддерживается для ЕИС.');
     const used=new Set(),pairs=k.lines.map(source=>{
       const l=Object.assign({},source); l.country=l.country||(config.countries||{})[config.mapping[l.pid]]||'';
@@ -179,7 +183,10 @@ const Eis = (() => {
     const per=one(m,'СвПер'),bs=t.basis.cloneNode(true);per.replaceChildren(bs);attrs(per,{СодОпер:'Товары переданы',ДатаПер:dd(k.dr.date)});['ДатаНачПер','ДатаОконПер'].forEach(a=>per.removeAttribute(a));
     const main=xml(m),bytes=encode(main),pr=p.documentElement;
     attrs(pr,{ИдФайл:id,ИдПрилож:'PRIL_'+id,ХэшФайл:eisHash(bytes)});
-    ['ИдОбъект','ВнешИд'].forEach(a=>pr.removeAttribute(a));attrs(t.place,{ИдМестаПоставки:guid().replace(/-/g,'').toUpperCase()});
+    ['ИдОбъект','ВнешИд'].forEach(a=>pr.removeAttribute(a));
+    // ЕИС требует блок «Сведения о подписанте» (РДИК_ИК_1079): пустой элемент с порядковым номером и логином пользователя ЕИС.
+    [...pr.children].filter(e=>e.tagName==='Подписант').forEach(e=>e.remove());
+    const signer=p.createElement('Подписант');signer.setAttribute('ПорядНом','1');signer.setAttribute('ЛогинПрод',login);pr.appendChild(signer);attrs(t.place,{ИдМестаПоставки:guid().replace(/-/g,'').toUpperCase()});
     const supplement=xml(p),pb=encode(supplement);
     const packet='<?xml version="1.0" encoding="windows-1251"?>\n<ФайлПакет ИдТрПакет="'+guid()+'" ИдФайл="'+xa(id)+'" ИдПрилож="PRIL_'+xa(id)+'" ДатаВрФормир="'+now.toISOString()+'" ТипПрилож="УПДПрод" ВерсФорм="1.00" ИдОтпр="'+xa(t.sender)+'" ИдПол="'+xa(t.recipient)+'"><Документ><Контент>'+b64(bytes)+'</Контент></Документ><Прилож><Контент>'+b64(pb)+'</Контент></Прилож></ФайлПакет>';
     unpack(packet);
