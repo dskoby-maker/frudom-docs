@@ -2472,7 +2472,7 @@ function renderSuppliers(){
     fields:[{k:"name",l:"Наименование в документах",wide:true,ph:"ИП Иванов Иван Иванович"},{k:"fio",l:"ФИО ИП / руководителя",ph:"Иванов Иван Иванович"},
       {k:"inn",l:"ИНН",num:1},{k:"kpp",l:"КПП (у ИП нет)",num:1},{k:"ogrn",l:"ОГРНИП / ОГРН",num:1},{k:"ogrnDate",l:"Дата присвоения ОГРНИП (для УПД)",type:"date"},
       {k:"address",l:"Адрес",wide:true},{k:"phone",l:"Телефон"},{k:"bank",l:"Банк",wide:true,ph:"АО «ТБанк», г. Москва"},{k:"bik",l:"БИК",num:1},{k:"rs",l:"Расчётный счёт",num:1},{k:"ks",l:"Корр. счёт",num:1},
-      {k:"vat",l:"НДС",opts:VATS},{k:"accountant",l:"Главный бухгалтер (для ООО)"},{k:"edo",l:"ID участника ЭДО в Диадоке (2BM-…)",wide:true,ph:"2BM-773120115806-…"}], onSelect:id=>renderSignBox(id)});
+      {k:"vat",l:"НДС",opts:VATS},{k:"accountant",l:"Главный бухгалтер (для ООО)"},{k:"edo",l:"ID участника ЭДО в Диадоке (2BM-…)",wide:true,ph:"2BM-773120115806-…"},{k:"eisLogin",l:"Логин ЕИС подписанта (для XML в ЕИС)",ph:"1084913317"}], onSelect:id=>renderSignBox(id)});
 }
 function renderSignBox(sid){ const s=sup(sid), box=$("#sup-sign"); if(!box) return; if(!s||!s.id||isStaff()){ box.innerHTML=""; return; }
   const cell=(k,title,hint)=>`<div class="sgcell"><div class="sgprev${k==="stamp"?" st":""}">${s[k]?`<img src="${s[k]}" alt="">`:`<span class="muted">${hint}</span>`}</div>

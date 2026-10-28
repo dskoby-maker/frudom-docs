@@ -57,7 +57,8 @@ $('#pv-eis-setup').onclick=()=>eisSetup(cur.k);
 $('#pv-xml').onclick=()=>{
   try{
     const {cfg}=eisConfig(cur.k);if(!cfg){eisSetup(cur.k);return;}
-    const r=Eis.generate(cfg,cur.k),a=document.createElement('a'),url=URL.createObjectURL(new Blob([r.bytes],{type:'application/xml'}));a.href=url;a.download=r.filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
+    const sup=(D.suppliers||[]).find(x=>x.id===cur.k.dr.supplierId),k=Object.assign({},cur.k,{s:Object.assign({},cur.k.s,{eisLogin:(sup&&sup.eisLogin)||cur.k.s.eisLogin||''})});
+    const r=Eis.generate(cfg,k),a=document.createElement('a'),url=URL.createObjectURL(new Blob([r.bytes],{type:'application/xml'}));a.href=url;a.download=r.filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
     logEv('XML','Скачан XML для ЕИС: УПД № '+cur.k.dr.number+' от '+fd(cur.k.dr.date)+' — '+shortCus(cur.k),cur.k.dr.id);
     $('#pv-warn').hidden=false;$('#pv-warn').textContent='Скачан один XML-файл для ЕИС. Его не нужно распаковывать или разделять. В личном кабинете поставщика откройте нужный контракт и этап → создайте документ о приёмке загрузкой XML. Проверьте суммы, позиции, адрес и подписанта в проекте ЕИС, затем подпишите. Файл содержит УПД и приложение; подпись из образца не переносится.';
     toast('ok','XML для ЕИС скачан','Загрузите файл в ЕИС как проект документа о приёмке.');
