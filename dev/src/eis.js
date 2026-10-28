@@ -13,6 +13,28 @@ const Eis = (() => {
     const a=[];for(const c of s){if(!map.has(c))throw Error('Символ «'+c+'» нельзя записать в XML ЕИС. Замените его в накладной.');a.push(map.get(c));}return new Uint8Array(a);
   }
   function decode(b){const a=new Uint8Array(b),h=new TextDecoder().decode(a.slice(0,180));return new TextDecoder(/encoding\s*=\s*["']utf-8/i.test(h)?'utf-8':'windows-1251',{fatal:true}).decode(a);}
+  function readInfo(text){
+    const d=parse(text),all=(n,k)=>[...n.getElementsByTagNameNS('*',k)],val=(n,k)=>all(n,k)[0]?.textContent.trim()||'';
+    if(!all(d,'EDOInfo').length)throw Error('Это не файл EDOInfo — сведения для внешних систем ЕИС.');
+    const supplier=all(d,'nsiEDOSupplier')[0];if(!supplier)throw Error('В EDOInfo нет сведений поставщика.');
+    const contracts=all(d,'contractEDOAddInfo').map(n=>{
+      const raw=val(n,'url');let url='';try{const u=new URL(raw);if(u.protocol==='https:'&&u.hostname==='zakupki.gov.ru'&&!u.username&&!u.password&&u.pathname==='/epz/contract/integration/viewXml.html')url=u.href;}catch(e){}
+      return {register:val(n,'regNum'),version:val(n,'id'),recipient:val(n,'customerID'),url};
+    });
+    if(!contracts.length)throw Error('В EDOInfo нет выбранных контрактов.');
+    return {kind:'edo-info',sender:val(supplier,'supplierID'),name:val(supplier,'fullName'),contracts};
+  }
+  // Local consistency checks; this is deliberately not advertised as full EIS XSD validation.
+  function unpack(text){
+    const d=parse(text),root=d.documentElement;
+    if(root.tagName!=='ФайлПакет'||attr(root,'ТипПрилож')!=='УПДПрод')throw Error('Нужен транспортный XML ЕИС с титулом продавца УПД.');
+    if([...root.children].some(n=>!['Документ','Прилож'].includes(n.tagName)))throw Error('Пакеты с дополнительными вложениями пока не поддерживаются.');
+    const take=tag=>{const nodes=[...root.children].filter(n=>n.tagName===tag);if(nodes.length!==1)throw Error('В пакете должен быть один блок '+tag);const parts=[...nodes[0].children].filter(n=>n.tagName==='Контент');if(parts.length!==1)throw Error('В пакете отсутствует единственный Контент: '+tag);const s=parts[0].textContent.replace(/\s/g,'');if(!s||s.length>400000||! /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(s))throw Error('Некорректный base64 или слишком большой XML: '+tag);const bytes=Uint8Array.from(atob(s),c=>c.charCodeAt(0));return {text:decode(bytes),bytes};};
+    const main=take('Документ'),pril=take('Прилож'),t=inspect(main.text,pril.text),id=attr(t.m.documentElement,'ИдФайл');
+    if(attr(root,'ИдФайл')!==id||attr(root,'ИдПрилож')!==attr(t.p.documentElement,'ИдПрилож')||attr(root,'ИдОтпр')!==t.sender||attr(root,'ИдПол')!==t.recipient)throw Error('Идентификаторы транспортного пакета не совпадают с вложенными документами.');
+    if(attr(t.p.documentElement,'ХэшФайл').toLowerCase()!==eisHash(main.bytes))throw Error('Контрольная сумма УПД в пакете не совпадает.');
+    return {main:main.text,pril:pril.text,mapping:{},ship:''};
+  }
   function inspect(main,pril){
     const m=parse(main),p=parse(pril),root=m.documentElement,pr=p.documentElement;
     if(root.tagName!=='Файл'||attr(root,'ВерсФорм')!=='5.03'||pr.tagName!=='ФайлУПДПрод'||attr(pr,'ВерсФорм')!=='1.23')throw Error('Нужен образец УПД продавца ЕИС: ФНС 5.03 и приложение 1.23, как в предоставленном архиве.');
@@ -48,6 +70,13 @@ const Eis = (() => {
   }
   async function read(files){
     let docs=[];
+    if(files.length===1&&/\.xml$/i.test(files[0].name)){
+      if(files[0].size>1200000)throw Error('XML настройки слишком большой.');
+      const text=decode(await files[0].arrayBuffer()),d=parse(text);
+      if(d.getElementsByTagNameNS('*','EDOInfo').length)return readInfo(text);
+      if(d.documentElement.tagName==='ФайлПакет')return unpack(text);
+      throw Error('Это отдельный XML документа. Для настройки выберите основной XML вместе с PRIL, ZIP ЕИС или один транспортный XML ФайлПакет. Сайт скачивает готовый результат одним XML.');
+    }
     if(files.length===1&&/\.zip$/i.test(files[0].name)){
       if(files[0].size>20*1024*1024)throw Error('Образец ZIP должен быть меньше 20 МБ.');
       const z=await EisZip.loadAsync(await files[0].arrayBuffer());
@@ -69,6 +98,7 @@ const Eis = (() => {
     const ship=String(k.dr.ship||firstAddr(k.c)||k.c.address||'').trim();
     if(!ship||ship!==config.ship)throw Error('Этот образец ЕИС привязан к другому адресу доставки. Откройте «Настроить ЕИС» и загрузите образец для выбранного адреса.');
     if(!k.dr.number||!/^\d{4}-\d\d-\d\d$/.test(k.dr.date)||!k.lines.length)throw Error('Заполните номер, дату и товарные строки накладной.');
+    const date=new Date(k.dr.date+'T12:00:00Z');if(!Number.isFinite(date.getTime())||date.toISOString().slice(0,10)!==k.dr.date)throw Error('Некорректная дата накладной.');
     if(k.rate&&!['5','7','10','20','22'].includes(String(k.rate)))throw Error('Такая ставка НДС пока не поддерживается для ЕИС.');
     const used=new Set(),pairs=k.lines.map(source=>{
       const l=Object.assign({},source); l.country=l.country||(config.countries||{})[config.mapping[l.pid]]||'';
@@ -81,6 +111,10 @@ const Eis = (() => {
       if(!/^\d{3}$/.test(l.country||''))throw Error('Укажите страну происхождения товара «'+l.name+'» в карточке товара.');
       return {l,pos};
     });
+    for(const key of ['net','vat','sum']){
+      if(!Number.isFinite(k.t[key])||k.t[key]<0||k.lines.some(l=>!Number.isFinite(l[key])||l[key]<0)||Math.abs(k.lines.reduce((s,l)=>s+l[key],0)-k.t[key])>0.011)throw Error('Итоги накладной не совпадают со строками. Пересчитайте документ перед выгрузкой.');
+    }
+    if(k.lines.some(l=>Math.abs(l.net+l.vat-l.sum)>0.011))throw Error('Сумма без НДС и НДС не совпадают с итогом строки.');
     const m=t.m,p=t.p,now=new Date(),day=now.toLocaleDateString('ru-RU',{timeZone:'Europe/Moscow'}),time=now.toLocaleTimeString('ru-RU',{timeZone:'Europe/Moscow',hour12:false}).replace(/:/g,'.');
     const id='ON_NSCHFDOPPR_'+t.recipient+'_'+t.sender+'_'+day.split('.').reverse().join('')+'_'+guid().toUpperCase()+'_0_0_0_0_0_00';
     attrs(m.documentElement,{ИдФайл:id,ВерсПрог:'frudom-docs EIS 1.0'});
@@ -92,7 +126,7 @@ const Eis = (() => {
     const dop=sf.querySelector('ДопСвФХЖ1');if(dop)[...dop.children].filter(e=>e.tagName!=='ИнфПродЗаГоскКазн').forEach(e=>e.remove());
     doc.setAttribute('НаимДокОпр',k.rate?'Счет-фактура и документ об отгрузке товаров (выполнении работ), передаче имущественных прав (документ об оказании услуг)':DOP_NAME);doc.setAttribute('ПоФактХЖ',DOP_NAME);
     const tab=one(m,'ТаблСчФакт'),total=one(tab,'ВсегоОпл').cloneNode(true);tab.replaceChildren();
-    const list=one(p,'СведТов'),tru=one(list,'СведТРУ');tru.replaceChildren();
+    const list=one(p,'СведТов');list.replaceChildren();
     const tax=(n,value)=>{n.replaceChildren();const v=m.createElement(k.rate?'СумНал':'БезНДС');v.textContent=k.rate?dec(value,2):'без НДС';n.appendChild(v);};
     pairs.forEach(({l,pos},i)=>{
       const r=pos.row.cloneNode(true),n=pos.link.cloneNode(true),v=one(n,'НеЛПСвед');
@@ -102,7 +136,7 @@ const Eis = (() => {
       attrs(v,{НомСтр:i+1,ЭАИдТРУ:guid().replace(/-/g,''),ЦенаИзКонтСНДС:attr(one(pos.link,'НеЛПСвед'),'ЦенаИзКонтСНДС')});
       const origin=one(v,'СтранаПроисх');attrs(origin,{Код:l.country,Наим:COUNTRIES[l.country]||attr(origin,'Наим')});
       if(!COUNTRIES[l.country])throw Error('Нет названия страны с кодом '+l.country+'. Дополните справочник стран.');
-      tab.appendChild(r);tru.appendChild(n);
+      const tru=pos.link.parentNode.cloneNode(false);tru.appendChild(n);tab.appendChild(r);list.appendChild(tru);
     });
     attrs(total,{СтТовБезНДСВсего:dec(k.t.net,2),СтТовУчНалВсего:dec(k.t.sum,2)});tax(one(total,'СумНалВсего'),k.t.vat);tab.appendChild(total);
     const per=one(m,'СвПер'),bs=t.basis.cloneNode(true);per.replaceChildren(bs);attrs(per,{СодОпер:'Товары переданы',ДатаПер:dd(k.dr.date)});['ДатаНачПер','ДатаОконПер'].forEach(a=>per.removeAttribute(a));
@@ -111,7 +145,8 @@ const Eis = (() => {
     ['ИдОбъект','ВнешИд'].forEach(a=>pr.removeAttribute(a));attrs(t.place,{ИдМестаПоставки:guid().replace(/-/g,'').toUpperCase()});
     const supplement=xml(p),pb=encode(supplement);
     const packet='<?xml version="1.0" encoding="windows-1251"?>\n<ФайлПакет ИдТрПакет="'+guid()+'" ИдФайл="'+xa(id)+'" ИдПрилож="PRIL_'+xa(id)+'" ДатаВрФормир="'+now.toISOString()+'" ТипПрилож="УПДПрод" ВерсФорм="1.00" ИдОтпр="'+xa(t.sender)+'" ИдПол="'+xa(t.recipient)+'"><Документ><Контент>'+b64(bytes)+'</Контент></Документ><Прилож><Контент>'+b64(pb)+'</Контент></Прилож></ФайлПакет>';
-    return {xml:packet,main,supplement,idf:id,bytes:encode(packet)};
+    unpack(packet);
+    return {xml:packet,main,supplement,idf:id,bytes:encode(packet),filename:'DP_PAKET_'+id+'.xml'};
   }
-  return {inspect,read,generate,encode,decode,checkParty};
+  return {inspect,read,readInfo,unpack,generate,encode,decode,checkParty};
 })();

@@ -24,7 +24,12 @@ async def main():
             await page.evaluate('''x=>{const D=__fd.D(),s=D.suppliers[0],c=D.customers[0],p=D.products[0];s.inn=x.sinn;s.rs='';c.inn=x.cinn;c.kpp=x.ckpp;p.unit='кг';p.country='643';const ctr={id:'eis-test-contract',customerId:c.id,supplierId:s.id,basis:x.basis};D.contracts.push(ctr);D.draft={id:'eis-test-doc',supplierId:s.id,customerId:c.id,contractId:ctr.id,number:'3012',date:'2026-09-17',ship:'Тестовый адрес',basis:x.basis,lines:[{productId:p.id,qty:2,price:100}]};__fd.showPreview('upd',__fd.calc(D.draft));}''',{'sinn':sin,'cinn':c.get('ИННЮЛ'),'ckpp':c.get('КПП'),'basis':'Контракт № '+bs.get('РеквНомерДок')+' от '+bs.get('РеквДатаДок')})
             assert await page.locator('#pv-pages').get_by_text('Универсальный передаточный документ № 3012 от 17.09.2026',exact=True).count()==1
             assert '№ п/п 1-' not in await page.locator('#pv-pages').inner_text()
-            await page.click('#pv-eis-setup');await page.set_input_files('#eis-files',sample)
+            await page.click('#pv-eis-setup')
+            edo=b'<export><EDOInfo><nsiEDOSupplier><supplierID>TEST</supplierID><fullName>TEST</fullName></nsiEDOSupplier><contractEDOAddInfo><id>1</id><regNum>TEST</regNum><url>https://zakupki.gov.ru/epz/contract/integration/viewXml.html?guid=TEST</url></contractEDOAddInfo></EDOInfo></export>'
+            await page.set_input_files('#eis-files',{'name':'EDOInfo.xml','mimeType':'application/xml','buffer':edo})
+            await page.wait_for_selector('#eis-source-info a')
+            assert await page.locator('#eis-save').is_disabled()
+            await page.set_input_files('#eis-files',sample)
             await page.wait_for_selector('[data-eis-pos]')
             pid=await page.evaluate('__fd.D().products[0].id')
             await page.locator('[data-eis-pos]').first.select_option(pid)
