@@ -1420,15 +1420,10 @@ async function addSheets(st, sheets, land){
   const page=()=>{ if(!st.pdf) st.pdf=new window.jspdf.jsPDF({orientation:o, unit:"mm", format:"a4", compress:true}); else st.pdf.addPage("a4", o); };
   for(const sh of sheets){
     const cv=await window.html2canvas(sh,{scale:2.5, backgroundColor:"#ffffff", logging:false});
-    const pxmm=cv.width/W, pageH=Math.round(H*pxmm);
-    if(cv.height<=pageH*1.06){ page();
-      const hmm=Math.min(H, cv.height/pxmm), wmm=hmm<H?W:W*H/(cv.height/pxmm);
-      st.pdf.addImage(scanify(cv),"JPEG",0,0,Math.min(W,wmm),hmm); continue; }
-    for(let y=0; y<cv.height && cv.height-y>pageH*0.03; y+=pageH){
-      const h=Math.min(pageH, cv.height-y), part=document.createElement("canvas"); part.width=cv.width; part.height=h;
-      const g=part.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,part.width,h); g.drawImage(cv,0,y,cv.width,h,0,0,cv.width,h);
-      page(); st.pdf.addImage(scanify(part),"JPEG",0,0,W,h/pxmm);
-    }
+    // Страницы уже разделены layout(). Один готовый лист — одна страница PDF,
+    // с пропорциональным уменьшением целиком, без разрезания строк и подписей.
+    const scale=Math.min(W/cv.width,H/cv.height),wmm=cv.width*scale,hmm=cv.height*scale;
+    page();st.pdf.addImage(scanify(cv),"JPEG",(W-wmm)/2,0,wmm,hmm);
   }
 }
 function pagesFor(kind,k){ const K=KINDS[kind]; return K.o==="landscape"&&k.lines.length ? layout(k,K.f) : [].concat(K.f(k)); }

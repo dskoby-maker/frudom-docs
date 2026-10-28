@@ -202,7 +202,10 @@ function sig4(pos, name, n, k){ return `<div class="s4"><div><div class="u">${es
 
 /* раскладка по листам по реальной высоте строк (A4 альбом, поля 8 мм) */
 function layout(k, f){
-  const box=document.getElementById("fd-measure"); box.innerHTML=f(k,[k.lines])[0];
+  // Короткая ТОРГ-12 целиком на одном листе: длинные реквизиты не должны
+  // выталкивать вторую строку и подписи. Печать/PDF вписывают лист в A4.
+  const box=document.getElementById("fd-measure"),single=f(k,[k.lines]); box.innerHTML=single[0];
+  if(k.lines.length<=2 && box.querySelector('.doc.t12')){box.innerHTML='';return single;}
   const mm=px=>px*25.4/96, h=e=>e?mm(e.getBoundingClientRect().height):0;
   const head=h(box.querySelector(".m-head")), foot=h(box.querySelector(".m-foot")), th=h(box.querySelector("table.items thead"));
   const tots=[...box.querySelectorAll("tr.tot")].map(h), tot=tots[0]||0, grand=tots.slice(1).reduce((a,b)=>a+b,0);
