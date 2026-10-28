@@ -12,7 +12,41 @@ const Eis = (() => {
     const dec=new TextDecoder('windows-1251'),map=new Map();for(let i=0;i<256;i++)map.set(dec.decode(new Uint8Array([i])),i);
     const a=[];for(const c of s){if(!map.has(c))throw Error('Символ «'+c+'» нельзя записать в XML ЕИС. Замените его в накладной.');a.push(map.get(c));}return new Uint8Array(a);
   }
-  function decode(b){const a=new Uint8Array(b),h=new TextDecoder().decode(a.slice(0,180));return new TextDecoder(/encoding\s*=\s*["']utf-8/i.test(h)?'utf-8':'windows-1251',{fatal:true}).decode(a);}
+  function decode(b){const a=new Uint8Array(b),h=new TextDecoder().decode(a.slice(0,180));if(/encoding\s*=\s*["']windows-1251/i.test(h))return new TextDecoder('windows-1251',{fatal:true}).decode(a);try{return new TextDecoder('utf-8',{fatal:true}).decode(a);}catch(e){return new TextDecoder('windows-1251',{fatal:true}).decode(a);}}
+  function readContract(text){
+    // Browser XML view copied into a TXT file: remove only its known display notice.
+    text=text.replace(/^\uFEFF?\s*This XML file does not appear to have any style information associated with it\. The document tree is shown below\.\s*/, '');
+    const d=parse(text),nodes=[...d.getElementsByTagNameNS('http://zakupki.gov.ru/oos/export/1','contract')];
+    if(nodes.length!==1)throw Error('Нужен полный XML одного контракта ЕИС (contract).');
+    const c=nodes[0],child=(n,key)=>[...(n?.children||[])].filter(e=>e.localName===key),at=(n,path)=>path.split('/').reduce((a,key)=>child(a,key)[0],n),val=(n,path)=>at(n,path)?.textContent.trim()||'';
+    const products=child(at(c,'products'),'product');if(!products.length||products.length>200)throw Error('В XML контракта должно быть от 1 до 200 товарных позиций.');
+    const positions=products.map(p=>{
+      const countries=child(p,'originCountry').map(x=>val(x,'countryCode'));
+      const regs=child(at(p,'registrationNumbersInfo'),'registrationNumberInfo');
+      if(val(p,'hierarchyType')!=='ND'||val(p,'type')!=='PRODUCT'||val(p,'VATRateInfo/VATCode')!=='RN'||val(p,'improvedProductReplacement')!=='false'||val(p,'isSoftware')!=='false'||countries.length!==1||regs.some(x=>val(x,'typeRegistry')!=='none'))throw Error('Позиция '+val(p,'indexNum')+': пока поддерживаются обычные товары без НДС, без реестровых номеров и замены характеристик.');
+      const x={id:val(p,'guid'),tech:val(p,'sid'),ext:val(p,'externalSid'),num:val(p,'indexNum'),name:val(p,'name'),okei:val(p,'OKEI/code'),price:val(p,'price'),code:val(p,'KTRU/code')||val(p,'OKPD2/code'),country:countries[0]};
+      if(!/^[A-Fa-f0-9]{32}$/.test(x.id)||!/^\d+$/.test(x.tech)||!x.ext||!/^\d+$/.test(x.num)||!x.name||!['166','796'].includes(x.okei)||!/^\d+(\.\d{1,11})?$/.test(x.price)||!x.code||!/^\d{3}$/.test(x.country))throw Error('В позиции '+x.num+' отсутствуют или не поддерживаются реквизиты ЕИС.');
+      return x;
+    });
+    if(new Set(positions.map(x=>x.id)).size!==positions.length||new Set(positions.map(x=>x.tech)).size!==positions.length)throw Error('В контракте повторяются идентификаторы позиций.');
+    const suppliers=child(at(c,'suppliersInfo'),'supplierInfo');if(suppliers.length!==1)throw Error('Поддерживается один поставщик контракта.');
+    const catalog={kind:'contract',register:val(c,'regNum'),version:val(c,'id'),number:val(c,'number'),date:val(c,'signDate'),cinn:val(c,'customer/inn'),ckpp:val(c,'customer/kpp'),sinn:val(suppliers[0],'individualPersonRFIndEntr/EGRIPInfo/INN'),stages:child(at(c,'executionPeriod'),'stages').map(n=>({id:val(n,'guid'),tech:val(n,'sid')})),places:child(at(c,'deliveryPlaceInfo'),'byGARInfo').map(n=>val(n,'sid')),positions};
+    if(!catalog.sinn||!catalog.cinn||!catalog.version||!catalog.register||!catalog.number||!catalog.stages.length||!catalog.places.length)throw Error('В XML нет реквизитов поставщика, заказчика, этапа или адреса.');
+    return catalog;
+  }
+  function inspectConfig(config){
+    const t=inspect(config.main,config.pril),c=config.catalog;if(!c)return t;
+    if(c.kind!=='contract'||c.register!==t.register||c.version!==attr(t.contract,'ИдВерсКонт')||c.number!==t.number||dd(c.date)!==t.date||c.sinn!==t.sinn||c.cinn!==t.cinn||c.ckpp!==t.ckpp)throw Error('Полный XML контракта не совпадает с версией, датой или участниками образца УПД. Нужен образец из этой же версии контракта.');
+    if(!c.stages.some(s=>s.id===attr(t.contract,'ИдЭтапКонт')&&s.tech===attr(t.contract,'ТехИдЭтапКонт'))||!c.places.includes(attr(t.place,'ИдМестаПоставкиКонт')))throw Error('Этап или адрес образца отсутствует в полном XML контракта.');
+    // Cross-check mapping against actual EIS-created rows before using the same fields for new positions.
+    for(const pos of t.positions){const x=c.positions.find(x=>x.id===pos.id);if(!x||x.tech!==attr(pos.link,'ТехИдТРУ')||x.ext!==attr(pos.link,'ВнешТехИдТРУ')||x.price!==attr(one(pos.link,'НеЛПСвед'),'ЦенаИзКонтСНДС')||x.okei!==pos.okei)throw Error('Позиции образца не совпадают со спецификацией контракта.');}
+    const base=t.positions[0];t.positions=c.positions.map((x,i)=>{
+      const row=base.row.cloneNode(true),link=base.link.cloneNode(true),wrapper=base.link.parentNode.cloneNode(false);wrapper.appendChild(link);
+      attrs(row,{НомСтр:i+1,НаимТов:x.name,ОКЕИ_Тов:x.okei,НаимЕдИзм:x.okei==='166'?'Килограмм':'Штука'});
+      attrs(one(row,'ДопСведТов'),{КодТов:x.code});attrs(link,{ИдТРУ:x.id,ТехИдТРУ:x.tech,ВнешТехИдТРУ:x.ext,НаимТовИсх:x.name});attrs(one(link,'НеЛПСвед'),{НомСтр:i+1,ЦенаИзКонтСНДС:x.price});attrs(one(link,'СтранаПроисх'),{Код:x.country,Наим:COUNTRIES[x.country]||''});
+      return {...x,unit:attr(row,'НаимЕдИзм'),row,link};
+    });return t;
+  }
   function readInfo(text){
     const d=parse(text),all=(n,k)=>[...n.getElementsByTagNameNS('*',k)],val=(n,k)=>all(n,k)[0]?.textContent.trim()||'';
     if(!all(d,'EDOInfo').length)throw Error('Это не файл EDOInfo — сведения для внешних систем ЕИС.');
@@ -70,9 +104,11 @@ const Eis = (() => {
   }
   async function read(files){
     let docs=[];
-    if(files.length===1&&/\.xml$/i.test(files[0].name)){
+    if(files.length===1&&/\.(xml|txt)$/i.test(files[0].name)){
       if(files[0].size>1200000)throw Error('XML настройки слишком большой.');
-      const text=decode(await files[0].arrayBuffer()),d=parse(text);
+      const text=decode(await files[0].arrayBuffer());
+      if(/<(?:(?:\w+):)?contract(?:\s|>)/.test(text))return readContract(text);
+      const d=parse(text);
       if(d.getElementsByTagNameNS('*','EDOInfo').length)return readInfo(text);
       if(d.documentElement.tagName==='ФайлПакет')return unpack(text);
       throw Error('Это отдельный XML документа. Для настройки выберите основной XML вместе с PRIL, ZIP ЕИС или один транспортный XML ФайлПакет. Сайт скачивает готовый результат одним XML.');
@@ -94,7 +130,8 @@ const Eis = (() => {
     return {main:main.text,pril:pril.text,mapping:{},ship:''};
   }
   function generate(config,k){
-    const t=inspect(config.main,config.pril);checkParty(t,k);
+    const t=inspectConfig(config);checkParty(t,k);
+    if(config.catalog&&k.rate)throw Error('Загруженная спецификация контракта — без НДС. Проверьте режим НДС накладной.');
     const ship=String(k.dr.ship||firstAddr(k.c)||k.c.address||'').trim();
     if(!ship||ship!==config.ship)throw Error('Этот образец ЕИС привязан к другому адресу доставки. Откройте «Настроить ЕИС» и загрузите образец для выбранного адреса.');
     if(!k.dr.number||!/^\d{4}-\d\d-\d\d$/.test(k.dr.date)||!k.lines.length)throw Error('Заполните номер, дату и товарные строки накладной.');
@@ -148,5 +185,5 @@ const Eis = (() => {
     unpack(packet);
     return {xml:packet,main,supplement,idf:id,bytes:encode(packet),filename:'DP_PAKET_'+id+'.xml'};
   }
-  return {inspect,read,readInfo,unpack,generate,encode,decode,checkParty};
+  return {inspect,inspectConfig,readContract,read,readInfo,unpack,generate,encode,decode,checkParty};
 })();
