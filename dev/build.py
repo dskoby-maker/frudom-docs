@@ -5,6 +5,8 @@ H=os.path.dirname(os.path.abspath(__file__)); S=H+'/src/'; O=H+'/out/'; os.maked
 rd=lambda f: open(S+f, encoding='utf-8').read()
 app=rd('app.html')
 fmt=re.sub(r'function todayISO\(\)\{[^\n]*\n','',rd('fmt_seg.js'))
+app=app.replace('/*__SYNC_GUARD__*/',rd('sync_guard.js'))
+app=app.replace('/*__EIS__*/',rd('vendor/jszip.js')+'\n'+rd('vendor/streebog.js')+'\n'+rd('eis.js')+'\n'+rd('eis_ui.js'))
 app=app.replace('/*__DOC_CSS__*/',rd('doc_css.css')).replace('/*__SEED__*/',rd('seed_seg.js')).replace('/*__FMT__*/',fmt).replace('/*__DOCS__*/',rd('docs_seg.js'))
 URL='https://script.google.com/macros/s/AKfycbwxMSXtEh7Ot76NnWqajA7f3klhACrJ2q8-EomjCoWu5baRHXWpPudojjkvQRYpv58m/exec'
 app=app.replace('const API_URL = "";','const API_URL = "'+URL+'";')

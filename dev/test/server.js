@@ -22,6 +22,7 @@ http.createServer((req,res)=>{
   if(u.pathname.startsWith('/page')){ res.writeHead(200,{'content-type':'text/html; charset=utf-8'}); res.end(fs.readFileSync(require('path').join(__dirname,'../out/test.html'))); return; }
   if(u.pathname==='/dump'){ res.writeHead(200,{'content-type':'application/json'}); res.end(JSON.stringify(Object.fromEntries(Object.entries(sheets).map(([k,v])=>[k,v.data])))); return; }
   let body=''; req.on('data',d=>body+=d); req.on('end',()=>{
+    vm.runInContext('Object.keys(MEMO_).forEach(k=>delete MEMO_[k]); Object.keys(SH_).forEach(k=>delete SH_[k]);',ctx);
     const out = req.method==='POST' ? ctx.doPost({postData:{contents:body}}) : ctx.doGet({parameter:Object.fromEntries(u.searchParams)});
     res.writeHead(200,{'content-type':'application/json','access-control-allow-origin':'*'}); res.end(out.t); });
 }).listen(8787);
