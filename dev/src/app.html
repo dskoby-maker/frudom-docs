@@ -727,7 +727,7 @@
 </main>
 
 <div class="modal" id="pv" hidden>
-  <div class="bar"><b id="pv-title"></b><button class="btn" id="pv-xml" hidden>Скачать XML для ЕИС</button><button class="btn" id="pv-eis-setup" hidden>Настроить ЕИС</button><button class="btn" id="pv-edo" hidden>XML для Диадок (ФНС)</button><label class="pvsign" id="pv-signw" hidden><input type="checkbox" id="pv-sign"> С печатью и подписью</label><label class="pvsign" id="pv-scanw" hidden title="Только в скачанном PDF: лёгкий наклон, серый фон и шум, как у скана"><input type="checkbox" id="pv-scan"> Вид скана (PDF)</label><button class="btn pri" id="pv-pdf">Скачать PDF</button><button class="btn" id="pv-print">Печать</button><button class="btn" id="pv-close">Закрыть</button></div>
+  <div class="bar"><b id="pv-title"></b><button class="btn" id="pv-xml" hidden>Скачать XML для ЕИС</button><button class="btn" id="pv-eis-setup" hidden>Настроить ЕИС</button><label class="pvsign" id="pv-signw" hidden><input type="checkbox" id="pv-sign"> С печатью и подписью</label><label class="pvsign" id="pv-scanw" hidden title="Только в скачанном PDF: лёгкий наклон, серый фон и шум, как у скана"><input type="checkbox" id="pv-scan"> Вид скана (PDF)</label><button class="btn pri" id="pv-pdf">Скачать PDF</button><button class="btn" id="pv-print">Печать</button><button class="btn" id="pv-close">Закрыть</button></div>
   <div class="warns" id="pv-warn" hidden></div>
   <div class="paper" id="pv-pages"></div>
 </div>
@@ -1255,7 +1255,7 @@ function showPreview(kind, k){
   const pages = K.o==="landscape"&&k.lines.length ? layout(k,K.f) : [].concat(K.f(k));
   $("#pv-pages").innerHTML=pages.map(h=>`<div class="sheet ${K.o}">${h}</div>`).join("");
   cur={kind, title, pages, o:K.o, k};
-  $("#pv-eis-setup").hidden = kind!=="upd"; $("#pv-xml").hidden = kind!=="upd"; $("#pv-edo").hidden = kind!=="upd";
+  $("#pv-eis-setup").hidden = kind!=="upd"; $("#pv-xml").hidden = kind!=="upd";
   $("#pv").hidden=false; document.body.style.overflow="hidden"; fitSheets(); syncSignUI();
 }
 /* несколько документов в одном окне просмотра (Счёт + ТОРГ‑12, комплект): печать и скачивание — всё сразу */
@@ -1265,7 +1265,7 @@ function showPreviewSet(items, title){
   $("#pv-title").textContent=title;
   $("#pv-pages").innerHTML=all.map(p=>`<div class="sheet ${p.o}">${p.h}</div>`).join("");
   cur={kind:items[0].kind, title, pages:all.map(p=>p.h), po:all.map(p=>p.o), o:all[0].o, k:items[0].k, set:items};
-  $("#pv-eis-setup").hidden=$("#pv-xml").hidden=$("#pv-edo").hidden=true;
+  $("#pv-eis-setup").hidden=$("#pv-xml").hidden=true;
   $("#pv").hidden=false; document.body.style.overflow="hidden"; fitSheets(); syncSignUI();
 }
 const setDocs = set => { const m=new Map(); set.forEach(({kind,k})=>{ const id=k.dr.id; if(!m.has(id)) m.set(id,[]); m.get(id).push(kind); }); return m; };
@@ -1328,7 +1328,7 @@ function cp1251(str){
   const M={0x401:0xA8,0x451:0xB8,0x2116:0xB9,0xAB:0xAB,0xBB:0xBB,0x2013:0x96,0x2014:0x97,0xA0:0xA0,0x201C:0x93,0x201D:0x94,0x201E:0x84,0x2018:0x91,0x2019:0x92,0x2026:0x85,0x404:0xAA,0x454:0xBA,0x406:0xB2,0x456:0xB3,0xB0:0xB0};
   const out=[]; for(const ch of str){ const c=ch.codePointAt(0); out.push(c<128?c:(c>=0x410&&c<=0x44F?c-0x350:(M[c]!=null?M[c]:0x3F))); } return new Uint8Array(out);
 }
-/* ---------- XML УПД в формате ФНС 5.03 (приказ ФНС № ЕА-7-26/970@) для отправки через Диадок ---------- */
+/* ---------- общие помощники XML (используются выгрузкой в ЕИС) ---------- */
 const DOP_NAME="Документ об отгрузке товаров (выполнении работ), передаче имущественных прав (документ об оказании услуг)";
 function fioParts(f){ const a=String(f||"").trim().split(/\s+/).filter(Boolean); return a.length?{F:a[0], I:a[1]||a[0], O:a.slice(2).join(" ")}:null; }
 const fioXml = f => `<ФИО Фамилия="${xa(f.F)}" Имя="${xa(f.I)}"${f.O?` Отчество="${xa(f.O)}"`:""}/>`;
@@ -1341,71 +1341,6 @@ function parseBasis(b){
 }
 function guid(){ const h=[...crypto.getRandomValues(new Uint8Array(16))].map(x=>x.toString(16).padStart(2,"0")); h[6]="4"+h[6][1]; h[8]=(8+(parseInt(h[8][0],16)&3)).toString(16)+h[8][1];
   return h.slice(0,4).join("")+"-"+h.slice(4,6).join("")+"-"+h.slice(6,8).join("")+"-"+h.slice(8,10).join("")+"-"+h.slice(10).join(""); }
-function edoXml(k){
-  const s=k.s, c=k.c, d=k.dr, errs=[], warn=[];
-  const sEdo=(s.edo||(sup(s.id)||{}).edo||"").trim(), cEdo=(c.edo||(()=>{ const lc=cus(d.customerId)||{}; const b=branches(lc).find(y=>y.id===d.branchId); return (b&&b.edo)||lc.edo||""; })()).trim();
-  const inn=digits(s.inn), cinn=digits(c.inn), ckpp=digits(c.kpp), skpp=digits(s.kpp);
-  const isIP = inn.length===12, f=fioParts(s.fio || String(s.name||"").replace(/^ИП\s+/i,""));
-  if(!(inn.length===12||inn.length===10)) errs.push("ИНН поставщика должен быть 10 или 12 цифр");
-  if(isIP && !f) errs.push("не заполнено ФИО поставщика");
-  if(!(cinn.length===10||cinn.length===12)) errs.push("ИНН заказчика должен быть 10 или 12 цифр");
-  if(!sEdo) warn.push("ID участника ЭДО поставщика"); if(!cEdo) warn.push("ID участника ЭДО заказчика");
-  const now=new Date(), p2=n=>String(n).padStart(2,"0");
-  const dInf=p2(now.getDate())+"."+p2(now.getMonth()+1)+"."+now.getFullYear(), tInf=p2(now.getHours())+"."+p2(now.getMinutes())+"."+p2(now.getSeconds());
-  const idf = "ON_NSCHFDOPPR_"+(cEdo||cinn+(ckpp?"-"+ckpp:""))+"_"+(sEdo||inn)+"_"+d.date.replace(/-/g,"")+"_"+guid()+"_0_0_0_0_0_00";
-  const ogrn=digits(s.ogrn), ogrnD=s.ogrnDate?dd(s.ogrnDate):"";
-  const sId = isIP ? `<СвИП ИННФЛ="${inn}"${ogrn.length===15?` ОГРНИП="${ogrn}"`:""}${/^\d\d\.\d\d\.\d{4}$/.test(ogrnD)?` ДатаОГРНИП="${ogrnD}"`:""}>${fioXml(f||{F:"-",I:"-"})}</СвИП>`
-                   : `<СвЮЛУч НаимОрг="${xa(s.name)}" ИННЮЛ="${inn}"${skpp.length===9?` КПП="${skpp}"`:""}/>`;
-  const bank = (digits(s.rs)||s.bank) ? `<БанкРекв${digits(s.rs)?` НомерСчета="${digits(s.rs).slice(0,34)}"`:""}><СвБанк${s.bank?` НаимБанк="${xa(s.bank)}"`:""}${digits(s.bik).length===9?` БИК="${digits(s.bik)}"`:""}${digits(s.ks)?` КорСчет="${digits(s.ks).slice(0,34)}"`:""}/></БанкРекв>` : "";
-  const tels=String(s.phone||"").split(/[,;]/).map(x=>x.trim()).filter(Boolean);
-  const kont = tels.length ? `<Контакт>${tels.map(x=>`<Тлф>${xa(x)}</Тлф>`).join("")}</Контакт>` : "";
-  const cId = cinn.length===12 ? `<СвФЛУч ИННФЛ="${cinn}"/>` : `<СвЮЛУч НаимОрг="${xa(c.name)}" ИННЮЛ="${cinn}"${ckpp.length===9?` КПП="${ckpp}"`:""}/>`;
-  const cbank = (c.acct==="treasury"||digits(c.rs)) ? `<БанкРекв${digits(c.rs)?` НомерСчета="${digits(c.rs).slice(0,34)}"`:""}><СвБанк${c.bank?` НаимБанк="${xa(c.bank)}"`:""}${digits(c.bik).length===9?` БИК="${digits(c.bik)}"`:""}${digits(c.ks)?` КорСчет="${digits(c.ks).slice(0,34)}"`:""}/></БанкРекв>` : "";
-  const ship = d.ship || firstAddr(c) || c.address || "";
-  const rate = k.rate, fn = rate ? "СЧФДОП" : "ДОП";
-  const nal = rate ? (rate+"%") : "без НДС";
-  const rows = k.lines.map((l,i)=>{
-    const unit=l.unit||"", okei=/^\d{3}$/.test(l.okei||"")?l.okei:"";
-    const country=/^\d{3}$/.test(l.country||"")?l.country:"";
-    return `<СведТов НомСтр="${i+1}" НаимТов="${xa(String(l.name).slice(0,2000))}"`+(okei?` ОКЕИ_Тов="${okei}" НаимЕдИзм="${xa(unit||"-")}"`:(unit?` НаимЕдИзм="${xa(unit)}"`:""))+
-      ` КолТов="${qtyS(l.qty)}" ЦенаТов="${String(+(+l.priceNet).toFixed(11))}" СтТовБезНДС="${dec(l.net,2)}" НалСт="${nal}" СтТовУчНал="${dec(l.sum,2)}">`+
-      (country && country!=="643" ? `<СвДТ КодПроисх="${country}"/>` : "")+
-      `<ДопСведТов ПрТовРаб="1"${l.code?` КодТов="${xa(String(l.code).slice(0,100))}"`:""}/>`+
-      `<Акциз><БезАкциз>без акциза</БезАкциз></Акциз>`+
-      (rate ? `<СумНал><СумНал>${dec(l.vat,2)}</СумНал></СумНал>` : `<СумНал><БезНДС>без НДС</БезНДС></СумНал>`)+`</СведТов>`; });
-  const tot = rate ? `<СумНал>${dec(k.t.vat,2)}</СумНал>` : `<БезНДС>без НДС</БезНДС>`;
-  const bs = parseBasis(d.basis||c.contract||"");
-  const osn = bs ? `<ОснПер РеквНаимДок="${xa(bs.name.slice(0,255))}" РеквНомерДок="${xa(bs.num.slice(0,255))}" РеквДатаДок="${bs.date}"/>` : `<БезДокОснПер>1</БезДокОснПер>`;
-  if(!bs && (d.basis||"").trim()) warn.push("основание не распознано (нужно «… № 123 от 01.02.2026») — в XML будет «без документа-основания»");
-  const ikz = digits(c.ikz);
-  const inf1 = (ikz || c.branchLabel) ? `<ИнфПолФХЖ1>${ikz?`<ТекстИнф Идентиф="ИКЗ" Значен="${ikz}"/>`:""}${c.branchLabel?`<ТекстИнф Идентиф="Подразделение" Значен="${xa(c.branchLabel)}"/>`:""}</ИнфПолФХЖ1>` : "";
-  const xml = `<?xml version="1.0" encoding="windows-1251"?>\n`+
-  `<Файл ИдФайл="${xa(idf)}" ВерсФорм="5.03" ВерсПрог="frudom-docs 1.0">`+
-  `<Документ КНД="1115131" Функция="${fn}" ПоФактХЖ="${DOP_NAME}" НаимДокОпр="${rate?"Счет-фактура и документ об отгрузке товаров (выполнении работ), передаче имущественных прав (документ об оказании услуг)":DOP_NAME}" ДатаИнфПр="${dInf}" ВремИнфПр="${tInf}" НаимЭконСубСост="${xa(s.name)}">`+
-    `<СвСчФакт НомерДок="${xa(d.number)}" ДатаДок="${dd(d.date)}">`+
-      `<СвПрод><ИдСв>${sId}</ИдСв>${adrXml(s.address)}${bank}${kont}</СвПрод>`+
-      `<ГрузОт><ОнЖе>он же</ОнЖе></ГрузОт>`+
-      `<ГрузПолуч><ИдСв>${cId}</ИдСв>${adrXml(ship)}</ГрузПолуч>`+
-      `<СвПокуп><ИдСв>${cId}</ИдСв>${adrXml(c.address)}${cbank}</СвПокуп>`+
-      `<ДенИзм КодОКВ="643" НаимОКВ="Российский рубль"/>`+
-      inf1+
-    `</СвСчФакт>`+
-    `<ТаблСчФакт>${rows.join("")}<ВсегоОпл СтТовБезНДСВсего="${dec(k.t.net,2)}" СтТовУчНалВсего="${dec(k.t.sum,2)}"><СумНалВсего>${tot}</СумНалВсего></ВсегоОпл></ТаблСчФакт>`+
-    `<СвПродПер><СвПер СодОпер="Товары переданы" ДатаПер="${dd(d.date)}">${osn}</СвПер></СвПродПер>`+
-    `<Подписант${isIP?` Должн="Индивидуальный предприниматель"`:""} СпосПодтПолном="1">${fioXml(f||{F:"-",I:"-"})}</Подписант>`+
-  `</Документ></Файл>`;
-  if(!s.address) warn.push("адрес поставщика"); if(!c.address) warn.push("адрес заказчика");
-  return {xml, idf, errs, warn};
-}
-$("#pv-edo").onclick=()=>{
-  const r=edoXml(cur.k);
-  if(r.errs.length){ toast("err","XML для Диадока не сформирован", r.errs.join("; ")+". Исправьте во вкладках «Поставщики» / «Заказчики и цены»."); $("#pv-warn").hidden=false; $("#pv-warn").textContent="XML не сформирован: "+r.errs.join("; ")+"."; return; }
-  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([cp1251(r.xml)],{type:"application/xml"}));
-  a.download=r.idf+".xml"; document.body.appendChild(a); a.click(); a.remove();
-  logEv("XML","Скачан XML для Диадока (ФНС): УПД № "+cur.k.dr.number+" от "+fd(cur.k.dr.date)+" — "+shortCus(cur.k), cur.k.dr.id);
-  toast(r.warn.length?"warn":"ok","XML для Диадока скачан", r.warn.length?"Не заполнено: "+r.warn.join(", ")+" — Диадок может не принять файл.":"Имя файла не меняйте. В Диадоке: «Отправить документ» → «Загрузить с компьютера»."); $("#pv-warn").hidden=false; $("#pv-warn").textContent="XML для Диадока скачан (формат ФНС 5.03, УПД № "+cur.k.dr.number+"). Имя файла не меняйте — Диадок сверяет его с содержимым. В Диадоке: «Отправить документ» → «Загрузить с компьютера» → выберите файл → проверьте получателя → подпишите и отправьте."+
-    (r.warn.length?" Внимание, не заполнено: "+r.warn.join(", ")+" (вкладки «Поставщики» и «Заказчики и цены»).":"");
-};
 /*__EIS__*/
 /* ---------- скачивание PDF без окна печати ---------- */
 function loadScript(src, test){ return test() ? Promise.resolve() : new Promise((ok,bad)=>{ const sc=document.createElement("script"); sc.src=src; sc.onload=()=>ok(); sc.onerror=()=>bad(new Error("не загрузилась библиотека PDF")); document.head.appendChild(sc); }); }
@@ -2278,7 +2213,7 @@ function jRowHtml(j, kid, arch){ const w=jWho(j);
     ? `${view} <button class="btn sm" data-unarch="${j.id}">Вернуть из архива</button>`
     : isStaff() ? `<button class="btn sm" data-combo-j="${j.id}" title="Счёт и ТОРГ‑12 вместе — просмотр, печать, PDF">Счёт+ТОРГ</button> ${view} <button class="btn ghost sm" data-qty="${j.id}">Изменить количество</button>`
     : `<button class="btn sm" data-combo-j="${j.id}" title="Счёт и ТОРГ‑12 вместе — просмотр, печать, PDF">Счёт+ТОРГ</button> ${view} <button class="btn ghost sm" data-edit="${j.id}">Изменить</button>
-    <details class="more"><summary class="btn ghost sm">Ещё ▾</summary><div class="menu"><button class="btn sm" data-x="${j.id}">XML для ЕИС</button><button class="btn sm" data-xd="${j.id}">XML для Диадока</button><button class="btn sm" data-copy="${j.id}">Сделать копию</button><button class="btn sm danger" data-arch="${j.id}">В архив</button></div></details>`;
+    <details class="more"><summary class="btn ghost sm">Ещё ▾</summary><div class="menu"><button class="btn sm" data-x="${j.id}">XML для ЕИС</button><button class="btn sm" data-copy="${j.id}">Сделать копию</button><button class="btn sm danger" data-arch="${j.id}">В архив</button></div></details>`;
   const ad = arch ? `<span class="muted" title="Убран в архив">в архиве с ${dtShort(j.snap.meta.arch)}</span>` : jDl(j);
   return `<tr class="${kid?"kid":""}"><td>${fd(j.date)}</td><td>${esc(j.number)}</td><td><div class="who">${esc(kid&&w.pt?w.pt:w.main)}</div><small>${kid?"":esc(w.pt?w.pt+" · ":"")}${esc(supShort(j.snap.s.name))}</small></td><td class="num">${fm(j.sum)}</td><td>${ad}</td><td class="acts">${acts}</td></tr>`; }
 /* строки журнала с комплектами; arch — показываем архив */
@@ -2364,7 +2299,7 @@ function onJClick(arch){ return async e=>{
     if(b && !b.hasAttribute("data-gt")) return; if(e.target.closest("details")) return;
     if(openSet.has(k)) openSet.delete(k); else openSet.add(k); rerender(); return; }
   if(!b) return; const det=b.closest("details"); if(det && !b.dataset.arch) det.removeAttribute("open");
-  const id=b.dataset.id||b.dataset.edit||b.dataset.copy||b.dataset.x||b.dataset.xd||b.dataset.comboJ||b.dataset.arch||b.dataset.unarch||b.dataset.qty; const j=D.journal.find(x=>x.id===id); if(!j) return;
+  const id=b.dataset.id||b.dataset.edit||b.dataset.copy||b.dataset.x||b.dataset.comboJ||b.dataset.arch||b.dataset.unarch||b.dataset.qty; const j=D.journal.find(x=>x.id===id); if(!j) return;
   if(isStaff() && (b.dataset.arch||b.dataset.unarch||b.dataset.edit||b.dataset.copy)) return;
   if(b.dataset.qty){ const dr=clone(j.snap.dr); dr._editBase=clone((BASE.journal||{})[j.id]||jRow(j)); dr.qtyOnly=true; D.draft=dr; saveLocal(); $("#d-saved").textContent="Измените количество (например, по факту упаковок) и нажмите «Сохранить в журнал» или сформируйте документ — номер, цены и реквизиты останутся прежними."; showTab("doc"); return; }
   if(b.dataset.arch){ if(!armed(b,"Точно в архив?")) return; setArch([j],true); msgEl.textContent=""; toast("ok","Документ № "+j.number+" в архиве","Его номер снова свободен.",{action:{label:"Вернуть",fn:()=>{ setArch([j],false); toast("ok","Документ № "+j.number+" возвращён в журнал",""); }}}); return; }
@@ -2373,7 +2308,6 @@ function onJClick(arch){ return async e=>{
   if(b.dataset.comboJ){ const k=calc(j.snap.dr, j.snap); showPreviewSet([{kind:"invoice",k},{kind:"torg12",k}], "Счёт и ТОРГ-12 № "+j.number+" от "+fd(j.date)+(shortCus(k)?" — "+shortCus(k):"")); return; }
   if(b.dataset.comboJ){ const t=b.textContent; b.disabled=true; b.textContent="…"; comboPdf(["invoice","torg12"], calc(j.snap.dr, j.snap)).then(()=>toast("ok","PDF скачан","Счёт и ТОРГ‑12 № "+j.number)).catch(err=>toast("err","Не получилось сделать PDF", err.message+". Откройте документ и нажмите «Печать» → «Сохранить как PDF».")).finally(()=>{ b.disabled=false; b.textContent=t; }); return; }
   if(b.dataset.x){ showPreview("upd", calc(j.snap.dr, j.snap)); $("#pv-xml").click(); return; }
-  if(b.dataset.xd){ showPreview("upd", calc(j.snap.dr, j.snap)); $("#pv-edo").click(); return; }
   if(!b.dataset.edit && !b.dataset.copy) return;
   const dr=clone(j.snap.dr); if(!b.dataset.copy)dr._editBase=clone((BASE.journal||{})[j.id]||jRow(j));
   if(b.dataset.copy){ dr.id=uid(); delete dr.numManual; dr.number=nextNum(dr.supplierId, dr.customerId); dr.date=todayISO(); dr.lines.forEach(l=>{ if(prod(l.productId)) l.price=String(getPrice(dr.customerId,l.productId)); }); }
@@ -2472,7 +2406,7 @@ function renderSuppliers(){
     fields:[{k:"name",l:"Наименование в документах",wide:true,ph:"ИП Иванов Иван Иванович"},{k:"fio",l:"ФИО ИП / руководителя",ph:"Иванов Иван Иванович"},
       {k:"inn",l:"ИНН",num:1},{k:"kpp",l:"КПП (у ИП нет)",num:1},{k:"ogrn",l:"ОГРНИП / ОГРН",num:1},{k:"ogrnDate",l:"Дата присвоения ОГРНИП (для УПД)",type:"date"},
       {k:"address",l:"Адрес",wide:true},{k:"phone",l:"Телефон"},{k:"bank",l:"Банк",wide:true,ph:"АО «ТБанк», г. Москва"},{k:"bik",l:"БИК",num:1},{k:"rs",l:"Расчётный счёт",num:1},{k:"ks",l:"Корр. счёт",num:1},
-      {k:"vat",l:"НДС",opts:VATS},{k:"accountant",l:"Главный бухгалтер (для ООО)"},{k:"edo",l:"ID участника ЭДО в Диадоке (2BM-…)",wide:true,ph:"2BM-773120115806-…"},{k:"eisLogin",l:"Логин ЕИС подписанта (для XML в ЕИС)",ph:"1084913317"}], onSelect:id=>renderSignBox(id)});
+      {k:"vat",l:"НДС",opts:VATS},{k:"accountant",l:"Главный бухгалтер (для ООО)"},{k:"eisLogin",l:"Логин ЕИС подписанта (для XML в ЕИС)",ph:"1084913317"}], onSelect:id=>renderSignBox(id)});
 }
 function renderSignBox(sid){ const s=sup(sid), box=$("#sup-sign"); if(!box) return; if(!s||!s.id||isStaff()){ box.innerHTML=""; return; }
   const cell=(k,title,hint)=>`<div class="sgcell"><div class="sgprev${k==="stamp"?" st":""}">${s[k]?`<img src="${s[k]}" alt="">`:`<span class="muted">${hint}</span>`}</div>
@@ -2513,7 +2447,6 @@ function renderCustomers(){
       {k:"address",l:"Юридический адрес",wide:true},{k:"ship",l:"Адреса доставки — каждый с новой строки",wide:true,area:1,ph:"Если совпадает с юр. адресом — оставьте пустым"},
       {k:"acct",l:"Тип счёта",opts:{bank:"Расчётный счёт в банке",treasury:"Казначейский счёт (бюджетник)"}},{k:"bank",l:"Банк",wide:true},
       {k:"bik",l:"БИК / БИК ТОФК",num:1},{k:"rs",l:"Р/с или казначейский счёт",num:1},{k:"ks",l:"К/с или ЕКС",num:1},
-      {k:"edo",l:"ID участника ЭДО в Диадоке (2BM-… / 2AE-… — узнать у заказчика)",wide:true},
       {k:"signs",l:"Подписи поставщика (с печатью и подписью)",opts:{"":"Одна — основная","3":"Во всех графах (ТОРГ‑12: разрешил, бухгалтер, произвёл; УПД: все)"}},
       {k:"plist",l:"Цены",opts:{"":"Свои цены — заполняю вручную ниже","1":"Из моего прайса — подставляются и обновляются сами"}},
       {k:"vat",l:"НДС в документах",opts:{"":"Без НДС (как у поставщика)","10+":"НДС 10% сверху цены прайса","22+":"НДС 22% сверху цены прайса","10":"НДС 10% — уже в цене прайса","22":"НДС 22% — уже в цене прайса"}},
@@ -2536,7 +2469,7 @@ function renderBranches(cid){
   const c=cus(cid); $("#br-name").textContent=c.name?"— "+c.name:"";
   if(!cid){ $("#br-list").innerHTML=""; return; }
   const list=branches(c), F=[["label","Короткое название (для выбора)"],["fullName","Наименование покупателя в документах",1],["kpp","КПП"],["address","Адрес ОП",1],
-    ["acct","Тип счёта"],["bank","Банк, лицевой счёт",1],["bik","БИК / БИК ТОФК"],["rs","Р/с или казначейский счёт"],["ks","К/с или ЕКС"],["edo","ID участника ЭДО в Диадоке (если у ОП свой ящик)",1],["ship","Адреса доставки — каждый с новой строки",1,1]];
+    ["acct","Тип счёта"],["bank","Банк, лицевой счёт",1],["bik","БИК / БИК ТОФК"],["rs","Р/с или казначейский счёт"],["ks","К/с или ЕКС"],["ship","Адреса доставки — каждый с новой строки",1,1]];
   $("#br-list").innerHTML = list.map(b=>`<div class="grid" data-id="${b.id}" style="border:1px solid var(--line);border-radius:8px;padding:12px">${F.map(([k,l,w,a])=>`<label class="f${w?" wide":""}">${l}${
       k==="acct"?`<select data-k="acct"><option value="bank"${b.acct!=="treasury"?" selected":""}>Расчётный счёт</option><option value="treasury"${b.acct==="treasury"?" selected":""}>Казначейский счёт</option></select>`
       : a?`<textarea data-k="${k}" rows="4">${esc(b[k]||"")}</textarea>` : `<input data-k="${k}" value="${esc(b[k]||"")}">`}</label>`).join("")}
