@@ -63,6 +63,26 @@
 #fd-app .dcard .dc-acts{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:16px}
 @media (max-width:600px){#fd-app dialog.dcard{width:100vw;max-width:100vw;margin:auto 0 0;border-radius:20px 20px 0 0;max-height:90vh;padding:18px 16px calc(14px + env(safe-area-inset-bottom,0px));transform:translateY(40px)}#fd-app dialog.dcard.out{transform:translateY(60px)}#fd-app .dcard .dc-acts .btn{flex:1 1 auto}#fd-app .dcard .dc-t{font-size:13px}#fd-app .dcard .dc-t th,#fd-app .dcard .dc-t td{padding:8px}}
 @media (prefers-reduced-motion:reduce){#fd-app dialog.dcard,#fd-app dialog.dcard.in,#fd-app dialog.dcard.out{transition:none;transform:none}#fd-app .dcard .dc-t tbody tr{animation:none}#fd-app dialog.dcard::backdrop{animation:none}}
+#fd-app dialog.dcard.wide{width:min(760px,calc(100vw - 24px))}
+#fd-app .dcard .dc-docs{display:grid;gap:12px}
+#fd-app .dcard .dc-doc{animation:fdin .28s ease both}
+#fd-app .dcard .dc-dh{all:unset;box-sizing:border-box;display:flex;justify-content:space-between;gap:10px;width:100%;padding:6px 4px 8px;cursor:pointer;font:500 14px var(--ui);color:var(--ink);border-radius:8px;transition:color .15s}
+#fd-app .dcard .dc-dh:hover{color:var(--accent)}#fd-app .dcard .dc-dh .s{white-space:nowrap;font-weight:600}#fd-app .dcard .dc-dh:focus-visible{outline:2px solid var(--accent)}
+#fd-app .dcard .dc-hist{margin-top:14px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+#fd-app .dcard .dc-hist summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:11px 14px;font-weight:500;user-select:none;transition:background .15s}
+#fd-app .dcard .dc-hist summary::-webkit-details-marker{display:none}#fd-app .dcard .dc-hist summary:hover{background:var(--bg)}
+#fd-app .dcard .dc-hist summary i{font-style:normal;font-size:12px;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:1px 8px}
+#fd-app .dcard .dc-hist summary::after{content:"";margin-left:auto;width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .2s}
+#fd-app .dcard .dc-hist[open] summary::after{transform:rotate(-135deg)}
+#fd-app .dcard .dc-hist ol{list-style:none;margin:0;padding:4px 14px 12px 14px;animation:fdin .22s ease}
+#fd-app .dcard .dc-hist ol>li{position:relative;padding:8px 0 8px 20px;border-left:2px solid var(--line);margin-left:5px}
+#fd-app .dcard .dc-hist ol>li::before{content:"";position:absolute;left:-7px;top:12px;width:12px;height:12px;border-radius:50%;background:var(--surface);border:2px solid var(--accent)}
+#fd-app .dcard .dc-hist ol>li.cr::before{background:var(--accent)}#fd-app .dcard .dc-hist ol>li.ev::before{border-color:var(--muted)}
+#fd-app .dcard .dc-hist .hh{display:flex;flex-wrap:wrap;gap:2px 10px;align-items:baseline}#fd-app .dcard .dc-hist .hh b{font-weight:600;font-size:14px}#fd-app .dcard .dc-hist .hh span{font-size:12px;color:var(--muted)}#fd-app .dcard .dc-hist .hh em{font-style:normal;color:var(--ink)}
+#fd-app .dcard .dc-hist ul{margin:4px 0 0;padding-left:16px;font-size:13px;color:var(--ink)}#fd-app .dcard .dc-hist ul li{margin:2px 0}
+#fd-app .oedit{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--accent-soft);border:1px solid rgba(106,44,78,.2);border-radius:14px;padding:12px 14px;margin:6px 0 12px;animation:fdin .25s ease}
+#fd-app .oedit b{color:var(--accent);display:block}#fd-app .oedit span{font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){#fd-app .dcard .dc-doc,#fd-app .dcard .dc-hist ol,#fd-app .oedit{animation:none}#fd-app .dcard .dc-hist summary::after{transition:none}}
 #fd-app select.fdflash{animation:fdflash .6s ease}@keyframes fdflash{0%{box-shadow:0 0 0 0 rgba(106,44,78,.35)}40%{box-shadow:0 0 0 4px rgba(106,44,78,.18)}100%{box-shadow:0 0 0 0 rgba(106,44,78,0)}}
 @media (prefers-reduced-motion:reduce){#fd-app section.tab:not([hidden]){animation:none}#fd-app nav.tabs button{transition:none}}
 #fd-app section.tab{display:grid;gap:16px;margin-top:20px}
@@ -505,6 +525,7 @@
   <section class="tab" id="tab-order" hidden>
     <div class="card">
       <h2>Заявка → документы <small>на каждый адрес доставки — своя накладная</small></h2>
+      <div class="oedit" id="o-editing" hidden></div>
       <div class="grid">
         <label class="f">Заказчик<select id="o-cus"></select></label>
         <label class="f">Поставщик<select id="o-sup"></select><span id="o-supwarn" class="ctrinfo warn" hidden></span></label>
@@ -1319,7 +1340,10 @@ async function commitDoc(dr0, opt){
     if(dr.qtyOnly && o0 && o0.snap){ const sn=clone(o0.snap); sn.dr.lines=sn.dr.lines.map((l,i)=>Object.assign(l,{qty:String((dr.lines[i]||{}).qty||"0")})); delete sn.dr.qtyOnly;
       return {id:dr.id, supplierId:o0.supplierId, customerId:o0.customerId, number:String(o0.number), date:o0.date, sum:calc(sn.dr, sn).t.sum, updated:new Date().toISOString(), snap:sn}; }
     const sn=makeSnap(dr); delete sn.dr.qtyOnly; return {id:dr.id, supplierId:dr.supplierId, customerId:dr.customerId, number:String(dr.number), date:dr.date, sum:calc(dr).t.sum, updated:new Date().toISOString(), snap:sn}; };
-  const old=D.journal.find(j=>j.id===dr.id), keepMeta=e=>{ const m=Object.assign({}, (old&&old.snap&&old.snap.meta)||{}, (opt&&opt.meta)||{}); if(!m.created) m.created=(old&&old.updated)||new Date().toISOString(); e.snap.meta=m; return e; };
+  const old=D.journal.find(j=>j.id===dr.id), keepMeta=e=>{ const m=Object.assign({}, (old&&old.snap&&old.snap.meta)||{}, (opt&&opt.meta)||{}); if(!m.created) m.created=(old&&old.updated)||new Date().toISOString();
+    /* история: кто и когда создал/изменил и что именно поменялось */
+    if(!old) histPush(m, ["создан"]); else { const w=docDiff(old.snap||{}, e.snap); if(w.length) histPush(m, w); }
+    e.snap.meta=m; return e; };
   let entry=keepMeta(mk()), note="";
   const liveDup = () => D.journal.some(x=>x.id!==dr.id && !isArch(x) && x.supplierId===dr.supplierId && x.customerId===dr.customerId && String(x.number)===String(dr.number));
   /* повторяющийся номер — сохраняем как есть, без проверки номера на сервере */
@@ -1486,14 +1510,20 @@ function O(){ if(!D.order) D.order={qty:{}, extra:[]}; const o=D.order; o.qty=o.
   if(!D.customers.some(x=>x.id===o.customerId)){ const m=D.customers.find(x=>x.inn==="7729082090")||D.customers[0]; o.customerId=m?m.id:""; o.branchId=""; o.supplierId=""; }
   const bl=branches(cus(o.customerId)); if(bl.length && !bl.some(b=>b.id===o.branchId)) o.branchId=bl[0].id; if(!bl.length) o.branchId="";
   const cl=ctrs(o.customerId); if(!o.supplierId || !sup(o.supplierId).id){ const x=cl.find(x=>x.supplierId)||cl[0]; o.supplierId=(x&&x.supplierId)||(D.suppliers[0]||{}).id||""; }
-  if(!o.date || o.date<todayISO()) o.date=nextWorkday();
+  if(!o.edit && (!o.date || o.date<todayISO())) o.date=nextWorkday();
   return o; }
 const oCtr = o => { const cl=ctrs(o.customerId); return cl.find(x=>x.supplierId===o.supplierId)||cl.find(x=>!x.supplierId)||cl[0]||null; };
-const oProds = o => D.products.filter(p=>{ const v=custPrice(o.customerId,p.id); return v!=null&&v!==""; });
+const oProds = o => D.products.filter(p=>{ if(o.edit && o.edit.price && o.edit.price[p.id]!=null) return true; const v=custPrice(o.customerId,p.id); return v!=null&&v!==""; });
+/* цена в заявке: при правке комплекта — цена из его документов, иначе прайс заказчика */
+const oPrice = (o,pid) => o.edit && o.edit.price && o.edit.price[pid]!=null ? +o.edit.price[pid] : getPrice(o.customerId,pid);
+const oGoLabel = () => O().edit ? "Сохранить комплект и скачать PDF" : "Создать документы и скачать PDF";
 function oAddrs(o){ const c=liveCus({customerId:o.customerId, branchId:o.branchId}), list=addrs(c), legal=c.address||"";
   const all=[...list]; if(legal && !all.includes(legal)) all.push(legal); o.extra.forEach(a=>{ if(a && !all.includes(a)) all.push(a); }); return {all, legal}; }
 function renderOrder(){
-  const o=O(), x=oCtr(o);
+  const o=O(), x=oCtr(o), ed=$("#o-editing");
+  ed.hidden=!o.edit; if(o.edit) ed.innerHTML=`<div><b>Правка комплекта № ${esc(o.edit.nums.length>2?o.edit.nums[0]+"–"+o.edit.nums[o.edit.nums.length-1]:o.edit.nums.join(", "))}</b><span>Поменяйте количества, номера или дату, добавьте адрес. Строка без количества — документ уйдёт в архив. Цены — как в документах комплекта.</span></div><button class="btn ghost sm" id="o-edcancel">Отменить правку</button>`;
+  ["#o-cus","#o-sup","#o-br"].forEach(id=>{ $(id).disabled=!!o.edit; });
+  $("#o-go").textContent=oGoLabel(); $("#o-save").textContent=o.edit?"Сохранить изменения комплекта":"Сохранить в журнал без PDF";
   $("#o-cus").innerHTML=opts(D.customers, o.customerId); $("#o-sup").innerHTML=opts(D.suppliers, o.supplierId);
   const bl=branches(cus(o.customerId)); $("#o-brwrap").hidden=!bl.length;
   $("#o-br").innerHTML=bl.map(b=>`<option value="${b.id}"${b.id===o.branchId?" selected":""}>${esc(b.label||b.fullName||"ОП")}${b.kpp?" — КПП "+esc(b.kpp):""}</option>`).join("");
@@ -1507,7 +1537,7 @@ function renderOrder(){
 }
 function renderOrderGrid(){
   const o=O(), P=oProds(o), {all, legal}=oAddrs(o);
-  $("#o-head").innerHTML=`<tr><th>Адрес</th><th class="num">№ док.</th>${P.map(p=>`<th class="num">${esc(p.name.replace(/\s*\([^)]*\)/g,"").replace(/\s*свеж\S*/i,""))}, ${esc(p.unit)}<br><small style="text-transform:none;letter-spacing:0">${fm(getPrice(o.customerId,p.id))} ₽</small></th>`).join("")}<th class="num">Сумма, ₽</th></tr>`;
+  $("#o-head").innerHTML=`<tr><th>Адрес</th><th class="num">№ док.</th>${P.map(p=>`<th class="num">${esc(p.name.replace(/\s*\([^)]*\)/g,"").replace(/\s*свеж\S*/i,""))}, ${esc(p.unit)}<br><small style="text-transform:none;letter-spacing:0">${fm(oPrice(o,p.id))} ₽</small></th>`).join("")}<th class="num">Сумма, ₽</th></tr>`;
   $("#o-body").innerHTML = !P.length ? `<tr><td class="muted">У заказчика нет прайса — заполните цены во вкладке «Заказчики и цены».</td></tr>`
     : all.map((a,i)=>{ const q=o.qty[a]||{}, ex=o.extra.includes(a);
       return `<tr data-i="${i}"><td class="a"><b>${esc(stLabel(a,legal))}</b><small>${esc(a)}</small>${ex?`<button class="btn ghost sm danger" data-rm="${i}" style="margin-top:4px">убрать адрес</button>`:""}</td><td class="num"><input class="nm" inputmode="numeric" value="${esc(o.num[a]||"")}"></td>${P.map(p=>`<td class="num"><input class="q" inputmode="decimal" data-p="${p.id}" value="${esc(q[p.id]||"")}" placeholder="0"></td>`).join("")}<td class="num rs"></td></tr>`; }).join("");
@@ -1516,9 +1546,9 @@ function renderOrderGrid(){
 function oTotals(){
   const o=O(), P=oProds(o), {all}=oAddrs(o); const tq={}; let tot=0;
   document.querySelectorAll("#o-body tr[data-i]").forEach(tr=>{ const a=all[+tr.dataset.i], q=o.qty[a]||{}; let s=0;
-    P.forEach(p=>{ const v=+q[p.id]||0; s+=r2(v*getPrice(o.customerId,p.id)); tq[p.id]=(tq[p.id]||0)+v; }); s=r2(s); tot+=s; tr.querySelector(".rs").textContent=s?fm(s):""; });
+    P.forEach(p=>{ const v=+q[p.id]||0; s+=r2(v*oPrice(o,p.id)); tq[p.id]=(tq[p.id]||0)+v; }); s=r2(s); tot+=s; tr.querySelector(".rs").textContent=s?fm(s):""; });
   const n=all.filter(a=>P.some(p=>+((o.qty[a]||{})[p.id])>0)).length, plan=oPlan(o), gb=$("#o-go");
-  if(gb.dataset.force && gb.dataset.force!==JSON.stringify(plan)){ gb.dataset.force=""; gb.textContent="Создать документы и скачать PDF"; $("#o-msg").textContent=""; }
+  if(gb.dataset.force && gb.dataset.force!==JSON.stringify(plan)){ gb.dataset.force=""; gb.textContent=oGoLabel(); $("#o-msg").textContent=""; }
   document.querySelectorAll("#o-body tr[data-i]").forEach(tr=>{ const el=tr.querySelector(".nm"); el.placeholder = plan[all[+tr.dataset.i]] || ""; el.title = el.value ? "Номер вписан вручную" : "Номер подставлен автоматически — нажмите, чтобы изменить"; });
   $("#o-foot").innerHTML=P.length?`<tr><td>Итого: ${n} ${n===1?"документ":n>=2&&n<=4?"документа":"документов"}</td><td></td>${P.map(p=>`<td class="num">${tq[p.id]?String(+tq[p.id].toFixed(3)).replace(".",","):""}</td>`).join("")}<td class="num">${fm(r2(tot))}</td></tr>`:"";
 }
@@ -1526,7 +1556,7 @@ $("#o-cus").onchange=e=>{ const o=O(); o.customerId=e.target.value; o.branchId="
 $("#o-sup").onchange=e=>{ O().supplierId=e.target.value; saveLocal(); renderOrder(); };
 $("#o-br").onchange=e=>{ const o=O(); o.branchId=e.target.value; saveLocal(); renderOrder(); };
 $("#o-date").addEventListener("input",e=>{ O().date=e.target.value; saveLocal(); });
-function oUsed(o){ const m={}; D.journal.forEach(j=>{ if(!isArch(j) && j.supplierId===o.supplierId && j.customerId===o.customerId) m[String(j.number)]=j; }); return m; }
+function oUsed(o){ const m={}, own=new Set(o.edit?Object.values(o.edit.ids):[]); D.journal.forEach(j=>{ if(!isArch(j) && !own.has(j.id) && j.supplierId===o.supplierId && j.customerId===o.customerId) m[String(j.number)]=j; }); return m; }
 /* номер на каждую строку с количеством: вписанный вручную или следующий свободный */
 function oPlan(o){
   const P=oProds(o), rows=oAddrs(o).all.filter(a=>P.some(p=>+((o.qty[a]||{})[p.id])>0)), used=oUsed(o), plan={};
@@ -1545,6 +1575,7 @@ $("#o-body").addEventListener("input",e=>{ if(e.target.classList.contains("nm"))
 $("#o-body").addEventListener("click",e=>{ const b=e.target.closest("[data-rm]"); if(!b) return; const o=O(), a=oAddrs(o).all[+b.dataset.rm];
   o.extra=o.extra.filter(x=>x!==a); delete o.qty[a]; saveLocal(); renderOrderGrid(); });
 $("#o-addaddr").onclick=()=>{ const a=(prompt("Адрес доставки (как он должен быть в накладной):")||"").trim(); if(!a) return; const o=O(); if(!o.extra.includes(a)) o.extra.push(a); saveLocal(); renderOrderGrid(); };
+$("#o-editing").addEventListener("click",e=>{ if(e.target.closest("#o-edcancel")){ bundleEditEnd(true); $("#o-msg").textContent=""; toast("ok","Правка комплекта отменена","Документы в журнале не изменились."); } });
 $("#o-clear").onclick=()=>{ O().qty={}; O().num={}; saveLocal(); renderOrderGrid(); $("#o-done").innerHTML=""; $("#o-msg").textContent=""; };
 async function manyPdf(kinds, ks, name){
   await pdfLibs();
@@ -1562,36 +1593,44 @@ $("#o-go").onclick=()=>oGo(false);
 async function oGo(noPdf){
   const o=O(), P=oProds(o), {all}=oAddrs(o), msg=$("#o-msg"), btn=$("#o-go"), sb=$("#o-save");
   const kinds=noPdf?[]:["invoice","torg12","upd"].filter(k=>$("#o-k-"+k).checked);
-  const rows=all.filter(a=>P.some(p=>+((o.qty[a]||{})[p.id])>0));
+  const rows=all.filter(a=>P.some(p=>+((o.qty[a]||{})[p.id])>0)), ed=o.edit, drop=ed?Object.keys(ed.ids).filter(a=>!rows.includes(a)).map(a=>D.journal.find(j=>j.id===ed.ids[a])).filter(j=>j&&!isArch(j)):[];
   if(!rows.length){ msg.textContent="Впишите количество хотя бы по одному адресу."; toast("err","Нет количества","Впишите цифры из заявки хотя бы в одну строку таблицы."); return; }
   if(!o.supplierId){ msg.textContent="Выберите поставщика."; toast("err","Не выбран поставщик","Выберите поставщика вверху страницы."); return; }
   const plan=oPlan(o), used=oUsed(o), seen={}, warn=[], dup=new Set();
   for(const a of rows){ const nmb=plan[a];
     if(seen[nmb]){ warn.push("№ "+nmb+" стоит у двух точек: «"+stLabel(seen[nmb])+"» и «"+stLabel(a)+"»"); dup.add(nmb); } seen[nmb]=a;
     const j=used[nmb]; if(j){ warn.push("№ "+nmb+" уже есть в журнале (документ от "+fd(j.date)+(j.snap?", "+(j.snap.c.branchLabel||j.snap.c.name):"")+")"); dup.add(nmb); } }
+  drop.forEach(j=>warn.push("№ "+j.number+" («"+stLabel(j.snap.dr.ship||"", j.snap.c.address)+"») без количества — уйдёт в архив"));
   const sig=JSON.stringify(plan);
   if(warn.length && btn.dataset.force!==sig){ btn.dataset.force=sig; btn.textContent="Всё равно создать с этими номерами";
-    msg.innerHTML=`<b style="color:#b45309">Внимание:</b> ${esc([...new Set(warn)].join("; "))}. Если так и нужно — нажмите кнопку ещё раз. Или поменяйте номер / сотрите его, чтобы сайт подставил свободный.`; toast("warn","Повторяющийся номер", [...new Set(warn)].join("; ")+". Если так и нужно — нажмите кнопку ещё раз."); return; }
-  btn.dataset.force=""; btn.textContent="Создать документы и скачать PDF";
-  const x=oCtr(o), made=[], notes=[], batch=uid()+uid(); btn.disabled=sb.disabled=true;
+    msg.innerHTML=`<b style="color:#b45309">Внимание:</b> ${esc([...new Set(warn)].join("; "))}. Если так и нужно — нажмите кнопку ещё раз.${dup.size?" Или поменяйте номер / сотрите его, чтобы сайт подставил свободный.":""}`; toast("warn",dup.size?"Повторяющийся номер":"Проверьте перед сохранением", [...new Set(warn)].join("; ")+". Если так и нужно — нажмите кнопку ещё раз."); return; }
+  btn.dataset.force=""; btn.textContent=oGoLabel();
+  const x=oCtr(o), made=[], notes=[], batch=(ed&&ed.batch)||uid()+uid(); btn.disabled=sb.disabled=true;
   try{
     for(const [i,a] of rows.entries()){
       msg.textContent="Сохраняю документ "+(i+1)+" из "+rows.length+"…";
-      const q=o.qty[a]; const dr={id:uid(), supplierId:o.supplierId, customerId:o.customerId, branchId:o.branchId, contractId:x?x.id:"", basis:x?(x.basis||""):"",
+      const q=o.qty[a], oj=ed&&ed.ids[a]?D.journal.find(j=>j.id===ed.ids[a]):null; let dr;
+      if(oj){ /* документ комплекта: те же реквизиты, цены и названия строк; меняются количества, номер, дата */
+        dr=clone(oj.snap.dr); delete dr.qtyOnly; dr._editBase=clone((BASE.journal||{})[oj.id]||jRow(oj)); dr.number=plan[a]; dr.date=o.date;
+        const keep=dr.lines.filter(l=>l.productId && +q[l.productId]>0), had=new Set();
+        dr.lines=keep.filter(l=>{ if(had.has(l.productId)) return false; had.add(l.productId); return true; }).map(l=>Object.assign(l,{qty:String(q[l.productId])}))
+          .concat(P.filter(p=>+q[p.id]>0 && !had.has(p.id)).map(p=>({productId:p.id, qty:String(q[p.id]), price:String(oPrice(o,p.id))})));
+      } else dr={id:uid(), supplierId:o.supplierId, customerId:o.customerId, branchId:o.branchId, contractId:x?x.id:"", basis:x?(x.basis||""):"",
         number:plan[a], date:o.date, ship:a,
-        lines:P.filter(p=>+q[p.id]>0).map(p=>({productId:p.id, qty:String(q[p.id]), price:String(getPrice(o.customerId,p.id))}))};
+        lines:P.filter(p=>+q[p.id]>0).map(p=>({productId:p.id, qty:String(q[p.id]), price:String(oPrice(o,p.id))}))};
       const n=await commitDoc(dr, {force: dup.has(dr.number), meta:{batch}}); if(n) notes.push(n.trim());
       const j=D.journal.find(z=>z.id===dr.id); made.push(calc(j.snap.dr, j.snap));
     }
-    o.qty={}; o.num={}; saveLocal(); renderOrderGrid();
-    const lbl=made.map(k=>"№ "+k.dr.number).join(", ");
+    if(drop.length) setArch(drop, true);
+    if(ed) bundleEditEnd(true); else { o.qty={}; o.num={}; saveLocal(); renderOrderGrid(); }
+    const lbl=made.map(k=>"№ "+k.dr.number).join(", ")+(drop.length?" (в архив: "+drop.map(j=>"№ "+j.number).join(", ")+")":"");
     $("#o-done").innerHTML=made.map(k=>`<div><b>№ ${esc(k.dr.number)}</b> — ${esc(stLabel(k.dr.ship, k.c.address))} — ${fm(k.t.sum)} ₽ ${["invoice","torg12","upd"].map(kd=>`<button class="btn sm" data-ov="${kd}" data-id="${k.dr.id}">${KSHORT[kd]}</button>`).join(" ")}</div>`).join("");
     if(kinds.length){ msg.textContent="Создано: "+lbl+". Готовлю PDF…";
       const nums=made.map(k=>+k.dr.number), rng=nums.length>1?Math.min(...nums)+"–"+Math.max(...nums):String(nums[0]);
       await manyPdf(kinds, made, kinds.map(k=>KSHORT[k]).join(" и ")+" № "+rng+" от "+fd(o.date)+" — "+shortCus(made[0]));
       msg.textContent="Готово: "+lbl+" — сохранены в журнал, PDF скачан."; }
     else msg.textContent="Готово: "+lbl+" — сохранены в журнал"+(noPdf?". Распечатать можно кнопками рядом с каждым документом или из журнала.":" (PDF не выбран).");
-    logEv("Заявка","Создан комплект по заявке: "+made.length+" док., № "+made.map(k=>k.dr.number).join(", ")+" от "+fd(o.date)+" — "+shortCus(made[0])+" ("+made.map(k=>stLabel(k.dr.ship,k.c.address)).join(", ")+"), сумма "+fm(r2(made.reduce((a,k)=>a+k.t.sum,0)))+" ₽");
+    logEv("Заявка",(ed?"Изменён комплект: ":"Создан комплект по заявке: ")+""+made.length+" док., № "+made.map(k=>k.dr.number).join(", ")+" от "+fd(o.date)+" — "+shortCus(made[0])+" ("+made.map(k=>stLabel(k.dr.ship,k.c.address)).join(", ")+"), сумма "+fm(r2(made.reduce((a,k)=>a+k.t.sum,0)))+" ₽");
     toast(notes.length?"warn":"ok", "Создано "+made.length+" "+docsWord(made.length)+": "+lbl, (notes.length?notes.join(" ")+" ":"")+(made.length>1?"Комплект в журнале":"Документ в журнале")+(kinds.length?", PDF скачан.":"."));
     if(notes.length) msg.textContent+=" "+notes.join(" ");
   }catch(e){ toast("err","Документы созданы не полностью", e.message+(made.length?". Уже создано: "+made.map(k=>"№ "+k.dr.number).join(", ")+" — они в журнале, остальное создайте ещё раз.":". Проверьте интернет и нажмите кнопку ещё раз.")); msg.textContent="Ошибка: "+e.message+(made.length?" Уже создано: "+made.map(k=>"№ "+k.dr.number).join(", ")+" — они в журнале.":""); }
@@ -2261,8 +2300,8 @@ function jBuild(rows, arch, openSet){
     const nums=g.map(x=>x.number), sum=r2(g.reduce((a,x)=>a+(+x.sum||0),0)), dls=g.map(x=>x.snap.meta&&x.snap.meta.pr).filter(Boolean).sort();
     const gacts = arch ? `<button class="btn sm" data-gunarch>Вернуть комплект</button>`
       : docLimited() ? `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button>`
-      : `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button> <button class="btn ghost sm danger" data-garch>Комплект в архив</button>`;
-    out.push(`<tr class="grp" data-g="${esc(k)}"><td>${fd(g[0].date)}</td><td>${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))}</td><td><div class="who"><span class="tag">Комплект · ${g.length}</span>${esc(w.main)}</div><small>${esc(g.map(x=>jWho(x).pt).filter(Boolean).join(", "))} · ${esc(supShort(g[0].snap.s.name))}</small></td><td class="num"><b>${fm(sum)}</b></td><td>${arch?`<span class="muted">в архиве</span>`:dls.length?`<span class="dl">${dtShort(dls[dls.length-1])}</span>`:`<span class="muted">—</span>`}</td>
+      : `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button> <button class="btn ghost sm" data-gedit>Редактировать комплект</button> <button class="btn ghost sm danger" data-garch>Комплект в архив</button>`;
+    out.push(`<tr class="grp" data-g="${esc(k)}"><td>${fd(g[0].date)}</td><td>${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))}</td><td class="jcard" data-gcard="1" title="Подробнее о комплекте"><div class="who"><span class="tag">Комплект · ${g.length}</span>${esc(w.main)}</div><small>${esc(g.map(x=>jWho(x).pt).filter(Boolean).join(", "))} · ${esc(supShort(g[0].snap.s.name))}</small></td><td class="num"><b>${fm(sum)}</b></td><td>${arch?`<span class="muted">в архиве</span>`:dls.length?`<span class="dl">${dtShort(dls[dls.length-1])}</span>`:`<span class="muted">—</span>`}</td>
       <td class="acts">${gacts} <button class="btn ghost sm" data-gt>${open?"Свернуть ▴":"Развернуть ▾"}</button></td></tr>`);
     if(open) g.forEach(x=>out.push(jRowHtml(x,true,arch)));
   });
@@ -2301,7 +2340,7 @@ function renderArchive(){
 function setArch(list, on){
   if(list.length) logEv("Архив",(on?"В архив":"Возвращено из архива")+(list.length>1?" комплект":"")+": № "+list.map(j=>j.number).join(", ")+" от "+fd(list[0].date)+" — "+shortCus(calc(list[0].snap.dr, list[0].snap)), list.length===1?list[0].id:"");
   const now=new Date().toISOString(); let clash=[];
-  list.forEach(j=>{ const m=j.snap.meta=j.snap.meta||{}; if(on) m.arch=now; else { delete m.arch;
+  list.forEach(j=>{ const m=j.snap.meta=j.snap.meta||{}; histPush(m, [on?"в архив":"возвращён из архива"]); if(on) m.arch=now; else { delete m.arch;
       const y=String(j.date).slice(0,4); if(D.journal.some(x=>x.id!==j.id && !isArch(x) && x.supplierId===j.supplierId && String(x.date).slice(0,4)===y && String(x.number)===String(j.number))) clash.push(j.number); }
     dirty("journal", j.id); });
   docTasks(list.map(j=>j.date), true); saveLocal(); renderJournal(); if(curTab==="archive") renderArchive(); if(curTab==="calendar") renderCalendar();
@@ -2324,6 +2363,8 @@ function onJClick(arch){ return async e=>{
   const cardTd=!b && e.target.closest("[data-card]"); if(cardTd){ const j=D.journal.find(x=>x.id===cardTd.dataset.card); if(j) docCard(j, arch); return; }
   const tr=e.target.closest("tr.grp");
   if(tr){ const k=tr.dataset.g, g=D.journal.filter(j=>j.snap&&isArch(j)===arch&&jKey(j)===k).sort(jNumSort), openSet=arch?arOpen:jOpen;
+    if(!b && e.target.closest("[data-gcard]")){ bundleCard(g, arch); return; }
+    if(b && b.hasAttribute("data-gedit")){ bundleEdit(g); return; }
     if(b && b.dataset.gpdf){ const kinds=b.dataset.gpdf.split(","), ks=g.map(j=>calc(j.snap.dr, j.snap)), nums=g.map(j=>j.number);
       showPreviewSet(ks.flatMap(k=>kinds.map(kind=>({kind,k}))), kinds.map(x=>KSHORT[x]).join(" и ")+" № "+(nums.length>1?nums[0]+"–"+nums[nums.length-1]:nums[0])+" от "+fd(g[0].date)+" — "+shortCus(ks[0])); return; }
     if(b && b.dataset.gpdf){ const kinds=b.dataset.gpdf.split(","), ks=g.map(j=>calc(j.snap.dr, j.snap)), nums=g.map(j=>j.number), t0=b.textContent; b.disabled=true; b.textContent="Готовлю PDF…";
@@ -2350,29 +2391,104 @@ function onJClick(arch){ return async e=>{
   showTab("doc");
 }; }
 /* карточка документа: товары, суммы, адрес, кнопки — с плавным появлением */
-function docCard(j, arch){
-  const k=calc(j.snap.dr, j.snap), dr=j.snap.dr, m=j.snap.meta||{}, w=jWho(j), lim=docLimited();
+/* ---------- история изменений документа ---------- */
+const HMAX=40, nq3 = v => String(+(+v||0).toFixed(3)).replace(".",",");
+function lineMap(sn){ const m={}; ((sn&&sn.dr&&sn.dr.lines)||[]).forEach(l=>{ if(!l.productId||!(+l.qty>0)) return; const p=((sn.prods||{})[l.productId])||prod(l.productId)||{}, x=m[l.productId];
+  m[l.productId]={name:(l.name&&String(l.name).trim())||p.name||"товар", unit:p.unit||"", qty:(x?x.qty:0)+(+l.qty||0), price:+l.price||0}; }); return m; }
+function docDiff(a,b){
+  const out=[], da=a.dr||{}, db=b.dr||{}, cn=x=>(x&&x.c&&(x.c.name+(x.c.branchLabel?", "+x.c.branchLabel:"")))||"";
+  if(String(da.number)!==String(db.number)) out.push("номер "+da.number+" → "+db.number);
+  if(da.date!==db.date) out.push("дата "+fd(da.date)+" → "+fd(db.date));
+  if(da.customerId!==db.customerId || da.branchId!==db.branchId) out.push("заказчик → "+cn(b));
+  if(da.supplierId!==db.supplierId) out.push("поставщик → "+((b.s&&b.s.name)||""));
+  if((da.ship||"")!==(db.ship||"")) out.push("адрес доставки → "+(db.ship||"—"));
+  if((da.basis||"")!==(db.basis||"")) out.push("основание → "+(db.basis||"—"));
+  const A=lineMap(a), B=lineMap(b);
+  Object.keys(B).forEach(k=>{ const x=A[k], y=B[k]; if(!x){ out.push("добавлен товар: "+y.name+", "+nq3(y.qty)+" "+y.unit); return; }
+    if(Math.abs(x.qty-y.qty)>1e-9) out.push(y.name+": "+nq3(x.qty)+" → "+nq3(y.qty)+" "+y.unit);
+    if(Math.abs(x.price-y.price)>0.0001) out.push(y.name+": цена "+fm(x.price)+" → "+fm(y.price)+" ₽");
+    if(x.name!==y.name) out.push("название «"+x.name+"» → «"+y.name+"»"); });
+  Object.keys(A).forEach(k=>{ if(!B[k]) out.push("удалён товар: "+A[k].name); });
+  return out;
+}
+function histPush(meta, what){ const h=Array.isArray(meta.hist)?meta.hist.slice(-(HMAX-1)):[]; h.push({at:new Date().toISOString(), by:curUser()||"", w:what}); meta.hist=h; }
+function histOf(j){ const m=(j.snap&&j.snap.meta)||{}, h=(Array.isArray(m.hist)?m.hist:[]).map(x=>Object.assign({},x));
+  if(!h.some(x=>(x.w||[])[0]==="создан")) h.unshift({at:m.created||j.updated, by:"", w:["создан"]});
+  if(!(m.hist||[]).length && j.updated && m.created && new Date(j.updated)-new Date(m.created)>60000) h.push({at:j.updated, by:"", w:["изменён"]});
+  return h; }
+const HKIND={"создан":"Создан","в архив":"Убран в архив","возвращён из архива":"Возвращён из архива","изменён":"Изменён"};
+function histHtml(items, open){
+  if(!items.length) return ""; const L=items.slice().sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+  return `<details class="dc-hist"${open?" open":""}><summary><span>История изменений</span><i>${L.length}</i></summary><ol>${L.map(x=>{ const w=x.w||[], k=HKIND[w[0]], det=!k&&w.length;
+    return `<li class="${w[0]==="создан"?"cr":k?"ev":"ch"}"><div class="hh"><b>${esc(k||"Изменён")}${x.num?` · № ${esc(x.num)}`:""}</b><span>${esc(dtShort(x.at))}${x.by?` · <em>${esc(x.by)}</em>`:""}</span></div>${det?`<ul>${w.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>`:""}</li>`; }).join("")}</ol></details>`; }
+function whoLine(j){ const h=histOf(j), c=h.find(x=>(x.w||[])[0]==="создан"), last=h.filter(x=>(x.w||[])[0]!=="создан").sort((a,b)=>String(a.at).localeCompare(String(b.at))).pop();
+  return [["Создан", c?(dtShort(c.at)+(c.by?" · "+c.by:"")):""], ["Изменён", last?(dtShort(last.at)+(last.by?" · "+last.by:"")):""]].filter(x=>x[1]); }
+const posWord = n => n%10===1&&n%100!==11?"позиция":(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))?"позиции":"позиций";
+const linesTable = k => `<div class="dc-tw"><table class="dc-t"><thead><tr><th>Товар</th><th class="num">Кол-во</th><th class="num">Цена, ₽</th><th class="num">Сумма, ₽</th></tr></thead><tbody>${k.lines.map(l=>`<tr><td><b>${esc(l.name)}</b></td><td class="num">${esc(nq3(l.qty))}&nbsp;${esc(l.unit||"")}</td><td class="num">${fm(l.price)}</td><td class="num"><b>${fm(l.sum)}</b></td></tr>`).join("")}</tbody></table></div>`;
+/* общий вид всплывающей карточки: плавное появление, закрытие крестиком / Esc / кликом мимо */
+function openCard(html, wide, onAct){
   const old=document.getElementById("fd-dcard"); if(old) old.remove();
-  const d=document.createElement("dialog"); d.id="fd-dcard"; d.className="dcard";
-  const rows=k.lines.map(l=>`<tr><td><b>${esc(l.name)}</b></td><td class="num">${esc(String(+(+l.qty).toFixed(3)).replace(".",","))}&nbsp;${esc(l.unit||"")}</td><td class="num">${fm(l.price)}</td><td class="num"><b>${fm(l.sum)}</b></td></tr>`).join("");
-  const info=[["Поставщик",j.snap.s.name||""],["Адрес доставки",dr.ship||j.snap.c.address||""],["Основание",dr.basis||""]].filter(x=>x[1]);
-  const acts = arch ? `<button class="btn" data-dc="close">Закрыть</button>`
-    : `<button class="btn" data-dc="combo">Счёт+ТОРГ</button><button class="btn" data-dc="upd">УПД</button>`+(lim?`<button class="btn pri" data-dc="qty">Изменить количество</button>`:`<button class="btn pri" data-dc="edit">Изменить</button>`);
-  d.innerHTML=`<div class="dc-head"><div><div class="dc-kicker">Документ № ${esc(j.number)} · ${fd(j.date)}</div><h3>${esc(w.main)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
-    <dl class="dc-info">${info.map(([a,b])=>`<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>
-    <div class="dc-tw"><table class="dc-t"><thead><tr><th>Товар</th><th class="num">Кол-во</th><th class="num">Цена, ₽</th><th class="num">Сумма, ₽</th></tr></thead><tbody>${rows}</tbody></table></div>
-    <div class="dc-total"><span>${k.lines.length} ${k.lines.length%10===1&&k.lines.length%100!==11?"позиция":(k.lines.length%10>=2&&k.lines.length%10<=4&&(k.lines.length%100<10||k.lines.length%100>=20))?"позиции":"позиций"}${k.t.kg?" · "+String(+k.t.kg.toFixed(3)).replace(".",",")+" кг":""}${k.rate?" · в т.ч. НДС "+fm(k.t.vat)+" ₽":""}</span><b>${fm(k.t.sum)} ₽</b></div>
-    ${m.pr?`<div class="dc-note">Распечатан со склада: ${esc(dtShort(m.pr))}</div>`:""}
-    <div class="dc-acts">${acts}</div>`;
+  const d=document.createElement("dialog"); d.id="fd-dcard"; d.className="dcard"+(wide?" wide":""); d.innerHTML=html;
   document.getElementById("fd-app").appendChild(d);
   const close=()=>{ if(d.classList.contains("out")) return; d.classList.add("out"); setTimeout(()=>{ try{ d.close(); }catch(x){} d.remove(); }, matchMedia("(prefers-reduced-motion: reduce)").matches?0:200); };
   d.addEventListener("cancel", e=>{ e.preventDefault(); close(); });
-  d.addEventListener("click", e=>{ if(e.target===d){ close(); return; }
-    const b=e.target.closest("[data-dc]"); if(!b) return; const a=b.dataset.dc; close(); if(a==="close") return;
-    const fake=document.createElement("button"); fake.dataset[{combo:"comboJ",upd:"p",edit:"edit",qty:"qty"}[a]] = a==="upd" ? "upd" : j.id; if(a==="upd") fake.dataset.id=j.id;
-    onJClick(arch)({target:fake}); });
+  d.addEventListener("click", e=>{
+    if(e.target===d){ const r=d.getBoundingClientRect(); if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom) close(); return; }
+    const b=e.target.closest("[data-dc]"); if(!b) return; const a=b.dataset.dc; close(); if(a!=="close") setTimeout(()=>onAct(a, b), 0); });
   d.showModal(); requestAnimationFrame(()=>d.classList.add("in"));
 }
+function docCard(j, arch){
+  const k=calc(j.snap.dr, j.snap), dr=j.snap.dr, m=j.snap.meta||{}, w=jWho(j), lim=docLimited(), inG=!arch && jKey(j) && D.journal.filter(x=>x.snap&&!isArch(x)&&jKey(x)===jKey(j)).length>1;
+  const info=[["Поставщик",j.snap.s.name||""],["Адрес доставки",dr.ship||j.snap.c.address||""],["Основание",dr.basis||""]].concat(whoLine(j)).filter(x=>x[1]);
+  const acts = arch ? `<button class="btn" data-dc="close">Закрыть</button>`
+    : `<button class="btn" data-dc="combo">Счёт+ТОРГ</button><button class="btn" data-dc="upd">УПД</button>`+(inG&&!lim?`<button class="btn" data-dc="gedit">Редактировать комплект</button>`:"")+(lim?`<button class="btn pri" data-dc="qty">Изменить количество</button>`:`<button class="btn pri" data-dc="edit">Изменить</button>`);
+  openCard(`<div class="dc-head"><div><div class="dc-kicker">Документ № ${esc(j.number)} · ${fd(j.date)}</div><h3>${esc(w.main)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+    <dl class="dc-info">${info.map(([a,b])=>`<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>
+    ${linesTable(k)}
+    <div class="dc-total"><span>${k.lines.length} ${posWord(k.lines.length)}${k.t.kg?" · "+nq3(k.t.kg)+" кг":""}${k.rate?" · в т.ч. НДС "+fm(k.t.vat)+" ₽":""}</span><b>${fm(k.t.sum)} ₽</b></div>
+    ${m.pr?`<div class="dc-note">Распечатан со склада: ${esc(dtShort(m.pr))}</div>`:""}
+    ${histHtml(histOf(j))}
+    <div class="dc-acts">${acts}</div>`, false, a=>{
+      if(a==="gedit"){ bundleEdit(D.journal.filter(x=>x.snap&&!isArch(x)&&jKey(x)===jKey(j)).sort(jNumSort)); return; }
+      const fake=document.createElement("button"); fake.dataset[{combo:"comboJ",upd:"p",edit:"edit",qty:"qty"}[a]] = a==="upd" ? "upd" : j.id; if(a==="upd") fake.dataset.id=j.id;
+      onJClick(arch)({target:fake}); });
+}
+function bundleCard(g, arch){
+  if(!g.length) return; const ks=g.map(j=>calc(j.snap.dr, j.snap)), w=jWho(g[0]), lim=docLimited(), sum=r2(ks.reduce((a,k)=>a+k.t.sum,0)), kg=ks.reduce((a,k)=>a+k.t.kg,0);
+  const nums=g.map(j=>j.number), hist=[].concat(...g.map(j=>histOf(j).map(x=>Object.assign(x,{num:j.number}))));
+  const info=[["Поставщик",g[0].snap.s.name||""],["Основание",g[0].snap.dr.basis||""],["Документы","№ "+(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))]].filter(x=>x[1]);
+  const docs=g.map((j,i)=>{ const k=ks[i]; return `<section class="dc-doc" style="animation-delay:${Math.min(i,8)*0.04}s"><button class="dc-dh" data-dc="doc" data-id="${j.id}" title="Открыть документ"><span><b>№ ${esc(j.number)}</b> · ${esc(jWho(j).pt||stLabel(k.dr.ship||k.c.address||"", k.c.address))}</span><span class="s">${fm(k.t.sum)} ₽ ›</span></button>${linesTable(k)}</section>`; }).join("");
+  const acts = arch ? `<button class="btn" data-dc="close">Закрыть</button>`
+    : `<button class="btn" data-dc="gpdf" data-k="invoice,torg12">Счета+ТОРГ</button><button class="btn" data-dc="gpdf" data-k="upd">Все УПД</button>`+(lim?"":`<button class="btn pri" data-dc="gedit">Редактировать комплект</button>`);
+  openCard(`<div class="dc-head"><div><div class="dc-kicker">Комплект · ${g.length} ${docsWord(g.length)} · ${fd(g[0].date)}</div><h3>${esc(w.main)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+    <dl class="dc-info">${info.map(([a,b])=>`<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>
+    <div class="dc-docs">${docs}</div>
+    <div class="dc-total"><span>${g.length} ${docsWord(g.length)}${kg?" · "+nq3(kg)+" кг":""}</span><b>${fm(sum)} ₽</b></div>
+    ${histHtml(hist)}
+    <div class="dc-acts">${acts}</div>`, true, (a,b)=>{
+      if(a==="doc"){ const j=D.journal.find(x=>x.id===b.dataset.id); if(j) docCard(j, arch); return; }
+      if(a==="gedit"){ bundleEdit(g); return; }
+      if(a==="gpdf"){ const kinds=b.dataset.k.split(","); showPreviewSet(ks.flatMap(k=>kinds.map(kind=>({kind,k}))), kinds.map(x=>KSHORT[x]).join(" и ")+" № "+(nums.length>1?nums[0]+"–"+nums[nums.length-1]:nums[0])+" от "+fd(g[0].date)+" — "+shortCus(ks[0])); } });
+}
+/* ---------- редактирование комплекта во вкладке «Заявка» ---------- */
+function bundleEdit(g){
+  if(docLimited()) return; const live=g.filter(j=>j.snap&&!isArch(j)).sort(jNumSort); if(!live.length) return;
+  const seen={}; for(const j of live){ const a=j.snap.dr.ship||j.snap.c.address||""; if(seen[a]){ toast("warn","Комплект нельзя открыть в «Заявке»","№ "+seen[a]+" и № "+j.number+" — на один адрес. Отредактируйте эти документы по отдельности кнопкой «Изменить»."); return; } seen[a]=j.number; }
+  const j0=live[0], cs=new Set(live.map(j=>j.customerId+"|"+j.supplierId+"|"+(j.snap.dr.branchId||"")));
+  if(cs.size>1){ toast("warn","Комплект нельзя открыть в «Заявке»","В комплекте документы разных заказчиков или поставщиков. Отредактируйте их по отдельности."); return; }
+  const o=O(), backup=o.edit ? o.edit.backup : clone({customerId:o.customerId, supplierId:o.supplierId, branchId:o.branchId, date:o.date, qty:o.qty, num:o.num, extra:o.extra});
+  const ids={}, price={};
+  o.customerId=j0.customerId; o.supplierId=j0.supplierId; o.branchId=j0.snap.dr.branchId||""; o.date=j0.date; o.qty={}; o.num={}; o.extra=[];
+  live.forEach(j=>{ const a=j.snap.dr.ship||j.snap.c.address||""; ids[a]=j.id; o.num[a]=String(j.number); const q={};
+    j.snap.dr.lines.forEach(l=>{ if(!l.productId||!(+l.qty>0)) return; q[l.productId]=String(r3((+q[l.productId]||0)+(+l.qty))); if(price[l.productId]==null) price[l.productId]=+l.price||0; }); o.qty[a]=q; });
+  o.edit={ids, price, batch:(j0.snap.meta||{}).batch||"", nums:live.map(j=>j.number), backup};
+  const {all}=oAddrs(o); Object.keys(ids).forEach(a=>{ if(!all.includes(a)) o.extra.push(a); });
+  $("#o-done").innerHTML=""; $("#o-msg").textContent=""; saveLocal(); showTab("order"); renderOrder();
+  toast("ok","Комплект открыт для правки","Измените количества, добавьте или уберите адреса и нажмите «Сохранить изменения комплекта».");
+}
+function bundleEditEnd(restore){ const o=O(); if(!o.edit) return; const b=o.edit.backup||{}; delete o.edit;
+  if(restore!==false) Object.assign(o, {customerId:b.customerId, supplierId:b.supplierId, branchId:b.branchId, date:b.date, qty:b.qty||{}, num:b.num||{}, extra:b.extra||[]});
+  saveLocal(); renderOrder(); }
 $("#jr-body").addEventListener("click", onJClick(false));
 $("#ar-body").addEventListener("click", onJClick(true));
 document.addEventListener("click",e=>{ document.querySelectorAll("#fd-app details.more[open]").forEach(d=>{ if(!d.contains(e.target)) d.removeAttribute("open"); }); });
