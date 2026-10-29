@@ -88,7 +88,7 @@
 #fd-app section.tab{display:grid;gap:16px;margin-top:20px}
 #fd-app .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:12px;min-width:0}
 #fd-app .card h2{margin:0;font:600 15px var(--ui);color:var(--ink)}
-#fd-app .card h2 small{font-weight:400;color:var(--muted);margin-left:6px}
+#fd-app .card h2 small{font-weight:400;color:var(--muted);margin-left:6px}#fd-app .dform h2.dh{display:flex;align-items:center;gap:6px}#fd-app .dform .dclr{order:9;margin-left:auto;width:auto;flex:none}#fd-app .dform .btn.armed,#fd-app .dform .btn.armed:hover{color:#fff;background:#c0392b;border-color:#c0392b}
 #fd-app .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 14px}
 #fd-app label.f{display:grid;gap:4px;font-size:12px;color:var(--muted);letter-spacing:.02em;min-width:0;margin:0}
 #fd-app label.f.wide{grid-column:1/-1}
@@ -574,7 +574,7 @@
     <div id="mul"></div>
     <div class="mulbar" id="mulbar" hidden><button class="btn sm" type="button" id="mul-back">← Ко всем накладным заявки</button><span class="muted" id="mulbar-t"></span></div>
     <div class="card dform">
-      <h2>Стороны <small id="d-editing"></small></h2>
+      <h2 class="dh">Стороны <small id="d-editing"></small><button class="btn ghost sm dclr" id="d-new2" type="button">Очистить</button></h2>
       <div class="grid">
         <label class="f">Поставщик<select id="d-sup"></select><span id="d-supwarn" class="ctrinfo warn" hidden></span></label>
         <label class="f">Заказчик<select id="d-cus"></select></label>
@@ -1353,7 +1353,7 @@ $("#d-save").onclick=async()=>{
   catch(e){ msg.textContent="Не получилось сохранить: "+e.message; toast("err","Не получилось сохранить документ", e.message+". Проверьте интернет и нажмите кнопку ещё раз."); }
   finally{ b.disabled=false; }
 };
-$("#d-new").onclick=()=>{ const s=D.draft.supplierId, c=D.draft.customerId; D.draft=newDraft(D); D.draft.supplierId=s; D.draft.customerId=c;
+$("#d-new").onclick=$("#d-new2").onclick=e=>{ const bt=e.currentTarget; if(!armed(bt,"Точно очистить форму?")) return; delete bt.dataset.armed; bt.classList.remove("armed"); bt.textContent=bt.id==="d-new2"?"Очистить":"Очистить и начать новый"; const s=D.draft.supplierId, c=D.draft.customerId; D.draft=newDraft(D); D.draft.supplierId=s; D.draft.customerId=c;
   D.draft.contractId=pickCtr(); { const x=ctr(D.draft.contractId); if(x&&x.supplierId) D.draft.supplierId=x.supplierId; } D.draft.number=nextNum(D.draft.supplierId, c); D.draft.basis=(ctr(D.draft.contractId)||{}).basis||""; saveLocal(); renderDoc(); $("#d-saved").textContent=""; };
 
 /* ---------- печатные формы ---------- */
