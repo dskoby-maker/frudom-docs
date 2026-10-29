@@ -188,6 +188,7 @@ const Eis = (() => {
     const date=new Date(k.dr.date+'T12:00:00Z');if(!Number.isFinite(date.getTime())||date.toISOString().slice(0,10)!==k.dr.date)throw Error('Некорректная дата накладной.');
     const today=new Date().toLocaleDateString('ru-RU',{timeZone:'Europe/Moscow'}).split('.').reverse().join('-');
     if(!k.allowPast&&k.dr.date<today)throw Error('Дата документа ('+dd(k.dr.date)+') раньше сегодняшней — ЕИС такой документ не примет. Поставьте сегодняшнюю или более позднюю дату.');
+    if(k.shipDate){const sd=new Date(k.shipDate+'T12:00:00Z');if(!/^\d{4}-\d\d-\d\d$/.test(k.shipDate)||!Number.isFinite(sd.getTime())||sd.toISOString().slice(0,10)!==k.shipDate)throw Error('Некорректная дата отгрузки.');}
     const login=String((k.s&&k.s.eisLogin)||'').trim();
     if(!/^[^\s"<>&]{1,100}$/.test(login))throw Error('Укажите «Логин ЕИС подписанта» в карточке поставщика (Справочники → Поставщики). Его можно посмотреть в профиле личного кабинета ЕИС.');
     if(k.rate&&!['5','7','10','20','22'].includes(String(k.rate)))throw Error('Такая ставка НДС пока не поддерживается для ЕИС.');
@@ -232,7 +233,7 @@ const Eis = (() => {
       const tru=pos.link.parentNode.cloneNode(false);tru.appendChild(n);tab.appendChild(r);list.appendChild(tru);
     });
     attrs(total,{СтТовБезНДСВсего:dec(k.t.net,2),СтТовУчНалВсего:dec(k.t.sum,2)});tax(one(total,'СумНалВсего'),k.t.vat);tab.appendChild(total);
-    const per=one(m,'СвПер'),bs=t.basis.cloneNode(true);per.replaceChildren(bs);attrs(per,{СодОпер:'Товары переданы',ДатаПер:dd(k.dr.date)});['ДатаНачПер','ДатаОконПер'].forEach(a=>per.removeAttribute(a));
+    const per=one(m,'СвПер'),bs=t.basis.cloneNode(true);per.replaceChildren(bs);attrs(per,{СодОпер:'Товары переданы',ДатаПер:dd(k.shipDate||k.dr.date)});['ДатаНачПер','ДатаОконПер'].forEach(a=>per.removeAttribute(a));
     const main=xml(m),bytes=encode(main),pr=p.documentElement;
     attrs(pr,{ИдФайл:id,ИдПрилож:'PRIL_'+id,ХэшФайл:eisHash(bytes)});
     ['ИдОбъект','ВнешИд'].forEach(a=>pr.removeAttribute(a));
