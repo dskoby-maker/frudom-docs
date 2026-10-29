@@ -1255,7 +1255,7 @@ function showPreview(kind, k){
   const pages = K.o==="landscape"&&k.lines.length ? layout(k,K.f) : [].concat(K.f(k));
   $("#pv-pages").innerHTML=pages.map(h=>`<div class="sheet ${K.o}">${h}</div>`).join("");
   cur={kind, title, pages, o:K.o, k};
-  $("#pv-eis-setup").hidden = kind!=="upd"; $("#pv-xml").hidden = kind!=="upd";
+  $("#pv-eis-setup").hidden = true; $("#pv-xml").hidden = kind!=="upd";
   $("#pv").hidden=false; document.body.style.overflow="hidden"; fitSheets(); syncSignUI();
 }
 /* несколько документов в одном окне просмотра (Счёт + ТОРГ‑12, комплект): печать и скачивание — всё сразу */

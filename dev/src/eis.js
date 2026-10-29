@@ -48,6 +48,18 @@ const Eis = (() => {
     if(i<0||(sg&&places.list[i].gar.toLowerCase()!==sg.toLowerCase()))throw Error('Порядок мест поставки в XML не совпадает с образцом ЕИС. Нужен XML контракта из реестра контрактов.');
     return uniqAddrs(places.list,(x,j)=>c.places[j]);
   }
+  // Места поставки, уже известные по реестровому номеру контракта (открытые сведения ЕИС; проверено загрузкой 29.10.2026).
+  const KNOWN_ADDRS={'2771826150926000233':[{"place": "60520046", "gar": "652d864a-c881-4e2c-9173-84e99c0cfbd2", "addr": "г. Москва, вн.тер.г. муниципальный округ Ивановское, пр-д Напольный, д. 9"}, {"place": "60520047", "gar": "89a5487d-da0e-4a3a-906d-de363bc9d542", "addr": "г. Москва, вн.тер.г. муниципальный округ Донской, ул. Шаболовка, д. 39"}, {"place": "60520048", "gar": "74d697a0-dfe2-4926-b877-1cc527b14993", "addr": "г. Москва, вн.тер.г. муниципальный округ Донской, ул. Орджоникидзе, д. 15"}, {"place": "60520049", "gar": "6425bdd3-4f25-46d9-9713-18a949ea194a", "addr": "г. Москва, вн.тер.г. муниципальный округ Богородское, пр-д Погонный, д. 5"}, {"place": "60520068", "gar": "37a5b19b-2bf5-4673-8864-f1302fdf3be1", "addr": "г. Москва, вн.тер.г. муниципальный округ Богородское, пр-д Погонный, д. 5 стр. 1"}]};
+  // Позиция контракта для строки накладной: по точной цене контракта и единице, при совпадении цен — по словам названия.
+  function autoPos(positions,l,taken){
+    const price=x=>Number(x.price||attr(x.link&&x.link.querySelector('НеЛПСвед'),'ЦенаИзКонтСНДС')),words=n=>String(n||'').toLowerCase().replace(/ё/g,'е').split('.')[0].match(/[а-я]+/g)||[];
+    const all=positions.filter(x=>Math.abs(price(x)-Number(l.price))<0.006),byPrice=all.filter(x=>!taken.has(x.id));let c=byPrice.filter(x=>x.okei===l.okei);
+    if(all.length&&!byPrice.length)throw Error('Несколько строк накладной связаны с одной позицией ЕИС («'+l.name+'»). Объедините их в одну строку.');
+    if(byPrice.length&&!c.length)throw Error('Единица измерения «'+l.name+'» отличается от контракта ЕИС ('+byPrice[0].unit+').');
+    if(c.length>1){const nm=String(l.name).toLowerCase().replace(/ё/g,'е');const f=c.filter(x=>words(x.name).every(w=>nm.includes(w)));if(f.length)c=f;}
+    if(c.length>1)throw Error('Товар «'+l.name+'» по цене подходит к нескольким позициям контракта ('+c.map(x=>'№ '+(x.num||'?')).join(', ')+'). Нужна ручная настройка.');
+    return c[0]||null;
+  }
   function readContract(text){
     // Browser XML view copied into a TXT file: remove only its known display notice.
     text=text.replace(/^\uFEFF?\s*This XML file does not appear to have any style information associated with it\. The document tree is shown below\.\s*/, '');
@@ -170,7 +182,7 @@ const Eis = (() => {
     const t=inspectConfig(config);checkParty(t,k);
     if(config.catalog&&k.rate)throw Error('Загруженная спецификация контракта — без НДС. Проверьте режим НДС накладной.');
     const ship=String(k.dr.ship||firstAddr(k.c)||k.c.address||'').trim();
-    const addrs=config.addrs||(config.catalog&&config.catalog.addrs)||null,picked=addrs&&ship?findAddr(addrs,ship):null;
+    const addrs=config.addrs||(config.catalog&&config.catalog.addrs)||KNOWN_ADDRS[t.register]||null,picked=addrs&&ship?findAddr(addrs,ship):null;
     if(!ship||(!picked&&ship!==config.ship))throw Error(addrs?'Адрес «'+(ship||'не указан')+'» не найден среди мест поставки контракта в ЕИС: '+addrs.map(x=>streetOf(x.addr)+', '+x.addr.split(',').slice(-1)[0].trim()).join('; ')+'. Проверьте адрес в накладной.':'Этот образец ЕИС привязан к другому адресу доставки. Откройте «Настроить ЕИС» и загрузите образец для выбранного адреса или XML контракта со всеми адресами.');
     if(!k.dr.number||!/^\d{4}-\d\d-\d\d$/.test(k.dr.date)||!k.lines.length)throw Error('Заполните номер, дату и товарные строки накладной.');
     const date=new Date(k.dr.date+'T12:00:00Z');if(!Number.isFinite(date.getTime())||date.toISOString().slice(0,10)!==k.dr.date)throw Error('Некорректная дата накладной.');
@@ -180,9 +192,11 @@ const Eis = (() => {
     if(!/^[^\s"<>&]{1,100}$/.test(login))throw Error('Укажите «Логин ЕИС подписанта» в карточке поставщика (Справочники → Поставщики). Его можно посмотреть в профиле личного кабинета ЕИС.');
     if(k.rate&&!['5','7','10','20','22'].includes(String(k.rate)))throw Error('Такая ставка НДС пока не поддерживается для ЕИС.');
     const used=new Set(),pairs=k.lines.map(source=>{
-      const l=Object.assign({},source); l.country=l.country||(config.countries||{})[config.mapping[l.pid]]||'';
-      const id=config.mapping[l.pid],pos=t.positions.find(x=>x.id===id);
-      if(!pos)throw Error('Нет сопоставления ЕИС для товара «'+l.name+'». Откройте «Настроить ЕИС».');
+      const l=Object.assign({},source),saved=t.positions.find(x=>x.id===(config.mapping||{})[l.pid]);
+      // Сопоставление сайт → ЕИС делается автоматически по цене контракта; сохранённая вручную связь используется, если цена совпадает.
+      const pos=(saved&&!used.has(saved.id)&&autoPos([saved],l,used))||autoPos(t.positions,l,used),id=pos&&pos.id;
+      if(!pos)throw Error('Цена товара «'+l.name+'» ('+l.price+' ₽) не совпадает ни с одной позицией контракта в ЕИС. Проверьте цену в прайсе заказчика — она должна быть точно как в контракте.');
+      l.country=l.country||(config.countries||{})[id]||pos.country||'';
       if(used.has(id))throw Error('Несколько строк накладной связаны с одной позицией ЕИС. Объедините их или исправьте сопоставление.');used.add(id);
       if(l.okei!==pos.okei)throw Error('Единица измерения «'+l.name+'» отличается от контракта ЕИС ('+pos.unit+').');
       if(!Number.isFinite(l.qty)||l.qty<=0||!Number.isFinite(l.price)||l.price<0)throw Error('Некорректное количество или цена «'+l.name+'».');
