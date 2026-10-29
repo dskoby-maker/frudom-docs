@@ -1015,7 +1015,7 @@ function applyServer(d){
   if(!D.suppliers.some(x=>x.id===D.draft.supplierId) && D.suppliers[0]) D.draft.supplierId=D.suppliers[0].id;
   if(!D.customers.some(x=>x.id===D.draft.customerId)) D.draft.customerId=(D.customers[0]||{}).id||"";
   if(!isStaff()) patchAll(); saveLocal();
-  if(!isStaff() && Array.isArray(d.daytasks) && !lsGet("frudom-auto-bf1")){ const t=todayISO(); docTasks(D.journal.filter(j=>j.snap && !isArch(j) && j.date>=t).map(j=>j.date), true); lsSet("frudom-auto-bf1","1"); }
+  if(!isStaff() && Array.isArray(d.daytasks) && !lsGet("frudom-auto-bf2")){ const t=todayISO(); docTasks(D.journal.filter(j=>j.snap && !isArch(j) && j.date>=t).map(j=>j.date), true); lsSet("frudom-auto-bf2","1"); }
 }
 let lastPullAt=0;
 async function pull(force){
@@ -1793,7 +1793,8 @@ function pointsOn(docs){ const m={}; docs.forEach(j=>{ const dr=j.snap.dr, k=j.c
 /* точки дня: адреса из накладных + задачи (товар иногда возят без накладной): задача с заказчиком, у которого в этот день нет накладной, — отдельная точка; задача без заказчика — тоже */
 function cusAddrs(c){ if(!c||!c.id) return []; const o=[], seen={}; const add=(a,legal)=>{ if(a && !seen[a]){ seen[a]=1; o.push({a, label:stLabel(a,legal)}); } };
   branches(c).forEach(b=>{ addrs(b).forEach(a=>add(a,b.address)); }); addrs(c).forEach(a=>add(a,c.address)); return o; }
-function dayPoints(iso, docs, cf){ const m={}; docs.forEach(j=>{ m[j.customerId+"|"+(j.snap.dr.ship||"")]=1; });
+function dayPoints(iso, docs, cf){ const m={}, bc={}; docs.forEach(j=>{ const k=jKey(j); if(k&&k[0]==="B") bc[k]=(bc[k]||0)+1; });
+  docs.forEach(j=>{ const k=jKey(j); m[k&&bc[k]>1 ? "B|"+k : j.customerId+"|"+(j.snap.dr.ship||"")]=1; });
   DTS().forEach(x=>{ if(x.date!==iso || isAuto(x) || (cf && x.customerId && x.customerId!==cf)) return;
     if(x.customerId){ const L=cusAddrs(cus(x.customerId)), a=x.addr || (L.length===1?L[0].a:""); m[a ? x.customerId+"|"+a : "t#"+x.id]=1; } else m["t#"+x.id]=1; });
   return Object.keys(m).length; }
@@ -1896,20 +1897,34 @@ function dtSave(x, ev){ dirty("daytasks", x.id); saveLocal(); if(ev) logEv("За
 const AUTO_T="auto-", isAuto = x => String((x&&x.id)||"").startsWith(AUTO_T);
 const hsh = s => { let h=5381; for(const ch of String(s)) h=((h<<5)+h+ch.charCodeAt(0))|0; return (h>>>0).toString(36); };
 const wfmt = n => String(+(+n).toFixed(1)).replace(".",",");
+/* автозадачи «Отвезти товар»: одна задача на точку; комплект (документы одной заявки) — одна задача с расшифровкой по столовым / ОП */
+const nklWord = n => n%10===1&&n%100!==11?"накладная":[2,3,4].includes(n%10)&&![12,13,14].includes(n%100)?"накладные":"накладных";
 function docTasks(dates, quiet){ const now=new Date().toISOString(); let ch=0;
   [...new Set((dates||[]).filter(Boolean))].forEach(date=>{ const want={};
-    D.journal.filter(j=>j.snap && !isArch(j) && j.date===date).forEach(j=>{ const dr=j.snap.dr, c=j.snap.c||{}, ship=dr.ship||"";
-      const id=AUTO_T+hsh(date+"|"+j.customerId+"||"+ship);
-      const w=want[id]=want[id]||{id, cid:j.customerId, addr:ship, who:"", lbl:c.branchLabel||"", kg:0, other:{}};
+    const day=D.journal.filter(j=>j.snap && !isArch(j) && j.date===date).sort(jNumSort), bc={};
+    day.forEach(j=>{ const k=jKey(j); if(k && k[0]==="B") bc[k]=(bc[k]||0)+1; });
+    day.forEach(j=>{ const dr=j.snap.dr, c=j.snap.c||{}, ship=dr.ship||"", k=jKey(j), isB=!!(k && bc[k]>1);
+      const id=AUTO_T+hsh(isB ? date+"|"+j.customerId+"|"+k : date+"|"+j.customerId+"||"+ship);
+      const w=want[id]=want[id]||{id, cid:j.customerId, addr:ship, who:"", lbl:c.branchLabel||"", kg:0, other:{}, parts:isB?[]:null, addrs:new Set()};
+      w.addrs.add(ship);
       if(w.who && w.lbl!==(c.branchLabel||"")) w.who=cusShort(cus(j.customerId).name||c.name);
       if(!w.who){ const b=(c.branchLabel||"").replace(/^ОП\s*/,"").replace(/[«»"]/g,""), n=cusShort(cus(j.customerId).name||c.name); w.who = b ? n+", "+b : n; }
+      const part=w.parts?{j, c, ship, items:[]}:null; if(part) w.parts.push(part);
       calc(dr, j.snap).lines.forEach(l=>{ const u=String(l.unit||"").trim().toLowerCase().replace(/\.$/,""), q=+l.qty||0;
+        if(part) part.items.push(String(l.name||"").replace(/\s+(свеж\S*|продовольственн\S*)(?=[\s,)]|$)/gi,"").replace(/\s+/g," ").trim()+" "+qfmt(q,l.unit||""));
         if(u==="кг") w.kg+=q; else if(u==="г"||u==="гр") w.kg+=q/1000; else if(u==="т") w.kg+=q*1000; else { const k=l.unit||"шт"; w.other[k]=(w.other[k]||0)+q; } }); });
-    DTS().filter(x=>x.date===date && isAuto(x) && !want[x.id]).forEach(x=>{ DTS().splice(DTS().indexOf(x),1); dirty("daytasks",x.id,true); ch++; });
+    const gone=DTS().filter(x=>x.date===date && isAuto(x) && !want[x.id]);
+    gone.forEach(x=>{ DTS().splice(DTS().indexOf(x),1); dirty("daytasks",x.id,true); ch++; });
     Object.values(want).forEach(w=>{ const ex=Object.keys(w.other).map(u=>qfmt(w.other[u],u)).join(", ");
-      const text="Отвезти товар на "+w.who+(w.kg?", общий вес "+wfmt(w.kg)+" кг":"")+(ex?(w.kg?" + ":", ")+ex:"");
+      let text;
+      if(w.parts){ const brs=new Set(w.parts.map(p=>p.c.branchLabel||"")), lbl=p=>brs.size>1&&p.c.branchLabel ? p.c.branchLabel.replace(/^ОП\s*/,"").replace(/[«»"]/g,"") : ptName({addr:p.ship, c:p.c}).replace(/^(г\.|город)\s*москва,\s*/i,"").replace(/^./,ch=>ch.toUpperCase());
+        text="Отвезти комплект на "+w.who+": "+w.parts.length+" "+nklWord(w.parts.length)+(w.kg?", общий вес "+wfmt(w.kg)+" кг":"")+(ex?(w.kg?" + ":", ")+ex:"")
+          +w.parts.map(p=>"\n• "+lbl(p)+" (№ "+p.j.number+"): "+(p.items.join(", ")||"—")).join(""); }
+      else text="Отвезти товар на "+w.who+(w.kg?", общий вес "+wfmt(w.kg)+" кг":"")+(ex?(w.kg?" + ":", ")+ex:"");
       const x=DTS().find(y=>y.id===w.id);
-      if(!x){ DTS().push({id:w.id, date, customerId:w.cid, addr:w.addr, text, done:"", by:curUser()||"", created:now, doneBy:"", doneAt:"", seen:"", photos:[]}); dirty("daytasks",w.id); ch++; }
+      if(!x){ /* если прежние задачи этих точек уже были отмечены выполненными — переносим отметку */
+        const old=gone.filter(g=>g.customerId===w.cid && w.addrs.has(g.addr||"")), dn=old.length && old.every(g=>g.done) ? old[old.length-1] : null;
+        DTS().push({id:w.id, date, customerId:w.cid, addr:w.addr, text, done:dn?dn.done:"", by:curUser()||"", created:now, doneBy:dn?dn.doneBy||"":"", doneAt:dn?dn.doneAt||"":"", seen:"", photos:[]}); dirty("daytasks",w.id); ch++; }
       else if(x.text!==text){ x.text=text; x.seen=""; dirty("daytasks",x.id); ch++; } }); });
   if(ch){ saveLocal(); if(!quiet && curTab==="calendar") renderCalendar(); } return ch; }
 $("#dt-add").addEventListener("submit",e=>{ e.preventDefault(); const inp=$("#dt-text"), D0=DRf(); let v=inp.value.trim();
