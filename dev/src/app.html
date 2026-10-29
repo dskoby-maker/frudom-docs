@@ -176,6 +176,22 @@
 #fd-app tr.dsep .ds::after{content:"";order:5;flex-basis:100%;height:1px;background:linear-gradient(90deg,rgba(106,44,78,.35),var(--line) 40%,transparent);margin-top:2px}
 @media (max-width:700px){#fd-app table.stack tbody tr.dsep{display:block;padding:16px 0 4px;border-bottom:0}#fd-app table.stack tbody tr.dsep td{padding:0!important}}
 @media (prefers-reduced-motion:reduce){#fd-app tr.dsep .ds{animation:none}}
+#fd-app tr.kids>td{padding:0!important;border:0!important}
+#fd-app tr.kids .kw{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s cubic-bezier(.2,.8,.2,1)}
+#fd-app tr.kids.open .kw{grid-template-rows:1fr}
+#fd-app tr.kids .ki{min-height:0;overflow:hidden}
+#fd-app tr.kids .ki>.kd:first-child{margin-top:6px}#fd-app tr.kids .ki>.kd:last-child{margin-bottom:10px}
+#fd-app tr.kids .kd{display:grid;grid-template-columns:72px minmax(0,1fr) 110px 96px auto;align-items:center;gap:10px;margin:0 0 6px 18px;padding:8px 10px 8px 14px;border-left:2px solid rgba(106,44,78,.35);border-radius:0 10px 10px 0;background:#fcfbf8;opacity:0;transition:opacity .2s ease,background .15s}
+#fd-app tr.kids.open .kd{opacity:1;transition-delay:.08s}
+#fd-app tr.kids .kd:hover{background:var(--accent-soft)}
+#fd-app tr.kids .kd-n{font-weight:600;white-space:nowrap}
+#fd-app tr.kids .kd-w{cursor:pointer;min-width:0}#fd-app tr.kids .kd-w span{font-weight:500}#fd-app tr.kids .kd-w:hover span{color:var(--accent);text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(106,44,78,.35)}
+#fd-app tr.kids .kd-s{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+#fd-app tr.kids .kd-p{font-size:13px;white-space:nowrap}
+#fd-app tr.kids .kd-a{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:4px;white-space:normal}
+#fd-app tr.grp.gopen>td{border-bottom-color:transparent}
+@media (max-width:700px){#fd-app table.stack tbody tr.kids{display:block;padding:0;border:0}#fd-app tr.kids .kd{grid-template-columns:auto minmax(0,1fr) auto;margin-left:6px}#fd-app tr.kids .kd-p{display:none}#fd-app tr.kids .kd-a{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;white-space:normal;text-align:left}}
+@media (prefers-reduced-motion:reduce){#fd-app tr.kids .kw,#fd-app tr.kids .kd{transition:none}}
 #fd-app .tbl .btn.ic{min-width:32px;padding-left:7px;padding-right:7px;justify-content:center;color:var(--muted);transition:color .15s,background .15s}#fd-app .tbl .btn.ic:hover{color:var(--accent);background:var(--accent-soft)}#fd-app .tbl .btn.ic.del:hover,#fd-app .tbl .btn.ic.del.armed{color:var(--err);background:#fdf0ee}#fd-app .tbl .btn.ic svg{display:block}
 #fd-app .tbl .btn.gt{width:32px;padding-left:0;padding-right:0;justify-content:center}#fd-app .tbl .btn.gt .chev{display:inline-block;width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .2s}#fd-app .tbl .btn.gt.on .chev{transform:translateY(2px) rotate(-135deg)}
 #fd-app .jf{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px 10px;margin-bottom:6px}#fd-app .jf .jq{grid-column:span 2}
@@ -2317,6 +2333,7 @@ function jRowHtml(j, kid, arch){ const w=jWho(j);
     : `<button class="btn sm" data-combo-j="${j.id}" title="Счёт и ТОРГ‑12 вместе — просмотр, печать, PDF">Счёт+ТОРГ</button> ${view} <button class="btn ghost sm" data-edit="${j.id}">Изменить</button>
     <details class="more"><summary class="btn ghost sm">Ещё ▾</summary><div class="menu"><button class="btn sm" data-x="${j.id}">XML для ЕИС</button><button class="btn sm" data-copy="${j.id}">Сделать копию</button><button class="btn sm danger" data-arch="${j.id}">В архив</button></div></details>`;
   const ad = arch ? `<span class="muted" title="Убран в архив">в архиве с ${dtShort(j.snap.meta.arch)}</span>` : jDl(j);
+  if(kid) return `<div class="kd"><div class="kd-n">№ ${esc(j.number)}</div><div class="kd-w jcard" data-card="${j.id}" title="Подробнее о документе"><span>${esc(kLbl(j)||w.main)}</span></div><div class="kd-s">${fm(j.sum)}</div><div class="kd-p">${ad}</div><div class="kd-a acts">${acts}</div></div>`;
   return `<tr class="${kid?"kid":""}"><td>${fd(j.date)}</td><td>${esc(j.number)}</td><td class="jcard" data-card="${j.id}" title="Подробнее о документе"><div class="who">${esc(kid&&kLbl(j)?kLbl(j):w.main)}</div></td><td class="num">${fm(j.sum)}</td><td>${ad}</td><td class="acts">${acts}</td></tr>`; }
 /* строки журнала с комплектами; arch — показываем архив */
 /* разделитель дня в журнале (при сортировке по дате документа) */
@@ -2337,9 +2354,9 @@ function jBuild(rows, arch, openSet, daySep){
     const gacts = arch ? `<button class="btn sm" data-gunarch>Вернуть комплект</button>`
       : docLimited() ? `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button>`
       : `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button> <button class="btn ghost sm ic" data-gedit title="Изменить комплект (откроется во вкладке «Заявка»)" aria-label="Изменить комплект">${IC_EDIT}</button><button class="btn ghost sm ic del" data-garch title="Убрать комплект в архив" aria-label="Убрать комплект в архив">${IC_TRASH}</button>`;
-    out.push(`<tr class="grp" data-g="${esc(k)}"><td>${fd(g[0].date)}</td><td>${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))}</td><td class="jcard" data-gcard="1" title="Подробнее о комплекте"><div class="who"><span class="tag">Комплект · ${g.length}</span>${esc(w.main)}</div></td><td class="num"><b>${fm(sum)}</b></td><td>${arch?`<span class="muted">в архиве</span>`:dls.length?`<span class="dl">${dtShort(dls[dls.length-1])}</span>`:`<span class="muted">—</span>`}</td>
+    out.push(`<tr class="grp${open?" gopen":""}" data-g="${esc(k)}"><td>${fd(g[0].date)}</td><td>${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))}</td><td class="jcard" data-gcard="1" title="Подробнее о комплекте"><div class="who"><span class="tag">Комплект · ${g.length}</span>${esc(w.main)}</div></td><td class="num"><b>${fm(sum)}</b></td><td>${arch?`<span class="muted">в архиве</span>`:dls.length?`<span class="dl">${dtShort(dls[dls.length-1])}</span>`:`<span class="muted">—</span>`}</td>
       <td class="acts">${gacts} <button class="btn ghost sm gt${open?" on":""}" data-gt title="${open?"Скрыть документы комплекта":"Показать документы комплекта"}" aria-label="${open?"Скрыть документы комплекта":"Показать документы комплекта"}" aria-expanded="${open}"><span class="chev"></span></button></td></tr>`);
-    if(open) g.forEach(x=>out.push(jRowHtml(x,true,arch)));
+    out.push(`<tr class="kids${open?" open":""}" data-gk="${esc(k)}"><td colspan="6" class="full"><div class="kw"><div class="ki">${g.map(x=>jRowHtml(x,true,arch)).join("")}</div></div></td></tr>`);
   });
   return out;
 }
@@ -2412,7 +2429,12 @@ function onJClick(arch){ return async e=>{
     if(b && b.hasAttribute("data-garch")){ if(!armed(b,"Точно в архив?")) return; setArch(g,true); msgEl.textContent=""; toast("ok","Комплект в архиве","№ "+g.map(x=>x.number).join(", ")+" — номера снова свободны.",{action:{label:"Вернуть",fn:()=>{ setArch(g,false); toast("ok","Комплект возвращён в журнал",""); }}}); return; }
     if(b && b.hasAttribute("data-gunarch")){ const c=setArch(g,false); msgEl.textContent=""; toast(c.length?"warn":"ok","Комплект возвращён в журнал", c.length?(c.length>1?"Номера "+c.join(", ")+" уже заняты":"Номер "+c[0]+" уже занят")+" другими документами — проверьте, чтобы не было путаницы.":"№ "+g.map(x=>x.number).join(", ")); return; }
     if(b && !b.hasAttribute("data-gt")) return; if(e.target.closest("details")) return;
-    if(openSet.has(k)) openSet.delete(k); else openSet.add(k); rerender(); return; }
+    const kr=tr.nextElementSibling, op=!openSet.has(k); if(op) openSet.add(k); else openSet.delete(k);
+    if(!kr || !kr.classList.contains("kids")){ rerender(); return; }
+    /* плавно раскрываем / сворачиваем без перерисовки таблицы — столбцы не сдвигаются */
+    kr.classList.toggle("open", op); tr.classList.toggle("gopen", op); const bt=tr.querySelector(".btn.gt");
+    if(bt){ bt.classList.toggle("on", op); bt.setAttribute("aria-expanded", op); const t=op?"Скрыть документы комплекта":"Показать документы комплекта"; bt.title=t; bt.setAttribute("aria-label", t); }
+    return; }
   if(!b) return; const det=b.closest("details"); if(det && !b.dataset.arch) det.removeAttribute("open");
   const id=b.dataset.id||b.dataset.edit||b.dataset.copy||b.dataset.x||b.dataset.comboJ||b.dataset.arch||b.dataset.unarch||b.dataset.qty; const j=D.journal.find(x=>x.id===id); if(!j) return;
   if(docLimited() && (b.dataset.arch||b.dataset.unarch||b.dataset.edit||b.dataset.copy)) return;
