@@ -3331,7 +3331,7 @@ const STOPW=new Set(["свеж","прод","высш","сорт","весо","а�
 const stem4 = w => w.length>4 ? w.slice(0,4) : w;
 const stems = s => [...new Set(tok(s).map(stem4).filter(w=>!STOPW.has(w)))];
 /* поиск товара: сначала в прайсе заказчика (точное → запомненное → похожее), потом во всех товарах */
-function impMatch(name, cid){
+function impMatch(name, cid, price){
   const clean=s=>norm(s).replace(/[«»"]/g,"").replace(/\s+/g," ").trim(), n=clean(name); if(!n) return null;
   const inPl=D.products.filter(p=>custPrice(cid,p.id)!=null&&custPrice(cid,p.id)!=="");
   const exact=P=>P.find(p=>clean(p.name)===n)||P.find(p=>aliasesOf(p).some(a=>clean(a)===n));
@@ -3343,7 +3343,25 @@ function impMatch(name, cid){
       else if(inter===T.length) sc=Math.max(sc,0.8);                /* строка заявки короче названия товара */
       if(sc>bs || (sc===bs && (inter>bi || (inter===bi && U.length<bu)))){ bs=sc; bi=inter; bu=U.length; best=p; } }); });
     return bs>=min && best ? Object.assign(Object.create(best),{__fz:1, id:best.id, name:best.name, unit:best.unit, packs:best.packs}) : null; };
-  return exact(inPl) || fuzzy(inPl,0.5) || exact(D.products) || fuzzy(D.products,0.75);
+  const ex=exact(inPl); if(ex) return ex;
+  /* по цене: у заказчика все цены договора — товар с той же ценой и есть эта позиция */
+  const same=impByPrice(cid, price);
+  if(same.length===1) return Object.assign(Object.create(same[0]),{__pr:1, id:same[0].id, name:same[0].name, unit:same[0].unit, packs:same[0].packs});
+  if(same.length>1){ const f=fuzzy(same,0.78); if(f) return Object.assign(f,{__pr:same.length}); return {__amb:same}; }
+  return fuzzy(inPl,0.5) || exact(D.products) || fuzzy(D.products,0.75);
+}
+/* товары из прайса заказчика с той же ценой, что в файле */
+function impByPrice(cid, price){
+  if(price==null || price==="" || !(+price>0)) return [];
+  return D.products.filter(p=>{ const pr=custPrice(cid,p.id); return pr!=null && pr!=="" && Math.abs(+pr - +price)<0.005; });
+}
+/* выпадающий список для ненайденной строки: сначала товары с той же ценой */
+function impMissOpts(cid, l){
+  const inPl=D.products.filter(p=>custPrice(cid,p.id)!=null&&custPrice(cid,p.id)!==""), amb=(l.amb||[]).map(p=>p.id);
+  const o=p=>`<option value="${p.id}">${esc(p.name)} — ${fm(+custPrice(cid,p.id))} ₽</option>`;
+  return `<option value="">— выберите товар из прайса —</option>` + (amb.length
+    ? `<optgroup label="Цена ${fm(+l.price)} ₽ — как в заявке">${inPl.filter(p=>amb.includes(p.id)).map(o).join("")}</optgroup><optgroup label="Остальные товары договора">${inPl.filter(p=>!amb.includes(p.id)).map(o).join("")}</optgroup>`
+    : inPl.map(o).join(""));
 }
 function impItem(g,l,c,p){
       const pr=custPrice(c.id,p.id); const price=(pr!=null&&pr!=="")?+pr:(l.price!==""?+l.price:getPrice(c.id,p.id));
@@ -3405,9 +3423,11 @@ function impResolve({meta, lines}){
     const br=brOf(g.addr, g.br); if(g.br && bl.length && !brName(g.br)) g.warn.push({t:"w", m:"ОП «"+g.br+"» не найдено у заказчика."}); g.branchId=br?br.id:(bl.length?bl[0].id:""); if(bl.length && !br) g.warn.push({t:"w", m:"Подразделение не определено по адресу — выбрано «"+(bl[0].label||bl[0].fullName)+"». Проверьте."});
     const all=[...addrs(br||c)]; if((br||c).address) all.push((br||c).address);
     if(g.addr){ const hit=all.find(a=>ptKey(a)===ptKey(g.addr))||all.find(a=>norm(a).includes(norm(g.addr))); g.ship=hit||g.addr; if(!hit) g.warn.push({t:"w", m:"Адреса «"+g.addr+"» нет в карточке заказчика — он будет вписан как «Другой адрес»."}); } else g.ship="";
-    g.items=[]; g.miss=[]; g.lines.forEach(l=>{ const p=impMatch(l.name, c.id);
-      if(!p){ g.miss.push(l); return; }
-      if(p.__fz) g.warn.push({t:"w", m:"«"+l.name+"» → сопоставлено с «"+p.name+"» по похожему названию. Проверьте."});
+    g.items=[]; g.miss=[]; g.lines.forEach(l=>{ const p=impMatch(l.name, c.id, l.price);
+      if(!p || p.__amb){ l.amb=p&&p.__amb||null; g.miss.push(l); return; }
+      if(p.__pr===1) g.warn.push({t:"w", m:"«"+l.name+"» → «"+p.name+"»: по цене "+fm(+l.price)+" ₽ — в договоре только у этого товара такая цена. Проверьте."});
+      else if(p.__pr>1) g.warn.push({t:"w", m:"«"+l.name+"» → «"+p.name+"»: цена "+fm(+l.price)+" ₽ есть у "+p.__pr+" товаров договора, выбран по названию. Проверьте."});
+      else if(p.__fz) g.warn.push({t:"w", m:"«"+l.name+"» → сопоставлено с «"+p.name+"» по похожему названию. Проверьте."});
       impItem(g,l,c,p); });
     g.sum=r2(g.items.reduce((a,x)=>a+(+x.qty||0)*(+x.price||0),0)); });
   return {c, k, s, date, warn, groups:G};
@@ -3434,7 +3454,7 @@ function drawImp(){
    + (R.warn.length?`<div class="impg"><ul>${R.warn.map(w=>`<li class="${w.t}">${esc(w.m)}</li>`).join("")}</ul></div>`:"")
    + R.groups.map((g,i)=>`<div class="impg${IMP.cur===i?" cur":""}"><div class="ih"><b>${many?"Документ "+(i+1)+(g.num?" · № "+esc(g.num):""):"Позиций: "+g.items.length}${(()=>{ const b=branches(R.c).find(x=>x.id===g.branchId); return b&&(g.br||many)?" · "+esc(b.label||b.fullName):""; })()}</b><small>${esc(g.ship?(()=>{ const l=stLabel(g.ship,R.c.address); return /юр\. адрес/.test(l)?g.ship:l; })()+" · ":"")}${many?g.items.length+" поз. · ":""}${fm(g.sum)} ₽</small><span style="flex:1"></span>
       ${many||IMP.cur!==i?`<button class="btn sm${IMP.cur===i?"":" pri"}" data-impfill="${i}" type="button">${g.filled?"Заполнить заново":"Заполнить форму"}</button>`:`<button class="btn ghost sm" data-impfill="${i}" type="button">Заполнить заново</button>`}</div>
-      ${(g.miss||[]).map((l,mi)=>`<div class="impmiss"><span class="e">Не найден товар «${esc(l.name)}»${l.qty!==""?" — "+esc(String(l.qty).replace(".",","))+" "+esc(l.unit||""):""}${l.orig?" (в заявке «"+esc(l.orig)+"»)":""}. Это:</span><select data-impmiss="${i}:${mi}"><option value="">— выберите товар из прайса —</option>${D.products.filter(p=>custPrice(R.c.id,p.id)!=null&&custPrice(R.c.id,p.id)!=="").map(p=>`<option value="${p.id}">${esc(p.name)} — ${fm(+custPrice(R.c.id,p.id))} ₽</option>`).join("")}</select></div>`).join("")}
+      ${(g.miss||[]).map((l,mi)=>`<div class="impmiss"><span class="e">Не найден товар «${esc(l.name)}»${l.qty!==""?" — "+esc(String(l.qty).replace(".",","))+" "+esc(l.unit||""):""}${l.orig?" (в заявке «"+esc(l.orig)+"»)":""}${l.amb?" — цена "+fm(+l.price)+" ₽ у "+l.amb.length+" товаров договора":""}. Это:</span><select data-impmiss="${i}:${mi}">${impMissOpts(R.c.id,l)}</select></div>`).join("")}
       ${g.warn.length?`<ul>${g.warn.map(w=>`<li class="${w.t}">${esc(w.m)}</li>`).join("")}</ul>`:(g.miss||[]).length?"":`<ul><li style="color:#2f7d4f">Все позиции найдены, цены по договору.</li></ul>`}</div>`).join("")
    + `<div class="row" style="margin-top:8px"><button class="btn ghost sm" id="imp-close" type="button">Скрыть результат</button></div>`;
 }
@@ -3479,7 +3499,7 @@ function mulBlock(M,i){ const dr=M.dr, k=calc(dr), lbl=mulLabel(dr), g=IMP&&IMP.
     <div class="mmeta"><label>№ <input data-mnum value="${esc(dr.number)}" inputmode="numeric"${inJ?" readonly title=\"Номер уже в журнале — менять в полной форме\"":""}></label><span>от ${fd(dr.date)}</span><span>${esc(supShort(sup(dr.supplierId).name||""))}</span></div>
     <table class="mt"><thead><tr><th>Товар</th><th class="n">Кол-во</th><th class="n">Цена</th><th class="n">Сумма</th></tr></thead><tbody>${rows||`<tr><td colspan="4" class="muted">Нет товаров</td></tr>`}</tbody>
       <tfoot><tr><td>Итого: ${k.lines.length} поз.</td><td></td><td></td><td class="n">${fm(k.t.sum)} ₽</td></tr></tfoot></table>
-    ${g&&(g.miss||[]).length?g.miss.map((l,mi)=>`<div class="impmiss"><span class="e">Не найден товар «${esc(l.name)}»${l.qty!==""?" — "+esc(String(l.qty).replace(".",","))+" "+esc(l.unit||""):""}. Это:</span><select data-impmiss="${i}:${mi}"><option value="">— выберите товар из прайса —</option>${D.products.filter(p=>custPrice(dr.customerId,p.id)!=null&&custPrice(dr.customerId,p.id)!=="").map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select></div>`).join(""):""}
+    ${g&&(g.miss||[]).length?g.miss.map((l,mi)=>`<div class="impmiss"><span class="e">Не найден товар «${esc(l.name)}»${l.qty!==""?" — "+esc(String(l.qty).replace(".",","))+" "+esc(l.unit||""):""}${l.amb?" — цена "+fm(+l.price)+" ₽ у "+l.amb.length+" товаров договора":""}. Это:</span><select data-impmiss="${i}:${mi}">${impMissOpts(dr.customerId,l)}</select></div>`).join(""):""}
     ${g&&g.warn.length?`<div class="impg"><ul>${g.warn.map(w=>`<li class="${w.t}">${esc(w.m)}</li>`).join("")}</ul></div>`:""}
     <div class="make"><button class="btn pri" data-mmake="invoice">Счёт<small>на оплату</small></button><button class="btn pri" data-mmake="torg12">ТОРГ‑12<small>товарная накладная</small></button><button class="btn pri" data-mmake="upd">УПД<small>универсальный</small></button></div>
     <div class="make2"><button class="btn" data-mcombo="invoice,torg12">Скачать счёт + ТОРГ‑12<small>одним PDF</small></button><button class="btn" data-mcombo="invoice,upd">Скачать счёт + УПД<small>одним PDF</small></button></div>
