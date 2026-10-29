@@ -2387,7 +2387,8 @@ function jSorter(s){ const num=j=>parseInt(j.number,10)||0, who=j=>norm(jWho(j).
 const jOpen = new Set();
 const jWho = j => { const c=j.snap.c||{}, base=(cus(j.customerId).name)||c.name||"", b=c.branchLabel||""; return {main: base+(b?", "+b.replace(/[«»"]/g,""):""), pt: j.snap.dr.ship ? stLabel(j.snap.dr.ship, c.address) : ""}; };
 /* подпись документа внутри комплекта: подразделение (если есть) или точка доставки */
-const kLbl = j => { const b=(j.snap.c||{}).branchLabel; return b ? b.replace(/[«»"]/g,"") : jWho(j).pt; };
+/* подпись накладной внутри комплекта — как точка в «Заявке»: «ст 1», «ДАС»…; ОП — только у заказчиков, где ОП на одном адресе (НМИЦ) */
+const kLbl = j => { const b=((j.snap.c||{}).branchLabel||"").replace(/[«»"]/g,""), pt=jWho(j).pt; return (b && (!pt || oBrMode({customerId:j.customerId}))) ? b : (pt||b); };
 /* название комплекта: если документы разных подразделений — только заказчик */
 const gTitle = g => { const w=jWho(g[0]); return new Set(g.map(j=>jWho(j).main)).size>1 ? ((cus(g[0].customerId).name)||g[0].snap.c.name||w.main) : w.main; };
 const supShort = n => String(n||"").replace(/^ИП\s+/,"").replace(/^(\S+)\s+(\S)\S*\s+(\S)\S*$/,"$1 $2. $3.");
