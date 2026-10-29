@@ -166,6 +166,7 @@
 #fd-app .tbl td input,#fd-app .tbl td select{padding:6px 8px;font-size:14px}
 #fd-app .tbl td.num{text-align:right;white-space:nowrap}
 #fd-app .tbl .acts{white-space:nowrap;text-align:right}
+#fd-app .tbl .btn.ic{min-width:32px;padding-left:7px;padding-right:7px;justify-content:center;color:var(--muted);transition:color .15s,background .15s}#fd-app .tbl .btn.ic:hover{color:var(--accent);background:var(--accent-soft)}#fd-app .tbl .btn.ic.del:hover,#fd-app .tbl .btn.ic.del.armed{color:var(--err);background:#fdf0ee}#fd-app .tbl .btn.ic svg{display:block}
 #fd-app .tbl .btn.gt{width:32px;padding-left:0;padding-right:0;justify-content:center}#fd-app .tbl .btn.gt .chev{display:inline-block;width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .2s}#fd-app .tbl .btn.gt.on .chev{transform:translateY(2px) rotate(-135deg)}
 #fd-app .jf{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px 10px;margin-bottom:6px}#fd-app .jf .jq{grid-column:span 2}
 #fd-app .jsum{margin:4px 0 8px}
@@ -614,7 +615,7 @@
       </div>
       <div class="row jsum"><span id="jr-sum" class="muted"></span><span class="muted" id="jr-msg" style="color:var(--accent)"></span><span style="flex:1"></span><button class="btn ghost sm" id="jr-reset">Сбросить фильтры</button><button class="btn ghost sm" id="jr-refresh">Обновить</button></div>
       <div class="tbl"><table class="stack jt" data-full="2,5"><thead id="jr-head"><tr><th data-js="dt">Дата</th><th data-js="nm">№</th><th data-js="cu">Заказчик и точка</th><th class="num" data-js="sm">Сумма</th><th>Распечатан со склада</th><th class="acts"></th></tr></thead><tbody id="jr-body"></tbody></table></div>
-      <p class="muted" style="font-size:12px">Документ открывается ровно в том виде, в каком был создан. Нажмите на название заказчика — откроется карточка документа или комплекта. «Комплект» — документы одной заявки: стрелка справа показывает каждый документ, «Изменить» открывает комплект во вкладке «Заявка».</p>
+      <p class="muted" style="font-size:12px">Документ открывается ровно в том виде, в каком был создан. Нажмите на название заказчика — откроется карточка документа или комплекта. «Комплект» — документы одной заявки: стрелка справа показывает каждый документ, карандаш открывает комплект на правку во вкладке «Заявка», корзина убирает комплект в архив.</p>
     </div>
   </section>
 
@@ -2318,8 +2319,7 @@ function jBuild(rows, arch, openSet){
     const nums=g.map(x=>x.number), sum=r2(g.reduce((a,x)=>a+(+x.sum||0),0)), dls=g.map(x=>x.snap.meta&&x.snap.meta.pr).filter(Boolean).sort();
     const gacts = arch ? `<button class="btn sm" data-gunarch>Вернуть комплект</button>`
       : docLimited() ? `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button>`
-      : `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button> <button class="btn ghost sm" data-gedit title="Редактировать комплект во вкладке «Заявка»">Изменить</button>
-    <details class="more"><summary class="btn ghost sm">Ещё ▾</summary><div class="menu"><button class="btn sm" data-gedit>Редактировать комплект</button><button class="btn sm danger" data-garch>Комплект в архив</button></div></details>`;
+      : `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button> <button class="btn ghost sm ic" data-gedit title="Изменить комплект (откроется во вкладке «Заявка»)" aria-label="Изменить комплект">${IC_EDIT}</button><button class="btn ghost sm ic del" data-garch title="Убрать комплект в архив" aria-label="Убрать комплект в архив">${IC_TRASH}</button>`;
     out.push(`<tr class="grp" data-g="${esc(k)}"><td>${fd(g[0].date)}</td><td>${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))}</td><td class="jcard" data-gcard="1" title="Подробнее о комплекте"><div class="who"><span class="tag">Комплект · ${g.length}</span>${esc(w.main)}</div><small>${esc(g.map(x=>kLbl(x)).filter(Boolean).join(", "))} · ${esc(supShort(g[0].snap.s.name))}</small></td><td class="num"><b>${fm(sum)}</b></td><td>${arch?`<span class="muted">в архиве</span>`:dls.length?`<span class="dl">${dtShort(dls[dls.length-1])}</span>`:`<span class="muted">—</span>`}</td>
       <td class="acts">${gacts} <button class="btn ghost sm gt${open?" on":""}" data-gt title="${open?"Скрыть документы комплекта":"Показать документы комплекта"}" aria-label="${open?"Скрыть документы комплекта":"Показать документы комплекта"}" aria-expanded="${open}"><span class="chev"></span></button></td></tr>`);
     if(open) g.forEach(x=>out.push(jRowHtml(x,true,arch)));
@@ -2366,7 +2366,10 @@ function setArch(list, on){
   return clash;
 }
 /* кнопка с подтверждением вторым нажатием */
-const armed = (b, text) => { if(b.dataset.armed){ return true; } b.dataset.armed=1; const t0=b.textContent; b.textContent=text; setTimeout(()=>{ if(b.isConnected){ delete b.dataset.armed; b.textContent=t0; } }, 4000); return false; };
+const armed = (b, text) => { if(b.dataset.armed){ return true; } b.dataset.armed=1; const t0=b.innerHTML; b.textContent=text; b.classList.add("armed"); setTimeout(()=>{ if(b.isConnected){ delete b.dataset.armed; b.innerHTML=t0; b.classList.remove("armed"); } }, 4000); return false; };
+/* значки для компактных кнопок */
+const IC_EDIT='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+const IC_TRASH='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
 const jfSet=(k,v)=>{ JF()[k]=v; saveLocal(); renderJournal(); };
 $("#jr-per").onchange=e=>jfSet("per",e.target.value);
 $("#jr-from").onchange=e=>jfSet("from",e.target.value); $("#jr-to").onchange=e=>jfSet("to",e.target.value);
