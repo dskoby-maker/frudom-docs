@@ -3353,7 +3353,8 @@ function impMatch(name, cid, price){
 /* товары из прайса заказчика с той же ценой, что в файле */
 function impByPrice(cid, price){
   if(price==null || price==="" || !(+price>0)) return [];
-  return D.products.filter(p=>{ const pr=custPrice(cid,p.id); return pr!=null && pr!=="" && Math.abs(+pr - +price)<0.005; });
+  const k=Math.round(+price*100);   /* сверка до копеек: 338,76 = 338,76066741964 (и округление, и отбрасывание лишних знаков) */
+  return D.products.filter(p=>{ const pr=custPrice(cid,p.id); if(pr==null || pr==="" || !(+pr>0)) return false; const x=+pr*100; return Math.round(x)===k || Math.floor(x+1e-9)===k; });
 }
 /* выпадающий список для ненайденной строки: сначала товары с той же ценой */
 function impMissOpts(cid, l){
