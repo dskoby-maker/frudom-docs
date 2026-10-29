@@ -1518,7 +1518,19 @@ const oProds = o => D.products.filter(p=>{ if(o.edit && o.edit.price && o.edit.p
 /* цена в заявке: при правке комплекта — цена из его документов, иначе прайс заказчика */
 const oPrice = (o,pid) => o.edit && o.edit.price && o.edit.price[pid]!=null ? +o.edit.price[pid] : getPrice(o.customerId,pid);
 const oGoLabel = () => O().edit ? "Сохранить комплект и скачать PDF" : "Создать документы и скачать PDF";
-function oAddrs(o){ const c=liveCus({customerId:o.customerId, branchId:o.branchId}), list=addrs(c), legal=c.address||"";
+/* заказчик с несколькими ОП и одним адресом выгрузки (НМИЦ гематологии: бюджет / ОМС / внебюджет) — в заявке строки = ОП */
+function oBrMode(o){ const bl=branches(cus(o.customerId)); if(bl.length<2) return false; const set=new Set();
+  bl.forEach(b=>{ const c=liveCus({customerId:o.customerId, branchId:b.id}), l=addrs(c); (l.length?l:[c.address||""]).forEach(a=>set.add(a)); }); return set.size<=1; }
+const OP_PFX="ОП:";
+/* строка заявки: подпись, мелкий текст, ОП и адрес доставки документа */
+function oRow(o, a, legal){
+  if(String(a).startsWith(OP_PFX)){ const bid=a.slice(OP_PFX.length), b=branches(cus(o.customerId)).find(x=>x.id===bid)||{}, c=liveCus({customerId:o.customerId, branchId:bid}), ship=addrs(c)[0]||c.address||"";
+    return {title:b.label||b.fullName||"ОП", sub:"ОП · "+stLabel(ship, c.address), branchId:bid, ship}; }
+  return {title:stLabel(a,legal), sub:a, branchId:o.branchId, ship:a};
+}
+function oAddrs(o){
+  if(oBrMode(o)) return {all:branches(cus(o.customerId)).map(b=>OP_PFX+b.id), legal:"", br:true};
+  const c=liveCus({customerId:o.customerId, branchId:o.branchId}), list=addrs(c), legal=c.address||"";
   const all=[...list]; if(legal && !all.includes(legal)) all.push(legal); o.extra.forEach(a=>{ if(a && !all.includes(a)) all.push(a); }); return {all, legal}; }
 function renderOrder(){
   const o=O(), x=oCtr(o), ed=$("#o-editing");
@@ -1537,11 +1549,12 @@ function renderOrder(){
   renderOrderGrid();
 }
 function renderOrderGrid(){
-  const o=O(), P=oProds(o), {all, legal}=oAddrs(o);
-  $("#o-head").innerHTML=`<tr><th>Адрес</th><th class="num">№ док.</th>${P.map(p=>`<th class="num">${esc(p.name.replace(/\s*\([^)]*\)/g,"").replace(/\s*свеж\S*/i,""))}, ${esc(p.unit)}<br><small style="text-transform:none;letter-spacing:0">${fm(oPrice(o,p.id))} ₽</small></th>`).join("")}<th class="num">Сумма, ₽</th></tr>`;
+  const o=O(), P=oProds(o), {all, legal, br}=oAddrs(o);
+  $("#o-brwrap").hidden=$("#o-brwrap").hidden||!!br; $("#o-addaddr").hidden=!!br;
+  $("#o-head").innerHTML=`<tr><th>${br?"Подразделение":"Адрес"}</th><th class="num">№ док.</th>${P.map(p=>`<th class="num">${esc(p.name.replace(/\s*\([^)]*\)/g,"").replace(/\s*свеж\S*/i,""))}, ${esc(p.unit)}<br><small style="text-transform:none;letter-spacing:0">${fm(oPrice(o,p.id))} ₽</small></th>`).join("")}<th class="num">Сумма, ₽</th></tr>`;
   $("#o-body").innerHTML = !P.length ? `<tr><td class="muted">У заказчика нет прайса — заполните цены во вкладке «Заказчики и цены».</td></tr>`
     : all.map((a,i)=>{ const q=o.qty[a]||{}, ex=o.extra.includes(a);
-      return `<tr data-i="${i}"><td class="a"><b>${esc(stLabel(a,legal))}</b><small>${esc(a)}</small>${ex?`<button class="btn ghost sm danger" data-rm="${i}" style="margin-top:4px">убрать адрес</button>`:""}</td><td class="num"><input class="nm" inputmode="numeric" value="${esc(o.num[a]||"")}"></td>${P.map(p=>`<td class="num"><input class="q" inputmode="decimal" data-p="${p.id}" value="${esc(q[p.id]||"")}" placeholder="0"></td>`).join("")}<td class="num rs"></td></tr>`; }).join("");
+      const r=oRow(o,a,legal); return `<tr data-i="${i}"><td class="a"><b>${esc(r.title)}</b><small>${esc(r.sub)}</small>${ex?`<button class="btn ghost sm danger" data-rm="${i}" style="margin-top:4px">убрать адрес</button>`:""}</td><td class="num"><input class="nm" inputmode="numeric" value="${esc(o.num[a]||"")}"></td>${P.map(p=>`<td class="num"><input class="q" inputmode="decimal" data-p="${p.id}" value="${esc(q[p.id]||"")}" placeholder="0"></td>`).join("")}<td class="num rs"></td></tr>`; }).join("");
   oTotals();
 }
 function oTotals(){
@@ -1599,9 +1612,9 @@ async function oGo(noPdf){
   if(!o.supplierId){ msg.textContent="Выберите поставщика."; toast("err","Не выбран поставщик","Выберите поставщика вверху страницы."); return; }
   const plan=oPlan(o), used=oUsed(o), seen={}, warn=[], dup=new Set();
   for(const a of rows){ const nmb=plan[a];
-    if(seen[nmb]){ warn.push("№ "+nmb+" стоит у двух точек: «"+stLabel(seen[nmb])+"» и «"+stLabel(a)+"»"); dup.add(nmb); } seen[nmb]=a;
+    if(seen[nmb]){ warn.push("№ "+nmb+" стоит у двух строк: «"+oRow(o,seen[nmb]).title+"» и «"+oRow(o,a).title+"»"); dup.add(nmb); } seen[nmb]=a;
     const j=used[nmb]; if(j){ warn.push("№ "+nmb+" уже есть в журнале (документ от "+fd(j.date)+(j.snap?", "+(j.snap.c.branchLabel||j.snap.c.name):"")+")"); dup.add(nmb); } }
-  drop.forEach(j=>warn.push("№ "+j.number+" («"+stLabel(j.snap.dr.ship||"", j.snap.c.address)+"») без количества — уйдёт в архив"));
+  drop.forEach(j=>warn.push("№ "+j.number+" («"+(j.snap.c.branchLabel||stLabel(j.snap.dr.ship||"", j.snap.c.address))+"») без количества — уйдёт в архив"));
   const sig=JSON.stringify(plan);
   if(warn.length && btn.dataset.force!==sig){ btn.dataset.force=sig; btn.textContent="Всё равно создать с этими номерами";
     msg.innerHTML=`<b style="color:#b45309">Внимание:</b> ${esc([...new Set(warn)].join("; "))}. Если так и нужно — нажмите кнопку ещё раз.${dup.size?" Или поменяйте номер / сотрите его, чтобы сайт подставил свободный.":""}`; toast("warn",dup.size?"Повторяющийся номер":"Проверьте перед сохранением", [...new Set(warn)].join("; ")+". Если так и нужно — нажмите кнопку ещё раз."); return; }
@@ -1616,22 +1629,22 @@ async function oGo(noPdf){
         const keep=dr.lines.filter(l=>l.productId && +q[l.productId]>0), had=new Set();
         dr.lines=keep.filter(l=>{ if(had.has(l.productId)) return false; had.add(l.productId); return true; }).map(l=>Object.assign(l,{qty:String(q[l.productId])}))
           .concat(P.filter(p=>+q[p.id]>0 && !had.has(p.id)).map(p=>({productId:p.id, qty:String(q[p.id]), price:String(oPrice(o,p.id))})));
-      } else dr={id:uid(), supplierId:o.supplierId, customerId:o.customerId, branchId:o.branchId, contractId:x?x.id:"", basis:x?(x.basis||""):"",
-        number:plan[a], date:o.date, ship:a,
-        lines:P.filter(p=>+q[p.id]>0).map(p=>({productId:p.id, qty:String(q[p.id]), price:String(oPrice(o,p.id))}))};
+      } else { const r=oRow(o,a); dr={id:uid(), supplierId:o.supplierId, customerId:o.customerId, branchId:r.branchId, contractId:x?x.id:"", basis:x?(x.basis||""):"",
+        number:plan[a], date:o.date, ship:r.ship,
+        lines:P.filter(p=>+q[p.id]>0).map(p=>({productId:p.id, qty:String(q[p.id]), price:String(oPrice(o,p.id))}))}; }
       const n=await commitDoc(dr, {force: dup.has(dr.number), meta:{batch}}); if(n) notes.push(n.trim());
       const j=D.journal.find(z=>z.id===dr.id); made.push(calc(j.snap.dr, j.snap));
     }
     if(drop.length) setArch(drop, true);
     if(ed) bundleEditEnd(true); else { o.qty={}; o.num={}; saveLocal(); renderOrderGrid(); }
     const lbl=made.map(k=>"№ "+k.dr.number).join(", ")+(drop.length?" (в архив: "+drop.map(j=>"№ "+j.number).join(", ")+")":"");
-    $("#o-done").innerHTML=made.map(k=>`<div><b>№ ${esc(k.dr.number)}</b> — ${esc(stLabel(k.dr.ship, k.c.address))} — ${fm(k.t.sum)} ₽ ${["invoice","torg12","upd"].map(kd=>`<button class="btn sm" data-ov="${kd}" data-id="${k.dr.id}">${KSHORT[kd]}</button>`).join(" ")}</div>`).join("");
+    $("#o-done").innerHTML=made.map(k=>`<div><b>№ ${esc(k.dr.number)}</b> — ${esc(k.c.branchLabel||stLabel(k.dr.ship, k.c.address))} — ${fm(k.t.sum)} ₽ ${["invoice","torg12","upd"].map(kd=>`<button class="btn sm" data-ov="${kd}" data-id="${k.dr.id}">${KSHORT[kd]}</button>`).join(" ")}</div>`).join("");
     if(kinds.length){ msg.textContent="Создано: "+lbl+". Готовлю PDF…";
       const nums=made.map(k=>+k.dr.number), rng=nums.length>1?Math.min(...nums)+"–"+Math.max(...nums):String(nums[0]);
       await manyPdf(kinds, made, kinds.map(k=>KSHORT[k]).join(" и ")+" № "+rng+" от "+fd(o.date)+" — "+shortCus(made[0]));
       msg.textContent="Готово: "+lbl+" — сохранены в журнал, PDF скачан."; }
     else msg.textContent="Готово: "+lbl+" — сохранены в журнал"+(noPdf?". Распечатать можно кнопками рядом с каждым документом или из журнала.":" (PDF не выбран).");
-    logEv("Заявка",(ed?"Изменён комплект: ":"Создан комплект по заявке: ")+""+made.length+" док., № "+made.map(k=>k.dr.number).join(", ")+" от "+fd(o.date)+" — "+shortCus(made[0])+" ("+made.map(k=>stLabel(k.dr.ship,k.c.address)).join(", ")+"), сумма "+fm(r2(made.reduce((a,k)=>a+k.t.sum,0)))+" ₽");
+    logEv("Заявка",(ed?"Изменён комплект: ":"Создан комплект по заявке: ")+""+made.length+" док., № "+made.map(k=>k.dr.number).join(", ")+" от "+fd(o.date)+" — "+shortCus(made[0])+" ("+made.map(k=>k.c.branchLabel||stLabel(k.dr.ship,k.c.address)).join(", ")+"), сумма "+fm(r2(made.reduce((a,k)=>a+k.t.sum,0)))+" ₽");
     toast(notes.length?"warn":"ok", "Создано "+made.length+" "+docsWord(made.length)+": "+lbl, (notes.length?notes.join(" ")+" ":"")+(made.length>1?"Комплект в журнале":"Документ в журнале")+(kinds.length?", PDF скачан.":"."));
     if(notes.length) msg.textContent+=" "+notes.join(" ");
   }catch(e){ toast("err","Документы созданы не полностью", e.message+(made.length?". Уже создано: "+made.map(k=>"№ "+k.dr.number).join(", ")+" — они в журнале, остальное создайте ещё раз.":". Проверьте интернет и нажмите кнопку ещё раз.")); msg.textContent="Ошибка: "+e.message+(made.length?" Уже создано: "+made.map(k=>"№ "+k.dr.number).join(", ")+" — они в журнале.":""); }
@@ -2274,6 +2287,10 @@ function jSorter(s){ const num=j=>parseInt(j.number,10)||0, who=j=>norm(jWho(j).
     cu_a:(a,b)=>who(a).localeCompare(who(b),"ru",{numeric:true})||tie(a,b) })[s] || ((a,b)=>jCreated(b).localeCompare(jCreated(a))); }
 const jOpen = new Set();
 const jWho = j => { const c=j.snap.c||{}, base=(cus(j.customerId).name)||c.name||"", b=c.branchLabel||""; return {main: base+(b?", "+b.replace(/[«»"]/g,""):""), pt: j.snap.dr.ship ? stLabel(j.snap.dr.ship, c.address) : ""}; };
+/* подпись документа внутри комплекта: подразделение (если есть) или точка доставки */
+const kLbl = j => { const b=(j.snap.c||{}).branchLabel; return b ? b.replace(/[«»"]/g,"") : jWho(j).pt; };
+/* название комплекта: если документы разных подразделений — только заказчик */
+const gTitle = g => { const w=jWho(g[0]); return new Set(g.map(j=>jWho(j).main)).size>1 ? ((cus(g[0].customerId).name)||g[0].snap.c.name||w.main) : w.main; };
 const supShort = n => String(n||"").replace(/^ИП\s+/,"").replace(/^(\S+)\s+(\S)\S*\s+(\S)\S*$/,"$1 $2. $3.");
 /* ключ комплекта: явный (создан одной заявкой) или старый — по времени скачивания */
 function jKey(j){ const m=(j.snap&&j.snap.meta)||{}; if(m.batch) return "B"+m.batch; if(!m.dl) return "";
@@ -2289,7 +2306,7 @@ function jRowHtml(j, kid, arch){ const w=jWho(j);
     : `<button class="btn sm" data-combo-j="${j.id}" title="Счёт и ТОРГ‑12 вместе — просмотр, печать, PDF">Счёт+ТОРГ</button> ${view} <button class="btn ghost sm" data-edit="${j.id}">Изменить</button>
     <details class="more"><summary class="btn ghost sm">Ещё ▾</summary><div class="menu"><button class="btn sm" data-x="${j.id}">XML для ЕИС</button><button class="btn sm" data-copy="${j.id}">Сделать копию</button><button class="btn sm danger" data-arch="${j.id}">В архив</button></div></details>`;
   const ad = arch ? `<span class="muted" title="Убран в архив">в архиве с ${dtShort(j.snap.meta.arch)}</span>` : jDl(j);
-  return `<tr class="${kid?"kid":""}"><td>${fd(j.date)}</td><td>${esc(j.number)}</td><td class="jcard" data-card="${j.id}" title="Подробнее о документе"><div class="who">${esc(kid&&w.pt?w.pt:w.main)}</div><small>${kid?"":esc(w.pt?w.pt+" · ":"")}${esc(supShort(j.snap.s.name))}</small></td><td class="num">${fm(j.sum)}</td><td>${ad}</td><td class="acts">${acts}</td></tr>`; }
+  return `<tr class="${kid?"kid":""}"><td>${fd(j.date)}</td><td>${esc(j.number)}</td><td class="jcard" data-card="${j.id}" title="Подробнее о документе"><div class="who">${esc(kid&&kLbl(j)?kLbl(j):w.main)}</div><small>${kid?"":esc(w.pt?w.pt+" · ":"")}${esc(supShort(j.snap.s.name))}</small></td><td class="num">${fm(j.sum)}</td><td>${ad}</td><td class="acts">${acts}</td></tr>`; }
 /* строки журнала с комплектами; arch — показываем архив */
 function jBuild(rows, arch, openSet){
   const cnt={}; D.journal.forEach(j=>{ if(!j.snap || isArch(j)!==arch) return; const k=jKey(j); if(k) cnt[k]=(cnt[k]||0)+1; });
@@ -2297,13 +2314,13 @@ function jBuild(rows, arch, openSet){
   const done=new Set(), out=[];
   rows.forEach(j=>{ const k=jKey(j);
     if(!groups[k]){ out.push(jRowHtml(j,false,arch)); return; } if(done.has(k)) return; done.add(k);
-    const g=groups[k].slice().sort(jNumSort), w=jWho(g[0]), open=openSet.has(k);
+    const g=groups[k].slice().sort(jNumSort), w={main:gTitle(groups[k].slice().sort(jNumSort))}, open=openSet.has(k);
     const nums=g.map(x=>x.number), sum=r2(g.reduce((a,x)=>a+(+x.sum||0),0)), dls=g.map(x=>x.snap.meta&&x.snap.meta.pr).filter(Boolean).sort();
     const gacts = arch ? `<button class="btn sm" data-gunarch>Вернуть комплект</button>`
       : docLimited() ? `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button>`
       : `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button> <button class="btn ghost sm" data-gedit title="Редактировать комплект во вкладке «Заявка»">Изменить</button>
     <details class="more"><summary class="btn ghost sm">Ещё ▾</summary><div class="menu"><button class="btn sm" data-gedit>Редактировать комплект</button><button class="btn sm danger" data-garch>Комплект в архив</button></div></details>`;
-    out.push(`<tr class="grp" data-g="${esc(k)}"><td>${fd(g[0].date)}</td><td>${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))}</td><td class="jcard" data-gcard="1" title="Подробнее о комплекте"><div class="who"><span class="tag">Комплект · ${g.length}</span>${esc(w.main)}</div><small>${esc(g.map(x=>jWho(x).pt).filter(Boolean).join(", "))} · ${esc(supShort(g[0].snap.s.name))}</small></td><td class="num"><b>${fm(sum)}</b></td><td>${arch?`<span class="muted">в архиве</span>`:dls.length?`<span class="dl">${dtShort(dls[dls.length-1])}</span>`:`<span class="muted">—</span>`}</td>
+    out.push(`<tr class="grp" data-g="${esc(k)}"><td>${fd(g[0].date)}</td><td>${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))}</td><td class="jcard" data-gcard="1" title="Подробнее о комплекте"><div class="who"><span class="tag">Комплект · ${g.length}</span>${esc(w.main)}</div><small>${esc(g.map(x=>kLbl(x)).filter(Boolean).join(", "))} · ${esc(supShort(g[0].snap.s.name))}</small></td><td class="num"><b>${fm(sum)}</b></td><td>${arch?`<span class="muted">в архиве</span>`:dls.length?`<span class="dl">${dtShort(dls[dls.length-1])}</span>`:`<span class="muted">—</span>`}</td>
       <td class="acts">${gacts} <button class="btn ghost sm gt${open?" on":""}" data-gt title="${open?"Скрыть документы комплекта":"Показать документы комплекта"}" aria-label="${open?"Скрыть документы комплекта":"Показать документы комплекта"}" aria-expanded="${open}"><span class="chev"></span></button></td></tr>`);
     if(open) g.forEach(x=>out.push(jRowHtml(x,true,arch)));
   });
@@ -2456,10 +2473,10 @@ function docCard(j, arch){
       onJClick(arch)({target:fake}); });
 }
 function bundleCard(g, arch){
-  if(!g.length) return; const ks=g.map(j=>calc(j.snap.dr, j.snap)), w=jWho(g[0]), lim=docLimited(), sum=r2(ks.reduce((a,k)=>a+k.t.sum,0)), kg=ks.reduce((a,k)=>a+k.t.kg,0);
+  if(!g.length) return; const ks=g.map(j=>calc(j.snap.dr, j.snap)), w={main:gTitle(g)}, lim=docLimited(), sum=r2(ks.reduce((a,k)=>a+k.t.sum,0)), kg=ks.reduce((a,k)=>a+k.t.kg,0);
   const nums=g.map(j=>j.number), hist=[].concat(...g.map(j=>histOf(j).map(x=>Object.assign(x,{num:j.number}))));
   const info=[["Поставщик",g[0].snap.s.name||""],["Основание",g[0].snap.dr.basis||""],["Документы","№ "+(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))]].filter(x=>x[1]);
-  const docs=g.map((j,i)=>{ const k=ks[i]; return `<section class="dc-doc" style="animation-delay:${Math.min(i,8)*0.04}s"><button class="dc-dh" data-dc="doc" data-id="${j.id}" title="Открыть документ"><span><b>№ ${esc(j.number)}</b> · ${esc(jWho(j).pt||stLabel(k.dr.ship||k.c.address||"", k.c.address))}</span><span class="s">${fm(k.t.sum)} ₽ ›</span></button>${linesTable(k)}</section>`; }).join("");
+  const docs=g.map((j,i)=>{ const k=ks[i]; return `<section class="dc-doc" style="animation-delay:${Math.min(i,8)*0.04}s"><button class="dc-dh" data-dc="doc" data-id="${j.id}" title="Открыть документ"><span><b>№ ${esc(j.number)}</b> · ${esc(kLbl(j)||stLabel(k.dr.ship||k.c.address||"", k.c.address))}</span><span class="s">${fm(k.t.sum)} ₽ ›</span></button>${linesTable(k)}</section>`; }).join("");
   const acts = arch ? `<button class="btn" data-dc="close">Закрыть</button>`
     : `<button class="btn" data-dc="gpdf" data-k="invoice,torg12">Счета+ТОРГ</button><button class="btn" data-dc="gpdf" data-k="upd">Все УПД</button>`+(lim?"":`<button class="btn pri" data-dc="gedit">Редактировать комплект</button>`);
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Комплект · ${g.length} ${docsWord(g.length)} · ${fd(g[0].date)}</div><h3>${esc(w.main)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
@@ -2475,16 +2492,17 @@ function bundleCard(g, arch){
 /* ---------- редактирование комплекта во вкладке «Заявка» ---------- */
 function bundleEdit(g){
   if(docLimited()) return; const live=g.filter(j=>j.snap&&!isArch(j)).sort(jNumSort); if(!live.length) return;
-  const seen={}; for(const j of live){ const a=j.snap.dr.ship||j.snap.c.address||""; if(seen[a]){ toast("warn","Комплект нельзя открыть в «Заявке»","№ "+seen[a]+" и № "+j.number+" — на один адрес. Отредактируйте эти документы по отдельности кнопкой «Изменить»."); return; } seen[a]=j.number; }
-  const j0=live[0], cs=new Set(live.map(j=>j.customerId+"|"+j.supplierId+"|"+(j.snap.dr.branchId||"")));
+  const brm=oBrMode({customerId:live[0].customerId}), rk=j=>brm?OP_PFX+(j.snap.dr.branchId||""):(j.snap.dr.ship||j.snap.c.address||"");
+  const seen={}; for(const j of live){ const a=rk(j); if(seen[a]){ toast("warn","Комплект нельзя открыть в «Заявке»","№ "+seen[a]+" и № "+j.number+" — "+(brm?"на одно подразделение":"на один адрес")+". Отредактируйте эти документы по отдельности кнопкой «Изменить»."); return; } seen[a]=j.number; }
+  const j0=live[0], cs=new Set(live.map(j=>j.customerId+"|"+j.supplierId+"|"+(brm?"":(j.snap.dr.branchId||""))));
   if(cs.size>1){ toast("warn","Комплект нельзя открыть в «Заявке»","В комплекте документы разных заказчиков или поставщиков. Отредактируйте их по отдельности."); return; }
   const o=O(), backup=o.edit ? o.edit.backup : clone({customerId:o.customerId, supplierId:o.supplierId, branchId:o.branchId, date:o.date, qty:o.qty, num:o.num, extra:o.extra});
   const ids={}, price={};
   o.customerId=j0.customerId; o.supplierId=j0.supplierId; o.branchId=j0.snap.dr.branchId||""; o.date=j0.date; o.qty={}; o.num={}; o.extra=[];
-  live.forEach(j=>{ const a=j.snap.dr.ship||j.snap.c.address||""; ids[a]=j.id; o.num[a]=String(j.number); const q={};
+  live.forEach(j=>{ const a=rk(j); ids[a]=j.id; o.num[a]=String(j.number); const q={};
     j.snap.dr.lines.forEach(l=>{ if(!l.productId||!(+l.qty>0)) return; q[l.productId]=String(r3((+q[l.productId]||0)+(+l.qty))); if(price[l.productId]==null) price[l.productId]=+l.price||0; }); o.qty[a]=q; });
   o.edit={ids, price, batch:(j0.snap.meta||{}).batch||"", nums:live.map(j=>j.number), backup};
-  const {all}=oAddrs(o); Object.keys(ids).forEach(a=>{ if(!all.includes(a)) o.extra.push(a); });
+  const {all}=oAddrs(o); if(!brm) Object.keys(ids).forEach(a=>{ if(!all.includes(a)) o.extra.push(a); });
   $("#o-done").innerHTML=""; $("#o-msg").textContent=""; saveLocal(); showTab("order"); renderOrder();
   toast("ok","Комплект открыт для правки","Измените количества, добавьте или уберите адреса и нажмите «Сохранить изменения комплекта».");
 }
