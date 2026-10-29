@@ -166,6 +166,16 @@
 #fd-app .tbl td input,#fd-app .tbl td select{padding:6px 8px;font-size:14px}
 #fd-app .tbl td.num{text-align:right;white-space:nowrap}
 #fd-app .tbl .acts{white-space:nowrap;text-align:right}
+#fd-app tr.dsep td{padding:18px 6px 6px!important;border-bottom:0!important;background:transparent!important}
+#fd-app tr.dsep:first-child td{padding-top:6px!important}
+#fd-app tr.dsep .ds{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px;animation:fdin .25s ease both}
+#fd-app tr.dsep .ds i{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px var(--accent-soft);flex:none}
+#fd-app tr.dsep .ds b{font-weight:600;color:var(--ink);letter-spacing:-.005em}
+#fd-app tr.dsep .ds em{font-style:normal;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-soft);padding:2px 9px;border-radius:99px}
+#fd-app tr.dsep .ds span{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}
+#fd-app tr.dsep .ds::after{content:"";order:5;flex-basis:100%;height:1px;background:linear-gradient(90deg,rgba(106,44,78,.35),var(--line) 40%,transparent);margin-top:2px}
+@media (max-width:700px){#fd-app table.stack tbody tr.dsep{display:block;padding:16px 0 4px;border-bottom:0}#fd-app table.stack tbody tr.dsep td{padding:0!important}}
+@media (prefers-reduced-motion:reduce){#fd-app tr.dsep .ds{animation:none}}
 #fd-app .tbl .btn.ic{min-width:32px;padding-left:7px;padding-right:7px;justify-content:center;color:var(--muted);transition:color .15s,background .15s}#fd-app .tbl .btn.ic:hover{color:var(--accent);background:var(--accent-soft)}#fd-app .tbl .btn.ic.del:hover,#fd-app .tbl .btn.ic.del.armed{color:var(--err);background:#fdf0ee}#fd-app .tbl .btn.ic svg{display:block}
 #fd-app .tbl .btn.gt{width:32px;padding-left:0;padding-right:0;justify-content:center}#fd-app .tbl .btn.gt .chev{display:inline-block;width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .2s}#fd-app .tbl .btn.gt.on .chev{transform:translateY(2px) rotate(-135deg)}
 #fd-app .jf{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px 10px;margin-bottom:6px}#fd-app .jf .jq{grid-column:span 2}
@@ -2309,12 +2319,19 @@ function jRowHtml(j, kid, arch){ const w=jWho(j);
   const ad = arch ? `<span class="muted" title="Убран в архив">в архиве с ${dtShort(j.snap.meta.arch)}</span>` : jDl(j);
   return `<tr class="${kid?"kid":""}"><td>${fd(j.date)}</td><td>${esc(j.number)}</td><td class="jcard" data-card="${j.id}" title="Подробнее о документе"><div class="who">${esc(kid&&kLbl(j)?kLbl(j):w.main)}</div></td><td class="num">${fm(j.sum)}</td><td>${ad}</td><td class="acts">${acts}</td></tr>`; }
 /* строки журнала с комплектами; arch — показываем архив */
-function jBuild(rows, arch, openSet){
+/* разделитель дня в журнале (при сортировке по дате документа) */
+function jDaySep(iso, st){ const d=new Date(iso+"T12:00:00"), t=todayISO(), tm=new Date(); tm.setDate(tm.getDate()+1); const tmIso=tm.getFullYear()+"-"+String(tm.getMonth()+1).padStart(2,"0")+"-"+String(tm.getDate()).padStart(2,"0");
+  let lbl=isNaN(d)?fd(iso):d.toLocaleDateString("ru-RU",{weekday:"long", day:"numeric", month:"long"}); lbl=lbl.charAt(0).toUpperCase()+lbl.slice(1);
+  const tag=iso===t?"сегодня":iso===tmIso?"завтра":"";
+  return `<tr class="dsep${iso===t?" today":""}"><td colspan="6" class="full"><div class="ds"><i></i><b>${esc(lbl)}</b>${tag?`<em>${tag}</em>`:""}<span>${st.n} ${docsWord(st.n)} · ${fm(r2(st.sum))} ₽</span></div></td></tr>`; }
+function jBuild(rows, arch, openSet, daySep){
   const cnt={}; D.journal.forEach(j=>{ if(!j.snap || isArch(j)!==arch) return; const k=jKey(j); if(k) cnt[k]=(cnt[k]||0)+1; });
   const groups={}; rows.forEach(j=>{ const k=jKey(j); if(k && cnt[k]>1) (groups[k]=groups[k]||[]).push(j); });
-  const done=new Set(), out=[];
+  const done=new Set(), out=[], days={}; let lastDay=null;
+  if(daySep) rows.forEach(j=>{ const x=days[j.date]=days[j.date]||{n:0,sum:0}; x.n++; x.sum+=(+j.sum||0); });
+  const sep=iso=>{ if(daySep && iso!==lastDay){ lastDay=iso; out.push(jDaySep(iso, days[iso]||{n:0,sum:0})); } };
   rows.forEach(j=>{ const k=jKey(j);
-    if(!groups[k]){ out.push(jRowHtml(j,false,arch)); return; } if(done.has(k)) return; done.add(k);
+    if(!groups[k]){ sep(j.date); out.push(jRowHtml(j,false,arch)); return; } if(done.has(k)) return; done.add(k); sep(j.date);
     const g=groups[k].slice().sort(jNumSort), w={main:gTitle(groups[k].slice().sort(jNumSort))}, open=openSet.has(k);
     const nums=g.map(x=>x.number), sum=r2(g.reduce((a,x)=>a+(+x.sum||0),0)), dls=g.map(x=>x.snap.meta&&x.snap.meta.pr).filter(Boolean).sort();
     const gacts = arch ? `<button class="btn sm" data-gunarch>Вернуть комплект</button>`
@@ -2340,7 +2357,7 @@ function renderJournal(){
     .sort(jSorter(f.sort||"cr_d"));
   $("#jr-sort").value=f.sort||"cr_d";
   document.querySelectorAll("#jr-head th[data-js]").forEach(th=>{ const k=th.dataset.js, s=f.sort||"cr_d"; th.classList.toggle("sorted", s.startsWith(k)); th.dataset.dir = s.startsWith(k) ? (s.endsWith("_a")?"▲":"▼") : ""; });
-  const out=jBuild(rows,false,jOpen), tot=r2(rows.reduce((a,j)=>a+(+j.sum||0),0)), na=D.journal.length-live.length;
+  const out=jBuild(rows,false,jOpen,(f.sort||"cr_d").startsWith("dt")), tot=r2(rows.reduce((a,j)=>a+(+j.sum||0),0)), na=D.journal.length-live.length;
   $("#jr-count").textContent=live.length?live.length+" шт.":"";
   $("#jr-sum").textContent = rows.length ? "Найдено: "+rows.length+" "+docsWord(rows.length)+" на сумму "+fm(tot)+" ₽" : "";
  
