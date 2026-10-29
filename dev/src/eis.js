@@ -13,6 +13,41 @@ const Eis = (() => {
     const a=[];for(const c of s){if(!map.has(c))throw Error('Символ «'+c+'» нельзя записать в XML ЕИС. Замените его в накладной.');a.push(map.get(c));}return new Uint8Array(a);
   }
   function decode(b){const a=new Uint8Array(b),h=new TextDecoder().decode(a.slice(0,180));if(/encoding\s*=\s*["']windows-1251/i.test(h))return new TextDecoder('windows-1251',{fatal:true}).decode(a);try{return new TextDecoder('utf-8',{fatal:true}).decode(a);}catch(e){return new TextDecoder('windows-1251',{fatal:true}).decode(a);}}
+  // Места поставки контракта: номер места (sid), код ГАР и текст адреса. Один адрес встречается много раз (по каждой позиции).
+  function garPlaces(root){
+    return [...root.getElementsByTagNameNS('*','byGARInfo')].map(n=>{const v=k=>n.getElementsByTagNameNS('*',k)[0]?.textContent.trim()||'';return {sid:v('sid'),gar:v('GARGuid'),addr:v('GARAddress')};});
+  }
+  function uniqAddrs(list,sidOf){
+    const out=[],seen=new Set();list.forEach((x,i)=>{if(!x.gar||!x.addr||seen.has(x.gar))return;seen.add(x.gar);out.push({place:sidOf(x,i),gar:x.gar,addr:x.addr});});return out;
+  }
+  // Ключ адреса: слова улицы + дом/строение/корпус. «ул. Орджоникидзе, д. 15» = «Город Москва, улица Орджоникидзе, дом 15».
+  const STOP=new Set(['город','москва','улица','ул','проезд','пр','переулок','пер','проспект','кт','шоссе','ш','бульвар','б','р','набережная','наб','площадь','пл','тупик','туп','дом','д','строение','стр','корпус','корп','к','вн','тер','г','муниципальный','округ','россия','российская','федерация']);
+  function addrKey(text){
+    const t=String(text||'').toLowerCase().replace(/ё/g,'е'),num=re=>(t.match(re)||[])[1]||'';
+    return {house:num(/(?:^|[\s,.])(?:дом|д)\.?\s*(\d+[а-я]?)/),bld:num(/(?:строение|стр)\.?\s*(\d+)/),korp:num(/(?:корпус|корп|к)\.?\s*(\d+)(?![\d.])/),words:new Set((t.match(/[а-я]+/g)||[]).filter(w=>w.length>2&&!STOP.has(w)))};
+  }
+  function streetOf(gar){const seg=String(gar).split(',').map(x=>x.trim()),i=seg.findIndex(x=>/^д\.\s*\d/.test(x));return i>0?seg[i-1]:'';}
+  function findAddr(addrs,ship){
+    const a=addrKey(ship),hit=(addrs||[]).filter(x=>{const g=addrKey(x.addr),st=addrKey(streetOf(x.addr));return st.words.size&&[...st.words].every(w=>a.words.has(w))&&g.house===a.house&&g.bld===a.bld&&g.korp===a.korp;});
+    if(hit.length>1)throw Error('Адрес «'+ship+'» подходит к нескольким местам поставки ЕИС. Уточните адрес в накладной.');
+    return hit[0]||null;
+  }
+  function readPlaces(text){
+    const d=parse(text),root=d.documentElement;
+    if(root.localName!=='cpElectronicContract')throw Error('Нужен XML контракта ЕИС.');
+    const list=garPlaces(root);if(!list.length)throw Error('В XML контракта нет мест поставки.');
+    const num=root.getElementsByTagNameNS('*','contractNumber')[0]?.textContent.trim()||'';
+    return {kind:'places',number:num,list};
+  }
+  // Номера мест в реестре ЕИС отличаются от номеров в проекте контракта, но порядок мест одинаковый (проверено загрузкой в ЕИС 29.10.2026).
+  function mergePlaces(config,places){
+    const c=config&&config.catalog;if(!c)throw Error('Сначала загрузите полный XML контракта из реестра (как раньше) или образец УПД с полной спецификацией.');
+    if(places.number&&c.number&&places.number!==c.number)throw Error('Это XML другого контракта ('+places.number+').');
+    if(places.list.length!==c.places.length)throw Error('Количество мест поставки в XML ('+places.list.length+') не совпадает с контрактом в реестре ЕИС ('+c.places.length+').');
+    const t=inspect(config.main,config.pril),sp=attr(t.place,'ИдМестаПоставкиКонт'),sg=attr(t.place.querySelector('АдрГАР'),'ИдНом'),i=c.places.indexOf(sp);
+    if(i<0||(sg&&places.list[i].gar.toLowerCase()!==sg.toLowerCase()))throw Error('Порядок мест поставки в XML не совпадает с образцом ЕИС. Нужен XML контракта из реестра контрактов.');
+    return uniqAddrs(places.list,(x,j)=>c.places[j]);
+  }
   function readContract(text){
     // Browser XML view copied into a TXT file: remove only its known display notice.
     text=text.replace(/^\uFEFF?\s*This XML file does not appear to have any style information associated with it\. The document tree is shown below\.\s*/, '');
@@ -32,6 +67,7 @@ const Eis = (() => {
     const suppliers=child(at(c,'suppliersInfo'),'supplierInfo');if(suppliers.length!==1)throw Error('Поддерживается один поставщик контракта.');
     const catalog={kind:'contract',register:val(c,'regNum'),version:val(c,'id'),number:val(c,'number'),date:val(c,'signDate'),cinn:val(c,'customer/inn'),ckpp:val(c,'customer/kpp'),sinn:val(suppliers[0],'individualPersonRFIndEntr/EGRIPInfo/INN'),stages:child(at(c,'executionPeriod'),'stages').map(n=>({id:val(n,'guid'),tech:val(n,'sid')})),places:child(at(c,'deliveryPlaceInfo'),'byGARInfo').map(n=>val(n,'sid')),positions};
     if(!catalog.sinn||!catalog.cinn||!catalog.version||!catalog.register||!catalog.number||!catalog.stages.length||!catalog.places.length)throw Error('В XML нет реквизитов поставщика, заказчика, этапа или адреса.');
+    const own=uniqAddrs(garPlaces(at(c,'deliveryPlaceInfo')||c),x=>x.sid);if(own.length)catalog.addrs=own;
     return catalog;
   }
   function inspectConfig(config){
@@ -105,9 +141,10 @@ const Eis = (() => {
   async function read(files){
     let docs=[];
     if(files.length===1&&/\.(xml|txt)$/i.test(files[0].name)){
-      if(files[0].size>1200000)throw Error('XML настройки слишком большой.');
+      if(files[0].size>3000000)throw Error('XML настройки слишком большой.');
       const text=decode(await files[0].arrayBuffer());
       if(/<(?:(?:\w+):)?contract(?:\s|>)/.test(text))return readContract(text);
+      if(/<(?:\w+:)?cpElectronicContract[\s>]/.test(text))return readPlaces(text);
       const d=parse(text);
       if(d.getElementsByTagNameNS('*','EDOInfo').length)return readInfo(text);
       if(d.documentElement.tagName==='ФайлПакет')return unpack(text);
@@ -133,7 +170,8 @@ const Eis = (() => {
     const t=inspectConfig(config);checkParty(t,k);
     if(config.catalog&&k.rate)throw Error('Загруженная спецификация контракта — без НДС. Проверьте режим НДС накладной.');
     const ship=String(k.dr.ship||firstAddr(k.c)||k.c.address||'').trim();
-    if(!ship||ship!==config.ship)throw Error('Этот образец ЕИС привязан к другому адресу доставки. Откройте «Настроить ЕИС» и загрузите образец для выбранного адреса.');
+    const addrs=config.addrs||(config.catalog&&config.catalog.addrs)||null,picked=addrs&&ship?findAddr(addrs,ship):null;
+    if(!ship||(!picked&&ship!==config.ship))throw Error(addrs?'Адрес «'+(ship||'не указан')+'» не найден среди мест поставки контракта в ЕИС: '+addrs.map(x=>streetOf(x.addr)+', '+x.addr.split(',').slice(-1)[0].trim()).join('; ')+'. Проверьте адрес в накладной.':'Этот образец ЕИС привязан к другому адресу доставки. Откройте «Настроить ЕИС» и загрузите образец для выбранного адреса или XML контракта со всеми адресами.');
     if(!k.dr.number||!/^\d{4}-\d\d-\d\d$/.test(k.dr.date)||!k.lines.length)throw Error('Заполните номер, дату и товарные строки накладной.');
     const date=new Date(k.dr.date+'T12:00:00Z');if(!Number.isFinite(date.getTime())||date.toISOString().slice(0,10)!==k.dr.date)throw Error('Некорректная дата накладной.');
     const today=new Date().toLocaleDateString('ru-RU',{timeZone:'Europe/Moscow'}).split('.').reverse().join('-');
@@ -187,10 +225,16 @@ const Eis = (() => {
     // ЕИС требует блок «Сведения о подписанте» (РДИК_ИК_1079): пустой элемент с порядковым номером и логином пользователя ЕИС.
     [...pr.children].filter(e=>e.tagName==='Подписант').forEach(e=>e.remove());
     const signer=p.createElement('Подписант');signer.setAttribute('ПорядНом','1');signer.setAttribute('ЛогинПрод',login);pr.appendChild(signer);attrs(t.place,{ИдМестаПоставки:guid().replace(/-/g,'').toUpperCase()});
+    if(picked){
+      // Место поставки из контракта: номер места в реестре ЕИС, код ГАР и адрес (проверено загрузкой в ЕИС 29.10.2026).
+      attrs(t.place,{ИдМестаПоставкиКонт:picked.place});const g=one(t.place,'ПоГАР'),a=one(g,'АдрГАР');
+      if(attr(a,'ИдНом').toLowerCase()!==picked.gar.toLowerCase()){attrs(g,{СтрокаГАР:picked.addr});attrs(a,{ИдНом:picked.gar});a.removeAttribute('Индекс');
+        const z=a.querySelector('ЗемелУчасток'),st=streetOf(picked.addr);if(z&&st)z.textContent=st;}
+    }
     const supplement=xml(p),pb=encode(supplement);
     const packet='<?xml version="1.0" encoding="windows-1251"?>\n<ФайлПакет ИдТрПакет="'+guid()+'" ИдФайл="'+xa(id)+'" ИдПрилож="PRIL_'+xa(id)+'" ДатаВрФормир="'+now.toISOString()+'" ТипПрилож="УПДПрод" ВерсФорм="1.00" ИдОтпр="'+xa(t.sender)+'" ИдПол="'+xa(t.recipient)+'"><Документ><Контент>'+b64(bytes)+'</Контент></Документ><Прилож><Контент>'+b64(pb)+'</Контент></Прилож></ФайлПакет>';
     unpack(packet);
     return {xml:packet,main,supplement,idf:id,bytes:encode(packet),filename:'DP_PAKET_'+id+'.xml'};
   }
-  return {inspect,inspectConfig,readContract,read,readInfo,unpack,generate,encode,decode,checkParty};
+  return {inspect,inspectConfig,readContract,read,readInfo,readPlaces,mergePlaces,findAddr,unpack,generate,encode,decode,checkParty};
 })();
