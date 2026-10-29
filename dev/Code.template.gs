@@ -66,13 +66,16 @@ function out_(o)   { return ContentService.createTextOutput(JSON.stringify(o)).s
 /* кто вошёл: имя + пароль; старые версии страницы присылают только пароль администратора */
 function auth_(p) {
   const name = String(p.user || ''), key = String(p.key || '');
-  const mk = n => ({ name: n, role: USERS[n].role, admin: USERS[n].role === 'admin' });
+  const mk = n => ({ name: n, role: USERS[n].role, admin: USERS[n].role === 'admin', docs: USERS[n].docs === true });
   if (name) { const u = USERS[name]; return (u && key === u.pass) ? mk(name) : null; }
   for (const n in USERS) if (USERS[n].role === 'admin' && key === USERS[n].pass) return mk(n);
   return null;
 }
 
 /* сотрудник склада (staff): новый документ — только по ценам прайса; существующий — меняется только количество */
+/* staff без docs:true — ограниченный (только цены прайса и количество); staff с docs:true редактирует документы полностью */
+function lim_(me) { return me.role === 'staff' && !me.docs; }
+
 function staffOk_(e) {
   let ns; try { ns = JSON.parse(e.snap || '{}'); } catch (x) { return false; }
   if (!ns || !ns.dr) return false;
@@ -139,7 +142,7 @@ function handle_(p) {
       all.journal.upsert = (all.journal.upsert || []).filter(x => x.id !== (p.entry || {}).id).concat([p.entry || {}]);
       const g = guardChanges_(all, p.base, p.protocol, me); if (g.error) return g;
       const entry = g.changes.journal.upsert.find(x => x.id === p.entry.id);
-      if (me.role === 'staff' && !staffOk_(entry)) return { ok: false, error: 'forbidden' };
+      if (lim_(me) && !staffOk_(entry)) return { ok: false, error: 'forbidden' };
       // Check everything before the first write. Number conflicts must not acknowledge unsaved changes.
       const rows = read_('journal');
       const clash = rows.some(r => { let sn = {}; try { sn = JSON.parse(r.snap || '{}'); } catch(x) {}
@@ -159,7 +162,7 @@ function handle_(p) {
 }
 
 function syncIn_(ch, me) { ch = ch || {};
-  if (me.role === 'staff') { const j = ch.journal ? { upsert: (ch.journal.upsert || []).filter(staffOk_), del: [] } : null;
+  if (lim_(me)) { const j = ch.journal ? { upsert: (ch.journal.upsert || []).filter(staffOk_), del: [] } : null;
     let dt = ch.daytasks || null; if (dt) { const own = {}; read_('daytasks').forEach(r => { if (r.by === me.name) own[r.id] = 1; }); dt = { upsert: dt.upsert || [], del: (dt.del || []).filter(id => own[id]) }; }
     ch = { journal: j, events: ch.events, daytasks: dt }; if (!j) delete ch.journal; if (!dt) delete ch.daytasks; }
   applySync_(ch, me); if (Array.isArray(ch.events)) log_(me, ch.events);
@@ -396,7 +399,7 @@ function sameValue_(a,b) { return String(a == null ? '' : a) === String(b == nul
 function guardChanges_(input, base, protocol, me) {
   const changes = JSON.parse(JSON.stringify(input || {})), conflicts = [];
   if (protocol !== 1) return { ok: false, error: 'Обновите страницу: для сохранения нужна новая версия сайта.' };
-  const allowed = me.role === 'staff' ? ['journal','daytasks'] : ['suppliers','customers','products','prices','specs','contracts','journal','daytasks'].concat(me.admin ? ['costs','doccosts','psettings'] : []);
+  const allowed = lim_(me) ? ['journal','daytasks'] : me.role === 'staff' ? ['suppliers','products','prices','journal','daytasks'] : ['suppliers','customers','products','prices','specs','contracts','journal','daytasks'].concat(me.admin ? ['costs','doccosts','psettings'] : []);
   for (const t of Object.keys(changes)) {
     if (t === 'events') continue;
     if (!allowed.includes(t)) return { ok: false, error: 'forbidden' };
@@ -425,7 +428,7 @@ function guardChanges_(input, base, protocol, me) {
     };
     part.upsert = (part.upsert || []).map(o => check(o,false));
     (part.del || []).forEach(o => check(o,true));
-    if (me.role === 'staff' && t === 'journal' && ((part.del || []).length || part.upsert.some(o => !staffOk_(o)))) return {ok:false,error:'forbidden'};
+    if (lim_(me) && t === 'journal' && ((part.del || []).length || part.upsert.some(o => !staffOk_(o)))) return {ok:false,error:'forbidden'};
   }
   return conflicts.length ? {ok:false,error:'edit_conflict',conflicts} : {changes};
 }
