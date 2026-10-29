@@ -166,6 +166,7 @@
 #fd-app .tbl td input,#fd-app .tbl td select{padding:6px 8px;font-size:14px}
 #fd-app .tbl td.num{text-align:right;white-space:nowrap}
 #fd-app .tbl .acts{white-space:nowrap;text-align:right}
+#fd-app .tbl .btn.gt{width:32px;padding-left:0;padding-right:0;justify-content:center}#fd-app .tbl .btn.gt .chev{display:inline-block;width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:translateY(-2px) rotate(45deg);transition:transform .2s}#fd-app .tbl .btn.gt.on .chev{transform:translateY(2px) rotate(-135deg)}
 #fd-app .jf{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px 10px;margin-bottom:6px}#fd-app .jf .jq{grid-column:span 2}
 #fd-app .jsum{margin:4px 0 8px}
 #fd-app table.jt td .who{font-weight:600}#fd-app table.jt td:nth-child(2){white-space:nowrap}#fd-app table.jt td small{display:block;color:var(--muted);font-size:12px;line-height:1.35}
@@ -613,7 +614,7 @@
       </div>
       <div class="row jsum"><span id="jr-sum" class="muted"></span><span class="muted" id="jr-msg" style="color:var(--accent)"></span><span style="flex:1"></span><button class="btn ghost sm" id="jr-reset">Сбросить фильтры</button><button class="btn ghost sm" id="jr-refresh">Обновить</button></div>
       <div class="tbl"><table class="stack jt" data-full="2,5"><thead id="jr-head"><tr><th data-js="dt">Дата</th><th data-js="nm">№</th><th data-js="cu">Заказчик и точка</th><th class="num" data-js="sm">Сумма</th><th>Распечатан со склада</th><th class="acts"></th></tr></thead><tbody id="jr-body"></tbody></table></div>
-      <p class="muted" style="font-size:12px">Документ открывается ровно в том виде, в каком был создан. «Комплект» — документы, созданные одной заявкой: нажмите на него, чтобы развернуть и открыть или исправить каждый документ.</p>
+      <p class="muted" style="font-size:12px">Документ открывается ровно в том виде, в каком был создан. Нажмите на название заказчика — откроется карточка документа или комплекта. «Комплект» — документы одной заявки: стрелка справа показывает каждый документ, «Изменить» открывает комплект во вкладке «Заявка».</p>
     </div>
   </section>
 
@@ -2300,9 +2301,10 @@ function jBuild(rows, arch, openSet){
     const nums=g.map(x=>x.number), sum=r2(g.reduce((a,x)=>a+(+x.sum||0),0)), dls=g.map(x=>x.snap.meta&&x.snap.meta.pr).filter(Boolean).sort();
     const gacts = arch ? `<button class="btn sm" data-gunarch>Вернуть комплект</button>`
       : docLimited() ? `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button>`
-      : `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button> <button class="btn ghost sm" data-gedit>Редактировать комплект</button> <button class="btn ghost sm danger" data-garch>Комплект в архив</button>`;
+      : `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button> <button class="btn ghost sm" data-gedit title="Редактировать комплект во вкладке «Заявка»">Изменить</button>
+    <details class="more"><summary class="btn ghost sm">Ещё ▾</summary><div class="menu"><button class="btn sm" data-gedit>Редактировать комплект</button><button class="btn sm danger" data-garch>Комплект в архив</button></div></details>`;
     out.push(`<tr class="grp" data-g="${esc(k)}"><td>${fd(g[0].date)}</td><td>${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))}</td><td class="jcard" data-gcard="1" title="Подробнее о комплекте"><div class="who"><span class="tag">Комплект · ${g.length}</span>${esc(w.main)}</div><small>${esc(g.map(x=>jWho(x).pt).filter(Boolean).join(", "))} · ${esc(supShort(g[0].snap.s.name))}</small></td><td class="num"><b>${fm(sum)}</b></td><td>${arch?`<span class="muted">в архиве</span>`:dls.length?`<span class="dl">${dtShort(dls[dls.length-1])}</span>`:`<span class="muted">—</span>`}</td>
-      <td class="acts">${gacts} <button class="btn ghost sm" data-gt>${open?"Свернуть ▴":"Развернуть ▾"}</button></td></tr>`);
+      <td class="acts">${gacts} <button class="btn ghost sm gt${open?" on":""}" data-gt title="${open?"Скрыть документы комплекта":"Показать документы комплекта"}" aria-label="${open?"Скрыть документы комплекта":"Показать документы комплекта"}" aria-expanded="${open}"><span class="chev"></span></button></td></tr>`);
     if(open) g.forEach(x=>out.push(jRowHtml(x,true,arch)));
   });
   return out;
