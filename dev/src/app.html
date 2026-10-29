@@ -455,6 +455,63 @@
 #fd-app .sheet{background:#fff;color:#000;margin:0 auto 16px;box-shadow:0 2px 14px rgba(0,0,0,.25);padding:8mm}
 #fd-app #pv-pages.snap .sheet{box-shadow:none}
 #fd-app .sheet.portrait{width:210mm;min-height:297mm}#fd-app .sheet.landscape{width:297mm;min-height:210mm}
+/* ================= Liquid glass: полупрозрачные «стеклянные» поверхности и плавные анимации ================= */
+#fd-app{--ease:cubic-bezier(.2,.8,.2,1);--glass:rgba(255,255,255,.66);--glass-hi:rgba(255,255,255,.82);--glass-brd:rgba(255,255,255,.78);--glass-ln:rgba(28,34,32,.09);
+  --glass-sh:inset 0 1px 0 rgba(255,255,255,.85),0 10px 30px -12px rgba(48,32,44,.18),0 1px 2px rgba(28,34,32,.05);
+  position:relative;isolation:isolate;background:#F2F3EF}
+#fd-app::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(900px 520px at 8% -6%,rgba(106,44,78,.13),transparent 62%),radial-gradient(760px 480px at 100% 4%,rgba(64,128,96,.10),transparent 60%),radial-gradient(900px 620px at 55% 112%,rgba(222,178,120,.16),transparent 62%),linear-gradient(180deg,#F5F5F2,#EEF0EB)}
+/* размытие — на отдельном слое (::before), чтобы не ломать позиционирование всплывающих меню внутри */
+#fd-app header.top{background:transparent;border-bottom:1px solid rgba(255,255,255,.65);box-shadow:0 1px 0 rgba(28,34,32,.06),0 8px 24px -18px rgba(28,34,32,.25)}
+#fd-app header.top::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;background:rgba(244,245,241,.7);-webkit-backdrop-filter:saturate(1.8) blur(20px);backdrop-filter:saturate(1.8) blur(20px)}
+#fd-app .card{background:var(--glass);border:1px solid var(--glass-brd);border-radius:18px;box-shadow:var(--glass-sh);transition:box-shadow .35s var(--ease),background .35s var(--ease)}
+#fd-app .card:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 16px 38px -16px rgba(48,32,44,.22),0 1px 2px rgba(28,34,32,.05)}
+#fd-app section.tab:not([hidden])>.card{animation:fdglass .42s var(--ease) backwards}
+#fd-app section.tab:not([hidden])>.card:nth-child(2){animation-delay:.04s}#fd-app section.tab:not([hidden])>.card:nth-child(3){animation-delay:.08s}#fd-app section.tab:not([hidden])>.card:nth-child(n+4){animation-delay:.12s}
+@keyframes fdglass{from{opacity:0;transform:translateY(8px) scale(.995)}to{opacity:1;transform:none}}
+/* вкладки */
+#fd-app nav.tabs button{border-radius:12px;transition:background .25s var(--ease),color .2s,box-shadow .25s var(--ease),transform .15s var(--ease)}
+#fd-app nav.tabs button:hover{background:rgba(255,255,255,.55);color:var(--ink)}
+#fd-app nav.tabs button[aria-selected="true"]{background:rgba(255,255,255,.85);color:var(--accent);box-shadow:inset 0 1px 0 #fff,0 6px 16px -8px rgba(106,44,78,.35),0 0 0 1px rgba(106,44,78,.10)}
+#fd-app nav.tabs button:active{transform:scale(.97)}
+/* кнопки */
+#fd-app .btn{background:rgba(255,255,255,.72);border-color:rgba(28,34,32,.11);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 1px 2px rgba(28,34,32,.05);transition:transform .16s var(--ease),box-shadow .22s var(--ease),background .2s,border-color .2s,color .2s}
+#fd-app .btn:hover{background:#fff;border-color:rgba(28,34,32,.18);box-shadow:inset 0 1px 0 #fff,0 6px 14px -8px rgba(28,34,32,.28)}
+#fd-app .btn:active{transform:scale(.97)}
+#fd-app .btn.pri{background:linear-gradient(180deg,#7B3A5E 0%,#622749 100%);border-color:rgba(70,20,48,.55);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 8px 18px -10px rgba(106,44,78,.65)}
+#fd-app .btn.pri:hover{background:linear-gradient(180deg,#86416A 0%,#6A2C4E 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.32),0 12px 22px -10px rgba(106,44,78,.7)}
+#fd-app .btn.ghost{background:transparent;border-color:transparent;box-shadow:none}
+#fd-app .btn.ghost:hover{background:rgba(255,255,255,.6);border-color:rgba(28,34,32,.08)}
+#fd-app .btn:disabled{transform:none}
+/* поля */
+#fd-app input,#fd-app select,#fd-app textarea{background:rgba(255,255,255,.62);border-color:rgba(28,34,32,.12);border-radius:10px;transition:border-color .2s,box-shadow .25s var(--ease),background .2s}
+#fd-app input:hover,#fd-app select:hover,#fd-app textarea:hover{border-color:rgba(28,34,32,.2)}
+#fd-app input:focus,#fd-app select:focus,#fd-app textarea:focus{outline:none;background:#fff;border-color:rgba(106,44,78,.55);box-shadow:0 0 0 4px rgba(106,44,78,.13)}
+#fd-app input[type=checkbox],#fd-app input[type=radio]{box-shadow:none}
+/* таблицы */
+#fd-app .tbl tbody tr{transition:background .2s}
+#fd-app .tbl tbody tr:not(.dsep):not(.kids):hover{background:rgba(255,255,255,.55)}
+/* чипы в шапке */
+#fd-app .status,#fd-app .userchip{background:rgba(255,255,255,.66);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-color:rgba(255,255,255,.8);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 2px 8px -4px rgba(28,34,32,.2);transition:box-shadow .2s,background .2s}
+#fd-app .status:hover,#fd-app .userchip:hover{background:rgba(255,255,255,.88)}
+/* всплывающие окна и уведомления */
+#fd-app dialog.dcard{background:rgba(255,255,255,.84);-webkit-backdrop-filter:blur(26px) saturate(1.8);backdrop-filter:blur(26px) saturate(1.8);border:1px solid rgba(255,255,255,.8);box-shadow:inset 0 1px 0 #fff,0 30px 70px -20px rgba(28,20,30,.4)}
+#fd-app .dcard .dc-tw,#fd-app .dcard .dc-hist{background:rgba(255,255,255,.55);border-color:rgba(28,34,32,.08)}
+#fd-app .dcard .dc-t th{background:rgba(242,243,239,.7)}
+#fd-toasts .fd-toast{background:rgba(255,255,255,.8);-webkit-backdrop-filter:blur(20px) saturate(1.7);backdrop-filter:blur(20px) saturate(1.7);border:1px solid rgba(255,255,255,.75);box-shadow:inset 0 1px 0 #fff,0 18px 40px -16px rgba(28,20,30,.35)}
+#fd-app .modal .bar{background:rgba(255,255,255,.8);-webkit-backdrop-filter:blur(20px) saturate(1.6);backdrop-filter:blur(20px) saturate(1.6)}
+#fd-app details.more .menu{background:rgba(255,255,255,.86);-webkit-backdrop-filter:blur(18px) saturate(1.6);backdrop-filter:blur(18px) saturate(1.6);border-color:rgba(255,255,255,.8);box-shadow:inset 0 1px 0 #fff,0 16px 34px -14px rgba(28,20,30,.35);border-radius:14px}
+#fd-app .oedit{background:rgba(242,231,237,.7);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+/* мобильная нижняя панель */
+@media (max-width:700px){
+  #fd-app .mbar:not([hidden]){background:rgba(250,250,247,.7)!important;-webkit-backdrop-filter:saturate(1.9) blur(22px)!important;backdrop-filter:saturate(1.9) blur(22px)!important;border-top:1px solid rgba(255,255,255,.75)!important;box-shadow:0 -10px 30px -18px rgba(28,34,32,.35)}
+  /* на телефоне карточкам без размытия — быстрее прокрутка */
+  #fd-app .card{background:rgba(255,255,255,.8)}
+}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){#fd-app dialog.dcard,#fd-toasts .fd-toast{background:rgba(255,255,255,.96)}#fd-app header.top::before{background:#F2F3EF}}
+@media (prefers-reduced-transparency:reduce){#fd-app .card,#fd-app dialog.dcard,#fd-toasts .fd-toast{background:#fff;-webkit-backdrop-filter:none;backdrop-filter:none}#fd-app header.top::before{background:#F2F3EF;-webkit-backdrop-filter:none;backdrop-filter:none}}
+@media (prefers-reduced-motion:reduce){#fd-app section.tab:not([hidden])>.card{animation:none}#fd-app .btn,#fd-app nav.tabs button,#fd-app .card{transition:none}#fd-app .btn:active,#fd-app nav.tabs button:active{transform:none}}
+@media print{#fd-app::before,#fd-app header.top::before{display:none}#fd-app .card{box-shadow:none}}
 </style>
 <style id="fd-doc-css">
 /*__DOC_CSS__*/
