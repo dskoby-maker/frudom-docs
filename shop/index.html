@@ -28,6 +28,7 @@ button{font-family:inherit;cursor:pointer;border:0;background:none;color:inherit
 .rv.d1{transition-delay:.08s}.rv.d2{transition-delay:.16s}.rv.d3{transition-delay:.24s}.rv.d4{transition-delay:.32s}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}.rv{opacity:1;transform:none}}
 
+.testbar[hidden]{display:none}
 .testbar{background:#f7f1e4;color:#5c4210;font-size:13px;text-align:center;padding:8px 16px;border-bottom:1px solid #eadfc6}
 /* top bar */
 .topbar{background:var(--ink);color:#a9b2ac;font-size:12.5px}
@@ -302,7 +303,7 @@ footer .req{font-size:12.5px;color:var(--muted);margin-top:14px}
 </head>
 <body>
 
-<div class="testbar">Тестовая версия сайта: цены уточняются, заказы и оплата пока не принимаются. Заказ — по телефону +7 999 833-05-53.</div>
+<div class="testbar" hidden>Тестовая версия сайта: цены уточняются, заказы и оплата пока не принимаются. Заказ — по телефону +7 999 833-05-53.</div>
 <div class="topbar"><div class="wrap">
   <span class="live"><span class="dot"></span><span id="upd">Цены из прайса</span></span>
   <span>Заказ до 20:00 — доставка завтра<span class="sep">|</span>Москва и Московская область</span>
@@ -322,7 +323,7 @@ footer .req{font-size:12.5px;color:var(--muted);margin-top:14px}
   <div>
     <div class="eyebrow rv">Поставщик продуктов питания · с 2016 года</div>
     <h1 class="h rv d1">Продукты для вашей кухни — <span>завтра утром</span></h1>
-    <p class="lead rv d2">Овощи, фрукты, зелень, сухофрукты, орехи и заморозка для ресторанов, столовых и государственных учреждений. Цена в каталоге окончательная — без звонков и согласований.</p>
+    <p class="lead rv d2">Овощи, фрукты, зелень, сухофрукты, орехи и заморозка для ресторанов, столовых и государственных учреждений. Цены в каталоге актуальные — не нужно запрашивать прайс и согласовывать стоимость.</p>
     <div class="cta rv d3">
       <a href="#catalog" class="btn btn-p">Открыть каталог <span class="arr">→</span></a>
       <a href="#clients" class="btn btn-s">Наши заказчики</a>
@@ -340,12 +341,12 @@ footer .req{font-size:12.5px;color:var(--muted);margin-top:14px}
 
 <section class="sec"><div class="wrap">
   <div class="sec-h">
-    <div><div class="eyebrow rv">Как это работает</div><h2 class="h rv d1">Заказ без звонков и переписки</h2></div>
+    <div><div class="eyebrow rv">Как это работает</div><h2 class="h rv d1">Заказ в несколько кликов</h2></div>
     <p class="rv d2">Соберите корзину, оплатите — остальное сделаем мы. Документы придут автоматически.</p>
   </div>
   <div class="proc">
     <div class="ps rv"><span class="num">01</span><b>Корзина</b><span>Цены в каталоге всегда актуальны и синхронизированы со складом</span></div>
-    <div class="ps rv d1"><span class="num">02</span><b>Оплата</b><span>Без НДС — картой или СБП без регистрации. С НДС — счёт в кабинете компании</span></div>
+    <div class="ps rv d1"><span class="num">02</span><b>Оплата</b><span>Без НДС — по ссылке картой или СБП. С НДС — по счёту на почту компании</span></div>
     <div class="ps rv d2"><span class="num">03</span><b>Сборка и взвешивание</b><span>Фиксируем точный вес и присылаем итоговую сумму</span></div>
     <div class="ps rv d3"><span class="num">04</span><b>Доставка</b><span>На следующий день с полным пакетом документов</span></div>
   </div>
@@ -402,8 +403,8 @@ footer .req{font-size:12.5px;color:var(--muted);margin-top:14px}
     </dl></div>
     <div class="term"><h3>Оплата и точный вес</h3>
       <p>Весовой товар — например, мешок картофеля 25–30 кг — взвешиваем при сборке и присылаем итоговую сумму до отправки.</p>
-      <p><b>Без НДС:</b> оформление без регистрации, оплата картой или СБП. Сумма блокируется с запасом, списывается точная после взвешивания.</p>
-      <p><b>С НДС:</b> заполните данные компании один раз — счёт придёт в кабинет и на почту. Сборка начинается сразу после поступления оплаты, УПД — по фактическому весу.</p>
+      <p><b>Без НДС:</b> оформление без регистрации. Менеджер подтвердит заказ и пришлёт ссылку на оплату картой или СБП по фактическому весу.</p>
+      <p><b>С НДС:</b> заполните данные компании один раз — счёт придёт на почту. Сборка начинается после поступления оплаты, УПД — по фактическому весу.</p>
     </div>
   </div>
 </div></section>
@@ -441,9 +442,11 @@ const IC={
 };
 const CT={"Овощи":["veg","#e9eee4"],"Фрукты и ягоды":["fruit","#f1ebe3"],"Зелень":["herb","#e4ede6"],"Сухофрукты":["dry","#f2ece2"],"Орехи и семена":["nut","#ece8e1"],"Заморозка":["frz","#e5eaee"]};
 let P=[];
-const cats=["Все","Овощи","Зелень","Фрукты и ягоды","Сухофрукты","Орехи и семена","Заморозка"];
+let cats=["Все"];
 let cur="Все",q="",cart={},mode={},who="nonds",zone="msk",view="grid";
-let profile=null,orders=[],balance=0,pending=false,lastNo=1042;
+const API=window.SHOP_API||"https://script.google.com/macros/s/AKfycbwxMSXtEh7Ot76NnWqajA7f3klhACrJ2q8-EomjCoWu5baRHXWpPudojjkvQRYpv58m/exec";
+const BASE=window.SHOP_BASE||"";
+let profile=ld("fs_company"),orders=ld("fs_orders")||[],pending=false;
 const VAT=0.10; // ставка НДС для демо; в реальности задаётся по каждому товару
 const fmt=n=>String(+(+n).toFixed(1)).replace(".",",");
 const pl=(n,w)=>{n=Math.abs(n)%100;const a=n%10;return n>10&&n<20?w[2]:a==1?w[0]:a>1&&a<5?w[1]:w[2]};
@@ -453,7 +456,8 @@ const unit=(p,k,m)=>!p.pk||m=="pack"||k>=p.th?p.p:p.pk;
 const ql=(p,k,m)=>{if(p.pk&&m=="pack"){const n=Math.round(k/p.step);return `${n} ${pl(n,p.pn)} · ≈${fmt(k)} кг`}return `${fmt(k)} ${p.u}`};
 const $=id=>document.getElementById(id);
 const f=n=>Math.round(n).toLocaleString("ru-RU")+" ₽";
-const icon=(c,sz)=>`<svg viewBox="0 0 24 24" fill="none" stroke="#3d4a42" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">${IC[CT[c][0]]}</svg>`;
+const ct=c=>CT[c]||["dry","#eceae4"];
+const icon=(c,sz)=>`<svg viewBox="0 0 24 24" fill="none" stroke="#3d4a42" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">${IC[ct(c)[0]]}</svg>`;
 
 // ticker
 function renderTick(){const tk=P.map(p=>`<span><b>${p.n}</b><i>${f(p.p)}/${p.u}</i></span>`).join("");$("tick").innerHTML=tk+tk}
@@ -471,7 +475,7 @@ function card(p,i,na,drop){
   opts=`<div class="opts"><div class="ut ${m=="pack"?"r":""}"><span class="pill"></span><button class="${m=="kg"?"on":""}" onclick="setMode(${p.id},'kg')">По кг</button><button class="${m=="pack"?"on":""}" onclick="setMode(${p.id},'pack')">${cap(p.pn[0])} ~${p.step} кг</button></div>${tier}</div>`;
  }
  return `<div class="p ${k?"inc":""}" data-id="${p.id}" style="${na?"animation:none":`animation-delay:${i*30}ms`}">
-  <div class="ph" style="background:${CT[p.c][1]}">${icon(p.c)}<span class="lbl">${p.c}</span>${p.w?'<span class="wtag">Весовой</span>':""}</div>
+  <div class="ph" style="background:${ct(p.c)[1]}">${icon(p.c)}<span class="lbl">${p.c}</span>${p.w?'<span class="wtag">Весовой</span>':""}</div>
   <div class="pb"><div class="nm"><div class="sku">Арт. ${String(1000+p.id)}</div><div class="pn">${p.n}</div><div class="pm">${p.pack?cap(p.pack)+" ~"+fmt(p.step)+" кг":"Цена за 1 "+p.u}</div>${p.w?'<div class="wnote">Точная сумма — после взвешивания</div>':""}</div>
   <div class="pr ${drop?"drop":""}"><b>${f(up)}</b><span>/ ${p.u}</span>${bulk?`<s class="old">${f(p.pk)}</s>`:""}</div>
   ${opts}
@@ -511,9 +515,9 @@ function renderCart(){
  const ids=Object.keys(cart);let sum=0,hasW=false;
  $("items").innerHTML=ids.length?ids.map(id=>{const p=P.find(x=>x.id==id),k=cart[id],m=mode[id]||"pack",up=unit(p,k,m),s=k*up;sum+=s;if(p.w)hasW=true;
   const tip=(p.pk&&m=="kg"&&k<p.th)?`<button class="up" onclick="toBulk(${id})">+ ${fmt(p.th-k)} кг — и цена ${f(p.p)}/кг →</button>`:"";
-  return `<div class="ci"><div class="ic" style="background:${CT[p.c][1]}">${icon(p.c)}</div><div class="tx"><b>${p.n}</b>${p.w?"≈ ":""}${ql(p,k,m)} × ${f(up)}${p.pk&&up==p.p?'<em class="opt">ОПТ</em>':""}${tip}</div><div class="sm">${p.w?"≈ ":""}${f(s)}</div></div>`}).join(""):'<div class="empty">Добавьте товары из каталога</div>';
+  return `<div class="ci"><div class="ic" style="background:${ct(p.c)[1]}">${icon(p.c)}</div><div class="tx"><b>${p.n}</b>${p.w?"≈ ":""}${ql(p,k,m)} × ${f(up)}${p.pk&&up==p.p?'<em class="opt">ОПТ</em>':""}${tip}</div><div class="sm">${p.w?"≈ ":""}${f(s)}</div></div>`}).join(""):'<div class="empty">Добавьте товары из каталога</div>';
  const t=totals(), a=hasW?"≈ ":"";
- $("whoHint").textContent=who=="nds"?"Счёт от Т-Банка придёт в кабинет компании и на почту":"Оплата картой или СБП — без регистрации";
+ $("whoHint").textContent=who=="nds"?"Счёт с НДС пришлём на почту компании":"Без регистрации · менеджер подтвердит заказ и пришлёт ссылку на оплату";
  $("sum").innerHTML=ids.length?`<div class="sum">
   <div class="row"><span>Товары</span><b>${a}${f(sum)}</b></div>
   <div class="row"><span>Доставка · ${zone=="msk"?"Москва":"МО"}</span><b>${t.fee?f(t.fee):"Бесплатно"}</b></div>
@@ -522,8 +526,8 @@ function renderCart(){
   ${who=="nds"?`<div class="row" style="margin-top:8px"><span>НДС ${VAT*100}%</span><b>${a}${f(t.vat)}</b></div>`:""}
   <div class="tot"><span>Итого${who=="nds"?" с НДС":""}</span><b>${a}${f(t.total)}</b></div>
   ${sum<t.min?`<div class="err">Минимальная сумма заказа со счётом — ${f(t.min)}</div>`:""}
- </div>${hasW?`<div class="note">В заказе весовой товар. ${who=="nds"?"Счёт выставим на ориентировочную сумму. После взвешивания пришлём УПД по факту, а разница зачислится на баланс в кабинете.":"Банк заблокирует сумму с запасом 10%, а спишет точную после взвешивания."}</div>`:""}`:"";
- $("pay").textContent=who=="nds"?(profile?"Выставить счёт":"Указать компанию и получить счёт"):"Оформить и оплатить";
+ </div>${hasW?`<div class="note">В заказе весовой товар. ${who=="nds"?"Счёт выставим по ориентировочной сумме, УПД — по фактическому весу после сборки.":"Точную сумму посчитаем после взвешивания и пришлём ссылку на оплату."}</div>`:""}`:"";
+ $("pay").textContent=who=="nds"?(profile?"Заказать со счётом":"Указать компанию и заказать"):"Оформить заказ";
  $("pay").disabled=!ids.length||sum<t.min;
  $("ctotal").textContent=f(sum); $("ccount").textContent=ids.length;
 }
@@ -559,25 +563,45 @@ function clearCart(){cart={};renderGrid();renderCart()}
 
 // заказ без НДС — без регистрации
 function openGuest(){
- const t=totals();
+ const t=totals(), d=ld("fs_guest")||{};
  showModal(`<div class="mh"><div><h3>Оформление заказа</h3><small>Без НДС · без регистрации</small></div><button class="x" onclick="closeModal()">${XI}</button></div>
  <div class="mb">
-  <div class="fld"><label>Имя</label><input placeholder="Как к вам обращаться"></div>
-  <div class="two"><div class="fld"><label>Телефон</label><input placeholder="+7"></div><div class="fld"><label>Email для чека</label><input placeholder="необязательно"></div></div>
-  <div class="fld"><label>Адрес доставки</label><input placeholder="Город, улица, дом, подъезд"></div>
-  <div class="fld"><label>Комментарий</label><input placeholder="Удобное время, этаж, как найти вход"></div>
-  <div class="tot"><span>К оплате</span><b>${t.hasW?"≈ ":""}${f(t.total)}</b></div>
-  ${t.hasW?`<div class="note">Банк заблокирует ${f(t.total*1.1)}, а спишет точную сумму после взвешивания.</div>`:""}
+  <div class="fld"><label>Имя</label><input id="g_name" value="${esc(d.name)}" placeholder="Как к вам обращаться"></div>
+  <div class="two"><div class="fld"><label>Телефон *</label><input id="g_phone" value="${esc(d.phone)}" placeholder="+7" inputmode="tel"></div><div class="fld"><label>Email</label><input id="g_email" value="${esc(d.email)}" placeholder="необязательно"></div></div>
+  <div class="fld"><label>Адрес доставки *</label><input id="g_addr" value="${esc(d.addr)}" placeholder="Город, улица, дом, подъезд"></div>
+  <div class="fld"><label>Комментарий</label><input id="g_comment" placeholder="Удобное время, этаж, как найти вход"></div>
+  <input id="g_hp" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;width:1px;height:1px" aria-hidden="true">
+  <div class="tot"><span>Сумма заказа</span><b>${t.hasW?"≈ ":""}${f(t.total)}</b></div>
+  <div class="note">Менеджер позвонит, подтвердит заказ и пришлёт ссылку на оплату картой или СБП.${t.hasW?" Весовой товар считаем по фактическому весу после сборки.":""}</div>
  </div>
- <div class="mf"><button class="bprimary" onclick="guestPaid()">Оплатить картой или СБП</button></div>`);
+ <div class="mf"><button class="bprimary" id="g_send" onclick="guestSend()">Отправить заказ</button></div>`);
 }
-function guestPaid(){
- const no=++lastNo;clearCart();
- showModal(`<div class="mb center" style="padding:36px 28px">${OK}<h3>Так будет выглядеть оплаченный заказ</h3>
- <p>Заказ № ${no} принят в сборку.</p><p>Доставим <b>${deliv()}</b>. Чек придёт на телефон.</p>
- <p class="hint" style="margin-top:14px">Тестовая версия: заказ не отправлен и деньги не списаны</p>
- <button class="bsec" style="margin-top:18px" onclick="closeModal()">Вернуться в каталог</button></div>`);
+function guestSend(){
+ const g=id=>($(id)?.value||"").trim(), o={name:g("g_name"),phone:g("g_phone"),email:g("g_email"),addr:g("g_addr"),comment:g("g_comment"),hp:g("g_hp")};
+ if(o.phone.replace(/\D/g,"").length<10){toast("Укажите телефон, чтобы мы могли подтвердить заказ");$("g_phone").focus();return}
+ if(!o.addr){toast("Укажите адрес доставки");$("g_addr").focus();return}
+ sv("fs_guest",{name:o.name,phone:o.phone,email:o.email,addr:o.addr});
+ sendOrder(Object.assign(o,{who:"nonds"}),$("g_send"),r=>{
+  clearCart();
+  showModal(`<div class="mb center" style="padding:36px 28px">${OK}<h3>Заказ № ${r.no} принят</h3>
+  <p>Сумма: <b>${f(r.total)}</b>${r.fee?" (с доставкой)":""}.</p><p>Менеджер позвонит на ${esc(o.phone)} и пришлёт ссылку на оплату.</p>
+  <p class="hint" style="margin-top:10px">Ориентировочная доставка — ${deliv()}</p>
+  <button class="bsec" style="margin-top:18px" onclick="closeModal()">Вернуться в каталог</button></div>`);
+ });
 }
+function orderItems(){return Object.keys(cart).map(id=>{const p=P.find(x=>x.id==id),k=cart[id],m=mode[id]||"pack";return {n:p.n,qty:+k.toFixed(2),mode:p.pk?m:"kg",price:unit(p,k,m)}})}
+function sendOrder(o,btn,ok){
+ if(!API){toast("Приём заказов временно недоступен. Позвоните +7 999 833-05-53");return}
+ const t=totals(), txt=btn?btn.textContent:"";
+ if(btn){btn.disabled=true;btn.textContent="Отправляем…"}
+ fetch(API,{method:"POST",body:JSON.stringify({action:"shopOrder",order:Object.assign(o,{zone,items:orderItems(),goods:t.sum,fee:t.fee,vat:t.vat,total:t.total})})})
+  .then(r=>r.json()).then(r=>{if(!r.ok)throw new Error(r.error||"ошибка");ok(r)})
+  .catch(e=>{toast("Не удалось отправить заказ ("+(e.message||"нет связи")+"). Позвоните +7 999 833-05-53")})
+  .finally(()=>{if(btn&&document.body.contains(btn)){btn.disabled=false;btn.textContent=txt}});
+}
+const esc=v=>String(v==null?"":v).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function ld(k){try{return JSON.parse(localStorage.getItem(k)||"null")}catch(e){return null}}
+function sv(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
 
 // кабинет компании (заказ с НДС)
 function openLK(tab){
@@ -589,57 +613,46 @@ function openLK(tab){
 function companyHTML(){
  const v=k=>profile?profile[k]:"";
  return `<div class="mb">
-  ${pending?`<div class="note" style="margin:0 0 16px">Чтобы выставить счёт с НДС, укажите компанию один раз — в следующий раз счёт сформируется в один клик.</div>`:""}
-  <div class="fld"><label>ИНН</label><div class="inn"><input id="c_inn" value="${v("inn")}" placeholder="10 или 12 цифр"><button onclick="fillByInn()">Заполнить по ИНН</button></div></div>
-  <div class="fld"><label>Название</label><input id="c_name" value="${v("name")}"></div>
-  <div class="two"><div class="fld"><label>КПП</label><input id="c_kpp" value="${v("kpp")}"></div><div class="fld"><label>ОГРН</label><input id="c_ogrn" value="${v("ogrn")}"></div></div>
-  <div class="fld"><label>Юридический адрес</label><input id="c_addr" value="${v("addr")}"></div>
+  ${pending?`<div class="note" style="margin:0 0 16px">Чтобы получить счёт с НДС, укажите компанию один раз — в следующий раз заказ оформится в один клик.</div>`:""}
+  <div class="fld"><label>ИНН</label><input id="c_inn" value="${esc(v("inn"))}" placeholder="10 или 12 цифр" inputmode="numeric"></div>
+  <div class="fld"><label>Название</label><input id="c_name" value="${esc(v("name"))}"></div>
+  <div class="two"><div class="fld"><label>КПП</label><input id="c_kpp" value="${esc(v("kpp"))}"></div><div class="fld"><label>ОГРН</label><input id="c_ogrn" value="${esc(v("ogrn"))}"></div></div>
+  <div class="fld"><label>Юридический адрес</label><input id="c_addr" value="${esc(v("addr"))}"></div>
   <div class="sect">Куда отправлять счета и как связаться</div>
-  <div class="two"><div class="fld"><label>Email для счетов</label><input id="c_email" value="${v("email")}" placeholder="buh@company.ru"></div><div class="fld"><label>Телефон</label><input id="c_phone" value="${v("phone")}" placeholder="+7"></div></div>
-  <div class="fld"><label>Адрес доставки</label><input id="c_daddr" value="${v("daddr")}" placeholder="Куда везти заказы"></div>
+  <div class="two"><div class="fld"><label>Email для счетов</label><input id="c_email" value="${esc(v("email"))}" placeholder="buh@company.ru"></div><div class="fld"><label>Телефон</label><input id="c_phone" value="${esc(v("phone"))}" placeholder="+7"></div></div>
+  <div class="fld"><label>Адрес доставки</label><input id="c_daddr" value="${esc(v("daddr"))}" placeholder="Куда везти заказы"></div>
  </div>
- <div class="mf"><button class="bprimary" onclick="saveCompany()">${pending?"Сохранить и выставить счёт":"Сохранить"}</button></div>`;
-}
-function fillByInn(){
- const demo={c_inn:"7728123456",c_name:"ООО «Ромашка Фуд»",c_kpp:"772801001",c_ogrn:"1187746123456",c_addr:"г. Москва, ул. Профсоюзная, д. 65, оф. 12"};
- Object.entries(demo).forEach(([id,val],i)=>setTimeout(()=>{const el=$(id);if(!el)return;el.value=val;el.classList.add("filled")},i*120));
- toast("Реквизиты подтянуты из ЕГРЮЛ (демо)");
+ <div class="mf"><button class="bprimary" onclick="saveCompany()">${pending?"Сохранить и отправить заказ":"Сохранить"}</button></div>`;
 }
 function saveCompany(){
  const g=id=>($(id)?.value||"").trim();
  if(!g("c_name")||!g("c_inn")){toast("Заполните ИНН и название компании");return}
- profile={inn:g("c_inn"),name:g("c_name"),kpp:g("c_kpp"),ogrn:g("c_ogrn"),addr:g("c_addr"),email:g("c_email")||"buh@company.ru",phone:g("c_phone"),daddr:g("c_daddr")};
+ if(!/^\d{10}(\d{2})?$/.test(g("c_inn"))){toast("ИНН — 10 цифр для компании или 12 для ИП");return}
+ if(g("c_phone").replace(/\D/g,"").length<10){toast("Укажите телефон для связи");return}
+ if(!/.+@.+\..+/.test(g("c_email"))){toast("Укажите email, куда прислать счёт");return}
+ if(!g("c_daddr")){toast("Укажите адрес доставки");return}
+ profile={inn:g("c_inn"),name:g("c_name"),kpp:g("c_kpp"),ogrn:g("c_ogrn"),addr:g("c_addr"),email:g("c_email"),phone:g("c_phone"),daddr:g("c_daddr")};
+ sv("fs_company",profile);
  renderCart();
  if(pending){pending=false;createInvoice()}else{openLK("orders");toast("Данные компании сохранены")}
 }
 function createInvoice(){
+ if(!Object.keys(cart).length){openLK("orders");return}
  const t=totals();
- orders.unshift({no:++lastNo,date:today(),total:t.total,vat:t.vat,hasW:t.hasW,items:Object.keys(cart).length,s:0});
- clearCart();openLK("orders");
- toast(`Счёт сформирован в Т-Банке и отправлен на ${profile.email}`);
+ sendOrder({who:"nds",phone:profile.phone,email:profile.email,addr:profile.daddr,company:profile},null,r=>{
+  orders.unshift({no:r.no,date:today(),total:r.total,vat:r.vat,hasW:t.hasW,items:Object.keys(cart).length});
+  sv("fs_orders",orders.slice(0,30));clearCart();openLK("orders");
+  toast(`Заказ № ${r.no} принят. Счёт пришлём на ${profile.email}`);
+ });
+ toast("Отправляем заказ…");
 }
-const STEPS=["Счёт выставлен","Оплата получена — заказ готов к сборке","Собран и взвешен","Передан в доставку","Доставлен"];
 function ordersHTML(){
  return `<div class="mb">
-  <div class="bal"><span>Баланс компании</span><b>${f(balance)}</b></div>
-  ${orders.length?orders.map(o=>{
-   const sub=[`Отправлен на ${profile.email} · ждём оплату`,
-     o.paid?`Доставка — <b>${o.paid}</b>`:"Сборка начнётся сразу после поступления денег",
-     o.fact?`Факт по весу ${f(o.fact)} · ${f(o.total-o.fact)} зачислено на баланс`:(o.hasW?"Пришлём УПД по фактическому весу":"Пришлём УПД"),
-     "Водитель в пути", "УПД подписан через ЭДО"];
-   return `<div class="ord">
-    <div class="inv"><div class="pdf">PDF</div><div class="tx"><b>Счёт № ${o.no} от ${o.date}</b>${o.items} поз. · ${o.hasW?"≈ ":""}${f(o.total)}, в т.ч. НДС ${f(o.vat)}</div>
-     <span class="stt ${o.s>0?"ok":""}">${o.s>0?"Оплачен":"Ожидает оплаты"}</span></div>
-    <ul class="tl">${STEPS.map((s,i)=>`<li class="${i<=o.s?"done":i==o.s+1?"now":""}"><span class="c"></span><div><b>${s}</b>${i<=o.s||i==o.s+1?`<span>${sub[i]}</span>`:""}</div></li>`).join("")}</ul>
-    ${o.s<4?`<button class="demo" onclick="adv(${o.no})">${o.s==0?"Демо: деньги поступили на счёт":"Демо: следующий этап"}</button>`:""}
-   </div>`}).join(""):`<div class="empty">Счетов пока нет.<br>Соберите корзину и выберите «С НДС».</div>`}
+  ${orders.length?orders.map(o=>`<div class="ord">
+    <div class="inv" style="border:0;margin:0;padding:0"><div class="pdf">№</div><div class="tx"><b>Заказ № ${o.no} от ${o.date}</b>${o.items} поз. · ${o.hasW?"≈ ":""}${f(o.total)}, в т.ч. НДС ${f(o.vat)}</div>
+     <span class="stt">Счёт придёт на почту</span></div></div>`).join(""):`<div class="empty">Заказов пока нет.<br>Соберите корзину и выберите «С НДС».</div>`}
+  <p class="hint" style="margin-top:6px">Счёт с НДС пришлём на ${esc(profile?.email||"вашу почту")}. Сборка начинается после поступления оплаты, УПД — по фактическому весу.</p>
  </div>`;
-}
-function adv(no){
- const o=orders.find(x=>x.no==no);o.s++;
- if(o.s==1){o.paid=deliv();toast("Оплата получена — заказ передан на сборку")}
- if(o.s==2&&o.hasW){o.fact=Math.round(o.total*0.97);balance+=o.total-o.fact;toast("Заказ взвешен, УПД по факту отправлен")}
- const sc=$("modal").scrollTop;openLK("orders");$("modal").scrollTop=sc;
 }
 addEventListener("scroll",()=>$("hd").classList.toggle("sc",scrollY>20),{passive:true});
 
@@ -652,10 +665,14 @@ function countUp(el){if(el.dataset.done)return;el.dataset.done=1;const to=+el.da
 
 renderCats();renderCart();
 $("grid").innerHTML='<div class="empty" style="background:#fff">Загружаем каталог…</div>';
-fetch("catalog.json?v="+Date.now()).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(d=>{
- P=d.items||[];
- if(d.updated)$("upd").textContent="Прайс от "+d.updated.split("-").reverse().join(".");
- renderTick();renderGrid();
+const getJ=u=>fetch(u).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(d=>{if(!d||!Array.isArray(d.items)||!d.items.length)throw new Error("empty");return d});
+getJ(API+"?action=shopCatalog").catch(()=>getJ(BASE+"catalog.json?v="+Date.now())).then(d=>{
+ const PN={"мешок":["мешок","мешка","мешков"],"ящик":["ящик","ящика","ящиков"],"коробка":["коробка","коробки","коробок"],"сетка":["сетка","сетки","сеток"],"упаковка":["упаковка","упаковки","упаковок"]};
+ P=d.items.map(p=>{if(p.pack&&!p.pn)p.pn=PN[p.pack]||[p.pack,p.pack,p.pack];if(p.pack&&!(p.pk&&p.step&&p.th)){delete p.pk}return p});
+ const fc=["Овощи","Зелень","Фрукты и ягоды","Сухофрукты","Орехи и семена","Заморозка"];
+ cats=["Все"].concat([...new Set(P.map(p=>p.c))].sort((a,b)=>(fc.indexOf(a)+1||99)-(fc.indexOf(b)+1||99)));
+ if(d.updated){const [dt,tm]=d.updated.split(" ");$("upd").textContent="Цены из прайса · "+dt.split("-").reverse().join(".")+(tm?" "+tm:"")}
+ renderCats();renderTick();renderGrid();
 }).catch(()=>{$("grid").innerHTML='<div class="empty" style="background:#fff">Не удалось загрузить каталог. Обновите страницу или позвоните +7 999 833-05-53.</div>'});
 </script>
 </body>
