@@ -1030,9 +1030,9 @@ function changed(){ saveLocal(); savePend(); if(!online()) return; setStatus("wa
 const hasPending = () => Object.values(pend).some(m=>m.size) || evq.length>0;
 
 /* запрос к таблице: не дольше 45 секунд; при ошибке понятно, что случилось — нет интернета, Google не ответил или таблица вернула ошибку */
-async function apiFetch(url, opt){ const ac=window.AbortController?new AbortController():null, tm=ac&&setTimeout(()=>ac.abort(),45000);
+async function apiFetch(url, opt){ const ac=window.AbortController?new AbortController():null, tm=ac&&setTimeout(()=>ac.abort(),(opt&&opt.tmo)||45000);
   let r; try{ r=await fetch(url, Object.assign({}, opt||{}, ac?{signal:ac.signal}:{})); }
-  catch(e){ const x=new Error(e&&e.name==="AbortError"?"Google Таблица не ответила за 45 секунд":"нет интернета или Google недоступен"); x.net=true; throw x; } finally{ if(tm) clearTimeout(tm); }
+  catch(e){ const x=new Error(e&&e.name==="AbortError"?"Google Таблица не ответила за "+Math.round(((opt&&opt.tmo)||45000)/1000)+" секунд":"нет интернета или Google недоступен"); x.net=true; throw x; } finally{ if(tm) clearTimeout(tm); }
   let j; try{ j=await r.json(); }catch(e){ const x=new Error("Google вернул ошибку "+(r.status||"")+" вместо данных — сервис временно перегружен"); x.net=true; throw x; }
   if(!j.ok){ const x=new Error(j.error||"ошибка хранилища"); x.resp=j; throw x; } return j; }
 async function api(payload){
@@ -3961,6 +3961,11 @@ function impFill(i){
 }
 function drawImp(){
   const box=$("#imp-res"); if(!IMP){ box.innerHTML=""; return; }
+  if(IMP.scan){ box.innerHTML=`<div class="impg"><div class="ih"><b>«${esc(IMP.file)}»: ${esc(IMP.msg||"скан")}.</b></div>`
+      + (IMP.busy?`<p class="muted">ИИ читает заявку… обычно 10–40 секунд.</p>`
+      : IMP.key?(me().admin?`<p>${IMP.key==="badkey"?"Ключ Gemini не подошёл. ":"ИИ ещё не подключён. "}Вставьте ключ Gemini (aistudio.google.com → Get API key):</p><div class="row"><input id="imp-gkey" type="password" autocomplete="off" placeholder="ключ Gemini" style="flex:1;min-width:0"><button class="btn pri sm" type="button" data-aikey>Сохранить и прочитать</button></div>`:`<p>ИИ для сканов ещё не подключён — попросите Даниила. Пока можно вставить текст заявки («Вставить текст»).</p>`)
+      : `<p class="muted">Сайт может прочитать его через ИИ (Gemini от Google). Файл уйдёт в Google через вашу таблицу. Или вставьте текст заявки кнопкой «Вставить текст».</p><div class="row"><button class="btn pri sm" type="button" data-aigo>Прочитать через ИИ</button><button class="btn ghost sm" id="imp-close" type="button">Отмена</button></div>`)
+      + `</div>`; return; }
   if(IMP.err){ box.innerHTML=`<div class="impg"><ul><li class="e">Файл «${esc(IMP.file)}» не прочитан: ${esc(IMP.err)}.</li></ul></div>`; return; }
   const R=IMP.r, many=R.groups.length>1;
   if(many && mulOn()){ box.innerHTML=`<div class="imphead">Файл «${esc(IMP.file)}» · ${esc(R.c.name)} · ${esc(R.k?R.k.basis||"договор":"без договора")} · поставка ${fd(R.date)} · ${esc(supShort(R.s.name))} · накладных: ${R.groups.length} — каждая отдельным блоком ниже</div>`
@@ -4002,7 +4007,7 @@ async function ftPdf(buf){
       l.it.forEach(i=>{ if(cur && i.x-(cur.x2)<6){ cur.s+=(i.x-cur.x2>1.5?" ":"")+i.s; cur.x2=i.x+i.w; } else { cur={x:i.x, x2:i.x+i.w, s:i.s}; cells.push(cur); } });
       rows.push(cells.map(c=>({x:(c.x+c.x2)/2, x1:c.x, x2:c.x2, s:c.s.trim()}))); }); }
   const lines=rows.map(r=>r.map(c=>c.s).join("\t"));
-  if(lines.join("").replace(/\s/g,"").length<30) throw new Error("это скан или фото — в PDF нет текста, только картинка. Скопируйте текст заявки из письма и вставьте («Вставить текст») или попросите заказчика прислать PDF/Word с текстом");
+  if(lines.join("").replace(/\s/g,"").length<30){ const e=new Error("это скан — в PDF нет текста, только картинка"); e.scan=1; throw e; }
   /* таблица в PDF: по строке заголовка («Наименование … Количество») ставим колонки по горизонтали */
   const tables=[]; const hi=rows.findIndex(r=>r.some(c=>FT_NAME.test(norm(c.s)))&&r.some(c=>FT_QTY.test(norm(c.s))));
   if(hi>=0){ let anc=rows[hi].map(c=>({x:c.x, x1:c.x1, x2:c.x2, s:c.s})); const sub=rows[hi+1]||[];
@@ -4014,12 +4019,11 @@ async function ftPdf(buf){
 }
 async function ftRead(f){
   const n=f.name||"";
-  if(f.txt) { const t=await f.text(); return {lines:t.split(/\r?\n/), tables:[]}; }
-  if(/\.txt$/i.test(n)) { const t=await f.text(); return {lines:t.split(/\r?\n/), tables:[]}; }
-  if(/\.docx$/i.test(n)) return ftDocx(await f.arrayBuffer());
+  if(f.txt||/\.txt$/i.test(n)) { const t=await f.text(); return {lines:t.split(/\r?\n/), tables:[], how:"Прочитано из текста — без ИИ."}; }
+  if(/\.docx$/i.test(n)) return Object.assign(await ftDocx(await f.arrayBuffer()),{how:"Прочитано из Word — без ИИ."});
   if(/\.doc$/i.test(n)) throw new Error("это старый формат Word (.doc). Откройте его и сохраните как .docx, или скопируйте текст и нажмите «Вставить текст»");
-  if(/\.pdf$/i.test(n)) return ftPdf(await f.arrayBuffer());
-  if(/\.(jpe?g|png|heic|webp|gif)$/i.test(n)||/^image\//.test(f.type||"")) throw new Error("это фото — сайт читает только файлы с текстом (PDF, Word, Excel) и вставленный текст. Перепишите или скопируйте текст заявки и нажмите «Вставить текст»");
+  if(/\.pdf$/i.test(n)) return Object.assign(await ftPdf(await f.arrayBuffer()),{how:"Прочитано из PDF (текст) — без ИИ."});
+  if(/\.(jpe?g|png|heic|heif|webp)$/i.test(n)||/^image\//.test(f.type||"")){ const e=new Error("это фото — текста в нём нет, только картинка"); e.scan=1; throw e; }
   throw new Error("такой файл не умею читать — нужен PDF, Word (.docx), Excel или вставленный текст");
 }
 const FT_NAME=/наимен|^товар|^продук|номенклат|^позиц|^продукт/, FT_QTY=/^кол|количеств|кол-во|^объ[её]м|^вес\b|^заказ\b|^к-во/;
@@ -4121,7 +4125,7 @@ function ftLines(lines){
   return out;
 }
 function ftParse(src){
-  const text=src.lines.join("\n"), warn=[], meta={warn};
+  const text=src.lines.join("\n"), warn=[], meta={warn}; if(src.how) warn.push({t:src.ai?"w":"i", m:src.how});
   let C=ftCustomer(text);
   if(!C && D.draft && D.draft.customerId && D.draft.customerId!==PRIV_ID){ const c=D.customers.find(x=>x.id===D.draft.customerId); if(c){ C={c, how:"", form:1}; } }
   if(!C) throw new Error("не понял, от какого заказчика заявка (нет номера договора, ИНН или названия). Выберите заказчика в форме ниже и загрузите заявку ещё раз");
@@ -4148,14 +4152,43 @@ async function impLoad(f){
     if(/\.json$/i.test(f.name)){ const x=JSON.parse(await f.text()); rows=[]; Object.entries(x.meta||{}).forEach(([k,v])=>rows.push([k,v])); rows.push(["№ док.","Адрес доставки","Товар","Кол-во","Ед.","Цена, ₽","Примечание","В заявке"]); (x.lines||[]).forEach(l=>rows.push([l.num||"",l.addr||"",l.name||"",l.qty??"",l.unit||"",l.price??"",l.note||"",l.orig||""])); }
     else if(/\.(xlsx|xls|csv)$/i.test(f.name)){ const X=await loadXLSX(); const wb=X.read(await f.arrayBuffer(),{type:"array", cellDates:true}); const sn=wb.SheetNames.find(n=>/заказ/i.test(n))||wb.SheetNames[0]; rows=X.utils.sheet_to_json(wb.Sheets[sn],{header:1, raw:true, defval:""});
       let P=null; try{ P=impParse(rows); if(!P.meta.cinn&&!P.meta.cname) P=null; }catch(e){ P=null; }
-      if(!P){ const T=wb.SheetNames.map(n=>X.utils.sheet_to_json(wb.Sheets[n],{header:1, raw:true, defval:""})); P=ftParse({tables:T, lines:T.flat().map(r=>r.map(x=>x instanceof Date?fd(impDate(x)):String(x==null?"":x)).join("\t"))}); }
+      if(!P){ const T=wb.SheetNames.map(n=>X.utils.sheet_to_json(wb.Sheets[n],{header:1, raw:true, defval:""})); P=ftParse({how:"Прочитано из Excel — без ИИ.", tables:T, lines:T.flat().map(r=>r.map(x=>x instanceof Date?fd(impDate(x)):String(x==null?"":x)).join("\t"))}); }
       rows=null; IMP.r=impResolve(P); }
     else IMP.r=impResolve(ftParse(await ftRead(f)));
-    if(rows) IMP.r=impResolve(impParse(rows)); IMP.cur=-1;
+    if(rows) IMP.r=impResolve(impParse(rows)); impShow();
+  }catch(e){ if(e.scan){ IMP={file:f.name, scan:f, msg:e.message}; drawImp(); return; } IMP.err=e.message||String(e); drawImp(); toast("err","Не получилось прочитать заказ", IMP.err+"."); }
+}
+function impShow(){ IMP.cur=-1;
     if(IMP.r.groups.length>1){ mulStart(); drawImp(); renderDoc(); toast("info","В заявке "+IMP.r.groups.length+" "+plural(IMP.r.groups.length,["накладная","накладные","накладных"]),"Каждая — отдельным блоком ниже, уже заполнена. Проверьте количество и сформируйте документы."); }
     else { D.multi=null; drawImp(); impFill(0); }
-  }catch(e){ IMP.err=e.message||String(e); drawImp(); toast("err","Не получилось прочитать заказ", IMP.err+"."); }
 }
+/* скан или фото → Gemini через скрипт таблицы (только по кнопке) */
+function aiPrep(f){ return new Promise((ok,bad)=>{
+  const raw=()=>{ const r=new FileReader(); r.onload=()=>{ const u=String(r.result); ok({mime:(f.type||(/\.pdf$/i.test(f.name)?"application/pdf":"image/jpeg")).replace("image/jpg","image/jpeg"), data:u.slice(u.indexOf(",")+1)}); }; r.onerror=()=>bad(new Error("файл не открылся")); r.readAsDataURL(f); };
+  if(!/^image\/(jpeg|png|webp)$/.test(f.type||"")) return raw();
+  const im=new Image(), url=URL.createObjectURL(f); im.onload=()=>{ URL.revokeObjectURL(url); const k=Math.min(1, 2400/Math.max(im.width,im.height)); if(k===1 && f.size<3e6) return raw();
+    const c=document.createElement("canvas"); c.width=Math.round(im.width*k); c.height=Math.round(im.height*k); c.getContext("2d").drawImage(im,0,0,c.width,c.height); const u=c.toDataURL("image/jpeg",0.88); ok({mime:"image/jpeg", data:u.slice(u.indexOf(",")+1)}); };
+  im.onerror=()=>{ URL.revokeObjectURL(url); raw(); }; im.src=url; }); }
+function aiSrc(x){ const L=[], n=v=>v==null||v===""?"":String(v).replace(".",",");
+  if(x.customer) L.push("Заказчик: "+x.customer); if(x.inn) L.push("ИНН заказчика: "+x.inn); if(x.contract) L.push("Договор № "+String(x.contract).replace(/^\s*(договор|контракт)\s*/i,"").replace(/^№\s*/,""));
+  if(x.request) L.push("Заявка "+x.request); if(x.supplier) L.push("Поставщик: "+x.supplier); if(x.date) L.push("Дата поставки: "+x.date); if(x.address) L.push("Адрес поставки: "+x.address);
+  const cols=(Array.isArray(x.columns)?x.columns:[]).filter(Boolean).map(String), its=Array.isArray(x.items)?x.items:[];
+  const head=["Наименование","Ед.","Цена"].concat(cols.length?cols:[]).concat(["Количество","Примечание"]), rows=[head];
+  its.forEach(it=>{ if(!it||!it.name) return; const q=it.qty_text&&!(+it.qty>0)?it.qty_text:n(it.qty); rows.push([it.name, it.unit||"", n(it.price)].concat(cols.map(c=>n(it.qtys&&it.qtys[c]))).concat([q, it.unsure?"ИИ не уверен в этой строке — сверьте со сканом":""])); });
+  rows.forEach(r=>L.push(r.join("\t")));
+  return {lines:L, tables:[rows], ai:1}; }
+async function aiGo(){ if(!IMP||!IMP.scan) return; const f=IMP.scan; IMP.busy=1; drawImp();
+  try{ const d=await aiPrep(f); if(d.data.length>18e6) throw new Error("файл больше 13 МБ — для ИИ слишком большой");
+    let j; try{ j=await apiFetch(API_URL,{method:"POST", tmo:150000, body:JSON.stringify({key:pass(), user:curUser(), action:"aiRead", mime:d.mime, data:d.data})}); }
+    catch(e){ const m=e.message||""; if(m==="nokey"||m==="badkey"){ IMP.busy=0; IMP.key=m; drawImp(); return; } if(m==="unknown action") throw new Error("скрипт таблицы старый — Даниилу нужно обновить Code.gs"); throw e; }
+    let x; try{ x=JSON.parse(String(j.text).replace(/^```(json)?|```$/g,"").trim()); }catch(e){ throw new Error("ИИ ответил не по форме — попробуйте ещё раз"); }
+    const src=aiSrc(x); src.how="Скан прочитан ИИ (Gemini). Сверьте количество и товары с оригиналом.";
+    logEv("Документ","Скан заявки «"+f.name+"» прочитан ИИ (Gemini)");
+    const file=f.name; IMP={file}; IMP.r=impResolve(ftParse(src)); impShow();
+  }catch(e){ IMP={file:f.name, err:e.message||String(e)}; drawImp(); toast("err","ИИ не прочитал заявку", IMP.err+"."); } }
+async function aiKeySave(){ const k=($("#imp-gkey")||{}).value||""; if(!k.trim()){ toast("warn","Вставьте ключ"); return; }
+  try{ await api({action:"aiKey", gkey:k.trim()}); toast("ok","Ключ Gemini сохранён","Он хранится только в скрипте вашей таблицы."); IMP.key=0; aiGo(); }
+  catch(e){ toast("err","Ключ не сохранён", e.message==="unknown action"?"Сначала обновите Code.gs в таблице.":e.message); } }
 $("#imp-file").addEventListener("change",e=>{ const f=e.target.files[0]; e.target.value=""; impLoad(f); });
 $("#imp-txt").onclick=()=>{ const b=$("#imp-paste"); b.hidden=!b.hidden; if(!b.hidden) $("#imp-ta").focus(); };
 $("#imp-tx").onclick=()=>{ $("#imp-paste").hidden=true; };
@@ -4172,7 +4205,7 @@ function impMissPick(e){ const s=e.target.closest("[data-impmiss]"); if(!s||!s.v
   else if(IMP.cur===gi && D.draft && D.draft.customerId===R.c.id){ D.draft.lines=D.draft.lines.filter(x=>x.productId); D.draft.lines.push(Object.assign({},it)); saveLocal(); renderLines(); }
   drawImp(); toast("ok","Запомнил название", "«"+l.name+"» = «"+p.name+"». В следующих заказах подставлю сам."); }
 $("#imp-res").addEventListener("change",impMissPick);
-$("#imp-res").addEventListener("click",e=>{ const b=e.target.closest("[data-impfill]"); if(b){ impFill(+b.dataset.impfill); return; } if(e.target.closest("#imp-close")){ IMP=null; drawImp(); } });
+$("#imp-res").addEventListener("click",e=>{ if(e.target.closest("[data-aigo]")){ aiGo(); return; } if(e.target.closest("[data-aikey]")){ aiKeySave(); return; } const b=e.target.closest("[data-impfill]"); if(b){ impFill(+b.dataset.impfill); return; } if(e.target.closest("#imp-close")){ IMP=null; drawImp(); } });
 /* ---------- несколько накладных из одной заявки: на «Новом документе» блок на каждую, уже заполненный ---------- */
 const mulOn = () => !!(D.multi && Array.isArray(D.multi.docs) && D.multi.docs.length);
 function mulStart(){ const R=IMP.r, taken=[];
@@ -4426,7 +4459,7 @@ renderDoc();
 applyRole(); applyTabOrder(); startTab();
 if(API_URL){ if(pass()){ let first=false; try{ first=!sessionStorage.getItem("fd-session"); sessionStorage.setItem("fd-session","1"); }catch(e){}
     if(first) logEv("Вход","Открыл систему (вход сохранён на устройстве, "+deviceName()+")"); pull(); } else { showLogin(); } } else setStatus("local");
-window.__fd = {D:()=>D, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, IMP:()=>IMP};
+window.__fd = {D:()=>D, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, aiSrc, IMP:()=>IMP};
 })();
 </script>
 <!-- ============ конец блока ============ -->
