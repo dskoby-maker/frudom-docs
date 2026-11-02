@@ -38,6 +38,26 @@ function docInvoice(k){
   <hr class="thick"><div class="signbox" style="max-width:70%">${signer}${STI(k,"inv")}</div></div>`;
 }
 
+/* простая накладная (для частных лиц) */
+function docNakl(k){
+  const s=k.s, c=k.c, d=k.dr, sl=[s.name, s.inn&&("ИНН "+s.inn), s.address, s.phone&&("тел. "+s.phone)].filter(Boolean).join(", ");
+  const bl=[c.name||"Частное лицо", c.phone&&("тел. "+c.phone)].filter(Boolean).join(", "), ad=d.ship||c.address||"";
+  const rows=k.lines.map(l=>`<tr><td class="c n">${l.n}</td><td>${esc(l.name)}</td><td class="c">${esc(l.unit)}</td><td class="r">${fq(l.qty)}</td><td class="r">${fm(l.price)}</td><td class="r b">${fm(l.sum)}</td></tr>`).join("");
+  return `<div class="doc doc-nk">
+  <div class="nk-top"><div class="nk-t">Накладная № ${esc(d.number)}</div><div class="nk-d">от ${fdw(d.date)}</div></div>
+  <table class="nk-p"><colgroup><col style="width:18%"><col></colgroup>
+    <tr><td class="nk-l">Продавец</td><td class="b">${esc(sl)}</td></tr>
+    <tr><td class="nk-l">Покупатель</td><td class="b">${esc(bl)}</td></tr>
+    ${ad?`<tr><td class="nk-l">Адрес доставки</td><td>${esc(ad)}</td></tr>`:""}
+    ${d.basis?`<tr><td class="nk-l">Основание</td><td>${esc(d.basis)}</td></tr>`:""}
+  </table>
+  <table class="nk-g"><thead><tr><th style="width:6%">№</th><th>Товар</th><th style="width:8%">Ед.</th><th style="width:11%">Кол-во</th><th style="width:14%">Цена, ₽</th><th style="width:16%">Сумма, ₽</th></tr></thead><tbody>${rows}</tbody></table>
+  <div class="nk-tot"><div class="nk-tl">${k.rate?(k.add?"НДС "+k.rate+"%":"в т.ч. НДС "+k.rate+"%")+": "+fm(k.t.vat)+" ₽":"Без НДС"}</div><div class="nk-sum"><span>Итого</span><b>${fm(k.t.sum)} ₽</b></div></div>
+  <p class="nk-w">Всего наименований ${k.lines.length}${k.t.kg?", общий вес "+fq(k.t.kg)+" кг":""}, на сумму ${fm(k.t.sum)} руб.<br><b>${moneyWords(k.t.sum)}</b></p>
+  <div class="nk-sg"><div class="nk-s">${sigLine("Отпустил", initials(s.fio)||"", k)}${STI(k,"inv")}</div><div class="nk-s">${sigLine("Получил", "", null)}</div></div>
+  <p class="nk-f">Товар получен в полном объёме, претензий по количеству и качеству нет.</p></div>`;
+}
+
 /* (резерв) грубая разбивка по числу знаков */
 function paginate(lines, chars, first, other, footer){
   const w = l => Math.max(1, Math.ceil(((l.nameT||l.name)||"").length / chars));
