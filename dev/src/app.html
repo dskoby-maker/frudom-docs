@@ -599,12 +599,13 @@
     <div class="card dform">
       <h2>Сформировать <small>документ сохранится в журнал</small></h2>
       <div class="make">
+        <button class="btn pri" data-make="nakl" hidden>Накладная<small>простая, для частника</small></button>
         <button class="btn pri" data-make="invoice">Счёт<small>на оплату</small></button>
         <button class="btn pri" data-make="torg12">ТОРГ‑12<small>товарная накладная</small></button>
-        <button class="btn pri" data-make="upd">УПД<small>универсальный</small></button>
+        <button class="btn pri" data-make="upd" data-npriv>УПД<small>универсальный</small></button>
       </div>
       <div class="row signopt"><label class="chk" id="d-signw" hidden><input type="checkbox" id="d-sign"> С печатью и подписью поставщика</label><label class="chk" id="d-scanw" hidden title="Только в скачанном PDF"><input type="checkbox" id="d-scan"> Вид скана в PDF</label></div>
-      <div class="make2"><button class="btn" data-combo="invoice,torg12">Скачать счёт + ТОРГ‑12<small>одним PDF</small></button><button class="btn" data-combo="invoice,upd">Скачать счёт + УПД<small>одним PDF</small></button></div>
+      <div class="make2" data-npriv><button class="btn" data-combo="invoice,torg12">Скачать счёт + ТОРГ‑12<small>одним PDF</small></button><button class="btn" data-combo="invoice,upd">Скачать счёт + УПД<small>одним PDF</small></button></div>
       <div class="row"><button class="btn" id="d-save">Сохранить в журнал без печати</button><button class="btn ghost" id="d-new">Очистить и начать новый</button><span class="muted" id="d-saved"></span></div>
     </div>
   </section>
@@ -1336,7 +1337,7 @@ $("#d-cus").onchange=e=>{ const dr=D.draft; dr.customerId=e.target.value; dr.noC
 [["#d-num","number"],["#d-date","date"],["#d-basis","basis"]].forEach(([s,k])=>$(s).addEventListener("input",e=>{ D.draft[k]=e.target.value; if(k==="number"){ D.draft.numManual = !!e.target.value.trim(); if(!D.draft.numManual) syncNum(); else { const i=$("#d-numinfo"); if(i){ const l=pairLast(D.draft.supplierId,D.draft.customerId,D.draft.id); i.textContent=l?"Последний у заказчика: № "+l.j.number+" от "+fd(l.j.date):""; i.classList.remove("warn"); } } } saveLocal(); }));
 function renderBranch(){
   const dr=D.draft, bl=branches(cus(dr.customerId)), pv=isPriv(dr.customerId);
-  $("#d-pbw").hidden=$("#d-pphw").hidden=!pv; $("#d-pbuyer").value=dr.buyer||""; $("#d-pphone").value=dr.bphone||"";
+  $("#d-pbw").hidden=$("#d-pphw").hidden=!pv; $("#fd-app [data-make=\"nakl\"]").hidden=!pv; document.querySelectorAll("#fd-app [data-npriv]").forEach(e=>e.hidden=pv); $("#d-pbuyer").value=dr.buyer||""; $("#d-pphone").value=dr.bphone||"";
   $("#d-brwrap").hidden=!bl.length;
   if(bl.length && !bl.some(b=>b.id===dr.branchId)) dr.branchId=bl[0].id;
   if(!bl.length) dr.branchId="";
@@ -1379,7 +1380,7 @@ function addSig(k){ if(!k||k.sig!==undefined||!D.signOn||!signAllowed()) return 
   let h=0; String(k.dr.id||k.dr.number).split("").forEach(ch=>h=(h*31+ch.charCodeAt(0))%997);
   return Object.assign({}, k, {sig:{stamp:s.stamp||"", sign:s.sign||"", rot:-12+(h%15), all:(cus(k.dr.customerId)||{}).signs==="3"}}); }
 const wrapSig = f => (k,P) => f(addSig(k),P);
-const KINDS={invoice:{t:"Счёт на оплату", f:wrapSig(docInvoice), o:"portrait"}, torg12:{t:"ТОРГ‑12", f:wrapSig(docTorg12), o:"landscape"}, upd:{t:"УПД", f:wrapSig(docUPD), o:"landscape"}};
+const KINDS={nakl:{t:"Накладная", f:wrapSig(docNakl), o:"portrait"}, invoice:{t:"Счёт на оплату", f:wrapSig(docInvoice), o:"portrait"}, torg12:{t:"ТОРГ‑12", f:wrapSig(docTorg12), o:"landscape"}, upd:{t:"УПД", f:wrapSig(docUPD), o:"landscape"}};
 function syncSignUI(){ const sid=(cur&&cur.k&&cur.k.dr.supplierId)||D.draft.supplierId, ok=signAllowed();
   $("#pv-signw").hidden=!(ok && cur && hasSign(cur.k.dr.supplierId)); $("#pv-sign").checked=!!D.signOn;
   $("#d-signw").hidden=!(ok && hasSign(D.draft.supplierId)); $("#d-sign").checked=!!D.signOn;
@@ -1519,7 +1520,7 @@ async function addSheets(st, sheets, land){
 }
 function pagesFor(kind,k){ const K=KINDS[kind]; return K.o==="landscape"&&k.lines.length ? layout(k,K.f) : [].concat(K.f(k)); }
 const shortCus = k => { const base=(k.c&&k.c.priv?k.c.name:"")||(cus(k.dr.customerId).name)||k.c.name||""; const b=k.c.branchLabel||""; return b ? base+", "+b.replace(/[«»"]/g,"") : base; };
-const KSHORT={invoice:"Счёт", torg12:"ТОРГ-12", upd:"УПД"};
+const KSHORT={nakl:"Накладная", invoice:"Счёт", torg12:"ТОРГ-12", upd:"УПД"};
 function markDownloaded(id, kinds, silent){
   const j=D.journal.find(x=>x.id===id); if(!j||!j.snap) return;
   if(!silent) logEv("Скачивание","Скачан PDF ("+kinds.map(x=>KSHORT[x]).join(" + ")+"): "+jDesc(j), j.id);
@@ -2411,12 +2412,13 @@ function jKey(j){ const m=(j.snap&&j.snap.meta)||{}; if(m.batch) return "B"+m.ba
 /* «Распечатан со склада»: когда пользователь «Склад» открыл документ и нажал именно «Печать» */
 function jDl(j){ const m=j.snap.meta||{}; return m.pr?`<span class="dl" title="Склад нажал «Печать»: ${esc((m.prk||[]).map(x=>KSHORT[x]).join(", "))}${m.prn>1?" · раз: "+m.prn:""}">${dtShort(m.pr)}</span>`:`<span class="muted"${m.dl?` title="Не распечатан со склада. Скачан PDF: ${esc(dtShort(m.dl))}"`:""}>—</span>`; }
 const jNumSort = (a,b)=>(parseInt(a.number,10)||0)-(parseInt(b.number,10)||0);
-function jRowHtml(j, kid, arch){ const w=jWho(j);
-  const view=`<button class="btn sm" data-p="invoice" data-id="${j.id}">Счёт</button> <button class="btn sm" data-p="torg12" data-id="${j.id}">ТОРГ‑12</button> <button class="btn sm" data-p="upd" data-id="${j.id}">УПД</button>`;
+function jRowHtml(j, kid, arch){ const w=jWho(j), pv=!!(j.snap.c&&j.snap.c.priv);
+  const view=pv ? `<button class="btn sm" data-p="nakl" data-id="${j.id}">Накладная</button> <button class="btn sm" data-p="invoice" data-id="${j.id}">Счёт</button> <button class="btn sm" data-p="torg12" data-id="${j.id}">ТОРГ‑12</button>` : `<button class="btn sm" data-p="invoice" data-id="${j.id}">Счёт</button> <button class="btn sm" data-p="torg12" data-id="${j.id}">ТОРГ‑12</button> <button class="btn sm" data-p="upd" data-id="${j.id}">УПД</button>`;
+  const cj=pv?"":`<button class="btn sm" data-combo-j="${j.id}" title="Счёт и ТОРГ‑12 вместе — просмотр, печать, PDF">Счёт+ТОРГ</button> `;
   const acts = arch
     ? `${view} <button class="btn sm" data-unarch="${j.id}">Вернуть из архива</button>`
-    : docLimited() ? `<button class="btn sm" data-combo-j="${j.id}" title="Счёт и ТОРГ‑12 вместе — просмотр, печать, PDF">Счёт+ТОРГ</button> ${view} <button class="btn ghost sm" data-qty="${j.id}">Изменить количество</button>`
-    : `<button class="btn sm" data-combo-j="${j.id}" title="Счёт и ТОРГ‑12 вместе — просмотр, печать, PDF">Счёт+ТОРГ</button> ${view} <button class="btn ghost sm" data-edit="${j.id}">Изменить</button>
+    : docLimited() ? `${cj}${view} <button class="btn ghost sm" data-qty="${j.id}">Изменить количество</button>`
+    : `${cj}${view} <button class="btn ghost sm" data-edit="${j.id}">Изменить</button>
     <details class="more"><summary class="btn ghost sm">Ещё ▾</summary><div class="menu"><button class="btn sm" data-x="${j.id}">XML для ЕИС</button><button class="btn sm" data-copy="${j.id}">Сделать копию</button><button class="btn sm danger" data-arch="${j.id}">В архив</button></div></details>`;
   const ad = arch ? `<span class="muted" title="Убран в архив">в архиве с ${dtShort(j.snap.meta.arch)}</span>` : jDl(j);
   if(kid) return `<div class="kd"><div class="kd-n">№ ${esc(j.number)}</div><div class="kd-w jcard" data-card="${j.id}" title="Подробнее о документе"><span>${esc(kLbl(j)||w.main)}</span></div><div class="kd-s">${fm(j.sum)}</div><div class="kd-p">${ad}</div><div class="kd-a acts">${acts}</div></div>`;
@@ -2588,7 +2590,7 @@ function docCard(j, arch){
   const k=calc(j.snap.dr, j.snap), dr=j.snap.dr, m=j.snap.meta||{}, w=jWho(j), lim=docLimited(), inG=!arch && jKey(j) && D.journal.filter(x=>x.snap&&!isArch(x)&&jKey(x)===jKey(j)).length>1;
   const info=[["Поставщик",j.snap.s.name||""],["Адрес доставки",dr.ship||j.snap.c.address||""],["Основание",dr.basis||""]].concat(whoLine(j)).filter(x=>x[1]);
   const acts = arch ? `<button class="btn" data-dc="close">Закрыть</button>`
-    : `<button class="btn" data-dc="combo">Счёт+ТОРГ</button><button class="btn" data-dc="upd">УПД</button>`+(inG&&!lim?`<button class="btn" data-dc="gedit">Редактировать комплект</button>`:"")+(lim?`<button class="btn pri" data-dc="qty">Изменить количество</button>`:`<button class="btn pri" data-dc="edit">Изменить</button>`);
+    : (j.snap.c&&j.snap.c.priv?`<button class="btn" data-dc="nakl">Накладная</button>`:`<button class="btn" data-dc="combo">Счёт+ТОРГ</button><button class="btn" data-dc="upd">УПД</button>`)+(inG&&!lim?`<button class="btn" data-dc="gedit">Редактировать комплект</button>`:"")+(lim?`<button class="btn pri" data-dc="qty">Изменить количество</button>`:`<button class="btn pri" data-dc="edit">Изменить</button>`);
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Документ № ${esc(j.number)} · ${fd(j.date)}</div><h3>${esc(w.main)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <dl class="dc-info">${info.map(([a,b])=>`<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>
     ${linesTable(k)}
@@ -2597,7 +2599,7 @@ function docCard(j, arch){
     ${histHtml(histOf(j))}
     <div class="dc-acts">${acts}</div>`, false, a=>{
       if(a==="gedit"){ bundleEdit(D.journal.filter(x=>x.snap&&!isArch(x)&&jKey(x)===jKey(j)).sort(jNumSort)); return; }
-      const fake=document.createElement("button"); fake.dataset[{combo:"comboJ",upd:"p",edit:"edit",qty:"qty"}[a]] = a==="upd" ? "upd" : j.id; if(a==="upd") fake.dataset.id=j.id;
+      const fake=document.createElement("button"); fake.dataset[{combo:"comboJ",upd:"p",nakl:"p",edit:"edit",qty:"qty"}[a]] = (a==="upd"||a==="nakl") ? a : j.id; if(a==="upd"||a==="nakl") fake.dataset.id=j.id;
       onJClick(arch)({target:fake}); });
 }
 function bundleCard(g, arch){

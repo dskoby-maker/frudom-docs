@@ -64,3 +64,24 @@
 .doc .sti.t12{left:-14mm;top:-24mm}
 .doc .sti.upd{left:8mm;top:-24mm;width:32mm;height:32mm}
 .doc .sti.inv{right:2mm;top:-12mm}
+
+/* простая накладная */
+.doc-nk{font-size:10pt;line-height:1.35;position:relative}
+.doc-nk .nk-top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2.5px solid #000;padding-bottom:6px;margin-bottom:10px}
+.doc-nk .nk-t{font-size:18pt;font-weight:bold;letter-spacing:-.01em}
+.doc-nk .nk-d{font-size:11pt}
+.doc-nk .nk-p td{padding:3px 0;vertical-align:top}
+.doc-nk .nk-l{color:#444;font-size:9pt;padding-right:8px!important}
+.doc-nk .nk-g{margin-top:12px}
+.doc-nk .nk-g th{background:#ededed;border-top:1.5px solid #000;border-bottom:1.5px solid #000;font-weight:bold;font-size:9pt;padding:5px 6px;text-align:center}
+.doc-nk .nk-g td{border-bottom:1px solid #bbb;padding:5px 6px;vertical-align:top}
+.doc-nk .nk-g td.n{color:#555}
+.doc-nk .nk-g tbody tr:last-child td{border-bottom:1.5px solid #000}
+.doc-nk .nk-tot{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.doc-nk .nk-tl{font-size:9pt;color:#444}
+.doc-nk .nk-sum{display:flex;align-items:baseline;gap:14px;border:1.5px solid #000;border-radius:6px;padding:5px 12px}
+.doc-nk .nk-sum span{font-size:10pt}.doc-nk .nk-sum b{font-size:14pt}
+.doc-nk .nk-w{margin:12px 0 0}
+.doc-nk .nk-sg{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:26px}
+.doc-nk .nk-s{position:relative}
+.doc-nk .nk-f{font-size:8pt;color:#444;margin-top:14px}
