@@ -3,7 +3,7 @@ function warnings(k){
   if(!k.lines.length) w.push("нет ни одной строки с товаром и количеством");
   if(!s.inn) w.push("ИНН поставщика"); if(!s.address) w.push("адрес поставщика");
   if(!s.rs||!s.bik||!s.bank) w.push("банковские реквизиты поставщика");
-  if(!c.inn) w.push("ИНН заказчика"); if(!c.address) w.push("адрес заказчика");
+  if(!c.priv){ if(!c.inn) w.push("ИНН заказчика"); if(!c.address) w.push("адрес заказчика"); }
   return w;
 }
 /* факсимиле подписи и печать поставщика (только когда включено «С печатью и подписью») */

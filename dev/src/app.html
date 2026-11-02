@@ -578,6 +578,8 @@
       <div class="grid">
         <label class="f">Поставщик<select id="d-sup"></select><span id="d-supwarn" class="ctrinfo warn" hidden></span></label>
         <label class="f">Заказчик<select id="d-cus"></select></label>
+        <label class="f" id="d-pbw" hidden>Покупатель (ФИО или название, можно не заполнять)<input id="d-pbuyer" placeholder="Частное лицо" autocomplete="off"></label>
+        <label class="f" id="d-pphw" hidden>Телефон покупателя<input id="d-pphone" inputmode="tel" placeholder="+7 …" autocomplete="off"></label>
         <label class="f wide" id="d-brwrap" hidden>Обособленное подразделение (покупатель и грузополучатель)<select id="d-br"></select></label>
         <label class="f wide">Контракт / договор<select id="d-ctr"></select><span id="d-ctrinfo" class="ctrinfo"></span></label>
         <label class="f">Номер документа<input id="d-num" inputmode="numeric"><span id="d-numinfo" class="ctrinfo"></span></label>
@@ -933,9 +935,13 @@ function calc(dr, snap){
   return {s, c, rate, add, lines, t, dr, t12};
 }
 const branches = c => { try{ const a=JSON.parse(c.branches||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; } };
+/* «Частное лицо» — покупатель без реквизитов: простая накладная без ИНН, банка и договора */
+const PRIV_ID="private-buyer", isPriv = id => id===PRIV_ID;
+function patchPrivate(){ if(D.customers.some(c=>c.id===PRIV_ID)) return; D.customers.push({id:PRIV_ID, name:"Частное лицо", inn:"", kpp:"", address:"", ship:"", acct:"bank", bank:"", bik:"", rs:"", ks:""}); dirty("customers", PRIV_ID); }
 function liveCus(dr){
   const c=cus(dr.customerId), x=ctr(dr.contractId), b=branches(c).find(y=>y.id===dr.branchId), o=Object.assign({}, c, {ikz: x ? (x.ikz||"") : ""});
   if(b){ ["kpp","address","acct","bank","bik","rs","ks","ship","edo"].forEach(k=>{ if(b[k]) o[k]=b[k]; }); if(b.fullName) o.name=b.fullName; o.branchLabel=b.label||""; }
+  if(isPriv(dr.customerId)){ o.priv=1; o.name=String(dr.buyer||"").trim()||"Частное лицо"; o.phone=String(dr.bphone||"").trim(); o.address=dr.ship||""; o.inn=""; o.kpp=""; o.bank=o.bik=o.rs=o.ks=""; }
   return o;
 }
 function makeSnap(dr){
@@ -1168,9 +1174,13 @@ $("#hideDemo").onclick=()=>{ D.demo=false; saveLocal(); $("#demoNote").hidden=tr
 /* ---------- новый документ ---------- */
 /* заказчики: сначала те, у кого есть договор с выбранным поставщиком, затем остальные */
 function cusOpts(supId, sel){
-  const mine=D.customers.filter(c=>supId && (D.contracts||[]).some(x=>x.customerId===c.id && x.supplierId===supId));
-  if(!mine.length || mine.length===D.customers.length) return opts(D.customers, sel);
-  const rest=D.customers.filter(c=>!mine.includes(c)), nm=supShort((sup(supId)||{}).name);
+  const pv=D.customers.find(c=>isPriv(c.id)), pvo=pv?`<option value="${PRIV_ID}"${sel===PRIV_ID?" selected":""}>Частное лицо (без реквизитов)</option>`:"";
+  return pvo+cusOpts0(supId, sel, D.customers.filter(c=>!isPriv(c.id)));
+}
+function cusOpts0(supId, sel, CL){
+  const mine=CL.filter(c=>supId && (D.contracts||[]).some(x=>x.customerId===c.id && x.supplierId===supId));
+  if(!mine.length || mine.length===CL.length) return opts(CL, sel);
+  const rest=CL.filter(c=>!mine.includes(c)), nm=supShort((sup(supId)||{}).name);
   return `<optgroup label="Заказчики ${esc(nm)}">${opts(mine, sel)}</optgroup><optgroup label="Остальные заказчики">${opts(rest, sel)}</optgroup>`;
 }
 function opts(list, sel){ return list.map(x=>`<option value="${x.id}"${x.id===sel?" selected":""}>${esc(x.name||"(без названия)")}</option>`).join(""); }
@@ -1325,7 +1335,8 @@ $("#d-cus").onchange=e=>{ const dr=D.draft; dr.customerId=e.target.value; dr.noC
   dr.lines.forEach(l=>{ if(l.productId) l.price=String(getPrice(dr.customerId,l.productId)); }); saveLocal(); renderLines(); };
 [["#d-num","number"],["#d-date","date"],["#d-basis","basis"]].forEach(([s,k])=>$(s).addEventListener("input",e=>{ D.draft[k]=e.target.value; if(k==="number"){ D.draft.numManual = !!e.target.value.trim(); if(!D.draft.numManual) syncNum(); else { const i=$("#d-numinfo"); if(i){ const l=pairLast(D.draft.supplierId,D.draft.customerId,D.draft.id); i.textContent=l?"Последний у заказчика: № "+l.j.number+" от "+fd(l.j.date):""; i.classList.remove("warn"); } } } saveLocal(); }));
 function renderBranch(){
-  const dr=D.draft, bl=branches(cus(dr.customerId));
+  const dr=D.draft, bl=branches(cus(dr.customerId)), pv=isPriv(dr.customerId);
+  $("#d-pbw").hidden=$("#d-pphw").hidden=!pv; $("#d-pbuyer").value=dr.buyer||""; $("#d-pphone").value=dr.bphone||"";
   $("#d-brwrap").hidden=!bl.length;
   if(bl.length && !bl.some(b=>b.id===dr.branchId)) dr.branchId=bl[0].id;
   if(!bl.length) dr.branchId="";
@@ -1343,6 +1354,8 @@ function renderShip(){
 }
 $("#d-shipsel").onchange=e=>{ const v=e.target.value; if(v==="__other"){ D.draft.ship=""; $("#d-shipwrap").hidden=false; $("#d-ship").value=""; $("#d-ship").focus(); } else { D.draft.ship=v; $("#d-shipwrap").hidden=true; } saveLocal(); };
 $("#d-ship").addEventListener("input",e=>{ D.draft.ship=e.target.value; saveLocal(); });
+$("#d-pbuyer").addEventListener("input",e=>{ D.draft.buyer=e.target.value; saveLocal(); });
+$("#d-pphone").addEventListener("input",e=>{ D.draft.bphone=e.target.value; saveLocal(); });
 $("#d-save").onclick=async()=>{
   const b=$("#d-save"), msg=$("#d-saved"); if(!calc(D.draft).lines.length){ msg.textContent="Добавьте хотя бы один товар с количеством."; toast("err","Нет товаров в документе","Выберите товар и укажите количество больше нуля — затем нажмите кнопку снова."); return; }
   const edit=D.journal.some(j=>j.id===D.draft.id); b.disabled=true;
@@ -1505,7 +1518,7 @@ async function addSheets(st, sheets, land){
   }
 }
 function pagesFor(kind,k){ const K=KINDS[kind]; return K.o==="landscape"&&k.lines.length ? layout(k,K.f) : [].concat(K.f(k)); }
-const shortCus = k => { const base=(cus(k.dr.customerId).name)||k.c.name||""; const b=k.c.branchLabel||""; return b ? base+", "+b.replace(/[«»"]/g,"") : base; };
+const shortCus = k => { const base=(k.c&&k.c.priv?k.c.name:"")||(cus(k.dr.customerId).name)||k.c.name||""; const b=k.c.branchLabel||""; return b ? base+", "+b.replace(/[«»"]/g,"") : base; };
 const KSHORT={invoice:"Счёт", torg12:"ТОРГ-12", upd:"УПД"};
 function markDownloaded(id, kinds, silent){
   const j=D.journal.find(x=>x.id===id); if(!j||!j.snap) return;
@@ -2385,7 +2398,7 @@ function jSorter(s){ const num=j=>parseInt(j.number,10)||0, who=j=>norm(jWho(j).
     nm_d:(a,b)=>num(b)-num(a)||tie(a,b), nm_a:(a,b)=>num(a)-num(b)||tie(a,b), sm_d:(a,b)=>(+b.sum||0)-(+a.sum||0), sm_a:(a,b)=>(+a.sum||0)-(+b.sum||0),
     cu_a:(a,b)=>who(a).localeCompare(who(b),"ru",{numeric:true})||tie(a,b) })[s] || ((a,b)=>jCreated(b).localeCompare(jCreated(a))); }
 const jOpen = new Set();
-const jWho = j => { const c=j.snap.c||{}, base=(cus(j.customerId).name)||c.name||"", b=c.branchLabel||""; return {main: base+(b?", "+b.replace(/[«»"]/g,""):""), pt: j.snap.dr.ship ? stLabel(j.snap.dr.ship, c.address) : ""}; };
+const jWho = j => { const c=j.snap.c||{}, base=(c.priv?c.name:"")||(cus(j.customerId).name)||c.name||"", b=c.branchLabel||""; return {main: base+(b?", "+b.replace(/[«»"]/g,""):""), pt: j.snap.dr.ship ? stLabel(j.snap.dr.ship, c.address) : ""}; };
 /* подпись документа внутри комплекта: подразделение (если есть) или точка доставки */
 /* подпись накладной внутри комплекта — как точка в «Заявке»: «ст 1», «ДАС»…; ОП — только у заказчиков, где ОП на одном адресе (НМИЦ) */
 const kLbl = j => { const b=((j.snap.c||{}).branchLabel||"").replace(/[«»"]/g,""), pt=jWho(j).pt; return (b && (!pt || oBrMode({customerId:j.customerId}))) ? b : (pt||b); };
@@ -3133,7 +3146,7 @@ function patchMguPoints2(){
   all.forEach(a=>{ const m=U.find(([re])=>re.test(a)); if(!m) return; const k=ptKey(a); o[k]=Object.assign(o[k]||{addr:a}, m[1]); });
   o.__v=2; c.points=JSON.stringify(o); dirty("customers",c.id);
 }
-function patchAll(){ patchKigm(); patchSuppliers(); if(!serverOld){ patchContracts(); patchKigmSpecs(); patchMgu(); patchMguSklad(); patchMguNames(); patchCircus(); patchKb1(); patchKb1Countries(); patchCircusSigns(); patchNiir(); patchNiirAliases(); patchMguPoints(); patchMguPoints2(); } }
+function patchAll(){ patchPrivate(); patchKigm(); patchSuppliers(); if(!serverOld){ patchContracts(); patchKigmSpecs(); patchMgu(); patchMguSklad(); patchMguNames(); patchCircus(); patchKb1(); patchKb1Countries(); patchCircusSigns(); patchNiir(); patchNiirAliases(); patchMguPoints(); patchMguPoints2(); } }
 
 /* ---------- товары ---------- */
 function renderProducts(){
