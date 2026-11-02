@@ -3597,6 +3597,43 @@ function patchNiir(){
   const x={id:uid(), customerId:c.id, supplierId:s?s.id:"", basis:"Контракт № 142-2026", ikz:"251772408504077240100100430210000244", maxSum:"", dateTo:"2026-12-31"};
   D.contracts.push(x); dirty("contracts",x.id);
 }
+/* ФГБУ «НМИЦ гематологии» — контракт № 0373100056625001682_46047 (44-ФЗ, бакалея, лот 1): все 16 позиций спецификации.
+   Цены за единицу — из обоснования НМЦК (Приложение 2), контракт заключён по ним: сумма цен единиц 11 965,74 ₽, цены сходятся с заявками.
+   Добавляются только недостающие позиции; уже заведённые цены и названия не трогаются. */
+const NMIC_SPEC=[
+  ["Ваниль обработанная",1587.52,["Ваниль","Ванильный порошок","Ванилин"]],
+  ["Дрожжи хлебопекарные сушеные",595.32,["Дрожжи","Дрожжи сухие","Дрожжи сушеные"]],
+  ["Казеин пищевой",2565.83,["Казеин"]],
+  ["Какао-порошок",1091.42,["Какао","Какао порошок"]],
+  ["Кофейный напиток",377.04,["Коф. напиток","Кофе напиток","Напиток кофейный"]],
+  ["Крахмалы, кроме модифицированных",114.10,["Крахмал","Крахмал картофельный"]],
+  ["Лист лавровый сушеный",1298.59,["Лавровый лист","Лист лавровый"]],
+  ["Перец обработанный (душистый, горошек)",2182.84,["Перец душистый","Перец душистый горошек","Перец обработанный душистый"]],
+  ["Перец обработанный (черный, горошек)",907.86,["Перец черный","Перец черный горошек","Перец обработанный черный"]],
+  ["Ягоды сушеные",327.43,["Шиповник","Шиповник сушеный","Шиповника плоды сушеные","Ягоды сушеные (шиповник)"]],
+  ["Горох шлифованный",99.22,["Горох","Горох колотый"]],
+  ["Изделия макаронные (вермишель)",104.18,["Вермишель","Изделия макаронные вермишель"]],
+  ["Изделия макаронные (лапша)",104.18,["Лапша","Изделия макаронные лапша"]],
+  ["Изделия макаронные (макароны фигурные)",104.18,["Макароны фигурные","Изделия макаронные фигурные","Спирали"]],
+  ["Рис круглозерновой",133.95,["Рис кр","Рис круглый","Рис (круглозерновой)"]],
+  ["Рис пропаренный",178.60,["Рис пр","Рис (пропаренный)"]],
+  ["Фасоль продовольственная",297.66,["Фасоль"]]];
+function patchNmic(){
+  const c=D.customers.find(x=>x.inn==="7714061756") || D.customers.find(x=>/гематолог/i.test(x.name||"")); if(!c) return 0;
+  const pl=D.prices[c.id]=D.prices[c.id]||{}, has=pid=>pl[pid]!=null && pl[pid]!=="";
+  const names=p=>[p.name, ...aliasesOf(p)].map(norm);
+  let n=0;
+  NMIC_SPEC.forEach(([name,price,al])=>{
+    const want=[name, ...al].map(norm);
+    if(Object.keys(pl).some(pid=>{ const p=prod(pid); return p && has(pid) && names(p).some(x=>want.includes(x)); })) return;   /* уже есть в прайсе НМИЦ */
+    let p=D.products.find(x=>norm(x.name)===norm(name) && (x.unit||"кг")==="кг") || D.products.find(x=>(x.unit||"кг")==="кг" && aliasesOf(x).some(a=>norm(a)===norm(name)));
+    if(!p){ p={id:uid(), name, code:"", unit:"кг", country:"643", price:String(price)}; D.products.push(p); }
+    const A=aliasesOf(p); al.forEach(x=>{ if(!A.some(y=>norm(y)===norm(x)) && norm(x)!==norm(p.name)) A.push(x); }); p.aliases=JSON.stringify(A.slice(-20));
+    dirty("products",p.id); pl[p.id]=String(price); dirtyPrice(c.id,p.id); n++;
+  });
+  if(n) logEv("Справочники","НМИЦ гематологии: добавлены позиции спецификации контракта — "+n);
+  return n;
+}
 /* страны по спецификации договора КБ1 — только если у товара страна не указана; чего нет в спецификации — не трогаем */
 function patchCircusSigns(){ const c=D.customers.find(x=>x.inn==="7736039722"); if(c && c.signs===undefined){ c.signs="3"; dirty("customers",c.id); } }
 function patchKb1Countries(){ const c=D.customers.find(x=>x.inn==="7729122063"); if(!c) return; const pl=D.prices[c.id]||{};
@@ -3636,7 +3673,7 @@ function patchMguPoints2(){
   all.forEach(a=>{ const m=U.find(([re])=>re.test(a)); if(!m) return; const k=ptKey(a); o[k]=Object.assign(o[k]||{addr:a}, m[1]); });
   o.__v=2; c.points=JSON.stringify(o); dirty("customers",c.id);
 }
-function patchAll(){ patchPrivate(); patchKigm(); patchSuppliers(); if(!serverOld){ patchContracts(); patchKigmSpecs(); patchMgu(); patchMguSklad(); patchMguNames(); patchCircus(); patchKb1(); patchKb1Countries(); patchCircusSigns(); patchNiir(); patchNiirAliases(); patchMguPoints(); patchMguPoints2(); } }
+function patchAll(){ patchPrivate(); patchKigm(); patchSuppliers(); if(!serverOld){ patchContracts(); patchKigmSpecs(); patchMgu(); patchMguSklad(); patchMguNames(); patchCircus(); patchKb1(); patchKb1Countries(); patchCircusSigns(); patchNiir(); patchNiirAliases(); patchNmic(); patchMguPoints(); patchMguPoints2(); } }
 
 /* ---------- товары ---------- */
 function renderProducts(){
@@ -4459,7 +4496,7 @@ renderDoc();
 applyRole(); applyTabOrder(); startTab();
 if(API_URL){ if(pass()){ let first=false; try{ first=!sessionStorage.getItem("fd-session"); sessionStorage.setItem("fd-session","1"); }catch(e){}
     if(first) logEv("Вход","Открыл систему (вход сохранён на устройстве, "+deviceName()+")"); pull(); } else { showLogin(); } } else setStatus("local");
-window.__fd = {D:()=>D, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, aiSrc, IMP:()=>IMP};
+window.__fd = {D:()=>D, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, aiSrc, IMP:()=>IMP, patchNmic};
 })();
 </script>
 <!-- ============ конец блока ============ -->
