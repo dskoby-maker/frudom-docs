@@ -438,11 +438,17 @@
 #fd-app .zkh{display:flex;align-items:center;gap:10px;flex-wrap:wrap}#fd-app .zkh>span:first-child{flex:1;min-width:0}
 #fd-app .zkdocs{display:flex;flex-wrap:wrap;gap:8px}#fd-app label.zkd{display:flex;gap:8px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;background:var(--bg);min-width:0;max-width:100%}
 #fd-app label.zkd input{width:18px;height:18px;flex:none;margin-top:1px}#fd-app label.zkd.on{border-color:var(--accent);background:var(--accent-soft)}#fd-app label.zkd b{display:block;font-size:13.5px}#fd-app label.zkd small{display:block;color:var(--muted);font-size:12px}#fd-app label.zkd i{color:var(--ok);font-style:normal}
-#fd-app table.zkt{min-width:720px}#fd-app table.zkt td{vertical-align:top;padding-top:8px;padding-bottom:8px}#fd-app table.zkt select{max-width:320px}#fd-app table.zkt tr.zkopen td{background:var(--warn-soft)}
+#fd-app table.zkt{min-width:940px}#fd-app table.zkt td{vertical-align:top;padding-top:8px;padding-bottom:8px}#fd-app table.zkt select{max-width:320px}#fd-app table.zkt tr.zkopen td{background:var(--warn-soft)}
 #fd-app .zs{display:inline-block;margin-top:3px;font-size:11.5px;border-radius:99px;padding:1px 8px;background:#eef0ee;color:var(--muted)}#fd-app .zs.ok{background:#e6f2ea;color:var(--ok)}#fd-app .zs.warn{background:var(--warn-soft);color:var(--warn)}#fd-app .zs.bad{background:#fdecea;color:var(--err)}
 #fd-app .zkf{display:flex;align-items:center;gap:5px;white-space:nowrap}#fd-app input.zf{width:64px;padding:5px 6px;text-align:right}#fd-app .zfs{padding:2px 6px;color:var(--accent)}
 #fd-app .zksum{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}#fd-app .zksum div{border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:#fbfbfa;min-width:0}#fd-app .zksum small{display:block;color:var(--muted);font-size:12px}#fd-app .zksum b{font-size:16px;font-variant-numeric:tabular-nums}
-#fd-app .zknob{font-size:13px;margin:0}#fd-app .zkempty ol{margin:6px 0 0;padding-left:20px;color:var(--muted)}#fd-app .zkempty li{margin:4px 0}
+#fd-app .zknob{font-size:13px;margin:0}#fd-app .zkhint{font-size:13px;margin:0}#fd-app .zkwhy{font-size:13px;margin:0;line-height:1.45}#fd-app .zkwhy b{color:var(--ink);font-weight:600}
+#fd-app label.zkd.zknone{border-style:dashed}#fd-app label.zkd.zknone.on{border-style:solid}#fd-app select.zo{width:auto;max-width:100%;align-self:center;font-size:13.5px;padding:7px 10px;background:var(--surface);color:var(--accent);border-style:dashed}
+#fd-app .zknotes{border-radius:10px;padding:10px 12px 10px 14px;background:var(--warn-soft);border-left:3px solid #e0a43a;font-size:13.5px;line-height:1.45}#fd-app .zknotes.bad{background:#fdf1ef;border-left-color:var(--err)}#fd-app .zknotes.ok{background:#eef6f0;border-left-color:var(--ok)}
+#fd-app .zknotes>b{display:block;margin-bottom:2px}#fd-app .zknotes.ok span{color:var(--muted)}#fd-app .zknotes ul{margin:0;padding:0;list-style:none;display:grid;gap:3px}
+#fd-app .zknotes li{position:relative;padding-left:14px}#fd-app .zknotes li::before{content:"";position:absolute;left:0;top:.55em;width:7px;height:7px;border-radius:50%;background:#e0a43a}#fd-app .zknotes li.l0::before{background:var(--err)}#fd-app .zknotes li.l2::before{background:#b5bcb7}
+#fd-app details.zkmore{margin-top:4px}#fd-app details.zkmore summary{cursor:pointer;color:var(--accent);font-size:13px;width:max-content;max-width:100%}#fd-app details.zkmore ul{margin-top:4px}
+#fd-app table.zkt td.zkgp b,#fd-app table.zkt td.zkgp small{display:block}#fd-app table.zkt tr.zkloss td{background:#fdf6f5}#fd-app .zksum .gp{background:var(--accent-soft);border-color:transparent}#fd-app .zkempty ol{margin:6px 0 0;padding-left:20px;color:var(--muted)}#fd-app .zkempty li{margin:4px 0}
 @media (max-width:700px){#fd-app .zktop{grid-template-columns:1fr}#fd-app table.zkt select{max-width:100%}#fd-app table.zkt tr.zkopen{background:var(--warn-soft);padding-left:8px;padding-right:8px}#fd-app table.zkt tr.zkopen td{background:none}}
 #fd-app table.pfprev select{max-width:340px}#fd-app table.pfprev input{width:100px;text-align:right}#fd-app table.pfprev small{display:block;color:var(--muted)}
 #fd-app table.pf input.cur{width:110px;text-align:right;padding:5px 7px}
@@ -2480,78 +2486,136 @@ function zkBlock(b){
   const st=zkSt[b.key]||(zkSt[b.key]={}), date=ZK().date||todayISO();
   const cm = st.cid ? {id:st.cid, how:"rule"} : zkCust(b.place), cid=cm&&cm.id||"";
   const near = cid ? zkNear(cid, date) : {list:[], def:[], far:false};
-  const sel = st.docs ? st.docs.filter(id=>near.list.some(j=>j.id===id)) : near.def;
+  /* накладные: найденные рядом с датой + добавленные вручную из «Другая накладная…» */
+  const list = near.list.concat((st.extra||[]).map(id=>D.journal.find(j=>j.id===id)).filter(j=>j && !isArch(j) && !near.list.includes(j)));
+  const none = !!cid && (st.none!=null ? st.none : !near.def.length);
+  const sel = none ? [] : st.docs ? st.docs.filter(id=>list.some(j=>j.id===id)) : near.def;
   const docs = sel.map(id=>D.journal.find(j=>j.id===id)).filter(Boolean);
   const inv=new Map();
-  docs.forEach(j=>calc(j.snap.dr, j.snap).lines.forEach(l=>{ const o=inv.get(l.pid)||{pid:l.pid, name:l.name, unit:l.unit||"кг", qty:0, prod:prod(l.pid)||{}}; o.qty=r3(o.qty+l.qty); inv.set(l.pid,o); }));
+  if(!none) docs.forEach(j=>calc(j.snap.dr, j.snap).lines.forEach(l=>{ const o=inv.get(l.pid)||{pid:l.pid, name:l.name, unit:l.unit||"кг", qty:0, net:0, prod:prod(l.pid)||{}}; o.qty=r3(o.qty+l.qty); o.net+=l.net; inv.set(l.pid,o); }));
+  else if(cid){ /* без накладной — сопоставляем с прайсом заказчика (цена по договору), а если прайса нет — со всеми товарами */
+    const pl=D.prices[cid]||{}, ids=Object.keys(pl).filter(id=>pl[id]!=="" && pl[id]!=null && prod(id));
+    (ids.length ? ids : D.products.map(p=>p.id)).forEach(id=>{ const p=prod(id); if(!p) return; inv.set(id,{pid:id, name:p.name, unit:p.unit||"кг", qty:0, net:0, sale:(pl[id]!==""&&pl[id]!=null)?+pl[id]:null, prod:p}); }); }
+  inv.forEach(o=>{ if(o.qty>0) o.sale=o.net/o.qty; });
   const rows=b.items.map((it,i)=>Object.assign({it, i}, zkLine(it, inv)));
   /* исключение: «Капуста» при «Пекинская» в той же закупке — значит белокочанная; «Лук» при «Лук з» — репчатый */
   const taken=new Set(); rows.forEach(r=>{ if(r.kind==="prod") r.pids.forEach(id=>taken.add(id)); });
   rows.forEach(r=>{ if(r.kind!=="none" || !r.amb.length) return; const rest=r.amb.filter(id=>!taken.has(id)); if(rest.length===1){ Object.assign(r,{kind:"prod", pids:rest, how:"auto"}); taken.add(rest[0]); } });
-  const agg={}; let exp=0, spent=0;
+  const agg={}; let exp=0, spent=0, unres=0;
   rows.forEach(r=>{ if(r.kind==="bad") return; spent+=r.it.s;
     if(r.kind==="exp") exp+=r.it.s;
-    if(r.kind==="prod" && r.pids.length){ r.bought=r3(r.it.q*r.f); r.unit=r.bought>0 ? r.it.s/r.bought : 0; r.invQ=r3(r.pids.reduce((a,id)=>a+inv.get(id).qty,0));
-      r.diff = r.invQ>0 && r.bought>0 && (r.bought/r.invQ<0.8 || r.bought/r.invQ>1.25);
+    if(r.kind==="none" || (r.kind==="prod" && !r.pids.length)) unres+=r.it.s;
+    if(r.kind==="prod" && r.pids.length){ r.bought=r3(r.it.q*r.f); r.unit=r.bought>0 ? r.it.s/r.bought : 0;
+      r.invQ = none ? null : r3(r.pids.reduce((a,id)=>a+inv.get(id).qty,0));
+      r.diff = !none && r.invQ>0 && r.bought>0 && (r.bought/r.invQ<0.8 || r.bought/r.invQ>1.25);
       r.pids.forEach(id=>{ const a=agg[id]||(agg[id]={s:0,q:0}); a.s+=r.it.s; a.q+=r.bought; }); } });
   const cost={}; let counted=0;
-  Object.keys(agg).forEach(id=>{ if(!(agg[id].q>0)) return; cost[id]=r2(agg[id].s/agg[id].q); counted+=cost[id]*inv.get(id).qty; });
-  const noBuy=[...inv.values()].filter(x=>cost[x.pid]==null);
-  return {b, cm, cid, near, docs, inv, rows, cost, exp:r2(exp), spent:r2(spent), counted:r2(counted), noBuy, open:rows.filter(r=>r.kind==="none"||(r.kind==="prod"&&!r.pids.length)).length, diffN:rows.filter(r=>r.diff).length};
+  Object.keys(agg).forEach(id=>{ if(!(agg[id].q>0)) return; cost[id]=r2(agg[id].s/agg[id].q); counted+=cost[id]*(none ? agg[id].q : inv.get(id).qty); });
+  /* по договору и валовая прибыль строки: (цена продажи − закупка) × сколько продали (без накладной — сколько купили) */
+  let gross=0, grossOk=false, over=0, under=0;
+  rows.forEach(r=>{ if(r.kind!=="prod" || !r.pids.length) return;
+    const P=r.pids.map(id=>{ const x=inv.get(id); return {x, c:cost[id]!=null?cost[id]:r.unit, q: none ? r.bought/r.pids.length : x.qty}; });
+    r.cost = P.length===1 ? P[0].c : r.unit;
+    const qs=P.reduce((a,p)=>a+p.q,0);
+    if(P.every(p=>p.x.sale!=null) && qs>0){ r.sale=P.reduce((a,p)=>a+p.x.sale*p.q,0)/qs; r.gross=r2(P.reduce((a,p)=>a+(p.x.sale-p.c)*p.q,0)); gross+=r.gross; grossOk=true; }
+    else { r.sale=null; r.gross=null; }
+    if(!none && r.invQ!=null){ const d=r.bought-r.invQ; if(d>0) over+=d*r.unit; else under+=-d*r.unit; } });
+  const noBuy = none ? [] : [...inv.values()].filter(x=>cost[x.pid]==null);
+  const B={b, st, cm, cid, near, list, none, docs, inv, rows, cost, exp:r2(exp), spent:r2(spent), counted:r2(counted), unres:r2(unres), over:r2(over), under:r2(under),
+    gross: grossOk ? r2(gross-exp) : null, grossGoods: grossOk ? r2(gross) : null, noBuy,
+    open:rows.filter(r=>r.kind==="none"||(r.kind==="prod"&&!r.pids.length)).length, diffN:rows.filter(r=>r.diff).length};
+  B.notes=zkNotes(B); return B;
 }
+/* замечания по точке: что стоит проверить, самое дорогое сверху */
+function zkNotes(B){
+  const N=[], nm=r=>esc(r.pids&&r.pids.length ? r.pids.map(id=>zkShort(B.inv.get(id).name)).join(" + ") : zkNice(r.it.name)), rub=v=>fm(v).replace(/,00$/,"")+" ₽", kg=(v,u)=>zkQ(v)+" "+esc(u||"");
+  B.rows.forEach(r=>{ const it=r.it;
+    if(r.kind==="bad"){ N.push({l:0, w:1e9, t:`Не понял строку «${esc(it.src)}» — проверьте сообщение Саида.`}); return; }
+    if(r.kind==="none"){ N.push({l:0, w:it.s, t:`«${esc(it.src)}» — не знаю, что это (${rub(it.s)}). Выберите товар в строке.`}); return; }
+    if(r.kind==="prod" && !r.pids.length){ N.push({l:0, w:it.s, t:`<b>${esc(zkNice(it.name))}</b> куплен на ${rub(it.s)}, но его нет ${B.none?"в прайсе заказчика":"в накладной"}.`}); return; }
+    if(r.kind!=="prod") return;
+    const u=B.inv.get(r.pids[0]).unit;
+    if(r.sale!=null && r.cost>r.sale+0.005) N.push({l:0, w:-r.gross, t:`<b>${nm(r)}</b>: купили по ${rub(r.cost)}/${esc(u)}, по договору ${rub(r.sale)} — в минус на ${rub(-r.gross)}.`});
+    else if(r.sale>0 && (r.sale-r.cost)/r.sale<0.1) N.push({l:1, w:r.sale*0.1*(B.none?r.bought:r.invQ)-(r.gross||0), t:`<b>${nm(r)}</b>: наценка всего ${pct(r.sale-r.cost, r.sale)} — купили по ${rub(r.cost)}, по договору ${rub(r.sale)}.`});
+    if(!B.none && r.invQ!=null){ const d=r3(r.bought-r.invQ), tol=Math.max(0.3, r.invQ*0.05);
+      if(r.invQ===0) {}
+      else if(d>tol) N.push({l:1, w:d*r.unit, t:`<b>${nm(r)}</b>: в накладной ${kg(r.invQ,u)}, Саид купил ${kg(r.bought,u)} — лишние ${kg(d,u)} на ${rub(d*r.unit)}.`});
+      else if(d<-tol) N.push({l:1, w:-d*r.unit, t:`<b>${nm(r)}</b>: в накладной ${kg(r.invQ,u)}, Саид купил ${kg(r.bought,u)} — не хватает ${kg(-d,u)} (взяли со склада?).`}); }
+    if(!it.fixed && !it.noSum){ const m=r2(it.q*it.p), d=r2(it.s-m); if(Math.abs(d)>=Math.max(5, m*0.02)) N.push({l:2, w:Math.abs(d), t:`<b>${esc(zkNice(it.name))}</b>: ${zkQ(it.q)} × ${zkQ(it.p)} = ${rub(m)}, а Саид записал ${rub(it.s)} (${d>0?"+":"−"}${rub(Math.abs(d))}).`}); }
+  });
+  if(B.noBuy.length) N.push({l:2, w:0, t:`Нет в закупке Саида: ${B.noBuy.map(x=>esc(zkShort(x.name))+" "+kg(x.qty,x.unit)).join(", ")}. Для них возьмётся цена из «Прибыль → Закупочные цены».`});
+  return N.sort((a,b)=>a.l-b.l || b.w-a.w);
+}
+/* короткое название для замечаний: «Зелень свежая - укроп» → «укроп», «Помидоры черри свежие» → «Помидоры черри» */
+const zkShort = s => { let t=String(s||"").replace(/\s*\([^)]*\)/g,""); const m=t.split(/\s+[-–—]\s+/); if(m.length>1) t=m[m.length-1]; return t.replace(/\s+(свеж(ие|ий|ая|ее)|продовольственн\S*|столов\S*)\b/gi,"").trim() || s; };
 
 /* --- отрисовка --- */
 function renderPurchase(){ if(!me().admin) return; if(!pfLoaded){ $("#zk-msg").textContent="Загружаю данные о прибыли…"; loadProfit(true); } drawPurchase(); }
 const zkQ = x => String(r3(x)).replace(".",",");
-const zkStatus = r => r.kind==="exp" ? `<span class="zs ok">расход</span>` : r.kind==="skip" ? `<span class="zs">не учитывается</span>` : r.kind==="bad" ? `<span class="zs bad">не понял строку</span>`
+const zkStatus = (r,B) => r.kind==="exp" ? `<span class="zs ok">расход</span>` : r.kind==="skip" ? `<span class="zs">не учитывается</span>` : r.kind==="bad" ? `<span class="zs bad">не понял строку</span>`
   : r.kind==="none" ? `<span class="zs bad">${r.amb.length?"несколько похожих — выберите":"выберите товар"}</span>`
-  : !r.pids.length ? `<span class="zs bad">этого товара нет в выбранных накладных</span>`
+  : !r.pids.length ? `<span class="zs bad">${B&&B.none?"нет в прайсе заказчика":"нет в выбранной накладной"}</span>`
   : r.how==="rule" ? `<span class="zs ok">запомнено</span>` : r.how==="exact" ? `<span class="zs ok">совпало</span>` : `<span class="zs warn">похоже — проверьте</span>`;
 function zkSelect(B, r){
   const L=[...B.inv.values()], cur = r.kind==="exp" ? "x" : r.kind==="skip" ? "s" : r.kind==="prod" && r.pids.length ? "p:"+r.pids.join(",") : "";
-  const one = x => `<option value="p:${x.pid}"${cur==="p:"+x.pid?" selected":""}>${esc(x.name)} — ${zkQ(x.qty)} ${esc(x.unit)}</option>`;
+  const one = x => `<option value="p:${x.pid}"${cur==="p:"+x.pid?" selected":""}>${esc(x.name)}${x.qty>0?" — "+zkQ(x.qty)+" "+esc(x.unit):""}</option>`;
   const amb=L.filter(x=>(r.amb||[]).includes(x.pid)), rest=L.filter(x=>!(r.amb||[]).includes(x.pid)).sort((a,c)=>a.name.localeCompare(c.name,"ru"));
-  return `<select class="zp" data-b="${B.b.key}" data-i="${r.i}" aria-label="Товар в накладной">`
+  return `<select class="zp" data-b="${B.b.key}" data-i="${r.i}" aria-label="Товар">`
     + (cur ? "" : `<option value="" selected>— выберите товар —</option>`)
     + (r.kind==="prod" && r.pids.length>1 ? `<option value="${cur}" selected>${esc(r.pids.map(id=>B.inv.get(id).name).join(" + "))}</option>` : "")
-    + (amb.length ? `<optgroup label="Похожие">${amb.map(one).join("")}</optgroup><optgroup label="Остальные товары накладной">${rest.map(one).join("")}</optgroup>` : rest.map(one).join(""))
+    + (amb.length ? `<optgroup label="Похожие">${amb.map(one).join("")}</optgroup><optgroup label="${B.none?"Остальные товары":"Остальные товары накладной"}">${rest.map(one).join("")}</optgroup>` : rest.map(one).join(""))
     + `<optgroup label="Не товар"><option value="x"${cur==="x"?" selected":""}>Расход: телега, машина, грузчики</option><option value="s"${cur==="s"?" selected":""}>Не учитывать</option></optgroup></select>`;
 }
 function drawPurchase(){
   const z=ZK(); if(!z.date) z.date=todayISO();
   if(document.activeElement!==$("#zk-src")) $("#zk-src").value=z.text||""; $("#zk-date").value=z.date;
+  const open=new Set([...document.querySelectorAll("#zk-blocks details.zkmore[open]")].map(d=>d.dataset.b));
   const blocks=zkParse(z.text); zkLast=blocks.map(zkBlock);
   $("#zk-msg").textContent = !blocks.length ? "" : "Точек: "+blocks.length+" · строк: "+blocks.reduce((a,b)=>a+b.items.length,0);
   $("#zk-foot").hidden=!blocks.length;
-  $("#zk-blocks").innerHTML = blocks.length ? zkLast.map(zkCard).join("") : `<div class="card zkempty"><b>Как это работает</b><ol><li>Скопируйте сообщения Саида из MAX и вставьте в поле выше.</li><li>Сайт сам найдёт, на какую точку закупка (Цирк, МГУ…), и накладные этой точки на дату закупки или на следующий день.</li><li>Каждую строку Саида он сопоставит с товаром накладной. Где не уверен — подсветит, выберите сами: сайт запомнит и в следующий раз сделает так же.</li><li>«Сохранить в прибыль» — закупочные цены встанут в эти накладные, телега и машины — в прочие расходы. Прибыль пересчитается сама.</li></ol></div>`;
+  $("#zk-blocks").innerHTML = blocks.length ? zkLast.map(zkCard).join("") : `<div class="card zkempty"><b>Как это работает</b><ol><li>Скопируйте сообщения Саида из MAX и вставьте в поле выше.</li><li>Сайт сам найдёт, на какую точку закупка (Цирк, МГУ…), и накладные этой точки на дату закупки или на следующий день. Можно выбрать другую накладную или «Без накладной».</li><li>Каждую строку Саида он сопоставит с товаром. Где не уверен — подсветит, выберите сами: сайт запомнит и в следующий раз сделает так же.</li><li>Сверху у точки — короткая сводка: где купили дороже договора, где взяли больше или меньше, чем заказано.</li><li>«Сохранить в прибыль» — закупочные цены встанут в накладные, телега и машины — в прочие расходы. Прибыль пересчитается сама.</li></ol></div>`;
+  open.forEach(k=>{ const d=document.querySelector(`#zk-blocks details.zkmore[data-b="${CSS.escape(k)}"]`); if(d) d.open=true; });
   document.querySelectorAll("#zk-blocks table.stack").forEach(stackify);
 }
+const zkSaved = B => B.none ? Object.keys(B.cost).length>0 && Object.keys(B.cost).every(pid=>pfArr("costs").some(c=>c.productId===pid && c.customerId===B.cid && c.from===(ZK().date||todayISO()) && /^Закупка Саида/.test(c.note||"") && Math.abs(+c.price-B.cost[pid])<0.005))
+  : B.docs.length>0 && B.docs.every(j=>dcLines(docCost(j.id))._zk);
 function zkCard(B){
-  const date=ZK().date||todayISO(), k=B.b.key;
+  const date=ZK().date||todayISO(), k=B.b.key, rub=v=>fm(v).replace(/,00$/,"");
   const cusSel=`<select class="zc" data-b="${k}" aria-label="Заказчик"><option value="">— выберите заказчика —</option>${D.customers.slice().sort((a,c)=>(a.name||"").localeCompare(c.name||"","ru")).map(c=>`<option value="${c.id}"${c.id===B.cid?" selected":""}>${esc(c.name)}</option>`).join("")}</select>`;
   let docsH="";
   if(!B.cid) docsH=`<p class="note">Не понял, какой это заказчик. Выберите его — сайт запомнит, что «${esc(B.b.place)}» это он.</p>`;
-  else if(!B.near.list.length) docsH=`<p class="note">У этого заказчика ещё нет накладных. Сначала сделайте накладную, потом вернитесь сюда.</p>`;
-  else docsH=(B.near.far?`<p class="note">Накладных с ${fd(addDaysZ(date,-3))} по ${fd(addDaysZ(date,3))} нет. Вот последние — отметьте нужную.</p>`:"")
-    + `<div class="zkdocs">${B.near.list.map(j=>{ const w=jWho(j), on=B.docs.some(d=>d.id===j.id), dc=docCost(j.id), zz=dcLines(dc)._zk;
-        return `<label class="zkd${on?" on":""}"><input type="checkbox" data-b="${k}" data-doc="${j.id}"${on?" checked":""}><span><b>№ ${esc(j.number)} · ${fd(j.date)}</b><small>${esc(w.pt||w.main)} · ${fm(+j.sum||0)} ₽${zz?` · <i>закупка уже внесена</i>`:""}</small></span></label>`; }).join("")}</div>`;
-  const rows=B.rows.map(r=>{ const it=r.it; if(r.kind==="bad") return `<tr><td colspan="5"><div class="who">${esc(it.src)}</div>${zkStatus(r)}</td></tr>`;
-    const u = r.kind==="prod" && r.pids.length ? B.inv.get(r.pids[0]).unit : "";
-    const showF = r.kind==="prod" && r.pids.length && (r.diff || r.f!==1);
-    const sug = r.diff && r.f===1 && r.pids.length===1 && it.q>0 ? zkPackHint(B.inv.get(r.pids[0]), it.q) : "";
-    const bought = r.kind==="prod" && r.pids.length
+  else { const all=D.journal.filter(j=>j.snap && !isArch(j) && j.customerId===B.cid && !B.list.includes(j)).sort((a,c)=>a.date<c.date?1:a.date>c.date?-1:jNumSort(c,a)).slice(0,60);
+    docsH = (B.near.far && !B.list.length ? "" : B.near.far ? `<p class="muted zkhint">Рядом с ${fd(date)} накладных нет — показаны последние.</p>` : "")
+      + `<div class="zkdocs">${B.list.map(j=>{ const w=jWho(j), on=B.docs.some(d=>d.id===j.id), zz=dcLines(docCost(j.id))._zk;
+          return `<label class="zkd${on?" on":""}"><input type="checkbox" data-b="${k}" data-doc="${j.id}"${on?" checked":""}><span><b>№ ${esc(j.number)} · ${fd(j.date)}</b><small>${esc(w.pt||w.main)} · ${fm(+j.sum||0)} ₽${zz?` · <i>закупка внесена</i>`:""}</small></span></label>`; }).join("")}
+        <label class="zkd zknone${B.none?" on":""}"><input type="checkbox" data-b="${k}" data-none="1"${B.none?" checked":""}><span><b>Без накладной</b><small>сравнить с ценами договора</small></span></label>
+        ${all.length?`<select class="zo" data-b="${k}" aria-label="Другая накладная"><option value="">+ Другая накладная…</option>${all.map(j=>`<option value="${j.id}">№ ${esc(j.number)} от ${fd(j.date)} — ${esc(jWho(j).pt||jWho(j).main)}, ${fm(+j.sum||0)} ₽</option>`).join("")}</select>`:""}</div>`
+      + (B.none ? `<p class="muted zkhint">Без накладной закупочные цены запомнятся для этого заказчика с ${fd(date)} и сами подставятся в его следующие накладные. Телега и машины без накладной не сохраняются.</p>` : !B.docs.length ? `<p class="note">Отметьте накладную или «Без накладной».</p>` : ""); }
+  const ready = B.none || B.docs.length;
+  const rows=B.rows.map(r=>{ const it=r.it; if(r.kind==="bad") return `<tr><td colspan="7"><div class="who">${esc(it.src)}</div>${zkStatus(r,B)}</td></tr>`;
+    const ok = r.kind==="prod" && r.pids.length, u = ok ? B.inv.get(r.pids[0]).unit : "";
+    const showF = ok && (r.diff || r.f!==1);
+    const sug = !B.none && r.diff && r.f===1 && r.pids.length===1 && it.q>0 ? zkPackHint(B.inv.get(r.pids[0]), it.q) : "";
+    const bought = ok
       ? (showF ? `<div class="zkf">${zkQ(it.q)} × <input class="zf" inputmode="decimal" data-b="${k}" data-i="${r.i}" value="${zkQ(r.f)}" aria-label="Сколько ${esc(u)} в одной единице Саида"> = <b>${zkQ(r.bought)} ${esc(u)}</b></div><small class="muted">сколько ${esc(u)} в одной его штуке/коробке${sug}</small>` : `${zkQ(r.bought)} ${esc(u)}`) : it.fixed ? "—" : zkQ(it.q);
-    const invq = r.kind==="prod" && r.pids.length ? `<span class="${r.diff?"miss":""}">${zkQ(r.invQ)} ${esc(u)}</span>` : "—";
-    const unit = r.kind==="prod" && r.pids.length ? `<b>${fm(r.unit)}</b> <small class="muted">₽/${esc(u)}</small>` : r.kind==="exp" ? `<b>${fm(it.s)}</b> <small class="muted">₽</small>` : "—";
-    return `<tr class="${r.kind==="none"||(r.kind==="prod"&&!r.pids.length)?"zkopen":""}"><td><div class="who">${esc(it.src)}</div>${zkStatus(r)}</td><td>${B.docs.length||r.kind!=="none"?zkSelect(B,r):`<span class="muted">сначала отметьте накладную</span>`}</td><td>${bought}</td><td>${invq}</td><td class="num">${unit}</td></tr>`; }).join("");
-  const done=B.docs.length && B.docs.every(j=>dcLines(docCost(j.id))._zk);
-  const left=r2(B.spent-B.counted-B.exp), even=Math.abs(left)<1;
-  const sum = B.docs.length ? `<div class="zksum"><div><small>Саид потратил</small><b>${fm(B.spent)}</b></div><div><small>Закупка товара в накладных</small><b>${fm(B.counted)}</b></div><div><small>Телега, машины</small><b>${fm(B.exp)}</b></div><div><small>${even?"Расхождение":left>0?"Не попало в накладные":"В накладных больше, чем куплено"}</small><b class="${even?"pos":"miss"}">${even?"нет":fm(Math.abs(left))}</b></div></div>
-    ${B.noBuy.length?`<p class="muted zknob">Нет в закупке Саида: ${B.noBuy.map(x=>esc(x.name)+" ("+zkQ(x.qty)+" "+esc(x.unit)+")").join(", ")}. Для них возьмётся цена из «Прибыль → Закупочные цены».</p>`:""}` : "";
-  return `<div class="card zkb" data-b="${k}"><h2 class="zkh"><span>${esc(zkPl(B.b))} <small>${fd(date)}</small></span>${done?`<span class="zs ok">внесено в прибыль</span>`:""}</h2>
-    <label class="f">Заказчик ${B.cm&&B.cm.how==="auto"?`<small>(нашёл по названию)</small>`:""}${cusSel}</label>${docsH}
-    <div class="tbl"><table class="stack zkt" data-full="0,1"><thead><tr><th>Строка Саида</th><th>Товар в накладной</th><th>Куплено</th><th>В накладной</th><th class="num">Закупка</th></tr></thead><tbody>${rows}</tbody></table></div>
-    ${sum}<div class="row"><button class="btn pri" data-zsave="${k}"${B.docs.length&&pfLoaded?"":" disabled"}>${done?"Обновить в прибыли":"Сохранить в прибыль"}</button>${B.open?`<span class="miss">Не разобрано строк: ${B.open} — они не попадут в закупку.</span>`:""}${B.diffN?`<span class="miss">Не сходится количество: ${B.diffN} ${B.diffN===1?"строка":"строки"} — проверьте (может, Саид считал коробками).</span>`:""}</div></div>`;
+    const invq = ok && !B.none ? `<span class="${r.diff?"miss":""}">${zkQ(r.invQ)} ${esc(u)}</span>` : "—";
+    const unit = ok ? `<b>${fm(r.cost)}</b> <small class="muted">₽/${esc(u)}</small>` : r.kind==="exp" ? `<b>${fm(it.s)}</b> <small class="muted">₽</small>` : "—";
+    const sale = ok && r.sale!=null ? `${fm(r.sale)} <small class="muted">₽/${esc(u)}</small>` : ok ? `<small class="muted">нет цены</small>` : "—";
+    const gp = ok && r.gross!=null ? `<b class="${r.gross<0?"neg":"pos"}">${r.gross>0?"+":r.gross<0?"−":""}${rub(Math.abs(r.gross))}</b><small class="muted">${r.sale>0?pct(r.sale-r.cost, r.sale):""}</small>` : r.kind==="exp" ? `<span class="neg">−${rub(it.s)}</span>` : "—";
+    return `<tr class="${r.kind==="none"||(r.kind==="prod"&&!r.pids.length)?"zkopen":""}${ok&&r.gross<0?" zkloss":""}"><td><div class="who">${esc(it.src)}</div>${zkStatus(r,B)}</td><td>${ready||r.kind!=="none"?zkSelect(B,r):`<span class="muted">сначала выберите накладную</span>`}</td><td>${bought}</td><td>${invq}</td><td class="num">${unit}</td><td class="num">${sale}</td><td class="num zkgp">${gp}</td></tr>`; }).join("");
+  const done=zkSaved(B);
+  /* расхождение простыми словами */
+  const left=r2(B.spent-B.counted-B.exp), even=Math.abs(left)<1, why=[];
+  if(!B.none){ if(B.over>=1) why.push(`Саид купил больше, чем в накладной, — на ${rub(B.over)} ₽`); if(B.under>=1) why.push(`в накладной больше, чем он купил, — на ${rub(B.under)} ₽ (видимо, взяли со склада)`); }
+  if(B.unres>=1) why.push(`строки без товара — ${rub(B.unres)} ₽`);
+  const notes=B.notes, top=notes.slice(0,3), more=notes.slice(3), li=n=>`<li class="l${n.l}">${n.t}</li>`;
+  const notesH = ready && B.cid ? `<div class="zknotes${notes.some(n=>n.l===0)?" bad":notes.length?"":" ok"}">${notes.length?`<b>Обратите внимание</b><ul>${top.map(li).join("")}</ul>${more.length?`<details class="zkmore" data-b="${esc(k)}"><summary>Ещё ${more.length} ${more.length===1?"замечание":more.length<5?"замечания":"замечаний"}</summary><ul>${more.map(li).join("")}</ul></details>`:""}`:`<b>Всё в порядке</b><span>Цены ниже договора, количество сходится с накладной.</span>`}</div>` : "";
+  const sum = ready && B.cid ? `<div class="zksum"><div><small>Саид потратил</small><b>${fm(B.spent)}</b></div><div><small>${B.none?"Закупка товара":"Закупка товара по накладной"}</small><b>${fm(B.counted)}</b></div>${B.none&&!B.exp?"":`<div><small>Телега, машины</small><b>${fm(B.exp)}</b></div>`}${B.none?"":`<div><small>Расхождение</small><b class="${even?"pos":"miss"}">${even?"нет":(left>0?"":"−")+fm(Math.abs(left))}</b></div>`}<div class="gp"><small>Валовая прибыль${B.exp?" (после телеги)":""}</small><b class="${B.gross==null?"":B.gross<0?"neg":"pos"}">${B.gross==null?"нет цен договора":(B.gross>0?"+":B.gross<0?"−":"")+fm(Math.abs(B.gross))}</b></div></div>
+    ${!B.none && !even && why.length?`<p class="muted zkwhy"><b>Почему расхождение:</b> ${why.join("; ")}.</p>`:""}` : "";
+  return `<div class="card zkb" data-b="${k}"><h2 class="zkh"><span>${esc(zkPl(B.b))} <small>${fd(date)}</small></span>${done?`<span class="zs ok">${B.none?"цены запомнены":"внесено в прибыль"}</span>`:""}</h2>
+    <label class="f">Заказчик ${B.cm&&B.cm.how==="auto"?`<small>(нашёл по названию)</small>`:""}${cusSel}</label>${docsH}${notesH}
+    <div class="tbl"><table class="stack zkt" data-full="0,1"><thead><tr><th>Строка Саида</th><th>${B.none?"Товар":"Товар в накладной"}</th><th>Куплено</th><th>В накладной</th><th class="num">Закупка</th><th class="num">По договору</th><th class="num">Валовая прибыль</th></tr></thead><tbody>${rows}</tbody></table></div>
+    ${sum}<div class="row"><button class="btn pri" data-zsave="${k}"${ready&&B.cid&&pfLoaded?"":" disabled"}>${B.none?(done?"Обновить цены заказчика":"Запомнить цены для заказчика"):(done?"Обновить в прибыли":"Сохранить в прибыль")}</button>${B.open?`<span class="miss">Не разобрано строк: ${B.open} — они не попадут в закупку.</span>`:""}${B.diffN?`<span class="miss">Не сходится количество: ${B.diffN} ${B.diffN===1?"строка":"строки"} — может, Саид считал коробками.</span>`:""}</div></div>`;
 }
 const zkPl = b => b.key.length<=3 ? b.place.toUpperCase() : b.place.charAt(0).toUpperCase()+b.place.slice(1);
 const addDaysZ = (iso,n) => { const d=new Date(iso+"T12:00:00"); d.setDate(d.getDate()+n); return jIso(d); };
@@ -2564,8 +2628,17 @@ function zkPackHint(x, q){
 
 /* --- сохранение --- */
 function zkSave(B){
-  if(!B.docs.length) return 0; const date=ZK().date||todayISO();
-  zkLearn(z=>{ B.rows.forEach(r=>{ if(r.kind==="prod" && r.pids.length && r.how!=="rule") z.n[r.key]={p:r.pids, f:r.f}; }); if(B.cid) z.pl[B.b.key]=B.cid; });
+  const date=ZK().date||todayISO();
+  if(!B.cid || (!B.none && !B.docs.length)) return 0;
+  zkLearn(z=>{ B.rows.forEach(r=>{ if(r.kind==="prod" && r.pids.length && r.how!=="rule") z.n[r.key]={p:r.pids, f:r.f}; }); z.pl[B.b.key]=B.cid; });
+  if(B.none){ /* без накладной: цены заказчика с даты закупки — подставятся в его будущие накладные */
+    const ids=Object.keys(B.cost); if(!ids.length) return 0;
+    ids.forEach(pid=>{ let x=pfArr("costs").find(c=>c.productId===pid && (c.customerId||"")===B.cid && c.from===date);
+      if(x){ x.price=String(B.cost[pid]); x.note="Закупка Саида"; } else { x={id:uid(), productId:pid, price:String(B.cost[pid]), from:date, customerId:B.cid, note:"Закупка Саида"}; D.costs.push(x); }
+      dirty("costs", x.id); });
+    logEv("Прибыль","Закупка Саида от "+fd(date)+" — "+B.b.place+" без накладной: "+ids.length+" закупочных цен для «"+(cus(B.cid).name||"")+"»");
+    return 1;
+  }
   const tot=B.docs.reduce((a,j)=>a+(+j.sum||0),0); let left=B.exp;
   B.docs.forEach((j,i)=>{
     const dc=dcUpsert(j), L=dcLines(dc), prev=L._zk||{}, last=i===B.docs.length-1;
@@ -2580,8 +2653,11 @@ function zkSave(B){
   logEv("Прибыль","Закупка Саида от "+fd(date)+" — "+B.b.place+": "+fm(B.spent)+" ₽ → накладные "+B.docs.map(j=>"№ "+j.number).join(", "));
   return B.docs.length;
 }
-function zkAfterSave(n, what){ saveLocal(); if(online()) flush().catch(handleErr); drawPurchase();
-  toast(n?"ok":"warn", n?"Закупка внесена в прибыль":"Ничего не сохранено", n?what+". Накладных: "+n+". Прибыль пересчитана, закупочные цены видны в «Прибыль → По накладным».":"Отметьте накладные у точек."); }
+function zkAfterSave(res){ saveLocal(); if(online()) flush().catch(handleErr); drawPurchase();
+  const d=res.filter(x=>x.n && !x.none), c=res.filter(x=>x.n && x.none);
+  if(!d.length && !c.length){ toast("warn","Ничего не сохранено","Выберите у точки накладную или «Без накладной»."); return; }
+  toast("ok", d.length?"Закупка внесена в прибыль":"Закупочные цены запомнены",
+    [d.length?d.map(x=>x.place).join(", ")+": накладных "+d.reduce((a,x)=>a+x.n,0)+", прибыль пересчитана":"", c.length?c.map(x=>x.place).join(", ")+": цены подставятся в следующие накладные":""].filter(Boolean).join(". ")+"."); }
 
 /* --- копирование в Google Таблицу (как вы ведёте её сейчас) --- */
 const ZK_SPELL={"памидор":"Помидоры","помидор":"Помидоры","помидоры":"Помидоры","огурец":"Огурцы","агурцы":"Огурцы","грефуруд":"Грейпфрут","грибь":"Грибы","марков":"Морковь","морков":"Морковь","тиква":"Тыква","лук з":"Лук зелёный","лук зел":"Лук зелёный","лук зеленый":"Лук зелёный","укроп петрушка":"Укроп, петрушка","свекла":"Свёкла","салат р":"Салат романо","машины":"Машины","машина":"Машины"};
@@ -2604,12 +2680,14 @@ $("#zk-copy").onclick=async()=>{
 
 /* --- события --- */
 $("#zk-src").addEventListener("input",()=>{ ZK().text=$("#zk-src").value; clearTimeout(zkT); zkT=setTimeout(()=>{ saveLocal(); drawPurchase(); },300); });
-$("#zk-date").onchange=e=>{ ZK().date=e.target.value||todayISO(); Object.values(zkSt).forEach(s=>delete s.docs); saveLocal(); drawPurchase(); };
+$("#zk-date").onchange=e=>{ ZK().date=e.target.value||todayISO(); Object.values(zkSt).forEach(s=>{ delete s.docs; delete s.none; delete s.extra; }); saveLocal(); drawPurchase(); };
 $("#zk-clear").onclick=()=>{ ZK().text=""; zkSt={}; $("#zk-src").value=""; saveLocal(); drawPurchase(); $("#zk-src").focus(); };
 const zkB = k => zkLast.find(B=>B.b.key===k);
 $("#zk-blocks").addEventListener("change",e=>{ const el=e.target, k=el.dataset.b, B=zkB(k); if(!B) return; const st=zkSt[k]||(zkSt[k]={});
-  if(el.classList.contains("zc")){ st.cid=el.value; delete st.docs; zkLearn(z=>{ if(el.value) z.pl[k]=el.value; else delete z.pl[k]; }); }
-  else if(el.dataset.doc){ const s=new Set(B.docs.map(j=>j.id)); el.checked?s.add(el.dataset.doc):s.delete(el.dataset.doc); st.docs=[...s]; }
+  if(el.classList.contains("zc")){ st.cid=el.value; delete st.docs; delete st.none; delete st.extra; zkLearn(z=>{ if(el.value) z.pl[k]=el.value; else delete z.pl[k]; }); }
+  else if(el.dataset.none){ st.none=el.checked; if(!el.checked && !B.docs.length) delete st.docs; }
+  else if(el.dataset.doc){ const s=new Set(B.docs.map(j=>j.id)); el.checked?s.add(el.dataset.doc):s.delete(el.dataset.doc); st.docs=[...s]; st.none=false; }
+  else if(el.classList.contains("zo")){ if(!el.value) return; st.extra=[...new Set((st.extra||[]).concat(el.value))]; st.docs=[...new Set(B.docs.map(j=>j.id).concat(el.value))]; st.none=false; }
   else if(el.classList.contains("zp")){ const r=B.rows[+el.dataset.i], v=el.value;
     zkLearn(z=>{ if(v==="x") z.n[r.key]={x:1}; else if(v==="s") z.n[r.key]={s:1}; else if(v.startsWith("p:")) z.n[r.key]={p:v.slice(2).split(","), f:r.f||1}; else delete z.n[r.key]; });
     if(v) toast("ok","Запомнил","«"+r.it.name+"» — "+(v==="x"?"расход":v==="s"?"не учитывать":v.slice(2).split(",").map(id=>(B.inv.get(id)||{}).name||"").join(" + "))+". В следующий раз сайт сделает так же."); }
@@ -2621,8 +2699,8 @@ function zkSetF(B, i, f){ const r=B.rows[i]; if(!r || !(f>0)){ drawPurchase(); r
   drawPurchase(); }
 $("#zk-blocks").addEventListener("click",e=>{ const s=e.target.closest(".zfs"); if(s){ const tr=s.closest("tr"), inp=tr&&tr.querySelector(".zf"); if(inp){ const B=zkB(inp.dataset.b); if(B) zkSetF(B, +inp.dataset.i, +s.dataset.f); } return; }
   const b=e.target.closest("[data-zsave]"); if(!b) return; const B=zkB(b.dataset.zsave); if(!B) return;
-  zkAfterSave(zkSave(B), B.b.place+": "+fm(B.spent)+" ₽"); });
-$("#zk-saveall").onclick=()=>{ if(!pfLoaded){ toast("warn","Подождите","Ещё загружаю данные о прибыли."); return; } let n=0; const names=[]; zkLast.forEach(B=>{ const k=zkSave(B); if(k){ n+=k; names.push(B.b.place); } }); zkAfterSave(n, names.join(", ")); };
+  zkAfterSave([{place:B.b.place, none:B.none, n:zkSave(B)}]); });
+$("#zk-saveall").onclick=()=>{ if(!pfLoaded){ toast("warn","Подождите","Ещё загружаю данные о прибыли."); return; } zkAfterSave(zkLast.map(B=>({place:B.b.place, none:B.none, n:zkSave(B)}))); };
 
 /* ---------- журнал событий (только администратор) ---------- */
 let evCache=null, evLoading=false;
