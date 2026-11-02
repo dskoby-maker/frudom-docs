@@ -56,9 +56,46 @@ const S = {
  * «Дополнительно» → «Перейти к проекту» → «Разрешить». Потом «Развернуть» → «Управление развёртываниями» → карандаш → «Новая версия». */
 function authorize() {
   DriveApp.getRootFolder().getName();
+  UrlFetchApp.fetch('https://generativelanguage.googleapis.com/', { muteHttpExceptions: true });   // доступ в интернет — для чтения сканов заявок (Gemini)
   const f = photoFolder_();
   Logger.log('Доступ к Диску есть. Папка для фото: ' + f.getName());
   return 'ok';
+}
+
+/* скан/фото заявки → Gemini (Google) переписывает её в JSON; товары и цены потом подбирает сам сайт.
+   Ключ — в свойствах скрипта GEMINI_KEY (вставляется на сайте админом), в репозитории его нет. */
+const AI_PROMPT_ = [
+  'Это заявка заказчика на поставку продуктов (скан или фото). Перепиши её в JSON строго по тому, что написано, ничего не придумывай.',
+  'Формат: {"customer":"заказчик как написано","inn":"ИНН заказчика или пусто","contract":"номер и дата договора/контракта как написано","request":"номер и дата заявки",',
+  '"date":"дата ПОСТАВКИ в виде ДД.ММ.ГГГГ (не дата заявки и не дата договора; если не указана — пусто)","address":"адрес поставки","supplier":"поставщик, если указан",',
+  '"columns":["названия колонок количества, если их несколько, например Бюджет, ОМС, Внебюджет; иначе пустой список"],',
+  '"items":[{"name":"наименование товара как написано","unit":"единица (кг, шт, уп...)","price":цена за единицу числом или null,',
+  '"qty":количество числом (если колонок количества несколько — итого) или null,"qtys":{"название колонки":количество числом} или null,',
+  '"qty_text":"количество как написано, если это не число в кг/шт (например 2 кор, 1 уп)","unsure":true если плохо видно, исправлено от руки или сомневаешься}]}',
+  'Правила: строку «Итого» не включай; строки с нулевым или пустым количеством не включай; десятичные числа с точкой; если значение исправлено от руки — бери исправленное и ставь unsure:true.'
+].join('\n');
+function aiRead_(p) {
+  const pr = PropertiesService.getScriptProperties(), key = pr.getProperty('GEMINI_KEY');
+  if (!key) return { ok: false, error: 'nokey' };
+  const mime = String(p.mime || ''), data = String(p.data || '');
+  if (!/^(application\/pdf|image\/(jpeg|png|webp|heic|heif))$/.test(mime)) return { ok: false, error: 'такой файл ИИ не читает — нужен PDF или фото' };
+  if (data.length > 18e6) return { ok: false, error: 'файл больше 13 МБ — для ИИ слишком большой' };
+  const body = { contents: [{ parts: [{ inline_data: { mime_type: mime, data: data } }, { text: AI_PROMPT_ }] }], generationConfig: { temperature: 0, responseMimeType: 'application/json' } };
+  const models = [pr.getProperty('GEMINI_MODEL') || 'gemini-flash-latest', 'gemini-3.8-flash']; let last = '';
+  for (let i = 0; i < models.length; i++) {
+    const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + models[i] + ':generateContent',
+      { method: 'post', contentType: 'application/json', headers: { 'x-goog-api-key': key }, payload: JSON.stringify(body), muteHttpExceptions: true });
+    const code = r.getResponseCode(), t = r.getContentText();
+    if (code === 200) { let j; try { j = JSON.parse(t); } catch (x) { return { ok: false, error: 'Gemini вернул непонятный ответ' }; }
+      const txt = ((((j.candidates || [])[0] || {}).content || {}).parts || []).map(x => x.text || '').join('');
+      if (!txt) return { ok: false, error: 'Gemini не смог прочитать файл' };
+      return { ok: true, text: txt, model: models[i], tokens: (j.usageMetadata || {}).totalTokenCount || 0 }; }
+    last = code + ' ' + t.slice(0, 300);
+    if (code !== 404) break;
+  }
+  if (/^429/.test(last)) return { ok: false, error: 'исчерпан бесплатный лимит Gemini на сегодня/минуту — попробуйте позже' };
+  if (/^(400|401|403)/.test(last) && /key|API_KEY|permission/i.test(last)) return { ok: false, error: 'badkey' };
+  return { ok: false, error: 'Gemini не ответил (' + last.slice(0, 150) + ')' };
 }
 
 function doGet(e)  { return out_(handle_(Object.assign({}, e && e.parameter))); }
@@ -114,6 +151,9 @@ function handle_(p) {
   if (typeof USERS === 'undefined') return { ok: false, error: 'в Apps Script нет файла «Пароли» — создайте его по инструкции (dev/Passwords.template.gs)' };
   const me = auth_(p);
   if (!me) return { ok: false, error: 'auth' };
+  if (p.action === 'aiRead') return aiRead_(p);        // без блокировки: ИИ думает до минуты, остальные в это время работают
+  if (p.action === 'aiKey') { if (!me.admin) return { ok: false, error: 'forbidden' }; const k = String(p.gkey || '').trim();
+    if (!/^[\w\-]{20,}$/.test(k)) return { ok: false, error: 'это не похоже на ключ Gemini' }; PropertiesService.getScriptProperties().setProperty('GEMINI_KEY', k); return { ok: true }; }
   const lock = LockService.getScriptLock();
   lock.waitLock(25000);
   try {
