@@ -232,11 +232,12 @@
 @media(max-width:700px){#fd-app .hq{width:22px;height:22px;font-size:12px}}
 #fd-app .line .lnote{grid-column:1/-1;font-size:12.5px;color:#a3620c;background:#fff6e5;border-radius:6px;padding:4px 8px;margin-top:-2px}#fd-app .line .lnote.ed{color:#2f7d4f;background:#eef7f0}
 #fd-app .impdrop{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px;border:1.5px dashed var(--line);border-radius:10px;transition:background .15s,border-color .15s}
+#fd-app .imppaste{margin-top:10px;display:grid;gap:8px}#fd-app .imppaste textarea{width:100%;box-sizing:border-box;min-height:120px;font:inherit;padding:10px;border:1px solid var(--line);border-radius:10px;resize:vertical;background:var(--card,#fff);color:inherit}
 #fd-app .impdrop.over{border-color:var(--accent);background:rgba(106,44,78,.06)}
 #fd-app .impg{margin-top:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
 #fd-app .impg.cur{border-color:var(--accent);box-shadow:0 0 0 2px rgba(106,44,78,.12)}
 #fd-app .impg .ih{display:flex;align-items:center;gap:10px;flex-wrap:wrap}#fd-app .impg .ih b{font-size:14.5px}#fd-app .impg .ih small{color:var(--muted)}
-#fd-app .impg ul{margin:6px 0 0;padding-left:18px;font-size:13px}#fd-app .impg li{margin:2px 0}#fd-app .impg li.e{color:var(--err,#c0392b)}#fd-app .impg li.w{color:#a3620c}
+#fd-app .impg ul{margin:6px 0 0;padding-left:18px;font-size:13px}#fd-app .impg li{margin:2px 0}#fd-app .impg li.e{color:var(--err,#c0392b)}#fd-app .impg li.w{color:#a3620c}#fd-app .impg li.i{color:#2f7d4f}
 #fd-app .impmiss{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;font-size:13px}#fd-app .impmiss .e{color:var(--err,#c0392b)}#fd-app .impmiss select{flex:1;min-width:220px}
 #fd-app #jr-head th[data-js]{cursor:pointer;user-select:none;white-space:nowrap}#fd-app #jr-head th[data-js]:hover{color:var(--accent)}#fd-app #jr-head th.sorted{color:var(--accent)}#fd-app #jr-head th[data-js]::after{content:attr(data-dir);margin-left:3px;font-size:9px}
 #fd-app .calload{margin-top:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);overflow:hidden}
@@ -584,10 +585,13 @@
     <div class="card impcard" id="imp-card">
       <h2>Заказ из файла <small>заполнит форму сам — останется проверить и напечатать</small></h2>
       <div class="impdrop" id="imp-drop">
-        <label class="btn pri">Загрузить файл заказа<input type="file" id="imp-file" accept=".xlsx,.xls,.csv,.json" hidden></label>
-        <span class="muted">или перетащите файл сюда · Excel (.xlsx)</span>
+        <label class="btn pri">Загрузить заявку<input type="file" id="imp-file" accept=".xlsx,.xls,.csv,.json,.pdf,.docx,.doc,.txt,image/*" hidden></label>
+        <button class="btn sm" id="imp-txt" type="button">Вставить текст</button>
+        <span class="muted">или перетащите файл сюда · PDF, Word, Excel</span>
         <span style="flex:1"></span><button class="btn ghost sm" id="imp-tpl" type="button">Скачать шаблон</button>
       </div>
+      <div class="imppaste" id="imp-paste" hidden><textarea id="imp-ta" rows="6" placeholder="Вставьте сюда текст заявки из письма или мессенджера: заказчик, дата, товары с количеством. Например:&#10;Клиническая больница № 1, поставка 05.11&#10;Курага 5 кг&#10;Яблоки зелёные 1 кор"></textarea>
+        <div class="row"><button class="btn pri sm" id="imp-go" type="button">Разобрать заявку</button><button class="btn ghost sm" id="imp-tx" type="button">Отмена</button></div></div>
       <div id="imp-res"></div>
     </div>
     <div id="mul"></div>
@@ -3905,16 +3909,17 @@ function impParse(rows){
   return {meta, lines};
 }
 function impResolve({meta, lines}){
-  const warn=[];
-  const cinn=dig(meta.cinn); let c=cinn?D.customers.find(x=>dig(x.inn)===cinn):null;
+  const warn=(meta.warn||[]).slice();
+  const cinn=dig(meta.cinn); let c=meta.cid?D.customers.find(x=>x.id===meta.cid):cinn?D.customers.find(x=>dig(x.inn)===cinn):null;
   if(!c && meta.cname){ const n=norm(meta.cname); c=D.customers.find(x=>norm(x.name)===n)||D.customers.find(x=>norm(x.name).includes(n)||n.includes(norm(x.name))); }
   if(!c) throw new Error("заказчик из файла не найден на сайте"+(meta.cname?" («"+meta.cname+"»":"")+(cinn?", ИНН "+cinn+")":meta.cname?")":"")+" — сначала добавьте его во вкладке «Заказчики и цены»");
-  const list=ctrs(c.id); let k=null;
-  if(meta.basis){ const b=norm(meta.basis), m=b.match(/№\s*([^\s,]+)/), key=m?m[1]:(b.match(/[\w\-\/]*\d[\w\-\/]*/)||[""])[0];
+  const list=ctrs(c.id); let k=meta.kid?list.find(x=>x.id===meta.kid)||null:null;
+  if(!k && meta.basis){ const b=norm(meta.basis), m=b.match(/№\s*([^\s,]+)/), key=m?m[1]:(b.match(/[\w\-\/]*\d[\w\-\/]*/)||[""])[0];
     k=list.find(x=>key && norm(x.basis).includes(key))||list.find(x=>norm(x.basis)===b); if(!k && list.length) warn.push({t:"w", m:"Договор «"+meta.basis+"» не найден у заказчика — выбран "+(list[0].basis||"первый договор")+". Проверьте."}); }
   if(!k) k=list.find(x=>!x.dateTo||x.dateTo>=isoToday())||list[0]||null;
   const sinn=dig(meta.sinn); let s=k&&k.supplierId?sup(k.supplierId):null;
   if(sinn){ const s2=D.suppliers.find(x=>dig(x.inn)===sinn); if(s2 && s && s2.id!==s.id) warn.push({t:"w", m:"В файле поставщик "+s2.name+", а по договору — "+s.name+". Взят поставщик по договору."}); if(!s) s=s2; }
+  if((!s || !s.id) && meta.sid) s=sup(meta.sid);
   if(!s || !s.id) s=sup(D.draft.supplierId)||D.suppliers[0];
   const date=impDate(meta.date)||isoToday(); if(!impDate(meta.date)) warn.push({t:"w", m:"В файле нет даты поставки — стоит сегодняшняя."});
   const bl=branches(c), brName=v=>{ if(!v) return null; const n=norm(v); return bl.find(x=>norm(x.label)===n)||bl.find(x=>dig(v)&&dig(x.kpp)===dig(v))||bl.find(x=>n.length>1&&norm(x.label).includes(n))||null; },
@@ -3960,17 +3965,193 @@ function drawImp(){
       ${g.warn.length?`<ul>${g.warn.map(w=>`<li class="${w.t}">${esc(w.m)}</li>`).join("")}</ul>`:(g.miss||[]).length?"":`<ul><li style="color:#2f7d4f">Все позиции найдены, цены по договору.</li></ul>`}</div>`).join("")
    + `<div class="row" style="margin-top:8px"><button class="btn ghost sm" id="imp-close" type="button">Скрыть результат</button></div>`;
 }
+/* ================= заявка в любом виде: PDF, Word, Excel, просто текст ================= */
+/* читаем текст и таблицы, сами находим заказчика (по номеру договора, ИНН, названию), дату поставки, адрес и товары.
+   Всё, в чём не уверены, — в замечаниях (жёлтые) и «Не найден товар» (красные), правится вручную. */
+const LIBCDN="https://cdnjs.cloudflare.com/ajax/libs/";
+function ftLib(src, test, what){ return test()?Promise.resolve(test()):new Promise((ok,bad)=>{ const sc=document.createElement("script"); sc.src=LIBCDN+src; sc.onload=()=>ok(test()); sc.onerror=()=>bad(new Error("не загрузилась библиотека чтения "+what+" — проверьте интернет")); document.head.appendChild(sc); }); }
+async function ftDocx(buf){
+  const Z=await ftLib("jszip/3.10.1/jszip.min.js",()=>window.JSZip,"Word"); let z; try{ z=await Z.loadAsync(buf); }catch(e){ throw new Error("файл Word повреждён или это не .docx"); }
+  const f=z.file("word/document.xml"); if(!f) throw new Error("это не файл Word (.docx)");
+  const x=new DOMParser().parseFromString(await f.async("string"),"application/xml"), lines=[], tables=[];
+  const kids=(n,ln)=>[...n.childNodes].filter(c=>c.nodeType===1&&c.localName===ln);
+  const ptext=p=>{ let t=""; [...p.getElementsByTagName("*")].forEach(e=>{ const l=e.localName; if(l==="t") t+=e.textContent; else if(l==="tab") t+="\t"; else if(l==="br"||l==="cr") t+=" "; }); return t.replace(/[ \u00a0]+/g," ").trim(); };
+  const cell=tc=>{ const ps=tc.getElementsByTagName("*"); const t=[...ps].filter(e=>e.localName==="p").map(ptext).filter(Boolean).join(" "); return t; };
+  const walk=n=>{ [...n.childNodes].forEach(c=>{ if(c.nodeType!==1) return;
+    if(c.localName==="p"){ const t=ptext(c); if(t) lines.push(t); }
+    else if(c.localName==="tbl"){ const rows=kids(c,"tr").map(tr=>{ const r=[]; kids(tr,"tc").forEach(tc=>{ const gs=[...tc.getElementsByTagName("*")].find(e=>e.localName==="gridSpan"); const n=gs?+(gs.getAttribute("w:val")||gs.getAttributeNS(gs.namespaceURI,"val"))||1:1; const t=cell(tc); for(let i=0;i<n;i++) r.push(t); }); return r; });
+      tables.push(rows); rows.forEach(r=>lines.push(r.filter((v,i)=>v&&v!==r[i-1]).join("\t"))); }
+    else walk(c); }); };
+  walk(x.documentElement); return {lines, tables};
+}
+async function ftPdf(buf){
+  const L=await ftLib("pdf.js/3.11.174/pdf.min.js",()=>window.pdfjsLib,"PDF"); L.GlobalWorkerOptions.workerSrc=LIBCDN+"pdf.js/3.11.174/pdf.worker.min.js";
+  const doc=await L.getDocument({data:new Uint8Array(buf)}).promise, rows=[];
+  for(let pn=1;pn<=doc.numPages;pn++){ const pg=await doc.getPage(pn), tc=await pg.getTextContent(), its=tc.items.filter(i=>i.str&&i.str.trim()).map(i=>({x:i.transform[4], y:i.transform[5], w:i.width||0, s:i.str}));
+    its.sort((a,b)=>b.y-a.y||a.x-b.x); const ln=[];
+    its.forEach(i=>{ const l=ln.find(r=>Math.abs(r.y-i.y)<3); if(l) l.it.push(i); else ln.push({y:i.y, it:[i]}); });
+    ln.sort((a,b)=>b.y-a.y).forEach(l=>{ l.it.sort((a,b)=>a.x-b.x); const cells=[]; let cur=null;
+      l.it.forEach(i=>{ if(cur && i.x-(cur.x2)<6){ cur.s+=(i.x-cur.x2>1.5?" ":"")+i.s; cur.x2=i.x+i.w; } else { cur={x:i.x, x2:i.x+i.w, s:i.s}; cells.push(cur); } });
+      rows.push(cells.map(c=>({x:(c.x+c.x2)/2, x1:c.x, x2:c.x2, s:c.s.trim()}))); }); }
+  const lines=rows.map(r=>r.map(c=>c.s).join("\t"));
+  if(lines.join("").replace(/\s/g,"").length<30) throw new Error("это скан или фото — в PDF нет текста, только картинка. Скопируйте текст заявки из письма и вставьте («Вставить текст») или попросите заказчика прислать PDF/Word с текстом");
+  /* таблица в PDF: по строке заголовка («Наименование … Количество») ставим колонки по горизонтали */
+  const tables=[]; const hi=rows.findIndex(r=>r.some(c=>FT_NAME.test(norm(c.s)))&&r.some(c=>FT_QTY.test(norm(c.s))));
+  if(hi>=0){ let anc=rows[hi].map(c=>({x:c.x, x1:c.x1, x2:c.x2, s:c.s})); const sub=rows[hi+1]||[];
+    if(sub.length && sub.every(c=>!/\d/.test(c.s))){ anc=anc.filter(a=>!sub.some(c=>Math.abs(c.x-a.x)<30)); sub.forEach(c=>anc.push({x:c.x, x1:c.x1, x2:c.x2, s:c.s, sub:1})); }
+    anc.sort((a,b)=>a.x-b.x); const head=anc.map(a=>a.s), T=[head];
+    rows.slice(hi+1).forEach(r=>{ const row=anc.map(()=>""); r.forEach(c=>{ let bi=0, bd=1e9; anc.forEach((a,i)=>{ const ov=Math.min(a.x2,c.x2)-Math.max(a.x1,c.x1), d=ov>0?-ov:Math.min(Math.abs(a.x1-c.x2),Math.abs(c.x1-a.x2)); if(d<bd){ bd=d; bi=i; } }); row[bi]=(row[bi]?row[bi]+" ":"")+c.s; }); T.push(row); });
+    tables.push(T); }
+  return {lines, tables};
+}
+async function ftRead(f){
+  const n=f.name||"";
+  if(f.txt) { const t=await f.text(); return {lines:t.split(/\r?\n/), tables:[]}; }
+  if(/\.txt$/i.test(n)) { const t=await f.text(); return {lines:t.split(/\r?\n/), tables:[]}; }
+  if(/\.docx$/i.test(n)) return ftDocx(await f.arrayBuffer());
+  if(/\.doc$/i.test(n)) throw new Error("это старый формат Word (.doc). Откройте его и сохраните как .docx, или скопируйте текст и нажмите «Вставить текст»");
+  if(/\.pdf$/i.test(n)) return ftPdf(await f.arrayBuffer());
+  if(/\.(jpe?g|png|heic|webp|gif)$/i.test(n)||/^image\//.test(f.type||"")) throw new Error("это фото — сайт читает только файлы с текстом (PDF, Word, Excel) и вставленный текст. Перепишите или скопируйте текст заявки и нажмите «Вставить текст»");
+  throw new Error("такой файл не умею читать — нужен PDF, Word (.docx), Excel или вставленный текст");
+}
+const FT_NAME=/наимен|^товар|^продук|номенклат|^позиц|^продукт/, FT_QTY=/^кол|количеств|кол-во|^объ[её]м|^вес\b|^заказ\b|^к-во/;
+const FT_UNIT="кг|килограмм[а-я]*|гр?|грамм[а-я]*|шт[а-я]*|уп[а-я]*|кор[а-я]*|ящ[а-я]*|пач[а-я]*|бут[а-я]*|бан[а-я]*|меш[а-я]*|пуч[а-я]*|сет[а-я]*|лот[а-я]*|вед[а-я]*|пак[а-я]*|кочан[а-я]*|л|литр[а-я]*";
+const FT_CTRY=/\b(россия|рф|китай|турция|таджикистан|узбекистан|иран|египет|армения|азербайджан|киргизия|кыргызстан|казахстан|аргентина|чили|сша|индия|вьетнам|сербия|молдова|беларусь|израиль|марокко|юар|эквадор|пакистан|афганистан|грузия|абхазия)\b/gi;
+const FT_MON={янв:1,фев:2,мар:3,апр:4,мая:5,май:5,июн:6,июл:7,авг:8,сен:9,окт:10,ноя:11,дек:12};
+/* даты с оценкой: «поставка 06.11», «заказ на 02.11.2026» — выше; «договор от …» — ниже */
+function ftDates(text){ const out=[], t=text.toLowerCase().replace(/ё/g,"е"), y0=+isoToday().slice(0,4);
+  const add=(i,d,m,y)=>{ d=+d; m=+m; y=y?(String(y).length===2?2000+ +y:+y):y0; if(!(d>=1&&d<=31&&m>=1&&m<=12&&y>2000&&y<2100)) return;
+    const pre=t.slice(Math.max(0,i-45),i); let sc=0;
+    if(/поставк|доставк|отгрузк|привез|завоз/.test(pre)) sc+=3; if(/(^|\s)(на|к)\s*[«"]?\s*$/.test(pre)) sc+=2;
+    if(/(договор|контракт|заявк\w*\s*(№\s*\S+\s*)?от|\sот)\s*[«"]?\s*$/.test(pre)) sc-=2; if(/договор|контракт/.test(pre)) sc-=1;
+    out.push({iso:y+"-"+String(m).padStart(2,"0")+"-"+String(d).padStart(2,"0"), sc, i}); };
+  let r=/(?<![\d.,])(\d{1,2})\.(\d{2})(?:\.(\d{4}|\d{2}))?(?![\d.]*\d)/g, m; while((m=r.exec(t))) add(m.index,m[1],m[2],m[3]);
+  r=/[«"]?(\d{1,2})[»"]?\s*(янв|фев|мар|апр|мая|май|июн|июл|авг|сен|окт|ноя|дек)[а-я]*\.?(?:\s*(\d{4}))?/g; while((m=r.exec(t))) add(m.index,m[1],FT_MON[m[2]],m[3]);
+  return out; }
+/* заказчик по тексту: номер договора → ИНН → название */
+function ftCustomer(text){
+  const T=norm(text), Tc=T.replace(/[\s_\-–—]/g,""), Td=" "+text.replace(/\D+/g," ")+" ";
+  for(const x of (D.contracts||[])){ const m=String(x.basis||"").match(/№\s*([^\s,]+)/); if(!m) continue; const key=norm(m[1]).replace(/[\s_\-–—]/g,""); if(key.replace(/\D/g,"").length<5) continue;
+    if(Tc.includes(key)){ const c=D.customers.find(y=>y.id===x.customerId); if(c) return {c, k:x, how:"по номеру договора"}; } }
+  for(const c of D.customers){ const i=dig(c.inn); if(i.length>=10 && Td.includes(" "+i+" ")) return {c, how:"по ИНН"}; }
+  const LEG=new Set(["фгбу","фгбну","гбу","гбоу","гбпоу","гуп","фгуп","ао","оао","зао","пао","ооо","ип","федеральное","государственное","бюджетное","учреждение","унитарное","предприятие","научное","минздрава","россии","имени","им","москвы","города","города","московский"].map(stem4));
+  let best=null, bs=0, tie=0; const TS=new Set(stems(text));
+  D.customers.forEach(c=>{ if(c.id===PRIV_ID) return; const q=String(c.name||"").match(/[«"]([^»"]{4,})[»"]/);
+    const h=Math.max(...[c.name, q?q[1]:""].map(nm=>{ const W=stems(nm).filter(w=>!LEG.has(w)); return W.length?W.filter(w=>TS.has(w)).length/W.length:0; }));
+    if(h>bs){ bs=h; best=c; tie=0; } else if(h===bs && h>0) tie++; });
+  if(best && bs>=0.6 && !tie) return {c:best, how:"по названию в тексте"+(bs<1?" (не полностью)":"")};
+  return null;
+}
+/* адрес: лучший из известных адресов заказчика по совпадению слов и номера дома */
+function ftAddr(text, c){
+  const all=[]; [c, ...branches(c)].forEach(b=>{ addrs(b).forEach(a=>all.push({a, b})); }); if(!all.length) return null;
+  const ws=s=>[...new Set(norm(s).replace(/[«»"().,;:]/g," ").split(/\s+/).filter(w=>/\d/.test(w)||w.length>=4).filter(w=>!/^(москва|город|улица|проезд|дом|строение|корпус|область)$/.test(w)).map(w=>/\d/.test(w)?w.replace(/\D/g,""):stem4(w)).filter(w=>w&&!/^\d{6}$/.test(w)))];
+  const TS=new Set(ws(text)); let best=null, bs=0, tie=0;
+  all.forEach(x=>{ const W=ws(x.a); if(!W.length) return; const h=W.filter(w=>TS.has(w)).length/W.length; if(h>bs){ bs=h; best=x; tie=0; } else if(h===bs && x.a!==best.a) tie++; });
+  return best && bs>=0.7 && !tie ? best : null;
+}
+/* таблица с заголовком «Наименование … Количество» → строки заказа */
+function ftTable(rows, c){
+  const N=v=>norm(v instanceof Date?"":String(v==null?"":v)); let h=-1, cols={};
+  for(let i=0;i<Math.min(rows.length,60);i++){ const low=rows[i].map(N); const ni=low.findIndex(x=>FT_NAME.test(x)&&!/^№/.test(x)), qi=low.findIndex(x=>FT_QTY.test(x)); if(ni>=0&&qi>=0){ h=i; break; } }
+  if(h<0) return null;
+  const head=rows[h].map(N), sub=(rows[h+1]||[]).map(N), bl=c?branches(c):[], brCols={};
+  head.forEach((x,j)=>{ if(cols.name==null && FT_NAME.test(x) && !/^№/.test(x)) cols.name=j;
+    else if(cols.unit==null && /^ед/.test(x)) cols.unit=j;
+    else if(cols.price==null && /цена/.test(x)) cols.price=j;
+    else if(cols.sum==null && /сумм|стоимост/.test(x)) cols.sum=j;
+    else if(cols.note==null && /примеч|коммент/.test(x)) cols.note=j;
+    else if(cols.addr==null && /^адрес|^точка|^объект|^место/.test(x)) cols.addr=j;
+    else if(FT_QTY.test(x)){ if(/итого|всего/.test(x) || cols.qty==null) cols.qty=j; } });
+  /* подстрока заголовка: «Бюджет / ОМС / Внебюджет» или названия ОП заказчика */
+  let start=h+1;
+  if(sub.some(Boolean) && !sub.some(x=>/\d/.test(x))){ sub.forEach((x,j)=>{ if(!x || j===cols.name) return; const b=bl.find(b=>norm(b.label)===x)||bl.find(b=>norm(b.label).length>2&&x.includes(norm(b.label))); if(b) brCols[j]=b.label; else if(/^бюджет|^омс|внебюдж/.test(x)) brCols[j]=rows[h+1][j]; }); start=h+2; }
+  if(!Object.keys(brCols).length) head.forEach((x,j)=>{ if(!x || j===cols.name) return; const b=bl.find(b=>norm(b.label)===x); if(b) brCols[j]=b.label; });
+  if(Object.keys(brCols).length && cols.qty!=null && brCols[cols.qty]) cols.qty=null;
+  const lines=[], skipped=[];
+  for(let i=start;i<rows.length;i++){ const r=rows[i], g=j=>j==null?"":(r[j]==null?"":r[j]); let name=String(g(cols.name)).replace(/\s+/g," ").trim();
+    if(!name || !/[а-яa-z]{2}/i.test(name)) continue; if(/^итого|^всего/i.test(name)) break;
+    let unit=String(g(cols.unit)).trim(), price=impNum(g(cols.price)), sum=impNum(g(cols.sum)), note=String(g(cols.note)).trim(), addr=String(g(cols.addr)).trim();
+    const q1=v=>{ if(typeof v==="number") return {q:v}; const s=String(v||"").trim(); if(!s) return {q:""}; if(/[а-я]/i.test(s)){ const pk=parsePack(s); return {q:pk&&pk.u==="кг"?pk.n:pk&&pk.u==="г"?pk.n/1000:pk&&!unit?"":impNum(s), orig:pk&&pk.u!=="кг"&&pk.u!=="г"?s:"", u:pk?pk.u:""}; } return {q:impNum(s)}; };
+    const brs=Object.keys(brCols).map(j=>({b:brCols[j], ...q1(g(+j))})).filter(x=>+x.q>0);
+    if(price==="" && sum!=="" ){ const tq=brs.length?brs.reduce((a,x)=>a+ +x.q,0):+q1(g(cols.qty)).q; if(tq>0) price=r2(sum/tq); }
+    const base={name, unit, price, num:"", addr, note, orig:""};
+    if(brs.length){ brs.forEach(x=>lines.push(Object.assign({},base,{qty:x.q, br:x.b, orig:x.orig||"", unit:unit||x.u||""}))); continue; }
+    const Q=q1(g(cols.qty));
+    if(Q.q===""&&!Q.orig){ if(Object.keys(brCols).length||String(g(cols.qty)).trim()==="0"||+String(g(cols.qty)).replace(",",".")===0&&String(g(cols.qty)).trim()!=="") continue; skipped.push(name); continue; }
+    if(+Q.q===0 && !Q.orig) continue;
+    lines.push(Object.assign(base,{qty:Q.q, br:"", orig:Q.orig||"", unit:unit||(Q.u==="кг"?"кг":"")}));
+  }
+  return lines.length?{lines, skipped}:null;
+}
+/* строки текста: «Курага 5 кг», «1. Яблоки зелёные — 2 кор по 119 р», «Горох колотый Россия 1 уп Без НДС 47,60» */
+function ftLines(lines){
+  const out=[], re=new RegExp("(?:^|[^\\d.,])(\\d+(?:[.,]\\d+)?)\\s*("+FT_UNIT+")\\.?(?![а-я])","gi");
+  const SKIP=/договор|контракт|\bинн\b|\bкпп\b|адрес|телефон|\bтел\b|e-?mail|почт|подпис|м\.\s?п\.|реквизит|\bбик\b|огрн|р\/с|банк|время|срок|итого|всего|остаточн|годност/i;
+  lines.forEach(raw=>{ let s=String(raw||"").replace(/\t/g," ").replace(/\u00a0/g," ").replace(/\s+/g," ").trim(); if(!s || !/[а-я]{3}/i.test(s)) return;
+    const low=s.toLowerCase().replace(/ё/g,"е").replace(/ндс\s*\d+\s*%|\d+\s*%/g,m=>" ".repeat(m.length)).replace(/без\s+ндс/g,"       ");
+    let m, hit=null; re.lastIndex=0;
+    while((m=re.exec(low))){ const st=m.index+m[0].indexOf(m[1]), pre=low.slice(Math.max(0,st-6),st);
+      if(/(^|\s)за\s*$/.test(pre)) continue; if(/^г/.test(m[2]) && /^(19|20)\d\d$/.test(m[1])) continue; if(/^г/.test(m[2]) && /\d{1,2}\.\d{1,2}\.$/.test(low.slice(Math.max(0,st-6),st))) continue;
+      hit={st, en:m.index+m[0].length, n:m[1], u:m[2]}; break; }
+    if(!hit){ if(SKIP.test(low)) return;
+      /* без единицы: «кг 377,04 1,50 2,50 4,00 1508,16» — ищем цена × кол-во = сумма */
+      const nums=[...low.matchAll(/\d+(?:[.,]\d+)?/g)].map(x=>({v:+x[0].replace(",","."), i:x.index})); if(nums.length<3) return;
+      let tr=null; for(let a=0;a<nums.length&&!tr;a++) for(let b=a+1;b<nums.length&&!tr;b++) for(let c2=b+1;c2<nums.length&&!tr;c2++){ const p=nums[a].v, q=nums[b].v, sm=nums[c2].v; if(p>0&&q>0&&Math.abs(p*q-sm)<0.051&&sm>q) tr={p,q,i:nums[0].i}; }
+      if(!tr) return; let name=s.slice(0,tr.i).replace(/^\s*(\d+\s*[.)]?\s+)+/,"").replace(/\b(кг|шт|уп|л)\.?\s*$/i,"").replace(FT_CTRY,"").replace(/[\s\-–—:,;]+$/,"").trim();
+      if(!/[а-я]{3}/i.test(name)) return; out.push({name, qty:tr.q, unit:(low.match(/\b(кг|шт|л)\b/)||[,""])[1], price:tr.p, num:"", addr:"", br:"", note:"", orig:""}); return; }
+    if(SKIP.test(low.slice(0,hit.st)) && !/[а-я]{4}/i.test(low.slice(0,hit.st).replace(SKIP,""))) return;
+    let name=s.slice(0,hit.st), rest=s.slice(hit.en);
+    name=name.replace(/^\s*(№?\s*\d+\s*[.)]?\s+)+/,"").replace(FT_CTRY,"").replace(/[\s\-–—:,;=(]+$/,"").replace(/^[\s\-–—•*·:]+/,"").trim();
+    if(!/[а-я]{3}/i.test(name)) name=rest.replace(/^\s*[\-–—:,]*\s*/,"").replace(/\s+по\s+.*$|\s+\d.*$/,"").replace(FT_CTRY,"").trim(), rest="";
+    if(!/[а-я]{3}/i.test(name)) return;
+    const pr=rest.toLowerCase().replace(/ндс\s*\d+\s*%|\d+\s*%/g,"").match(/(\d[\d\s]*(?:[.,]\d{1,2})?)\s*(?:руб|р\.|р\b|₽)?/); const price=pr?impNum(pr[1]):"";
+    const pk=parsePack(hit.n+" "+hit.u), q=+hit.n.replace(",","."), u=pk?pk.u:hit.u;
+    const line={name, qty:u==="кг"?q:u==="г"?r3(q/1000):"", unit:u==="кг"||u==="г"?"кг":u==="шт"?"шт":/^л/.test(u)?"л":"", price:price>0?price:"", num:"", addr:"", br:"", note:"", orig:""};
+    if(u!=="кг"&&u!=="г"){ line.orig=hit.n+" "+(pk?pk.u:hit.u); if(u==="шт"||/^л/.test(u)) line.qty=q; }
+    out.push(line); });
+  return out;
+}
+function ftParse(src){
+  const text=src.lines.join("\n"), warn=[], meta={warn};
+  let C=ftCustomer(text);
+  if(!C && D.draft && D.draft.customerId && D.draft.customerId!==PRIV_ID){ const c=D.customers.find(x=>x.id===D.draft.customerId); if(c){ C={c, how:"", form:1}; } }
+  if(!C) throw new Error("не понял, от какого заказчика заявка (нет номера договора, ИНН или названия). Выберите заказчика в форме ниже и загрузите заявку ещё раз");
+  meta.cid=C.c.id; if(C.k) meta.kid=C.k.id;
+  const sure=/договора|ИНН/.test(C.how); warn.push({t:sure?"i":"w", m:C.form?"Заказчика в тексте не нашёл — взят выбранный в форме: «"+C.c.name+"». Проверьте.":"Заказчик «"+C.c.name+"» определён "+C.how+"."+(sure?"":" Проверьте.")});
+  if(!C.k){ const list=ctrs(C.c.id); const hit=list.find(x=>{ const m=String(x.basis||"").match(/№\s*([^\s,]+)/); return m && norm(text).replace(/[\s_\-–—]/g,"").includes(norm(m[1]).replace(/[\s_\-–—]/g,"")); }); if(hit) meta.kid=hit.id; }
+  if(!meta.kid){ const ss=D.suppliers.find(x=>{ const sur=norm(String(x.name||"").replace(/^(ип|индивидуальный предприниматель)\s+/i,"").split(/\s+/)[0]).slice(0,6); return sur.length>=5 && norm(text).includes(sur); }); if(ss) meta.sid=ss.id; }
+  const ds=ftDates(text).sort((a,b)=>b.sc-a.sc||(b.iso>a.iso?1:-1)); const today=isoToday();
+  let dt=ds.find(d=>d.sc>=2)||ds.filter(d=>d.sc>=0&&d.iso>=today).sort((a,b)=>a.iso>b.iso?1:-1)[0]||null;
+  if(dt){ meta.date=dt.iso; if(dt.sc<2) warn.push({t:"w", m:"Дата поставки "+fd(dt.iso)+" взята из текста"+(dt.sc<2?" наугад (рядом нет слова «поставка»)":"")+". Проверьте."}); }
+  const A=ftAddr(text, C.c); if(A){ meta.ship=A.a; if(A.b!==C.c && A.b.label) meta.branch=A.b.label; }
+  else { const m=text.match(/адрес[а-я]*\s*(?:поставки|доставки)?[^:\n]{0,30}:\s*([^\n]{6,140})/i); if(m) meta.ship=m[1].replace(/\s+/g," ").trim(); }
+  let lines=null, skipped=[];
+  for(const T of (src.tables||[])){ const r=ftTable(T, C.c); if(r){ lines=(lines||[]).concat(r.lines); skipped=skipped.concat(r.skipped); } }
+  if(!lines) lines=ftLines(src.lines);
+  if(!lines.length) throw new Error("не нашёл в заявке ни одного товара с количеством. Проверьте, что в тексте есть строки вида «Курага 5 кг»");
+  if(skipped.length) warn.push({t:"w", m:"Без количества пропущено: "+skipped.slice(0,8).join("; ")+(skipped.length>8?" и ещё "+(skipped.length-8):"")+". Если нужно — добавьте в форме."});
+  return {meta, lines};
+}
+
 async function impLoad(f){
   if(!f) return; IMP={file:f.name};
   try{ let rows;
     if(/\.json$/i.test(f.name)){ const x=JSON.parse(await f.text()); rows=[]; Object.entries(x.meta||{}).forEach(([k,v])=>rows.push([k,v])); rows.push(["№ док.","Адрес доставки","Товар","Кол-во","Ед.","Цена, ₽","Примечание","В заявке"]); (x.lines||[]).forEach(l=>rows.push([l.num||"",l.addr||"",l.name||"",l.qty??"",l.unit||"",l.price??"",l.note||"",l.orig||""])); }
-    else { const X=await loadXLSX(); const wb=X.read(await f.arrayBuffer(),{type:"array", cellDates:true}); const sn=wb.SheetNames.find(n=>/заказ/i.test(n))||wb.SheetNames[0]; rows=X.utils.sheet_to_json(wb.Sheets[sn],{header:1, raw:true, defval:""}); }
-    IMP.r=impResolve(impParse(rows)); IMP.cur=-1;
+    else if(/\.(xlsx|xls|csv)$/i.test(f.name)){ const X=await loadXLSX(); const wb=X.read(await f.arrayBuffer(),{type:"array", cellDates:true}); const sn=wb.SheetNames.find(n=>/заказ/i.test(n))||wb.SheetNames[0]; rows=X.utils.sheet_to_json(wb.Sheets[sn],{header:1, raw:true, defval:""});
+      let P=null; try{ P=impParse(rows); if(!P.meta.cinn&&!P.meta.cname) P=null; }catch(e){ P=null; }
+      if(!P){ const T=wb.SheetNames.map(n=>X.utils.sheet_to_json(wb.Sheets[n],{header:1, raw:true, defval:""})); P=ftParse({tables:T, lines:T.flat().map(r=>r.map(x=>x instanceof Date?fd(impDate(x)):String(x==null?"":x)).join("\t"))}); }
+      rows=null; IMP.r=impResolve(P); }
+    else IMP.r=impResolve(ftParse(await ftRead(f)));
+    if(rows) IMP.r=impResolve(impParse(rows)); IMP.cur=-1;
     if(IMP.r.groups.length>1){ mulStart(); drawImp(); renderDoc(); toast("info","В заявке "+IMP.r.groups.length+" "+plural(IMP.r.groups.length,["накладная","накладные","накладных"]),"Каждая — отдельным блоком ниже, уже заполнена. Проверьте количество и сформируйте документы."); }
     else { D.multi=null; drawImp(); impFill(0); }
   }catch(e){ IMP.err=e.message||String(e); drawImp(); toast("err","Не получилось прочитать заказ", IMP.err+"."); }
 }
 $("#imp-file").addEventListener("change",e=>{ const f=e.target.files[0]; e.target.value=""; impLoad(f); });
+$("#imp-txt").onclick=()=>{ const b=$("#imp-paste"); b.hidden=!b.hidden; if(!b.hidden) $("#imp-ta").focus(); };
+$("#imp-tx").onclick=()=>{ $("#imp-paste").hidden=true; };
+$("#imp-go").onclick=async()=>{ const t=$("#imp-ta").value.trim(); if(!t){ toast("warn","Вставьте текст заявки"); return; } await impLoad({name:"текст заявки", text:async()=>t, txt:1}); if(IMP&&!IMP.err) $("#imp-paste").hidden=true; };
 (function(){ const z=$("#imp-drop"); ["dragenter","dragover"].forEach(ev=>z.addEventListener(ev,e=>{ e.preventDefault(); z.classList.add("over"); }));
   ["dragleave","drop"].forEach(ev=>z.addEventListener(ev,e=>{ e.preventDefault(); z.classList.remove("over"); }));
   z.addEventListener("drop",e=>{ const f=e.dataTransfer&&e.dataTransfer.files[0]; if(f) impLoad(f); }); })();
@@ -4174,7 +4355,7 @@ $("#tk-showhid").onclick=()=>{ tkShowHid=!tkShowHid; drawTasks(); };
 /* ================= подсказки «?» у заголовков ================= */
 const HELP={
   "Вход":["Выберите себя и введите свой пароль.","На этом устройстве вход запомнится — в следующий раз пароль не понадобится."],
-  "Заказ из файла":["Пришлите заявку заказчика Claude (Word, Excel, PDF, скриншот) — он сделает Excel-файл заказа.",["Загрузите этот файл сюда — заказчик, договор, дата, адрес и товары заполнятся сами, цены — по договору.","Проверьте замечания (красные — товар не найден, добавьте вручную), поправьте номер и сформируйте документы.","Если в файле несколько адресов — будет несколько документов, заполняйте по очереди.","«Скачать шаблон» — пустой файл с прайсом выбранного заказчика, можно заполнить и самому."]],
+  "Заказ из файла":["Загрузите заявку заказчика как есть — PDF, Word (.docx), Excel — или вставьте текст из письма кнопкой «Вставить текст».",["Сайт сам найдёт заказчика (по номеру договора, ИНН или названию), дату поставки, адрес и товары, цены — по договору. Сканы и фото не читаются — для них вставьте текст.","Всё, в чём сайт не уверен, помечено: жёлтое — проверьте, красное — товар не найден, выберите его из списка (сайт запомнит название).","Проверьте замечания (красные — товар не найден, добавьте вручную), поправьте номер и сформируйте документы.","Если в файле несколько адресов — будет несколько документов, заполняйте по очереди.","«Скачать шаблон» — пустой файл с прайсом выбранного заказчика, можно заполнить и самому."]],
   "Стороны":["Кто продаёт, кому и по какому договору.",["Выберите заказчика и договор — поставщик (ИП) подставится сам.","Номер документа ставится следующий по порядку, дата — день поставки.","Если у заказчика несколько подразделений (как у МГУ), выберите нужное — в документах будут его реквизиты.","Адрес доставки — куда везём, он попадёт в накладную."]],
   "Товары":["Что везём и сколько.",["Выберите товар и впишите количество — цена подставится из прайса заказчика по договору.","«Добавить весь прайс» — сразу все позиции заказчика; лишние оставьте с пустым количеством.","× удаляет строку."]],
   "Сформировать":["Создать документы.",["Счёт / ТОРГ‑12 / УПД — откроется документ, вверху «Скачать PDF» или «Печать».","«Скачать счёт + ТОРГ‑12» — два документа одним файлом.","«Сохранить в журнал без печати» — распечатаете позже из «Журнала».","Каждый документ сохраняется в «Журнал»."]],
@@ -4237,7 +4418,7 @@ renderDoc();
 applyRole(); applyTabOrder(); startTab();
 if(API_URL){ if(pass()){ let first=false; try{ first=!sessionStorage.getItem("fd-session"); sessionStorage.setItem("fd-session","1"); }catch(e){}
     if(first) logEv("Вход","Открыл систему (вход сохранён на устройстве, "+deviceName()+")"); pull(); } else { showLogin(); } } else setStatus("local");
-window.__fd = {D:()=>D, calc, layout, KINDS, showPreview, flush, pull, pend};
+window.__fd = {D:()=>D, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, IMP:()=>IMP};
 })();
 </script>
 <!-- ============ конец блока ============ -->
