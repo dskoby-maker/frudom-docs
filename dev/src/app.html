@@ -365,7 +365,7 @@
 #fd-app .tsgrid.jiggle .tile{touch-action:none;cursor:grab}
 #fd-app .tsgrid.jiggle .tile .ico{animation:fdjig .32s ease-in-out infinite alternate}
 #fd-app .tsgrid.jiggle .tile:nth-child(2n) .ico{animation-delay:-.16s}
-#fd-app .tsgrid.jiggle .tile.drag{z-index:5;cursor:grabbing}#fd-app .tsgrid.jiggle .tile.drag .ico{animation:none;transform:scale(1.15);box-shadow:0 12px 28px rgba(0,0,0,.3)}
+#fd-app .tsgrid.jiggle.dragging .tile .ico{animation:none}#fd-app .tsgrid.jiggle .tile.drag{z-index:5;cursor:grabbing}#fd-app .tsgrid.jiggle .tile.drag .ico{animation:none;transform:scale(1.15);box-shadow:0 12px 28px rgba(0,0,0,.3)}
 #fd-app .tsgrid.jiggle .tile.drag>span:not(.ico){opacity:0}#fd-app .tsgrid.jiggle .tile.drag::after{display:none}
 @keyframes fdjig{from{transform:rotate(-2.2deg)}to{transform:rotate(2.2deg)}}
 #fd-app .mtitle{display:none}
@@ -3476,20 +3476,28 @@ function applyTabOrder(){
   tabCols(); if(typeof renderMobileNav==="function") renderMobileNav();
 }
 function tabCols(){ const nav=$("#fd-app nav.tabs"), n=[...nav.querySelectorAll("button")].filter(b=>!b.hidden).length; nav.style.setProperty("--tabcols", Math.ceil(n/2)); }
-function flip(nav, mutate){ const items=[...nav.querySelectorAll("button[data-tab]")], r0=new Map(items.map(b=>[b,b.getBoundingClientRect()])); mutate();
-  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  items.forEach(b=>{ if(b.classList.contains("dragging")) return; const a=r0.get(b), c=b.getBoundingClientRect(), dx=a.left-c.left, dy=a.top-c.top; if(!dx&&!dy) return;
-    b.style.transition="none"; b.style.transform=`translate(${dx}px,${dy}px)`; b.getBoundingClientRect(); b.style.transition="transform .22s cubic-bezier(.2,.8,.2,1)"; b.style.transform=""; setTimeout(()=>{ b.style.transition=""; },260); }); }
+/* плавная перестановка: каждый элемент едет со своего видимого места на новое; прошлая анимация снимается, а не накладывается */
+function flipItems(items, mutate, skip){ const r0=new Map(items.map(b=>[b,b.getBoundingClientRect()])); mutate();
+  const still=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  items.forEach(b=>{ if(b._fa){ b._fa.cancel(); b._fa=null; } if(still || b===skip || b.hidden) return; const p=r0.get(b), c=b.getBoundingClientRect(), dx=p.left-c.left, dy=p.top-c.top; if(Math.abs(dx)<1 && Math.abs(dy)<1) return;
+    if(!b.animate) return; b._fa=b.animate([{transform:`translate(${dx}px,${dy}px)`},{transform:"none"}],{duration:200, easing:"cubic-bezier(.2,.8,.2,1)"}); b._fa.onfinish=()=>{ b._fa=null; }; }); }
+function flip(nav, mutate){ const items=[...nav.querySelectorAll("button[data-tab]")]; flipItems(items, mutate, items.find(b=>b.classList.contains("dragging"))); }
+/* куда тащим: по настоящему месту элементов (без учёта анимации), и элемент, с которым только что поменялись, не меняется обратно, пока палец с него не уйдёт — без дёрганья */
+function dragOver(cont, items, dragEl, x, y, st){
+  const c=cont.getBoundingClientRect(), px=x-c.left-cont.clientLeft+cont.scrollLeft, py=y-c.top-cont.clientTop+cont.scrollTop;
+  const hit=items.find(b=>b!==dragEl && !b.hidden && px>=b.offsetLeft && px<b.offsetLeft+b.offsetWidth && py>=b.offsetTop && py<b.offsetTop+b.offsetHeight)||null;
+  if(st.block && st.block!==hit) st.block=null;
+  if(!hit || hit===st.block) return null; st.block=hit; return hit; }
 (function(){
   const nav=$("#fd-app nav.tabs"); let drag=null;
   const saveOrder=()=>{ const p=getPrefs(); p.tabs=[...nav.querySelectorAll("button[data-tab]")].map(b=>b.dataset.tab); setPrefs(p,true); };
   $("#tab-edit").onclick=()=>{ const on=!nav.classList.contains("editing"); nav.classList.toggle("editing",on); $("#tab-bar").hidden=!on; if(!on){ saveOrder(); toast("ok","Порядок вкладок сохранён","Он будет таким же на всех ваших устройствах."); } };
   $("#tab-done").onclick=()=>$("#tab-edit").click();
   $("#tab-reset").onclick=()=>{ const p=getPrefs(); delete p.tabs; setPrefs(p,true); flip(nav, applyTabOrder); };
-  nav.addEventListener("pointerdown",e=>{ if(!nav.classList.contains("editing")) return; const b=e.target.closest("button[data-tab]"); if(!b) return; e.preventDefault(); try{ b.setPointerCapture(e.pointerId); }catch(x){} drag={b, id:e.pointerId}; b.classList.add("dragging"); });
+  nav.addEventListener("pointerdown",e=>{ if(!nav.classList.contains("editing")) return; const b=e.target.closest("button[data-tab]"); if(!b) return; e.preventDefault(); try{ b.setPointerCapture(e.pointerId); }catch(x){} drag={b, id:e.pointerId, st:{}}; b.classList.add("dragging"); });
   nav.addEventListener("pointermove",e=>{ if(!drag || e.pointerId!==drag.id) return; e.preventDefault();
-    const el=document.elementFromPoint(e.clientX,e.clientY), over=el&&el.closest&&el.closest("nav.tabs button[data-tab]"); if(!over || over===drag.b || over.hidden) return;
-    const L=[...nav.querySelectorAll("button[data-tab]")], after=L.indexOf(over)>L.indexOf(drag.b);
+    const L=[...nav.querySelectorAll("button[data-tab]")], over=dragOver(nav, L, drag.b, e.clientX, e.clientY, drag.st); if(!over) return;
+    const after=L.indexOf(over)>L.indexOf(drag.b);
     flip(nav, ()=>nav.insertBefore(drag.b, after ? over.nextSibling : over)); });
   const end=e=>{ if(!drag || (e && e.pointerId!==drag.id)) return; drag.b.classList.remove("dragging"); drag=null; saveOrder(); };
   nav.addEventListener("pointerup",end); nav.addEventListener("pointercancel",end); nav.addEventListener("lostpointercapture",end);
@@ -3554,24 +3562,24 @@ $("#tab-edit").onclick=()=>openSheet(true);
 document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !$("#tsheet").hidden) closeSheet(); });
 /* перетаскивание значков: удержание → «дрожание», значок едет за пальцем, остальные плавно расступаются */
 (function(){
-  const grid=$("#ts-grid"); let press=null, drag=null;
+  const grid=$("#ts-grid"); let press=null, drag=null, raf=0, lastE=null;
   const tiles=()=>[...grid.querySelectorAll("[data-tile]")];
-  function flipMove(mut){ const L=tiles().filter(x=>!drag||x!==drag.el), r0=new Map(L.map(x=>[x,x.getBoundingClientRect()])); mut();
-    L.forEach(x=>{ const a=r0.get(x), b=x.getBoundingClientRect(), dx=a.left-b.left, dy=a.top-b.top; if(!dx&&!dy) return;
-      x.style.transition="none"; x.style.transform=`translate(${dx}px,${dy}px)`; x.getBoundingClientRect(); x.style.transition="transform .25s cubic-bezier(.2,.8,.2,1)"; x.style.transform=""; setTimeout(()=>{ x.style.transition=""; },280); }); }
+  const flipMove = mut => flipItems(tiles(), mut, drag&&drag.el);
   function place(e){ const r=drag.el.getBoundingClientRect(), cx=r.left-drag.tx, cy=r.top-drag.ty; drag.tx=e.clientX-drag.gx-cx; drag.ty=e.clientY-drag.gy-cy; drag.el.style.transform=`translate(${drag.tx}px,${drag.ty}px)`; }
-  function startDrag(el,e){ const r=el.getBoundingClientRect(); drag={el, id:e.pointerId, gx:e.clientX-r.left, gy:e.clientY-r.top, tx:0, ty:0}; el.classList.add("drag"); el.style.pointerEvents="none"; el.style.transition="none"; try{ el.setPointerCapture(e.pointerId); }catch(x){} if(navigator.vibrate) try{ navigator.vibrate(12); }catch(x){} }
+  function startDrag(el,e){ const r=el.getBoundingClientRect(); tiles().forEach(x=>{ if(x._fa){ x._fa.cancel(); x._fa=null; } }); drag={el, id:e.pointerId, gx:e.clientX-r.left, gy:e.clientY-r.top, tx:0, ty:0, st:{}}; el.classList.add("drag"); grid.classList.add("dragging"); el.style.pointerEvents="none"; el.style.transition="none"; try{ el.setPointerCapture(e.pointerId); }catch(x){} if(navigator.vibrate) try{ navigator.vibrate(12); }catch(x){} }
   grid.addEventListener("pointerdown",e=>{ const el=e.target.closest("[data-tile]"); if(!el) return;
     if(tsEdit){ e.preventDefault(); startDrag(el,e); return; }
     press={el, x:e.clientX, y:e.clientY, id:e.pointerId, t:setTimeout(()=>{ if(!press) return; tsEdit=true; drawTiles(); const n=grid.querySelector(`[data-tile="${press.el.dataset.tile}"]`); press=null; if(n) startDrag(n,e); },430)}; });
   grid.addEventListener("pointermove",e=>{
     if(press && (Math.abs(e.clientX-press.x)>8 || Math.abs(e.clientY-press.y)>8)){ clearTimeout(press.t); press=null; }
-    if(!drag || e.pointerId!==drag.id) return; e.preventDefault(); place(e);
-    const over=document.elementFromPoint(e.clientX,e.clientY), t2=over&&over.closest&&over.closest("#ts-grid [data-tile]"); if(!t2 || t2===drag.el) return;
-    const L=tiles(), after=L.indexOf(t2)>L.indexOf(drag.el); flipMove(()=>grid.insertBefore(drag.el, after?t2.nextSibling:t2)); place(e);
-    tiles().forEach((x,i)=>x.classList.toggle("bar",i<4)); });
+    if(!drag || e.pointerId!==drag.id) return; e.preventDefault(); lastE={clientX:e.clientX, clientY:e.clientY}; if(!raf) raf=requestAnimationFrame(step); });
+  /* не чаще одного раза за кадр: значок едет за пальцем, остальные переставляются по их настоящим местам */
+  function step(){ raf=0; if(!drag || !lastE) return; const e=lastE; place(e);
+    const L=tiles(), t2=dragOver(grid, L, drag.el, e.clientX, e.clientY, drag.st); if(!t2) return;
+    const after=L.indexOf(t2)>L.indexOf(drag.el); flipMove(()=>grid.insertBefore(drag.el, after?t2.nextSibling:t2)); place(e);
+    tiles().forEach((x,i)=>x.classList.toggle("bar",i<4)); }
   const end=e=>{ if(press){ clearTimeout(press.t); const el=press.el; press=null; if(e.type==="pointerup" && !tsEdit){ closeSheet(); showTab(el.dataset.tile); } return; }
-    if(!drag || (e.pointerId!=null && e.pointerId!==drag.id)) return; const el=drag.el; drag=null;
+    if(!drag || (e.pointerId!=null && e.pointerId!==drag.id)) return; const el=drag.el; drag=null; lastE=null; if(raf){ cancelAnimationFrame(raf); raf=0; } grid.classList.remove("dragging");
     el.style.transition="transform .22s cubic-bezier(.2,.8,.2,1)"; el.style.transform=""; el.style.pointerEvents=""; setTimeout(()=>{ el.classList.remove("drag"); el.style.transition=""; },230); saveTileOrder(false); };
   grid.addEventListener("pointerup",end); grid.addEventListener("pointercancel",end);
   grid.addEventListener("contextmenu",e=>e.preventDefault());
