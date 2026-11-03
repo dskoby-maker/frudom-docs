@@ -1,0 +1,35 @@
+# Сборка приложения Android «Документы ФД» (APK без подписи).
+# Подпись делается отдельно ключом владельца (ключ не хранится в репозитории).
+name: APK
+on:
+  push:
+    paths: ['android/**', '.github/workflows/apk.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: { group: apk-${{ github.ref }}, cancel-in-progress: true }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17' }
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: '8.9' }
+      - name: Сборка
+        working-directory: android
+        run: |
+          set -o pipefail
+          gradle --no-daemon --stacktrace assembleRelease 2>&1 | tee ../build.log
+      - name: Выложить результат
+        if: always()
+        env: { GH_TOKEN: '${{ github.token }}' }
+        run: |
+          TAG="apk-build-$(echo "$GITHUB_REF_NAME" | tr '/' '-')"
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --prerelease --target "$GITHUB_SHA" \
+            --title "Служебная сборка APK ($GITHUB_REF_NAME)" --notes "Без подписи, для проверки. Устанавливать — файл из выпуска «Приложение Android»."
+          F=android/app/build/outputs/apk/release/app-release-unsigned.apk
+          echo "$GITHUB_SHA ${{ job.status }} run=$GITHUB_RUN_NUMBER" > status.txt
+          if [ -f "$F" ]; then cp "$F" unsigned.apk; gh release upload "$TAG" unsigned.apk --clobber; else echo "$GITHUB_SHA failure run=$GITHUB_RUN_NUMBER" > status.txt; fi
+          touch build.log; gh release upload "$TAG" build.log status.txt --clobber
