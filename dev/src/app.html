@@ -141,6 +141,15 @@
 #fd-app .dl{font-size:12px;color:var(--ok);white-space:nowrap}
 #fd-app .make .btn small{display:block;font-weight:400;font-size:11px;opacity:.8}
 #fd-app .tbl{overflow-x:auto}
+#fd-undo{position:fixed;z-index:7900;left:20px;bottom:20px;display:flex;gap:8px;max-width:calc(100vw - 40px);font-family:var(--ui,"Onest","Inter",system-ui,sans-serif);animation:fdpop .25s ease-out}
+#fd-undo[hidden],#fd-undo button[hidden]{display:none}
+#fd-undo button{display:flex;align-items:center;gap:9px;min-width:0;max-width:340px;border:1px solid rgba(106,44,78,.22);background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);color:var(--accent,#6A2C4E);border-radius:999px;padding:8px 16px 8px 12px;font:600 14px/1.15 var(--ui,system-ui);cursor:pointer;box-shadow:0 12px 30px -14px rgba(28,20,30,.45);text-align:left;transition:background .15s,color .15s,transform .1s}
+#fd-undo button:hover{background:var(--accent,#6A2C4E);color:#fff}#fd-undo button:active{transform:scale(.97)}
+#fd-undo button svg{flex:none}#fd-undo button span{display:flex;flex-direction:column;min-width:0}
+#fd-undo button small{font:400 12px/1.2 var(--ui,system-ui);opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fd-undo .r:not(.only){padding:8px 12px}#fd-undo .r:not(.only) span{display:none}
+body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
+@media print{#fd-undo{display:none!important}}
 #fd-toasts{position:fixed;z-index:2147483000;right:20px;bottom:20px;display:flex;flex-direction:column;gap:10px;width:min(390px,calc(100vw - 32px));pointer-events:none;font-family:"Onest","Inter",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
 #fd-toasts .fd-toast{--c:#5b2a48;pointer-events:auto;position:relative;overflow:hidden;display:grid;grid-template-columns:28px 1fr 24px;gap:10px;align-items:start;background:#fff;color:#1f1d1a;border-radius:14px;padding:12px 10px 13px 12px;box-shadow:0 12px 32px rgba(20,15,10,.18),0 2px 6px rgba(20,15,10,.08);border:1px solid rgba(0,0,0,.06);font-size:14px;line-height:1.4;opacity:0;transform:translateY(18px) scale(.97);transition:transform .32s cubic-bezier(.2,.9,.25,1.15),opacity .22s ease}
 #fd-toasts .fd-toast.in{opacity:1;transform:none}#fd-toasts .fd-toast.out{opacity:0;transform:translateX(40px) scale(.98);transition:transform .24s ease,opacity .2s ease}
@@ -388,6 +397,8 @@
   #fd-app .mbar button:active svg{transform:scale(.9)}
   #fd-app main.wrap{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
   #fd-toasts{bottom:calc(78px + env(safe-area-inset-bottom,0px))!important}
+  #fd-undo{left:12px;bottom:calc(78px + env(safe-area-inset-bottom,0px));max-width:calc(100vw - 24px)}#fd-undo button{max-width:calc(100vw - 90px);padding:7px 14px 7px 10px;font-size:13.5px}
+  body.fd-undo-on #fd-app main.wrap{padding-bottom:calc(150px + env(safe-area-inset-bottom,0px))}
   #fd-app section.tab{margin-top:12px;gap:12px}
   #fd-app .card{border-radius:14px;padding:14px;gap:10px}
   #fd-app input,#fd-app select,#fd-app textarea{font-size:16px;padding:11px 12px;border-radius:10px}
@@ -1017,11 +1028,11 @@ function deviceName(){ const u=navigator.userAgent||""; return /Android/i.test(u
 const online = () => !!(API_URL && pass());
 const pend = {suppliers:new Map(), customers:new Map(), products:new Map(), prices:new Map(), specs:new Map(), contracts:new Map(), journal:new Map(), costs:new Map(), doccosts:new Map(), psettings:new Map(), daytasks:new Map(), purchases:new Map()};
 const specOf = (c,p) => ((D.specs||{})[c]||{})[p] || {};
-function dirtySpec(c,p){ const x=specOf(c,p); pend.specs.set(c+"|"+p,{s:++stamp, del:!(x.spec||x.ste||x.art)}); changed(); }
+function dirtySpec(c,p){ const x=specOf(c,p); pend.specs.set(c+"|"+p,{s:++stamp, del:!(x.spec||x.ste||x.art)}); undoNote("specs",c+"|"+p); changed(); }
 let serverOld=false;
 let stamp=0;
-function dirty(type,id,del){ pend[type].set(id,{s:++stamp, del:!!del}); changed(); }
-function dirtyPrice(c,p){ const v=custPrice(c,p); pend.prices.set(c+"|"+p,{s:++stamp, del:(v==null||v==="")}); changed(); }
+function dirty(type,id,del){ pend[type].set(id,{s:++stamp, del:!!del}); undoNote(type,id); changed(); }
+function dirtyPrice(c,p){ const v=custPrice(c,p); pend.prices.set(c+"|"+p,{s:++stamp, del:(v==null||v==="")}); undoNote("prices",c+"|"+p); changed(); }
 let syncT=null, flushing=false;
 const PENDK="frudom-docs-pend";
 function savePend(){ try{ const o={}; Object.keys(pend).forEach(t=>{ if(pend[t].size) o[t]=[...pend[t].entries()]; }); lsSet(PENDK, Object.keys(o).length?JSON.stringify(o):null); }catch(e){} }
@@ -4496,7 +4507,8 @@ renderDoc();
 applyRole(); applyTabOrder(); startTab();
 if(API_URL){ if(pass()){ let first=false; try{ first=!sessionStorage.getItem("fd-session"); sessionStorage.setItem("fd-session","1"); }catch(e){}
     if(first) logEv("Вход","Открыл систему (вход сохранён на устройстве, "+deviceName()+")"); pull(); } else { showLogin(); } } else setStatus("local");
-window.__fd = {D:()=>D, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, aiSrc, IMP:()=>IMP, patchNmic};
+/*__UNDO__*/
+window.__fd = {D:()=>D, undo:(r)=>unApply(curTab,!!r), undoState:()=>UNDO, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, aiSrc, IMP:()=>IMP, patchNmic};
 })();
 </script>
 <!-- ============ конец блока ============ -->
