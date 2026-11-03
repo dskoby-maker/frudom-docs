@@ -132,6 +132,7 @@
 #fd-app .lines .head{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 #fd-app .line input.price.custom{border-color:var(--accent)}
 #fd-app .line.offc{background:var(--warn-soft);box-shadow:0 0 0 5px var(--warn-soft);border-radius:8px}
+#fd-app .line.dup.offc{background:#FDECEA;box-shadow:0 0 0 5px #FDECEA}
 #fd-app .line.offc input.price{border-color:var(--warn);color:var(--warn);font-weight:600}
 #fd-app .line .ctrnote{grid-column:2/-1;font-size:12.5px;line-height:1.35;color:var(--warn);font-weight:500;margin-top:-2px;display:flex;gap:4px 10px;align-items:center;flex-wrap:wrap}
 #fd-app .line .ctrnote[hidden]{display:none}#fd-app .line .ctrnote .btn{font-size:12.5px;padding:4px 10px}
@@ -235,6 +236,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 @media(max-width:700px){#fd-app .jf{grid-template-columns:1fr 1fr}#fd-app table.jt tr.grp,#fd-app table.jt tr.kid{border-left:3px solid var(--accent);padding-left:10px}#fd-app table.jt tr.grp{background:var(--soft,#f6f4ef)}#fd-app table.jt tr.kid{margin-left:12px;background:#fcfbf8}#fd-app table.jt tr.grp td,#fd-app table.jt tr.kid td{background:none;border-left:0!important;padding-left:0!important}#fd-app details.more .menu{right:auto;left:0}}
 #fd-app .ctrinfo{font-size:12px;color:var(--muted);letter-spacing:0}
 #fd-app .ctrinfo.warn{color:var(--err)}
+#fd-app input.numdup{border-color:var(--err)!important;background-color:#fdf0ee!important;color:var(--err);box-shadow:0 0 0 3px rgba(192,64,47,.15)}#fd-app .ctrinfo.numdup{color:var(--err);font-weight:600}#fd-app #o-numwarn{margin:10px 0 0;background:#fdf0ee;color:var(--err)}
 #fd-app select.bad{border-color:var(--err)!important;background-color:#fdf0ee!important;box-shadow:0 0 0 3px rgba(192,64,47,.15)}#fd-app #d-supwarn,#fd-app #o-supwarn{font-weight:600}
 @media (max-width:700px){
   #fd-app table.stack{min-width:0!important}
@@ -680,6 +682,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
     <div class="card">
       <h2>Количество по адресам <small>впишите цифры из заявки, пустые строки пропускаются</small></h2>
       <div class="tbl"><table class="order"><thead id="o-head"></thead><tbody id="o-body"></tbody><tfoot id="o-foot"></tfoot></table></div>
+      <div class="note" id="o-numwarn" role="alert" hidden></div>
       <div class="row"><button class="btn ghost" id="o-addaddr">+ Другой адрес</button><button class="btn ghost" id="o-clear">Очистить количества</button></div>
     </div>
     <div class="card">
@@ -989,6 +992,13 @@ function nextNum(sid, cid, skip, except){
   const last=pairLast(sid,cid,except), st=parseInt(numsOf(cus(cid))[sid],10)||0;
   let n=Math.max(last?last.n+1:1, st||1); const used=new Set(pairDocs(sid,cid,except).map(j=>String(j.number))); (skip||[]).forEach(x=>used.add(String(x)));
   while(used.has(String(n))) n++; return String(n); }
+/* документы этой пары «поставщик + заказчик» с таким же номером (кроме архива и самого документа) */
+const numTaken = (sid, cid, num, except) => { const n=String(num||"").trim(); return n ? pairDocs(sid,cid,except).filter(j=>String(j.number).trim()===n) : []; };
+const numWho = j => { const w=j.snap&&j.snap.c ? String(j.snap.c.branchLabel||stLabel((j.snap.dr||{}).ship||"", j.snap.c.address)||"").trim() : ""; return "№ "+j.number+" от "+fd(j.date)+(w?" ("+w+")":""); };
+/* «Новый документ»: номер уже есть у этого заказчика → поле красное, подпись-предупреждение; сохранить можно */
+function numMark(){ const dr=D.draft, el=$("#d-num"), info=$("#d-numinfo"); if(!dr||!el||!info) return;
+  const t=dr.qtyOnly?[]:numTaken(dr.supplierId, dr.customerId, dr.number, dr.id); el.classList.toggle("numdup", !!t.length); info.classList.toggle("numdup", !!t.length);
+  if(t.length){ info.classList.remove("warn"); info.textContent="Внимание: у этого заказчика уже есть "+t.map(numWho).join("; ")+". Сохранить можно, но номер задвоится."; } }
 const ctrUsed = (id, except) => r2(D.journal.filter(j=>j.snap && !isArch(j) && j.snap.dr.contractId===id && j.id!==except).reduce((a,j)=>a+(+j.sum||0),0));
 
 /* ---------- расчёт (по текущим справочникам или по снимку из журнала) ---------- */
@@ -1363,7 +1373,7 @@ function syncNum(){ const dr=D.draft; if(!dr || dr.qtyOnly) return; const inJ=D.
   if(inJ) info.textContent="";
   else if(last) info.textContent="Последний у заказчика: № "+last.j.number+" от "+fd(last.j.date)+(dr.numManual?"":" → ставлю "+dr.number);
   else if(st) info.textContent="Продолжение нумерации с № "+st+" (из карточки заказчика)";
-  else { info.textContent="Первый документ этому заказчику на сайте. Если нумерация уже велась в 1С/Т‑Банке — проверьте номер."; info.classList.add("warn"); } }
+  else { info.textContent="Первый документ этому заказчику на сайте. Если нумерация уже велась в 1С/Т‑Банке — проверьте номер."; info.classList.add("warn"); } numMark(); }
 function applyCtr(id){
   const dr=D.draft; dr.contractId=id||""; const x=ctr(id);
   if(x){ dr.basis=x.basis||""; $("#d-basis").value=dr.basis;
@@ -1488,7 +1498,7 @@ $("#d-cus").onchange=e=>{ const dr=D.draft; dr.customerId=e.target.value; dr.noC
   dr.ship=firstAddr(liveCus(dr)); renderShip();
   const rm = isGovCus(dr.customerId) ? ctrRemap(dr, dr.customerId) : [];
   dr.lines.forEach(l=>{ if(l.productId) l.price=String(getPrice(dr.customerId,l.productId)); }); saveLocal(); renderLines(); ctrToast(rm); };
-[["#d-num","number"],["#d-date","date"],["#d-basis","basis"]].forEach(([s,k])=>$(s).addEventListener("input",e=>{ D.draft[k]=e.target.value; if(k==="number"){ D.draft.numManual = !!e.target.value.trim(); if(!D.draft.numManual) syncNum(); else { const i=$("#d-numinfo"); if(i){ const l=pairLast(D.draft.supplierId,D.draft.customerId,D.draft.id); i.textContent=l?"Последний у заказчика: № "+l.j.number+" от "+fd(l.j.date):""; i.classList.remove("warn"); } } } saveLocal(); }));
+[["#d-num","number"],["#d-date","date"],["#d-basis","basis"]].forEach(([s,k])=>$(s).addEventListener("input",e=>{ D.draft[k]=e.target.value; if(k==="number"){ D.draft.numManual = !!e.target.value.trim(); if(!D.draft.numManual) syncNum(); else { const i=$("#d-numinfo"); if(i){ const l=pairLast(D.draft.supplierId,D.draft.customerId,D.draft.id); i.textContent=l?"Последний у заказчика: № "+l.j.number+" от "+fd(l.j.date):""; i.classList.remove("warn"); } } numMark(); } saveLocal(); }));
 function renderBranch(){
   const dr=D.draft, bl=branches(cus(dr.customerId)), pv=isPriv(dr.customerId);
   $("#d-pbw").hidden=$("#d-pphw").hidden=!pv; $("#fd-app [data-make=\"nakl\"]").hidden=!pv; document.querySelectorAll("#fd-app [data-npriv]").forEach(e=>e.hidden=pv); $("#d-pbuyer").value=dr.buyer||""; $("#d-pphone").value=dr.bphone||"";
@@ -1604,6 +1614,7 @@ async function commitDoc(dr0, opt){
     logEv("Документ",(old?"Изменён":"Создан")+" документ № "+dr.number+" от "+fd(dr.date)+" — "+shortCus(calc(dr))+(dr.ship?", "+dr.ship:"")+", сумма "+fm(calc(dr).t.sum)+" ₽"+(liveDup()?" (номер повторяется)":""), dr.id);
     dirty("journal", entry.id); if(+dr.number>=(+s.next||1)){ s.next=(+dr.number)+1; dirty("suppliers", s.id); }
     docTasks([old&&old.date, entry.date]); saveLocal(); if(online()){ try{ await flush(); }catch(e){ handleErr(e); } } };
+  if(own && !(opt&&opt.force) && !dr.qtyOnly && liveDup()) opt=Object.assign({}, opt, {force:true});   /* номер уже есть у заказчика — предупредили красным, сохраняем как есть */
   if(opt&&opt.force){ await forceSave(); LC={n:dr.number, created:!old, warn:"Номер "+dr.number+" повторяется — сохранён по вашему решению."}; if(own) msg.textContent="Сохранено в журнал с повторяющимся номером "+dr.number+"."; return ""; }
   if(online()){
     setStatus("saving","Сохраняю документ…");
@@ -1816,6 +1827,11 @@ function oTotals(){
   const n=all.filter(a=>P.some(p=>+((o.qty[a]||{})[p.id])>0)).length, plan=oPlan(o), gb=$("#o-go");
   if(gb.dataset.force && gb.dataset.force!==JSON.stringify(plan)){ gb.dataset.force=""; gb.textContent=oGoLabel(); $("#o-msg").textContent=""; }
   document.querySelectorAll("#o-body tr[data-i]").forEach(tr=>{ const el=tr.querySelector(".nm"); el.placeholder = plan[all[+tr.dataset.i]] || ""; el.title = el.value ? "Номер вписан вручную" : "Номер подставлен автоматически — нажмите, чтобы изменить"; });
+  { const used=oUsed(o), cnt={}, w=[], w2=[]; Object.values(plan).forEach(n=>cnt[n]=(cnt[n]||0)+1);
+    document.querySelectorAll("#o-body tr[data-i]").forEach(tr=>{ const a=all[+tr.dataset.i], el=tr.querySelector(".nm"), n=String(el.value||"").trim()||plan[a]||"", j=n&&used[n], twice=n&&plan[a]&&cnt[n]>1;
+      el.classList.toggle("numdup", !!(j||twice)); if(j) w.push(numWho(j)); else if(twice) w2.push(n); });
+    const box=$("#o-numwarn"), t=[]; if(w.length) t.push("у этого заказчика уже есть "+[...new Set(w)].join("; ")); if(w2.length) t.push("№ "+[...new Set(w2)].join(", ")+" стоит у двух адресов в этой таблице");
+    box.hidden=!t.length; box.textContent = t.length ? "Внимание: "+t.join("; ")+". Создать можно, но номер задвоится — или поменяйте номер." : ""; }
   $("#o-foot").innerHTML=P.length?`<tr><td>Итого: ${n} ${n===1?"документ":n>=2&&n<=4?"документа":"документов"}</td><td></td>${P.map(p=>`<td class="num">${tq[p.id]?String(+tq[p.id].toFixed(3)).replace(".",","):""}</td>`).join("")}<td class="num">${fm(r2(tot))}</td></tr>`:"";
 }
 $("#o-cus").onchange=e=>{ const o=O(); o.customerId=e.target.value; o.branchId=""; o.supplierId=""; o.extra=[]; o.qty={}; saveLocal(); renderOrder(); };
