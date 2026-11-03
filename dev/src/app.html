@@ -118,6 +118,10 @@
 #fd-app .psm b{font-weight:700}#fd-app .psm .psnew{color:var(--accent);font-weight:600;border-top:1px solid var(--line)}#fd-app .psm .psnew:first-child{border-top:0}#fd-app .line select.nu{padding:6px 4px;min-width:0}#fd-app .psm .pst{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:8px 14px 2px}#fd-app .psm .psn{padding:10px 14px;color:var(--muted);font-size:14px}
 #fd-app .line .ed{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:8px;width:34px;height:34px;flex:none;cursor:pointer;font-size:14px;transition:color .15s,border-color .15s}
 #fd-app .line .ed:hover,#fd-app .line .ed.on{color:var(--accent);border-color:var(--accent)}
+#fd-app .line.dup{background:#FDECEA;box-shadow:0 0 0 5px #FDECEA;border-radius:8px}
+#fd-app .line.dup .ln{background:var(--err);color:#fff}
+#fd-app .line.dup input.ps{border-color:var(--err);background:#FFF7F6}
+#fd-app .line .dupnote{grid-column:2/-1;font-size:12.5px;line-height:1.35;color:var(--err);font-weight:500;margin-top:-2px}
 #fd-app .line .lname{grid-column:2/-1;display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:-2px}
 #fd-app .line .lname input{flex:1;min-width:200px;font-size:14px}#fd-app .line .lname .btn{font-size:12.5px}
 #fd-app .line.named .pc select{color:var(--muted)}
@@ -129,7 +133,7 @@
 #fd-app .line input.price.custom{border-color:var(--accent)}
 @media (max-width:640px){
   #fd-app .line{grid-template-columns:24px 1fr 1fr 36px;grid-template-areas:"n p p x" ". q pr pr" ". u s s";background:var(--bg);padding:8px;border-radius:8px}
-  #fd-app .line .ln{grid-area:n}#fd-app .line .pc{grid-area:p}#fd-app .line .lname{grid-column:1/-1}#fd-app .lfoot{padding-left:4px}#fd-app .line .qty{grid-area:q}#fd-app .line .price{grid-area:pr}#fd-app .line .unit{grid-area:u}#fd-app .line .sum{grid-area:s}#fd-app .line .x{grid-area:x}
+  #fd-app .line .ln{grid-area:n}#fd-app .line .pc{grid-area:p}#fd-app .line .lname{grid-column:1/-1}#fd-app .line .dupnote{grid-column:1/-1}#fd-app .line.dup{box-shadow:none;background:#FDECEA}#fd-app .lfoot{padding-left:4px}#fd-app .line .qty{grid-area:q}#fd-app .line .price{grid-area:pr}#fd-app .line .unit{grid-area:u}#fd-app .line .sum{grid-area:s}#fd-app .line .x{grid-area:x}
   #fd-app .lines .head{display:none}
 }
 #fd-app .totals{display:flex;justify-content:flex-end;gap:24px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px}
@@ -1262,19 +1266,25 @@ function productOptions(cid, sel){
   return `<option value="">— выберите товар —</option>`+(inList.length?`<optgroup label="В прайсе заказчика">${inList.map(o).join("")}</optgroup><optgroup label="Остальные товары">${rest.map(o).join("")}</optgroup>`:rest.map(o).join(""));
 }
 function renderLines(){
-  const dr=D.draft, qo=!!dr.qtyOnly, ro=qo||docLimited();
+  const dr=D.draft, qo=!!dr.qtyOnly, ro=qo||docLimited(), dupAt=dupLines(dr.lines);
   $("#d-lines").innerHTML=`<div class="line head"><span style="text-align:center">№</span><span>Товар</span><span>Кол-во</span><span>Ед.</span><span>Цена, ₽</span><span style="text-align:right">Сумма, ₽</span><span></span></div>`+
     dr.lines.map((l,i)=>{ const p=prod(l.productId), custom=l.productId && +l.price!==getPrice(dr.customerId,l.productId);
       const named=!!(l.name&&String(l.name).trim()), canEd=!ro && !!p, showN=named||l.edName;
-      return `<div class="line${named?" named":""}" data-i="${i}"><span class="ln">${i+1}</span><div class="pc"><input class="ps${p?"":" empty"}" value="${esc(p?p.name:"")}" placeholder="Начните вводить название товара" autocomplete="off" aria-label="Товар"${qo?" readonly":""}>${canEd?`<button type="button" class="ed${showN?" on":""}" title="Изменить название в этом документе" aria-label="Изменить название">✎</button>`:""}</div>
+      const dup=dupAt[i];
+      return `<div class="line${named?" named":""}${dup?" dup":""}" data-i="${i}"><span class="ln">${i+1}</span><div class="pc"><input class="ps${p?"":" empty"}" value="${esc(p?p.name:"")}" placeholder="Начните вводить название товара" autocomplete="off" aria-label="Товар"${qo?" readonly":""}>${canEd?`<button type="button" class="ed${showN?" on":""}" title="Изменить название в этом документе" aria-label="Изменить название">✎</button>`:""}</div>
         <input class="qty" inputmode="decimal" placeholder="0" value="${esc(l.qty)}" aria-label="Количество">${l.newP&&p&&!ro?`<select class="unit nu" aria-label="Единица">${Object.keys(UNITS).map(u=>`<option${u===p.unit?" selected":""}>${u}</option>`).join("")}</select>`:`<span class="unit">${p?esc(p.unit):""}</span>`}
         <input class="price${custom?" custom":""}" inputmode="decimal" placeholder="0,00" value="${esc(l.price)}" aria-label="Цена"${ro?" readonly tabindex=\"-1\"":""}>
-        <span class="sum">${fm(r2((+l.qty||0)*(+l.price||0)))}</span><button class="x" aria-label="Удалить строку"${qo?" hidden":""}>×</button>${showN&&p?`<div class="lname"><span>В документе:</span><input class="nmx" value="${esc(named?l.name:p.name)}" aria-label="Название в документе"${ro?" readonly":""}>${ro?"":`<button type="button" class="btn ghost sm" data-nmreset>Как в справочнике</button><button type="button" class="btn ghost sm" data-nmglob>Сохранить в справочник</button>`}</div>`:""}${l.auto?`<div class="lnote${l.autoEd?" ed":""}">${l.autoEd?"Исправлено вручную — сайт запомнит новый вес (в заявке «"+esc(l.pack&&l.pack.t||"")+"»)":"⚠ "+esc(l.auto)}</div>`:l.pack&&!(+l.qty>0)?`<div class="lnote">В заявке «${esc(l.pack.t)}» — впишите вес, сайт запомнит, сколько весит 1 ${esc(l.pack.u)}</div>`:""}</div>`; }).join("");
+        <span class="sum">${fm(r2((+l.qty||0)*(+l.price||0)))}</span><button class="x" aria-label="Удалить строку"${qo?" hidden":""}>×</button>${dup?`<div class="dupnote" role="note">Эта позиция уже есть в строке № ${dup.join(", ")} — проверьте, не задвоилась ли. Документ сохранить можно.</div>`:""}${showN&&p?`<div class="lname"><span>В документе:</span><input class="nmx" value="${esc(named?l.name:p.name)}" aria-label="Название в документе"${ro?" readonly":""}>${ro?"":`<button type="button" class="btn ghost sm" data-nmreset>Как в справочнике</button><button type="button" class="btn ghost sm" data-nmglob>Сохранить в справочник</button>`}</div>`:""}${l.auto?`<div class="lnote${l.autoEd?" ed":""}">${l.autoEd?"Исправлено вручную — сайт запомнит новый вес (в заявке «"+esc(l.pack&&l.pack.t||"")+"»)":"⚠ "+esc(l.auto)}</div>`:l.pack&&!(+l.qty>0)?`<div class="lnote">В заявке «${esc(l.pack.t)}» — впишите вес, сайт запомнит, сколько весит 1 ${esc(l.pack.u)}</div>`:""}</div>`; }).join("");
   $("#d-add").hidden=$("#d-addall").hidden=qo;
   const n=Object.values(D.prices[dr.customerId]||{}).filter(v=>v!=="").length;
   $("#d-pricehint").textContent = n ? "цены из прайса заказчика ("+n+" поз.)" : "у заказчика нет своего прайса — базовые цены";
   renderTotals();
 }
+/* повторы одной позиции в документе: номер строки → номера других строк с тем же товаром */
+function dupLines(lines){ const by={}, out={}; (lines||[]).forEach((l,i)=>{ if(l.productId) (by[l.productId]=by[l.productId]||[]).push(i); });
+  Object.values(by).forEach(a=>{ if(a.length>1) a.forEach(i=>{ out[i]=a.filter(j=>j!==i).map(j=>j+1); }); }); return out; }
+function dupWarn(i){ const d=dupLines(D.draft.lines)[i], l=D.draft.lines[i]; if(!d||!l) return;
+  toast("warn","Такая позиция уже есть","«"+((prod(l.productId)||{}).name||"товар")+"» уже есть в строке № "+d.join(", ")+". Если это не ошибка — оставьте, документ сохранится. Если ошибка — удалите лишнюю строку (×)."); }
 function renderTotals(){
   const k=calc(D.draft);
   $("#d-totals").innerHTML=`<div class="muted">Позиций<b>${k.lines.length}</b></div>`+(k.rate?`${k.add?`<div class="muted">Без НДС<b>${fm(k.t.net)}</b></div>`:""}<div class="muted">${k.add?"НДС "+k.rate+"% сверху":"В т.ч. НДС "+k.rate+"%"}<b>${fm(k.t.vat)}</b></div>`:`<div class="muted">НДС<b style="font-size:15px;padding-top:5px">не облагается</b></div>`)+`<div class="muted">Итого, ₽<b>${fm(k.t.sum)}</b></div>`;
@@ -1345,7 +1355,7 @@ function psNew(){ if(!PS) return; const nq=PS.inp.value.replace(/\s+/g," ").trim
 function psClose(){ if(PS){ PS.m.remove(); PS=null; } }
 function psMove(d){ if(!PS||!PS.L.length) return; if(PS.k<0) PS.k=d>0?-1:0; PS.k=(PS.k+d+PS.L.length)%PS.L.length; PS.m.querySelectorAll("[data-psi]").forEach(b=>b.classList.toggle("on", +b.dataset.psi===PS.k)); const on=PS.m.querySelector(".on"); on&&on.scrollIntoView({block:"nearest"}); }
 function psPick(k){ if(!PS) return; const x=PS.L[k], row=PS.inp.closest(".line[data-i]"); psClose(); if(!x||!row) return; const i=+row.dataset.i, l=D.draft.lines[i];
-  l.productId=x.p.id; delete l.name; l.edName=false; delete l.newP; l.price=String(getPrice(D.draft.customerId,l.productId)); saveLocal(); renderLines();
+  l.productId=x.p.id; delete l.name; l.edName=false; delete l.newP; l.price=String(getPrice(D.draft.customerId,l.productId)); saveLocal(); renderLines(); dupWarn(i);
   const q=document.querySelector(`#d-lines .line[data-i="${i}"] .qty`); q&&q.focus(); }
 dl.addEventListener("focusin",e=>{ if(e.target.classList.contains("ps") && !e.target.readOnly){ e.target.select(); psOpen(e.target);
   if(innerWidth<700){ const t=e.target; setTimeout(()=>{ const y=t.getBoundingClientRect().top; if(y>140) window.scrollBy({top:y-90, behavior:"smooth"}); },250); } } });
@@ -1361,7 +1371,7 @@ dl.addEventListener("mousedown",e=>{ const b=e.target.closest(".psm [data-psi]")
 dl.addEventListener("change",e=>{ const row0=e.target.closest(".line[data-i]");
   if(row0 && e.target.classList.contains("nu")){ const p=prod(D.draft.lines[+row0.dataset.i].productId); if(p){ p.unit=e.target.value; dirty("products",p.id); saveLocal(); renderTotals(); } return; } });
 dl.addEventListener("change",e=>{ const row=e.target.closest(".line[data-i]"); if(!row||!e.target.classList.contains("prod")) return; const i=+row.dataset.i, l=D.draft.lines[i];
-  l.productId=e.target.value; delete l.name; l.edName=false; l.price=l.productId?String(getPrice(D.draft.customerId,l.productId)):""; saveLocal(); renderLines();
+  l.productId=e.target.value; delete l.name; l.edName=false; l.price=l.productId?String(getPrice(D.draft.customerId,l.productId)):""; saveLocal(); renderLines(); dupWarn(i);
   const q=document.querySelector(`#d-lines .line[data-i="${i}"] .qty`); q&&q.focus(); });
 dl.addEventListener("input",e=>{ const row=e.target.closest(".line[data-i]"); if(!row) return; const l=D.draft.lines[+row.dataset.i];
   if(e.target.classList.contains("ps")){ psOpen(e.target); return; }

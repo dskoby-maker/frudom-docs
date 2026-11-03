@@ -17,8 +17,9 @@ function unDraftLabel(b,a){
   if(!b || !a) return "правка документа";
   if(b.id!==a.id){ const j=(D.journal||[]).find(x=>x.id===a.id); return j ? "открытие документа № "+j.number+" на правку" : "новый документ (форма очищена)"; }
   const bl=b.lines||[], al=a.lines||[], bf=bl.filter(l=>l.productId), af=al.filter(l=>l.productId);
-  if(af.length<bf.length){ const gone=bf.filter(l=>!af.some(x=>x.productId===l.productId)); return gone.length===1 ? "удаление «"+unPN(gone[0])+"»" : "удаление товаров ("+(bf.length-af.length)+")"; }
-  if(af.length>bf.length){ const add=af.filter(l=>!bf.some(x=>x.productId===l.productId)); return add.length===1 ? "добавление «"+unPN(add[0])+"»" : "добавление товаров ("+(af.length-bf.length)+")"; }
+  const cnt=L=>{ const m={}; L.forEach(l=>{ m[l.productId]=(m[l.productId]||0)+1; }); return m; }, cb=cnt(bf), ca=cnt(af);
+  if(af.length<bf.length){ const gone=Object.keys(cb).filter(k=>(ca[k]||0)<cb[k]); return gone.length===1 && bf.length-af.length===1 ? "удаление «"+unPN(bf.find(l=>l.productId===gone[0]))+"»" : "удаление товаров ("+(bf.length-af.length)+")"; }
+  if(af.length>bf.length){ const add=Object.keys(ca).filter(k=>ca[k]>(cb[k]||0)); return add.length===1 && af.length-bf.length===1 ? "добавление «"+unPN(af.find(l=>l.productId===add[0]))+"»" : "добавление товаров ("+(af.length-bf.length)+")"; }
   for(let i=0;i<Math.max(bl.length,al.length);i++){ const x=bl[i]||{}, y=al[i]||{};
     if(String(x.productId||"")!==String(y.productId||"")) return y.productId ? "товар в строке "+(i+1)+": «"+unPN(y)+"»" : "товар в строке "+(i+1);
     if(String(x.price)!==String(y.price)) return "цена «"+unPN(y)+"»";
