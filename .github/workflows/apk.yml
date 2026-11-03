@@ -36,3 +36,25 @@ jobs:
           echo "$GITHUB_SHA ${{ job.status }} run=$GITHUB_RUN_NUMBER" > status.txt
           if [ -f "$F" ]; then cp "$F" unsigned.apk; gh release upload "$TAG" unsigned.apk --clobber; else echo "$GITHUB_SHA failure run=$GITHUB_RUN_NUMBER" > status.txt; fi
           touch build.log; gh release upload "$TAG" build.log status.txt --clobber
+      - name: Включить KVM для эмулятора
+        if: success()
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: Проверка на эмуляторе Android
+        if: success()
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash android/emulator-test.sh
+      - name: Выложить снимки экрана
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="apk-build-$(echo "$GITHUB_REF_NAME" | tr '/' '-')"
+          for f in shot1.png shot2.png pid.txt errors.txt logcat.txt; do [ -f "$f" ] && gh release upload "$TAG" "$f" --clobber; done; true
