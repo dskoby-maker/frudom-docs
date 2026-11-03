@@ -159,6 +159,16 @@
 #fd-undo .r:not(.only){padding:8px 12px}#fd-undo .r:not(.only) span{display:none}
 body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 @media print{#fd-undo{display:none!important}}
+#fd-fresh{position:fixed;z-index:2147482990;right:20px;top:72px;display:flex;align-items:center;gap:10px;max-width:min(360px,calc(100vw - 32px));background:#fff;color:#1f1d1a;border-radius:12px;padding:9px 10px 9px 12px;box-shadow:0 10px 28px rgba(20,15,10,.16),0 1px 3px rgba(20,15,10,.08);font:13px/1.35 "Onest","Inter",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;opacity:0;transform:translateY(-6px);transition:opacity .2s ease,transform .2s ease;pointer-events:none}
+#fd-fresh.in{opacity:1;transform:none;pointer-events:auto}
+#fd-fresh .fi{flex:none;width:18px;height:18px;display:grid;place-items:center;color:#2f7d4f}
+#fd-fresh .sp{width:14px;height:14px;border-radius:50%;border:2px solid #e6e0d8;border-top-color:#5b2a48;animation:fdspin .8s linear infinite}
+#fd-fresh[data-s="warn"] .fi{color:#c27a0e}
+#fd-fresh .ft{flex:1;min-width:0}#fd-fresh .ft b{display:block;font-weight:600}#fd-fresh .ft span{display:block;color:#7a736a;font-size:12px}
+#fd-fresh .fb{flex:none;border:1px solid #5b2a48;color:#5b2a48;background:#fff;border-radius:8px;padding:5px 10px;font:600 12.5px inherit;font-family:inherit;cursor:pointer}#fd-fresh .fb:hover{background:#5b2a48;color:#fff}
+#fd-fresh .fx{flex:none;border:0;background:none;color:#8a847b;font-size:18px;line-height:1;cursor:pointer;padding:2px 4px;border-radius:6px}#fd-fresh .fx:hover{background:#f2efe9;color:#1f1d1a}
+@keyframes fdspin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){#fd-fresh{transition:none}#fd-fresh .sp{animation-duration:2s}}
 #fd-toasts{position:fixed;z-index:2147483000;right:20px;bottom:20px;display:flex;flex-direction:column;gap:10px;width:min(390px,calc(100vw - 32px));pointer-events:none;font-family:"Onest","Inter",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
 #fd-toasts .fd-toast{--c:#5b2a48;pointer-events:auto;position:relative;overflow:hidden;display:grid;grid-template-columns:28px 1fr 24px;gap:10px;align-items:start;background:#fff;color:#1f1d1a;border-radius:14px;padding:12px 10px 13px 12px;box-shadow:0 12px 32px rgba(20,15,10,.18),0 2px 6px rgba(20,15,10,.08);border:1px solid rgba(0,0,0,.06);font-size:14px;line-height:1.4;opacity:0;transform:translateY(18px) scale(.97);transition:transform .32s cubic-bezier(.2,.9,.25,1.15),opacity .22s ease}
 #fd-toasts .fd-toast.in{opacity:1;transform:none}#fd-toasts .fd-toast.out{opacity:0;transform:translateX(40px) scale(.98);transition:transform .24s ease,opacity .2s ease}
@@ -1218,7 +1228,36 @@ async function logout(){
 $("#fd-user").onclick=()=>{ const c=$("#fd-user"); if(c.classList.contains("armed")){ logout(); return; } c.classList.add("armed"); c.innerHTML="Выйти из «"+esc(curUser())+"»?"; setTimeout(()=>{ if(c.classList.contains("armed")) applyRole(); },4000); };
 $("#fd-pass").addEventListener("keydown",e=>{ if(e.key==="Enter") $("#fd-enter").click(); });
 $("#fd-status").onclick=()=>{ if(online()) pull(true); };
-document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && online() && $("#pv").hidden && Date.now()-lastPullAt>45000) pull(); });
+document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && online() && $("#pv").hidden && Date.now()-lastPullAt>20000) pull(); });
+/* ---------- свежесть данных: «Загружаю свежие данные…» / «Обновлено» / «Возможно, данные устарели» ---------- */
+const FR={el:null, t:0, busy:false, first:true, at:+(lsGet("frudom-lastpull")||0)};
+function frWhen(ms){ if(!ms) return ""; const d=new Date(ms), hm=d.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}), m=Math.round((Date.now()-ms)/60000);
+  const day = d.toDateString()===new Date().toDateString() ? hm : d.toLocaleDateString("ru-RU",{day:"numeric",month:"short"})+", "+hm;
+  return day+(m>=1 && m<60 ? " ("+m+" мин назад)" : ""); }
+function frPlace(){ const el=FR.el, st=$("#fd-status"); if(!el||!st) return; const r=st.getBoundingClientRect(); if(!r.height) return;
+  const nar=innerWidth<640; el.style.top=Math.max(12, r.bottom+8)+"px"; el.style.right=(nar?16:Math.max(16, innerWidth-r.right))+"px"; el.style.left=nar?"16px":""; el.style.maxWidth=nar?"none":""; }
+function frShow(kind, title, sub, ms){ let el=FR.el; if(!el){ el=FR.el=document.createElement("div"); el.id="fd-fresh"; el.setAttribute("role","status"); el.setAttribute("aria-live","polite"); document.body.appendChild(el);
+    el.addEventListener("click",e=>{ if(e.target.closest(".fb")){ frHide(); if(online()) pull(true); } else if(e.target.closest(".fx")) frHide(); }); }
+  clearTimeout(FR.t); el.dataset.s=kind;
+  const ic = kind==="load" ? '<i class="sp"></i>' : TICON[kind==="warn"?"warn":"ok"].replace('stroke-width="3"','stroke-width="2.6"');
+  el.innerHTML=`<span class="fi">${ic}</span><span class="ft"><b>${esc(title)}</b>${sub?`<span>${esc(sub)}</span>`:""}</span>${kind==="warn"?'<button type="button" class="fb">Обновить</button><button type="button" class="fx" aria-label="Закрыть">×</button>':""}`;
+  frPlace(); requestAnimationFrame(()=>el.classList.add("in")); if(ms) FR.t=setTimeout(frHide, ms); }
+function frHide(){ clearTimeout(FR.t); if(FR.el) FR.el.classList.remove("in"); }
+addEventListener("resize",()=>{ if(FR.el && FR.el.classList.contains("in")) frPlace(); });
+{ const _pull=pull; pull=async function(force){
+    if(FR.busy) return; FR.busy=true; const loud=FR.first||!!force, was=lastPullAt, ids=new Set((D.journal||[]).map(j=>j.id)), old=FR.at;
+    let shown=false; const st=loud ? setTimeout(()=>{ shown=true; frShow("load","Загружаю свежие данные…", old?"Пока на экране данные от "+frWhen(old):"Пока на экране данные с этого устройства"); }, 0) : 0;
+    try{ await _pull(force); } finally{ clearTimeout(st); FR.busy=false; FR.first=false; }
+    if(lastPullAt!==was){ FR.at=lastPullAt; lsSet("frudom-lastpull", String(lastPullAt));
+      const n=(D.journal||[]).filter(j=>!ids.has(j.id)).length;
+      if(n && ids.size) frShow("ok","Данные обновлены","Новых документов: "+n, 3500); else if(shown) frShow("ok","Данные обновлены","", 1800); else frHide(); }
+    else if(loud && online() && !syncBlocked && !hasPending()) frShow("warn","Возможно, данные устарели", old?"Не удалось обновить. На экране — данные от "+frWhen(old):"Не удалось загрузить свежие данные");
+    else if(shown) frHide(); }; }
+/* пока вкладка открыта и вы ничего не правите — тихо подтягиваем новое раз в минуту */
+setInterval(()=>{ if(document.visibilityState!=="visible" || !online() || FR.busy || hasPending() || !$("#pv").hidden || !$("#fd-login").hidden) return;
+  if(Date.now()-lastPullAt<60000 || ["doc","order","purchase","customers","products","suppliers","data"].includes(curTab)) return;
+  const a=document.activeElement; if(a && a.closest && a.closest("input,textarea,select,[contenteditable]")) return;
+  if(document.querySelector('#tsheet:not([hidden])')) return; pull(); }, 20000);
 window.addEventListener("beforeunload",e=>{ if(online() && hasPending()){ flush(); e.preventDefault(); e.returnValue=""; } });
 
 /* ---------- вкладки ---------- */
