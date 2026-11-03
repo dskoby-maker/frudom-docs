@@ -16,5 +16,5 @@ adb shell pidof ru.frudom.docs > pid.txt || echo "НЕ ЗАПУЩЕНО" > pid.t
 adb shell dumpsys package ru.frudom.docs | grep -E "versionName|versionCode" >> pid.txt
 adb shell dumpsys webviewupdate | grep -iE "Current WebView package|versionName" | head -3 >> pid.txt
 adb logcat -d > logcat.txt
-grep -E "FATAL|AndroidRuntime|chromium.*Uncaught|Console" logcat.txt | head -60 > errors.txt
+grep -E "FATAL|AndroidRuntime|chromium.*Uncaught|Console" logcat.txt | head -60 > errors.txt; [ -s errors.txt ] || echo "ошибок нет" > errors.txt
 true
