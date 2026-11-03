@@ -88,7 +88,7 @@
 #fd-app section.tab{display:grid;gap:16px;margin-top:20px}
 #fd-app .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:12px;min-width:0}
 #fd-app .card h2{margin:0;font:600 15px var(--ui);color:var(--ink)}
-#fd-app .card h2 small{font-weight:400;color:var(--muted);margin-left:6px}#fd-app .dform h2.dh{display:flex;align-items:center;gap:6px}#fd-app .dform .dclr{order:9;margin-left:auto;width:auto;flex:none}#fd-app .dform .btn.armed,#fd-app .dform .btn.armed:hover{color:#fff;background:#c0392b;border-color:#c0392b}
+#fd-app .card h2 small{font-weight:400;color:var(--muted);margin-left:6px}#fd-app .impcard h2.ih{display:flex;align-items:center;gap:6px;flex-wrap:wrap}#fd-app .impcard .iclr{margin-left:auto;flex:none;width:auto}@media (max-width:640px){#fd-app .impcard h2.ih small{order:3;flex-basis:100%;margin-left:0}#fd-app .impcard h2.ih .iclr{order:2}}#fd-app .impcard .btn.armed,#fd-app .impcard .btn.armed:hover{color:#fff;background:#c0392b;border-color:#c0392b}#fd-app .dform select.unset{color:var(--muted)}#fd-app .dform h2.dh{display:flex;align-items:center;gap:6px}#fd-app .dform .dclr{order:9;margin-left:auto;width:auto;flex:none}#fd-app .dform .btn.armed,#fd-app .dform .btn.armed:hover{color:#fff;background:#c0392b;border-color:#c0392b}
 #fd-app .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 14px}
 #fd-app label.f{display:grid;gap:4px;font-size:12px;color:var(--muted);letter-spacing:.02em;min-width:0;margin:0}
 #fd-app label.f.wide{grid-column:1/-1}
@@ -615,7 +615,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 
   <section class="tab" id="tab-doc">
     <div class="card impcard" id="imp-card">
-      <h2>Заказ из файла <small>заполнит форму сам — останется проверить и напечатать</small></h2>
+      <h2 class="ih">Заказ из файла <small>заполнит форму сам — останется проверить и напечатать</small><button class="btn ghost sm iclr" id="d-clrall" type="button" title="Очистить заявку, стороны, номер и товары">Очистить всё</button></h2>
       <div class="impdrop" id="imp-drop">
         <label class="btn pri">Загрузить заявку<input type="file" id="imp-file" accept=".xlsx,.xls,.csv,.json,.pdf,.docx,.doc,.txt,image/*" hidden></label>
         <button class="btn sm" id="imp-txt" type="button">Вставить текст</button>
@@ -1163,8 +1163,8 @@ function applyServer(d){
   }
   if(Array.isArray(d.daytasks)) D.daytasks = d.daytasks;
   D.demo=false; $("#demoNote").hidden=true;
-  if(!D.suppliers.some(x=>x.id===D.draft.supplierId) && D.suppliers[0]) D.draft.supplierId=D.suppliers[0].id;
-  if(!D.customers.some(x=>x.id===D.draft.customerId)) D.draft.customerId=(D.customers[0]||{}).id||"";
+  if(D.draft.supplierId && !D.suppliers.some(x=>x.id===D.draft.supplierId) && D.suppliers[0]) D.draft.supplierId=D.suppliers[0].id;
+  if(D.draft.customerId && !D.customers.some(x=>x.id===D.draft.customerId)) D.draft.customerId=(D.customers[0]||{}).id||"";
   if(!isStaff()) patchAll(); saveLocal();
   if(!isStaff() && Array.isArray(d.daytasks) && !lsGet("frudom-auto-bf2")){ const t=todayISO(); docTasks(D.journal.filter(j=>j.snap && !isArch(j) && j.date>=t).map(j=>j.date), true); lsSet("frudom-auto-bf2","1"); }
 }
@@ -1305,7 +1305,8 @@ function renderDoc(){
   drawMulti();
   const dr=D.draft;
   if(dr.contractId===undefined || (!dr.contractId && !dr.noCtr && !D.journal.some(j=>j.id===dr.id) && ctrs(dr.customerId).length)){ dr.contractId=pickCtr(); const x=ctr(dr.contractId); if(x){ dr.basis=x.basis||""; if(x.supplierId && x.supplierId!==dr.supplierId){ dr.supplierId=x.supplierId; } } }
-  $("#d-sup").innerHTML=opts(D.suppliers, dr.supplierId); $("#d-cus").innerHTML=cusOpts(dr.supplierId, dr.customerId);
+  const NS='<option value="" selected>(не выбрано)</option>'; $("#d-sup").innerHTML=(dr.supplierId?"":NS)+opts(D.suppliers, dr.supplierId); $("#d-cus").innerHTML=(dr.customerId?"":NS)+cusOpts(dr.supplierId, dr.customerId);
+  $("#d-sup").classList.toggle("unset", !dr.supplierId); $("#d-cus").classList.toggle("unset", !dr.customerId);
   renderBranch(); renderCtr(); renderShip();
   $("#d-num").value=dr.number; syncNum(); $("#d-date").value=dr.date; $("#d-basis").value=dr.basis||""; $("#d-ship").value=dr.ship||"";
   const inJ = D.journal.find(j=>j.id===dr.id);
@@ -1332,7 +1333,7 @@ function renderLines(){
         <span class="sum">${fm(r2((+l.qty||0)*(+l.price||0)))}</span><button class="x" aria-label="Удалить строку"${qo?" hidden":""}>×</button>${dup?`<div class="dupnote" role="note">Эта позиция уже есть в строке № ${dup.join(", ")} — проверьте, не задвоилась ли. Документ сохранить можно.</div>`:""}<div class="ctrnote" role="note" hidden></div>${showN&&p?`<div class="lname"><span>В документе:</span><input class="nmx" value="${esc(named?l.name:p.name)}" aria-label="Название в документе"${ro?" readonly":""}>${ro?"":`<button type="button" class="btn ghost sm" data-nmreset>Как в справочнике</button><button type="button" class="btn ghost sm" data-nmglob>Сохранить в справочник</button>`}</div>`:""}${l.auto?`<div class="lnote${l.autoEd?" ed":""}">${l.autoEd?"Исправлено вручную — сайт запомнит новый вес (в заявке «"+esc(l.pack&&l.pack.t||"")+"»)":"⚠ "+esc(l.auto)}</div>`:l.pack&&!(+l.qty>0)?`<div class="lnote">В заявке «${esc(l.pack.t)}» — впишите вес, сайт запомнит, сколько весит 1 ${esc(l.pack.u)}</div>`:""}</div>`; }).join("");
   $("#d-add").hidden=$("#d-addall").hidden=qo;
   const n=Object.values(D.prices[dr.customerId]||{}).filter(v=>v!=="").length;
-  $("#d-pricehint").textContent = n ? "цены из прайса заказчика ("+n+" поз.)" : "у заказчика нет своего прайса — базовые цены";
+  $("#d-pricehint").textContent = !dr.customerId ? "выберите заказчика — подставлю его цены" : n ? "цены из прайса заказчика ("+n+" поз.)" : "у заказчика нет своего прайса — базовые цены";
   renderTotals();
 }
 /* повторы одной позиции в документе: номер строки → номера других строк с тем же товаром */
@@ -1353,6 +1354,7 @@ function renderCtr(){
   const dr=D.draft, list=ctrs(dr.customerId);
   $("#d-ctr").innerHTML = list.map(x=>`<option value="${x.id}"${x.id===dr.contractId?" selected":""}>${esc(ctrLabel(x))}</option>`).join("")
     + `<option value=""${!dr.contractId?" selected":""}>Без контракта — основание впишу сам</option>`;
+  if(!dr.customerId) $("#d-ctr").innerHTML='<option value="" selected>(не выбрано)</option>'; $("#d-ctr").classList.toggle("unset", !dr.customerId);
   renderCtrInfo();
 }
 function renderCtrInfo(){
@@ -1367,6 +1369,7 @@ function renderCtrInfo(){
   $("#d-sup").classList.toggle("bad", mis); sw.hidden=!mis; sw.textContent = mis ? "По этому договору поставщик — "+sup(x.supplierId).name+". Документ сформировать можно, но проверьте." : "";
 }
 function syncNum(){ const dr=D.draft; if(!dr || dr.qtyOnly) return; const inJ=D.journal.some(j=>j.id===dr.id);
+  if(!inJ && !dr.numManual && (!dr.supplierId || !dr.customerId)){ dr.number=""; const el=$("#d-num"); if(el) el.value=""; const info=$("#d-numinfo"); if(info){ info.textContent=""; info.classList.remove("warn"); } numMark(); return; }
   if(!inJ && !dr.numManual){ dr.number=nextNum(dr.supplierId, dr.customerId, null, dr.id); const el=$("#d-num"); if(el) el.value=dr.number; }
   const info=$("#d-numinfo"); if(!info) return; const last=pairLast(dr.supplierId, dr.customerId, dr.id), st=parseInt(numsOf(cus(dr.customerId))[dr.supplierId],10)||0;
   info.classList.remove("warn");
@@ -1377,7 +1380,7 @@ function syncNum(){ const dr=D.draft; if(!dr || dr.qtyOnly) return; const inJ=D.
 function applyCtr(id){
   const dr=D.draft; dr.contractId=id||""; const x=ctr(id);
   if(x){ dr.basis=x.basis||""; $("#d-basis").value=dr.basis;
-    if(x.supplierId && x.supplierId!==dr.supplierId){ dr.supplierId=x.supplierId; $("#d-sup").value=x.supplierId;
+    if(x.supplierId && x.supplierId!==dr.supplierId){ dr.supplierId=x.supplierId; $("#d-sup").value=x.supplierId; $("#d-sup").classList.remove("unset");
       } }
   syncNum(); saveLocal(); renderCtrInfo(); renderTotals();
 }
@@ -1490,10 +1493,10 @@ $("#d-add").onclick=()=>{ const L=D.draft.lines; let i=L.findIndex(l=>!l.product
 $("#d-addall").onclick=()=>{ const dr=D.draft, pl=D.prices[dr.customerId]||{}, have=new Set(dr.lines.map(l=>l.productId));
   dr.lines=dr.lines.filter(l=>l.productId); D.products.forEach(p=>{ if(pl[p.id]!=null&&pl[p.id]!==""&&!have.has(p.id)) dr.lines.push({productId:p.id,qty:"",price:String(pl[p.id])}); });
   if(!dr.lines.length) dr.lines.push({productId:"",qty:"",price:""}); saveLocal(); renderLines(); };
-$("#d-sup").onchange=e=>{ const dr=D.draft; dr.supplierId=e.target.value; { const cs=$("#d-cus"); cs.innerHTML=cusOpts(dr.supplierId, dr.customerId); cs.value=dr.customerId; cs.classList.remove("fdflash"); void cs.offsetWidth; cs.classList.add("fdflash"); } setTimeout(()=>{ const x=ctr(dr.contractId); if(x && x.supplierId && x.supplierId!==dr.supplierId) toast("warn","Поставщик не совпадает с договором","По «"+(x.basis||"договору")+"» поставщик — "+sup(x.supplierId).name+". Документ можно сформировать, но проверьте."); },0); 
+$("#d-sup").onchange=e=>{ const dr=D.draft; dr.supplierId=e.target.value; e.target.classList.toggle("unset", !dr.supplierId); { const cs=$("#d-cus"); cs.innerHTML=(dr.customerId?"":'<option value="" selected>(не выбрано)</option>')+cusOpts(dr.supplierId, dr.customerId); cs.value=dr.customerId; cs.classList.remove("fdflash"); void cs.offsetWidth; cs.classList.add("fdflash"); } setTimeout(()=>{ const x=ctr(dr.contractId); if(x && x.supplierId && x.supplierId!==dr.supplierId) toast("warn","Поставщик не совпадает с договором","По «"+(x.basis||"договору")+"» поставщик — "+sup(x.supplierId).name+". Документ можно сформировать, но проверьте."); },0); 
   const x=ctr(dr.contractId); if(x && x.supplierId && x.supplierId!==dr.supplierId){ const m=ctrs(dr.customerId).find(c=>c.supplierId===dr.supplierId); if(m){ dr.contractId=m.id; dr.basis=m.basis||""; $("#d-basis").value=dr.basis; } }
   syncNum(); saveLocal(); renderCtr(); renderTotals(); };
-$("#d-cus").onchange=e=>{ const dr=D.draft; dr.customerId=e.target.value; dr.noCtr=false; dr.contractId=pickCtr(); dr.basis=""; $("#d-basis").value=""; renderCtr(); if(dr.contractId) applyCtr(dr.contractId);
+$("#d-cus").onchange=e=>{ const dr=D.draft; dr.customerId=e.target.value; e.target.classList.toggle("unset", !dr.customerId); dr.noCtr=false; dr.contractId=pickCtr(); dr.basis=""; $("#d-basis").value=""; renderCtr(); if(dr.contractId) applyCtr(dr.contractId);
   const bl=branches(cus(dr.customerId)); dr.branchId = bl.length ? bl[0].id : ""; renderBranch();
   dr.ship=firstAddr(liveCus(dr)); renderShip();
   const rm = isGovCus(dr.customerId) ? ctrRemap(dr, dr.customerId) : [];
@@ -1515,6 +1518,7 @@ function renderShip(){
   $("#d-shipsel").innerHTML = all.map(a=>`<option value="${esc(a)}"${a===(dr.ship||list[0]||legal)&&!custom?" selected":""}>${esc(a)}${a===legal&&!list.includes(a)?" (юр. адрес)":""}</option>`).join("")
     + `<option value="__other"${custom||!all.length?" selected":""}>Другой адрес…</option>`;
   $("#d-shipwrap").hidden = !(custom||!all.length); $("#d-ship").value = custom ? dr.ship : "";
+  $("#d-shipsel").classList.toggle("unset", !dr.customerId); if(!dr.customerId && !dr.ship){ $("#d-shipsel").innerHTML='<option value="" selected>(не выбрано)</option><option value="__other">Другой адрес…</option>'; $("#d-shipwrap").hidden=true; return; }
   if(!dr.ship && all.length && !custom) dr.ship = $("#d-shipsel").value;
 }
 $("#d-shipsel").onchange=e=>{ const v=e.target.value; if(v==="__other"){ D.draft.ship=""; $("#d-shipwrap").hidden=false; $("#d-ship").value=""; $("#d-ship").focus(); } else { D.draft.ship=v; $("#d-shipwrap").hidden=true; } saveLocal(); };
@@ -1533,6 +1537,21 @@ $("#d-save").onclick=async()=>{
 };
 $("#d-new").onclick=$("#d-new2").onclick=e=>{ const bt=e.currentTarget; if(!armed(bt,"Точно очистить форму?")) return; delete bt.dataset.armed; bt.classList.remove("armed"); bt.textContent=bt.id==="d-new2"?"Очистить":"Очистить и начать новый"; const s=D.draft.supplierId, c=D.draft.customerId; D.draft=newDraft(D); D.draft.supplierId=s; D.draft.customerId=c;
   D.draft.contractId=pickCtr(); { const x=ctr(D.draft.contractId); if(x&&x.supplierId) D.draft.supplierId=x.supplierId; } D.draft.number=nextNum(D.draft.supplierId, c); D.draft.basis=(ctr(D.draft.contractId)||{}).basis||""; saveLocal(); renderDoc(); $("#d-saved").textContent=""; };
+
+/* «Очистить всё»: заявка из файла, стороны, номер, основание, адрес, товары — всё пустое, в списках «(не выбрано)» */
+$("#d-clrall").onclick=e=>{ const bt=e.currentTarget; if(!armed(bt,"Точно очистить всё?")) return; delete bt.dataset.armed; bt.classList.remove("armed"); bt.textContent="Очистить всё";
+  psClose(); IMP=null; D.multi=null; drawImp();
+  { const f=$("#imp-file"); if(f) f.value=""; const ta=$("#imp-ta"); if(ta) ta.value=""; const pp=$("#imp-paste"); if(pp) pp.hidden=true; }
+  D.draft=Object.assign(newDraft(D), {supplierId:"", customerId:"", branchId:"", contractId:"", noCtr:false, number:"", numManual:false, basis:"", ship:"", buyer:"", bphone:""});
+  saveLocal(); renderDoc(); $("#d-saved").textContent="";
+  document.querySelectorAll("#fd-app #tab-doc .ctrinfo").forEach(x=>{ if(x.id!=="d-numinfo") x.classList.remove("warn"); });
+  toast("ok","Всё очищено","Выберите поставщика и заказчика или загрузите заявку."); window.scrollTo({top:0, behavior:"smooth"}); };
+/* без поставщика или заказчика документ не формируем */
+$("#tab-doc").addEventListener("click",e=>{ const b=e.target.closest("#d-save,[data-make],[data-combo]"); if(!b || b.closest("#mul")) return; const dr=D.draft; if(dr.supplierId && dr.customerId) return;
+  e.preventDefault(); e.stopPropagation(); const w=[!dr.supplierId&&"поставщика", !dr.customerId&&"заказчика"].filter(Boolean).join(" и ");
+  toast("err","Не выбран "+w.replace("поставщика","поставщик").replace("заказчика","заказчик"),"Выберите "+w+" в блоке «Стороны» — затем нажмите кнопку снова.");
+  [!dr.supplierId&&"#d-sup", !dr.customerId&&"#d-cus"].filter(Boolean).forEach(sel=>{ const el=$(sel); el.classList.remove("fdflash"); void el.offsetWidth; el.classList.add("fdflash"); });
+  ($(!dr.supplierId?"#d-sup":"#d-cus")).focus(); }, true);
 
 /* ---------- печатные формы ---------- */
 /*__DOCS__*/
