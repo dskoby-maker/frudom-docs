@@ -131,9 +131,14 @@
 #fd-app .line .x{border:0;background:none;color:var(--muted);font-size:20px;cursor:pointer;padding:4px}
 #fd-app .lines .head{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 #fd-app .line input.price.custom{border-color:var(--accent)}
+#fd-app .line.offc{background:var(--warn-soft);box-shadow:0 0 0 5px var(--warn-soft);border-radius:8px}
+#fd-app .line.offc input.price{border-color:var(--warn);color:var(--warn);font-weight:600}
+#fd-app .line .ctrnote{grid-column:2/-1;font-size:12.5px;line-height:1.35;color:var(--warn);font-weight:500;margin-top:-2px;display:flex;gap:4px 10px;align-items:center;flex-wrap:wrap}
+#fd-app .line .ctrnote[hidden]{display:none}#fd-app .line .ctrnote .btn{font-size:12.5px;padding:4px 10px}
+#fd-app #d-ctrwarn{margin:0 0 10px}#fd-app #d-ctrwarn .btn{margin-top:8px;display:block}
 @media (max-width:640px){
   #fd-app .line{grid-template-columns:24px 1fr 1fr 36px;grid-template-areas:"n p p x" ". q pr pr" ". u s s";background:var(--bg);padding:8px;border-radius:8px}
-  #fd-app .line .ln{grid-area:n}#fd-app .line .pc{grid-area:p}#fd-app .line .lname{grid-column:1/-1}#fd-app .line .dupnote{grid-column:1/-1}#fd-app .line.dup{box-shadow:none;background:#FDECEA}#fd-app .lfoot{padding-left:4px}#fd-app .line .qty{grid-area:q}#fd-app .line .price{grid-area:pr}#fd-app .line .unit{grid-area:u}#fd-app .line .sum{grid-area:s}#fd-app .line .x{grid-area:x}
+  #fd-app .line .ln{grid-area:n}#fd-app .line .pc{grid-area:p}#fd-app .line .lname{grid-column:1/-1}#fd-app .line .dupnote{grid-column:1/-1}#fd-app .line .ctrnote{grid-column:1/-1}#fd-app .line.dup{box-shadow:none;background:#FDECEA}#fd-app .line.offc{box-shadow:none}#fd-app .lfoot{padding-left:4px}#fd-app .line .qty{grid-area:q}#fd-app .line .price{grid-area:pr}#fd-app .line .unit{grid-area:u}#fd-app .line .sum{grid-area:s}#fd-app .line .x{grid-area:x}
   #fd-app .lines .head{display:none}
 }
 #fd-app .totals{display:flex;justify-content:flex-end;gap:24px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px}
@@ -629,6 +634,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
     </div>
     <div class="card dform">
       <h2>Товары <small id="d-pricehint"></small></h2>
+      <div class="note" id="d-ctrwarn" role="alert" hidden></div>
       <div class="lines" id="d-lines"></div>
       <div class="lfoot" id="d-lfoot"></div>
       <div class="row"><button class="btn" id="d-add">+ Добавить товар</button><button class="btn ghost" id="d-addall">Добавить весь прайс заказчика</button></div>
@@ -1274,7 +1280,7 @@ function renderLines(){
       return `<div class="line${named?" named":""}${dup?" dup":""}" data-i="${i}"><span class="ln">${i+1}</span><div class="pc"><input class="ps${p?"":" empty"}" value="${esc(p?p.name:"")}" placeholder="Начните вводить название товара" autocomplete="off" aria-label="Товар"${qo?" readonly":""}>${canEd?`<button type="button" class="ed${showN?" on":""}" title="Изменить название в этом документе" aria-label="Изменить название">✎</button>`:""}</div>
         <input class="qty" inputmode="decimal" placeholder="0" value="${esc(l.qty)}" aria-label="Количество">${l.newP&&p&&!ro?`<select class="unit nu" aria-label="Единица">${Object.keys(UNITS).map(u=>`<option${u===p.unit?" selected":""}>${u}</option>`).join("")}</select>`:`<span class="unit">${p?esc(p.unit):""}</span>`}
         <input class="price${custom?" custom":""}" inputmode="decimal" placeholder="0,00" value="${esc(l.price)}" aria-label="Цена"${ro?" readonly tabindex=\"-1\"":""}>
-        <span class="sum">${fm(r2((+l.qty||0)*(+l.price||0)))}</span><button class="x" aria-label="Удалить строку"${qo?" hidden":""}>×</button>${dup?`<div class="dupnote" role="note">Эта позиция уже есть в строке № ${dup.join(", ")} — проверьте, не задвоилась ли. Документ сохранить можно.</div>`:""}${showN&&p?`<div class="lname"><span>В документе:</span><input class="nmx" value="${esc(named?l.name:p.name)}" aria-label="Название в документе"${ro?" readonly":""}>${ro?"":`<button type="button" class="btn ghost sm" data-nmreset>Как в справочнике</button><button type="button" class="btn ghost sm" data-nmglob>Сохранить в справочник</button>`}</div>`:""}${l.auto?`<div class="lnote${l.autoEd?" ed":""}">${l.autoEd?"Исправлено вручную — сайт запомнит новый вес (в заявке «"+esc(l.pack&&l.pack.t||"")+"»)":"⚠ "+esc(l.auto)}</div>`:l.pack&&!(+l.qty>0)?`<div class="lnote">В заявке «${esc(l.pack.t)}» — впишите вес, сайт запомнит, сколько весит 1 ${esc(l.pack.u)}</div>`:""}</div>`; }).join("");
+        <span class="sum">${fm(r2((+l.qty||0)*(+l.price||0)))}</span><button class="x" aria-label="Удалить строку"${qo?" hidden":""}>×</button>${dup?`<div class="dupnote" role="note">Эта позиция уже есть в строке № ${dup.join(", ")} — проверьте, не задвоилась ли. Документ сохранить можно.</div>`:""}<div class="ctrnote" role="note" hidden></div>${showN&&p?`<div class="lname"><span>В документе:</span><input class="nmx" value="${esc(named?l.name:p.name)}" aria-label="Название в документе"${ro?" readonly":""}>${ro?"":`<button type="button" class="btn ghost sm" data-nmreset>Как в справочнике</button><button type="button" class="btn ghost sm" data-nmglob>Сохранить в справочник</button>`}</div>`:""}${l.auto?`<div class="lnote${l.autoEd?" ed":""}">${l.autoEd?"Исправлено вручную — сайт запомнит новый вес (в заявке «"+esc(l.pack&&l.pack.t||"")+"»)":"⚠ "+esc(l.auto)}</div>`:l.pack&&!(+l.qty>0)?`<div class="lnote">В заявке «${esc(l.pack.t)}» — впишите вес, сайт запомнит, сколько весит 1 ${esc(l.pack.u)}</div>`:""}</div>`; }).join("");
   $("#d-add").hidden=$("#d-addall").hidden=qo;
   const n=Object.values(D.prices[dr.customerId]||{}).filter(v=>v!=="").length;
   $("#d-pricehint").textContent = n ? "цены из прайса заказчика ("+n+" поз.)" : "у заказчика нет своего прайса — базовые цены";
@@ -1291,7 +1297,7 @@ function renderTotals(){
   document.querySelectorAll("#d-lines .line[data-i]").forEach(el=>{ const l=D.draft.lines[+el.dataset.i]; el.querySelector(".sum").textContent=fm(r2((+l.qty||0)*(+l.price||0))); });
   { const byU={}; k.lines.forEach(l=>{ byU[l.unit||"ед."]=(byU[l.unit||"ед."]||0)+l.qty; }); const n=k.lines.length;
     $("#d-lfoot").innerHTML = n ? `<span>Всего позиций: <b>${n}</b></span>`+Object.entries(byU).map(([u,q])=>`<span>${u==="кг"?"Общий вес":"Итого, "+esc(u)}: <b>${String(+q.toFixed(3)).replace(".",",")} ${esc(u)}</b></span>`).join("") : ""; }
-  renderCtrInfo();
+  renderCtrInfo(); ctrMark();
 }
 function pickCtr(){ const dr=D.draft, list=ctrs(dr.customerId); const m=list.find(x=>x.supplierId===dr.supplierId)||list.find(x=>!x.supplierId)||list[0]; return m?m.id:""; }
 function renderCtr(){
@@ -1328,6 +1334,47 @@ function applyCtr(id){
 }
 $("#d-ctr").onchange=e=>{ D.draft.noCtr = !e.target.value; applyCtr(e.target.value); };
 const dl=$("#d-lines");
+/* ===== госконтракты: цены фиксированные, сверка строк документа с прайсом заказчика ===== */
+/* госзаказчик = не частник. Частники: ООО/АО/ЗАО/ПАО/ИП, «Частное лицо», «Цены из моего прайса», НДС в документах */
+function isGovCus(cid){ const c=cus(cid); if(!c.id || isPriv(cid) || c.plist==="1" || parseInt(c.vat,10)>0) return false;
+  const n=String(c.name||"").trim(); return !(/^(ООО|АО|ЗАО|ПАО|ОАО|НАО|ИП)(?=[\s«"'„]|$)/i.test(n) || /^Частн/i.test(n)); }
+/* строки, где цена не как в контракте или товара нет в прайсе контракта */
+function ctrIssues(dr){ dr=dr||D.draft; if(!dr || !isGovCus(dr.customerId)) return []; const out=[];
+  (dr.lines||[]).forEach((l,i)=>{ if(!l.productId) return; const v=custPrice(dr.customerId,l.productId);
+    if(v==null || v===""){ out.push({i, k:"none"}); return; }
+    if(Math.round(+v*100)!==Math.round((+l.price||0)*100)) out.push({i, k:"price", want:+v}); });
+  return out; }
+/* при смене заказчика: товар не из его прайса → похожая позиция из его прайса (по названию в заявке и по названию товара) */
+function ctrRemap(dr, cid){ const pl=D.prices[cid]||{}, has=id=>pl[id]!=null && pl[id]!=="", inPl=D.products.filter(p=>has(p.id)); if(!inPl.length) return [];
+  const clean=s=>norm(s).replace(/[«»"]/g,"").replace(/\s+/g," ").trim(), sim=(A,B)=>{ if(!A.length||!B.length) return 0; const i=A.filter(w=>B.includes(w)).length; return i/(A.length+B.length-i); };
+  const used=new Set(dr.lines.filter(l=>l.productId && has(l.productId)).map(l=>l.productId)), out=[];
+  dr.lines.forEach(l=>{ const p=prod(l.productId); if(!p || !p.id || has(p.id)) return;
+    const names=[p.name,...aliasesOf(p)], src=l.src?String(l.src):"", all=src?names.concat([src]):names, free=inPl.filter(q=>!used.has(q.id));
+    let best=free.find(q=>[q.name,...aliasesOf(q)].some(n=>all.some(m=>clean(m)===clean(n))));
+    if(!best){ const S=src?stems(src):[], N=names.map(stems); let bs=0, sec=0;
+      free.forEach(q=>{ const sc=Math.max(...[q.name,...aliasesOf(q)].map(stems).map(U=>2*sim(S,U)+Math.max(...N.map(A=>sim(A,U)))));
+        if(sc>bs){ sec=bs; bs=sc; best=q; } else if(sc>sec) sec=sc; });
+      if(bs<0.5 || bs-sec<0.05) best=null; }
+    if(!best){ out.push({from:p.name, miss:1}); return; }
+    used.add(best.id); out.push({from:p.name, to:best.name, price:+pl[best.id]}); l.productId=best.id; delete l.newP; l.price=String(pl[best.id]); });
+  return out; }
+function ctrToast(rm){ const dr=D.draft, iss=ctrIssues(dr), sw=(rm||[]).filter(x=>!x.miss); if(!sw.length && !iss.length) return;
+  const t=[]; if(sw.length) t.push("Заменил на позиции контракта: "+sw.map(x=>"«"+x.from+"» → «"+x.to+"» "+fm(x.price)+" ₽").join("; ")+".");
+  const nn=iss.filter(x=>x.k==="none").map(x=>"«"+((prod(dr.lines[x.i].productId)||{}).name||"")+"»");
+  if(nn.length) t.push("Нет в контракте: "+nn.join(", ")+" — выберите позицию из контракта.");
+  toast("warn","Цены — по контракту «"+(cus(dr.customerId).name||"")+"»", t.join(" ")+" Проверьте товары."); }
+/* подсветка строк и общее предупреждение над товарами (вызывается из renderTotals) */
+function ctrMark(){ const dr=D.draft, box=$("#d-ctrwarn"); if(!dr || !box) return; const iss=ctrIssues(dr), by={}; iss.forEach(x=>by[x.i]=x); const ro=!!dr.qtyOnly||docLimited();
+  document.querySelectorAll("#d-lines .line[data-i]").forEach(el=>{ const x=by[+el.dataset.i], n=el.querySelector(".ctrnote"); el.classList.toggle("offc", !!x); if(!n) return;
+    const key=x?x.k+":"+x.want:""; if(n.dataset.k===key) return; n.dataset.k=key; n.hidden=!x;
+    n.innerHTML = !x ? "" : x.k==="price" ? `<span>Цена не по контракту. По контракту — <b>${fm(x.want)} ₽</b></span>${ro?"":`<button type="button" class="btn ghost" data-ctrfix="${el.dataset.i}">Поставить ${fm(x.want)} ₽</button>`}`
+      : `<span>Этого товара нет в контракте заказчика — выберите позицию из контракта (в подсказках они сверху).</span>`; });
+  const np=iss.filter(x=>x.k==="price").length, nn=iss.length-np; box.hidden=!iss.length;
+  box.innerHTML = !iss.length ? "" : `<b>Внимание: не по контракту — ${iss.length} поз.</b> У госзаказчика цены по контракту фиксированные.${np?" Цена отличается: "+np+".":""}${nn?" Нет в контракте: "+nn+".":""}${np&&!ro?`<button type="button" class="btn" data-ctrfixall>Поставить цены по контракту</button>`:""}`; }
+function ctrFix(idx){ const dr=D.draft; let n=0; ctrIssues(dr).forEach(x=>{ if(x.k!=="price" || (idx!=null && x.i!==idx)) return; dr.lines[x.i].price=String(custPrice(dr.customerId,dr.lines[x.i].productId)); n++; });
+  if(n){ saveLocal(); renderLines(); toast("ok", n===1?"Цена по контракту поставлена":"Цены по контракту поставлены ("+n+")"); } }
+$("#d-ctrwarn").addEventListener("click",e=>{ if(e.target.closest("[data-ctrfixall]")) ctrFix(); });
+dl.addEventListener("click",e=>{ const b=e.target.closest("[data-ctrfix]"); if(b) ctrFix(+b.dataset.ctrfix); });
 /* поиск товара по мере ввода: сначала прайс заказчика, потом остальные товары */
 let PS=null;
 function psFind(q){ const dr=D.draft, cid=dr.customerId, inP=p=>custPrice(cid,p.id)!=null&&custPrice(cid,p.id)!=="";
@@ -1400,7 +1447,8 @@ $("#d-sup").onchange=e=>{ const dr=D.draft; dr.supplierId=e.target.value; { cons
 $("#d-cus").onchange=e=>{ const dr=D.draft; dr.customerId=e.target.value; dr.noCtr=false; dr.contractId=pickCtr(); dr.basis=""; $("#d-basis").value=""; renderCtr(); if(dr.contractId) applyCtr(dr.contractId);
   const bl=branches(cus(dr.customerId)); dr.branchId = bl.length ? bl[0].id : ""; renderBranch();
   dr.ship=firstAddr(liveCus(dr)); renderShip();
-  dr.lines.forEach(l=>{ if(l.productId) l.price=String(getPrice(dr.customerId,l.productId)); }); saveLocal(); renderLines(); };
+  const rm = isGovCus(dr.customerId) ? ctrRemap(dr, dr.customerId) : [];
+  dr.lines.forEach(l=>{ if(l.productId) l.price=String(getPrice(dr.customerId,l.productId)); }); saveLocal(); renderLines(); ctrToast(rm); };
 [["#d-num","number"],["#d-date","date"],["#d-basis","basis"]].forEach(([s,k])=>$(s).addEventListener("input",e=>{ D.draft[k]=e.target.value; if(k==="number"){ D.draft.numManual = !!e.target.value.trim(); if(!D.draft.numManual) syncNum(); else { const i=$("#d-numinfo"); if(i){ const l=pairLast(D.draft.supplierId,D.draft.customerId,D.draft.id); i.textContent=l?"Последний у заказчика: № "+l.j.number+" от "+fd(l.j.date):""; i.classList.remove("warn"); } } } saveLocal(); }));
 function renderBranch(){
   const dr=D.draft, bl=branches(cus(dr.customerId)), pv=isPriv(dr.customerId);
@@ -3887,9 +3935,9 @@ function learnPacks(dr){ const got=[];
 function learnNames(dr){ if(!dr||docLimited()||dr.qtyOnly) return; const names=[], prices=[], cid=dr.customerId, pl=D.prices[cid]=D.prices[cid]||{};
   (dr.lines||[]).forEach(l=>{ const p=prod(l.productId); if(!p||!p.id) return;
     if(l.src && norm(l.src)!==norm(p.name)){ const al=aliasesOf(p); if(!al.some(a=>norm(a)===norm(l.src))){ al.push(l.src); p.aliases=JSON.stringify(al.slice(-20)); dirty("products",p.id); names.push("«"+l.src+"» = «"+p.name+"»"); } }
-    if(cid && +l.price>0 && +l.qty>0 && (pl[p.id]==null || pl[p.id]==="")){ pl[p.id]=+l.price; dirtyPrice(cid,p.id); prices.push(p.name+" — "+fm(+l.price)+" ₽"); } });
+    if(cid && !isGovCus(cid) && +l.price>0 && +l.qty>0 && (pl[p.id]==null || pl[p.id]==="")){ pl[p.id]=+l.price; dirtyPrice(cid,p.id); prices.push(p.name+" — "+fm(+l.price)+" ₽"); } });
   if(names.length||prices.length){ saveLocal(); toast("info","Запомнил на будущее", [names.length?"Названия: "+names.join("; "):"", prices.length?"В прайс заказчика: "+prices.join("; "):""].filter(Boolean).join(". ")+"."); } }
-{ const _cd=commitDoc; commitDoc=async function(dr0,opt){ const dr=dr0||D.draft, r=await _cd(dr0,opt); try{ learnPacks(dr); }catch(e){} try{ learnNames(dr); }catch(e){} return r; }; }
+{ const _cd=commitDoc; commitDoc=async function(dr0,opt){ const dr=dr0||D.draft; try{ const iss=ctrIssues(dr); if(iss.length) toast("warn","Сохранено с ценами не по контракту",iss.length+" поз. — проверьте: у госзаказчика цены по контракту фиксированные."); }catch(e){} const r=await _cd(dr0,opt); try{ learnPacks(dr); }catch(e){} try{ learnNames(dr); }catch(e){} return r; }; }
 let IMP=null;   /* {file, meta, groups:[{key,num,addr,lines,warn,done}], cur} */
 const impNum = v => { if(v===""||v==null) return ""; if(typeof v==="number") return v; const m=String(v).replace(/\s/g,"").replace(",",".").match(/-?\d+(\.\d+)?/); return m?+m[0]:""; };
 const impDate = v => { if(!v) return ""; if(v instanceof Date && !isNaN(v)){ const d=new Date(v.getTime()-v.getTimezoneOffset()*6e4); return d.toISOString().slice(0,10); }
