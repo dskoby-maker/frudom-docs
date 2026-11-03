@@ -1,6 +1,6 @@
 /* Мост сайта и приложения Android: скачивание файлов (PDF, Excel, XML), печать, кнопка «Назад». */
 (function(){
-  if (window.__fdApp || !window.FrudomApp) return; window.__fdApp = 1;
+  if (window.__fdApp || !window.FrudomApp || !document.documentElement || !document.body) return; window.__fdApp = 1;
   var A = window.FrudomApp, blobs = {};
   var oc = URL.createObjectURL;
   URL.createObjectURL = function(o){ var u = oc.apply(URL, arguments); try{ if (o instanceof Blob) blobs[u] = o; }catch(e){} return u; };

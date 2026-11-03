@@ -88,7 +88,6 @@ public class MainActivity extends Activity {
             @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) { return route(r.getUrl()); }
             @SuppressWarnings("deprecation")
             @Override public boolean shouldOverrideUrlLoading(WebView v, String url) { return route(Uri.parse(url)); }
-            @Override public void onPageStarted(WebView v, String url, Bitmap icon) { inject(); }
             @Override public void onPageFinished(WebView v, String url) { inject(); }
             @Override public void onReceivedError(WebView v, WebResourceRequest r, WebResourceError e) {
                 if (r.isForMainFrame()) showOffline();
