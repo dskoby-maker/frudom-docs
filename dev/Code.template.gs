@@ -48,6 +48,22 @@ const S = {
     ['id','Пользователь'],['data','Настройки (JSON, не редактировать)'],['updated','Изменено']]},
   events: { title: 'События', key: null, cols: [
     ['at','Время'],['user','Пользователь'],['action','Действие'],['text','Описание'],['docId','ID документа']]},
+  /* склад: см. раздел «СКЛАД» ниже. Пишется только действием stock */
+  sunits: { title: 'Склад: единицы', key: 'id', cols: [['name','Единица'],['by','Кто добавил'],['at','Когда'],['id','ID (не менять)'],['op','Операция']]},
+  sitems: { title: 'Склад: товары', key: 'id', cols: [
+    ['name','Товар на складе'],['alt','Другие названия'],['unit','Основная единица'],['note','Комментарий к товару'],['linkNames','Позиции в документах'],['id','ID (не менять)'],['links','ID позиций (не редактировать)'],['by','Кто добавил'],['at','Когда'],['op','Операция']]},
+  sbatches: { title: 'Склад: партии', key: 'id', cols: [
+    ['itemName','Товар'],['name','Партия'],['date','Дата приёмки'],['qty','Количество'],['unit','Ед.'],['price','Закупочная цена за ед.'],['supplier','Поставщик'],['docRef','Входящий документ'],['exp','Годен до'],['kind','Вид'],['id','ID (не менять)'],['itemId','ID товара'],['parent','Из партии'],['by','Кто'],['at','Когда'],['op','Операция']]},
+  smoves: { title: 'Склад: движения', key: 'id', cols: [
+    ['at','Когда'],['by','Кто'],['typeName','Операция'],['itemName','Товар'],['qty','Количество'],['unit','Ед.'],['cost','Себестоимость за ед.'],['price','Цена продажи за ед.'],['doc','Документ'],['party','Контрагент'],['reason','Причина'],['id','ID (не менять)'],['type','Код операции'],['itemId','ID товара'],['batchId','ID партии'],['docId','ID документа'],['lineId','ID строки'],['op','Операция']]},
+  sres: { title: 'Склад: резервы', key: 'id', cols: [
+    ['doc','Документ'],['itemName','Товар'],['qty','Количество'],['unit','Ед.'],['id','ID (не менять)'],['docId','ID документа'],['lineId','ID строки'],['itemId','ID товара'],['batchId','ID партии'],['at','Когда'],['op','Операция']]},
+  sfiles: { title: 'Склад: декларации', key: 'id', cols: [
+    ['name','Файл'],['itemName','Товар'],['batchName','Партия'],['by','Кто'],['at','Когда'],['mime','Тип'],['size','Размер'],['id','ID (не менять)'],['itemId','ID товара'],['batchId','ID партии'],['file','ID файла на Диске'],['op','Операция']]},
+  sacts: { title: 'Склад: инвентаризация', key: 'id', cols: [['at','Когда'],['by','Кто'],['diff','Расхождений'],['rows','Строки акта (не редактировать)'],['id','ID (не менять)'],['op','Операция']]},
+  slog: { title: 'Склад: история', key: 'id', cols: [
+    ['at','Когда'],['by','Кто'],['action','Действие'],['object','Объект'],['before','Было'],['after','Стало'],['reason','Причина'],['id','ID'],['docId','ID документа'],['batchId','ID партии'],['itemId','ID товара'],['op','Операция']]},
+  sops: { title: 'Склад: операции (служебный)', key: 'id', cols: [['id','ID запроса'],['at','Когда'],['by','Кто'],['kind','Операция'],['status','Статус'],['data','Данные (не редактировать)']]},
   journal: { title: 'Журнал', key: 'id', cols: [
     ['date','Дата'],['number','Номер'],['supplierName','Поставщик'],['customerName','Заказчик'],['sum','Сумма'],
     ['updated','Изменён'],['id','ID'],['supplierId','ID поставщика'],['customerId','ID заказчика'],['snap','Данные документа (не редактировать)']]}
@@ -193,6 +209,7 @@ function handle_(p) {
     if (p.action === 'events')  { if (!me.admin) return { ok: false, error: 'forbidden' }; return { ok: true, events: readEvents_(+p.limit || 1000) }; }
     if (p.action === 'sync') { const g = guardChanges_(p.changes, p.base, p.protocol, me); if (g.error) return g; syncIn_(g.changes, me); return { ok: true, concurrency: 1, accepted: syncState_(g.changes, me) }; }
     if (p.action === 'plist')    { if (me.role === 'staff') return { ok: false, error: 'forbidden' }; return plist_(p, me); }
+    if (p.action === 'stock') return stock_(p, me);
     if (p.action === 'addPhoto') return addPhoto_(p, me);
     if (p.action === 'photo')    { const r = read_('taskphotos').find(x => x.id === String(p.id)); if (!r) return { ok: false, error: 'фото не найдено' };
       const b = DriveApp.getFileById(r.file).getBlob(); return { ok: true, data: 'data:' + (b.getContentType() || 'image/jpeg') + ';base64,' + Utilities.base64Encode(b.getBytes()) }; }
@@ -392,6 +409,7 @@ function applySync_(ch, me) {
     const sn = nameMap_('suppliers'), cn = nameMap_('customers');
     (ch.journal.upsert || []).forEach(o => { o.supplierName = sn[o.supplierId] || ''; o.customerName = cn[o.customerId] || ''; });
     upsertList_('journal', ch.journal);
+    stAfterDocs_((ch.journal.upsert || []).map(o => o.id).concat(ch.journal.del || []), me);   /* резерв склада по сохранённым накладным */
   }
   if (ch.daytasks) {
     const cn = nameMap_('customers'), was = {}; read_('daytasks').forEach(r => was[r.id] = r);
@@ -416,6 +434,435 @@ function applySync_(ch, me) {
   }
   if (me && ev.length) log_(me, ev);
 }
+
+
+/* ======================= СКЛАД =======================
+ * Один общий склад на всю команду. Все складские записи меняются ТОЛЬКО через действие «stock» (под блокировкой),
+ * универсальная синхронизация сайта их не трогает. Каждая операция — один запрос с постоянным номером (rid):
+ * повтор того же rid ничего не меняет второй раз.
+ * Надёжность: перед записью на несколько листов операция целиком (подготовленные строки) пишется в «Склад: операции»
+ * со статусом prep, потом строки ложатся на листы по постоянным ключам, потом статус done. Остатки и резервы считаются
+ * только по операциям done. Если скрипт оборвался посередине — следующий запрос допишет недостающее (stRepair_). */
+const ST_UNITS0 = ['кг', 'г', 'шт', 'л', 'упак', 'короб'];
+const ST_TYPES = { in: 'Приход', init: 'Начальный остаток', ship: 'Отгрузка', ret: 'Возврат', wo: 'Списание', inv: 'Инвентаризация', rwout: 'Перевзвешивание (из упаковок)', rwin: 'Перевзвешивание (в кг)', fix: 'Исправление прихода', close: 'Остаток закрыт', direct: 'Отгружено от Саида' };
+const ST_NOSTOCK = { close: 1, direct: 1 };   /* записи, которые не меняют остаток */
+const stN_ = v => String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
+const stK_ = v => stN_(v).toLowerCase().replace(/ё/g, 'е');
+const stR3_ = x => Math.round((+x || 0) * 1000) / 1000;
+const stR2_ = x => Math.round((+x || 0) * 100) / 100;
+const stD_ = iso => { const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? m[3] + '.' + m[2] + '.' + m[1].slice(2) : String(iso || ''); };
+const stQ_ = (q, u) => String(stR3_(q)).replace('.', ',') + ' ' + (u || '');
+function stParse_(s, d) { try { const v = JSON.parse(s || ''); return v == null ? d : v; } catch (e) { return d; } }
+
+function stDone_() { const d = {}; read_('sops').forEach(o => { if (o.status === 'done' && String(o.id).indexOf('#') < 0) d[o.id] = 1; }); return d; }
+function stRows_(t, done) { return read_(t).filter(r => !r.op || done[r.op]); }
+
+/* дописать операции, которые оборвались между записями на листы */
+function stRepair_() {
+  const ops = read_('sops'), prep = ops.filter(o => o.status === 'prep' && String(o.id).indexOf('#') < 0);
+  if (!prep.length) return 0;
+  prep.forEach(o => {
+    const parts = ops.filter(x => x.id === o.id || String(x.id).indexOf(o.id + '#') === 0).sort((a, b) => String(a.id).localeCompare(String(b.id)));
+    const W = stParse_(parts.map(x => x.data || '').join(''), null);
+    if (W) stApply_(W);
+    stMark_(o.id);
+  });
+  return prep.length;
+}
+function stMark_(rid) {
+  const rows = read_('sops'); let ch = false;
+  rows.forEach(r => { if (r.id === rid) { r.status = 'done'; r.data = ''; ch = true; } else if (String(r.id).indexOf(rid + '#') === 0) { r.status = 'done'; r.data = ''; ch = true; } });
+  const old = new Date(Date.now() - 45 * 86400000).toISOString();   /* номера старых операций держим 45 дней — этого хватает для безопасного повтора */
+  if (ch) write_('sops', rows.filter(r => !(String(r.id).indexOf(rid + '#') === 0) && !(r.status === 'done' && String(r.at) < old)));
+}
+/* запись подготовленных строк: новые — дописываются в конец листа, существующие — заменяются по ключу */
+function stApply_(W) {
+  Object.keys(W).forEach(t => {
+    const part = W[t] || {}, up = part.upsert || [], del = part.del || [];
+    if (!up.length && !del.length) return;
+    const have = {}; read_(t).forEach(r => have[r.id] = 1);
+    if (!del.length && up.every(o => !have[o.id])) {
+      const sh = sheet_(t), n = sh.getLastRow(), cols = S[t].cols;
+      const rng = sh.getRange(n + 1, 1, up.length, cols.length); rng.setNumberFormat('@');
+      rng.setValues(up.map(o => cols.map(c => o[c[0]] == null ? '' : String(o[c[0]]))));
+      delete MEMO_[t];
+    } else upsertList_(t, { upsert: up, del: del });
+  });
+}
+function stCommit_(rid, me, kind, W) {
+  Object.keys(W).forEach(t => (W[t].upsert || []).forEach(o => { o.op = rid; }));
+  const json = JSON.stringify(W), parts = [], N = 45000;
+  for (let i = 0; i < json.length; i += N) parts.push(json.slice(i, i + N));
+  const at = new Date().toISOString();
+  const rows = parts.map((d, i) => ({ id: i ? rid + '#' + ('00' + i).slice(-3) : rid, at: at, by: me.name, kind: kind, status: 'prep', data: d }));
+  const sh = sheet_('sops'), n = sh.getLastRow(), cols = S.sops.cols;
+  const rng = sh.getRange(n + 1, 1, rows.length, cols.length); rng.setNumberFormat('@');
+  rng.setValues(rows.map(o => cols.map(c => o[c[0]] == null ? '' : String(o[c[0]])))); delete MEMO_.sops;
+  stApply_(W);
+  stMark_(rid);
+  PropertiesService.getScriptProperties().setProperty('stockOn', '1');
+}
+
+/* текущее состояние склада (только завершённые операции) */
+function stCtx_() {
+  const done = stDone_(), c = { done: done };
+  ['sunits', 'sitems', 'sbatches', 'smoves', 'sres', 'sfiles', 'sacts'].forEach(t => c[t] = stRows_(t, done));
+  c.item = {}; c.sitems.forEach(i => c.item[i.id] = i);
+  c.batch = {}; c.sbatches.forEach(b => c.batch[b.id] = b);
+  c.link = {}; c.sitems.forEach(i => stParse_(i.links, []).forEach(pid => c.link[pid] = i.id));
+  c.fact = {}; c.smoves.forEach(m => { if (!ST_NOSTOCK[m.type]) c.fact[m.batchId] = stR3_((c.fact[m.batchId] || 0) + (+m.qty || 0)); });
+  c.resB = {}; c.sres.forEach(r => c.resB[r.batchId] = stR3_((c.resB[r.batchId] || 0) + (+r.qty || 0)));
+  return c;
+}
+function stState_(limitLog) {
+  const done = stDone_(), log = stRows_('slog', done);
+  return { units: stRows_('sunits', done), items: stRows_('sitems', done), batches: stRows_('sbatches', done), moves: stRows_('smoves', done),
+    res: stRows_('sres', done), files: stRows_('sfiles', done).map(f => { const x = Object.assign({}, f); delete x.file; return x; }), acts: stRows_('sacts', done),
+    log: log.slice(-(limitLog || 1500)), at: new Date().toISOString() };
+}
+const stUnitOk_ = u => !!stN_(u) && stN_(u).length <= 20;
+function stBatchSort_(a, b) { return String(a.date).localeCompare(String(b.date)) || String(a.at).localeCompare(String(b.at)) || String(a.id).localeCompare(String(b.id)); }
+function stBatchName_(c, itemId, date, skip) {
+  const same = c.sbatches.filter(b => b.itemId === itemId && b.date === date && b.id !== skip).length;
+  return 'Партия от ' + stD_(date) + (same ? ' №' + (same + 1) : '');
+}
+function stFree_(c, bid, exceptDoc) {
+  let r = 0; c.sres.forEach(x => { if (x.batchId === bid && x.docId !== exceptDoc) r += +x.qty || 0; });
+  return stR3_((c.fact[bid] || 0) - r);
+}
+/* корень цепочки перевзвешиваний: срок годности и декларации берутся у исходного прихода */
+function stRoot_(c, b) { let x = b, n = 0; while (x && x.parent && c.batch[x.parent] && n++ < 20) x = c.batch[x.parent]; return x || b; }
+
+/* ---------- строки накладной, которые берутся со склада ---------- */
+function stDocLines_(c, row) {
+  const sn = stParse_(row && row.snap, null); if (!sn || !sn.dr) return { sn: null, lines: [], arch: true };
+  const arch = !!(sn.meta && sn.meta.arch), out = [];
+  (sn.dr.lines || []).forEach((l, i) => {
+    if (!l.productId || !(+l.qty > 0)) return;
+    const lid = String(l.lid || ('i' + i + ':' + l.productId)), src = l.stk || {}, qty = stR3_(+l.qty), unit = stN_(((sn.prods || {})[l.productId] || {}).unit);
+    const req = src.m === 's' ? qty : src.m === 'x' ? Math.min(qty, Math.max(0, stR3_(+src.q || 0))) : 0;
+    out.push({ lid: lid, pid: l.productId, itemId: c.link[l.productId] || '', qty: qty, req: stR3_(req), unit: unit, price: +l.price || 0, name: String(l.name || ((sn.prods || {})[l.productId] || {}).name || ''), m: src.m || '' });
+  });
+  return { sn: sn, lines: out, arch: arch };
+}
+function stLineDone_(c, docId, lid) {
+  let shipped = 0, closed = 0, ret = 0;
+  c.smoves.forEach(m => { if (m.docId !== docId || m.lineId !== lid) return;
+    if (m.type === 'ship') shipped -= +m.qty || 0; else if (m.type === 'close') closed += +m.qty || 0; else if (m.type === 'ret') ret += +m.qty || 0; });
+  return { shipped: stR3_(shipped), closed: stR3_(closed), ret: stR3_(ret) };
+}
+/* пересчёт резерва одной накладной: старый резерв этой же накладной не считается занятым; партии — с самой ранней даты прихода */
+function stPlanDoc_(c, row, docId) {
+  const D = stDocLines_(c, row), rows = [], plan = [], at = new Date().toISOString();
+  const docLbl = row ? '№ ' + row.number + ' от ' + stD_(row.date) : '';
+  if (row && !D.arch) D.lines.forEach(L => {
+    if (!L.req || !L.itemId) return;
+    const dn = stLineDone_(c, docId, L.lid), need = stR3_(Math.max(0, L.req - dn.shipped - dn.closed));
+    let left = need; const uk = stK_(L.unit);
+    c.sbatches.filter(b => b.itemId === L.itemId && stK_(b.unit) === uk).sort(stBatchSort_).forEach(b => {
+      if (left <= 0) return; const free = stFree_(c, b.id, docId) - rows.filter(r => r.batchId === b.id).reduce((a, r) => a + r.qty, 0);
+      const q = stR3_(Math.min(left, Math.max(0, free))); if (q <= 0) return; left = stR3_(left - q);
+      rows.push({ id: docId + '|' + L.lid + '|' + b.id, docId: docId, lineId: L.lid, itemId: L.itemId, batchId: b.id, qty: q, unit: b.unit, doc: docLbl, itemName: (c.item[L.itemId] || {}).name || '', at: at });
+    });
+    const sameUnit = c.sbatches.some(b => b.itemId === L.itemId && stK_(b.unit) === uk);
+    plan.push({ lid: L.lid, itemId: L.itemId, name: L.name, need: need, got: stR3_(need - left), short: stR3_(left), unit: L.unit, unitMiss: !sameUnit });
+  });
+  return { rows: rows, plan: plan, docLbl: docLbl };
+}
+function stResSum_(list) { const m = {}; list.forEach(r => { const k = r.lineId; m[k] = stR3_((m[k] || 0) + (+r.qty || 0)); }); return m; }
+/* резерв по списку накладных: возвращает подготовленные изменения листов */
+function stReserveW_(c, me, ids, rid, reason) {
+  const W = { sres: { upsert: [], del: [] }, slog: { upsert: [] } }, journal = {}, at = new Date().toISOString();
+  read_('journal').forEach(r => { if (ids.indexOf(r.id) >= 0) journal[r.id] = r; });
+  let n = 0;
+  ids.forEach(docId => {
+    const old = c.sres.filter(r => r.docId === docId);
+    const P = stPlanDoc_(c, journal[docId], docId), keep = {};
+    P.rows.forEach(r => { keep[r.id] = 1; const o = old.find(x => x.id === r.id); if (!o || +o.qty !== +r.qty) W.sres.upsert.push(r); });
+    old.forEach(o => { if (!keep[o.id]) W.sres.del.push(o.id); });
+    /* применяем к контексту — следующая накладная в этом же запросе видит занятое */
+    c.sres = c.sres.filter(r => r.docId !== docId).concat(P.rows);
+    const a = stResSum_(old), b = stResSum_(P.rows);
+    P.plan.forEach(L => {
+      const was = a[L.lid] || 0, now = b[L.lid] || 0; if (was === now && !L.short) return; if (was === now && reason !== 'manual') return;
+      W.slog.upsert.push({ id: rid + ':L' + (n++), at: at, by: me.name, action: L.short ? 'Резерв с нехваткой' : 'Резерв', object: P.docLbl + ' — ' + ((c.item[L.itemId] || {}).name || L.name),
+        before: was ? stQ_(was, L.unit) : '—', after: stQ_(now, L.unit) + (L.short ? ' (нехватка ' + stQ_(L.short, L.unit) + ')' : ''), reason: reason === 'manual' ? 'обновлён вручную' : '', docId: docId, itemId: L.itemId });
+    });
+    const gone = Object.keys(a).filter(k => !P.plan.some(L => L.lid === k));
+    if (gone.length) W.slog.upsert.push({ id: rid + ':L' + (n++), at: at, by: me.name, action: 'Резерв снят', object: P.docLbl || 'накладная', before: gone.length + ' поз.', after: '—', reason: journal[docId] ? (stDocLines_(c, journal[docId]).arch ? 'документ в архиве' : 'источник «От Саида» или строка убрана') : 'документ удалён', docId: docId });
+  });
+  return W;
+}
+/* после сохранения накладных (любой путь: документ, заявка, комплект, импорт, синхронизация без связи) — обновить их резерв */
+function stAfterDocs_(ids, me) {
+  if (!ids || !ids.length) return;
+  if (PropertiesService.getScriptProperties().getProperty('stockOn') !== '1') return;
+  try {
+    /* быстро: склад трогаем, только если у накладной есть складские строки или уже был резерв */
+    const has = {}; read_('sres').forEach(r => has[r.docId] = 1); const jr = {}; read_('journal').forEach(r => jr[r.id] = r);
+    const want = ids.filter(id => has[id] || (jr[id] && /"m":"[sx]"/.test(String(jr[id].snap || ''))));
+    if (!want.length) return;
+    stRepair_(); const c = stCtx_();
+    const rid = 'auto' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), W = stReserveW_(c, me || { name: 'система' }, want, rid, 'doc');
+    if (W.sres.upsert.length || W.sres.del.length || W.slog.upsert.length) stCommit_(rid, me || { name: 'система' }, 'reserve', W);
+  } catch (e) { /* склад не должен ломать сохранение документов */ }
+}
+
+/* ---------- папка деклараций (закрытая, как фото задач) ---------- */
+function stFolder_() {
+  const pr = PropertiesService.getScriptProperties(), id = pr.getProperty('stockFolder');
+  if (id) { try { const f = DriveApp.getFolderById(id); if (!f.isTrashed()) return f; } catch (x) {} }
+  const f = DriveApp.createFolder('Документы ФД — склад, декларации'); pr.setProperty('stockFolder', f.getId()); return f;
+}
+const ST_MIME = { 'application/pdf': 1, 'image/jpeg': 1, 'image/png': 1, 'image/webp': 1, 'image/heic': 1, 'image/heif': 1, 'image/gif': 1,
+  'application/msword': 1, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 1, 'application/vnd.ms-excel': 1, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 1, 'text/plain': 1 };
+const ST_FILE_MAX = 20 * 1024 * 1024;
+
+/* ---------- операции ---------- */
+function stock_(p, me) {
+  stRepair_();
+  const op = String(p.op || 'load'), d = p.d || {};
+  if (op === 'load') return { ok: true, stock: stState_() };
+  if (op === 'fileGet') {
+    const f = read_('sfiles').find(x => x.id === String(d.id || '')); if (!f) return { ok: false, error: 'файл не найден' };
+    const b = DriveApp.getFileById(f.file).getBlob();
+    return { ok: true, name: f.name, mime: f.mime || b.getContentType(), data: Utilities.base64Encode(b.getBytes()) };
+  }
+  const rid = String(p.rid || '');
+  if (!/^[\w\-]{6,80}$/.test(rid)) return { ok: false, error: 'нет номера операции — обновите страницу' };
+  const was = read_('sops').find(o => o.id === rid);
+  if (was && was.status === 'done') return { ok: true, dup: true, stock: stState_() };
+  const fn = ST_OPS[op]; if (!fn) return { ok: false, error: 'unknown action' };
+  const c = stCtx_(); let r;
+  try { r = fn(d, me, c, rid); } catch (e) { return { ok: false, error: e.message || String(e) }; }
+  if (r && r.code) return { ok: false, error: r.error, code: r.code, info: r.info || null };
+  stCommit_(rid, me, op, r.W);
+  return { ok: true, stock: stState_(), out: r.out || null };
+}
+function stErr_(t) { throw new Error(t); }
+function stLog_(W, rid, me, n, o) { (W.slog = W.slog || { upsert: [] }).upsert.push(Object.assign({ id: rid + ':L' + n, at: new Date().toISOString(), by: me.name }, o)); }
+function stQty_(q, unit) {
+  q = +String(q).replace(',', '.'); if (!(q > 0) || !isFinite(q)) stErr_('Количество должно быть больше нуля');
+  if (stK_(unit) === 'шт' && Math.round(q) !== q) stErr_('Штуки — только целым числом');
+  return stR3_(q);
+}
+function stPrice_(v) { if (v === '' || v == null) return ''; const x = +String(v).replace(',', '.'); if (!(x >= 0) || !isFinite(x)) stErr_('Неверная цена'); return String(stR2_(x)); }
+function stDate_(v, what) { const s = String(v || ''); if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) stErr_('Укажите ' + what); return s; }
+function stUnit_(c, W, rid, me, u, n) {
+  const k = stK_(u); if (!stUnitOk_(u)) stErr_('Укажите единицу измерения');
+  const known = ST_UNITS0.concat(c.sunits.map(x => x.name)).find(x => stK_(x) === k);
+  if (known) return known;
+  const name = stN_(u); (W.sunits = W.sunits || { upsert: [] }).upsert.push({ id: rid + ':u', name: name, by: me.name, at: new Date().toISOString() });
+  c.sunits.push({ name: name }); stLog_(W, rid, me, 'u' + (n || ''), { action: 'Новая единица', object: name, after: name });
+  return name;
+}
+function stItemByName_(c, name) { const k = stK_(name); return c.sitems.find(i => stK_(i.name) === k) || null; }
+function stDocRow_(id) { return read_('journal').find(r => r.id === id) || null; }
+
+const ST_OPS = {
+  /* новый складской товар или правка: название, другие названия, комментарий, основная единица, связи с позициями документов */
+  item: function (d, me, c, rid) {
+    const W = { sitems: { upsert: [] } }, at = new Date().toISOString(); let n = 0;
+    let it = d.itemId ? c.item[d.itemId] : null; if (d.itemId && !it) stErr_('Товар склада не найден — обновите страницу');
+    const isNew = !it; it = it ? Object.assign({}, it) : { id: rid + ':i', name: '', alt: '', unit: 'кг', note: '', links: '[]', by: me.name, at: at };
+    const was = Object.assign({}, it);
+    if (d.name != null) { const nm = stN_(d.name); if (!nm) stErr_('Укажите название товара');
+      const dup = stItemByName_(c, nm); if (dup && dup.id !== it.id) stErr_('Такой товар уже есть на складе: «' + dup.name + '»'); it.name = nm; }
+    if (isNew && !it.name) stErr_('Укажите название товара');
+    if (d.alt != null) it.alt = (Array.isArray(d.alt) ? d.alt : String(d.alt).split(/[;\n]/)).map(stN_).filter(Boolean).filter((x, i, a) => a.findIndex(y => stK_(y) === stK_(x)) === i).join('; ');
+    if (d.note != null) it.note = String(d.note).slice(0, 2000).trim();
+    if (d.unit != null) it.unit = stUnit_(c, W, rid, me, d.unit);
+    if (d.links != null) {
+      const L = (Array.isArray(d.links) ? d.links : []).map(String).filter(Boolean).filter((x, i, a) => a.indexOf(x) === i);
+      L.forEach(pid => { const other = c.link[pid]; if (other && other !== it.id) {   /* позиция была связана с другим товаром — переносим явно */
+        const o = Object.assign({}, c.item[other]); o.links = JSON.stringify(stParse_(o.links, []).filter(x => x !== pid)); W.sitems.upsert.push(o);
+        stLog_(W, rid, me, n++, { action: 'Связь перенесена', object: o.name, before: pid, after: '→ ' + (it.name || 'новый товар'), itemId: o.id }); } });
+      it.links = JSON.stringify(L);
+      const pn = nameMap_('products'); it.linkNames = L.map(x => pn[x] || x).join('; ');
+    }
+    W.sitems.upsert.push(it);
+    const F = { name: 'Название', alt: 'Другие названия', note: 'Комментарий к товару', unit: 'Основная единица', linkNames: 'Связь с позициями документов' };
+    if (isNew) stLog_(W, rid, me, n++, { action: 'Новый товар склада', object: it.name, after: it.name, itemId: it.id });
+    else Object.keys(F).forEach(k => { if (String(was[k] || '') !== String(it[k] || '')) stLog_(W, rid, me, n++, { action: F[k], object: it.name, before: String(was[k] || '—'), after: String(it[k] || '—'), itemId: it.id }); });
+    return { W: W, out: { itemId: it.id } };
+  },
+  unit: function (d, me, c, rid) { const W = {}; const u = stUnit_(c, W, rid, me, d.name); if (!W.sunits) stErr_('Единица «' + u + '» уже есть'); return { W: W, out: { unit: u } }; },
+  /* приход и начальный остаток: отдельная партия на каждый приход */
+  in: function (d, me, c, rid) {
+    const W = { sbatches: { upsert: [] }, smoves: { upsert: [] } }, at = new Date().toISOString(), kind = d.kind === 'init' ? 'init' : 'in';
+    let it = d.itemId ? c.item[d.itemId] : null;
+    if (d.itemId && !it) stErr_('Товар склада не найден — обновите страницу');
+    if (!it) { const nm = stN_(d.newName); if (!nm) stErr_('Укажите товар'); it = stItemByName_(c, nm);
+      if (!it) { it = { id: rid + ':i', name: nm, alt: '', unit: stN_(d.unit) || 'кг', note: '', links: '[]', by: me.name, at: at };
+        (W.sitems = { upsert: [it] }); c.sitems.push(it); c.item[it.id] = it; stLog_(W, rid, me, 'i', { action: 'Новый товар склада', object: nm, after: nm, itemId: it.id }); } }
+    const unit = stUnit_(c, W, rid, me, d.unit), qty = stQty_(d.qty, unit), price = stPrice_(d.price), date = stDate_(d.date, 'дату приёмки');
+    const exp = d.exp ? stDate_(d.exp, 'срок годности') : ''; if (exp && exp < date) stErr_('Срок годности не может быть раньше даты приёмки');
+    const supplier = stN_(d.supplier).slice(0, 120), docRef = stN_(d.docRef).slice(0, 200);
+    if (!d.force) {
+      const sim = c.sbatches.find(b => b.itemId === it.id && stK_(b.supplier) === stK_(supplier) && (docRef ? stK_(b.docRef) === stK_(docRef) : (b.date === date && +b.qty === qty)));
+      if (sim) return { code: 'similar', error: 'Похожий приход уже есть: ' + sim.name + ', ' + stQ_(sim.qty, sim.unit) + (sim.docRef ? ', документ «' + sim.docRef + '»' : ''), info: { batchId: sim.id } };
+    }
+    const b = { id: rid + ':b', itemId: it.id, itemName: it.name, name: stBatchName_(c, it.id, date), date: date, qty: qty, unit: unit, price: price, supplier: supplier, docRef: docRef, exp: exp, kind: kind, parent: '', by: me.name, at: at };
+    W.sbatches.upsert.push(b);
+    W.smoves.upsert.push({ id: rid + ':m', at: at, by: me.name, type: kind, typeName: ST_TYPES[kind], itemId: it.id, itemName: it.name, batchId: b.id, qty: qty, unit: unit, cost: price, party: supplier, doc: docRef });
+    stLog_(W, rid, me, 0, { action: ST_TYPES[kind], object: it.name + ' — ' + b.name, after: stQ_(qty, unit) + (price !== '' ? ' по ' + price + ' ₽' : ' (цена не указана)'), reason: docRef ? 'документ: ' + docRef : '', batchId: b.id, itemId: it.id });
+    return { W: W, out: { batchId: b.id, itemId: it.id } };
+  },
+  /* правка партии: цена (к текущему остатку), срок, документ, поставщик, количество прихода (компенсирующим движением) */
+  batch: function (d, me, c, rid) {
+    const b0 = c.batch[d.batchId]; if (!b0) stErr_('Партия не найдена — обновите страницу');
+    const b = Object.assign({}, b0), W = { sbatches: { upsert: [b] } }, it = c.item[b.itemId] || {}, at = new Date().toISOString(); let n = 0;
+    const L = (a, bf, af, extra) => stLog_(W, rid, me, n++, Object.assign({ action: a, object: (it.name || '') + ' — ' + b.name, before: bf, after: af, batchId: b.id, itemId: b.itemId }, extra || {}));
+    if (d.price != null && String(stPrice_(d.price)) !== String(b0.price || '')) {
+      if (lim_(me)) stErr_('Цену партии меняет Даниил, Наталья или Склад');
+      b.price = stPrice_(d.price); L('Закупочная цена партии', b0.price !== '' ? b0.price + ' ₽' : 'не указана', b.price !== '' ? b.price + ' ₽' : 'не указана', { reason: 'к текущему остатку; себестоимость прошлых отгрузок не меняется' }); }
+    if (d.exp != null) { const root = stRoot_(c, b0); const tgt = root.id === b.id ? b : Object.assign({}, root);
+      const e = d.exp ? stDate_(d.exp, 'срок годности') : ''; if (e && e < tgt.date) stErr_('Срок годности не может быть раньше даты приёмки (' + stD_(tgt.date) + ')');
+      if (String(tgt.exp || '') !== e) { const old = tgt.exp; tgt.exp = e; if (tgt !== b) W.sbatches.upsert.push(tgt);
+        stLog_(W, rid, me, n++, { action: 'Срок годности', object: (it.name || '') + ' — ' + tgt.name, before: old ? stD_(old) : 'не указан', after: e ? stD_(e) : 'не указан', batchId: tgt.id, itemId: b.itemId }); } }
+    if (d.docRef != null && stN_(d.docRef) !== String(b0.docRef || '')) { b.docRef = stN_(d.docRef).slice(0, 200); L('Входящий документ', b0.docRef || '—', b.docRef || '—'); }
+    if (d.supplier != null && stN_(d.supplier) !== String(b0.supplier || '')) { b.supplier = stN_(d.supplier).slice(0, 120); L('Поставщик партии', b0.supplier || '—', b.supplier || '—'); }
+    if (d.qty != null && stR3_(+String(d.qty).replace(',', '.')) !== stR3_(b0.qty)) {
+      if (b0.kind === 'rw') stErr_('Количество перевзвешенной партии не правится — сделайте инвентаризацию');
+      const nq = +String(d.qty).replace(',', '.'); if (!(nq >= 0)) stErr_('Неверное количество');
+      if (stK_(b0.unit) === 'шт' && Math.round(nq) !== nq) stErr_('Штуки — только целым числом');
+      const delta = stR3_(nq - (+b0.qty || 0)), fact = c.fact[b0.id] || 0, res = c.resB[b0.id] || 0;
+      if (fact + delta < res - 0.0005) stErr_('Нельзя уменьшить приход: из партии уже зарезервировано ' + stQ_(res, b0.unit) + ', на складе ' + stQ_(fact, b0.unit) + '. Сначала снимите резерв.');
+      if (fact + delta < -0.0005) stErr_('Нельзя уменьшить приход ниже уже отгруженного: на складе осталось ' + stQ_(fact, b0.unit));
+      if (!d.reason) stErr_('Укажите причину исправления');
+      b.qty = stR3_(nq);
+      W.smoves = { upsert: [{ id: rid + ':m', at: at, by: me.name, type: 'fix', typeName: ST_TYPES.fix, itemId: b.itemId, itemName: it.name, batchId: b.id, qty: delta, unit: b.unit, cost: b.price, reason: stN_(d.reason) }] };
+      L('Исправление прихода', stQ_(b0.qty, b0.unit), stQ_(nq, b0.unit), { reason: stN_(d.reason) });
+    }
+    if (!n) stErr_('Нечего сохранять — ничего не изменилось');
+    return { W: W };
+  },
+  /* ручное списание — с причиной и в пределах свободного остатка */
+  wo: function (d, me, c, rid) {
+    const b = c.batch[d.batchId]; if (!b) stErr_('Партия не найдена'); const it = c.item[b.itemId] || {};
+    const q = stQty_(d.qty, b.unit), reason = stN_(d.reason); if (!reason) stErr_('Укажите причину списания');
+    const free = stFree_(c, b.id); if (q > free + 0.0005) stErr_('Свободно только ' + stQ_(free, b.unit) + ' (остальное в резерве)');
+    const at = new Date().toISOString(), W = { smoves: { upsert: [{ id: rid + ':m', at: at, by: me.name, type: 'wo', typeName: ST_TYPES.wo, itemId: b.itemId, itemName: it.name, batchId: b.id, qty: -q, unit: b.unit, cost: b.price, reason: reason }] } };
+    stLog_(W, rid, me, 0, { action: 'Списание', object: it.name + ' — ' + b.name, before: stQ_(c.fact[b.id] || 0, b.unit), after: stQ_((c.fact[b.id] || 0) - q, b.unit), reason: reason, batchId: b.id, itemId: b.itemId });
+    return { W: W };
+  },
+  /* инвентаризация: пустая строка — пропуск, ноль — введённый факт; проводится только разница; акт сохраняется всегда */
+  inv: function (d, me, c, rid) {
+    const rows = (d.rows || []).filter(r => r && r.fact !== '' && r.fact != null), at = new Date().toISOString();
+    if (!rows.length) stErr_('Впишите фактическое количество хотя бы по одной партии');
+    const W = { smoves: { upsert: [] }, sacts: { upsert: [] } }, act = [], bad = []; let n = 0, diffN = 0;
+    rows.forEach(r => { const b = c.batch[r.batchId]; if (!b) stErr_('Партия не найдена — обновите страницу');
+      const f = +String(r.fact).replace(',', '.'); if (!(f >= 0) || !isFinite(f)) stErr_('Неверный факт: ' + b.name);
+      if (stK_(b.unit) === 'шт' && Math.round(f) !== f) stErr_('Штуки — только целым числом: ' + b.name);
+      const fact = c.fact[b.id] || 0, res = c.resB[b.id] || 0, it = c.item[b.itemId] || {};
+      if (f < res - 0.0005) bad.push(it.name + ' — ' + b.name + ': факт ' + stQ_(f, b.unit) + ' меньше резерва ' + stQ_(res, b.unit));
+      const diff = stR3_(f - fact); act.push({ batchId: b.id, item: it.name, batch: b.name, unit: b.unit, was: fact, fact: stR3_(f), diff: diff });
+      if (diff) { diffN++; W.smoves.upsert.push({ id: rid + ':m' + (n++), at: at, by: me.name, type: 'inv', typeName: ST_TYPES.inv, itemId: b.itemId, itemName: it.name, batchId: b.id, qty: diff, unit: b.unit, cost: b.price, reason: 'акт ' + stD_(at.slice(0, 10)), doc: rid }); } });
+    if (bad.length) return { code: 'reserve', error: 'Факт меньше резерва — сначала разберитесь с резервом: ' + bad.join('; '), info: { bad: bad } };
+    W.sacts.upsert.push({ id: rid, at: at, by: me.name, diff: String(diffN), rows: JSON.stringify(act).slice(0, 49000) });
+    stLog_(W, rid, me, 0, { action: 'Инвентаризация', object: act.length + ' парт.', after: diffN ? 'расхождений: ' + diffN : 'расхождений нет', reason: stN_(d.note) });
+    return { W: W, out: { diffN: diffN } };
+  },
+  /* перевзвешивание свободных упаковок в кг: стоимость переходит в новую связанную партию */
+  rw: function (d, me, c, rid) {
+    const b = c.batch[d.batchId]; if (!b) stErr_('Партия не найдена'); if (stK_(b.unit) === 'кг') stErr_('Партия уже в килограммах');
+    const it = c.item[b.itemId] || {}, n = stQty_(d.n, b.unit), kg = stQty_(d.kg, 'кг'), free = stFree_(c, b.id);
+    if (n > free + 0.0005) stErr_('Свободно только ' + stQ_(free, b.unit) + ' — зарезервированные упаковки не перевзвешиваются');
+    const at = new Date().toISOString(), price = b.price !== '' && b.price != null ? String(stR2_(n * (+b.price) / kg)) : '';
+    const nb = { id: rid + ':b', itemId: b.itemId, itemName: it.name, name: 'Перевзвешено из «' + b.name + '»', date: b.date, qty: kg, unit: 'кг', price: price, supplier: b.supplier, docRef: b.docRef, exp: '', kind: 'rw', parent: b.id, by: me.name, at: at };
+    const W = { sbatches: { upsert: [nb] }, smoves: { upsert: [
+      { id: rid + ':m1', at: at, by: me.name, type: 'rwout', typeName: ST_TYPES.rwout, itemId: b.itemId, itemName: it.name, batchId: b.id, qty: -n, unit: b.unit, cost: b.price, reason: 'перевзвешено: ' + stQ_(kg, 'кг') },
+      { id: rid + ':m2', at: at, by: me.name, type: 'rwin', typeName: ST_TYPES.rwin, itemId: b.itemId, itemName: it.name, batchId: nb.id, qty: kg, unit: 'кг', cost: price, reason: 'из ' + stQ_(n, b.unit) } ] } };
+    stLog_(W, rid, me, 0, { action: 'Перевзвешивание', object: it.name + ' — ' + b.name, before: stQ_(n, b.unit), after: stQ_(kg, 'кг') + (price ? ' по ' + price + ' ₽/кг' : ''), batchId: nb.id, itemId: b.itemId });
+    return { W: W, out: { batchId: nb.id } };
+  },
+  /* явное обновление резерва накладной (например, после нового прихода) */
+  reserve: function (d, me, c, rid) {
+    const row = stDocRow_(String(d.docId || '')); if (!row) stErr_('Накладная не найдена — возможно, ещё не сохранена в таблицу');
+    const W = stReserveW_(c, me, [row.id], rid, 'manual');
+    if (!W.slog.upsert.length) stLog_(W, rid, me, 'x', { action: 'Резерв проверен', object: '№ ' + row.number + ' от ' + stD_(row.date), after: 'без изменений', docId: row.id });
+    return { W: W };
+  },
+  /* фактическая отгрузка: складская часть списывается только в пределах резерва; резерв снимается */
+  ship: function (d, me, c, rid) {
+    const row = stDocRow_(String(d.docId || '')); if (!row) stErr_('Накладная не найдена в таблице');
+    const D = stDocLines_(c, row); if (D.arch) stErr_('Накладная в архиве');
+    const at = new Date().toISOString(), W = { smoves: { upsert: [] }, sres: { upsert: [], del: [] } }, lbl = '№ ' + row.number + ' от ' + stD_(row.date), party = (D.sn.c && D.sn.c.name) || row.customerName || '';
+    let n = 0, any = 0; const want = {}; (d.lines || []).forEach(x => want[x.lineId] = x);
+    D.lines.forEach(L => {
+      const w = want[L.lid]; if (!w) return;
+      const q = w.qty === '' || w.qty == null ? 0 : stR3_(+String(w.qty).replace(',', '.')); if (q < 0) stErr_('Неверное количество');
+      if (q > 0) {
+        if (!L.itemId) stErr_('«' + L.name + '» не связан со складским товаром');
+        const R = c.sres.filter(r => r.docId === row.id && r.lineId === L.lid).sort((a, b) => stBatchSort_(c.batch[a.batchId] || {}, c.batch[b.batchId] || {}));
+        const tot = R.reduce((a, r) => a + (+r.qty || 0), 0);
+        if (q > tot + 0.0005) stErr_('«' + L.name + '»: в резерве только ' + stQ_(tot, L.unit) + ' — со склада можно отгрузить не больше резерва');
+        let left = q;
+        R.forEach(r => { if (left <= 0) return; const b = c.batch[r.batchId] || {}, t = stR3_(Math.min(left, +r.qty)); left = stR3_(left - t);
+          W.smoves.upsert.push({ id: rid + ':m' + (n++), at: at, by: me.name, type: 'ship', typeName: ST_TYPES.ship, itemId: L.itemId, itemName: (c.item[L.itemId] || {}).name || '', batchId: r.batchId, qty: -t, unit: b.unit || L.unit, cost: b.price, price: String(L.price), doc: lbl, party: party, docId: row.id, lineId: L.lid });
+          const rest = stR3_(+r.qty - t); if (rest > 0) W.sres.upsert.push(Object.assign({}, r, { qty: rest, at: at })); else W.sres.del.push(r.id); });
+        any++;
+      }
+      const dq = w.direct === '' || w.direct == null ? 0 : stR3_(+String(w.direct).replace(',', '.'));
+      if (dq > 0) { W.smoves.upsert.push({ id: rid + ':d' + (n++), at: at, by: me.name, type: 'direct', typeName: ST_TYPES.direct, itemId: L.itemId, itemName: (c.item[L.itemId] || {}).name || L.name, batchId: '', qty: dq, unit: L.unit, price: String(L.price), doc: lbl, party: party, docId: row.id, lineId: L.lid }); any++; }
+    });
+    if (!any) stErr_('Укажите, сколько отгружено');
+    const st = W.smoves.upsert.filter(m => m.type === 'ship'), dr = W.smoves.upsert.filter(m => m.type === 'direct');
+    stLog_(W, rid, me, 0, { action: 'Отгрузка', object: lbl + ' — ' + party, after: (st.length ? 'со склада: ' + st.map(m => m.itemName + ' ' + stQ_(-m.qty, m.unit)).join(', ') : '') + (dr.length ? (st.length ? '; ' : '') + 'от Саида: ' + dr.map(m => m.itemName + ' ' + stQ_(m.qty, m.unit)).join(', ') : ''), docId: row.id });
+    return { W: W };
+  },
+  /* закрыть недопоставку (остаток к допоставке) с причиной — резерв этой строки снимается */
+  close: function (d, me, c, rid) {
+    const row = stDocRow_(String(d.docId || '')); if (!row) stErr_('Накладная не найдена'); const reason = stN_(d.reason); if (!reason) stErr_('Укажите причину');
+    const D = stDocLines_(c, row), at = new Date().toISOString(), W = { smoves: { upsert: [] }, sres: { upsert: [], del: [] } }, lbl = '№ ' + row.number + ' от ' + stD_(row.date); let n = 0;
+    D.lines.filter(L => L.req && L.itemId && (!d.lineId || d.lineId === L.lid)).forEach(L => {
+      const dn = stLineDone_(c, row.id, L.lid), need = stR3_(L.req - dn.shipped - dn.closed); if (need <= 0) return;
+      W.smoves.upsert.push({ id: rid + ':m' + (n++), at: at, by: me.name, type: 'close', typeName: ST_TYPES.close, itemId: L.itemId, itemName: (c.item[L.itemId] || {}).name || '', batchId: '', qty: need, unit: L.unit, doc: lbl, docId: row.id, lineId: L.lid, reason: reason });
+      c.sres.filter(r => r.docId === row.id && r.lineId === L.lid).forEach(r => W.sres.del.push(r.id));
+      stLog_(W, rid, me, n, { action: 'Остаток закрыт', object: lbl + ' — ' + ((c.item[L.itemId] || {}).name || L.name), before: stQ_(need, L.unit) + ' к допоставке', after: '—', reason: reason, docId: row.id, itemId: L.itemId });
+    });
+    if (!n) stErr_('Закрывать нечего — всё отгружено');
+    return { W: W };
+  },
+  /* возврат: по исходным партиям и себестоимости, в пределах отгруженного и ещё не возвращённого */
+  ret: function (d, me, c, rid) {
+    const row = stDocRow_(String(d.docId || '')); if (!row) stErr_('Накладная не найдена');
+    const lid = String(d.lineId || ''), lbl = '№ ' + row.number + ' от ' + stD_(row.date), at = new Date().toISOString();
+    const ships = c.smoves.filter(m => m.docId === row.id && m.lineId === lid && m.type === 'ship'); if (!ships.length) stErr_('По этой строке со склада ничего не отгружалось');
+    const unit = ships[0].unit, q = stQty_(d.qty, unit), byB = {};
+    ships.forEach(m => { const x = byB[m.batchId] = byB[m.batchId] || { out: 0, back: 0, cost: m.cost, at: m.at }; x.out += -(+m.qty || 0); });
+    c.smoves.filter(m => m.docId === row.id && m.lineId === lid && m.type === 'ret').forEach(m => { if (byB[m.batchId]) byB[m.batchId].back += +m.qty || 0; });
+    const can = stR3_(Object.keys(byB).reduce((a, k) => a + byB[k].out - byB[k].back, 0)); if (q > can + 0.0005) stErr_('Вернуть можно не больше ' + stQ_(can, unit));
+    const W = { smoves: { upsert: [] } }; let left = q, n = 0; const it = c.item[ships[0].itemId] || {};
+    Object.keys(byB).sort((a, b) => String(byB[b].at).localeCompare(String(byB[a].at))).forEach(bid => { if (left <= 0) return; const x = byB[bid], t = stR3_(Math.min(left, x.out - x.back)); if (t <= 0) return; left = stR3_(left - t);
+      W.smoves.upsert.push({ id: rid + ':m' + (n++), at: at, by: me.name, type: 'ret', typeName: ST_TYPES.ret, itemId: ships[0].itemId, itemName: it.name, batchId: bid, qty: t, unit: unit, cost: x.cost, doc: lbl, party: ships[0].party, docId: row.id, lineId: lid, reason: stN_(d.reason) }); });
+    stLog_(W, rid, me, 0, { action: 'Возврат', object: lbl + ' — ' + it.name, after: stQ_(q, unit), reason: stN_(d.reason), docId: row.id, itemId: ships[0].itemId });
+    return { W: W };
+  },
+  /* декларация: файл в закрытой папке Диска; повтор того же запроса находит уже загруженный файл по имени и не дублирует его */
+  file: function (d, me, c, rid) {
+    const it = c.item[d.itemId]; if (!it) stErr_('Товар склада не найден');
+    if (d.batchId && !c.batch[d.batchId]) stErr_('Партия не найдена');
+    const mime = String(d.mime || ''), name = stN_(d.name).replace(/[\\/:*?"<>|]+/g, ' ').slice(0, 150) || 'декларация';
+    if (!ST_MIME[mime]) stErr_('Такой тип файла не поддерживается. Можно PDF, фото (JPG, PNG, WEBP, HEIC), Word, Excel');
+    const data = String(d.data || ''); if (!data) stErr_('Пустой файл');
+    if (data.length * 0.75 > ST_FILE_MAX) stErr_('Файл больше 20 МБ');
+    const folder = stFolder_(), fname = rid + '__' + name; let file = null;
+    const it2 = folder.getFilesByName ? folder.getFilesByName(fname) : null; if (it2 && it2.hasNext()) file = it2.next();
+    if (!file) file = folder.createFile(Utilities.newBlob(Utilities.base64Decode(data), mime, fname));
+    const b = d.batchId ? c.batch[d.batchId] : null, at = new Date().toISOString();
+    const W = { sfiles: { upsert: [{ id: rid + ':f', name: name, itemName: it.name, batchName: b ? b.name : '(весь товар)', by: me.name, at: at, mime: mime, size: String(Math.round(data.length * 0.75)), itemId: it.id, batchId: b ? b.id : '', file: file.getId() }] } };
+    stLog_(W, rid, me, 0, { action: 'Декларация прикреплена', object: it.name + (b ? ' — ' + b.name : ' (весь товар)'), after: name, itemId: it.id, batchId: b ? b.id : '' });
+    return { W: W, out: { fileId: rid + ':f' } };
+  },
+  fileDel: function (d, me, c, rid) {
+    const f = c.sfiles.find(x => x.id === String(d.id || '')); if (!f) stErr_('Файл уже удалён');
+    if (me.role === 'staff' && f.by !== me.name) stErr_('Удалить чужой файл может только Даниил или Наталья');
+    try { DriveApp.getFileById(f.file).setTrashed(true); } catch (x) {}
+    const W = { sfiles: { del: [f.id] } }; stLog_(W, rid, me, 0, { action: 'Декларация удалена', object: f.itemName + (f.batchId ? ' — ' + f.batchName : ''), before: f.name, after: '—', itemId: f.itemId, batchId: f.batchId });
+    return { W: W };
+  }
+};
 
 /* ---------- журнал событий (лист «События») ---------- */
 function log_(me, list) {
@@ -450,7 +897,7 @@ function saveDoc_(e, me) {
     return { ok: true, conflict: true, next: max + 1 };
   }
   const was = rows.some(r => r.id === e.id);
-  applySync_({ journal: { upsert: [e] } });
+  applySync_({ journal: { upsert: [e] } }, me);
   if (me) { const cn = nameMap_('customers'); let k = {}; try { k = JSON.parse(e.snap || '{}'); } catch (x) {}
     const pt = k && k.dr && k.dr.ship ? ', ' + k.dr.ship : '', who = (k && k.c && k.c.name) || cn[e.customerId] || '';
     log_(me, [{ action: 'Документ', text: (was ? 'Изменён документ № ' : 'Создан документ № ') + e.number + ' от ' + String(e.date).split('-').reverse().join('.') + ' — ' + who + pt + ', сумма ' + Number(e.sum || 0).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' ₽' + (s ? ' (' + s.name + ')' : ''), docId: e.id }]); }

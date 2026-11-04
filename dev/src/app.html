@@ -249,6 +249,111 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .dcard .dzact{margin-top:10px;margin-bottom:0}
 #fd-app .dcard [data-zkc="toggle"].on{background:var(--accent-soft);color:var(--accent);border-color:rgba(106,44,78,.2)}
 @media(max-width:600px){#fd-app .dcard .dzs-sum{grid-template-columns:repeat(2,minmax(0,1fr))}#fd-app .dcard .dzr{grid-template-columns:minmax(0,1fr) 92px 38px}}
+/* ===== Склад ===== */
+#fd-app .skh{display:flex;align-items:center;gap:12px;flex-wrap:wrap}#fd-app .skh h2{margin:0}
+#fd-app .sksync{margin-left:auto;display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);background:rgba(255,255,255,.6);border:1px solid rgba(28,34,32,.07);padding:4px 10px;border-radius:99px}
+#fd-app .sksync:empty{display:none}#fd-app .sksync i{width:8px;height:8px;border-radius:50%;background:var(--muted)}#fd-app .sksync i.ok{background:var(--ok)}#fd-app .sksync i.w{background:var(--warn);animation:skpulse 1.2s ease infinite}
+#fd-app .sksync i.spin{width:11px;height:11px;border:2px solid rgba(106,44,78,.25);border-top-color:var(--accent);background:none;animation:fdspin .8s linear infinite}
+@keyframes skpulse{50%{opacity:.35}}
+#fd-app .skkpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0 4px}
+#fd-app .skk{position:relative;text-align:left;font:inherit;color:inherit;cursor:pointer;border-radius:14px;padding:12px 30px 12px 14px;background:rgba(255,255,255,.62);border:1px solid rgba(28,34,32,.07);box-shadow:inset 0 1px 0 rgba(255,255,255,.9);transition:transform .2s var(--ease,ease),box-shadow .2s,background .2s,border-color .2s;animation:fdglass .4s var(--ease,ease) backwards;min-width:0}
+#fd-app .skk:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 #fff,0 10px 20px -14px rgba(48,32,44,.35)}#fd-app .skk:active{transform:scale(.98)}
+#fd-app .skk small{display:block;color:var(--muted);font-size:12px}#fd-app .skk b{display:block;font-size:21px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#fd-app .skk span{display:block;font-size:11.5px;color:var(--muted);line-height:1.3}
+#fd-app .skk i{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-style:normal;color:var(--muted);font-size:20px;transition:transform .3s var(--ease,ease),color .2s}
+#fd-app .skk.on{background:linear-gradient(160deg,rgba(123,58,94,.14),rgba(106,44,78,.05));border-color:rgba(106,44,78,.2)}#fd-app .skk.on b{color:var(--accent)}#fd-app .skk.on i{transform:translateY(-50%) rotate(90deg);color:var(--accent)}
+#fd-app .skdet{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s var(--ease,ease)}#fd-app .skdet.open{grid-template-rows:1fr}#fd-app .skdet>*{overflow:hidden;min-height:0}
+#fd-app .skdetin{padding:10px 0 2px;animation:fdin .25s ease}
+#fd-app .skdl{display:grid;gap:6px}
+#fd-app .skdr{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;font:inherit;color:inherit;border-radius:12px;padding:9px 12px;background:rgba(255,255,255,.6);border:1px solid rgba(28,34,32,.06);cursor:pointer;transition:background .2s,transform .15s}
+#fd-app .skdr:hover{background:#fff}#fd-app .skdr b{font-size:14px}#fd-app .skdr span{font-size:12.5px;color:var(--muted)}#fd-app .skdr.bad{border-color:rgba(179,38,30,.25);background:rgba(253,236,234,.6)}
+#fd-app .skact{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+#fd-app .skpend{margin-top:12px;border-radius:12px;padding:10px 12px;background:var(--warn-soft);color:var(--warn);font-size:13px;display:grid;gap:4px}#fd-app .skpend small{display:block;color:var(--muted)}#fd-app .skpend .btn{justify-self:start;margin-top:4px}
+#fd-app .sksegs{position:relative;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:rgba(28,34,32,.06);border-radius:12px;padding:3px;margin-bottom:12px;isolation:isolate}
+#fd-app .sksegs>i{position:absolute;z-index:-1;top:3px;bottom:3px;left:3px;width:calc(25% - 1.5px);border-radius:9px;background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.12);transform:translateX(calc(var(--i,0)*100%));transition:transform .3s cubic-bezier(.3,.7,.2,1)}
+#fd-app .sksegs .ss{display:none}@media(max-width:700px){#fd-app .sksegs .sl{display:none}#fd-app .sksegs .ss{display:inline}}
+#fd-app .sksegs button{overflow:hidden;text-overflow:ellipsis;border:0;background:none;font:500 13px var(--ui);color:var(--muted);padding:7px 6px;border-radius:9px;cursor:pointer;white-space:nowrap;transition:color .2s}#fd-app .sksegs button.on{color:var(--accent);font-weight:600}
+#fd-app .sklist{display:grid;gap:6px;margin-top:8px}
+#fd-app .skrow{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1.2fr) auto;gap:12px;align-items:center;text-align:left;font:inherit;color:inherit;border-radius:14px;padding:11px 14px;background:rgba(255,255,255,.6);border:1px solid rgba(28,34,32,.06);cursor:pointer;transition:background .2s,box-shadow .2s,transform .15s;animation:fdin .3s ease backwards;animation-delay:var(--d,0ms)}
+#fd-app .skrow:hover{background:#fff;box-shadow:0 8px 18px -14px rgba(48,32,44,.4)}#fd-app .skrow:active{transform:scale(.995)}#fd-app .skrow.sm{grid-template-columns:minmax(0,1fr) auto}
+#fd-app .skn b{display:block;font-size:14.5px}#fd-app .skn small{display:block;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fd-app .sku{display:flex;flex-wrap:wrap;gap:4px 12px}#fd-app .skuq b{display:block;font-size:15px}#fd-app .skuq em{display:block;font-style:normal;font-size:11.5px;color:var(--muted)}
+#fd-app .skm{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+#fd-app .skexp{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;background:rgba(28,34,32,.06);color:var(--muted);white-space:nowrap}#fd-app .skexp.warn{background:var(--warn-soft);color:var(--warn)}#fd-app .skexp.bad{background:#fbe9e7;color:var(--err)}
+#fd-app .skf{font-size:12px;color:var(--muted)}
+#fd-app .skempty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:28px 10px;color:var(--muted)}#fd-app .skempty b{color:var(--ink);font-size:15px}
+#fd-app .sklog{display:grid;gap:2px}
+#fd-app .sklr{display:grid;grid-template-columns:150px minmax(0,1fr) 130px;gap:10px;align-items:start;padding:8px 6px;border-bottom:1px solid rgba(28,34,32,.06);font-size:13.5px;animation:fdin .25s ease backwards}
+#fd-app .sklr.pend{background:var(--warn-soft);border-radius:10px}
+#fd-app .skla{font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-soft);border-radius:99px;padding:2px 9px;justify-self:start}
+#fd-app .sklo b{display:block}#fd-app .sklo small,#fd-app .sklw small{display:block;font-size:12px;color:var(--muted)}#fd-app .sklw{text-align:right;font-size:12.5px}
+#fd-app .skfile{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 6px;border-bottom:1px solid rgba(28,34,32,.06)}
+#fd-app .skfi{display:grid;place-items:center;height:36px;border-radius:9px;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:700}
+#fd-app .skfn b{display:block;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fd-app .skfn small{display:block;font-size:12px;color:var(--muted)}#fd-app .skfa{display:flex;gap:2px;flex-wrap:wrap;justify-content:flex-end}
+/* окна склада */
+#fd-app dialog.sk{width:min(720px,calc(100vw - 24px))}
+#fd-app dialog.sk .sk-sub{margin:4px 0 0;font-size:13px}
+#fd-app .skbox{margin-top:14px;border-radius:14px;padding:12px 14px;background:rgba(242,243,239,.6);border:1px solid rgba(28,34,32,.06)}
+#fd-app .skbh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}#fd-app .skbh b{display:inline-flex;align-items:center;gap:6px}#fd-app .skbh .btn{margin-left:auto}#fd-app .skbh small{font-size:12px}
+#fd-app .skbh svg{width:18px;height:18px;color:var(--accent)}
+#fd-app .skuv{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-top:12px}
+#fd-app .skuv>div{border-radius:14px;padding:12px 14px;background:linear-gradient(160deg,rgba(31,95,122,.10),rgba(31,95,122,.03));border:1px solid rgba(31,95,122,.14)}
+#fd-app .skuv small{display:block;font-size:12px;color:var(--muted)}#fd-app .skuv>div>b{font-size:24px;letter-spacing:-.01em}#fd-app .skuv>div>span{margin-left:6px;font-size:12px;color:var(--muted)}
+#fd-app .skres{display:flex;align-items:baseline;gap:6px;border:0;background:rgba(255,255,255,.7);border-radius:9px;padding:4px 9px;margin-top:6px;font:inherit;cursor:pointer;color:inherit;transition:background .2s}#fd-app .skres:hover:not(:disabled){background:#fff;color:var(--accent)}#fd-app .skres:disabled{opacity:.55;cursor:default}#fd-app .skres span{font-size:12px;color:var(--muted)}
+#fd-app .skfree{display:block;margin-top:6px;font-size:12.5px;color:var(--ok)}
+#fd-app .skbl{display:grid;gap:4px}
+#fd-app .skbr{display:grid;grid-template-columns:minmax(0,1.3fr) auto auto minmax(0,1fr);gap:10px;align-items:center;text-align:left;font:inherit;color:inherit;border:0;border-radius:10px;padding:8px 10px;background:rgba(255,255,255,.75);cursor:pointer;transition:background .2s}
+#fd-app .skbr:hover{background:#fff}#fd-app .skbr.empty{opacity:.6}#fd-app .skbr b{display:block;font-size:13.5px}#fd-app .skbr small{display:block;font-size:11.5px;color:var(--muted)}#fd-app .skbr .num{text-align:right;white-space:nowrap}
+#fd-app textarea.skcomment{width:100%;resize:vertical}
+#fd-app .sklink{display:inline-flex;align-items:center;gap:4px;margin:0 6px 6px 0;padding:4px 6px 4px 11px;border-radius:99px;background:#fff;border:1px solid rgba(28,34,32,.1);font-size:13px}
+#fd-app .sklink button{border:0;background:none;cursor:pointer;color:var(--muted);font-size:16px;line-height:1;padding:0 4px;border-radius:50%}#fd-app .sklink button:hover{color:var(--err)}
+#fd-app .sklinkadd input,#fd-app .sklq2{width:100%;margin-top:4px}
+#fd-app .sklsug{display:grid;gap:4px;margin-top:6px}
+#fd-app .sklsb{display:flex;justify-content:space-between;gap:10px;align-items:center;text-align:left;font:inherit;color:inherit;border:1px dashed rgba(106,44,78,.3);background:rgba(255,255,255,.7);border-radius:10px;padding:7px 10px;cursor:pointer;transition:background .2s,border-color .2s}
+#fd-app .sklsb:hover{background:var(--accent-soft);border-style:solid}#fd-app .sklsb small{color:var(--accent);font-size:12px;white-space:nowrap}
+#fd-app .skmv{display:grid;gap:2px;max-height:360px;overflow:auto}
+#fd-app .skmr{display:grid;grid-template-columns:120px minmax(0,.9fr) minmax(0,1.2fr) 110px;gap:8px;align-items:start;padding:7px 4px;border-bottom:1px solid rgba(28,34,32,.06);font-size:13px}
+#fd-app .skmr small{display:block;font-size:11.5px;color:var(--muted)}#fd-app .skmt{font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(28,34,32,.06);justify-self:start}
+#fd-app .skmr.t-in .skmt,#fd-app .skmr.t-init .skmt,#fd-app .skmr.t-ret .skmt{background:rgba(47,107,69,.12);color:var(--ok)}#fd-app .skmr.t-ship .skmt{background:var(--accent-soft);color:var(--accent)}#fd-app .skmr.t-wo .skmt{background:#fbe9e7;color:var(--err)}
+#fd-app .skmr a{color:var(--accent)}
+#fd-app .skgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}#fd-app .skgrid .f{margin:0}#fd-app .skgrid .f.wide{grid-column:1/-1}
+#fd-app .skgrid.skin{margin-top:12px}
+#fd-app .skname{position:relative}
+#fd-app .sksug{display:grid;gap:2px;margin-top:4px}#fd-app .sksug:empty{display:none}
+#fd-app .sksug button{display:flex;justify-content:space-between;gap:10px;text-align:left;font:inherit;color:inherit;border:0;background:rgba(255,255,255,.85);border-radius:9px;padding:8px 10px;cursor:pointer;transition:background .15s}
+#fd-app .sksug button:hover{background:var(--accent-soft)}#fd-app .sksug small{color:var(--muted);font-size:12px}#fd-app .sksug button.new span{color:var(--accent);font-weight:600}
+#fd-app .sksum{margin-top:10px;font-size:14px}#fd-app .sk-hint{font-size:12.5px;margin:8px 0 0}
+#fd-app .skopts{display:grid;gap:8px;margin-top:14px}
+#fd-app .skopt{display:flex;gap:10px;align-items:flex-start;border:1.5px solid rgba(28,34,32,.1);border-radius:14px;padding:11px 13px;cursor:pointer;background:rgba(255,255,255,.7);transition:border-color .2s,background .2s,box-shadow .2s}
+#fd-app .skopt input{margin-top:3px;accent-color:var(--accent)}#fd-app .skopt b{display:block}#fd-app .skopt small{display:block;color:var(--muted);font-size:12.5px}
+#fd-app .skopt.on{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 6px 14px -10px rgba(106,44,78,.6)}
+#fd-app .skmix{margin-top:10px;animation:fdin .25s ease}
+#fd-app table.skinvt input{width:100px;text-align:right}#fd-app table.skinvt td small,#fd-app table.skshipt td small,#fd-app table.sk-vt td small{display:block;font-size:11.5px;color:var(--muted)}
+#fd-app table.skshipt input{width:96px;text-align:right}
+#fd-app dialog.skview img{max-width:100%;border-radius:12px;display:block;margin:10px auto}#fd-app dialog.skview iframe{width:100%;height:70vh;border:0;border-radius:12px;background:#fff}
+/* склад в строке документа */
+#fd-app .line .skb{flex:none;width:34px;height:34px;display:grid;place-items:center;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer;transition:color .15s,border-color .15s,background .15s,transform .15s}
+#fd-app .line .skb svg{width:18px;height:18px}#fd-app .line .skb:hover{color:var(--accent);border-color:var(--accent)}#fd-app .line .skb:active{transform:scale(.92)}
+#fd-app .line .skb.has{color:#1f5f7a;border-color:rgba(31,95,122,.35)}#fd-app .line .skb.on{background:var(--accent);border-color:var(--accent);color:#fff}
+#fd-app .line .sknote{grid-column:2/-1;display:flex;gap:6px;align-items:flex-start;font-size:12.5px;line-height:1.35;color:var(--muted);margin-top:-2px;animation:fdin .2s ease}
+#fd-app .line .sknote svg{width:15px;height:15px;flex:none;margin-top:1px;color:#1f5f7a}#fd-app .line .sknote.on{color:var(--ink)}#fd-app .line .sknote.on svg{color:var(--accent)}#fd-app .line .sknote.bad{color:var(--err)}#fd-app .line .sknote.bad svg{color:var(--err)}
+#fd-app .psm .pssk{display:block;font-size:11px;color:#1f5f7a}
+#fd-app .pfsk{display:block;font-size:12px;color:#1f5f7a;margin-bottom:3px}#fd-app .pfprel{display:block;font-size:10.5px;font-weight:600;color:var(--warn);text-transform:uppercase;letter-spacing:.02em}
+/* склад в окне документа */
+#fd-app .dcard .skdoc{margin-top:14px;border-radius:16px;padding:12px 14px;background:linear-gradient(160deg,rgba(31,95,122,.08),rgba(31,95,122,.02));border:1px solid rgba(31,95,122,.14);animation:fdin .3s ease}
+#fd-app .dcard .skdl1{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid rgba(28,34,32,.06)}#fd-app .dcard .skdl1 small{display:block;font-size:12px;color:var(--muted)}
+#fd-app .skst{display:flex;gap:4px;flex-wrap:wrap;align-items:center}#fd-app .skst em{font-style:normal;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;background:rgba(28,34,32,.06);color:var(--muted)}
+#fd-app .skst em.r{background:rgba(31,95,122,.12);color:#1f5f7a}#fd-app .skst em.s{background:#fbe9e7;color:var(--err)}#fd-app .skst em.o{background:rgba(47,107,69,.12);color:var(--ok)}
+#fd-app .dcard .skdoc .row{margin:10px 0 0}
+@media(max-width:700px){
+  #fd-app .skkpi{grid-template-columns:repeat(2,minmax(0,1fr))}#fd-app .skk b{font-size:18px}
+  #fd-app .skrow{grid-template-columns:minmax(0,1fr) auto;gap:6px 10px}#fd-app .skrow .sku{grid-column:1/-1;grid-row:2}#fd-app .skrow .skm{grid-row:1;grid-column:2}
+  #fd-app .sksegs button{font-size:12px;padding:7px 2px}
+  #fd-app .sklr{grid-template-columns:minmax(0,1fr) auto}#fd-app .sklr .sklo{grid-column:1/-1;grid-row:2}
+  #fd-app .skbr{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}#fd-app .skbr>span:nth-child(3){grid-row:2}#fd-app .skbr>span:nth-child(4){grid-row:2;text-align:right}
+  #fd-app .skmr{grid-template-columns:minmax(0,1fr) auto;gap:3px 8px}#fd-app .skmr>span:nth-child(3){grid-column:1/-1}#fd-app .skmr .sklw{grid-column:2;grid-row:1}
+  #fd-app .skfile{grid-template-columns:38px minmax(0,1fr)}#fd-app .skfa{grid-column:1/-1;justify-content:flex-start}
+  #fd-app .line .sknote{grid-column:1/-1}
+}
 #fd-app .prtools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 8px}#fd-app .prtools input{flex:1 1 200px;max-width:320px}#fd-app .prtools select{width:auto}#fd-app .prtools .muted{font-size:12.5px;margin-left:auto}
 #fd-app .pager{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:10px}#fd-app .pager:empty{display:none}
 #fd-app .pgnav{display:flex;gap:4px;flex-wrap:wrap}
@@ -743,6 +848,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
     <button data-tab="calendar">Календарь</button>
     <button data-tab="journal">Журнал</button>
     <button data-tab="archive">Архив</button>
+    <button data-tab="stock">Склад</button>
     <button data-tab="customers">Заказчики и цены</button>
     <button data-tab="products">Товары</button>
     <button data-tab="suppliers">Поставщики</button>
@@ -1003,6 +1109,22 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
     </div>
   </section>
 
+  <section class="tab" id="tab-stock" hidden>
+    <div class="card skhead">
+      <div class="skh"><h2>Склад <small>общий для всей команды</small></h2><span class="sksync" id="sk-sync" role="status"></span></div>
+      <div class="note" id="sk-old" hidden>Складу нужен новый скрипт Google Таблицы (Code.gs). Документы работают как обычно — склад заработает после обновления скрипта.</div>
+      <div class="skkpi" id="sk-kpi"></div>
+      <div class="skdet" id="sk-det"></div>
+      <div class="skact"><button class="btn pri" type="button" data-sk="in">+ Приход</button><button class="btn" type="button" data-sk="init">Начальный остаток</button><button class="btn" type="button" data-sk="inv">Инвентаризация</button><span style="flex:1"></span><button class="btn ghost sm" type="button" data-sk="reload">Обновить</button></div>
+      <div id="sk-pend"></div>
+    </div>
+    <div class="card">
+      <div class="sksegs" id="sk-segs" role="group" aria-label="Раздел склада"><i></i><button type="button" data-skt="items">Товары</button><button type="button" data-skt="exp"><span class="sl">Сроки годности</span><span class="ss">Сроки</span></button><button type="button" data-skt="files">Декларации</button><button type="button" data-skt="log">История</button></div>
+      <div class="row"><input id="sk-q" type="search" placeholder="Поиск: товар, другое название, позиция документа" style="max-width:420px" aria-label="Поиск по складу"></div>
+      <div id="sk-list" class="sklist"></div>
+    </div>
+  </section>
+
   <section class="tab" id="tab-purchase" hidden>
     <div class="card">
       <h2>Закупка Саида <small>видно только вам</small></h2>
@@ -1221,7 +1343,7 @@ function calc(dr, snap){
     else { sum=r2(qty*price); vat=rate?r2(sum*rate/(100+rate)):0; net=r2(sum-vat); }
     const cty=p.country||(snap?(prod(l.productId)||{}).country:"")||"";
     const nm=(l.name&&String(l.name).trim())||p.name||"";
-    return {n:i+1, pid:l.productId, code:p.code||"", name:nm, unit:p.unit||"", okei:UNITS[p.unit]||"", country:cty, nameT:(t12&&COUNTRIES[cty])?nm+", страна происхождения — "+COUNTRIES[cty]:"", qty, price:gp, sum, vat, net, priceNet: add ? price : rate? r2(net/qty) : price};
+    return {n:i+1, pid:l.productId, lid:l.lid||"", stk:l.stk||null, code:p.code||"", name:nm, unit:p.unit||"", okei:UNITS[p.unit]||"", country:cty, nameT:(t12&&COUNTRIES[cty])?nm+", страна происхождения — "+COUNTRIES[cty]:"", qty, price:gp, sum, vat, net, priceNet: add ? price : rate? r2(net/qty) : price};
   });
   const t = lines.reduce((a,l)=>({sum:a.sum+l.sum, vat:a.vat+l.vat, net:a.net+l.net, qty:a.qty+l.qty, kg:a.kg+(l.unit==="кг"?l.qty:0)}),{sum:0,vat:0,net:0,qty:0,kg:0});
   ["sum","vat","net"].forEach(x=>t[x]=r2(t[x]));
@@ -1238,6 +1360,7 @@ function liveCus(dr){
   return o;
 }
 function makeSnap(dr){
+  dr.lines.forEach(l=>{ if(l.productId && !l.lid) l.lid=uid()+uid(); });   /* постоянный id строки: по нему склад связывает резерв и отгрузку */
   const prods={}; dr.lines.forEach(l=>{ const p=prod(l.productId); if(p) prods[p.id]={name:p.name, code:p.code, unit:p.unit, country:p.country}; });
   const s=clone(sup(dr.supplierId)); delete s.stamp; delete s.sign;
   const saved=clone(dr); delete saved._editBase; return {dr:saved, s, c:clone(liveCus(dr)), prods};
@@ -1391,7 +1514,7 @@ async function pull(force){
       Object.keys(D.specs).forEach(c=>Object.keys(D.specs[c]).forEach(p=>dirtySpec(c,p)));
       await flush(); setStatus("ok","Таблица заполнена"); return;
     }
-    applyServer(j.data); if(syncBlocked){rerender();return;} setStatus("ok"); if(j.concurrency!==1)toast("warn","Нужно обновить Code.gs","Защита от одновременных правок заработает после установки нового скрипта таблицы."); if(serverOld) setStatus("err","Обновите скрипт таблицы (новая версия)"); rerender(); setTimeout(plAuto, 1500);
+    applyServer(j.data); if(syncBlocked){rerender();return;} setStatus("ok"); skLoad(true); if(j.concurrency!==1)toast("warn","Нужно обновить Code.gs","Защита от одновременных правок заработает после установки нового скрипта таблицы."); if(serverOld) setStatus("err","Обновите скрипт таблицы (новая версия)"); rerender(); setTimeout(plAuto, 1500);
   }catch(e){ handleErr(e); }
 }
 function setStatus(s, text){
@@ -1489,7 +1612,7 @@ function showTab(t){
   rerender(); window.scrollTo(0, $("#fd-app").getBoundingClientRect().top + window.scrollY);
   if(typeof renderMobileNav==="function") renderMobileNav();
 }
-function rerender(){ ({doc:renderDoc, order:renderOrder, customers:renderCustomers, products:renderProducts, suppliers:renderSuppliers, journal:renderJournal, archive:renderArchive, calendar:renderCalendar, events:renderEvents, profit:renderProfit, purchase:renderPurchase, tasks:renderTasks, data:renderData}[curTab]||(()=>{}))(); }
+function rerender(){ ({doc:renderDoc, order:renderOrder, customers:renderCustomers, products:renderProducts, suppliers:renderSuppliers, journal:renderJournal, archive:renderArchive, calendar:renderCalendar, events:renderEvents, profit:renderProfit, stock:renderStock, purchase:renderPurchase, tasks:renderTasks, data:renderData}[curTab]||(()=>{}))(); }
 $("#demoNote").hidden = !D.demo;
 $("#hideDemo").onclick=()=>{ D.demo=false; saveLocal(); $("#demoNote").hidden=true; };
 
@@ -1532,10 +1655,10 @@ function renderLines(){
     dr.lines.map((l,i)=>{ const p=prod(l.productId), custom=l.productId && +l.price!==getPrice(dr.customerId,l.productId);
       const named=!!(l.name&&String(l.name).trim()), canEd=!ro && !!p, showN=named||l.edName;
       const dup=dupAt[i];
-      return `<div class="line${named?" named":""}${dup?" dup":""}" data-i="${i}"><span class="ln">${i+1}</span><div class="pc"><input class="ps${p?"":" empty"}" value="${esc(p?p.name:"")}" placeholder="Начните вводить название товара" autocomplete="off" aria-label="Товар"${qo?" readonly":""}>${canEd?`<button type="button" class="ed${showN?" on":""}" title="Изменить название в этом документе" aria-label="Изменить название">✎</button>`:""}</div>
-        <input class="qty" inputmode="decimal" placeholder="0" value="${esc(l.qty)}" aria-label="Количество">${l.newP&&p&&!ro?`<select class="unit nu" aria-label="Единица">${Object.keys(UNITS).map(u=>`<option${u===p.unit?" selected":""}>${u}</option>`).join("")}</select>`:`<span class="unit">${p?esc(p.unit):""}</span>`}
+      return `<div class="line${named?" named":""}${dup?" dup":""}" data-i="${i}"><span class="ln">${i+1}</span><div class="pc"><input class="ps${p?"":" empty"}" value="${esc(p?p.name:"")}" placeholder="Начните вводить название товара" autocomplete="off" aria-label="Товар"${qo?" readonly":""}>${canEd?`<button type="button" class="ed${showN?" on":""}" title="Изменить название в этом документе" aria-label="Изменить название">✎</button>`:""}${skLineBtn(i)}</div>
+        <input class="qty" inputmode="decimal" placeholder="0" value="${esc(l.qty)}" aria-label="Количество">${l.newP&&p&&!ro?`<select class="unit nu" aria-label="Единица">${skDocUnits(p.unit).map(u=>`<option${u===p.unit?" selected":""}>${esc(u)}</option>`).join("")}<option value="__new">+ своя…</option></select>`:`<span class="unit">${p?esc(p.unit):""}</span>`}
         <input class="price${custom?" custom":""}" inputmode="decimal" placeholder="0,00" value="${esc(l.price)}" aria-label="Цена"${ro?" readonly tabindex=\"-1\"":""}>
-        <span class="sum">${fm(r2((+l.qty||0)*(+l.price||0)))}</span><button class="x" aria-label="Удалить строку"${qo?" hidden":""}>×</button>${dup?`<div class="dupnote" role="note">Эта позиция уже есть в строке № ${dup.join(", ")} — проверьте, не задвоилась ли. Документ сохранить можно.</div>`:""}<div class="ctrnote" role="note" hidden></div>${showN&&p?`<div class="lname"><span>В документе:</span><input class="nmx" value="${esc(named?l.name:p.name)}" aria-label="Название в документе"${ro?" readonly":""}>${ro?"":`<button type="button" class="btn ghost sm" data-nmreset>Как в справочнике</button><button type="button" class="btn ghost sm" data-nmglob>Сохранить в справочник</button>`}</div>`:""}${l.auto?`<div class="lnote${l.autoEd?" ed":""}">${l.autoEd?"Исправлено вручную — сайт запомнит новый вес (в заявке «"+esc(l.pack&&l.pack.t||"")+"»)":"⚠ "+esc(l.auto)}</div>`:l.pack&&!(+l.qty>0)?`<div class="lnote">В заявке «${esc(l.pack.t)}» — впишите вес, сайт запомнит, сколько весит 1 ${esc(l.pack.u)}</div>`:""}</div>`; }).join("");
+        <span class="sum">${fm(r2((+l.qty||0)*(+l.price||0)))}</span><button class="x" aria-label="Удалить строку"${qo?" hidden":""}>×</button>${dup?`<div class="dupnote" role="note">Эта позиция уже есть в строке № ${dup.join(", ")} — проверьте, не задвоилась ли. Документ сохранить можно.</div>`:""}<div class="ctrnote" role="note" hidden></div>${showN&&p?`<div class="lname"><span>В документе:</span><input class="nmx" value="${esc(named?l.name:p.name)}" aria-label="Название в документе"${ro?" readonly":""}>${ro?"":`<button type="button" class="btn ghost sm" data-nmreset>Как в справочнике</button><button type="button" class="btn ghost sm" data-nmglob>Сохранить в справочник</button>`}</div>`:""}${l.auto?`<div class="lnote${l.autoEd?" ed":""}">${l.autoEd?"Исправлено вручную — сайт запомнит новый вес (в заявке «"+esc(l.pack&&l.pack.t||"")+"»)":"⚠ "+esc(l.auto)}</div>`:l.pack&&!(+l.qty>0)?`<div class="lnote">В заявке «${esc(l.pack.t)}» — впишите вес, сайт запомнит, сколько весит 1 ${esc(l.pack.u)}</div>`:""}${skLineNote(i)}</div>`; }).join("");
   $("#d-add").hidden=$("#d-addall").hidden=qo;
   const n=Object.values(D.prices[dr.customerId]||{}).filter(v=>v!=="").length;
   $("#d-pricehint").textContent = !dr.customerId ? "выберите заказчика — подставлю его цены" : n ? "цены из прайса заказчика ("+n+" поз.)" : "у заказчика нет своего прайса — базовые цены";
@@ -1552,7 +1675,7 @@ function renderTotals(){
   document.querySelectorAll("#d-lines .line[data-i]").forEach(el=>{ const l=D.draft.lines[+el.dataset.i]; el.querySelector(".sum").textContent=fm(r2((+l.qty||0)*(+l.price||0))); });
   { const byU={}; k.lines.forEach(l=>{ byU[l.unit||"ед."]=(byU[l.unit||"ед."]||0)+l.qty; }); const n=k.lines.length;
     $("#d-lfoot").innerHTML = n ? `<span>Всего позиций: <b>${n}</b></span>`+Object.entries(byU).map(([u,q])=>`<span>${u==="кг"?"Общий вес":"Итого, "+esc(u)}: <b>${String(+q.toFixed(3)).replace(".",",")} ${esc(u)}</b></span>`).join("") : ""; }
-  renderCtrInfo(); ctrMark();
+  renderCtrInfo(); ctrMark(); skDocHints();
 }
 function pickCtr(){ const dr=D.draft, list=ctrs(dr.customerId); const m=list.find(x=>x.supplierId===dr.supplierId)||list.find(x=>!x.supplierId)||list[0]; return m?m.id:""; }
 function renderCtr(){
@@ -1637,7 +1760,7 @@ let PS=null;
 function psFind(q){ const dr=D.draft, cid=dr.customerId, inP=p=>custPrice(cid,p.id)!=null&&custPrice(cid,p.id)!=="";
   const words=norm(q).replace(/[«»"]/g,"").split(" ").filter(Boolean);
   const pool=docLimited()?D.products.filter(inP):D.products;
-  const hit=p=>{ const t=[p.name,...aliasesOf(p)].map(x=>norm(x).replace(/[«»"]/g,"")); return words.every(w=>t.some(x=>x.includes(w))); };
+  const hit=p=>{ const t=[p.name,...aliasesOf(p),...skNamesOf(p.id)].map(x=>norm(x).replace(/[«»"]/g,"")); return words.every(w=>t.some(x=>x.includes(w))); };
   const L=(words.length?pool.filter(hit):pool.filter(inP)).map(p=>{ const n=norm(p.name); return {p, inP:inP(p), st:words.length&&n.startsWith(words[0])?0:words.length&&n.includes(" "+words[0])?1:2}; });
   L.sort((a,b)=>(b.inP-a.inP)||(a.st-b.st)||a.p.name.localeCompare(b.p.name,"ru"));
   return L.slice(0,40); }
@@ -1645,7 +1768,7 @@ const psMark = (name,q) => { const w=norm(q).split(" ").filter(Boolean)[0]; if(!
 function psOpen(inp){ psClose(); const row=inp.closest(".line[data-i]"); if(!row) return; const q=inp.value, L=psFind(q), cid=D.draft.customerId;
   const m=document.createElement("div"); m.className="psm"; m.setAttribute("role","listbox");
   let h="", sec=null; L.forEach((x,k)=>{ const s=x.inP?"p":"o"; if(!docLimited() && s!==sec && L.some(y=>y.inP)){ sec=s; h+=`<div class="pst">${x.inP?"В прайсе заказчика":"Остальные товары"}</div>`; }
-    const pr=x.inP?custPrice(cid,x.p.id):x.p.price; h+=`<button type="button" data-psi="${k}"${k===0?' class="on"':""}><span>${psMark(x.p.name,q)}</span><small>${pr!=null&&pr!==""?fm(+pr)+" ₽/"+esc(x.p.unit||""):""}</small></button>`; });
+    const pr=x.inP?custPrice(cid,x.p.id):x.p.price; h+=`<button type="button" data-psi="${k}"${k===0?' class="on"':""}><span>${psMark(x.p.name,q)}</span><small>${pr!=null&&pr!==""?fm(+pr)+" ₽/"+esc(x.p.unit||""):""}</small>${skPsTag(x.p.id)}</button>`; });
   const nq=q.replace(/\s+/g," ").trim(), canNew=!docLimited() && nq.length>=2 && !D.products.some(p=>norm(p.name)===norm(nq));
   if(canNew) h+=`<button type="button" data-psnew class="psnew${L.length?"":" on"}"><span>+ Создать новый товар «${esc(nq)}»</span><small>сохранится в «Товарах»</small></button>`;
   m.innerHTML = h || `<div class="psn">${nq?"Ничего не найдено. Проверьте название":"Начните вводить название"}</div>`;
@@ -1673,7 +1796,9 @@ dl.addEventListener("keydown",e=>{
     const n=document.querySelector(`#d-lines .line[data-i="${i+1}"] .ps`); n&&n.focus(); } });
 dl.addEventListener("mousedown",e=>{ const b=e.target.closest(".psm [data-psi]"); if(e.target.closest(".psm [data-psnew]")){ e.preventDefault(); psNew(); return; } if(b){ e.preventDefault(); psPick(+b.dataset.psi); } else if(e.target.closest(".psm")) e.preventDefault(); });
 dl.addEventListener("change",e=>{ const row0=e.target.closest(".line[data-i]");
-  if(row0 && e.target.classList.contains("nu")){ const p=prod(D.draft.lines[+row0.dataset.i].productId); if(p){ p.unit=e.target.value; dirty("products",p.id); saveLocal(); renderTotals(); } return; } });
+  if(row0 && e.target.classList.contains("nu")){ const p=prod(D.draft.lines[+row0.dataset.i].productId); if(!p) return;
+    if(e.target.value==="__new"){ skNewUnit(p.unit).then(u=>{ if(u){ p.unit=u; dirty("products",p.id); saveLocal(); } renderLines(); }); return; }
+    p.unit=e.target.value; dirty("products",p.id); saveLocal(); renderTotals(); return; } });
 dl.addEventListener("change",e=>{ const row=e.target.closest(".line[data-i]"); if(!row||!e.target.classList.contains("prod")) return; const i=+row.dataset.i, l=D.draft.lines[i];
   l.productId=e.target.value; delete l.name; l.edName=false; l.price=l.productId?String(getPrice(D.draft.customerId,l.productId)):""; saveLocal(); renderLines(); dupWarn(i);
   const q=document.querySelector(`#d-lines .line[data-i="${i}"] .qty`); q&&q.focus(); });
@@ -1824,7 +1949,7 @@ async function commitDoc(dr0, opt){
   if(syncBlocked){showConflicts(conflictList);throw new Error("Сначала разрешите конфликт правок");}
   const own=!dr0, dr=dr0||D.draft, s=sup(dr.supplierId), msg=$("#d-saved");
   const mk=()=>{ const o0=D.journal.find(j=>j.id===dr.id);
-    if(dr.qtyOnly && o0 && o0.snap){ const sn=clone(o0.snap); sn.dr.lines=sn.dr.lines.map((l,i)=>Object.assign(l,{qty:String((dr.lines[i]||{}).qty||"0")})); delete sn.dr.qtyOnly;
+    if(dr.qtyOnly && o0 && o0.snap){ const sn=clone(o0.snap); sn.dr.lines=sn.dr.lines.map((l,i)=>{ Object.assign(l,{qty:String((dr.lines[i]||{}).qty||"0")}); const sr=(dr.lines[i]||{}).stk; if(sr) l.stk=sr; else delete l.stk; return l; }); delete sn.dr.qtyOnly;
       return {id:dr.id, supplierId:o0.supplierId, customerId:o0.customerId, number:String(o0.number), date:o0.date, sum:calc(sn.dr, sn).t.sum, updated:new Date().toISOString(), snap:sn}; }
     const sn=makeSnap(dr); delete sn.dr.qtyOnly; return {id:dr.id, supplierId:dr.supplierId, customerId:dr.customerId, number:String(dr.number), date:dr.date, sum:calc(dr).t.sum, updated:new Date().toISOString(), snap:sn}; };
   const old=D.journal.find(j=>j.id===dr.id), keepMeta=e=>{ const m=Object.assign({}, (old&&old.snap&&old.snap.meta)||{}, (opt&&opt.meta)||{}); if(!m.created) m.created=(old&&old.updated)||new Date().toISOString();
@@ -1837,7 +1962,7 @@ async function commitDoc(dr0, opt){
   const forceSave=async()=>{ const i=D.journal.findIndex(j=>j.id===entry.id); if(i>=0) D.journal[i]=entry; else D.journal.unshift(entry);
     logEv("Документ",(old?"Изменён":"Создан")+" документ № "+dr.number+" от "+fd(dr.date)+" — "+shortCus(calc(dr))+(dr.ship?", "+dr.ship:"")+", сумма "+fm(calc(dr).t.sum)+" ₽"+(liveDup()?" (номер повторяется)":""), dr.id);
     dirty("journal", entry.id); if(+dr.number>=(+s.next||1)){ s.next=(+dr.number)+1; dirty("suppliers", s.id); }
-    docTasks([old&&old.date, entry.date]); saveLocal(); if(online()){ try{ await flush(); }catch(e){ handleErr(e); } } };
+    docTasks([old&&old.date, entry.date]); saveLocal(); if(online()){ try{ await flush(); }catch(e){ handleErr(e); } } skAfterSave(entry); };
   if(own && !(opt&&opt.force) && !dr.qtyOnly && liveDup()) opt=Object.assign({}, opt, {force:true});   /* номер уже есть у заказчика — предупредили красным, сохраняем как есть */
   if(opt&&opt.force){ await forceSave(); LC={n:dr.number, created:!old, warn:"Номер "+dr.number+" повторяется — сохранён по вашему решению."}; if(own) msg.textContent="Сохранено в журнал с повторяющимся номером "+dr.number+"."; return ""; }
   if(online()){
@@ -1863,6 +1988,7 @@ async function commitDoc(dr0, opt){
   const i=D.journal.findIndex(j=>j.id===entry.id); if(i>=0) D.journal[i]=entry; else D.journal.unshift(entry);
   docTasks([old&&old.date, entry.date]); saveLocal(); if(own) msg.textContent=note+"Сохранено в журнал. Следующий номер для этого заказчика: "+nextNum(dr.supplierId, dr.customerId);
   LC={n:dr.number, created:!old, warn:note.trim()};
+  skAfterSave(entry);
   return note;
 }
 /* ---------- общие функции XML ---------- */
@@ -2663,11 +2789,15 @@ function costFor(pid, cid, date){
 const docCost = id => pfArr("doccosts").find(x=>x.id===id);
 const dcLines = dc => { try{ return dc && dc.lines ? JSON.parse(dc.lines) : {}; }catch(e){ return {}; } };
 function docProfit(j){
-  const k=calc(j.snap.dr, j.snap), dc=docCost(j.id), ov=dcLines(dc); let cost=0, miss=0;
+  const k=calc(j.snap.dr, j.snap), dc=docCost(j.id), ov=dcLines(dc); let cost=0, miss=0, prelim=false;
   const lines=k.lines.map(l=>{ const o=ov[l.pid], e=(o!=null&&o!=="")?null:costFor(l.pid, j.customerId, j.date), c=(o!=null&&o!=="")?+o:(e?+e.price:null);
+    /* складская часть — по партиям (общая закупочная цена её не перезаписывает), прямая часть Саида — по его цене */
+    const sk=skLineCost(j, l);
+    if(sk){ const dp = sk.pd!=null ? sk.pd : c; let t=sk.stockCost; if(sk.directQ>0){ if(dp==null) miss++; else t+=dp*sk.directQ; } if(sk.short>0) miss++; if(sk.prelim) prelim=true;
+      cost+=r2(t); return {l, c: l.qty?r2(t/l.qty):null, own:(o!=null&&o!==""), e, sk}; }
     if(c==null) miss++; else cost+=r2(c*l.qty); return {l, c, own:(o!=null&&o!==""), e}; });
   const rev=k.t.net, tax=r2(rev*taxOf(j.supplierId)/100), exp=+(dc&&dc.expense)||0; cost=r2(cost);
-  return {j, k, lines, rev, cost, tax, exp, profit:r2(rev-cost-tax-exp), miss};
+  return {j, k, lines, rev, cost, tax, exp, profit:r2(rev-cost-tax-exp), miss, prelim:prelim||miss>0};
 }
 function pfRange(f){ const n=new Date(), iso=jIso;
   if(f.per==="month") return [iso(new Date(n.getFullYear(),n.getMonth(),1)), iso(new Date(n.getFullYear(),n.getMonth()+1,0))];
@@ -2748,7 +2878,7 @@ function payCell(x){ const p=x.pay, id=x.j.id, d=daysSince(x.j.date);
   if(p.st==="paid") return `<button type="button" class="pfpay paid" data-unpay="${id}" title="Оплачена ${fd(p.d)}. Нажмите, чтобы снять отметку"><i>✓</i>Оплачена<small>${fd(p.d)}</small></button>`;
   return `<div class="pfpaycell"><span class="pfage ${ageCls(d)}">${p.st==="part"?"Частично · ":""}${ageTxt(x.j.date)}</span>${p.st==="part"?`<small class="muted">оплачено ${fm(p.s)} из ${fm(p.tot)}</small>`:""}<button type="button" class="pfpay" data-pay="${id}">Оплачено</button></div>`; }
 function pfDocRow(x){ const w=jWho(x.j), op=pfOpen.has(x.j.id);
-  let h=`<tr class="pfd${op?" open":""}${x.isNew?" pfnew":""}${x.pay.st==="paid"?" ispaid":""}" data-pf="${x.j.id}"><td>${fd(x.j.date)}</td><td>${esc(x.j.number)}${x.isNew?` <span class="pfnewb">новая</span>`:""}</td><td><div class="who">${esc(w.main)}</div><small>${esc(w.pt?w.pt+" · ":"")}${esc(supShort(x.j.snap.s.name))}${x.miss?` · <span class="miss">нет закупки у ${x.miss} поз.</span>`:""}</small></td><td class="num">${fm(x.rev)}</td><td class="num">${fm(x.cost)}</td><td class="num"><b>${sgn(x.profit)}</b></td><td class="num">${pct(x.profit,x.rev)}</td><td class="pfpt">${payCell(x)}</td></tr>`;
+  let h=`<tr class="pfd${op?" open":""}${x.isNew?" pfnew":""}${x.pay.st==="paid"?" ispaid":""}" data-pf="${x.j.id}"><td>${fd(x.j.date)}</td><td>${esc(x.j.number)}${x.isNew?` <span class="pfnewb">новая</span>`:""}</td><td><div class="who">${esc(w.main)}</div><small>${esc(w.pt?w.pt+" · ":"")}${esc(supShort(x.j.snap.s.name))}${x.miss?` · <span class="miss">нет закупки у ${x.miss} поз.</span>`:""}</small></td><td class="num">${fm(x.rev)}</td><td class="num">${fm(x.cost)}</td><td class="num"><b>${sgn(x.profit)}</b>${x.prelim?`<small class="pfprel" title="Есть неизвестная закупка, нехватка или неотгруженный складской резерв">предварительно</small>`:""}</td><td class="num">${pct(x.profit,x.rev)}</td><td class="pfpt">${payCell(x)}</td></tr>`;
   if(op){ const dc=docCost(x.j.id), own=x.lines.some(r=>r.own);
     h+=`<tr class="pfx"><td colspan="8"><div class="pfxin">
       <div class="pfbulk"><b>Закупка всей накладной</b>
@@ -2756,7 +2886,7 @@ function pfDocRow(x){ const w=jWho(x.j), op=pfOpen.has(x.j.id);
         <span class="or">или</span><label>наценка<input class="pfbm" inputmode="decimal" data-doc="${x.j.id}" placeholder="25"> %</label><button type="button" class="btn sm" data-bulk="mk" data-doc="${x.j.id}">Применить</button>
         ${own?`<button type="button" class="btn ghost sm" data-bulk="reset" data-doc="${x.j.id}">Вернуть цены из списка</button>`:""}
         <small class="muted">Сумма делится по товарам пропорционально продаже. Отменить — кнопка «Отменить» внизу или Ctrl+Z.</small></div>
-      <div class="tbl"><table class="pfl"><thead><tr><th>Товар</th><th>Кол-во</th><th>Продажа, ₽</th><th>Закупка за ед., ₽</th><th>Прибыль строки</th></tr></thead><tbody>${x.lines.map(r=>`<tr><td>${esc(r.l.name)}</td><td>${String(r.l.qty).replace(".",",")} ${esc(r.l.unit)}</td><td>${fm(r.l.price)}</td><td><input class="pfc" inputmode="decimal" data-doc="${x.j.id}" data-pid="${r.l.pid}" value="${r.own?esc(String(r.c).replace(".",",")):""}" placeholder="${r.e?esc(String(r.e.price).replace(".",",")):"нет цены"}"> <small class="muted">${r.own?"своя для этой накладной":r.e?"из списка с "+fd(r.e.from):""}</small></td><td>${r.c==null?`<span class="miss">—</span>`:sgn(r2((r.l.price-r.c)*r.l.qty))}</td></tr>`).join("")}</tbody></table></div>
+      <div class="tbl"><table class="pfl"><thead><tr><th>Товар</th><th>Кол-во</th><th>Продажа, ₽</th><th>Закупка за ед., ₽</th><th>Прибыль строки</th></tr></thead><tbody>${x.lines.map(r=>`<tr><td>${esc(r.l.name)}</td><td>${String(r.l.qty).replace(".",",")} ${esc(r.l.unit)}</td><td>${fm(r.l.price)}</td><td>${r.sk?`<small class="pfsk">склад ${skQf(r.sk.stockQ)}: ${fm(r.sk.stockCost)} ₽${r.sk.prelim?" (предварительно)":""}${r.sk.directQ?" · от Саида "+skQf(r.sk.directQ)+(r.sk.pd!=null?" по "+fm(r.sk.pd)+" ₽":" — цена ниже"):""}</small>`:""}${r.sk&&(!r.sk.directQ||r.sk.pd!=null)?"":`<input class="pfc" inputmode="decimal" data-doc="${x.j.id}" data-pid="${r.l.pid}" value="${r.own?esc(String(dcLines(docCost(x.j.id))[r.l.pid]||"").replace(".",",")):""}" placeholder="${r.e?esc(String(r.e.price).replace(".",",")):"нет цены"}"> <small class="muted">${r.own?"своя для этой накладной":r.e?"из списка с "+fd(r.e.from):""}</small>`}</td><td>${r.c==null?`<span class="miss">—</span>`:sgn(r2((r.l.price-r.c)*r.l.qty))}</td></tr>`).join("")}</tbody></table></div>
       <div class="pfxfoot"><label class="f" style="max-width:220px">Прочие расходы по накладной, ₽<input class="pfe" inputmode="decimal" data-doc="${x.j.id}" value="${esc(dc&&dc.expense?String(dc.expense).replace(".",","):"")}" placeholder="доставка, грузчики…"></label>
         <label class="f" style="max-width:200px">Оплачено, ₽<input class="pfps" inputmode="decimal" data-doc="${x.j.id}" value="${x.pay.s?esc(String(x.pay.s).replace(".",",")):""}" placeholder="из ${esc(fm(x.pay.tot))}"></label>
         <label class="f" style="max-width:170px">Дата оплаты<input type="date" class="pfpd" data-doc="${x.j.id}" value="${esc(x.pay.d||"")}"></label>
@@ -3506,6 +3636,7 @@ function setArch(list, on){
       const y=String(j.date).slice(0,4); if(D.journal.some(x=>x.id!==j.id && !isArch(x) && x.supplierId===j.supplierId && String(x.date).slice(0,4)===y && String(x.number)===String(j.number))) clash.push(j.number); }
     dirty("journal", j.id); });
   docTasks(list.map(j=>j.date), true); saveLocal(); renderJournal(); if(curTab==="archive") renderArchive(); if(curTab==="calendar") renderCalendar();
+  skAfterArch(list, on);
   return clash;
 }
 /* кнопка с подтверждением вторым нажатием */
@@ -3617,6 +3748,7 @@ function docCard(j, arch){
     ${linesTable(k)}
     <div class="dc-total"><span>${k.lines.length} ${posWord(k.lines.length)}${k.t.kg?" · "+nq3(k.t.kg)+" кг":""}${k.rate?" · в т.ч. НДС "+fm(k.t.vat)+" ₽":""}</span><b>${fm(k.t.sum)} ₽</b></div>
     ${m.pr?`<div class="dc-note">Распечатан со склада: ${esc(dtShort(m.pr))}</div>`:""}
+    ${skDocBlock(j)}
     ${histHtml(histOf(j))}
     ${!arch&&me().admin?`<div class="dc-zk" id="dc-zk" data-doc="${j.id}"><div class="dc-zki" id="dc-zki"></div></div>`:""}
     <div class="dc-acts">${acts}</div>`, false, a=>{
@@ -4479,9 +4611,10 @@ const TAB_ICON={
   purchase:'<path d="M3 4h2.5l2.2 11h10.6L20.5 7H7"/><circle cx="9.5" cy="19" r="1.6"/><circle cx="17" cy="19" r="1.6"/>',
   events:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   tasks:'<rect x="4" y="4" width="16" height="17" rx="2"/><path d="M8 9l1.5 1.5L12 8M8 15l1.5 1.5L12 14M14 9.5h3M14 15.5h3"/>',
+  stock:'<path d="M3 9l9-5 9 5v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M7 20v-7h10v7M7 16h10"/>',
   more:'<circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/>'};
 const TAB_COLOR={doc:"#6a2c4e,#9b3d6f",order:"#b4532a,#e07a3f",driver:"#1f6f8b,#2fa3c4",calendar:"#c0392b,#ec6a5a",journal:"#3d4f9f,#6576d3",archive:"#6b6b6b,#9a9a9a",
-  customers:"#2f7d4f,#4cb377",products:"#8a5a12,#d39a2c",suppliers:"#4a3a8f,#7d67d6",data:"#455a64,#78909c",profit:"#0f7a5f,#28b38c",purchase:"#5d7a1f,#8db33a",events:"#7a3d8f,#b061cc",tasks:"#b8860b,#e6b422"};
+  customers:"#2f7d4f,#4cb377",products:"#8a5a12,#d39a2c",suppliers:"#4a3a8f,#7d67d6",data:"#455a64,#78909c",profit:"#0f7a5f,#28b38c",purchase:"#5d7a1f,#8db33a",events:"#7a3d8f,#b061cc",tasks:"#b8860b,#e6b422",stock:"#1f5f7a,#3a93b8"};
 const svgI = id => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${TAB_ICON[id]||TAB_ICON.more}</svg>`;
 const visTabs = () => [...document.querySelectorAll("#fd-app nav.tabs button[data-tab]")].filter(b=>!b.hidden).map(b=>({id:b.dataset.tab, name:b.textContent.trim()}));
 const SHORTN={doc:"Документ", customers:"Заказчики"};
@@ -5186,6 +5319,7 @@ window.addEventListener("scroll",closeHelp,{passive:true}); window.addEventListe
 new MutationObserver(()=>{ if(addHelp._t) return; addHelp._t=requestAnimationFrame(()=>{ addHelp._t=0; addHelp(); }); }).observe(document.getElementById("fd-app"),{childList:true, subtree:true});
 addHelp();
 
+/*__STOCK__*/
 /* ---------- старт ---------- */
 if(!API_URL) patchAll();
 renderDoc();
