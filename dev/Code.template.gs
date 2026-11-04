@@ -164,6 +164,27 @@ function handle_(p) {
       daytasks: (function () { const d = new Date(); d.setDate(d.getDate() - 120); const from = Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd');
         const ph = {}; photosClean_().forEach(r => (ph[r.taskId] = ph[r.taskId] || []).push({ id: r.id, by: r.by, w: +r.w || 0, h: +r.h || 0 }));
         return read_('daytasks').filter(r => String(r.date) >= from).map(r => { if (ph[r.id]) r.photos = ph[r.id]; return r; }); })() } };
+    if (p.action === 'customerAnalytics') {
+      if (me.role === 'staff') return { ok: false, error: 'forbidden' };
+      const cid = String(p.customerId || ''), from = String(p.from || ''), to = String(p.to || '');
+      const date = /^(?:\d{4}-\d{2}-\d{2}|0000|9999)$/;
+      if (!cid || !date.test(from) || !date.test(to) || from > to) return { ok: false, error: 'invalid period' };
+      const documents = [];
+      read_('journal').forEach(row => {
+        if (row.customerId !== cid || !row.date || row.date < from || row.date > to) return;
+        let snap;
+        try { snap = JSON.parse(row.snap); } catch (e) { return; }
+        if (!snap || (snap.meta && snap.meta.arch) || !snap.dr || !Array.isArray(snap.dr.lines)) return;
+        const lines = snap.dr.lines.map(l => ({productId:l.productId, qty:l.qty, name:l.name}));
+        const prods = Object.create(null);
+        Object.keys(snap.prods || {}).forEach(id => {
+          const item = snap.prods[id];
+          if (item) prods[id] = {name:item.name, unit:item.unit};
+        });
+        documents.push({snap:{dr:{lines}, prods}});
+      });
+      return { ok: true, documents };
+    }
     if (p.action === 'login')   { log_(me, [{ action: 'Вход', text: 'Вход в систему' + (p.device ? ' (' + String(p.device).slice(0, 60) + ')' : '') }]); return { ok: true, me: me }; }
     if (p.action === 'profit')  { if (!me.admin) return { ok: false, error: 'forbidden' }; return { ok: true, costs: read_('costs'), doccosts: read_('doccosts'), psettings: read_('psettings'), purchases: read_('purchases') }; }
     if (p.action === 'setPrefs') { upsertList_('uprefs', { upsert: [{ id: me.name, data: String(p.data || '').slice(0, 20000), updated: new Date().toISOString() }] }); return { ok: true }; }
