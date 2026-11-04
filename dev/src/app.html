@@ -869,6 +869,18 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 
   <section class="tab" id="tab-customers" hidden>
     <div class="card" id="cus-editor"></div>
+    <details class="card" id="cus-analytics">
+      <summary><strong>Аналитика покупок</strong> <small class="muted" id="ca-name"></small></summary>
+      <div class="row" style="margin-top:12px;flex-wrap:wrap">
+        <label class="f">Период<select id="ca-period"><option value="month">Этот месяц</option><option value="pmonth">Прошлый месяц</option><option value="all">Всё время</option><option value="custom">Свой период</option></select></label>
+        <label class="f" id="ca-from-label" hidden>С<input type="date" id="ca-from"></label>
+        <label class="f" id="ca-to-label" hidden>По<input type="date" id="ca-to"></label>
+        <button class="btn ghost" id="ca-refresh" type="button">Обновить</button>
+      </div>
+      <p class="muted">По датам сохранённых документов. Документы в архиве исключены.</p>
+      <p class="muted" id="ca-status" role="status"></p>
+      <div id="ca-result" style="overflow:auto"></div>
+    </details>
     <div class="card">
       <h2>Обособленные подразделения <small id="br-name"></small></h2>
       <p class="muted">Если заказчик принимает и оплачивает товар через разные ОП (свой КПП, адрес, лицевой счёт), заведите их здесь. В документе появится выбор подразделения, и в счёте, ТОРГ‑12 и УПД будут реквизиты выбранного ОП.</p>
@@ -3396,6 +3408,73 @@ $("#sup-sign").addEventListener("change",async e=>{ const k=e.target.dataset.sgu
   catch(err){ toast("err","Не получилось загрузить", err.message+"."); } });
 $("#sup-sign").addEventListener("click",e=>{ const b=e.target.closest("[data-sgdel]"); if(!b) return; const s=sup(editorSel.suppliers); if(!s) return;
   if(!b.dataset.armed){ b.dataset.armed=1; b.textContent="Точно удалить?"; return; } const k=b.dataset.sgdel; s[k]=""; dirty("suppliers",s.id); saveLocal(); renderSignBox(s.id); syncSignUI(); toast("info", k==="stamp"?"Печать удалена":"Подпись удалена",""); });
+let analyticsCustomer, analyticsRequest = 0;
+function customerAnalytics(cid){
+  analyticsCustomer = cid;
+  $("#ca-name").textContent = cid ? "— " + (cus(cid).name || "") : "";
+  if($("#cus-analytics").open) return renderCustomerAnalytics();
+}
+
+function drawCustomerAnalytics(docs){
+  const products = new Map();
+  for(const doc of docs){
+    for(const line of doc.snap.dr.lines){
+      const qty = Number(line.qty);
+      if(!line.productId || !Number.isFinite(qty) || qty <= 0) continue;
+      const product = (doc.snap.prods || {})[line.productId] || {};
+      const unit = String(product.unit || "").trim();
+      const key = JSON.stringify([line.productId, unit]);
+      const item = products.get(key) || {name:product.name || line.name || "Товар из документа", unit, qty:0};
+      item.qty += qty;
+      products.set(key, item);
+    }
+  }
+  const rows = [...products.values()].sort((a,b)=>a.name.localeCompare(b.name,"ru") || a.unit.localeCompare(b.unit,"ru"));
+  const quantity = new Intl.NumberFormat("ru-RU",{maximumFractionDigits:6});
+  $("#ca-result").innerHTML = rows.length
+    ? `<p class="muted">Документов: ${docs.length} · Позиций: ${rows.length}</p><table class="tbl"><thead><tr><th>Товар</th><th>Ед.</th><th>Всего купили</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.unit || "—")}</td><td>${quantity.format(r.qty)}</td></tr>`).join("")}</tbody></table>`
+    : '<p class="muted">За выбранный период покупок нет.</p>';
+}
+
+async function renderCustomerAnalytics(){
+  const request = ++analyticsRequest, cid = analyticsCustomer;
+  const status = $("#ca-status");
+  const per = $("#ca-period").value;
+  const custom = per === "custom";
+  $("#ca-from-label").hidden = $("#ca-to-label").hidden = !custom;
+  const from = $("#ca-from").value, to = $("#ca-to").value;
+  $("#ca-result").textContent = "";
+  if(!cid){ status.textContent = "Выберите заказчика."; return; }
+  if(custom && (!from || !to || from > to)){
+    status.textContent = "Укажите обе даты. Дата начала должна быть не позже даты окончания.";
+    return;
+  }
+  const [start,end] = jRange({per,from,to});
+  const local = ()=>D.journal.filter(j=>j.customerId===cid && j.date>=start && j.date<=end &&
+    !isArch(j) && Array.isArray(j.snap?.dr?.lines));
+  const showLocal = message=>{ status.textContent = message; drawCustomerAnalytics(local()); };
+  if(!online()){ showLocal("Показан журнал на этом устройстве. Для полной истории подключитесь к интернету."); return; }
+  status.textContent = "Загружаем историю покупок…";
+  try{
+    if(pend.journal.size) await flush();
+    if(request !== analyticsRequest) return;
+    if(pend.journal.size){ showLocal("Показан журнал на этом устройстве. Для полной истории дождитесь сохранения документов."); return; }
+    const response = await api({action:"customerAnalytics", customerId:cid, from:start, to:end});
+    if(request !== analyticsRequest) return;
+    if(pend.journal.size){ showLocal("Документы изменились во время загрузки. Обновите отчёт после их сохранения."); return; }
+    status.textContent = "";
+    drawCustomerAnalytics(response.documents);
+  }catch(e){
+    if(request !== analyticsRequest) return;
+    showLocal(e.message === "unknown action"
+      ? "Показан журнал на этом устройстве. Для полной истории обновите скрипт Google Таблицы."
+      : "Полная история недоступна. Показан журнал на этом устройстве.");
+  }
+}
+$("#cus-analytics").ontoggle = e=>{ if(e.target.open) renderCustomerAnalytics(); else analyticsRequest++; };
+["#ca-period","#ca-from","#ca-to"].forEach(id=>$(id).onchange=renderCustomerAnalytics);
+$("#ca-refresh").onclick = renderCustomerAnalytics;
+
 function renderCustomers(){
   cardEditor({root:$("#cus-editor"), type:"customers", title:"Заказчик (покупатель)",
     make:()=>({id:uid(), name:"", inn:"", kpp:"", address:"", ship:"", contract:"", ikz:"", acct:"bank", bank:"", bik:"", rs:"", ks:""}),
@@ -3409,7 +3488,7 @@ function renderCustomers(){
       {k:"t12c",l:"Страна происхождения в документах",opts:{"":"Как обычно (в УПД — только у импортных)","1":"Всегда: в ТОРГ‑12 и УПД, включая Россию (если требует договор)"}},
 ],
     onChange:(c,k)=>{ if(k==="plist"){ if(c.plist==="1") plSync({cid:c.id, force:true}); else { renderPrices(c.id); toast("info","Цены — вручную","Текущие цены остались, дальше меняются только вручную."); } } },
-    onSelect:id=>{ renderPrices(id); renderContracts(id); renderBranches(id); renderPoints(id); renderNums(id); }});
+    onSelect:id=>{ renderPrices(id); renderContracts(id); renderBranches(id); renderPoints(id); renderNums(id); customerAnalytics(id); }});
 }
 function renderNums(cid){
   const c=cus(cid); $("#nm-name").textContent=c&&c.name?"— "+c.name:""; if(!cid||!c.id){ $("#nm-list").innerHTML=""; return; }
