@@ -325,7 +325,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .sksum{margin-top:10px;font-size:14px}#fd-app .sk-hint{font-size:12.5px;margin:8px 0 0}
 #fd-app .skopts{display:grid;gap:8px;margin-top:14px}
 #fd-app .skopt{display:flex;gap:10px;align-items:flex-start;border:1.5px solid rgba(28,34,32,.1);border-radius:14px;padding:11px 13px;cursor:pointer;background:rgba(255,255,255,.7);transition:border-color .2s,background .2s,box-shadow .2s}
-#fd-app .skopt input{margin-top:3px;accent-color:var(--accent)}#fd-app .skopt b{display:block}#fd-app .skopt small{display:block;color:var(--muted);font-size:12.5px}
+#fd-app .skopt input{margin-top:3px;accent-color:var(--accent);width:auto;flex:none;min-width:0}#fd-app .skdefc input,#fd-app .skinvall,#fd-app .skdaycb{width:auto}#fd-app .skopt b{display:block}#fd-app .skopt small{display:block;color:var(--muted);font-size:12.5px}
 #fd-app .skopt.on{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 6px 14px -10px rgba(106,44,78,.6)}
 #fd-app .skmix{margin-top:10px;animation:fdin .25s ease}
 #fd-app table.skinvt input{width:100px;text-align:right}#fd-app table.skinvt td small,#fd-app table.skshipt td small,#fd-app table.sk-vt td small{display:block;font-size:11.5px;color:var(--muted)}
@@ -355,6 +355,27 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
   #fd-app .skfile{grid-template-columns:38px minmax(0,1fr)}#fd-app .skfa{grid-column:1/-1;justify-content:flex-start}
   #fd-app .line .sknote{grid-column:1/-1}
 }
+/* склад: внимание, журнал, маршрут, списки */
+#fd-app .skalerts{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 2px}#fd-app .skalerts:empty{display:none}
+#fd-app .ska{font:500 13px var(--ui);color:var(--ink);background:rgba(255,255,255,.7);border:1px solid rgba(28,34,32,.09);border-radius:99px;padding:6px 12px;cursor:pointer;transition:background .2s,border-color .2s,transform .15s var(--ease,ease);animation:fdin .3s ease}
+#fd-app .ska:hover{background:#fff}#fd-app .ska:active{transform:scale(.96)}#fd-app .ska.bad{background:#fdecea;border-color:rgba(179,38,30,.25);color:var(--err)}#fd-app .ska.warn{background:var(--warn-soft);border-color:rgba(154,91,0,.2);color:var(--warn)}
+#fd-app .ska.on{box-shadow:0 0 0 2px var(--accent)}
+#fd-app .skdr.skw{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;cursor:default}#fd-app .skdr.skw>b,#fd-app .skdr.skw>span:not(.skwa){grid-column:1}#fd-app .skwa{grid-column:2;grid-row:1/3;display:flex;gap:6px;align-items:center}
+#fd-app .skdr em{font-style:normal}
+#fd-app .skjb{display:inline-flex;align-items:center;gap:4px;margin-top:3px;font-size:11px;font-weight:600;padding:1px 8px 1px 6px;border-radius:99px;background:rgba(31,95,122,.12);color:#1f5f7a;white-space:nowrap}
+#fd-app .skjb svg{width:12px;height:12px}#fd-app .skjb.short{background:#fbe9e7;color:var(--err)}#fd-app .skjb.done{background:rgba(47,107,69,.12);color:var(--ok)}
+#fd-app .kd-w .skjb{margin-left:8px;margin-top:0}
+#fd-app .dvst{display:inline-flex;align-items:center;gap:3px;font-style:normal;font-size:11.5px;font-weight:600;color:#1f5f7a;background:rgba(31,95,122,.1);border-radius:99px;padding:0 7px 0 5px}#fd-app .dvst svg{width:12px;height:12px}
+#fd-app .sknoteb{margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--warn-soft);color:var(--warn);font-size:13px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+#fd-app .skopts.sm{gap:6px;margin-top:4px}#fd-app .skopts.sm .skopt{padding:8px 11px}#fd-app .skopts.row2{grid-template-columns:1fr 1fr;margin:10px 0}
+#fd-app .skdefc{display:grid;gap:4px;margin:8px 0;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.7);animation:fdin .2s ease}
+#fd-app table.skbkr td small{display:block;font-size:11.5px;color:var(--muted)}#fd-app table.skbkr tr.bad td{background:#fdf2f1}
+#fd-app .skday{cursor:pointer}#fd-app .skdh2{display:flex;gap:8px;align-items:center}#fd-app .skdh2 input{accent-color:var(--accent);width:18px;height:18px}
+#fd-app .skbr.cancel{opacity:.5;text-decoration:line-through}
+#fd-app #cal-sk .btn{display:inline-flex;gap:6px;align-items:center}#fd-app #cal-sk svg{width:16px;height:16px}
+#fd-app .skallb{color:#1f5f7a}#fd-app .zs svg{width:13px;height:13px;vertical-align:-2px;margin-right:3px}#fd-app label.f .fh{display:inline-flex;align-items:center;gap:0}#fd-app label.f .fh .hq{width:18px;height:18px;font-size:11px;vertical-align:0}
+#fd-app .dcard h3 .hq,#fd-app .skbh .hq{vertical-align:3px}
+@media(max-width:700px){#fd-app .skdr.skw{grid-template-columns:1fr}#fd-app .skwa{grid-column:1;grid-row:auto}#fd-app .skopts.row2{grid-template-columns:1fr}}
 #fd-app .prtools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 8px}#fd-app .prtools input{flex:1 1 200px;max-width:320px}#fd-app .prtools select{width:auto}#fd-app .prtools .muted{font-size:12.5px;margin-left:auto}
 #fd-app .pager{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:10px}#fd-app .pager:empty{display:none}
 #fd-app .pgnav{display:flex;gap:4px;flex-wrap:wrap}
@@ -451,7 +472,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .login{max-width:420px;margin:60px auto}
 #fd-app .hq{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);font:600 11px/1 var(--ui);cursor:pointer;margin:0 0 0 6px;padding:0;vertical-align:2px;transition:color .15s,border-color .15s,background .15s;flex:none}
 #fd-app .hq:hover,#fd-app .hq.on{color:#fff;background:var(--accent);border-color:var(--accent)}
-#fd-help{position:fixed;z-index:9600;max-width:min(340px,calc(100vw - 24px));background:#fff;color:#1f1d1a;border:1px solid rgba(0,0,0,.08);border-radius:12px;box-shadow:0 12px 32px rgba(20,15,10,.18);padding:12px 14px;font:14px/1.45 "Onest","Inter",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;animation:fdmenu .14s ease-out}
+#fd-help[popover]{right:auto;bottom:auto;margin:0}#fd-help{position:fixed;z-index:9600;max-width:min(340px,calc(100vw - 24px));background:#fff;color:#1f1d1a;border:1px solid rgba(0,0,0,.08);border-radius:12px;box-shadow:0 12px 32px rgba(20,15,10,.18);padding:12px 14px;font:14px/1.45 "Onest","Inter",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;animation:fdmenu .14s ease-out}
 #fd-help b{display:block;margin-bottom:4px;font-size:14.5px}#fd-help ul{margin:6px 0 0;padding-left:18px}#fd-help li{margin:2px 0}#fd-help p{margin:0}
 @media(max-width:700px){#fd-app .hq{width:22px;height:22px;font-size:12px}}
 #fd-app .line .lnote{grid-column:1/-1;font-size:12.5px;color:#a3620c;background:#fff6e5;border-radius:6px;padding:4px 8px;margin-top:-2px}#fd-app .line .lnote.ed{color:#2f7d4f;background:#eef7f0}
@@ -921,7 +942,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
       <div class="note" id="d-ctrwarn" role="alert" hidden></div>
       <div class="lines" id="d-lines"></div>
       <div class="lfoot" id="d-lfoot"></div>
-      <div class="row"><button class="btn" id="d-add">+ Добавить товар</button><button class="btn ghost" id="d-addall">Добавить весь прайс заказчика</button></div>
+      <div class="row"><button class="btn" id="d-add">+ Добавить товар</button><button class="btn ghost" id="d-addall">Добавить весь прайс заказчика</button><button class="btn ghost skallb" id="d-skall" type="button" hidden title="Все строки, которые есть на складе, — со склада. Чего мало — частью со склада, остальное от Саида.">Со склада всё, что есть</button></div>
       <div class="totals" id="d-totals"></div>
     </div>
     <div class="card dform">
@@ -997,6 +1018,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
         <button class="btn" id="cal-pdf">Скачать все Счета+ТОРГ</button>
         <button class="btn" id="cal-order">Новая заявка на этот день</button>
         <button class="btn ghost" id="cal-new">Новый документ на эту дату</button>
+        <span id="cal-sk"></span>
       </div>
       <div class="tbl"><table class="stack jt" data-full="2,5"><thead><tr><th>Дата</th><th>№</th><th>Заказчик и точка</th><th class="num">Сумма</th><th>Распечатан со склада</th><th class="acts"></th></tr></thead><tbody id="cal-body"></tbody></table></div>
       <div id="cal-load"></div>
@@ -1026,6 +1048,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
         <label class="f">Поставщик<select id="jr-sup"></select></label>
         <label class="f">Заказчик<select id="jr-cus"></select></label>
         <label class="f" id="jr-brw" hidden>Подразделение<select id="jr-br"></select></label>
+        <label class="f" id="jr-skw"><span class="fh">Склад<button type="button" class="hq" data-hq="Склад в журнале" aria-label="Подсказка: склад в журнале">?</button></span><select id="jr-sk"><option value="">Все документы</option><option value="any">Со склада</option><option value="wait">Ждут отгрузки</option><option value="short">С нехваткой</option></select></label>
         <label class="f jq">Поиск<input id="jr-q" placeholder="номер, адрес, товар…"></label>
         <label class="f">Порядок<select id="jr-sort"><option value="cr_d">Сначала новые (по созданию)</option><option value="cr_a">Сначала старые (по созданию)</option><option value="dt_d">Дата документа: новые сверху</option><option value="dt_a">Дата документа: старые сверху</option><option value="nm_d">Номер: по убыванию</option><option value="nm_a">Номер: по возрастанию</option><option value="sm_d">Сумма: больше сверху</option><option value="sm_a">Сумма: меньше сверху</option><option value="cu_a">Заказчик: А–Я</option></select></label>
       </div>
@@ -1115,8 +1138,9 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
       <div class="skh"><h2>Склад <small>общий для всей команды</small></h2><span class="sksync" id="sk-sync" role="status"></span></div>
       <div class="note" id="sk-old" hidden>Складу нужен новый скрипт Google Таблицы (Code.gs). Документы работают как обычно — склад заработает после обновления скрипта.</div>
       <div class="skkpi" id="sk-kpi"></div>
+      <div class="skalerts" id="sk-alerts" aria-label="Требует внимания"></div>
       <div class="skdet" id="sk-det"></div>
-      <div class="skact"><button class="btn pri" type="button" data-sk="in">+ Приход</button><button class="btn" type="button" data-sk="init">Начальный остаток</button><button class="btn" type="button" data-sk="inv">Инвентаризация</button><span style="flex:1"></span><button class="btn ghost sm" type="button" data-sk="reload">Обновить</button></div>
+      <div class="skact"><button class="btn pri" type="button" data-sk="in">+ Приход</button><button class="btn" type="button" data-sk="init">Начальный остаток</button><button class="btn" type="button" data-sk="bulk">Ввести списком</button><button class="btn" type="button" data-sk="inv">Инвентаризация</button><span style="flex:1"></span><button class="btn ghost sm" type="button" data-sk="reload">Обновить</button></div>
       <div id="sk-pend"></div>
     </div>
     <div class="card">
@@ -1836,6 +1860,7 @@ dl.addEventListener("click",e=>{ const row=e.target.closest(".line[data-i]"); if
   if(!D.draft.lines.length) D.draft.lines.push({productId:"",qty:"",price:""}); saveLocal(); renderLines(); });
 $("#d-add").onclick=()=>{ const L=D.draft.lines; let i=L.findIndex(l=>!l.productId); if(i<0){ L.push({productId:"",qty:"",price:""}); i=L.length-1; } saveLocal(); renderLines();
   const n=document.querySelector(`#d-lines .line[data-i="${i}"] .ps`); n&&n.focus(); };
+$("#d-skall").onclick=()=>skFillAll();
 $("#d-addall").onclick=()=>{ const dr=D.draft, pl=D.prices[dr.customerId]||{}, have=new Set(dr.lines.map(l=>l.productId));
   dr.lines=dr.lines.filter(l=>l.productId); D.products.forEach(p=>{ if(pl[p.id]!=null&&pl[p.id]!==""&&!have.has(p.id)) dr.lines.push({productId:p.id,qty:"",price:String(pl[p.id])}); });
   if(!dr.lines.length) dr.lines.push({productId:"",qty:"",price:""}); saveLocal(); renderLines(); };
@@ -1972,6 +1997,7 @@ async function commitDoc(dr0, opt){
     /* история: кто и когда создал/изменил и что именно поменялось */
     if(!old) histPush(m, ["создан"]); else { const w=docDiff(old.snap||{}, e.snap); if(w.length) histPush(m, w); }
     e.snap.meta=m; return e; };
+  if(!old && !dr.qtyOnly) skAutoSrc(dr);   /* новый документ: склад по настройке товара */
   let entry=keepMeta(mk()), note="";
   const liveDup = () => D.journal.some(x=>x.id!==dr.id && !isArch(x) && x.supplierId===dr.supplierId && x.customerId===dr.customerId && String(x.number)===String(dr.number));
   /* повторяющийся номер — сохраняем как есть, без проверки номера на сервере */
@@ -2004,7 +2030,7 @@ async function commitDoc(dr0, opt){
   const i=D.journal.findIndex(j=>j.id===entry.id); if(i>=0) D.journal[i]=entry; else D.journal.unshift(entry);
   docTasks([old&&old.date, entry.date]); saveLocal(); if(own) msg.textContent=note+"Сохранено в журнал. Следующий номер для этого заказчика: "+nextNum(dr.supplierId, dr.customerId);
   LC={n:dr.number, created:!old, warn:note.trim()};
-  skAfterSave(entry);
+  skAfterSave(entry); if(old) skAfterEdit(entry);
   return note;
 }
 /* ---------- общие функции XML ---------- */
@@ -2351,7 +2377,7 @@ function dvPoints(){
     const dr=j.snap.dr, c=j.snap.c||{}, addr=dr.ship||c.address||"", key=j.customerId+"|"+ptKey(addr);
     const p=map[key]=map[key]||{cid:j.customerId, addr, c, docs:[], items:{}, order:Object.keys(map).length};
     if(p.c!==c && (p.c.branchLabel||"")!==(c.branchLabel||"")) p.c=Object.assign({}, p.c, {branchLabel:""}); /* несколько ОП на одной точке (НМИЦ: бюджет/ОМС/внебюджет) — точка одна */
-    p.docs.push(j); calc(dr, j.snap).lines.forEach(l=>{ const it=p.items[l.name]=p.items[l.name]||{name:l.name, unit:l.unit, qty:0}; it.qty+=l.qty; });
+    p.docs.push(j); calc(dr, j.snap).lines.forEach(l=>{ const it=p.items[l.name]=p.items[l.name]||{name:l.name, unit:l.unit, qty:0, st:0}; it.qty+=l.qty; it.st=r3((it.st||0)+skStockQ(j,l)); });
   });
   const n0 = p => Math.min(...p.docs.map(j=>parseInt(j.number,10)||1e9));
   return Object.values(map).sort((a,b)=> cusShort(cus(a.cid).name||"").localeCompare(cusShort(cus(b.cid).name||""),"ru") || n0(a)-n0(b));
@@ -2378,8 +2404,8 @@ function dvText(P){
       if(pi.phone||pi.contact) L.push([pi.phone,pi.contact].filter(Boolean).join(" "));
       if(pi.phone2) L.push(pi.phone2);
       if(f.full){ if(ptTime(pi)) L.push("Приёмка: "+ptTime(pi)); L.push("Получатель: "+(p.c.name||cus(p.cid).name||"")); }
-      const it={}; Object.values(p.items).forEach(x=>{ const k=itemShort(x.name); const y=it[k]=it[k]||{name:k,unit:x.unit,qty:0}; y.qty+=x.qty; });
-      Object.values(it).forEach(x=>L.push(x.name+" — "+qfmt(x.qty,x.unit)));
+      const it={}; Object.values(p.items).forEach(x=>{ const k=itemShort(x.name); const y=it[k]=it[k]||{name:k,unit:x.unit,qty:0,st:0}; y.qty+=x.qty; y.st+=x.st||0; });
+      Object.values(it).forEach(x=>L.push(x.name+" — "+qfmt(x.qty,x.unit)+(x.st>0?" (со склада "+qfmt(x.st,x.unit)+")":"")));
       if(f.full) L.push("Документы: "+p.docs.map(j=>kindsOf(j)+" #"+j.number).join("; ")+". Передать на подпись, подписанный экземпляр вернуть.");
     }); });
   if(f.load){ const tot={}; P.forEach(p=>Object.values(p.items).forEach(x=>{ const k=itemShort(x.name); const y=tot[k]=tot[k]||{name:k,unit:x.unit,qty:0}; y.qty+=x.qty; }));
@@ -2397,7 +2423,7 @@ function renderDriver(){
       return `<div class="dvp"><h3><i>${i+1}</i>${esc(dvWho(p))}<span class="muted" style="font-weight:400">${esc(stLabel(p.addr,p.c.address))}</span></h3>
         <div class="ad">${esc(pi.daddr||p.addr)} · накладн. № ${esc(p.docs.map(j=>j.number).join(", "))}</div>
         ${(()=>{ const IT=Object.values(p.items), k=p.cid+"|"+p.addr, op=dvOpen.has(k), more=IT.length-DV_SHOW;
-          return `<ul>${IT.map((it,n)=>`<li${n>=DV_SHOW&&!op?" hidden":""}>${esc(it.name)} — <b>${esc(qfmt(it.qty,it.unit))}</b></li>`).join("")}</ul>`
+          return `<ul>${IT.map((it,n)=>`<li${n>=DV_SHOW&&!op?" hidden":""}>${esc(it.name)} — <b>${esc(qfmt(it.qty,it.unit))}</b>${it.st>0?` <em class="dvst" title="Взять со склада">${skIcon}склад ${esc(qfmt(it.st,it.unit))}</em>`:""}</li>`).join("")}</ul>`
             + (more>0?`<button type="button" class="dv-more" data-dvmore="${esc(k)}" aria-expanded="${op}">${op?"Свернуть список":"Раскрыть весь список (ещё "+more+")"}</button>`:""); })()}
         <div class="ct${has?"":" miss"}">${has?esc([pi.tag&&("("+pi.tag+")"), pi.phone&&("📞 "+pi.phone+(pi.contact?" — "+pi.contact:"")), !pi.phone&&pi.contact&&("👤 "+pi.contact), pi.phone2&&("📞 "+pi.phone2), ptTime(pi)&&("🕗 "+ptTime(pi)), pi.note&&("⚠️ "+pi.note)].filter(Boolean).join("   ")):"Контакты точки не заполнены — для наёмного водителя лучше заполнить"}</div>
         ${isStaff()?"":`<details><summary>${has?"Изменить контакты точки":"Заполнить контакты точки"}</summary>${ptFields(p.cid,p.addr)}</details>`}</div>`; }).join("")
@@ -2756,7 +2782,7 @@ function lbWheel(e){ if(!LB.open) return; e.preventDefault(); lbAnim(false);
 function drawCalDay(){
   const c=CAL(), d=new Date(c.sel+"T12:00:00"), docs=calDocs(c.sel, c.cus).sort((a,b)=>-jNumSort(a,b)), staff=isStaff();
   $("#cal-dtitle").textContent=d.getDate()+" "+MONG[d.getMonth()]+" "+d.getFullYear()+", "+["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"][d.getDay()];
-  const sum=r2(docs.reduce((a,j)=>a+(+j.sum||0),0)), pts=dayPoints(c.sel, docs, c.cus);
+  const sum=r2(docs.reduce((a,j)=>a+(+j.sum||0),0)), pts=dayPoints(c.sel, docs, c.cus); $("#cal-sk").innerHTML=skDayBtn(c.sel);
   $("#cal-sum").innerHTML=`<div><small>Накладных</small><b>${docs.length}</b></div><div><small>Точек</small><b>${pts}</b></div>`+(staff?"":`<div><small>Сумма, ₽</small><b>${fm(sum)}</b></div>`);
   ["#cal-route","#cal-pdf"].forEach(s=>$(s).disabled=!docs.length);
   const out=jBuild(docs,false,jOpen);
@@ -3137,7 +3163,7 @@ function zkParse(text){
 }
 /* закупка за неделю: если одна точка встречается несколько раз, каждой закупке подбираем свою накладную —
    по совпадению товаров и количества; если подходящая накладная одна на двоих — это продолжение того же заказа, блоки объединятся */
-function zkInv(docs){ const inv=new Map(); docs.forEach(j=>calc(j.snap.dr, j.snap).lines.forEach(l=>{ const o=inv.get(l.pid)||{pid:l.pid, name:l.name, unit:l.unit||"кг", qty:0, net:0, prod:prod(l.pid)||{}}; o.qty=r3(o.qty+l.qty); o.net+=l.net; inv.set(l.pid,o); })); return inv; }
+function zkInv(docs){ const inv=new Map(); docs.forEach(j=>calc(j.snap.dr, j.snap).lines.forEach(l=>{ const dq=r3(l.qty-skStockQ(j,l)); if(dq<=0) return; const o=inv.get(l.pid)||{pid:l.pid, name:l.name, unit:l.unit||"кг", qty:0, net:0, prod:prod(l.pid)||{}}; o.qty=r3(o.qty+dq); o.net+=l.net*dq/l.qty; inv.set(l.pid,o); })); return inv; }
 function zkScore(items, docs){ const inv=zkInv(docs); let s=0;
   items.forEach(it=>{ if(it.bad) return; const r=zkLine(it, inv);
     if(r.kind==="prod" && r.pids.length){ s+=1; const q=it.q*r.f, iq=r.pids.reduce((a,id)=>a+inv.get(id).qty,0); if(iq>0 && Math.abs(q-iq)/iq<=0.25) s+=1; }
@@ -3231,18 +3257,21 @@ function zkBlock(b){
   const sel = none ? [] : st.docs ? st.docs.filter(id=>list.some(j=>j.id===id)) : near.def;
   const docs = sel.map(id=>D.journal.find(j=>j.id===id)).filter(Boolean);
   const inv=new Map();
-  if(!none) docs.forEach(j=>calc(j.snap.dr, j.snap).lines.forEach(l=>{ const o=inv.get(l.pid)||{pid:l.pid, name:l.name, unit:l.unit||"кг", qty:0, net:0, prod:prod(l.pid)||{}}; o.qty=r3(o.qty+l.qty); o.net+=l.net; inv.set(l.pid,o); }));
+  /* складская часть строки Саид не покупает — сравниваем только часть «от Саида» */
+  if(!none) docs.forEach(j=>calc(j.snap.dr, j.snap).lines.forEach(l=>{ const o=inv.get(l.pid)||{pid:l.pid, name:l.name, unit:l.unit||"кг", qty:0, net:0, stk:0, prod:prod(l.pid)||{}}; const sq=skStockQ(j,l), dq=r3(l.qty-sq);
+    o.stk=r3((o.stk||0)+sq); if(dq>0){ o.qty=r3(o.qty+dq); o.net+=l.net*dq/l.qty; } inv.set(l.pid,o); }));
   else if(cid){ /* без накладной — сопоставляем с прайсом заказчика (цена по договору), а если прайса нет — со всеми товарами */
     const pl=D.prices[cid]||{}, ids=Object.keys(pl).filter(id=>pl[id]!=="" && pl[id]!=null && prod(id));
     (ids.length ? ids : D.products.map(p=>p.id)).forEach(id=>{ const p=prod(id); if(!p) return; inv.set(id,{pid:id, name:p.name, unit:p.unit||"кг", qty:0, net:0, sale:(pl[id]!==""&&pl[id]!=null)?+pl[id]:null, prod:p}); }); }
   inv.forEach(o=>{ if(o.qty>0) o.sale=o.net/o.qty; });
-  const rows=b.items.map((it,i)=>Object.assign({it, i}, zkLine(it, inv)));
+  const rows=b.items.map((it,i)=>Object.assign({it, i}, st.stk && st.stk[i] && !it.bad ? {kind:"stk", key:zkKey(it.name), batchId:st.stk[i].b} : zkLine(it, inv)));
   /* исключение: «Капуста» при «Пекинская» в той же закупке — значит белокочанная; «Лук» при «Лук з» — репчатый */
   const taken=new Set(); rows.forEach(r=>{ if(r.kind==="prod") r.pids.forEach(id=>taken.add(id)); });
   rows.forEach(r=>{ if(r.kind!=="none" || !r.amb.length) return; const rest=r.amb.filter(id=>!taken.has(id)); if(rest.length===1){ Object.assign(r,{kind:"prod", pids:rest, how:"auto"}); taken.add(rest[0]); } });
   const agg={}; let exp=0, spent=0, unres=0;
+  let stkS=0;
   rows.forEach(r=>{ if(r.kind==="bad") return; spent+=r.it.s;
-    if(r.kind==="exp") exp+=r.it.s;
+    if(r.kind==="exp") exp+=r.it.s; if(r.kind==="stk") stkS+=r.it.s;
     if(r.kind==="none" || (r.kind==="prod" && !r.pids.length)) unres+=r.it.s;
     if(r.kind==="prod" && r.pids.length){ r.bought=r3(r.it.q*r.f); r.unit=r.bought>0 ? r.it.s/r.bought : 0;
       r.invQ = none ? null : r3(r.pids.reduce((a,id)=>a+inv.get(id).qty,0));
@@ -3261,8 +3290,8 @@ function zkBlock(b){
     if(P.every(p=>p.x.sale!=null) && qs>0){ r.sale=P.reduce((a,p)=>a+p.x.sale*p.q,0)/qs; r.gross=r2(P.reduce((a,p)=>a+(p.x.sale*(1-tx)-p.c)*p.q,0)); gross+=r.gross; grossOk=true; }
     else { r.sale=null; r.gross=null; }
     if(!none && r.invQ!=null){ const d=r.bought-r.invQ; if(d>0) over+=d*r.unit; else under+=-d*r.unit; } });
-  const noBuy = none ? [] : [...inv.values()].filter(x=>cost[x.pid]==null);
-  const B={b, st, date, cm, cid, near, list, none, docs, inv, rows, cost, taxP, exp:r2(exp), spent:r2(spent), counted:r2(counted), unres:r2(unres), over:r2(over), under:r2(under),
+  const noBuy = none ? [] : [...inv.values()].filter(x=>x.qty>0 && cost[x.pid]==null);
+  const B={b, st, date, cm, cid, near, list, none, docs, inv, rows, cost, taxP, stkS:r2(stkS), exp:r2(exp), spent:r2(spent), counted:r2(counted), unres:r2(unres), over:r2(over), under:r2(under),
     gross: grossOk ? r2(gross-exp) : null, grossGoods: grossOk ? r2(gross) : null, noBuy,
     open:rows.filter(r=>r.kind==="none"||(r.kind==="prod"&&!r.pids.length)).length, diffN:rows.filter(r=>r.diff).length};
   B.notes=zkNotes(B); return B;
@@ -3293,19 +3322,19 @@ const zkShort = s => { let t=String(s||"").replace(/\s*\([^)]*\)/g,""); const m=
 /* --- отрисовка --- */
 function renderPurchase(){ if(!me().admin) return; if(!pfLoaded){ $("#zk-msg").textContent="Загружаю данные о прибыли…"; loadProfit(true); } drawPurchase(); }
 const zkQ = x => String(r3(x)).replace(".",",");
-const zkStatus = (r,B) => r.kind==="exp" ? `<span class="zs ok">расход</span>` : r.kind==="skip" ? `<span class="zs">не учитывается</span>` : r.kind==="bad" ? `<span class="zs bad">не понял строку</span>`
+const zkStatus = (r,B) => r.kind==="prod" && B && !B.none && r.pids.length && r.pids.every(id=>{ const x=B.inv.get(id); return x && !(x.qty>0) && x.stk>0; }) ? `<span class="zs warn">в накладной этот товар со склада — если купили в запас, выберите «В склад»</span>` : r.kind==="stk" ? `<span class="zs ok">${skIcon}в склад — приход проведён</span>` : r.kind==="exp" ? `<span class="zs ok">расход</span>` : r.kind==="skip" ? `<span class="zs">не учитывается</span>` : r.kind==="bad" ? `<span class="zs bad">не понял строку</span>`
   : r.kind==="none" ? `<span class="zs bad">${r.amb.length?"несколько похожих — выберите":"выберите товар"}</span>`
   : !r.pids.length ? `<span class="zs bad">${B&&B.none?"нет в прайсе заказчика":"нет в выбранной накладной"}</span>`
   : r.how==="rule" ? `<span class="zs ok">запомнено</span>` : r.how==="exact" ? `<span class="zs ok">совпало</span>` : `<span class="zs warn">похоже — проверьте</span>`;
 function zkSelect(B, r){
-  const L=[...B.inv.values()], cur = r.kind==="exp" ? "x" : r.kind==="skip" ? "s" : r.kind==="prod" && r.pids.length ? "p:"+r.pids.join(",") : "";
-  const one = x => `<option value="p:${x.pid}"${cur==="p:"+x.pid?" selected":""}>${esc(x.name)}${x.qty>0?" — "+zkQ(x.qty)+" "+esc(x.unit):""}</option>`;
+  const L=[...B.inv.values()], cur = r.kind==="stk" ? "k" : r.kind==="exp" ? "x" : r.kind==="skip" ? "s" : r.kind==="prod" && r.pids.length ? "p:"+r.pids.join(",") : "";
+  const one = x => `<option value="p:${x.pid}"${cur==="p:"+x.pid?" selected":""}>${esc(x.name)}${x.qty>0?" — "+zkQ(x.qty)+" "+esc(x.unit):""}${x.stk>0?(x.qty>0?" (+":" — ")+zkQ(x.stk)+" "+esc(x.unit)+" со склада"+(x.qty>0?")":""):""}</option>`;
   const amb=L.filter(x=>(r.amb||[]).includes(x.pid)), rest=L.filter(x=>!(r.amb||[]).includes(x.pid)).sort((a,c)=>a.name.localeCompare(c.name,"ru"));
   return `<select class="zp" data-b="${B.b.key}" data-i="${r.i}" aria-label="Товар">`
     + (cur ? "" : `<option value="" selected>— выберите товар —</option>`)
     + (r.kind==="prod" && r.pids.length>1 ? `<option value="${cur}" selected>${esc(r.pids.map(id=>B.inv.get(id).name).join(" + "))}</option>` : "")
     + (amb.length ? `<optgroup label="Похожие">${amb.map(one).join("")}</optgroup><optgroup label="${B.none?"Остальные товары":"Остальные товары накладной"}">${rest.map(one).join("")}</optgroup>` : rest.map(one).join(""))
-    + `<optgroup label="Не товар"><option value="x"${cur==="x"?" selected":""}>Расход: телега, машина, грузчики</option><option value="s"${cur==="s"?" selected":""}>Не учитывать</option></optgroup></select>`;
+    + `<optgroup label="Не товар"><option value="x"${cur==="x"?" selected":""}>Расход: телега, машина, грузчики</option><option value="s"${cur==="s"?" selected":""}>Не учитывать</option></optgroup>${skSrv!==false?`<optgroup label="Склад"><option value="k"${cur==="k"?" selected":""}>${cur==="k"?"В склад (приход проведён)":"В склад — оформить приход…"}</option></optgroup>`:""}</select>`;
 }
 function drawPurchase(){
   const z=ZK(); if(!z.date) z.date=todayISO();
@@ -3349,12 +3378,12 @@ function zkCard(B){
     return `<tr class="${r.kind==="none"||(r.kind==="prod"&&!r.pids.length)?"zkopen":""}${ok&&r.gross<0?" zkloss":""}"><td><div class="who">${esc(it.src)}</div>${zkStatus(r,B)}</td><td>${ready||r.kind!=="none"?zkSelect(B,r):`<span class="muted">сначала выберите накладную</span>`}</td><td>${bought}</td><td>${invq}</td><td class="num">${unit}</td><td class="num">${sale}</td><td class="num zkgp">${gp}</td></tr>`; }).join("");
   const done=zkSaved(B);
   /* расхождение простыми словами */
-  const left=r2(B.spent-B.counted-B.exp), even=Math.abs(left)<1, why=[];
+  const left=r2(B.spent-B.counted-B.exp-B.stkS), even=Math.abs(left)<1, why=[];
   if(!B.none){ if(B.over>=1) why.push(`Саид купил больше, чем в накладной, — на ${rub(B.over)} ₽`); if(B.under>=1) why.push(`в накладной больше, чем он купил, — на ${rub(B.under)} ₽ (видимо, взяли со склада)`); }
   if(B.unres>=1) why.push(`строки без товара — ${rub(B.unres)} ₽`);
   const notes=B.notes, top=notes.slice(0,3), more=notes.slice(3), li=n=>`<li class="l${n.l}">${n.t}</li>`;
   const notesH = ready && B.cid ? `<div class="zknotes${notes.some(n=>n.l===0)?" bad":notes.length?"":" ok"}">${notes.length?`<b>Обратите внимание</b><ul>${top.map(li).join("")}</ul>${more.length?`<details class="zkmore" data-b="${esc(k)}"><summary>Ещё ${more.length} ${more.length===1?"замечание":more.length<5?"замечания":"замечаний"}</summary><ul>${more.map(li).join("")}</ul></details>`:""}`:`<b>Всё в порядке</b><span>Цены ниже договора, количество сходится с накладной.</span>`}</div>` : "";
-  const sum = ready && B.cid ? `<div class="zksum"><div><small>Саид потратил</small><b>${fm(B.spent)}</b></div><div><small>${B.none?"Закупка товара":"Закупка товара по накладной"}</small><b>${fm(B.counted)}</b></div>${B.none&&!B.exp?"":`<div><small>Телега, машины</small><b>${fm(B.exp)}</b></div>`}${B.none?"":`<div><small>Расхождение</small><b class="${even?"pos":"miss"}">${even?"нет":(left>0?"":"−")+fm(Math.abs(left))}</b></div>`}<div class="gp"><small>Валовая прибыль (после налога ${String(B.taxP).replace(".",",")}%${B.exp?" и телеги":""})</small><b class="${B.gross==null?"":B.gross<0?"neg":"pos"}">${B.gross==null?"нет цен договора":(B.gross>0?"+":B.gross<0?"−":"")+fm(Math.abs(B.gross))}</b></div></div>
+  const sum = ready && B.cid ? `<div class="zksum"><div><small>Саид потратил</small><b>${fm(B.spent)}</b></div><div><small>${B.none?"Закупка товара":"Закупка товара по накладной"}</small><b>${fm(B.counted)}</b></div>${B.none&&!B.exp?"":`<div><small>Телега, машины</small><b>${fm(B.exp)}</b></div>`}${B.none?"":`<div><small>Расхождение</small><b class="${even?"pos":"miss"}">${even?"нет":(left>0?"":"−")+fm(Math.abs(left))}</b></div>`}${B.stkS?`<div><small>В склад (приходом)</small><b>${fm(B.stkS)}</b></div>`:""}<div class="gp"><small>Валовая прибыль (после налога ${String(B.taxP).replace(".",",")}%${B.exp?" и телеги":""})</small><b class="${B.gross==null?"":B.gross<0?"neg":"pos"}">${B.gross==null?"нет цен договора":(B.gross>0?"+":B.gross<0?"−":"")+fm(Math.abs(B.gross))}</b></div></div>
     ${!B.none && !even && why.length?`<p class="muted zkwhy"><b>Почему расхождение:</b> ${why.join("; ")}.</p>`:""}` : "";
   const parts=B.b.parts||[], clash=zkLast.find(x=>x!==B && x.cid===B.cid && x.docs.some(j=>B.docs.includes(j)));
   const mergeH = parts.length>1 ? `<p class="muted zkhint">Объединено из ${parts.length} сообщений Саида — у них одна и та же накладная (продолжение заказа). <button type="button" class="btn ghost sm" data-zapart="${esc(parts.slice(1).join("|"))}">Разделить</button></p>` : "";
@@ -3367,6 +3396,10 @@ function zkCard(B){
 const zkPl = b => b.key.length<=3 ? b.place.toUpperCase() : b.place.charAt(0).toUpperCase()+b.place.slice(1);
 const addDaysZ = (iso,n) => { const d=new Date(iso+"T12:00:00"); d.setDate(d.getDate()+n); return jIso(d); };
 /* подсказка: «в накладной 5 кг, у Саида 1» — похоже на коробку; вес коробки сайт уже мог запомнить по заявкам */
+/* строка Саида «в склад»: открываем приход с подставленными товаром, количеством и ценой; после проведения строка помечается */
+function zkToStock(B, r){ const it=r.it, q=r3((+it.q||0)*(r.f||1)), name=zkNice(it.name), ex=skIdx().S.items.find(i=>skK(i.name)===skK(name)||String(i.alt||"").split(";").some(a=>skK(a)===skK(name)));
+  const pre={name:ex?ex.name:name.charAt(0).toUpperCase()+name.slice(1), itemId:ex?ex.id:"", unit:ex?ex.unit:"кг", qty:q>0?String(q).replace(".",","):"", price:q>0&&it.s?String(r2(it.s/q)).replace(".",","):"", date:B.date||todayISO(), supplier:"Саид", docRef:"закупка "+fd(B.date||todayISO())};
+  skInForm("in", pre.itemId, pre, out=>{ const st=B.st; st.stk=st.stk||{}; st.stk[r.i]={b:out.batchId}; saveLocal(); zkStore(); drawPurchase(); toast("ok","Строка Саида — в склад","«"+it.src+"» оприходована на склад."); }); }
 function zkPackHint(x, q){
   const ratio=x.qty/q, pk=Object.entries(packsOf(x.prod)).find(([u,f])=>f>0 && Math.abs(f-ratio)/ratio<0.25);
   const v = pk ? pk[1] : r3(ratio), lbl = pk ? "1 "+pk[0]+" = "+zkQ(pk[1])+" "+x.unit : zkQ(v)+" "+x.unit;
@@ -3503,7 +3536,8 @@ $("#zk-blocks").addEventListener("change",e=>{ const el=e.target, k=el.dataset.b
   else if(el.dataset.none){ st.none=el.checked; if(!el.checked && !B.docs.length) delete st.docs; }
   else if(el.dataset.doc){ const s=new Set(B.docs.map(j=>j.id)); el.checked?s.add(el.dataset.doc):s.delete(el.dataset.doc); st.docs=[...s]; st.none=false; }
   else if(el.classList.contains("zo")){ if(!el.value) return; st.extra=[...new Set((st.extra||[]).concat(el.value))]; st.docs=[...new Set(B.docs.map(j=>j.id).concat(el.value))]; st.none=false; }
-  else if(el.classList.contains("zp")){ const r=B.rows[+el.dataset.i], v=el.value;
+  else if(el.classList.contains("zp") && el.value==="k"){ const r=B.rows[+el.dataset.i]; if(r.kind==="stk") return; zkToStock(B, r); drawPurchase(); return; }
+  else if(el.classList.contains("zp")){ const r=B.rows[+el.dataset.i], v=el.value; if(r.kind==="stk" && B.st.stk){ delete B.st.stk[r.i]; toast("info","Строка больше не «в склад»","Сам приход на складе остался — если он не нужен, отмените его в карточке партии."); }
     zkLearn(z=>{ if(v==="x") z.n[r.key]={x:1}; else if(v==="s") z.n[r.key]={s:1}; else if(v.startsWith("p:")) z.n[r.key]={p:v.slice(2).split(","), f:r.f||1}; else delete z.n[r.key]; });
     if(v) toast("ok","Запомнил","«"+r.it.name+"» — "+(v==="x"?"расход":v==="s"?"не учитывать":v.slice(2).split(",").map(id=>(B.inv.get(id)||{}).name||"").join(" + "))+". В следующий раз сайт сделает так же."); }
   else if(el.classList.contains("zf")){ zkSetF(B, +el.dataset.i, +num(el.value)); return; }
@@ -3588,8 +3622,8 @@ function jRowHtml(j, kid, arch){ const w=jWho(j), pv=!!(j.snap.c&&j.snap.c.priv)
     : `${cj}${view} <button class="btn ghost sm" data-edit="${j.id}">Изменить</button>
     <details class="more"><summary class="btn ghost sm">Ещё ▾</summary><div class="menu"><button class="btn sm" data-x="${j.id}">XML для ЕИС</button><button class="btn sm" data-copy="${j.id}">Сделать копию</button><button class="btn sm danger" data-arch="${j.id}">В архив</button></div></details>`;
   const ad = arch ? `<span class="muted" title="Убран в архив">в архиве с ${dtShort(j.snap.meta.arch)}</span>` : jDl(j);
-  if(kid) return `<div class="kd"><div class="kd-n">№ ${esc(j.number)}</div><div class="kd-w jcard" data-card="${j.id}" title="Подробнее о документе"><span>${esc(kLbl(j)||w.main)}</span></div><div class="kd-s">${fm(j.sum)}</div><div class="kd-p">${ad}</div><div class="kd-a acts">${acts}</div></div>`;
-  return `<tr class="${kid?"kid":""}"><td>${fd(j.date)}</td><td>${esc(j.number)}</td><td class="jcard" data-card="${j.id}" title="Подробнее о документе"><div class="who">${esc(kid&&kLbl(j)?kLbl(j):w.main)}</div></td><td class="num">${fm(j.sum)}</td><td>${ad}</td><td class="acts">${acts}</td></tr>`; }
+  if(kid) return `<div class="kd"><div class="kd-n">№ ${esc(j.number)}</div><div class="kd-w jcard" data-card="${j.id}" title="Подробнее о документе"><span>${esc(kLbl(j)||w.main)}</span>${skJBadge(j)}</div><div class="kd-s">${fm(j.sum)}</div><div class="kd-p">${ad}</div><div class="kd-a acts">${acts}</div></div>`;
+  return `<tr class="${kid?"kid":""}"><td>${fd(j.date)}</td><td>${esc(j.number)}</td><td class="jcard" data-card="${j.id}" title="Подробнее о документе"><div class="who">${esc(kid&&kLbl(j)?kLbl(j):w.main)}</div>${skJBadge(j)}</td><td class="num">${fm(j.sum)}</td><td>${ad}</td><td class="acts">${acts}</td></tr>`; }
 /* строки журнала с комплектами; arch — показываем архив */
 /* разделитель дня в журнале (при сортировке по дате документа) */
 function jDaySep(iso, st){ const d=new Date(iso+"T12:00:00"), t=todayISO(), tm=new Date(); tm.setDate(tm.getDate()+1); const tmIso=tm.getFullYear()+"-"+String(tm.getMonth()+1).padStart(2,"0")+"-"+String(tm.getDate()).padStart(2,"0");
@@ -3625,7 +3659,9 @@ function renderJournal(){
   if(document.activeElement!==$("#jr-q")) $("#jr-q").value=f.q||"";
   const [d1,d2]=jRange(f), q=(f.q||"").toLowerCase().trim();
   const live=D.journal.filter(j=>j.snap && !isArch(j));
-  const rows=live.filter(j=>j.date>=d1 && j.date<=d2 && (!f.sup||j.supplierId===f.sup) && (!f.cus||j.customerId===f.cus) && (!f.br||j.snap.dr.branchId===f.br) && jMatch(j,q))
+  $("#jr-sk").value=f.sk||""; $("#jr-skw").hidden=!(SK_READY && SK && skSrv!==false);
+  const skOk=j=>{ if(!f.sk) return true; const st=skJState(j); return f.sk==="any"?!!st:f.sk==="wait"?(st==="wait"||st==="short"):st==="short"; };
+  const rows=live.filter(j=>j.date>=d1 && j.date<=d2 && (!f.sup||j.supplierId===f.sup) && (!f.cus||j.customerId===f.cus) && (!f.br||j.snap.dr.branchId===f.br) && jMatch(j,q) && skOk(j))
     .sort(jSorter(f.sort||"cr_d"));
   $("#jr-sort").value=f.sort||"cr_d";
   document.querySelectorAll("#jr-head th[data-js]").forEach(th=>{ const k=th.dataset.js, s=f.sort||"cr_d"; th.classList.toggle("sorted", s.startsWith(k)); th.dataset.dir = s.startsWith(k) ? (s.endsWith("_a")?"▲":"▼") : ""; });
@@ -3663,7 +3699,7 @@ const IC_TRASH='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stro
 const jfSet=(k,v)=>{ JF()[k]=v; saveLocal(); renderJournal(); };
 $("#jr-per").onchange=e=>jfSet("per",e.target.value);
 $("#jr-from").onchange=e=>jfSet("from",e.target.value); $("#jr-to").onchange=e=>jfSet("to",e.target.value);
-$("#jr-sup").onchange=e=>jfSet("sup",e.target.value); $("#jr-cus").onchange=e=>{ JF().br=""; jfSet("cus",e.target.value); }; $("#jr-br").onchange=e=>jfSet("br",e.target.value);
+$("#jr-sup").onchange=e=>jfSet("sup",e.target.value); $("#jr-sk").onchange=e=>jfSet("sk",e.target.value); $("#jr-cus").onchange=e=>{ JF().br=""; jfSet("cus",e.target.value); }; $("#jr-br").onchange=e=>jfSet("br",e.target.value);
 $("#jr-q").addEventListener("input",e=>jfSet("q",e.target.value));
 $("#jr-sort").onchange=e=>jfSet("sort",e.target.value);
 $("#jr-head").addEventListener("click",e=>{ const th=e.target.closest("th[data-js]"); if(!th) return; const k=th.dataset.js, cur=JF().sort||"cr_d";
@@ -3748,7 +3784,7 @@ function openCard(html, wide, onAct){
   const d=document.createElement("dialog"); d.id="fd-dcard"; d.className="dcard"+(wide?" wide":""); d.innerHTML=html;
   document.getElementById("fd-app").appendChild(d);
   const close=()=>{ if(d.classList.contains("out")) return; d.classList.add("out"); setTimeout(()=>{ try{ d.close(); }catch(x){} d.remove(); }, matchMedia("(prefers-reduced-motion: reduce)").matches?0:200); };
-  d.addEventListener("cancel", e=>{ e.preventDefault(); close(); });
+  d.addEventListener("cancel", e=>{ e.preventDefault(); if(document.getElementById("fd-help")){ closeHelp(); return; } close(); });
   d.addEventListener("click", e=>{
     if(e.target===d){ const r=d.getBoundingClientRect(); if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom) close(); return; }
     const b=e.target.closest("[data-dc]"); if(!b) return; const a=b.dataset.dc; close(); if(a!=="close") setTimeout(()=>onAct(a, b), 0); });
@@ -5229,6 +5265,7 @@ function autoTasks(){
   if(pfLoaded){ const miss=new Map(); live.filter(j=>daysTo(j.date)>=-30).forEach(j=>(j.snap.dr.lines||[]).forEach(l=>{ if(l.productId && +l.qty>0 && !costFor(l.productId,j.customerId,j.date) && !miss.has(l.productId)) miss.set(l.productId, prod(l.productId)); }));
     const L=[...miss.values()].filter(Boolean);
     if(L.length) add("Прибыль",{key:"cost-"+L.map(p=>p.id).join(","), lvl:"info", title:"Нет закупочной цены у "+L.length+" "+(L.length===1?"товара":"товаров"), text:"Без неё прибыль по этим товарам не считается. "+lst(L)+".", go:{tab:"profit", q:"#pf-paste"}}); }
+  skAutoTasks(add);
   return T;
 }
 function renderTasks(){
@@ -5252,7 +5289,7 @@ function drawTasks(){
   const sh=$("#tk-showhid"); sh.hidden=!hidA.length; sh.textContent = tkShowHid ? "Не показывать скрытые" : "Показать скрытые ("+hidA.length+")";
 }
 function tkGo(g){
-  if(g.sel) editorSel[g.sel[0]]=g.sel[1];
+  if(g.sel) editorSel[g.sel[0]]=g.sel[1]; if(g.skdet) SKV.det=g.skdet;
   showTab(g.tab);
   setTimeout(()=>{ let el=null;
     if(g.pt){ const box=[...document.querySelectorAll("#pt-list .ptg")].find(b=>ptKey(b.dataset.addr)===ptKey(g.pt[0])); if(box){ const d=box.closest("details"); if(d) d.open=true; el=box.querySelector(`[data-pt="${g.pt[1]}"]`); } }
@@ -5277,6 +5314,25 @@ $("#tk-showhid").onclick=()=>{ tkShowHid=!tkShowHid; drawTasks(); };
 
 /* ================= подсказки «?» у заголовков ================= */
 const HELP={
+  "Склад":["Один общий склад на всю команду, без деления по ИП.",["Приход — товар пришёл на склад. Каждый приход — своя партия (дата, цена, поставщик, срок годности).","Начальный остаток — сколько товара уже лежит сейчас. Много позиций — «Ввести списком».","Резерв — товар отложен под накладную. Появляется сам, когда в строке документа выбрано «Со склада» и документ сохранён.","Отгрузка — товар фактически уехал. Только тогда он списывается со склада.","Плитки сверху нажимаются — откроется список.","Кнопка «Обновить» сверяет остатки с таблицей."]],
+  "Товар склада":["Карточка одного товара.",["Сверху — сколько есть, сколько в резерве (нажмите, чтобы увидеть накладные) и сколько свободно.","Партии — каждый приход отдельно, по старшинству.","«Позиции в документах» — по каким названиям из контрактов этот товар берётся со склада.","Комментарий виден только здесь."]],
+  "Позиции в документах":["Связь склада с договорными названиями.",["Например, на складе «Шиповник сушёный», а в контракте гематологии — «Ягоды сушёные (шиповник)». Свяжите их — и в документе можно будет взять товар со склада.","В документе, PDF и XML остаётся название из контракта.","Похожее название само ничего не связывает — только ваше нажатие «связать»."]],
+  "Партии":["Каждый приход хранится отдельно.","Отгрузка берёт товар из самой старой партии — так считается себестоимость. Нажмите на партию: изменить цену или срок, списать, перевзвесить, отменить ошибочный приход."],
+  "Брать со склада автоматически":["Чтобы не выбирать склад в каждой строке.",["«Да» — в новых документах строка с этим товаром сама станет «Со склада», если товар свободен.","Если товара мало — «Часть со склада», остальное от Саида.","Старые документы не меняются. В строке всегда можно выбрать вручную."]],
+  "Объединить товары":["Если один товар завели дважды (например, «Огурец» и «Огурцы»).","Всё переедет в выбранный товар: партии, остатки, резервы, декларации, связи. Второе название станет «другим названием» для поиска."],
+  "Отменить приход":["Для ошибочного прихода (не тот товар, задвоили).","Можно, только пока из партии ничего не брали. Если уже брали — исправьте количество с причиной или сделайте инвентаризацию."],
+  "Перевзвешивание":["Товар пришёл мешками или коробками, а продаём в кг.","Впишите, сколько упаковок взвесили и сколько вышло кг. Стоимость упаковок перейдёт в новую партию в кг, срок годности и декларации — те же."],
+  "Приход на склад":["Товар пришёл на склад.",["Начните вводить название — покажу похожие товары. Нового товара нет — он добавится сам.","Цена — за единицу. Не знаете — оставьте пусто, прибыль будет «предварительной».","Если похожий приход уже был — сайт переспросит, чтобы не задвоить."]],
+  "Начальный остаток":["Сколько товара уже лежит на складе на день запуска.","Это не закупка и не продажа — просто стартовая точка. Старые накладные склад не трогает. Много позиций — кнопка «Ввести списком»."],
+  "Ввести списком":["Много позиций сразу — например, из Excel.",["Каждая строка: товар, количество, единица, цена. Можно добавить дату и «годен до» (дд.мм.гг).","Разделители — табуляция (копия из Excel) или «;».","Нажмите «Проверить список» — сайт покажет, что новое, а где ошибка. Проводится всё одной операцией."]],
+  "Откуда товар":["Откуда берём товар для этой строки.",["От Саида — закупка под эту поставку (по умолчанию).","Со склада — всё количество со склада; не хватит — будет «нехватка».","Часть со склада — сколько-то со склада, остальное от Саида.","Резерв появится после сохранения документа."]],
+  "Отгрузка":["Подтвердите, что товар уехал.",["Со склада — не больше резерва. Отгрузили меньше — остаток ждёт допоставки.","«От Саида» — для учёта, со склада не списывается.","Печать и скачивание документов ничего не списывают."]],
+  "Закрыть остаток":["Допоставки не будет (заказчик отказался, заменили товар).","Резерв по оставшемуся снимается, товар снова свободен."],
+  "Возврат на склад":["Товар вернулся от заказчика.","Он вернётся в те же партии по той же себестоимости. Сам документ не меняется — поправьте количество в нём, если нужно."],
+  "Инвентаризация":["Пересчёт склада.",["Впишите, сколько товара по факту. Пустая клетка — не считали, 0 — товара нет.","Проводится только разница. Акт сохраняется, даже если всё сошлось.","Если факт меньше резерва — сначала разберитесь с накладными, где он зарезервирован."]],
+  "Отгрузить за день":["Все накладные дня одним нажатием.","Спишется то, что зарезервировано. Снимите галочку с накладной, если она ещё не уехала."],
+  "Склад в документе":["Что по этой накладной со склада.",["Резерв — отложено на складе. Нехватка — на складе не хватило.","«Отгрузить» — когда товар уехал. «Обновить резерв» — после нового прихода.","«Закрыть остаток» — допоставки не будет. «Возврат» — товар вернулся."]],
+  "Склад в журнале":["Значки у документов со складскими строками.",["резерв — товар отложен и ждёт отгрузки;","нехватка — на складе не хватило;","отгружено — со склада уже списано."]],
   "Вход":["Выберите себя и введите свой пароль.","На этом устройстве вход запомнится — в следующий раз пароль не понадобится."],
   "Заказ из файла":["Загрузите заявку заказчика как есть — PDF, Word (.docx), Excel — или вставьте текст из письма кнопкой «Вставить текст».",["Сайт сам найдёт заказчика (по номеру договора, ИНН или названию), дату поставки, адрес и товары, цены — по договору. Сканы и фото не читаются — для них вставьте текст.","Всё, в чём сайт не уверен, помечено: жёлтое — проверьте, красное — товар не найден, выберите его из списка (сайт запомнит название).","Проверьте замечания (красные — товар не найден, добавьте вручную), поправьте номер и сформируйте документы.","Если в файле несколько адресов — будет несколько документов, заполняйте по очереди.","«Скачать шаблон» — пустой файл с прайсом выбранного заказчика, можно заполнить и самому."]],
   "Стороны":["Кто продаёт, кому и по какому договору.",["Выберите заказчика и договор — поставщик (ИП) подставится сам.","Номер документа ставится следующий по порядку, дата — день поставки.","Если у заказчика несколько подразделений (как у МГУ), выберите нужное — в документах будут его реквизиты.","Адрес доставки — куда везём, он попадёт в накладную."]],
@@ -5326,12 +5382,14 @@ document.addEventListener("click",e=>{ const b=e.target.closest("#fd-app .hq");
   const k=b.dataset.hq, H=HELP[k+(isStaff()&&HELP[k+"__staff"]?"__staff":"")]||HELP[k]; if(!H) return;
   const p=document.createElement("div"); p.id="fd-help"; p.setAttribute("role","dialog");
   p.innerHTML=`<b>${esc(k)}</b>`+H.map(x=>Array.isArray(x)?`<ul>${x.map(y=>`<li>${esc(y)}</li>`).join("")}</ul>`:`<p>${esc(x)}</p>`).join("");
-  document.body.appendChild(p); helpBtn=b; b.classList.add("on");
+  /* в открытом окне подсказка кладётся внутрь окна и в верхний слой — иначе её не видно и не нажать */
+  const host=b.closest("dialog")||document.body; host.appendChild(p); if(typeof p.showPopover==="function"){ p.setAttribute("popover","manual"); try{ p.showPopover(); }catch(x){} }
+  helpBtn=b; b.classList.add("on");
   const r=b.getBoundingClientRect(), vw=document.documentElement.clientWidth, vh=window.innerHeight, pw=p.offsetWidth, ph=p.offsetHeight;
   let left=Math.min(Math.max(12, r.left-12), vw-pw-12), top=r.bottom+8; if(top+ph>vh-12) top=Math.max(12, r.top-ph-8);
   p.style.left=left+"px"; p.style.top=top+"px"; }, true);
-document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeHelp(); });
-window.addEventListener("scroll",closeHelp,{passive:true}); window.addEventListener("resize",closeHelp);
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ if(document.getElementById("fd-help")){ e.preventDefault(); e.stopPropagation(); } closeHelp(); } }, true);   /* Esc при открытой подсказке закрывает только её, а не окно */
+window.addEventListener("scroll",closeHelp,{passive:true}); document.addEventListener("scroll",e=>{ if(e.target && e.target.nodeType===1 && e.target.closest && e.target.closest("dialog")) closeHelp(); },{capture:true, passive:true}); window.addEventListener("resize",closeHelp);
 new MutationObserver(()=>{ if(addHelp._t) return; addHelp._t=requestAnimationFrame(()=>{ addHelp._t=0; addHelp(); }); }).observe(document.getElementById("fd-app"),{childList:true, subtree:true});
 addHelp();
 

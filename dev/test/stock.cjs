@@ -91,6 +91,23 @@ async function doc(id, pid, qty, price, src, unit){
   r=await st('in',{newName:'Лимоны', unit:'кг', qty:'5', price:'100', date:'2026-11-01', supplier:'В', docRef:'л1'}); const lem=r.out.itemId; await st('item',{itemId:lem, links:['p-lem']});
   await Promise.all([doc('dA','p-lem',4,200,{m:'s'}), doc('dB','p-lem',4,200,{m:'s'})]);
   S=(await D({action:'stock',op:'load'})).stock; ok(itemRes(S,lem)===5, 'два документа по 4 кг при остатке 5 — резерв ровно 5: '+itemRes(S,lem));
+  // --- ввод списком, отмена прихода, объединение, источник по умолчанию, поставщик одним написанием
+  r=await st('bulk',{kind:'init', rows:[{newName:'Финики', unit:'кг', qty:'20', price:'150', date:'2026-11-01'},{newName:'Финик', unit:'кг', qty:'3', price:'140', date:'2026-11-01'},{newName:'Изюм', unit:'кг', qty:'0', date:'2026-11-01'}]});
+  ok(!r.ok && /Строка 3/.test(r.error), 'список с ошибкой не проводится целиком: '+r.error);
+  r=await st('bulk',{kind:'init', rows:[{newName:'Финики', unit:'кг', qty:'20', price:'150', date:'2026-11-01'},{newName:'Финик', unit:'кг', qty:'3', price:'140', date:'2026-11-01'}]}); S=r.stock;
+  const fin=S.items.find(i=>i.name==='Финики'), fin1=S.items.find(i=>i.name==='Финик'); ok(r.ok && fin && fin1 && S.batches.filter(b=>b.kind==='init').length>=2, 'начальные остатки списком проведены');
+  r=await st('merge',{fromId:fin1.id, toId:fin.id}); S=r.stock; ok(r.ok && !S.items.some(i=>i.id===fin1.id) && itemFact(S,fin.id)===23 && /Финик/.test(S.items.find(i=>i.id===fin.id).alt), 'товары объединены: остаток 23, «Финик» — другое название');
+  r=await st('merge',{fromId:fin.id, toId:kur},G); ok(!r.ok, 'Гриша не объединяет товары');
+  const bf=S.batches.find(b=>b.itemId===fin.id && +b.qty===3); r=await st('cancelIn',{batchId:bf.id, reason:'задвоили'}); S=r.stock; ok(r.ok && itemFact(S,fin.id)===20 && S.batches.find(b=>b.id===bf.id).cancel, 'ошибочный приход отменён');
+  r=await st('cancelIn',{batchId:b2, reason:'x'}); ok(!r.ok, 'приход, из которого уже отгружали, не отменить');
+  r=await st('in',{itemId:fin.id, unit:'кг', qty:'1', price:'150', date:'2026-11-02', supplier:'саид', docRef:'z1'}); r=await st('in',{itemId:fin.id, unit:'кг', qty:'1', price:'150', date:'2026-11-02', supplier:'САИД', docRef:'z2'}); S=r.stock;
+  ok(new Set(S.batches.filter(b=>/^z[12]$/.test(b.docRef)).map(b=>b.supplier)).size===1, 'поставщик хранится одним написанием');
+  r=await st('item',{itemId:fin.id, def:'s', defC:['c-test']}); S=r.stock; ok(S.items.find(i=>i.id===fin.id).def==='s' && /c-test/.test(S.items.find(i=>i.id===fin.id).defC) && S.log.some(l=>l.action==='Источник по умолчанию'), 'источник по умолчанию сохранён');
+  // старые движения отдаются итогами, остаток не меняется
+  const before=itemFact(S,fin.id);
+  await ev(`(function(){ const rows=read_('smoves'); rows.forEach(r=>{ if(r.itemName==='Финики') r.at='2025-01-01T00:00:00.000Z'; }); write_('smoves', rows); })(); 1`);
+  r=await D({action:'stock',op:'load'}); S=r.stock; const {fact:F2}=calc(S); let viaAgg=0; S.batches.filter(b=>b.itemId===fin.id).forEach(b=>{ viaAgg+=(S.agg.fact[b.id]||0)+(F2[b.id]||0); });
+  ok(S.agg.n>0 && !S.moves.some(m=>m.itemName==='Финики') && r3(viaAgg)===before, 'старые движения — итогами, остаток тот же: '+r3(viaAgg));
   // архив освобождает резерв
   const row=(await (await fetch('http://localhost:8787/dump')).json())['Журнал'].find(r=>r.includes('dA'));
   console.log(fails?'\nПРОВАЛОВ: '+fails:'\nВСЕ ПРОВЕРКИ СКЛАДА ПРОШЛИ'); process.exit(fails?1:0);
