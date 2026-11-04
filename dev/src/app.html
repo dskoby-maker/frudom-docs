@@ -186,6 +186,94 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .tbl table.order{min-width:0}#fd-app table.order td.a{min-width:160px}#fd-app table.order td.a small{display:block;color:var(--muted);font-size:12px;line-height:1.3}
 #fd-app table.order input.q{width:84px;text-align:right}#fd-app table.order input.nm{width:70px;text-align:right}#fd-app table.order th.num,#fd-app table.order td.num{text-align:right;white-space:nowrap}
 #fd-app table.order tfoot td{font-weight:600;border-bottom:0}
+#fd-app .fdseg{position:relative;display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr;background:rgba(28,34,32,.07);border-radius:11px;padding:3px;isolation:isolate}
+#fd-app .fdseg>i{position:absolute;z-index:-1;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);border-radius:8px;background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.12);transform:translateX(var(--x,0%));transition:transform .28s cubic-bezier(.3,.7,.2,1)}
+#fd-app .fdseg button{border:0;background:none;font:500 13px var(--ui);color:var(--muted);padding:6px 14px;border-radius:8px;cursor:pointer;white-space:nowrap;transition:color .2s}
+#fd-app .fdseg button.on{color:var(--accent);font-weight:600}
+/* ===== Аналитика покупок заказчика ===== */
+#fd-app details.ca>summary{list-style:none;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none}#fd-app details.ca>summary::-webkit-details-marker{display:none}
+#fd-app details.ca .ca-t{display:flex;flex-direction:column;min-width:0;flex:1}#fd-app details.ca .ca-t strong{font-size:16px}#fd-app details.ca .ca-t small{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fd-app details.ca .ca-peek{font-size:12.5px;color:var(--muted);background:rgba(255,255,255,.6);border:1px solid rgba(28,34,32,.07);padding:4px 10px;border-radius:99px;white-space:nowrap}#fd-app details.ca .ca-peek b{color:var(--ink)}
+#fd-app details.ca .ca-a{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:rgba(28,34,32,.06);color:var(--muted);transition:transform .3s var(--ease,ease),background .2s,color .2s;flex:none}
+#fd-app details.ca[open] .ca-a{transform:rotate(180deg);background:var(--accent-soft);color:var(--accent)}#fd-app details.ca[open] .ca-peek{display:none}
+#fd-app details.ca[open] .ca-body{animation:fdglass .35s var(--ease,ease)}
+#fd-app .ca-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-top:14px}#fd-app .ca-bar .f{margin:0}
+#fd-app .ca-per{display:inline-flex;flex-wrap:wrap;gap:3px;background:rgba(28,34,32,.06);border-radius:12px;padding:3px}
+#fd-app .ca-per button{border:0;background:none;font:500 13px var(--ui);color:var(--muted);padding:6px 11px;border-radius:9px;cursor:pointer;transition:background .2s,color .2s,box-shadow .2s}
+#fd-app .ca-per button:hover{color:var(--ink)}#fd-app .ca-per button.on{background:var(--surface);color:var(--accent);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+#fd-app .ca-st{margin:8px 0 0;font-size:12.5px;min-height:1em}
+#fd-app details.ca{min-width:0;max-width:100%;grid-template-columns:minmax(0,1fr)}#fd-app #ca-result{transition:opacity .25s;min-width:0;max-width:100%}#fd-app .ca-body{min-width:0;max-width:100%}#fd-app #ca-result.ca-load{opacity:.6}
+#fd-app .ca-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:12px 0}
+#fd-app .ca-tiles>div{border-radius:14px;padding:11px 13px;background:rgba(255,255,255,.62);border:1px solid rgba(28,34,32,.07);animation:fdglass .4s var(--ease,ease) backwards}
+#fd-app .ca-tiles small{display:block;color:var(--muted);font-size:12px}#fd-app .ca-tiles b{display:block;font-size:19px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#fd-app .ca-tiles span{font-size:11.5px;color:var(--muted)}
+#fd-app .ca-tiles .hi{background:linear-gradient(160deg,rgba(123,58,94,.14),rgba(106,44,78,.05));border-color:rgba(106,44,78,.16)}#fd-app .ca-tiles .hi b{color:var(--accent)}
+#fd-app .ca-chart,#fd-app .ca-tw{border-radius:14px;padding:12px 14px;background:rgba(255,255,255,.5);border:1px solid rgba(28,34,32,.06);margin-bottom:12px}
+#fd-app .ca-ch-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px}#fd-app .ca-ch-h small{font-size:12px}
+#fd-app .ca-cols{display:grid;grid-template-columns:repeat(var(--n),minmax(0,1fr));gap:3px;height:150px;align-items:end;padding-top:18px}
+#fd-app .ca-col{height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;min-width:0;outline:none}
+#fd-app .ca-col i{position:relative;display:block;height:var(--h);min-height:2px;border-radius:5px 5px 2px 2px;background:linear-gradient(180deg,#8A4A6E,#6A2C4E);transform-origin:bottom;animation:cagrow .55s var(--ease,ease) backwards;animation-delay:var(--d);transition:filter .2s}
+#fd-app .ca-col.z i{background:rgba(28,34,32,.08)}
+#fd-app .ca-col i em{position:absolute;bottom:100%;left:50%;transform:translate(-50%,-3px);font-style:normal;font-size:10.5px;font-weight:600;color:var(--accent);white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none;background:rgba(255,255,255,.92);padding:1px 5px;border-radius:5px;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+#fd-app .ca-col:hover i,#fd-app .ca-col:focus i{filter:brightness(1.15)}#fd-app .ca-col:hover i em,#fd-app .ca-col:focus i em{opacity:1}
+#fd-app .ca-col span{display:block;text-align:center;font-size:10.5px;color:var(--muted);height:14px;margin-top:4px;white-space:nowrap;overflow:visible}
+@keyframes cagrow{from{transform:scaleY(0)}}
+#fd-app table.ca-tab{width:100%;border-collapse:collapse}#fd-app table.ca-tab th,#fd-app table.ca-tab td{padding:7px 8px;border-bottom:1px solid rgba(28,34,32,.07);font-size:13.5px;text-align:left;vertical-align:middle}
+#fd-app table.ca-tab .num{text-align:right;white-space:nowrap}#fd-app table.ca-tab tbody tr{animation:fdin .3s ease backwards;animation-delay:var(--d)}
+#fd-app table.ca-tab td.ca-i,#fd-app table.ca-tab th.ca-i{width:28px;color:var(--muted);font-size:12px;text-align:center}
+#fd-app .ca-sort{all:unset;cursor:pointer;font:inherit;color:inherit;border-radius:6px;padding:1px 3px;transition:color .2s}#fd-app .ca-sort:hover,#fd-app .ca-sort.on{color:var(--accent)}#fd-app .ca-sort:focus-visible{outline:2px solid var(--accent)}
+#fd-app td.ca-sh,#fd-app th.ca-sh{width:150px}#fd-app td.ca-sh{white-space:nowrap}#fd-app td.ca-sh small{font-size:11.5px;color:var(--muted);margin-left:6px}
+#fd-app span.ca-shb{display:inline-block;vertical-align:middle;width:90px;height:7px;border-radius:99px;background:rgba(28,34,32,.07);overflow:hidden}#fd-app span.ca-shb i{display:block;height:100%;width:var(--w);border-radius:99px;background:linear-gradient(90deg,#8A4A6E,#6A2C4E);animation:pfgrow .6s var(--ease,ease) backwards}
+#fd-app .ca-empty{display:flex;flex-direction:column;gap:4px;align-items:center;text-align:center;padding:26px 10px;color:var(--muted)}#fd-app .ca-empty b{color:var(--ink);font-size:15px}
+@media(max-width:700px){#fd-app .tbl table.ca-tab{min-width:0}#fd-app table.ca-tab thead{display:none}#fd-app table.ca-tab,#fd-app table.ca-tab tbody{display:block}
+  #fd-app table.ca-tab tbody tr{display:grid;grid-template-columns:22px minmax(0,1fr) auto;column-gap:8px;padding:8px 0;border-bottom:1px solid rgba(28,34,32,.07)}
+  #fd-app table.ca-tab td{display:block;border:0!important;padding:0!important}
+  #fd-app table.ca-tab td.ca-i{grid-row:1/3;align-self:center}#fd-app table.ca-tab td:nth-child(2){grid-column:2;grid-row:1}#fd-app table.ca-tab td:nth-child(3){grid-column:2;grid-row:2;text-align:left;font-size:12.5px;color:var(--muted)}
+  #fd-app table.ca-tab td:nth-child(4){grid-column:3;grid-row:1}#fd-app table.ca-tab td:nth-child(5){display:none}#fd-app table.ca-tab td:last-child{grid-column:3;grid-row:2;font-size:12px;color:var(--muted)}#fd-app table.ca-tab td:last-child::before{content:"в док. "}
+  #fd-app table.ca-tab td:nth-child(3):last-child{grid-column:3}
+  #fd-app details.ca .ca-peek{display:none}#fd-app .ca-cols{height:120px}#fd-app td.ca-sh,#fd-app th.ca-sh{display:none}#fd-app .ca-col i em{font-size:9.5px}#fd-app .ca-per button{padding:6px 8px;font-size:12px}}
+/* закупка в окне документа */
+#fd-app .dcard .dc-zk{display:grid;grid-template-rows:0fr;transition:grid-template-rows .38s var(--ease,ease),margin .38s var(--ease,ease);margin-top:0}
+#fd-app .dcard .dc-zk.open{grid-template-rows:1fr;margin-top:14px}#fd-app .dcard .dc-zki{overflow:hidden;min-height:0}
+#fd-app .dcard .dc-zk.open .dc-zki{border-radius:16px;padding:14px;background:rgba(242,231,237,.45);border:1px solid rgba(106,44,78,.1)}
+#fd-app .dcard .dzh{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}#fd-app .dcard .dzh b{font-size:15px}#fd-app .dcard .dzh small{font-size:12px}
+#fd-app .dcard .dzbulk{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;font-size:13px}#fd-app .dcard .dzbulk label{display:inline-flex;align-items:center;gap:8px;color:var(--muted)}#fd-app .dcard .dzbulk input{width:130px;text-align:right}
+#fd-app .dcard .dzl{display:grid;gap:4px;max-height:300px;overflow:auto;padding-right:2px}
+#fd-app .dcard .dzr{display:grid;grid-template-columns:minmax(0,1fr) 110px 44px;gap:8px;align-items:center;padding:6px 8px;border-radius:10px;background:rgba(255,255,255,.65);cursor:text}
+#fd-app .dcard .dzr span b{display:block;font-size:13.5px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fd-app .dcard .dzr span small{display:block;font-size:11.5px;color:var(--muted)}
+#fd-app .dcard .dzr input{width:100%;text-align:right;padding:6px 8px}#fd-app .dcard .dzr em{font-style:normal;font-size:11.5px;color:var(--muted)}
+#fd-app .dcard .dzr.dzx{margin-top:8px}
+#fd-app .dcard input.flash{animation:fdflash .6s ease}
+#fd-app .dcard .dzs-sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}#fd-app .dcard .dzs-sum>div{border-radius:12px;padding:8px 10px;background:rgba(255,255,255,.7)}
+#fd-app .dcard .dzs-sum small{display:block;font-size:11px;color:var(--muted)}#fd-app .dcard .dzs-sum b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#fd-app .dcard .dzs-sum span{font-size:11px;color:var(--muted)}
+#fd-app .dcard .dzs-sum .hi{background:linear-gradient(160deg,rgba(123,58,94,.16),rgba(106,44,78,.06))}#fd-app .dcard .dzs-sum .hi b{color:var(--accent)}#fd-app .dcard .dzs-sum p{grid-column:1/-1;margin:0;font-size:12.5px}
+#fd-app .dcard .dzact{margin-top:10px;margin-bottom:0}
+#fd-app .dcard [data-zkc="toggle"].on{background:var(--accent-soft);color:var(--accent);border-color:rgba(106,44,78,.2)}
+@media(max-width:600px){#fd-app .dcard .dzs-sum{grid-template-columns:repeat(2,minmax(0,1fr))}#fd-app .dcard .dzr{grid-template-columns:minmax(0,1fr) 92px 38px}}
+#fd-app .prtools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 8px}#fd-app .prtools input{flex:1 1 200px;max-width:320px}#fd-app .prtools select{width:auto}#fd-app .prtools .muted{font-size:12.5px;margin-left:auto}
+#fd-app .pager{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:10px}#fd-app .pager:empty{display:none}
+#fd-app .pgnav{display:flex;gap:4px;flex-wrap:wrap}
+#fd-app .pgb{min-width:34px;height:34px;padding:0 9px;border-radius:10px;border:1px solid rgba(28,34,32,.1);background:rgba(255,255,255,.6);font:500 13.5px var(--ui);color:var(--ink);cursor:pointer;transition:background .2s,color .2s,transform .15s var(--ease,ease),box-shadow .2s}
+#fd-app .pgb:hover:not(:disabled){background:#fff;box-shadow:0 4px 10px -6px rgba(28,34,32,.3)}#fd-app .pgb:active:not(:disabled){transform:scale(.94)}#fd-app .pgb:disabled{opacity:.35;cursor:default}
+#fd-app .pgb.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600;box-shadow:0 6px 14px -8px rgba(106,44,78,.7)}
+#fd-app .pgd{align-self:center;color:var(--muted);padding:0 2px}#fd-app .pgi{font-size:12.5px}
+#fd-app .pgsize{display:inline-flex;align-items:center;gap:3px;margin-left:auto;background:rgba(28,34,32,.06);border-radius:11px;padding:3px}#fd-app .pgsize .muted{font-size:12px;padding:0 6px}
+#fd-app .pgsize button{border:0;background:none;font:500 12.5px var(--ui);color:var(--muted);padding:5px 10px;border-radius:8px;cursor:pointer;transition:background .2s,color .2s}
+#fd-app .pgsize button.on{background:var(--surface);color:var(--accent);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+#fd-app table.pgfade tbody{animation:fdin .25s ease}
+@media(max-width:700px){#fd-app .pgsize{margin-left:0}#fd-app .prtools .muted{margin-left:0;flex-basis:100%}}
+#fd-app .oviewrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:-2px 0 10px;font-size:13px}
+#fd-app table.order.oflip{animation:fdin .28s ease}
+#fd-app table.order.ov th.oaddr{vertical-align:bottom;min-width:118px;text-transform:none;letter-spacing:0;transition:background .2s}
+#fd-app table.order.ov th.oaddr b{display:block;font-size:13px;color:var(--ink)}#fd-app table.order.ov th.oaddr small{display:block;font-weight:400;color:var(--muted);font-size:11px;line-height:1.25;margin:1px 0 6px;white-space:normal}
+#fd-app table.order.ov .onm{display:inline-flex;align-items:center;gap:4px;font-weight:500;color:var(--muted)}
+#fd-app table.order.ov th.oaddr .btn{display:block;margin:6px 0 0 auto}
+#fd-app table.order.ov td.oprod,#fd-app table.order.ov th.oprod{position:sticky;left:0;z-index:1;background:rgba(251,251,249,.97);min-width:170px;box-shadow:1px 0 0 var(--line)}#fd-app table.order.ov td.oprod b{font-weight:500}
+#fd-app table.order.ov tfoot td:first-child{position:sticky;left:0;background:var(--surface);z-index:1}
+#fd-app table.order.ov td.opr{color:var(--muted)}#fd-app table.order.ov td.otq{font-weight:600}
+#fd-app table.order.ov .ohas{background:rgba(106,44,78,.07)}
+#fd-app table.order.ov tbody tr{transition:background .15s}#fd-app table.order.ov tbody tr:hover td{background:rgba(106,44,78,.04)}#fd-app table.order.ov tbody tr:hover td.oprod{background:var(--surface)}
+#fd-app table.order.ov .ofn{display:block;font-weight:400;color:var(--muted);font-size:12px}
+@media(max-width:700px){#fd-app .fdseg button{padding:6px 10px;font-size:12px}#fd-app table.order.ov td.oprod,#fd-app table.order.ov th.oprod{min-width:118px}#fd-app table.order.ov th.oaddr{min-width:76px}}
 @media(max-width:700px){#fd-app table.order td.a{min-width:92px;font-size:13px}#fd-app table.order td.a small{font-size:11px}#fd-app table.order input.q,#fd-app table.order input.nm{width:56px;padding:6px 4px}#fd-app table.order th,#fd-app table.order th.num{font-size:10px;letter-spacing:0;padding:4px;white-space:normal}#fd-app table.order td{padding:4px 3px}}
 #fd-app .chk{display:inline-flex;gap:6px;align-items:center;font-size:15px;margin-right:18px;cursor:pointer}#fd-app .chk input{width:18px;height:18px}
 #fd-app .done{margin-top:10px;display:grid;gap:6px}#fd-app .done div{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14px}
@@ -487,6 +575,83 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 @media (max-width:700px){#fd-app .zktop{grid-template-columns:1fr}#fd-app table.zkt select{max-width:100%}#fd-app table.zkt tr.zkopen{background:var(--warn-soft);padding-left:8px;padding-right:8px}#fd-app table.zkt tr.zkopen td{background:none}}
 #fd-app table.pfprev select{max-width:340px}#fd-app table.pfprev input{width:100px;text-align:right}#fd-app table.pfprev small{display:block;color:var(--muted)}
 #fd-app table.pf input.cur{width:110px;text-align:right;padding:5px 7px}
+/* ===== Прибыль: показатели, оплаты, прочие доходы и расходы ===== */
+#fd-app .pfk{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-top:4px}#fd-app .pfk .pk.main,#fd-app .pfk .pk[data-k="paid"],#fd-app .pfk .pk[data-k="due"]{grid-column:span 2}
+@media(max-width:900px){#fd-app .pfk{grid-template-columns:repeat(3,minmax(0,1fr))}#fd-app .pfk .pk[data-k="paid"],#fd-app .pfk .pk[data-k="due"]{grid-column:span 1}#fd-app .pfk .pk.main{grid-column:span 3}}
+@media(max-width:560px){#fd-app .pfk{grid-template-columns:repeat(2,minmax(0,1fr))}#fd-app .pfk .pk.main{grid-column:span 2}}
+#fd-app .pfk .pk{position:relative;border-radius:14px;padding:11px 13px;background:rgba(255,255,255,.62);border:1px solid rgba(28,34,32,.07);box-shadow:inset 0 1px 0 rgba(255,255,255,.9);min-width:0;animation:fdglass .4s var(--ease,ease) backwards;transition:transform .2s var(--ease,ease),box-shadow .2s}
+#fd-app .pfk .pk:hover{transform:translateY(-1px);box-shadow:inset 0 1px 0 #fff,0 8px 18px -12px rgba(48,32,44,.3)}
+#fd-app .pfk .pk small{display:block;color:var(--muted);font-size:12px}#fd-app .pfk .pk b{display:block;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
+#fd-app .pfk .pk span{display:block;font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.3}
+#fd-app .pfk .pk.soft{background:rgba(242,231,237,.55)}
+#fd-app .pfk .pk.main{background:linear-gradient(160deg,rgba(123,58,94,.14),rgba(106,44,78,.05));border-color:rgba(106,44,78,.16)}#fd-app .pfk .pk.main b{font-size:22px;color:var(--accent)}
+#fd-app .pfk .pk.ok b{color:var(--ok)}#fd-app .pfk .pk.warn{background:rgba(255,244,224,.7)}#fd-app .pfk .pk.warn b{color:var(--warn)}
+#fd-app .pfbar{display:flex;height:12px;border-radius:99px;overflow:hidden;margin:14px 0 6px;background:rgba(28,34,32,.06)}
+#fd-app .pfbar i{display:block;height:100%;width:var(--w);animation:pfgrow .7s var(--ease,ease) backwards;transform-origin:left}
+@keyframes pfgrow{from{width:0}}
+#fd-app .b-cost{background:#C9B8A6}#fd-app .b-tax{background:#9AA7A0}#fd-app .b-exp{background:#E0A86A}#fd-app .b-net{background:linear-gradient(90deg,#7B3A5E,#6A2C4E)}
+#fd-app .pfleg{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--muted)}#fd-app .pfleg i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}#fd-app .pfleg b{color:var(--ink);font-weight:600}
+/* кто сколько должен */
+
+#fd-app #pf-paysum{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:12px}
+#fd-app #pf-paysum>div{border-radius:14px;padding:11px 13px;background:rgba(255,255,255,.62);border:1px solid rgba(28,34,32,.07)}
+#fd-app #pf-paysum small{display:block;color:var(--muted);font-size:12px}#fd-app #pf-paysum b{display:block;font-size:20px;letter-spacing:-.01em}#fd-app #pf-paysum span{font-size:12px;color:var(--muted)}
+#fd-app #pf-paysum .warn{background:rgba(255,244,224,.75)}#fd-app #pf-paysum .warn b{color:var(--warn)}#fd-app #pf-paysum .bad b{color:var(--err)}#fd-app #pf-paysum .ok b{color:var(--ok)}
+#fd-app .pfdebt{display:grid;gap:8px}
+#fd-app .pdc{border-radius:14px;background:rgba(255,255,255,.6);border:1px solid rgba(28,34,32,.07);overflow:hidden;transition:box-shadow .25s var(--ease,ease),background .2s;animation:fdglass .35s var(--ease,ease) backwards}
+#fd-app .pdc:hover{box-shadow:0 10px 22px -16px rgba(48,32,44,.35)}#fd-app .pdc.open{background:rgba(255,255,255,.82)}#fd-app .pdc.clear{opacity:.75}
+#fd-app .pdh{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1.2fr) auto 18px;gap:14px;align-items:center;padding:11px 14px;cursor:pointer;font-family:var(--ui)}
+#fd-app .pdh:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:14px}
+#fd-app .pdn b{display:block;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fd-app .pdn small{display:block;font-size:12px;color:var(--muted)}
+#fd-app .pdp small{display:block;font-size:11.5px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fd-app .pdbar{display:block;height:7px;border-radius:99px;background:rgba(179,38,30,.12);overflow:hidden}#fd-app .pdbar i{display:block;height:100%;width:var(--w);background:linear-gradient(90deg,#3E8A5A,#2F6B45);border-radius:99px;transition:width .5s var(--ease,ease);animation:pfgrow .7s var(--ease,ease) backwards}
+#fd-app .pdd{text-align:right}#fd-app .pdd small{display:block;font-size:11px;color:var(--muted)}#fd-app .pdd b{font-size:17px;white-space:nowrap;color:var(--err)}#fd-app .pdd b.pos{color:var(--ok)}
+#fd-app .pda{color:var(--muted);transition:transform .3s var(--ease,ease)}#fd-app .pdc.open .pda{transform:rotate(180deg);color:var(--accent)}
+#fd-app .pdb{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s var(--ease,ease)}#fd-app .pdc.open .pdb{grid-template-rows:1fr}
+#fd-app .pdbi{overflow:hidden;padding:0 14px}#fd-app .pdc.open .pdbi{padding-bottom:12px}
+#fd-app .pdl{display:grid;gap:2px;border-top:1px solid var(--glass-ln,var(--line));padding-top:8px}
+#fd-app .pdr{display:grid;grid-template-columns:minmax(0,1fr) auto 120px auto;gap:12px;align-items:center;padding:6px 4px;border-radius:9px;font-size:13.5px;transition:background .2s,opacity .25s,transform .25s}
+#fd-app .pdr:hover{background:rgba(255,255,255,.7)}#fd-app .pdr small{display:block;color:var(--muted);font-size:11.5px}#fd-app .pdr .num{text-align:right}
+#fd-app .pdr.gone{opacity:0;transform:translateX(16px)}
+#fd-app .pdf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 4px;font-size:13px}#fd-app .pdf .pdsum{width:130px;text-align:right}#fd-app .pdf .pddate{width:150px}
+#fd-app .pdempty{text-align:center;padding:14px}
+#fd-app .pfage{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:99px;background:rgba(28,34,32,.06);color:var(--muted);white-space:nowrap}
+#fd-app .pfage.mid{background:var(--warn-soft);color:var(--warn)}#fd-app .pfage.old{background:#fbe9e7;color:var(--err)}
+#fd-app button.pfpay{display:inline-flex;align-items:center;gap:5px;font:600 12.5px var(--ui);padding:5px 11px;border-radius:99px;border:1px solid rgba(47,107,69,.35);background:rgba(47,107,69,.07);color:var(--ok);cursor:pointer;white-space:nowrap;transition:background .2s,transform .15s var(--ease,ease),box-shadow .2s}
+#fd-app button.pfpay:hover{background:var(--ok);color:#fff;box-shadow:0 6px 14px -8px rgba(47,107,69,.7)}#fd-app button.pfpay:active{transform:scale(.95)}
+#fd-app button.pfpay.paid{background:rgba(47,107,69,.1);border-color:transparent}#fd-app button.pfpay.paid i{font-style:normal;display:grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--ok);color:#fff;font-size:10px;animation:fdpop .3s var(--ease,ease)}
+#fd-app button.pfpay.paid small{font-weight:400;opacity:.8}#fd-app button.pfpay.paid:hover{background:rgba(179,38,30,.08);color:var(--err);box-shadow:none}#fd-app button.pfpay.paid:hover i{background:var(--err)}
+#fd-app .pfpaycell{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}#fd-app .pfpaycell small{flex-basis:100%;font-size:11px}
+#fd-app table.pf td.pfpt{white-space:nowrap}
+#fd-app table.pf tr.pfnew>td{background:rgba(242,231,237,.55)}#fd-app table.pf tr.pfnew>td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+#fd-app .pfnewb{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.02em;text-transform:uppercase;color:#fff;background:var(--accent);border-radius:99px;padding:1px 7px;vertical-align:1px;animation:fdpop .4s var(--ease,ease)}
+#fd-app table.pf tr.ispaid>td:not(.pfpt){opacity:.78}
+#fd-app table.pf tr.justpaid>td{background:rgba(47,107,69,.1)!important;transition:background .25s}
+#fd-app .pfchips{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 10px}
+#fd-app .pfchips button{display:inline-flex;align-items:center;gap:6px;font:500 13px var(--ui);padding:6px 12px;border-radius:99px;border:1px solid rgba(28,34,32,.1);background:rgba(255,255,255,.6);color:var(--ink);cursor:pointer;transition:background .2s,color .2s,border-color .2s,transform .15s var(--ease,ease)}
+#fd-app .pfchips button i{font-style:normal;font-size:11.5px;font-weight:600;background:rgba(28,34,32,.07);border-radius:99px;padding:0 7px;min-width:20px;text-align:center}
+#fd-app .pfchips button:hover{background:#fff}#fd-app .pfchips button:active{transform:scale(.96)}
+#fd-app .pfchips button.on{background:var(--accent);border-color:var(--accent);color:#fff}#fd-app .pfchips button.on i{background:rgba(255,255,255,.25)}
+#fd-app .pfchips button.c-due:not(.on) i{background:var(--warn-soft);color:var(--warn)}#fd-app .pfchips button.c-new:not(.on) i{background:var(--accent-soft);color:var(--accent)}
+#fd-app .pfxin{animation:fdin .25s ease}
+#fd-app .pfbulk{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;padding:10px 12px;border-radius:12px;background:rgba(242,231,237,.55);margin-bottom:10px;font-size:13px}
+#fd-app .pfbulk label{display:inline-flex;align-items:center;gap:6px;color:var(--muted)}#fd-app .pfbulk input{width:110px;text-align:right;padding:5px 8px}#fd-app .pfbulk .pfbm{width:70px}
+#fd-app .pfbulk .or{color:var(--muted)}#fd-app .pfbulk small{flex-basis:100%}
+#fd-app .pfxfoot{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;margin-top:10px}#fd-app .pfxfoot>.muted{flex-basis:100%;font-size:12.5px}
+/* прочие доходы и расходы */
+#fd-app .pfoadd{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:10px}#fd-app .pfoadd .f{margin:0}#fd-app .pfoadd .f.wide{flex:1 1 220px}#fd-app .pfoadd #po-sum{width:130px;text-align:right}
+#fd-app .pfoadd .fdseg{margin-bottom:1px}#fd-app .pfoadd #po-sup{width:auto;max-width:240px}
+@media(max-width:560px){#fd-app #pf-paysum{grid-template-columns:repeat(2,minmax(0,1fr))}#fd-app #pf-paysum>div:first-child{grid-column:span 2}#fd-app #pf-paysum b{font-size:17px}#fd-app .pfoadd #po-sup{max-width:none;width:100%}}
+#fd-app .pfosum{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13.5px;margin:2px 0 8px}
+#fd-app .pokind{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px}#fd-app .pokind.exp{background:#fbe9e7;color:var(--err)}#fd-app .pokind.inc{background:rgba(47,107,69,.1);color:var(--ok)}
+#fd-app table.po tr.fresh>td{animation:pofresh 1.4s ease}@keyframes pofresh{0%{background:rgba(106,44,78,.14)}100%{background:transparent}}
+#fd-app table.po tr.polocal td:first-child{box-shadow:inset 3px 0 0 var(--warn)}
+@media(max-width:700px){
+  #fd-app .pdh{grid-template-columns:minmax(0,1fr) auto 14px;gap:8px 10px}#fd-app .pdh .pdp{grid-column:1/-1;grid-row:2}
+  #fd-app .pdr{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}#fd-app .pdr .num{text-align:left}#fd-app .pdr button{justify-self:end}
+  #fd-app .pfk .pk b{font-size:16px}#fd-app .pfk .pk.main b{font-size:19px}
+  #fd-app .pfbulk input{width:96px}
+}
 #fd-app .whopick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0 14px}
 #fd-app.staff #jr-reset{display:inline-flex}#fd-app.staff .ct.miss{display:none}
 #fd-app .whopick button{border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:14px 10px;font:600 16px var(--ui);color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;transition:border-color .15s,background .15s,transform .1s}
@@ -681,7 +846,8 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
     </div>
     <div class="card">
       <h2>Количество по адресам <small>впишите цифры из заявки, пустые строки пропускаются</small></h2>
-      <div class="tbl"><table class="order"><thead id="o-head"></thead><tbody id="o-body"></tbody><tfoot id="o-foot"></tfoot></table></div>
+      <div class="oviewrow"><span class="muted">Вид таблицы</span><div class="fdseg" id="o-view" role="group" aria-label="Вид таблицы заявки"><i></i><button type="button" data-v="h">Адреса в строках</button><button type="button" data-v="v">Товары в строках</button></div></div>
+      <div class="tbl"><table class="order" id="o-tbl"><thead id="o-head"></thead><tbody id="o-body"></tbody><tfoot id="o-foot"></tfoot></table></div>
       <div class="note" id="o-numwarn" role="alert" hidden></div>
       <div class="row"><button class="btn ghost" id="o-addaddr">+ Другой адрес</button><button class="btn ghost" id="o-clear">Очистить количества</button></div>
     </div>
@@ -780,17 +946,39 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
         <label class="f">Поставщик<select id="pf-sup"></select></label>
         <label class="f">Заказчик<select id="pf-cus"></select></label>
       </div>
-      <div class="pfcards" id="pf-cards"></div>
+      <div class="pfkpi" id="pf-cards"></div>
       <div class="note" id="pf-warn" hidden></div>
       <div class="row"><span class="muted" id="pf-msg"></span><span style="flex:1"></span><button class="btn ghost sm" id="pf-refresh">Обновить</button></div>
+    </div>
+    <div class="card" id="pf-debtc">
+      <h2>Кто сколько должен <small>оплаты заказчиков за всё время</small></h2>
+      <div class="pfpaysum" id="pf-paysum"></div>
+      <div id="pf-debt" class="pfdebt"></div>
+      <div class="row"><label class="chk"><input type="checkbox" id="pf-showpaid"> показать тех, кто всё оплатил</label></div>
+    </div>
+    <div class="card">
+      <h2>По накладным <small>нажмите на строку — закупка по товарам, прочие расходы и оплата</small></h2>
+      <div class="pfchips" id="pf-chips" role="group" aria-label="Какие накладные показать"></div>
+      <div class="tbl"><table class="stack jt pf" data-full="2"><thead><tr><th>Дата</th><th>№</th><th>Заказчик и точка</th><th class="num">Выручка</th><th class="num">Закупка</th><th class="num">Прибыль</th><th class="num">Маржа</th><th>Оплата</th></tr></thead><tbody id="pf-docs"></tbody></table></div>
+      <div class="row pfmore" id="pf-more" hidden><span class="muted" id="pf-shown"></span><span style="flex:1"></span><button class="btn sm" id="pf-next">Показать ещё 50</button><button class="btn ghost sm" id="pf-all">Показать все</button></div>
+    </div>
+    <div class="card" id="pf-othc">
+      <h2>Прочие расходы и доходы <small>аренда, зарплата, бензин, проценты по вкладу…</small></h2>
+      <div class="pfoadd">
+        <div class="fdseg" id="po-kind" role="group" aria-label="Расход или доход"><i></i><button type="button" data-k="exp" class="on" aria-pressed="true">Расход</button><button type="button" data-k="inc" aria-pressed="false">Доход</button></div>
+        <label class="f">Дата<input type="date" id="po-date"></label>
+        <label class="f">Сумма, ₽<input id="po-sum" inputmode="decimal" placeholder="0"></label>
+        <label class="f wide">На что / откуда<input id="po-note" list="po-notes" maxlength="200" placeholder="например, аренда склада"><datalist id="po-notes"></datalist></label>
+        <label class="f">Поставщик<select id="po-sup"></select></label>
+        <button class="btn pri" id="po-add" type="button">Добавить</button>
+      </div>
+      <p class="note" id="po-hnote" hidden>Чтобы прочие расходы и доходы были видны на всех ваших устройствах, обновите скрипт таблицы (новая версия). Пока они хранятся только на этом устройстве.</p>
+      <div class="pfosum" id="po-sumrow"></div>
+      <div class="tbl"><table class="stack jt pf po" data-full="2"><thead><tr><th>Дата</th><th>Тип</th><th>На что / откуда</th><th>Поставщик</th><th class="num">Сумма, ₽</th><th class="acts"></th></tr></thead><tbody id="po-body"></tbody></table></div>
     </div>
     <div class="card">
       <h2>По контрактам</h2>
       <div class="tbl"><table class="stack jt pf" data-full="0"><thead><tr><th>Контракт</th><th class="num">Выручка</th><th class="num">Закупка</th><th class="num">Налог и расходы</th><th class="num">Прибыль</th><th class="num">Маржа</th><th class="num">Исполнено</th></tr></thead><tbody id="pf-ctr"></tbody></table></div>
-    </div>
-    <div class="card">
-      <h2>По накладным <small>нажмите на строку, чтобы указать закупочные цены именно этой поставки и прочие расходы</small></h2>
-      <div class="tbl"><table class="stack jt pf" data-full="2"><thead><tr><th>Дата</th><th>№</th><th>Заказчик и точка</th><th class="num">Выручка</th><th class="num">Закупка</th><th class="num">Прибыль</th><th class="num">Маржа</th></tr></thead><tbody id="pf-docs"></tbody></table></div>
     </div>
     <div class="card">
       <h2>Закупочные цены <small>действуют с указанной даты, пока вы не добавите новые</small></h2>
@@ -806,6 +994,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
       </details>
       <div class="row"><input id="pf-q" placeholder="Поиск товара" style="max-width:300px"><label class="chk" style="margin-left:6px"><input type="checkbox" id="pf-onlyused" checked>только товары из прайсов заказчиков</label></div>
       <div class="tbl"><table class="stack jt pf" data-full="0"><thead><tr><th>Товар</th><th class="num">Закупка сейчас, ₽</th><th>С какого числа</th><th class="num">Продаём, ₽</th><th class="num">Наценка</th><th class="acts"></th></tr></thead><tbody id="pf-cur"></tbody></table></div>
+      <div class="pager" id="pf-cpager"></div>
     </div>
     <div class="card">
       <h2>Налог <small>для расчёта чистой прибыли</small></h2>
@@ -869,17 +1058,19 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 
   <section class="tab" id="tab-customers" hidden>
     <div class="card" id="cus-editor"></div>
-    <details class="card" id="cus-analytics">
-      <summary><strong>Аналитика покупок</strong> <small class="muted" id="ca-name"></small></summary>
-      <div class="row" style="margin-top:12px;flex-wrap:wrap">
-        <label class="f">Период<select id="ca-period"><option value="month">Этот месяц</option><option value="pmonth">Прошлый месяц</option><option value="all">Всё время</option><option value="custom">Свой период</option></select></label>
-        <label class="f" id="ca-from-label" hidden>С<input type="date" id="ca-from"></label>
-        <label class="f" id="ca-to-label" hidden>По<input type="date" id="ca-to"></label>
-        <button class="btn ghost" id="ca-refresh" type="button">Обновить</button>
+    <details class="card ca" id="cus-analytics">
+      <summary><span class="ca-t"><strong>Аналитика покупок</strong><small class="muted" id="ca-name"></small></span><span class="ca-peek" id="ca-peek"></span><span class="ca-a" aria-hidden="true">▾</span></summary>
+      <div class="ca-body">
+        <div class="ca-bar">
+          <div class="ca-per" id="ca-perseg" role="group" aria-label="Период"><button type="button" data-per="month">Этот месяц</button><button type="button" data-per="pmonth">Прошлый</button><button type="button" data-per="q">3 месяца</button><button type="button" data-per="year">Год</button><button type="button" data-per="all">Всё время</button><button type="button" data-per="custom">Свой…</button></div>
+          <select id="ca-period" hidden><option value="month">Этот месяц</option><option value="pmonth">Прошлый месяц</option><option value="q">Последние 3 месяца</option><option value="year">Этот год</option><option value="all">Всё время</option><option value="custom">Свой период</option></select>
+          <label class="f" id="ca-from-label" hidden>С<input type="date" id="ca-from"></label>
+          <label class="f" id="ca-to-label" hidden>По<input type="date" id="ca-to"></label>
+          <button class="btn ghost sm" id="ca-refresh" type="button" title="Обновить">↻ Обновить</button>
+        </div>
+        <p class="muted ca-st" id="ca-status" role="status"></p>
+        <div id="ca-result"></div>
       </div>
-      <p class="muted">По датам сохранённых документов. Документы в архиве исключены.</p>
-      <p class="muted" id="ca-status" role="status"></p>
-      <div id="ca-result" style="overflow:auto"></div>
     </details>
     <div class="card">
       <h2>Обособленные подразделения <small id="br-name"></small></h2>
@@ -908,7 +1099,9 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
       <div id="pl-box"></div>
       <p class="muted">Пустая цена — товара нет в прайсе заказчика, в документ подставится базовая цена. Товары общие для всех заказчиков, цены у каждого свои.</p>
       <div class="row"><select id="pr-copyfrom" style="max-width:320px"></select><button class="btn" id="pr-copy">Скопировать цены</button></div>
-      <div class="tbl"><table class="stack" data-full="0"><thead><tr><th>Товар</th><th>Ед.</th><th class="num">Базовая</th><th style="width:130px">Цена заказчика</th><th style="width:150px">ID позиции спец. (СПГЗ)</th><th style="width:120px">ID СТЕ</th><th style="width:150px">Артикул оферты</th></tr></thead><tbody id="pr-body"></tbody></table></div>
+      <div class="prtools"><input id="pr-q" type="search" placeholder="Поиск товара" aria-label="Поиск товара в ценах заказчика"><select id="pr-f" aria-label="Какие товары показать"><option value="all">Все товары</option><option value="has">С ценой заказчика</option><option value="no">Без цены</option></select><span class="muted" id="pr-cnt"></span></div>
+      <div class="tbl"><table class="stack" id="pr-tbl" data-full="0"><thead><tr><th>Товар</th><th>Ед.</th><th class="num">Базовая</th><th style="width:130px">Цена заказчика</th><th style="width:150px">ID позиции спец. (СПГЗ)</th><th style="width:120px">ID СТЕ</th><th style="width:150px">Артикул оферты</th></tr></thead><tbody id="pr-body"></tbody></table></div>
+      <div class="pager" id="pr-pager"></div>
     </div>
     <div class="card">
       <h2>Сопоставить с Порталом поставщиков <small id="pp-name"></small></h2>
@@ -1068,7 +1261,7 @@ function logEv(action, text, docId){ if(!curUser()) return; evq.push({at:new Dat
 const jDesc = j => "№ "+j.number+" от "+fd(j.date)+" — "+shortCus(calc(j.snap.dr, j.snap));
 function deviceName(){ const u=navigator.userAgent||""; return /Android/i.test(u)?"Android":/iPhone|iPad/i.test(u)?"iPhone/iPad":/Windows/i.test(u)?"Windows":/Mac OS/i.test(u)?"Mac":"браузер"; }
 const online = () => !!(API_URL && pass());
-const pend = {suppliers:new Map(), customers:new Map(), products:new Map(), prices:new Map(), specs:new Map(), contracts:new Map(), journal:new Map(), costs:new Map(), doccosts:new Map(), psettings:new Map(), daytasks:new Map(), purchases:new Map()};
+const pend = {suppliers:new Map(), customers:new Map(), products:new Map(), prices:new Map(), specs:new Map(), contracts:new Map(), journal:new Map(), costs:new Map(), doccosts:new Map(), psettings:new Map(), daytasks:new Map(), purchases:new Map(), pother:new Map()};
 const specOf = (c,p) => ((D.specs||{})[c]||{})[p] || {};
 function dirtySpec(c,p){ const x=specOf(c,p); pend.specs.set(c+"|"+p,{s:++stamp, del:!(x.spec||x.ste||x.art)}); undoNote("specs",c+"|"+p); changed(); }
 let serverOld=false;
@@ -1080,7 +1273,7 @@ const PENDK="frudom-docs-pend";
 function savePend(){ try{ const o={}; Object.keys(pend).forEach(t=>{ if(pend[t].size) o[t]=[...pend[t].entries()]; }); lsSet(PENDK, Object.keys(o).length?JSON.stringify(o):null); }catch(e){} }
 (function(){ try{ const o=JSON.parse(lsGet(PENDK)||"null"); if(!o) return; Object.keys(o).forEach(t=>{ if(!pend[t]) return; (o[t]||[]).forEach(([id,v])=>{ pend[t].set(id,v); if(v&&v.s>stamp) stamp=v.s; }); }); }catch(e){} })();
 function changed(){ saveLocal(); savePend(); if(!online()) return; setStatus("wait","Есть несохранённое"); clearTimeout(syncT); syncT=setTimeout(flush,1200); }
-const hasPending = () => Object.values(pend).some(m=>m.size) || evq.length>0;
+const hasPending = () => Object.keys(pend).some(t=>pend[t].size && (t!=="pother" || D.poSrv)) || evq.length>0;
 
 /* запрос к таблице: не дольше 45 секунд; при ошибке понятно, что случилось — нет интернета, Google не ответил или таблица вернула ошибку */
 async function apiFetch(url, opt){ const ac=window.AbortController?new AbortController():null, tm=ac&&setTimeout(()=>ac.abort(),(opt&&opt.tmo)||45000);
@@ -1095,8 +1288,8 @@ async function api(payload){
 /*__SYNC_GUARD__*/
 function buildChanges(){
   const ch={}, sent={};
-  ["suppliers","customers","products","contracts","journal","costs","doccosts","psettings","daytasks","purchases"].forEach(t=>{
-    if(!pend[t].size) return; const up=[], del=[]; sent[t]=new Map(pend[t]);
+  ["suppliers","customers","products","contracts","journal","costs","doccosts","psettings","daytasks","purchases","pother"].forEach(t=>{
+    if(!pend[t].size || (t==="pother" && !D.poSrv)) return;   /* старый скрипт таблицы не знает этот лист — держим на устройстве */ const up=[], del=[]; sent[t]=new Map(pend[t]);
     pend[t].forEach((v,id)=>{ if(v.del) del.push(id); else { const o = t==="journal" ? jRow(D.journal.find(x=>x.id===id)) : (D[t]||[]).find(x=>x.id===id); if(o) up.push(o); else del.push(id); } });
     ch[t]={upsert:up, del};
   });
@@ -1243,7 +1436,7 @@ $("#fd-enter").onclick=async()=>{
 };
 async function logout(){
   logEv("Выход","Выход из системы"); try{ await flush(); }catch(e){} try{ clearTimeout(prefsT); await pushPrefs(); }catch(e){}
-  lsSet(PKEY,null); lsSet(MKEY,null); lsSet(UKEY,null); evCache=null; delete D.costs; delete D.doccosts; delete D.psettings; delete D.zk; delete D.purchases; delete D.zkSrv; pfLoaded=false; saveLocal();
+  lsSet(PKEY,null); lsSet(MKEY,null); lsSet(UKEY,null); evCache=null; delete D.costs; delete D.doccosts; delete D.psettings; delete D.zk; delete D.purchases; delete D.zkSrv; delete D.pother; delete D.poSrv; pfLoaded=false; saveLocal();
   const nav=$("#fd-app nav.tabs"); nav.classList.remove("editing"); $("#tab-bar").hidden=true; prefsDirty=false;
   showLogin(); setStatus("local"); applyRole(); toast("info","Вы вышли из системы","");
 }
@@ -1842,28 +2035,51 @@ function renderOrder(){
   ow.textContent = mis ? "По этому договору поставщик — "+sup(x.supplierId).name+". Документы создать можно, но проверьте." : "";
   renderOrderGrid();
 }
+/* вид таблицы заявки: "h" — адреса в строках, товары в столбцах; "v" — товары в строках, адреса (ОП) в столбцах.
+   Выбор запоминается для каждого заказчика в личных настройках. По умолчанию «товары в строках» — у заказчиков с ОП на одном адресе (НМИЦ). */
+function oView(o){ const v=((getPrefs().ov||{})[o.customerId]); return v==="v"||v==="h" ? v : (oBrMode(o)?"v":"h"); }
+function oSetView(v){ const o=O(), p=getPrefs(); p.ov=p.ov||{}; p.ov[o.customerId]=v; setPrefs(p,true); renderOrderGrid(); const t=$("#o-tbl"); if(t){ t.classList.remove("oflip"); void t.offsetWidth; t.classList.add("oflip"); } }
+const oPName = p => p.name.replace(/\s*\([^)]*\)/g,"").replace(/\s*свеж\S*/i,"");
+const oQv = v => v ? String(+(+v).toFixed(3)).replace(".",",") : "";
+const oDocs = n => n===1?"документ":n>=2&&n<=4?"документа":"документов";
 function renderOrderGrid(){
-  const o=O(), P=oProds(o), {all, legal, br}=oAddrs(o);
+  const o=O(), P=oProds(o), {all, legal, br}=oAddrs(o), V=oView(o);
   $("#o-brwrap").hidden=$("#o-brwrap").hidden||!!br; $("#o-addaddr").hidden=!!br;
-  $("#o-head").innerHTML=`<tr><th>${br?"Подразделение":"Адрес"}</th><th class="num">№ док.</th>${P.map(p=>`<th class="num">${esc(p.name.replace(/\s*\([^)]*\)/g,"").replace(/\s*свеж\S*/i,""))}, ${esc(p.unit)}<br><small style="text-transform:none;letter-spacing:0">${fm(oPrice(o,p.id))} ₽</small></th>`).join("")}<th class="num">Сумма, ₽</th></tr>`;
-  $("#o-body").innerHTML = !P.length ? `<tr><td class="muted">У заказчика нет прайса — заполните цены во вкладке «Заказчики и цены».</td></tr>`
-    : all.map((a,i)=>{ const q=o.qty[a]||{}, ex=o.extra.includes(a);
-      const r=oRow(o,a,legal); return `<tr data-i="${i}"><td class="a"><b>${esc(r.title)}</b><small>${esc(r.sub)}</small>${ex?`<button class="btn ghost sm danger" data-rm="${i}" style="margin-top:4px">убрать адрес</button>`:""}</td><td class="num"><input class="nm" inputmode="numeric" value="${esc(o.num[a]||"")}"></td>${P.map(p=>`<td class="num"><input class="q" inputmode="decimal" data-p="${p.id}" value="${esc(q[p.id]||"")}" placeholder="0"></td>`).join("")}<td class="num rs"></td></tr>`; }).join("");
+  const sg=$("#o-view"); if(sg){ sg.hidden=!P.length; sg.querySelectorAll("button").forEach(b=>{ const on=b.dataset.v===V; b.setAttribute("aria-pressed", on?"true":"false"); b.classList.toggle("on", on); }); sg.style.setProperty("--x", V==="v"?"100%":"0%"); }
+  const tb=$("#o-tbl"); if(tb) tb.classList.toggle("ov", V==="v");
+  if(!P.length){ $("#o-head").innerHTML=""; $("#o-body").innerHTML=`<tr><td class="muted">У заказчика нет прайса — заполните цены во вкладке «Заказчики и цены».</td></tr>`; $("#o-foot").innerHTML=""; oTotals(); return; }
+  if(V==="v"){
+    $("#o-head").innerHTML=`<tr><th class="oprod">Товар</th><th class="num">Цена, ₽</th>${all.map((a,i)=>{ const r=oRow(o,a,legal), ex=o.extra.includes(a);
+        return `<th class="num oaddr" data-col="${i}"><b>${esc(r.title)}</b><small>${esc(r.sub)}</small><label class="onm">№<input class="nm" data-a="${i}" inputmode="numeric" value="${esc(o.num[a]||"")}" aria-label="Номер документа: ${esc(r.title)}"></label>${ex?`<button class="btn ghost sm danger" data-rm="${i}">убрать</button>`:""}</th>`; }).join("")}<th class="num">Всего</th></tr>`;
+    $("#o-body").innerHTML=P.map(p=>`<tr data-p="${p.id}"><td class="a oprod"><b>${esc(oPName(p))}</b><small>${esc(p.unit||"")}</small></td><td class="num opr">${fm(oPrice(o,p.id))}</td>${all.map((a,i)=>`<td class="num" data-col="${i}"><input class="q" inputmode="decimal" data-a="${i}" data-p="${p.id}" value="${esc((o.qty[a]||{})[p.id]||"")}" placeholder="0" aria-label="${esc(oPName(p))} — ${esc(oRow(o,a,legal).title)}"></td>`).join("")}<td class="num otq" data-tq="${p.id}"></td></tr>`).join("");
+  } else {
+    $("#o-head").innerHTML=`<tr><th>${br?"Подразделение":"Адрес"}</th><th class="num">№ док.</th>${P.map(p=>`<th class="num">${esc(oPName(p))}, ${esc(p.unit)}<br><small style="text-transform:none;letter-spacing:0">${fm(oPrice(o,p.id))} ₽</small></th>`).join("")}<th class="num">Сумма, ₽</th></tr>`;
+    $("#o-body").innerHTML = all.map((a,i)=>{ const q=o.qty[a]||{}, ex=o.extra.includes(a);
+      const r=oRow(o,a,legal); return `<tr data-i="${i}"><td class="a"><b>${esc(r.title)}</b><small>${esc(r.sub)}</small>${ex?`<button class="btn ghost sm danger" data-rm="${i}" style="margin-top:4px">убрать адрес</button>`:""}</td><td class="num"><input class="nm" data-a="${i}" inputmode="numeric" value="${esc(o.num[a]||"")}"></td>${P.map(p=>`<td class="num"><input class="q" inputmode="decimal" data-a="${i}" data-p="${p.id}" value="${esc(q[p.id]||"")}" placeholder="0"></td>`).join("")}<td class="num rs" data-rs="${i}"></td></tr>`; }).join("");
+  }
   oTotals();
 }
 function oTotals(){
-  const o=O(), P=oProds(o), {all}=oAddrs(o); const tq={}; let tot=0;
-  document.querySelectorAll("#o-body tr[data-i]").forEach(tr=>{ const a=all[+tr.dataset.i], q=o.qty[a]||{}; let s=0;
-    P.forEach(p=>{ const v=+q[p.id]||0; s+=r2(v*oPrice(o,p.id)); tq[p.id]=(tq[p.id]||0)+v; }); s=r2(s); tot+=s; tr.querySelector(".rs").textContent=s?fm(s):""; });
+  const o=O(), P=oProds(o), {all}=oAddrs(o), V=oView(o); const tq={}, rs={}; let tot=0;
+  all.forEach((a,i)=>{ const q=o.qty[a]||{}; let s=0; P.forEach(p=>{ const v=+q[p.id]||0; s+=r2(v*oPrice(o,p.id)); tq[p.id]=(tq[p.id]||0)+v; }); rs[i]=r2(s); tot+=rs[i]; });
+  document.querySelectorAll("#o-body [data-rs]").forEach(td=>{ const s=rs[+td.dataset.rs]; td.textContent=s?fm(s):""; });
+  document.querySelectorAll("#o-body [data-tq]").forEach(td=>{ td.textContent=oQv(tq[td.dataset.tq]); });
+  /* подсветка столбца/строки, где уже есть количество */
+  if(V==="v") document.querySelectorAll("#o-tbl [data-col]").forEach(el=>{ const a=all[+el.dataset.col]; el.classList.toggle("ohas", P.some(p=>+((o.qty[a]||{})[p.id])>0)); });
   const n=all.filter(a=>P.some(p=>+((o.qty[a]||{})[p.id])>0)).length, plan=oPlan(o), gb=$("#o-go");
   if(gb.dataset.force && gb.dataset.force!==JSON.stringify(plan)){ gb.dataset.force=""; gb.textContent=oGoLabel(); $("#o-msg").textContent=""; }
-  document.querySelectorAll("#o-body tr[data-i]").forEach(tr=>{ const el=tr.querySelector(".nm"); el.placeholder = plan[all[+tr.dataset.i]] || ""; el.title = el.value ? "Номер вписан вручную" : "Номер подставлен автоматически — нажмите, чтобы изменить"; });
+  const nms=[...document.querySelectorAll("#o-tbl .nm[data-a]")];
+  nms.forEach(el=>{ el.placeholder = plan[all[+el.dataset.a]] || ""; el.title = el.value ? "Номер вписан вручную" : "Номер подставлен автоматически — нажмите, чтобы изменить"; });
   { const used=oUsed(o), cnt={}, w=[], w2=[]; Object.values(plan).forEach(n=>cnt[n]=(cnt[n]||0)+1);
-    document.querySelectorAll("#o-body tr[data-i]").forEach(tr=>{ const a=all[+tr.dataset.i], el=tr.querySelector(".nm"), n=String(el.value||"").trim()||plan[a]||"", j=n&&used[n], twice=n&&plan[a]&&cnt[n]>1;
+    nms.forEach(el=>{ const a=all[+el.dataset.a], n=String(el.value||"").trim()||plan[a]||"", j=n&&used[n], twice=n&&plan[a]&&cnt[n]>1;
       el.classList.toggle("numdup", !!(j||twice)); if(j) w.push(numWho(j)); else if(twice) w2.push(n); });
     const box=$("#o-numwarn"), t=[]; if(w.length) t.push("у этого заказчика уже есть "+[...new Set(w)].join("; ")); if(w2.length) t.push("№ "+[...new Set(w2)].join(", ")+" стоит у двух адресов в этой таблице");
     box.hidden=!t.length; box.textContent = t.length ? "Внимание: "+t.join("; ")+". Создать можно, но номер задвоится — или поменяйте номер." : ""; }
-  $("#o-foot").innerHTML=P.length?`<tr><td>Итого: ${n} ${n===1?"документ":n>=2&&n<=4?"документа":"документов"}</td><td></td>${P.map(p=>`<td class="num">${tq[p.id]?String(+tq[p.id].toFixed(3)).replace(".",","):""}</td>`).join("")}<td class="num">${fm(r2(tot))}</td></tr>`:"";
+  if(!P.length){ $("#o-foot").innerHTML=""; return; }
+  $("#o-foot").innerHTML = V==="v"
+    ? `<tr><td>Сумма, ₽<small class="ofn">${n} ${oDocs(n)}</small></td><td></td>${all.map((a,i)=>`<td class="num" data-col="${i}">${rs[i]?fm(rs[i]):""}</td>`).join("")}<td class="num">${fm(r2(tot))}</td></tr>`
+    : `<tr><td>Итого: ${n} ${oDocs(n)}</td><td></td>${P.map(p=>`<td class="num">${oQv(tq[p.id])}</td>`).join("")}<td class="num">${fm(r2(tot))}</td></tr>`;
+  if(V==="v") document.querySelectorAll("#o-foot [data-col]").forEach(el=>{ el.classList.toggle("ohas", !!rs[+el.dataset.col]); });
 }
 $("#o-cus").onchange=e=>{ const o=O(); o.customerId=e.target.value; o.branchId=""; o.supplierId=""; o.extra=[]; o.qty={}; saveLocal(); renderOrder(); };
 $("#o-sup").onchange=e=>{ O().supplierId=e.target.value; saveLocal(); renderOrder(); };
@@ -1878,15 +2094,20 @@ function oPlan(o){
   return plan;
 }
 /* номер: при нажатии автономер становится обычным текстом — его можно стереть или исправить */
-$("#o-body").addEventListener("focusin",e=>{ const el=e.target; if(!el.classList.contains("nm") || el.value || !el.placeholder) return;
+$("#o-tbl").addEventListener("focusin",e=>{ const el=e.target; if(!el.classList.contains("nm") || el.value || !el.placeholder) return;
   el.value=el.placeholder; el.dataset.auto=el.placeholder; try{ el.select(); }catch(_){} setTimeout(()=>{ if(el.value===el.dataset.auto && document.activeElement===el) try{ el.select(); }catch(_){} },0); });
-$("#o-body").addEventListener("focusout",e=>{ const el=e.target; if(!el.classList.contains("nm")) return; const au=el.dataset.auto; delete el.dataset.auto;
-  if(au && el.value===au){ const o=O(), a=oAddrs(o).all[+el.closest("tr").dataset.i]; el.value=""; delete o.num[a]; saveLocal(); oTotals(); } });
-$("#o-body").addEventListener("input",e=>{ if(e.target.classList.contains("nm")){ const o=O(), a=oAddrs(o).all[+e.target.closest("tr").dataset.i]; o.num[a]=e.target.value.replace(/\s/g,""); saveLocal(); oTotals(); return; }
-  if(!e.target.classList.contains("q")) return; const o=O(), a=oAddrs(o).all[+e.target.closest("tr").dataset.i];
+$("#o-tbl").addEventListener("focusout",e=>{ const el=e.target; if(!el.classList.contains("nm")) return; const au=el.dataset.auto; delete el.dataset.auto;
+  if(au && el.value===au){ const o=O(), a=oAddrs(o).all[+el.dataset.a]; el.value=""; delete o.num[a]; saveLocal(); oTotals(); } });
+$("#o-tbl").addEventListener("input",e=>{ if(e.target.classList.contains("nm")){ const o=O(), a=oAddrs(o).all[+e.target.dataset.a]; o.num[a]=e.target.value.replace(/\s/g,""); saveLocal(); oTotals(); return; }
+  if(!e.target.classList.contains("q")) return; const o=O(), a=oAddrs(o).all[+e.target.dataset.a];
   (o.qty[a]=o.qty[a]||{})[e.target.dataset.p]=num(e.target.value); saveLocal(); oTotals(); });
-$("#o-body").addEventListener("click",e=>{ const b=e.target.closest("[data-rm]"); if(!b) return; const o=O(), a=oAddrs(o).all[+b.dataset.rm];
+$("#o-tbl").addEventListener("click",e=>{ const b=e.target.closest("[data-rm]"); if(!b) return; const o=O(), a=oAddrs(o).all[+b.dataset.rm];
   o.extra=o.extra.filter(x=>x!==a); delete o.qty[a]; saveLocal(); renderOrderGrid(); });
+$("#o-view").addEventListener("click",e=>{ const b=e.target.closest("button[data-v]"); if(!b || b.dataset.v===oView(O())) return; oSetView(b.dataset.v); });
+/* Enter / стрелки вверх-вниз в количестве — к соседней ячейке того же столбца */
+$("#o-tbl").addEventListener("keydown",e=>{ const el=e.target; if(!el.classList.contains("q") || !["Enter","ArrowDown","ArrowUp"].includes(e.key)) return;
+  const col=[...document.querySelectorAll(oView(O())==="v"?`#o-body input.q[data-a="${el.dataset.a}"]`:`#o-body input.q[data-p="${el.dataset.p}"]`)], i=col.indexOf(el), nx=col[i+(e.key==="ArrowUp"?-1:1)];
+  if(nx){ e.preventDefault(); nx.focus(); try{ nx.select(); }catch(_){} } });
 $("#o-addaddr").onclick=()=>{ const a=(prompt("Адрес доставки (как он должен быть в накладной):")||"").trim(); if(!a) return; const o=O(); if(!o.extra.includes(a)) o.extra.push(a); saveLocal(); renderOrderGrid(); };
 $("#o-editing").addEventListener("click",e=>{ if(e.target.closest("#o-edcancel")){ bundleEditEnd(true); $("#o-msg").textContent=""; toast("ok","Правка комплекта отменена","Документы в журнале не изменились."); } });
 $("#o-clear").onclick=()=>{ O().qty={}; O().num={}; saveLocal(); renderOrderGrid(); $("#o-done").innerHTML=""; $("#o-msg").textContent=""; };
@@ -2426,12 +2647,12 @@ const PF = () => (D.pf = D.pf || {per:"month", sup:"", cus:"", from:"", to:""});
 const pfArr = k => (D[k] = Array.isArray(D[k]) ? D[k] : []);
 async function loadProfit(quiet){
   if(!me().admin) return;
-  try{ if(hasPending()) await flush(); const j=await api({action:"profit"}); if(hasPending()||syncBlocked)return; rememberBase(j); D.costs=j.costs||[]; D.doccosts=j.doccosts||[]; D.psettings=j.psettings||[]; if(Array.isArray(j.purchases)) zkMerge(j.purchases); else D.zkSrv=false; pfLoaded=true; saveLocal(); $("#pf-msg").textContent=""; if(!quiet) toast("ok","Данные о прибыли обновлены",""); }
+  try{ if(hasPending()) await flush(); const j=await api({action:"profit"}); if(hasPending()||syncBlocked)return; rememberBase(j); D.costs=j.costs||[]; D.doccosts=j.doccosts||[]; D.psettings=j.psettings||[]; if(Array.isArray(j.purchases)) zkMerge(j.purchases); else D.zkSrv=false; poMerge(j.pother); pfLoaded=true; saveLocal(); $("#pf-msg").textContent=""; if(!quiet) toast("ok","Данные о прибыли обновлены",""); }
   catch(e){ $("#pf-msg").textContent = /unknown action/.test(e.message) ? "Чтобы прибыль сохранялась в таблицу, обновите скрипт таблицы (новая версия). Пока данные хранятся только на этом устройстве." : "Не получилось загрузить: "+e.message; pfLoaded=true; }
   if(curTab==="profit") drawProfit();
   if(curTab==="purchase"){ drawPurchase(); drawHist(); }
 }
-function renderProfit(){ if(!me().admin) return; if(!pfLoaded){ $("#pf-msg").textContent="Загружаю…"; loadProfit(true); } drawProfit(); }
+function renderProfit(){ if(!me().admin) return; pfMarkSeen(); if(!pfLoaded){ $("#pf-msg").textContent="Загружаю…"; loadProfit(true); } drawProfit(); }
 const taxOf = sid => { const x=pfArr("psettings").find(y=>y.id===sid); return x && x.tax!=="" && x.tax!=null && !isNaN(+x.tax) ? +x.tax : 8; };
 /* закупочная цена товара на дату: последняя запись «действует с» ≤ даты; запись для конкретного заказчика важнее общей того же дня */
 function costFor(pid, cid, date){
@@ -2457,37 +2678,138 @@ function pfRange(f){ const n=new Date(), iso=jIso;
   return ["0000","9999"]; }
 const pct = (a,b) => b ? (Math.round(a/b*1000)/10).toString().replace(".",",")+"%" : "—";
 const sgn = v => `<span class="${v<0?"neg":""}">${fm(v)}</span>`;
+/* ---- оплаты накладных: хранятся в «Себестоимости накладных» (lines._pay = {d: дата, s: сумма}) — работает и со старым скриптом таблицы ---- */
+const docTotal = j => r2(+j.sum||0);
+function payOf(j){ const p=dcLines(docCost(j.id))._pay, tot=docTotal(j), s=p&&+p.s>0 ? Math.min(r2(+p.s), tot) : 0;
+  return {s, d:p&&p.d||"", tot, left:r2(tot-s), st: tot<=0 ? "paid" : s>=tot-0.005 ? "paid" : s>0 ? "part" : "due"}; }
+const daysSince = iso => { if(!iso) return 0; const a=new Date(iso+"T12:00:00"), b=new Date(todayISO()+"T12:00:00"); return Math.max(0, Math.round((b-a)/864e5)); };
+const ageCls = d => d>30 ? "old" : d>10 ? "mid" : "";
+const dnum = d => d+" "+plural(d,["день","дня","дней"]);
+/* сколько ждём оплату: «сегодня», «3 дня», а для поставки в будущем — «поставка 05.11» */
+const ageTxt = iso => iso>todayISO() ? "поставка "+fd(iso).slice(0,5) : (d=>d?dnum(d):"сегодня")(daysSince(iso));
+function setPay(j, sum, date, quiet){
+  const dc=dcUpsert(j), L=dcLines(dc), tot=docTotal(j); sum=r2(Math.min(Math.max(+sum||0,0), tot));
+  if(sum>0) L._pay={d:date||todayISO(), s:String(sum), by:curUser()}; else delete L._pay;
+  dc.lines=JSON.stringify(L); dc.paid = sum<=0 ? "" : sum>=tot-0.005 ? "да, "+fd(L._pay.d) : "частично: "+fm(sum)+" из "+fm(tot)+" ₽, "+fd(L._pay.d);
+  dirty("doccosts", dc.id);
+  if(!quiet) logEv("Прибыль", (sum>0?(sum>=tot-0.005?"Оплачена":"Частично оплачена ("+fm(sum)+" ₽)"):"Снята отметка об оплате")+": накладная № "+j.number+" от "+fd(j.date)+" — "+jWho(j).main);
+}
+/* «новые» накладные — созданные после прошлого захода во вкладку «Прибыль» */
+let pfSeenPrev=null;
+function pfMarkSeen(){ if(pfSeenPrev!=null) return; const p=getPrefs(); pfSeenPrev=p.pfSeen || new Date(Date.now()-3*864e5).toISOString(); p.pfSeen=new Date().toISOString(); setPrefs(p,true); }
+const pfIsNew = j => pfSeenPrev && jCreated(j) > pfSeenPrev;
+/* ---- прочие доходы и расходы (лист «Прочие доходы и расходы») ---- */
+const PO_EXP="Расход", PO_INC="Доход";
+function poMerge(list){
+  if(!Array.isArray(list)){ D.poSrv=false; return; }
+  const loc=pfArr("pother"), keep=loc.filter(x=>pend.pother.has(x.id) && !pend.pother.get(x.id).del), gone=new Set([...pend.pother.entries()].filter(([,v])=>v.del).map(([k])=>k));
+  D.pother=list.filter(x=>!gone.has(x.id)); keep.forEach(x=>{ const i=D.pother.findIndex(y=>y.id===x.id); if(i>=0) D.pother[i]=x; else D.pother.push(x); });
+  const was=D.poSrv; D.poSrv=true; if(!was && pend.pother.size) changed();
+}
+function poFor(f, d1, d2){ return pfArr("pother").filter(x=>x.date>=d1 && x.date<=d2 && (!f.sup || x.supplierId===f.sup) && !f.cus); }
+/* ---- главная функция вкладки ---- */
 function drawProfit(){
-  const f=PF(); $("#pf-per").value=f.per; $("#pf-fromw").hidden=$("#pf-tow").hidden=f.per!=="custom"; $("#pf-from").value=f.from||""; $("#pf-to").value=f.to||"";
+  const f=PF(); f.st=f.st||"all"; $("#pf-per").value=f.per; $("#pf-fromw").hidden=$("#pf-tow").hidden=f.per!=="custom"; $("#pf-from").value=f.from||""; $("#pf-to").value=f.to||"";
   $("#pf-sup").innerHTML=`<option value="">Все</option>`+opts(D.suppliers,f.sup); $("#pf-cus").innerHTML=`<option value="">Все</option>`+opts(D.customers,f.cus);
   const [d1,d2]=pfRange(f);
   const docs=D.journal.filter(j=>j.snap && !isArch(j) && j.date>=d1 && j.date<=d2 && (!f.sup||j.supplierId===f.sup) && (!f.cus||j.customerId===f.cus))
     .sort((a,b)=> a.date<b.date?1:a.date>b.date?-1:-jNumSort(a,b)).map(docProfit);
-  const T=docs.reduce((a,x)=>({rev:a.rev+x.rev, cost:a.cost+x.cost, tax:a.tax+x.tax, exp:a.exp+x.exp, profit:a.profit+x.profit, miss:a.miss+(x.miss?1:0)}),{rev:0,cost:0,tax:0,exp:0,profit:0,miss:0});
-  Object.keys(T).forEach(k=>T[k]=r2(T[k]));
-  $("#pf-cards").innerHTML=`<div><small>Выручка</small><b>${fm(T.rev)}</b></div><div><small>Закупка</small><b>${fm(T.cost)}</b></div><div><small>Налог</small><b>${fm(T.tax)}</b></div><div><small>Прочие расходы</small><b>${fm(T.exp)}</b></div><div class="main"><small>Чистая прибыль, ₽</small><b class="${T.profit<0?"neg":""}">${fm(T.profit)}</b></div><div><small>Маржа</small><b>${pct(T.profit,T.rev)}</b></div><div><small>Накладных</small><b>${docs.length}</b></div>`;
-  $("#pf-warn").hidden=!T.miss; $("#pf-warn").textContent = T.miss ? "У "+T.miss+" "+(T.miss===1?"накладной":"накладных")+" не для всех товаров есть закупочная цена — их закупка посчитана как 0, прибыль завышена. Добавьте цены ниже в «Закупочные цены» или откройте накладную и впишите цену." : "";
+  docs.forEach(x=>{ x.pay=payOf(x.j); x.isNew=pfIsNew(x.j); });
+  const T=docs.reduce((a,x)=>({rev:a.rev+x.rev, cost:a.cost+x.cost, tax:a.tax+x.tax, exp:a.exp+x.exp, miss:a.miss+(x.miss?1:0), paid:a.paid+x.pay.s, due:a.due+x.pay.left}),{rev:0,cost:0,tax:0,exp:0,miss:0,paid:0,due:0});
+  const OT=poFor(f,d1,d2); T.oexp=OT.filter(x=>x.kind!==PO_INC).reduce((a,x)=>a+(+x.sum||0),0); T.oinc=OT.filter(x=>x.kind===PO_INC).reduce((a,x)=>a+(+x.sum||0),0);
+  Object.keys(T).forEach(k=>T[k]=r2(T[k])); T.gross=r2(T.rev-T.cost-T.tax); T.net=r2(T.gross-T.exp-T.oexp+T.oinc);
+  const taxes=[...new Set(docs.map(x=>taxOf(x.j.supplierId)))], taxL = taxes.length===1 ? String(taxes[0]).replace(".",",")+"%" : taxes.length ? "по ставкам" : "8%";
+  const tile=(k,lbl,v,sub,cls)=>`<div class="pk ${cls||""}" data-k="${k}"><small>${lbl}</small><b class="${v<0?"neg":""}">${fm(v)}</b>${sub?`<span>${sub}</span>`:""}</div>`;
+  const bar = T.rev>0 ? (()=>{ const seg=[["cost","Закупка",T.cost],["tax","Налог "+taxL,T.tax],["exp","Расходы",T.exp+T.oexp],["net","Прибыль",Math.max(0,T.net-T.oinc)]], tot=seg.reduce((a,s)=>a+Math.max(0,s[2]),0)||1;
+      return `<div class="pfbar" role="img" aria-label="Из чего состоит выручка">${seg.map(s=>`<i class="b-${s[0]}" style="--w:${(Math.max(0,s[2])/tot*100).toFixed(2)}%" title="${s[1]}: ${fm(s[2])} ₽"></i>`).join("")}</div>
+        <div class="pfleg">${seg.map(s=>`<span><i class="b-${s[0]}"></i>${s[1]} <b>${pct(Math.max(0,s[2]),tot)}</b></span>`).join("")}</div>`; })() : "";
+  $("#pf-cards").innerHTML=`<div class="pfk">${tile("rev","Выручка",T.rev,docs.length+" "+plural(docs.length,["накладная","накладные","накладных"]))}${tile("cost","Закупка",T.cost)}${tile("tax","Налог "+taxL,T.tax)}${tile("gross","Валовая прибыль",T.gross,"после налога · маржа "+pct(T.gross,T.rev),"soft")}${tile("exp","Прочие расходы",r2(T.exp+T.oexp),T.exp&&T.oexp?"по накладным "+fm(T.exp)+" · общие "+fm(T.oexp):"")}${tile("inc","Прочие доходы",T.oinc)}${tile("net","Чистая прибыль, ₽",T.net,"маржа "+pct(T.net,T.rev),"main")}${tile("paid","Оплачено за эти накладные",T.paid,"","ok")}${tile("due","Ждём оплату",T.due,docs.filter(x=>x.pay.st!=="paid").length+" "+plural(docs.filter(x=>x.pay.st!=="paid").length,["накладная","накладные","накладных"]),T.due>0?"warn":"")}</div>${bar}`;
+  $("#pf-warn").hidden=!T.miss; $("#pf-warn").textContent = T.miss ? "У "+T.miss+" "+(T.miss===1?"накладной":"накладных")+" не для всех товаров есть закупочная цена — их закупка посчитана как 0, прибыль завышена. Откройте накладную ниже и впишите закупку (можно одной суммой на всю накладную) или добавьте цены в «Закупочные цены»." : "";
   /* контракты */
   const byC={}; docs.forEach(x=>{ const id=x.j.snap.dr.contractId||""; (byC[id]=byC[id]||[]).push(x); });
   $("#pf-ctr").innerHTML = Object.keys(byC).length ? Object.keys(byC).map(id=>{ const L=byC[id], c=ctr(id), s=L.reduce((a,x)=>({rev:a.rev+x.rev,cost:a.cost+x.cost,te:a.te+x.tax+x.exp,p:a.p+x.profit}),{rev:0,cost:0,te:0,p:0});
       const all=c&&+c.maxSum ? ctrUsed(c.id) : 0;
       return `<tr><td><div class="who">${esc(c?(c.basis||"(без номера)"):"Без контракта")}</div><small>${esc(c?(cus(c.customerId).name||""):"")}${c&&c.supplierId?" · "+esc(supShort(sup(c.supplierId).name)):""} · ${L.length} нак.</small></td><td class="num">${fm(r2(s.rev))}</td><td class="num">${fm(r2(s.cost))}</td><td class="num">${fm(r2(s.te))}</td><td class="num"><b>${sgn(r2(s.p))}</b></td><td class="num">${pct(s.p,s.rev)}</td><td class="num">${c&&+c.maxSum?pct(all,+c.maxSum)+`<small>${fm(all)} из ${fm(+c.maxSum)}</small>`:"—"}</td></tr>`; }).join("")
     : `<tr><td colspan="7" class="muted" style="padding:14px 6px">За этот период накладных нет.</td></tr>`;
-  /* накладные */
-  $("#pf-docs").innerHTML = docs.length ? docs.map(x=>{ const w=jWho(x.j), op=pfOpen.has(x.j.id);
-      let h=`<tr class="pfd${op?" open":""}" data-pf="${x.j.id}"><td>${fd(x.j.date)}</td><td>${esc(x.j.number)}</td><td><div class="who">${esc(w.main)}</div><small>${esc(w.pt?w.pt+" · ":"")}${esc(supShort(x.j.snap.s.name))}${x.miss?` · <span class="miss">нет цены у ${x.miss} поз.</span>`:""}</small></td><td class="num">${fm(x.rev)}</td><td class="num">${fm(x.cost)}</td><td class="num"><b>${sgn(x.profit)}</b></td><td class="num">${pct(x.profit,x.rev)}</td></tr>`;
-      if(op){ const dc=docCost(x.j.id);
-        h+=`<tr class="pfx"><td colspan="7"><table class="pfl"><thead><tr><th>Товар</th><th>Кол-во</th><th>Продажа, ₽</th><th>Закупка за ед., ₽</th><th>Прибыль строки</th></tr></thead><tbody>${x.lines.map(r=>`<tr><td>${esc(r.l.name)}</td><td>${String(r.l.qty).replace(".",",")} ${esc(r.l.unit)}</td><td>${fm(r.l.price)}</td><td><input class="pfc" inputmode="decimal" data-doc="${x.j.id}" data-pid="${r.l.pid}" value="${r.own?esc(String(r.c).replace(".",",")):""}" placeholder="${r.e?esc(String(r.e.price).replace(".",",")):"нет цены"}"> <small class="muted">${r.own?"своя для этой накладной":r.e?"из списка с "+fd(r.e.from):""}</small></td><td>${r.c==null?`<span class="miss">—</span>`:sgn(r2((r.l.price-r.c)*r.l.qty))}</td></tr>`).join("")}</tbody></table>
-          <div class="row" style="margin-top:8px"><label class="f" style="max-width:220px">Прочие расходы по накладной, ₽<input class="pfe" inputmode="decimal" data-doc="${x.j.id}" value="${esc(dc&&dc.expense?String(dc.expense).replace(".",","):"")}" placeholder="доставка, грузчики…"></label>
-          <span class="muted">Налог ${taxOf(x.j.supplierId)}%: ${fm(x.tax)} ₽ · Пустое поле закупки — берётся цена из списка на дату накладной.</span></div></td></tr>`; }
-      return h; }).join("") : `<tr><td colspan="7" class="muted" style="padding:14px 6px">За этот период накладных нет.</td></tr>`;
-  drawCosts(); drawTax();
+  drawPfDocs(docs); drawDebts(); drawOther(f,d1,d2,OT); drawCosts(); drawTax();
 }
+/* ---- таблица накладных ---- */
+let pfShow=50;
+const PF_ST=[["all","Все"],["due","Не оплачены"],["paid","Оплачены"],["new","Новые"],["miss","Без закупки"]];
+function drawPfDocs(docs){
+  const f=PF(), cnt={all:docs.length, due:docs.filter(x=>x.pay.st!=="paid").length, paid:docs.filter(x=>x.pay.st==="paid").length, new:docs.filter(x=>x.isNew).length, miss:docs.filter(x=>x.miss).length};
+  if(!cnt[f.st] && f.st!=="all") f.st="all";
+  $("#pf-chips").innerHTML=PF_ST.filter(([k])=>k==="all"||cnt[k]).map(([k,l])=>`<button type="button" data-st="${k}" class="${f.st===k?"on":""} c-${k}" aria-pressed="${f.st===k}">${l}<i>${cnt[k]}</i></button>`).join("");
+  const L=docs.filter(x=>f.st==="all"||(f.st==="due"&&x.pay.st!=="paid")||(f.st==="paid"&&x.pay.st==="paid")||(f.st==="new"&&x.isNew)||(f.st==="miss"&&x.miss)), V=L.slice(0,pfShow);
+  $("#pf-docs").innerHTML = V.length ? V.map(pfDocRow).join("") : `<tr><td colspan="8" class="muted" style="padding:14px 6px">${docs.length?"Таких накладных нет.":"За этот период накладных нет."}</td></tr>`;
+  $("#pf-more").hidden=L.length<=V.length; $("#pf-shown").textContent="Показано "+V.length+" из "+L.length;
+}
+function payCell(x){ const p=x.pay, id=x.j.id, d=daysSince(x.j.date);
+  if(p.st==="paid") return `<button type="button" class="pfpay paid" data-unpay="${id}" title="Оплачена ${fd(p.d)}. Нажмите, чтобы снять отметку"><i>✓</i>Оплачена<small>${fd(p.d)}</small></button>`;
+  return `<div class="pfpaycell"><span class="pfage ${ageCls(d)}">${p.st==="part"?"Частично · ":""}${ageTxt(x.j.date)}</span>${p.st==="part"?`<small class="muted">оплачено ${fm(p.s)} из ${fm(p.tot)}</small>`:""}<button type="button" class="pfpay" data-pay="${id}">Оплачено</button></div>`; }
+function pfDocRow(x){ const w=jWho(x.j), op=pfOpen.has(x.j.id);
+  let h=`<tr class="pfd${op?" open":""}${x.isNew?" pfnew":""}${x.pay.st==="paid"?" ispaid":""}" data-pf="${x.j.id}"><td>${fd(x.j.date)}</td><td>${esc(x.j.number)}${x.isNew?` <span class="pfnewb">новая</span>`:""}</td><td><div class="who">${esc(w.main)}</div><small>${esc(w.pt?w.pt+" · ":"")}${esc(supShort(x.j.snap.s.name))}${x.miss?` · <span class="miss">нет закупки у ${x.miss} поз.</span>`:""}</small></td><td class="num">${fm(x.rev)}</td><td class="num">${fm(x.cost)}</td><td class="num"><b>${sgn(x.profit)}</b></td><td class="num">${pct(x.profit,x.rev)}</td><td class="pfpt">${payCell(x)}</td></tr>`;
+  if(op){ const dc=docCost(x.j.id), own=x.lines.some(r=>r.own);
+    h+=`<tr class="pfx"><td colspan="8"><div class="pfxin">
+      <div class="pfbulk"><b>Закупка всей накладной</b>
+        <label>суммой<input class="pfbs" inputmode="decimal" data-doc="${x.j.id}" placeholder="${x.cost?esc(String(x.cost).replace(".",",")):"0"}"> ₽</label><button type="button" class="btn sm" data-bulk="sum" data-doc="${x.j.id}">Разнести по товарам</button>
+        <span class="or">или</span><label>наценка<input class="pfbm" inputmode="decimal" data-doc="${x.j.id}" placeholder="25"> %</label><button type="button" class="btn sm" data-bulk="mk" data-doc="${x.j.id}">Применить</button>
+        ${own?`<button type="button" class="btn ghost sm" data-bulk="reset" data-doc="${x.j.id}">Вернуть цены из списка</button>`:""}
+        <small class="muted">Сумма делится по товарам пропорционально продаже. Отменить — кнопка «Отменить» внизу или Ctrl+Z.</small></div>
+      <div class="tbl"><table class="pfl"><thead><tr><th>Товар</th><th>Кол-во</th><th>Продажа, ₽</th><th>Закупка за ед., ₽</th><th>Прибыль строки</th></tr></thead><tbody>${x.lines.map(r=>`<tr><td>${esc(r.l.name)}</td><td>${String(r.l.qty).replace(".",",")} ${esc(r.l.unit)}</td><td>${fm(r.l.price)}</td><td><input class="pfc" inputmode="decimal" data-doc="${x.j.id}" data-pid="${r.l.pid}" value="${r.own?esc(String(r.c).replace(".",",")):""}" placeholder="${r.e?esc(String(r.e.price).replace(".",",")):"нет цены"}"> <small class="muted">${r.own?"своя для этой накладной":r.e?"из списка с "+fd(r.e.from):""}</small></td><td>${r.c==null?`<span class="miss">—</span>`:sgn(r2((r.l.price-r.c)*r.l.qty))}</td></tr>`).join("")}</tbody></table></div>
+      <div class="pfxfoot"><label class="f" style="max-width:220px">Прочие расходы по накладной, ₽<input class="pfe" inputmode="decimal" data-doc="${x.j.id}" value="${esc(dc&&dc.expense?String(dc.expense).replace(".",","):"")}" placeholder="доставка, грузчики…"></label>
+        <label class="f" style="max-width:200px">Оплачено, ₽<input class="pfps" inputmode="decimal" data-doc="${x.j.id}" value="${x.pay.s?esc(String(x.pay.s).replace(".",",")):""}" placeholder="из ${esc(fm(x.pay.tot))}"></label>
+        <label class="f" style="max-width:170px">Дата оплаты<input type="date" class="pfpd" data-doc="${x.j.id}" value="${esc(x.pay.d||"")}"></label>
+        <span class="muted">Налог ${String(taxOf(x.j.supplierId)).replace(".",",")}%: ${fm(x.tax)} ₽ · Валовая прибыль: ${fm(r2(x.rev-x.cost-x.tax))} ₽ · Пустое поле закупки — цена из списка на дату накладной.</span></div>
+    </div></td></tr>`; }
+  return h; }
+/* ---- кто сколько должен ---- */
+let pfDebtOpen=new Set();
+function drawDebts(){
+  const f=PF(), [d1,d2]=pfRange(f), by={};
+  D.journal.filter(j=>j.snap && !isArch(j) && (!f.sup||j.supplierId===f.sup) && (!f.cus||j.customerId===f.cus)).forEach(j=>{ const p=payOf(j), c=by[j.customerId]||(by[j.customerId]={cid:j.customerId, ship:0, paid:0, due:0, n:0, old:0, docs:[], per:0});
+    c.ship+=p.tot; c.paid+=p.s; if(p.st!=="paid"){ c.due+=p.left; c.n++; c.old=Math.max(c.old, daysSince(j.date)); c.docs.push({j,p}); } if(p.s>0 && p.d>=d1 && p.d<=d2) c.per+=p.s; });
+  const all=Object.values(by), show=$("#pf-showpaid").checked, L=all.filter(c=>show||c.due>0.004).sort((a,b)=>b.due-a.due||a.cid.localeCompare(b.cid));
+  const due=r2(all.reduce((a,c)=>a+c.due,0)), n=all.reduce((a,c)=>a+c.n,0), old30=r2(all.reduce((a,c)=>a+c.docs.filter(x=>daysSince(x.j.date)>30).reduce((s,x)=>s+x.p.left,0),0)), per=r2(all.reduce((a,c)=>a+c.per,0));
+  $("#pf-paysum").innerHTML=`<div class="${due>0?"warn":"ok"}"><small>Всего должны</small><b>${fm(due)} ₽</b><span>${n} ${plural(n,["накладная","накладные","накладных"])} · ${L.filter(c=>c.due>0.004).length} ${plural(L.filter(c=>c.due>0.004).length,["заказчик","заказчика","заказчиков"])}</span></div><div class="${old30>0?"bad":""}"><small>Дольше 30 дней</small><b>${fm(old30)} ₽</b></div><div class="ok"><small>Оплатили за выбранный период</small><b>${fm(per)} ₽</b></div>`;
+  $("#pf-debt").innerHTML = L.length ? L.map(c=>{ const nm=cus(c.cid).name||"(заказчик удалён)", op=pfDebtOpen.has(c.cid), sh=c.ship>0?Math.min(100,c.paid/c.ship*100):100;
+      return `<div class="pdc${op?" open":""}${c.due>0.004?"":" clear"}" data-cid="${esc(c.cid)}">
+        <button type="button" class="pdh" data-dopen="${esc(c.cid)}" aria-expanded="${op}"><span class="pdn"><b>${esc(nm)}</b><small>${c.due>0.004?`${c.n} ${plural(c.n,["накладная не оплачена","накладные не оплачены","накладных не оплачено"])} · самая старая — <span class="pfage ${ageCls(c.old)}">${c.old?dnum(c.old):"сегодня или позже"}</span>`:"всё оплачено"}</small></span>
+          <span class="pdp"><span class="pdbar"><i style="--w:${sh.toFixed(1)}%"></i></span><small>оплачено ${fm(c.paid)} из ${fm(c.ship)}</small></span>
+          <span class="pdd"><small>Долг</small><b class="${c.due>0.004?"":"pos"}">${c.due>0.004?fm(c.due):"0,00"}</b></span><span class="pda" aria-hidden="true">▾</span></button>
+        <div class="pdb"><div class="pdbi">${c.docs.length?`<div class="pdl">${c.docs.sort((a,b)=>a.j.date.localeCompare(b.j.date)||jNumSort(a.j,b.j)).map(x=>{ const d=daysSince(x.j.date), w=jWho(x.j);
+              return `<div class="pdr"><span>${fd(x.j.date)} · № ${esc(x.j.number)}${w.pt?`<small>${esc(w.pt)}</small>`:""}</span><span class="pfage ${ageCls(d)}">${ageTxt(x.j.date)}</span><span class="num"><b>${fm(x.p.left)}</b>${x.p.st==="part"?`<small>из ${fm(x.p.tot)}</small>`:""}</span><button type="button" class="pfpay" data-pay="${x.j.id}">Оплачено</button></div>`; }).join("")}</div>
+            <div class="pdf"><span>Пришли деньги:</span><input class="pdsum" inputmode="decimal" placeholder="${esc(fm(c.due))}" aria-label="Сумма оплаты"><input type="date" class="pddate" value="${todayISO()}" aria-label="Дата оплаты"><button type="button" class="btn sm" data-dspread="${esc(c.cid)}">Разнести по накладным</button><span style="flex:1"></span><button type="button" class="btn pri sm" data-dall="${esc(c.cid)}">Всё оплачено</button></div>
+            <small class="muted">Сумма закрывает накладные по порядку — с самой старой. Остаток ляжет частичной оплатой на следующую.</small>`:`<p class="muted" style="margin:4px 0">Все накладные оплачены.</p>`}</div></div></div>`; }).join("")
+    : `<p class="muted pdempty">${all.length?"Все заказчики всё оплатили 🎉":"Накладных пока нет."}</p>`;
+}
+function payAll(cid, date){ const f=PF(); let n=0, s=0; D.journal.filter(j=>j.snap && !isArch(j) && j.customerId===cid && (!f.sup||j.supplierId===f.sup)).forEach(j=>{ const p=payOf(j); if(p.st!=="paid"){ setPay(j, p.tot, date, true); n++; s+=p.left; } });
+  if(n){ logEv("Прибыль","Отмечено «оплачено»: "+n+" накл. «"+(cus(cid).name||"")+"» на "+fm(r2(s))+" ₽"); saveLocal(); drawProfit(); toast("ok","Отмечено как оплаченное", n+" "+plural(n,["накладная","накладные","накладных"])+" · "+fm(r2(s))+" ₽. Отменить — кнопка «Отменить» внизу."); } }
+function paySpread(cid, sum, date){ const f=PF(); let left=r2(sum), n=0;
+  const L=D.journal.filter(j=>j.snap && !isArch(j) && j.customerId===cid && (!f.sup||j.supplierId===f.sup)).filter(j=>payOf(j).st!=="paid").sort((a,b)=>a.date.localeCompare(b.date)||jNumSort(a,b));
+  for(const j of L){ if(left<=0.004) break; const p=payOf(j), put=Math.min(p.left,left); setPay(j, r2(p.s+put), date, true); left=r2(left-put); n++; }
+  logEv("Прибыль","Оплата «"+(cus(cid).name||"")+"» "+fm(sum)+" ₽ от "+fd(date)+" разнесена на "+n+" накл.");
+  saveLocal(); drawProfit(); toast(left>0.004?"info":"ok","Оплата разнесена", n+" "+plural(n,["накладная","накладные","накладных"])+(left>0.004?". Лишние "+fm(left)+" ₽ — некуда разнести: все накладные заказчика уже оплачены.":".")); }
+/* ---- прочие доходы и расходы ---- */
+function drawOther(f,d1,d2,OT){
+  const k=$("#po-kind").dataset.k||"exp"; $("#po-kind").querySelectorAll("button").forEach(b=>{ const on=b.dataset.k===k; b.classList.toggle("on",on); b.setAttribute("aria-pressed",on); }); $("#po-kind").style.setProperty("--x", k==="inc"?"100%":"0%");
+  if(!$("#po-date").value) $("#po-date").value=todayISO();
+  const ps=$("#po-sup"), pv=ps.value; ps.innerHTML=`<option value="">Общие (все ИП)</option>`+opts(D.suppliers, pv||f.sup||"");
+  $("#po-notes").innerHTML=[...new Set(pfArr("pother").map(x=>x.note).filter(Boolean))].slice(-40).map(n=>`<option value="${esc(n)}">`).join("");
+  $("#po-hnote").hidden=!pfLoaded || !!D.poSrv;
+  const L=OT.slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.id||"").localeCompare(a.id||"")), e=r2(L.filter(x=>x.kind!==PO_INC).reduce((a,x)=>a+(+x.sum||0),0)), i=r2(L.filter(x=>x.kind===PO_INC).reduce((a,x)=>a+(+x.sum||0),0));
+  $("#po-sumrow").innerHTML = f.cus ? `<span class="muted">Выбран один заказчик — общие расходы и доходы в прибыль не входят. Уберите фильтр «Заказчик», чтобы их учесть.</span>` : L.length ? `<span>Расходы за период: <b class="neg">−${fm(e)}</b></span><span>Доходы: <b class="pos">+${fm(i)}</b></span><span>Итого: <b class="${i-e<0?"neg":"pos"}">${i-e<0?"−":"+"}${fm(Math.abs(r2(i-e)))} ₽</b></span>` : "";
+  $("#po-body").innerHTML = L.length ? L.map(x=>{ const inc=x.kind===PO_INC; return `<tr class="${pend.pother.has(x.id)&&!D.poSrv?"polocal":""}"><td>${fd(x.date)}</td><td><span class="pokind ${inc?"inc":"exp"}">${inc?"Доход":"Расход"}</span></td><td><div class="who">${esc(x.note||"—")}</div></td><td>${x.supplierId?esc(supShort(sup(x.supplierId).name||"")):`<span class="muted">общие</span>`}</td><td class="num"><b class="${inc?"pos":"neg"}">${inc?"+":"−"}${fm(+x.sum||0)}</b></td><td class="acts"><button type="button" class="btn ghost sm danger" data-podel="${x.id}" aria-label="Удалить">×</button></td></tr>`; }).join("")
+    : `<tr><td colspan="6" class="muted" style="padding:14px 6px">${f.cus?"":"За этот период прочих расходов и доходов нет."}</td></tr>`;
+}
+let pfCPage=0;
 function drawCosts(){
   const q=norm($("#pf-q").value||""), only=$("#pf-onlyused").checked, today=todayISO();
   const used=new Set(); Object.values(D.prices||{}).forEach(pl=>Object.keys(pl).forEach(pid=>{ if(pl[pid]!==""&&pl[pid]!=null) used.add(pid); }));
   const list=D.products.filter(p=>(!only||used.has(p.id)) && (!q||norm(p.name).includes(q))).sort((a,b)=>a.name.localeCompare(b.name,"ru"));
-  $("#pf-cur").innerHTML = list.length ? list.slice(0,400).map(p=>{ const e=costFor(p.id,"",today), sp=Object.keys(D.prices||{}).map(c=>+((D.prices[c]||{})[p.id])).filter(v=>v>0), mn=sp.length?Math.min(...sp):0, mx=sp.length?Math.max(...sp):0;
+  const size=prSize(), pages=Math.max(1,Math.ceil(list.length/size)); if(pfCPage>=pages) pfCPage=pages-1; const from=pfCPage*size, view=list.slice(from, from+size);
+  $("#pf-cpager").innerHTML=pagerHtml(pfCPage, pages, list.length, from, view.length, size);
+  $("#pf-cur").innerHTML = list.length ? view.map(p=>{ const e=costFor(p.id,"",today), sp=Object.keys(D.prices||{}).map(c=>+((D.prices[c]||{})[p.id])).filter(v=>v>0), mn=sp.length?Math.min(...sp):0, mx=sp.length?Math.max(...sp):0;
       const spec=pfArr("costs").filter(x=>x.productId===p.id && x.customerId && (x.from||"")<=today);
       return `<tr><td><div class="who">${esc(p.name)}</div><small>${esc(p.unit||"")}${spec.length?" · есть особые цены для: "+esc([...new Set(spec.map(x=>cus(x.customerId).name||""))].join(", ")):""}</small></td>
         <td class="num"><input class="cur" inputmode="decimal" data-cp="${p.id}" value="${e?esc(String(e.price).replace(".",",")):""}" placeholder="нет"></td><td>${e?fd(e.from):`<span class="muted">—</span>`}</td>
@@ -2502,12 +2824,66 @@ function drawTax(){ $("#pf-tax").innerHTML=D.suppliers.map(s=>`<label class="f">
 const pfSet=(k,v)=>{ PF()[k]=v; saveLocal(); drawProfit(); };
 $("#pf-per").onchange=e=>pfSet("per",e.target.value); $("#pf-from").onchange=e=>pfSet("from",e.target.value); $("#pf-to").onchange=e=>pfSet("to",e.target.value);
 $("#pf-sup").onchange=e=>pfSet("sup",e.target.value); $("#pf-cus").onchange=e=>pfSet("cus",e.target.value);
-$("#pf-refresh").onclick=()=>loadProfit(); $("#pf-q").addEventListener("input",drawCosts); $("#pf-onlyused").onchange=drawCosts;
-$("#pf-docs").addEventListener("click",e=>{ if(e.target.closest("input,label,button")) return; const tr=e.target.closest("tr.pfd"); if(!tr) return; const id=tr.dataset.pf; pfOpen.has(id)?pfOpen.delete(id):pfOpen.add(id); drawProfit(); });
+$("#pf-refresh").onclick=()=>loadProfit(); $("#pf-q").addEventListener("input",()=>{ pfCPage=0; drawCosts(); }); $("#pf-onlyused").onchange=()=>{ pfCPage=0; drawCosts(); };
+$("#pf-cpager").addEventListener("click",e=>{ const b=e.target.closest("[data-pg],[data-ps]"); if(!b || b.disabled) return;
+  if(b.dataset.ps!=null){ const p=getPrefs(); p.prSize=+b.dataset.ps; setPrefs(p,true); pfCPage=0; } else pfCPage=+b.dataset.pg;
+  drawCosts(); const t=$("#pf-cur").closest("table"); t.classList.remove("pgfade"); void t.offsetWidth; t.classList.add("pgfade"); });
+const pfDoc = id => D.journal.find(x=>x.id===id);
+$("#pf-docs").addEventListener("click",e=>{
+  const pb=e.target.closest("[data-pay],[data-unpay]");
+  if(pb){ const j=pfDoc(pb.dataset.pay||pb.dataset.unpay); if(!j) return; const p=payOf(j);
+    if(pb.dataset.unpay){ setPay(j,0); saveLocal(); drawProfit(); toast("info","Отметка снята","Накладная № "+j.number+" снова «не оплачена»."); }
+    else { setPay(j,p.tot,todayISO()); saveLocal(); pb.closest("tr").classList.add("justpaid"); setTimeout(drawProfit,260); toast("ok","Оплачено","Накладная № "+j.number+" · "+fm(p.tot)+" ₽ — "+jWho(j).main); }
+    return; }
+  const bk=e.target.closest("[data-bulk]"); if(bk){ pfBulk(bk.dataset.bulk, bk.dataset.doc, bk.closest(".pfbulk")); return; }
+  if(e.target.closest("input,label,button,select")) return; const tr=e.target.closest("tr.pfd"); if(!tr) return; const id=tr.dataset.pf; pfOpen.has(id)?pfOpen.delete(id):pfOpen.add(id); drawProfit(); });
+/* закупка всей накладной одной кнопкой: суммой (делится пропорционально продаже), наценкой или возврат к ценам из списка */
+function pfBulk(mode, id, box){ const j=pfDoc(id); if(!j) return; const k=calc(j.snap.dr, j.snap), dc=dcUpsert(j), L=dcLines(dc), lines=k.lines.filter(l=>l.qty>0);
+  if(mode==="reset"){ lines.forEach(l=>delete L[l.pid]); dc.lines=JSON.stringify(L); dirty("doccosts", dc.id); saveLocal(); drawProfit(); toast("ok","Закупка из списка","Накладная № "+j.number+": свои цены убраны, берутся закупочные цены на дату накладной."); return; }
+  if(mode==="sum"){ const v=+num(box.querySelector(".pfbs").value), base=lines.reduce((a,l)=>a+l.net,0);
+    if(!(v>0)){ toast("err","Впишите сумму","Сколько всего стоила закупка товара для этой накладной."); box.querySelector(".pfbs").focus(); return; }
+    if(!(base>0)) return; let left=r2(v);
+    lines.forEach((l,i)=>{ const part = i===lines.length-1 ? left : r2(v*l.net/base); left=r2(left-part); L[l.pid]=String(Math.round(part/l.qty*100)/100); });
+    logEv("Прибыль","Закупка всей накладной № "+j.number+" от "+fd(j.date)+": "+fm(v)+" ₽ разнесена по "+lines.length+" поз."); }
+  if(mode==="mk"){ const m=+num(box.querySelector(".pfbm").value);
+    if(!(m>-100) || box.querySelector(".pfbm").value.trim()===""){ toast("err","Впишите наценку","Например, 25 — закупка будет на 25% дешевле цены продажи с наценкой."); box.querySelector(".pfbm").focus(); return; }
+    lines.forEach(l=>{ L[l.pid]=String(Math.round(l.net/l.qty/(1+m/100)*100)/100); });
+    logEv("Прибыль","Закупка накладной № "+j.number+" от "+fd(j.date)+" по наценке "+m+"%"); }
+  dc.lines=JSON.stringify(L); dirty("doccosts", dc.id); saveLocal(); drawProfit();
+  const x=docProfit(j); toast("ok","Закупка накладной обновлена","№ "+j.number+": закупка "+fm(x.cost)+" ₽, прибыль "+fm(x.profit)+" ₽."); }
+$("#pf-docs").addEventListener("keydown",e=>{ if(e.key!=="Enter") return; const el=e.target; if(el.classList.contains("pfbs")||el.classList.contains("pfbm")){ e.preventDefault(); pfBulk(el.classList.contains("pfbs")?"sum":"mk", el.dataset.doc, el.closest(".pfbulk")); } });
+$("#pf-chips").addEventListener("click",e=>{ const b=e.target.closest("[data-st]"); if(!b) return; PF().st=b.dataset.st; pfShow=50; saveLocal(); drawProfit(); });
+$("#pf-next").onclick=()=>{ pfShow+=50; drawProfit(); }; $("#pf-all").onclick=()=>{ pfShow=1e9; drawProfit(); };
+$("#pf-showpaid").onchange=drawDebts;
+$("#pf-debt").addEventListener("click",e=>{
+  const h=e.target.closest("[data-dopen]"); if(h){ const c=h.dataset.dopen, box=h.closest(".pdc"); pfDebtOpen.has(c)?pfDebtOpen.delete(c):pfDebtOpen.add(c); box.classList.toggle("open"); h.setAttribute("aria-expanded", box.classList.contains("open")); return; }
+  const pb=e.target.closest("[data-pay]"); if(pb){ const j=pfDoc(pb.dataset.pay); if(!j) return; const p=payOf(j); setPay(j,p.tot,(pb.closest(".pdc").querySelector(".pddate")||{}).value||todayISO()); saveLocal();
+    const r=pb.closest(".pdr"); r.classList.add("gone"); setTimeout(drawProfit,280); toast("ok","Оплачено","Накладная № "+j.number+" · "+fm(p.left)+" ₽"); return; }
+  const al=e.target.closest("[data-dall]"); if(al){ if(!armed(al,"Точно все?")) return; payAll(al.dataset.dall, al.closest(".pdc").querySelector(".pddate").value||todayISO()); return; }
+  const sp=e.target.closest("[data-dspread]"); if(sp){ const box=sp.closest(".pdc"), v=+num(box.querySelector(".pdsum").value); if(!(v>0)){ toast("err","Впишите сумму","Сколько денег пришло от заказчика."); box.querySelector(".pdsum").focus(); return; }
+    paySpread(sp.dataset.dspread, v, box.querySelector(".pddate").value||todayISO()); }
+});
+$("#pf-debt").addEventListener("keydown",e=>{ if(e.key==="Enter" && e.target.classList.contains("pdsum")){ e.preventDefault(); const b=e.target.closest(".pdc").querySelector("[data-dspread]"); b&&b.click(); } });
+/* прочие доходы и расходы */
+$("#po-kind").addEventListener("click",e=>{ const b=e.target.closest("button[data-k]"); if(!b) return; $("#po-kind").dataset.k=b.dataset.k; drawOther(PF(),...pfRange(PF()),poFor(PF(),...pfRange(PF()))); $("#po-sum").focus(); });
+function poAdd(){ const v=+num($("#po-sum").value), note=$("#po-note").value.trim(), date=$("#po-date").value||todayISO(), inc=$("#po-kind").dataset.k==="inc";
+  if(!(v>0)){ toast("err","Впишите сумму",""); $("#po-sum").focus(); return; }
+  if(!note){ toast("err",inc?"Откуда доход?":"На что расход?","Например: «"+(inc?"проценты по вкладу":"аренда склада")+"»."); $("#po-note").focus(); return; }
+  const x={id:uid(), date, kind:inc?PO_INC:PO_EXP, sum:String(r2(v)), note, supplierId:$("#po-sup").value||"", by:curUser()};
+  pfArr("pother").push(x); dirty("pother", x.id); logEv("Прибыль",(inc?"Прочий доход":"Прочий расход")+": "+note+" — "+fm(v)+" ₽ от "+fd(date));
+  $("#po-sum").value=""; $("#po-note").value=""; saveLocal(); drawProfit();
+  const [d1,d2]=pfRange(PF()); toast("ok", inc?"Доход добавлен":"Расход добавлен", note+" · "+fm(v)+" ₽"+(date<d1||date>d2?". Дата вне выбранного периода — в цифрах выше не видна.":""));
+  const r=$("#po-body tr"); if(r) r.classList.add("fresh"); }
+$("#po-add").onclick=poAdd;
+["#po-sum","#po-note"].forEach(s=>$(s).addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); poAdd(); } }));
+$("#po-body").addEventListener("click",e=>{ const b=e.target.closest("[data-podel]"); if(!b) return; if(!armed(b,"Удалить?")) return; const id=b.dataset.podel, x=pfArr("pother").find(y=>y.id===id);
+  D.pother=pfArr("pother").filter(y=>y.id!==id); dirty("pother", id, true); if(x) logEv("Прибыль","Удалён "+(x.kind===PO_INC?"прочий доход":"прочий расход")+": "+(x.note||"")+" — "+fm(+x.sum||0)+" ₽"); saveLocal(); drawProfit(); });
 function dcUpsert(j){ let dc=docCost(j.id); if(!dc){ dc={id:j.id, number:String(j.number), date:j.date, customerName:jWho(j).main, expense:"", note:"", lines:"{}"}; pfArr("doccosts").push(dc); } return dc; }
-$("#pf-docs").addEventListener("change",e=>{ const el=e.target, j=D.journal.find(x=>x.id===el.dataset.doc); if(!j) return; const dc=dcUpsert(j), v=num(el.value);
+$("#pf-docs").addEventListener("change",e=>{ const el=e.target, j=D.journal.find(x=>x.id===el.dataset.doc); if(!j || el.classList.contains("pfbs") || el.classList.contains("pfbm")) return; const dc=dcUpsert(j), v=num(el.value);
   if(el.classList.contains("pfc")){ const L=dcLines(dc); if(v===""||isNaN(+v)) delete L[el.dataset.pid]; else L[el.dataset.pid]=String(+v); dc.lines=JSON.stringify(L); }
   if(el.classList.contains("pfe")) dc.expense = v===""||isNaN(+v) ? "" : String(+v);
+  if(el.classList.contains("pfps")||el.classList.contains("pfpd")){ const row=el.closest(".pfxfoot"), s=+num(row.querySelector(".pfps").value)||0, d=row.querySelector(".pfpd").value||todayISO();
+    setPay(j, s, d); saveLocal(); drawProfit(); toast("ok", s>0?"Оплата сохранена":"Оплата снята","Накладная № "+j.number+(s>0?": "+fm(Math.min(s,docTotal(j)))+" ₽ от "+fd(d):"")); return; }
   dirty("doccosts", dc.id); saveLocal(); drawProfit(); toast("ok","Сохранено","Накладная № "+j.number+": прибыль пересчитана."); });
 $("#pf-cur").addEventListener("change",e=>{ const el=e.target; if(!el.dataset.cp) return; const v=num(el.value); if(v===""||!(+v>0)){ drawCosts(); return; }
   const today=todayISO(); let x=pfArr("costs").find(c=>c.productId===el.dataset.cp && !c.customerId && c.from===today);
@@ -2730,15 +3106,17 @@ function zkBlock(b){
   Object.keys(agg).forEach(id=>{ if(!(agg[id].q>0)) return; cost[id]=r2(agg[id].s/agg[id].q); counted+=cost[id]*(none ? agg[id].q : inv.get(id).qty); });
   /* по договору и валовая прибыль строки: (цена продажи − закупка) × сколько продали (без накладной — сколько купили) */
   let gross=0, grossOk=false, over=0, under=0;
+  /* налог поставщика (АУСН — 8% от выручки) вычитаем из валовой прибыли */
+  const taxSid = docs.length ? docs[0].supplierId : (()=>{ const c=ctrs(cid).find(x=>x.supplierId); return c?c.supplierId:""; })(), taxP = cid ? taxOf(taxSid) : 8, tx = taxP/100;
   rows.forEach(r=>{ if(r.kind!=="prod" || !r.pids.length) return;
     const P=r.pids.map(id=>{ const x=inv.get(id); return {x, c:cost[id]!=null?cost[id]:r.unit, q: none ? r.bought/r.pids.length : x.qty}; });
     r.cost = P.length===1 ? P[0].c : r.unit;
     const qs=P.reduce((a,p)=>a+p.q,0);
-    if(P.every(p=>p.x.sale!=null) && qs>0){ r.sale=P.reduce((a,p)=>a+p.x.sale*p.q,0)/qs; r.gross=r2(P.reduce((a,p)=>a+(p.x.sale-p.c)*p.q,0)); gross+=r.gross; grossOk=true; }
+    if(P.every(p=>p.x.sale!=null) && qs>0){ r.sale=P.reduce((a,p)=>a+p.x.sale*p.q,0)/qs; r.gross=r2(P.reduce((a,p)=>a+(p.x.sale*(1-tx)-p.c)*p.q,0)); gross+=r.gross; grossOk=true; }
     else { r.sale=null; r.gross=null; }
     if(!none && r.invQ!=null){ const d=r.bought-r.invQ; if(d>0) over+=d*r.unit; else under+=-d*r.unit; } });
   const noBuy = none ? [] : [...inv.values()].filter(x=>cost[x.pid]==null);
-  const B={b, st, date, cm, cid, near, list, none, docs, inv, rows, cost, exp:r2(exp), spent:r2(spent), counted:r2(counted), unres:r2(unres), over:r2(over), under:r2(under),
+  const B={b, st, date, cm, cid, near, list, none, docs, inv, rows, cost, taxP, exp:r2(exp), spent:r2(spent), counted:r2(counted), unres:r2(unres), over:r2(over), under:r2(under),
     gross: grossOk ? r2(gross-exp) : null, grossGoods: grossOk ? r2(gross) : null, noBuy,
     open:rows.filter(r=>r.kind==="none"||(r.kind==="prod"&&!r.pids.length)).length, diffN:rows.filter(r=>r.diff).length};
   B.notes=zkNotes(B); return B;
@@ -2821,7 +3199,7 @@ function zkCard(B){
     const invq = ok && !B.none ? `<span class="${r.diff?"miss":""}">${zkQ(r.invQ)} ${esc(u)}</span>` : "—";
     const unit = ok ? `<b>${fm(r.cost)}</b> <small class="muted">₽/${esc(u)}</small>` : r.kind==="exp" ? `<b>${fm(it.s)}</b> <small class="muted">₽</small>` : "—";
     const sale = ok && r.sale!=null ? `${fm(r.sale)} <small class="muted">₽/${esc(u)}</small>` : ok ? `<small class="muted">нет цены</small>` : "—";
-    const gp = ok && r.gross!=null ? `<b class="${r.gross<0?"neg":"pos"}">${r.gross>0?"+":r.gross<0?"−":""}${rub(Math.abs(r.gross))}</b><small class="muted">${r.sale>0?pct(r.sale-r.cost, r.sale):""}</small>` : r.kind==="exp" ? `<span class="neg">−${rub(it.s)}</span>` : "—";
+    const gp = ok && r.gross!=null ? `<b class="${r.gross<0?"neg":"pos"}">${r.gross>0?"+":r.gross<0?"−":""}${rub(Math.abs(r.gross))}</b><small class="muted">${r.sale>0?pct(r.sale*(1-B.taxP/100)-r.cost, r.sale):""}</small>` : r.kind==="exp" ? `<span class="neg">−${rub(it.s)}</span>` : "—";
     return `<tr class="${r.kind==="none"||(r.kind==="prod"&&!r.pids.length)?"zkopen":""}${ok&&r.gross<0?" zkloss":""}"><td><div class="who">${esc(it.src)}</div>${zkStatus(r,B)}</td><td>${ready||r.kind!=="none"?zkSelect(B,r):`<span class="muted">сначала выберите накладную</span>`}</td><td>${bought}</td><td>${invq}</td><td class="num">${unit}</td><td class="num">${sale}</td><td class="num zkgp">${gp}</td></tr>`; }).join("");
   const done=zkSaved(B);
   /* расхождение простыми словами */
@@ -2830,14 +3208,14 @@ function zkCard(B){
   if(B.unres>=1) why.push(`строки без товара — ${rub(B.unres)} ₽`);
   const notes=B.notes, top=notes.slice(0,3), more=notes.slice(3), li=n=>`<li class="l${n.l}">${n.t}</li>`;
   const notesH = ready && B.cid ? `<div class="zknotes${notes.some(n=>n.l===0)?" bad":notes.length?"":" ok"}">${notes.length?`<b>Обратите внимание</b><ul>${top.map(li).join("")}</ul>${more.length?`<details class="zkmore" data-b="${esc(k)}"><summary>Ещё ${more.length} ${more.length===1?"замечание":more.length<5?"замечания":"замечаний"}</summary><ul>${more.map(li).join("")}</ul></details>`:""}`:`<b>Всё в порядке</b><span>Цены ниже договора, количество сходится с накладной.</span>`}</div>` : "";
-  const sum = ready && B.cid ? `<div class="zksum"><div><small>Саид потратил</small><b>${fm(B.spent)}</b></div><div><small>${B.none?"Закупка товара":"Закупка товара по накладной"}</small><b>${fm(B.counted)}</b></div>${B.none&&!B.exp?"":`<div><small>Телега, машины</small><b>${fm(B.exp)}</b></div>`}${B.none?"":`<div><small>Расхождение</small><b class="${even?"pos":"miss"}">${even?"нет":(left>0?"":"−")+fm(Math.abs(left))}</b></div>`}<div class="gp"><small>Валовая прибыль${B.exp?" (после телеги)":""}</small><b class="${B.gross==null?"":B.gross<0?"neg":"pos"}">${B.gross==null?"нет цен договора":(B.gross>0?"+":B.gross<0?"−":"")+fm(Math.abs(B.gross))}</b></div></div>
+  const sum = ready && B.cid ? `<div class="zksum"><div><small>Саид потратил</small><b>${fm(B.spent)}</b></div><div><small>${B.none?"Закупка товара":"Закупка товара по накладной"}</small><b>${fm(B.counted)}</b></div>${B.none&&!B.exp?"":`<div><small>Телега, машины</small><b>${fm(B.exp)}</b></div>`}${B.none?"":`<div><small>Расхождение</small><b class="${even?"pos":"miss"}">${even?"нет":(left>0?"":"−")+fm(Math.abs(left))}</b></div>`}<div class="gp"><small>Валовая прибыль (после налога ${String(B.taxP).replace(".",",")}%${B.exp?" и телеги":""})</small><b class="${B.gross==null?"":B.gross<0?"neg":"pos"}">${B.gross==null?"нет цен договора":(B.gross>0?"+":B.gross<0?"−":"")+fm(Math.abs(B.gross))}</b></div></div>
     ${!B.none && !even && why.length?`<p class="muted zkwhy"><b>Почему расхождение:</b> ${why.join("; ")}.</p>`:""}` : "";
   const parts=B.b.parts||[], clash=zkLast.find(x=>x!==B && x.cid===B.cid && x.docs.some(j=>B.docs.includes(j)));
   const mergeH = parts.length>1 ? `<p class="muted zkhint">Объединено из ${parts.length} сообщений Саида — у них одна и та же накладная (продолжение заказа). <button type="button" class="btn ghost sm" data-zapart="${esc(parts.slice(1).join("|"))}">Разделить</button></p>` : "";
   const clashH = clash ? `<p class="note">Эта накладная выбрана и у другой закупки «${esc(zkPl(clash.b))}». Выберите у одной из них другую накладную или «Без накладной», иначе при сохранении одна закупка заменит другую.</p>` : "";
   return `<div class="card zkb" data-b="${k}"><h2 class="zkh"><span>${esc(zkPl(B.b))} <small>${B.b.date||B.none||!B.b.prefer?"закупка "+fd(date):"накладная от "+fd(date)}</small></span>${done?`<span class="zs ok">${B.none?"цены запомнены":"внесено в прибыль"}</span>`:zkChanged(B)?`<span class="zs warn">есть изменения — нажмите «${B.none?"Обновить цены заказчика":"Обновить в прибыли"}»</span>`:""}</h2>
     <label class="f">Заказчик ${B.cm&&B.cm.how==="auto"?`<small>(нашёл по названию)</small>`:""}${cusSel}</label>${mergeH}${docsH}${clashH}${notesH}
-    <div class="tbl"><table class="stack zkt" data-full="0,1"><thead><tr><th>Строка Саида</th><th>${B.none?"Товар":"Товар в накладной"}</th><th>Куплено</th><th>В накладной</th><th class="num">Закупка</th><th class="num">По договору</th><th class="num">Валовая прибыль</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="tbl"><table class="stack zkt" data-full="0,1"><thead><tr><th>Строка Саида</th><th>${B.none?"Товар":"Товар в накладной"}</th><th>Куплено</th><th>В накладной</th><th class="num">Закупка</th><th class="num">По договору</th><th class="num">Валовая прибыль<br><small style="text-transform:none;letter-spacing:0">после налога ${String(B.taxP).replace(".",",")}%</small></th></tr></thead><tbody>${rows}</tbody></table></div>
     ${sum}<div class="row"><button class="btn pri" data-zsave="${k}"${ready&&B.cid&&pfLoaded?"":" disabled"}>${B.none?(B.st.saved?"Обновить цены заказчика":"Запомнить цены для заказчика"):(B.st.saved?"Обновить в прибыли":"Сохранить в прибыль")}</button>${B.open?`<span class="miss">Не разобрано строк: ${B.open} — они не попадут в закупку.</span>`:""}${B.diffN?`<span class="miss">Не сходится количество: ${B.diffN} ${B.diffN===1?"строка":"строки"} — может, Саид считал коробками.</span>`:""}</div></div>`;
 }
 const zkPl = b => b.key.length<=3 ? b.place.toUpperCase() : b.place.charAt(0).toUpperCase()+b.place.slice(1);
@@ -3233,18 +3611,53 @@ function docCard(j, arch){
   const k=calc(j.snap.dr, j.snap), dr=j.snap.dr, m=j.snap.meta||{}, w=jWho(j), lim=docLimited(), inG=!arch && jKey(j) && D.journal.filter(x=>x.snap&&!isArch(x)&&jKey(x)===jKey(j)).length>1;
   const info=[["Поставщик",j.snap.s.name||""],["Адрес доставки",dr.ship||j.snap.c.address||""],["Основание",dr.basis||""]].concat(whoLine(j)).filter(x=>x[1]);
   const acts = arch ? `<button class="btn" data-dc="close">Закрыть</button>`
-    : (j.snap.c&&j.snap.c.priv?`<button class="btn" data-dc="nakl">Накладная</button>`:`<button class="btn" data-dc="combo">Счёт+ТОРГ</button><button class="btn" data-dc="upd">УПД</button>`)+(inG&&!lim?`<button class="btn" data-dc="gedit">Редактировать комплект</button>`:"")+(lim?`<button class="btn pri" data-dc="qty">Изменить количество</button>`:`<button class="btn pri" data-dc="edit">Изменить</button>`);
+    : (j.snap.c&&j.snap.c.priv?`<button class="btn" data-dc="nakl">Накладная</button>`:`<button class="btn" data-dc="combo">Счёт+ТОРГ</button><button class="btn" data-dc="upd">УПД</button>`)+(inG&&!lim?`<button class="btn" data-dc="gedit">Редактировать комплект</button>`:"")+(me().admin?`<button class="btn" data-zkc="toggle" aria-expanded="false">${dcZkHas(j)?"Закупка ✓":"Добавить закупку"}</button>`:"")+(lim?`<button class="btn pri" data-dc="qty">Изменить количество</button>`:`<button class="btn pri" data-dc="edit">Изменить</button>`);
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Документ № ${esc(j.number)} · ${fd(j.date)}</div><h3>${esc(w.main)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <dl class="dc-info">${info.map(([a,b])=>`<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>
     ${linesTable(k)}
     <div class="dc-total"><span>${k.lines.length} ${posWord(k.lines.length)}${k.t.kg?" · "+nq3(k.t.kg)+" кг":""}${k.rate?" · в т.ч. НДС "+fm(k.t.vat)+" ₽":""}</span><b>${fm(k.t.sum)} ₽</b></div>
     ${m.pr?`<div class="dc-note">Распечатан со склада: ${esc(dtShort(m.pr))}</div>`:""}
     ${histHtml(histOf(j))}
+    ${!arch&&me().admin?`<div class="dc-zk" id="dc-zk" data-doc="${j.id}"><div class="dc-zki" id="dc-zki"></div></div>`:""}
     <div class="dc-acts">${acts}</div>`, false, a=>{
       if(a==="gedit"){ bundleEdit(D.journal.filter(x=>x.snap&&!isArch(x)&&jKey(x)===jKey(j)).sort(jNumSort)); return; }
       const fake=document.createElement("button"); fake.dataset[{combo:"comboJ",upd:"p",nakl:"p",edit:"edit",qty:"qty"}[a]] = (a==="upd"||a==="nakl") ? a : j.id; if(a==="upd"||a==="nakl") fake.dataset.id=j.id;
       onJClick(arch)({target:fake}); });
 }
+/* ---------- закупка прямо из окна документа (только администратор) ---------- */
+const dcZkHas = j => { const L=dcLines(docCost(j.id)); return Object.keys(L).some(k=>k[0]!=="_" && L[k]!==""); };
+function dcZkSum(j, box){ const k=calc(j.snap.dr, j.snap), tx=taxOf(j.supplierId)/100; let cost=0, miss=0;
+  k.lines.forEach(l=>{ const el=box.querySelector(`.dzc[data-pid="${l.pid}"]`), v=el?num(el.value):""; const c = v!=="" && !isNaN(+v) ? +v : (el && el.placeholder && !isNaN(+num(el.placeholder)) ? +num(el.placeholder) : null); if(c==null) miss++; else cost+=c*l.qty; });
+  const exp=+num((box.querySelector(".dze")||{}).value||"")||0, rev=k.t.net, tax=r2(rev*tx), gross=r2(rev-cost-tax), net=r2(gross-exp);
+  box.querySelector("#dc-zks").innerHTML=`<div><small>Выручка</small><b>${fm(rev)}</b></div><div><small>Закупка</small><b>${fm(r2(cost))}</b></div><div><small>Налог ${String(tx*100).replace(".",",")}%</small><b>${fm(tax)}</b></div><div class="hi"><small>Прибыль${exp?" (после расходов)":""}</small><b class="${net<0?"neg":""}">${fm(net)}</b><span>маржа ${pct(net,rev)}</span></div>`+(miss?`<p class="miss">Нет закупки у ${miss} ${plural(miss,["позиции","позиций","позиций"])}</p>`:""); }
+function dcZkDraw(j){ const box=$("#dc-zki"); if(!box) return; const x=docProfit(j), dc=docCost(j.id);
+  box.innerHTML=`<div class="dzh"><b>Закупка по накладной</b><small class="muted">Пустое поле — цена из «Закупочных цен» на дату накладной</small></div>
+    <div class="dzbulk"><label>Вся закупка одной суммой<input class="dzs" inputmode="decimal" placeholder="${x.cost?esc(String(x.cost).replace(".",",")):"0"}"> ₽</label><button type="button" class="btn sm" data-zkc="spread">Разнести по товарам</button></div>
+    <div class="dzl">${x.lines.map(r=>`<label class="dzr"><span><b>${esc(r.l.name)}</b><small>${esc(qfmt(r.l.qty,r.l.unit))} × ${fm(r.l.price)} ₽</small></span><input class="dzc" inputmode="decimal" data-pid="${r.l.pid}" value="${r.own?esc(String(r.c).replace(".",",")):""}" placeholder="${r.e?esc(String(r.e.price).replace(".",",")):"цена за "+esc(r.l.unit||"ед.")}" aria-label="Закупка за единицу: ${esc(r.l.name)}"><em>₽/${esc(r.l.unit||"ед.")}</em></label>`).join("")}</div>
+    <label class="dzr dzx"><span><b>Прочие расходы</b><small>доставка, грузчики, телега</small></span><input class="dze" inputmode="decimal" value="${esc(dc&&dc.expense?String(dc.expense).replace(".",","):"")}" placeholder="0"><em>₽</em></label>
+    <div class="dzs-sum" id="dc-zks"></div>
+    <div class="row dzact"><button type="button" class="btn pri" data-zkc="save">Сохранить закупку</button><span class="muted" id="dc-zkmsg"></span></div>`;
+  dcZkSum(j, box); }
+document.addEventListener("click", async e=>{ const b=e.target.closest("#fd-dcard [data-zkc]"); if(!b) return; const wrap=$("#dc-zk"); if(!wrap) return; const j=D.journal.find(x=>x.id===wrap.dataset.doc); if(!j) return; const a=b.dataset.zkc;
+  if(a==="toggle"){ const on=!wrap.classList.contains("open"); wrap.classList.toggle("open", on); b.setAttribute("aria-expanded", on); b.classList.toggle("on", on);
+    if(on){ if(!pfLoaded){ $("#dc-zki").innerHTML=`<p class="muted">Загружаю данные о прибыли…</p>`; await loadProfit(true); }
+      dcZkDraw(j); setTimeout(()=>{ wrap.scrollIntoView({behavior:"smooth", block:"nearest"}); const f=wrap.querySelector(".dzs"); if(f && matchMedia("(hover:hover)").matches) f.focus(); }, 260); }
+    return; }
+  const box=$("#dc-zki");
+  if(a==="spread"){ const v=+num(box.querySelector(".dzs").value), k=calc(j.snap.dr, j.snap), L=k.lines.filter(l=>l.qty>0), base=L.reduce((s,l)=>s+l.net,0);
+    if(!(v>0) || !(base>0)){ toast("err","Впишите сумму","Сколько всего стоила закупка товара для этой накладной."); box.querySelector(".dzs").focus(); return; }
+    let left=r2(v); L.forEach((l,i)=>{ const part=i===L.length-1?left:r2(v*l.net/base); left=r2(left-part); const el=box.querySelector(`.dzc[data-pid="${l.pid}"]`); if(el){ el.value=String(Math.round(part/l.qty*100)/100).replace(".",","); el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); } });
+    dcZkSum(j, box); $("#dc-zkmsg").textContent="Разнесено — проверьте и нажмите «Сохранить закупку»."; return; }
+  if(a==="save"){ const dc=dcUpsert(j), L=dcLines(dc); let n=0;
+    box.querySelectorAll(".dzc").forEach(el=>{ const v=num(el.value); if(v===""||isNaN(+v)) delete L[el.dataset.pid]; else { L[el.dataset.pid]=String(+v); n++; } });
+    const ev=num(box.querySelector(".dze").value); dc.expense = ev===""||isNaN(+ev) ? "" : String(+ev);
+    dc.lines=JSON.stringify(L); dirty("doccosts", dc.id); saveLocal(); const x=docProfit(j);
+    logEv("Прибыль","Закупка накладной № "+j.number+" от "+fd(j.date)+" — "+jWho(j).main+": "+fm(x.cost)+" ₽");
+    toast("ok","Закупка сохранена","№ "+j.number+": закупка "+fm(x.cost)+" ₽ · прибыль "+fm(x.profit)+" ₽."); $("#dc-zkmsg").textContent="Сохранено ✓";
+    const tb=$('#fd-dcard [data-zkc="toggle"]'); if(tb) tb.textContent=dcZkHas(j)?"Закупка ✓":"Добавить закупку"; if(curTab==="profit") drawProfit(); }
+});
+document.addEventListener("input", e=>{ const el=e.target; if(!el.closest || !el.closest("#dc-zki") || !(el.classList.contains("dzc")||el.classList.contains("dze"))) return; const wrap=$("#dc-zk"), j=wrap&&D.journal.find(x=>x.id===wrap.dataset.doc); if(j){ dcZkSum(j, $("#dc-zki")); $("#dc-zkmsg").textContent=""; } });
+document.addEventListener("keydown", e=>{ if(e.key!=="Enter" || !e.target.closest || !e.target.closest("#dc-zki")) return; e.preventDefault(); const b=$('#fd-dcard [data-zkc="'+(e.target.classList.contains("dzs")?"spread":"save")+'"]'); b&&b.click(); });
 function bundleCard(g, arch){
   if(!g.length) return; const ks=g.map(j=>calc(j.snap.dr, j.snap)), w={main:gTitle(g)}, lim=docLimited(), sum=r2(ks.reduce((a,k)=>a+k.t.sum,0)), kg=ks.reduce((a,k)=>a+k.t.kg,0);
   const nums=g.map(j=>j.number), hist=[].concat(...g.map(j=>histOf(j).map(x=>Object.assign(x,{num:j.number}))));
@@ -3411,61 +3824,98 @@ $("#sup-sign").addEventListener("click",e=>{ const b=e.target.closest("[data-sgd
 let analyticsCustomer, analyticsRequest = 0;
 function customerAnalytics(cid){
   analyticsCustomer = cid;
-  $("#ca-name").textContent = cid ? "— " + (cus(cid).name || "") : "";
+  $("#ca-name").textContent = cid ? (cus(cid).name || "") : "";
+  caPeek(cid);
   if($("#cus-analytics").open) return renderCustomerAnalytics();
 }
-
-function drawCustomerAnalytics(docs){
-  const products = new Map();
+/* подпись в свёрнутом блоке: сколько купили в этом месяце — по журналу на устройстве */
+function caPeek(cid){ const el=$("#ca-peek"); if(!el) return; if(!cid){ el.textContent=""; return; }
+  const [a,b]=pfRange({per:"month"}), L=D.journal.filter(j=>j.customerId===cid && !isArch(j) && j.date>=a && j.date<=b), s=r2(L.reduce((x,j)=>x+(+j.sum||0),0));
+  el.innerHTML = L.length ? `в этом месяце: <b>${L.length}</b> ${plural(L.length,["документ","документа","документов"])} · <b>${fm(s).replace(/,00$/,"")} ₽</b>` : `в этом месяце покупок нет`; }
+let caAll=false, caSort="sum", caLast=null;
+const CA_MON=["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"];
+function drawCustomerAnalytics(docs, range){
+  caLast={docs, range};
+  const products = new Map(), byDay = {}; let total=0, hasSum=true, last="";
   for(const doc of docs){
+    const ds = +doc.sum; if(!(ds>=0) || doc.sum==null || doc.sum==="") hasSum=false; else total+=ds;
+    if(doc.date){ if(doc.date>last) last=doc.date; byDay[doc.date]=(byDay[doc.date]||0)+(ds||0); }
+    const seen=new Set();
     for(const line of doc.snap.dr.lines){
       const qty = Number(line.qty);
       if(!line.productId || !Number.isFinite(qty) || qty <= 0) continue;
       const product = (doc.snap.prods || {})[line.productId] || {};
       const unit = String(product.unit || "").trim();
       const key = JSON.stringify([line.productId, unit]);
-      const item = products.get(key) || {name:product.name || line.name || "Товар из документа", unit, qty:0};
-      item.qty += qty;
+      const item = products.get(key) || {name:product.name || line.name || "Товар из документа", unit, qty:0, sum:0, n:0, priced:true};
+      item.qty += qty; const pr=Number(line.price); if(Number.isFinite(pr) && line.price!=="" && line.price!=null) item.sum += r2(qty*pr); else item.priced=false;
+      if(!seen.has(key)){ item.n++; seen.add(key); }
       products.set(key, item);
     }
   }
-  const rows = [...products.values()].sort((a,b)=>a.name.localeCompare(b.name,"ru") || a.unit.localeCompare(b.unit,"ru"));
-  const quantity = new Intl.NumberFormat("ru-RU",{maximumFractionDigits:6});
-  $("#ca-result").innerHTML = rows.length
-    ? `<p class="muted">Документов: ${docs.length} · Позиций: ${rows.length}</p><table class="tbl"><thead><tr><th>Товар</th><th>Ед.</th><th>Всего купили</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${esc(r.name)}</td><td>${esc(r.unit || "—")}</td><td>${quantity.format(r.qty)}</td></tr>`).join("")}</tbody></table>`
-    : '<p class="muted">За выбранный период покупок нет.</p>';
+  const rows=[...products.values()], priced=rows.length && rows.every(r=>r.priced), lsum=r2(rows.reduce((a,r)=>a+r.sum,0));
+  if(!rows.length){ $("#ca-result").innerHTML='<div class="ca-empty"><b>Покупок нет</b><span>За выбранный период документов у этого заказчика нет. Выберите другой период.</span></div>'; return; }
+  const sorters={sum:(a,b)=>b.sum-a.sum||b.qty-a.qty, qty:(a,b)=>b.qty-a.qty, n:(a,b)=>b.n-a.n||b.sum-a.sum, name:(a,b)=>a.name.localeCompare(b.name,"ru")};
+  if(!priced && caSort==="sum") caSort="qty";
+  rows.sort(sorters[caSort]||sorters.name);
+  const qf=new Intl.NumberFormat("ru-RU",{maximumFractionDigits:3}), rub=v=>fm(v).replace(/,00$/,""), top=caAll?rows:rows.slice(0,10), mx=Math.max(...rows.map(r=>priced?r.sum:r.qty))||1;
+  /* график по дням (период до ~2 месяцев) или по месяцам */
+  const days=Object.keys(byDay).sort(), lo=range[0]!=="0000"?range[0]:(days[0]||""), hi=range[1]!=="9999"?range[1]:(days[days.length-1]||""), span=lo&&hi?(new Date(hi)-new Date(lo))/864e5:0, byMonth=span>62;
+  const B={}; days.forEach(d=>{ const k=byMonth?d.slice(0,7):d; B[k]=(B[k]||0)+byDay[d]; });
+  const keys=[]; if(lo && hi && hasSum){ const c=new Date(lo+"T12:00:00"), e=new Date(hi+"T12:00:00"); if(byMonth){ c.setDate(1); while(c<=e && keys.length<60){ keys.push(jIso(c).slice(0,7)); c.setMonth(c.getMonth()+1); } } else { while(c<=e && keys.length<70){ keys.push(jIso(c)); c.setDate(c.getDate()+1); } } }
+  const bm=Math.max(...keys.map(k=>B[k]||0))||1, lbl=k=>byMonth?CA_MON[+k.slice(5,7)-1]+(k.slice(0,4)!==String(new Date().getFullYear())?" "+k.slice(2,4):""):String(+k.slice(8,10));
+  const chart = hasSum && keys.length>1 && days.length ? `<div class="ca-chart"><div class="ca-ch-h"><b>Покупки ${byMonth?"по месяцам":"по дням"}</b><small class="muted">наведите или нажмите на столбик</small></div>
+      <div class="ca-cols" style="--n:${keys.length}">${keys.map((k,i)=>{ const v=B[k]||0; return `<div class="ca-col${v?"":" z"}" tabindex="${v?0:-1}" title="${byMonth?CA_MON[+k.slice(5,7)-1]+" "+k.slice(0,4):fd(k)}: ${v?rub(v)+" ₽":"нет покупок"}"><i style="--h:${(v/bm*100).toFixed(1)}%;--d:${Math.min(i*18,600)}ms"><em>${v?rub(v):""}</em></i><span>${keys.length<=16||i%Math.ceil(keys.length/12)===0?lbl(k):""}</span></div>`; }).join("")}</div></div>` : "";
+  const avg = hasSum && docs.length ? r2(total/docs.length) : 0;
+  const tiles = `<div class="ca-tiles">
+      <div><small>Документов</small><b>${docs.length}</b></div>
+      ${hasSum?`<div class="hi"><small>Сумма покупок</small><b>${rub(r2(total))} ₽</b></div><div><small>Средний чек</small><b>${rub(avg)} ₽</b></div>`:""}
+      <div><small>Разных товаров</small><b>${rows.length}</b></div>
+      ${last?`<div><small>Последняя поставка</small><b>${fd(last)}</b><span>${(()=>{ const d=daysSince(last); return d===0?"сегодня":d<0?"":dnum(d)+" назад"; })()}</span></div>`:""}
+    </div>`;
+  const th=(k,l,cls)=>`<th class="${cls||""}"><button type="button" class="ca-sort${caSort===k?" on":""}" data-casort="${k}">${l}${caSort===k?" ↓":""}</button></th>`;
+  const table = `<div class="ca-tw"><div class="ca-ch-h"><b>Что покупает</b><small class="muted">${caAll||rows.length<=10?"все "+rows.length:"топ‑10 из "+rows.length}</small></div>
+    <div class="tbl"><table class="ca-tab"><thead><tr><th class="ca-i">#</th>${th("name","Товар")}${th("qty","Купили","num")}${priced?th("sum","Сумма, ₽","num")+`<th class="num">Ср. цена</th><th class="ca-sh">Доля</th>`:""}${th("n","В документах","num")}</tr></thead>
+    <tbody>${top.map((r,i)=>{ const share=priced&&lsum?r.sum/lsum*100:0; return `<tr style="--d:${Math.min(i*25,400)}ms"><td class="ca-i">${i+1}</td><td><b>${esc(r.name)}</b></td><td class="num">${qf.format(r.qty)} <small class="muted">${esc(r.unit||"")}</small></td>${priced?`<td class="num"><b>${rub(r.sum)}</b></td><td class="num muted">${r.qty?fm(r.sum/r.qty):"—"}</td><td class="ca-sh"><span class="ca-shb"><i style="--w:${(r.sum/mx*100).toFixed(1)}%"></i></span><small>${share.toFixed(share<1?1:0).replace(".",",")}%</small></td>`:""}<td class="num">${r.n} <small class="muted">из ${docs.length}</small></td></tr>`; }).join("")}</tbody></table></div>
+    ${rows.length>10?`<div class="row"><button type="button" class="btn ghost sm" id="ca-more">${caAll?"Свернуть до топ‑10":"Показать все "+rows.length}</button></div>`:""}</div>`;
+  $("#ca-result").innerHTML = tiles + chart + table + (hasSum?"":`<p class="muted" style="font-size:12.5px">Суммы появятся после обновления скрипта Google Таблицы.</p>`);
 }
-
 async function renderCustomerAnalytics(){
   const request = ++analyticsRequest, cid = analyticsCustomer;
   const status = $("#ca-status");
   const per = $("#ca-period").value;
   const custom = per === "custom";
+  $("#ca-perseg").querySelectorAll("button").forEach(b=>{ const on=b.dataset.per===per; b.classList.toggle("on",on); b.setAttribute("aria-pressed",on); });
   $("#ca-from-label").hidden = $("#ca-to-label").hidden = !custom;
   const from = $("#ca-from").value, to = $("#ca-to").value;
-  $("#ca-result").textContent = "";
-  if(!cid){ status.textContent = "Выберите заказчика."; return; }
+  if(!cid){ $("#ca-result").textContent=""; status.textContent = "Выберите заказчика."; return; }
   if(custom && (!from || !to || from > to)){
-    status.textContent = "Укажите обе даты. Дата начала должна быть не позже даты окончания.";
+    $("#ca-result").textContent=""; status.textContent = "Укажите обе даты. Дата начала должна быть не позже даты окончания.";
     return;
   }
-  const [start,end] = jRange({per,from,to});
+  const range = pfRange({per,from,to}), [start,end] = range;
   const local = ()=>D.journal.filter(j=>j.customerId===cid && j.date>=start && j.date<=end &&
     !isArch(j) && Array.isArray(j.snap?.dr?.lines));
-  const showLocal = message=>{ status.textContent = message; drawCustomerAnalytics(local()); };
-  if(!online()){ showLocal("Показан журнал на этом устройстве. Для полной истории подключитесь к интернету."); return; }
-  status.textContent = "Загружаем историю покупок…";
+  const showLocal = message=>{ status.textContent = message; drawCustomerAnalytics(local(), range); };
+  /* сразу показываем то, что есть на устройстве, потом уточняем по таблице */
+  drawCustomerAnalytics(local(), range); $("#ca-result").classList.add("ca-load");
+  const done = ()=>$("#ca-result").classList.remove("ca-load");
+  if(!online()){ done(); showLocal("Показан журнал на этом устройстве. Для полной истории подключитесь к интернету."); return; }
+  status.textContent = "Загружаем полную историю…";
   try{
     if(pend.journal.size) await flush();
     if(request !== analyticsRequest) return;
-    if(pend.journal.size){ showLocal("Показан журнал на этом устройстве. Для полной истории дождитесь сохранения документов."); return; }
+    if(pend.journal.size){ done(); showLocal("Показан журнал на этом устройстве. Для полной истории дождитесь сохранения документов."); return; }
     const response = await api({action:"customerAnalytics", customerId:cid, from:start, to:end});
     if(request !== analyticsRequest) return;
-    if(pend.journal.size){ showLocal("Документы изменились во время загрузки. Обновите отчёт после их сохранения."); return; }
-    status.textContent = "";
-    drawCustomerAnalytics(response.documents);
+    if(pend.journal.size){ done(); showLocal("Документы изменились во время загрузки. Обновите отчёт после их сохранения."); return; }
+    status.textContent = ""; done();
+    /* старый скрипт не отдаёт даты и суммы — берём их из журнала на устройстве, если он полный */
+    const docs=response.documents||[], loc=local();
+    drawCustomerAnalytics(docs.length && docs[0].date==null && docs.length===loc.length ? loc : docs, range);
   }catch(e){
     if(request !== analyticsRequest) return;
+    done();
     showLocal(e.message === "unknown action"
       ? "Показан журнал на этом устройстве. Для полной истории обновите скрипт Google Таблицы."
       : "Полная история недоступна. Показан журнал на этом устройстве.");
@@ -3474,6 +3924,9 @@ async function renderCustomerAnalytics(){
 $("#cus-analytics").ontoggle = e=>{ if(e.target.open) renderCustomerAnalytics(); else analyticsRequest++; };
 ["#ca-period","#ca-from","#ca-to"].forEach(id=>$(id).onchange=renderCustomerAnalytics);
 $("#ca-refresh").onclick = renderCustomerAnalytics;
+$("#ca-perseg").addEventListener("click",e=>{ const b=e.target.closest("[data-per]"); if(!b) return; $("#ca-period").value=b.dataset.per; caAll=false; renderCustomerAnalytics(); });
+$("#ca-result").addEventListener("click",e=>{ const so=e.target.closest("[data-casort]"); if(so){ caSort=so.dataset.casort; if(caLast) drawCustomerAnalytics(caLast.docs, caLast.range); return; }
+  if(e.target.closest("#ca-more")){ caAll=!caAll; if(caLast) drawCustomerAnalytics(caLast.docs, caLast.range); } });
 
 function renderCustomers(){
   cardEditor({root:$("#cus-editor"), type:"customers", title:"Заказчик (покупатель)",
@@ -3532,12 +3985,33 @@ ctb.addEventListener("input",ctSet); ctb.addEventListener("change",e=>{ if(e.tar
 ctb.addEventListener("click",e=>{ const b=e.target.closest("[data-del]"); if(!b) return;
   if(!b.dataset.armed){ b.dataset.armed=1; b.textContent="Удалить?"; return; }
   const id=b.closest("tr").dataset.id, x=ctr(id); D.contracts=D.contracts.filter(c=>c.id!==id); dirty("contracts",id,true); if(D.draft.contractId===id) D.draft.contractId=""; renderContracts(x.customerId); });
+/* список цен заказчика: по страницам (10 / 20 / 50 / все), поиск и фильтр */
+const PRV={cid:null, page:0, q:"", f:"all"};
+const prSize = () => { const v=getPrefs().prSize; return v===0 ? 1e9 : [10,20,50].includes(v) ? v : 10; };
+function pagerHtml(page, pages, total, from, n, size){
+  if(!total) return "";
+  const nums=[]; for(let i=0;i<pages;i++){ if(i===0||i===pages-1||Math.abs(i-page)<=1) nums.push(i); else if(nums[nums.length-1]!=="…") nums.push("…"); }
+  return `<div class="pgnav">${pages>1?`<button type="button" class="pgb" data-pg="${page-1}"${page?"":" disabled"} aria-label="Предыдущая страница">‹</button>${nums.map(i=>i==="…"?`<span class="pgd">…</span>`:`<button type="button" class="pgb${i===page?" on":""}" data-pg="${i}" aria-label="Страница ${i+1}"${i===page?' aria-current="page"':""}>${i+1}</button>`).join("")}<button type="button" class="pgb" data-pg="${page+1}"${page<pages-1?"":" disabled"} aria-label="Следующая страница">›</button>`:""}</div>
+    <span class="muted pgi">${from+1}–${from+n} из ${total}</span>
+    <div class="pgsize" role="group" aria-label="Сколько показывать"><span class="muted">Показывать</span>${[[10,"10"],[20,"20"],[50,"50"],[0,"все"]].map(([v,l])=>`<button type="button" data-ps="${v}" class="${(v||1e9)===size?"on":""}">${l}</button>`).join("")}</div>`; }
+function prRedraw(){ const t=$("#pr-tbl"); renderPrices(PRV.cid); if(t){ t.classList.remove("pgfade"); void t.offsetWidth; t.classList.add("pgfade"); } }
+$("#pr-pager").addEventListener("click",e=>{ const b=e.target.closest("[data-pg],[data-ps]"); if(!b || b.disabled) return;
+  if(b.dataset.ps!=null){ const p=getPrefs(); p.prSize=+b.dataset.ps; setPrefs(p,true); PRV.page=0; }
+  else PRV.page=+b.dataset.pg;
+  prRedraw(); if(b.dataset.pg!=null){ const t=$("#pr-tbl"); if(t && t.getBoundingClientRect().top<0) t.scrollIntoView({behavior:"smooth", block:"start"}); } });
+let prQT=null; $("#pr-q").addEventListener("input",e=>{ clearTimeout(prQT); prQT=setTimeout(()=>{ PRV.q=e.target.value; PRV.page=0; prRedraw(); },180); });
+$("#pr-f").addEventListener("change",e=>{ PRV.f=e.target.value; PRV.page=0; prRedraw(); });
 function renderPrices(cid){
   const c=cus(cid); $("#pr-name").textContent=$("#im-name").textContent=c.name?"— "+c.name:""; plBox(c);
-  if(!cid){ $("#pr-body").innerHTML=""; return; }
+  if(!cid){ $("#pr-body").innerHTML=""; $("#pr-pager").innerHTML=""; return; }
   const pl=D.prices[cid]=D.prices[cid]||{};
   $("#pr-copyfrom").innerHTML=`<option value="">Скопировать цены другого заказчика…</option>`+opts(D.customers.filter(x=>x.id!==cid));
-  $("#pr-body").innerHTML=D.products.map(p=>{ const sp=specOf(cid,p.id); return `<tr><td>${esc(p.name)}</td><td>${esc(p.unit)}</td><td class="num">${fm(p.price)}</td><td><input data-p="${p.id}" inputmode="decimal" placeholder="—" value="${pl[p.id]!=null?esc(pl[p.id]):""}"></td>
+  if(PRV.cid!==cid){ PRV.cid=cid; PRV.page=0; PRV.q=""; $("#pr-q").value=""; }
+  const q=norm(PRV.q||""), has=p=>pl[p.id]!=null&&pl[p.id]!=="", all=D.products.filter(p=>(!q||norm(p.name).includes(q)) && (PRV.f==="all"||(PRV.f==="has")===has(p)));
+  const size=prSize(), pages=Math.max(1,Math.ceil(all.length/size)); if(PRV.page>=pages) PRV.page=pages-1; const from=PRV.page*size, list=all.slice(from, from+size);
+  $("#pr-f").value=PRV.f; $("#pr-cnt").textContent=D.products.filter(has).length+" с ценой из "+D.products.length;
+  $("#pr-pager").innerHTML=pagerHtml(PRV.page, pages, all.length, from, list.length, size);
+  $("#pr-body").innerHTML=(list.length?"":`<tr><td colspan="7" class="muted" style="padding:12px 6px">Ничего не найдено.</td></tr>`)+list.map(p=>{ const sp=specOf(cid,p.id); return `<tr><td>${esc(p.name)}</td><td>${esc(p.unit)}</td><td class="num">${fm(p.price)}</td><td><input data-p="${p.id}" inputmode="decimal" placeholder="—" value="${pl[p.id]!=null?esc(pl[p.id]):""}"></td>
     <td><input data-s="spec" data-pid="${p.id}" value="${esc(sp.spec||"")}"></td><td><input data-s="ste" data-pid="${p.id}" value="${esc(sp.ste||"")}"></td><td><input data-s="art" data-pid="${p.id}" value="${esc(sp.art||"")}"></td></tr>`; }).join("");
   $("#pr-body").oninput=e=>{
     if(e.target.dataset.s){ const pid=e.target.dataset.pid, m=D.specs[cid]=D.specs[cid]||{}, x=m[pid]=m[pid]||{}; x[e.target.dataset.s]=e.target.value.trim(); dirtySpec(cid,pid); return; }
@@ -4660,7 +5134,7 @@ const HELP={
   "Товары":["Что везём и сколько.",["Выберите товар и впишите количество — цена подставится из прайса заказчика по договору.","«Добавить весь прайс» — сразу все позиции заказчика; лишние оставьте с пустым количеством.","× удаляет строку."]],
   "Сформировать":["Создать документы.",["Счёт / ТОРГ‑12 / УПД — откроется документ, вверху «Скачать PDF» или «Печать».","«Скачать счёт + ТОРГ‑12» — два документа одним файлом.","«Сохранить в журнал без печати» — распечатаете позже из «Журнала».","Каждый документ сохраняется в «Журнал»."]],
   "Заявка → документы":["Для заявок, где у одного заказчика много точек (столовые МГУ).",["Выберите заказчика, подразделение и день поставки.","Ниже впишите количество по каждой точке — на каждую будет своя накладная."]],
-  "Количество по адресам":["Перепишите цифры из заявки.",["Строка — точка (столовая), столбец — товар.","Пустые строки пропускаются.","Серый номер в «№ док.» подставлен автоматически. Нажмите на него, чтобы исправить. Если сотрёте — номер снова подставится сам."]],
+  "Количество по адресам":["Перепишите цифры из заявки.",["«Вид таблицы» — как удобнее: адреса в строках или товары в строках (адреса и ОП тогда в столбцах). Выбор запоминается для каждого заказчика.","Enter и стрелки ↑↓ переходят к соседней клетке.","Пустые строки пропускаются.","Серый номер в «№ док.» подставлен автоматически. Нажмите на него, чтобы исправить. Если сотрёте — номер снова подставится сам."]],
   "Что скачать":["Отметьте документы и нажмите кнопку.","Все накладные создадутся сразу, скачаются одним PDF и сохранятся в «Журнал» одним комплектом."],
   "Календарь":["Все заказы по дням поставки.",["На дне видно количество точек доставки и сумму. Считаются все адреса доставки: по накладным и по задачам дня. Если товар везут на точку без накладной — добавьте задачу, выберите заказчика и точку (столовую, склад), и она посчитается.","Нажмите на день — ниже появятся его заказы, товар на день, маршрут водителю и текст для копирования.","Новые накладные появляются здесь сразу после создания."]],
   "Задачи на день":["Дела на день, кроме самих заказов: замена товара, исправленные документы, возврат.",["Выберите заказчика (можно без него), впишите задачу и нажмите «Добавить». Кнопки ниже подставят частые фразы.","Писать можно в несколько строк: Enter — добавить задачу, Shift+Enter — новая строка (на телефоне новая строка — обычным Enter, добавить — кнопкой).","Задачи видят все, в том числе водитель. Они попадают и в текст маршрута.","Фото: кнопка «Фото» в поле задачи или значок фотоаппарата у готовой задачи. Нажмите на фото — оно откроется крупно: приближайте колесом мыши, двумя пальцами или двойным касанием, поворачивайте кнопками или двумя пальцами, листайте стрелками или смахиванием, смахните вниз — закроется.","Недописанная задача не пропадёт: если свернуть браузер или закрыть страницу, текст и фото останутся в поле до вашего возвращения.","Под задачей видно, кто её уже открыл (зелёным, со временем), а кто ещё нет. Отмечать ничего не нужно — достаточно открыть календарь на этот день.","Если текст задачи исправить, отметки «видел» сбрасываются, чтобы все прочитали новую версию."]],

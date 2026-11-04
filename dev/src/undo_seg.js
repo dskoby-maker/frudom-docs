@@ -6,10 +6,10 @@
    Сохранение документа в журнал, загрузка из таблицы и автоматические правки в шаги не попадают.
    Отмена сама проверяет, что запись с тех пор не менял кто-то другой — иначе этот кусок пропускается. */
 var UNDO=null;
-const UN_TABLES=["suppliers","customers","products","contracts","journal","costs","doccosts","psettings","daytasks","prices","specs","purchases"];
+const UN_TABLES=["suppliers","customers","products","contracts","journal","costs","doccosts","psettings","daytasks","prices","specs","purchases","pother"];
 const UN_NOISE=["seen","_new","updated"];   /* служебные поля: «прочитано», время правки — сами по себе не повод для отмены */
-const UN_GEN={suppliers:"поставщика",customers:"заказчика",products:"товара",contracts:"контракта",journal:"документа",costs:"закупочной цены",doccosts:"себестоимости накладной",psettings:"налога",daytasks:"задачи",prices:"цены",specs:"СТЕ/СПГЗ",purchases:"закупки"};
-const UN_ORDER=["L:draft","L:order","L:zk","journal","customers","products","suppliers","contracts","prices","specs","costs","doccosts","purchases","psettings","L:prefs","daytasks"];
+const UN_GEN={suppliers:"поставщика",customers:"заказчика",products:"товара",contracts:"контракта",journal:"документа",costs:"закупочной цены",doccosts:"себестоимости накладной",psettings:"налога",daytasks:"задачи",prices:"цены",specs:"СТЕ/СПГЗ",purchases:"закупки",pother:"прочего дохода/расхода"};
+const UN_ORDER=["L:draft","L:order","L:zk","journal","customers","products","suppliers","contracts","prices","specs","costs","doccosts","purchases","pother","psettings","L:prefs","daytasks"];
 const UN_DF={supplierId:"поставщик",customerId:"заказчик",branchId:"ОП",contractId:"договор",noCtr:"договор",number:"номер",date:"дата",basis:"основание",shipSel:"адрес доставки",ship:"адрес доставки",buyer:"покупатель",bphone:"телефон покупателя",sign:"печать и подпись",stamp:"печать и подпись"};
 const unPj = j => { try{ return j==null?null:JSON.parse(j); }catch(e){ return null; } };
 const unPN = l => (l && ((l.name&&String(l.name).trim()) || (prod(l.productId)||{}).name)) || "товар";
@@ -34,6 +34,8 @@ function unPrefsLabel(b,a){ b=b||{}; a=a||{}; const bt=b.tasks||[], at=a.tasks||
   if(JSON.stringify(bt)!==JSON.stringify(at)) return "изменение задачи";
   if(JSON.stringify(b.hide||[])!==JSON.stringify(a.hide||[])) return "скрытие задачи";
   if(JSON.stringify(b.zk)!==JSON.stringify(a.zk)) return "запомненные названия закупки";
+  if(JSON.stringify(b.ov)!==JSON.stringify(a.ov)) return "вид таблицы заявки";
+  if(b.prSize!==a.prSize) return "сколько строк показывать";
   return "личные настройки"; }
 /* черновик документа, заявка, закупка, личные настройки — то, что живёт на устройстве */
 const UN_LOCAL={
@@ -49,7 +51,8 @@ const UN_LOCAL={
       else if(v.id){ const r=(D.purchases||[]).find(x=>x.id===v.id); if(r){ v.upd=r.updated; v.synced=D.zkSrv?1:0; } }
       D.zk=v; const ta=document.getElementById("zk-src"); if(ta) ta.value=v.text||""; saveLocal(); if(String(v.text||"").trim() && typeof zkAutoSave==="function") zkAutoSave(); },
     label:(b,a)=>(b&&b.id&&b.id!==(a&&a.id) ? (a&&a.id ? "переход к другой закупке" : "новая закупка") : "правка закупки")},
-  prefs:{tab:null, get:()=>curUser()?getPrefs():null, set:v=>{ if(!curUser()) return; setPrefs(v||{}, true); try{ applyTabOrder(); }catch(e){} }, label:unPrefsLabel}
+  prefs:{tab:null, get:()=>{ if(!curUser()) return null; const p=getPrefs(); delete p.pfSeen; return p; },   /* pfSeen — служебная отметка «был во вкладке Прибыль», не шаг отмены */
+    set:v=>{ if(!curUser()) return; v=Object.assign({}, v||{}); const ps=getPrefs().pfSeen; if(ps) v.pfSeen=ps; else delete v.pfSeen; setPrefs(v, true); try{ applyTabOrder(); }catch(e){} }, label:unPrefsLabel}
 };
 const unKey = (t,id) => t+"\u0001"+id;
 function unRowJ(t,id){ const r=localRow(t,id); return r==null?null:JSON.stringify(r); }
@@ -111,6 +114,7 @@ function unName(t,o){ if(!o) return ""; const pn=id=>"«"+((prod(id)||{}).name||
   if(t==="contracts") return o.basis?"«"+o.basis+"»":"";
   if(t==="psettings") return o.id?"«"+(sup(o.id).name||"")+"»":"";
   if(t==="purchases") return o.date?"от "+fd(o.date):"";
+  if(t==="pother") return (o.note?"«"+o.note+"» ":"")+(o.sum?fm(+o.sum)+" ₽":"");
   if(t==="doccosts"){ const j=(D.journal||[]).find(x=>x.id===o.id); return j?"№ "+j.number:""; }
   return o.name?"«"+o.name+"»":""; }
 function unItemLabel(it){ const b=unPj(it.b), a=unPj(it.a);
