@@ -170,6 +170,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-fresh .fx{flex:none;border:0;background:none;color:#8a847b;font-size:18px;line-height:1;cursor:pointer;padding:2px 4px;border-radius:6px}#fd-fresh .fx:hover{background:#f2efe9;color:#1f1d1a}
 @keyframes fdspin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){#fd-fresh{transition:none}#fd-fresh .sp{animation-duration:2s}}
+#fd-toasts[popover]{top:auto;left:auto;margin:0;border:0;padding:0;background:transparent;overflow:visible;color:inherit;max-height:none}
 #fd-toasts{position:fixed;z-index:2147483000;right:20px;bottom:20px;display:flex;flex-direction:column;gap:10px;width:min(390px,calc(100vw - 32px));pointer-events:none;font-family:"Onest","Inter",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
 #fd-toasts .fd-toast{--c:#5b2a48;pointer-events:auto;position:relative;overflow:hidden;display:grid;grid-template-columns:28px 1fr 24px;gap:10px;align-items:start;background:#fff;color:#1f1d1a;border-radius:14px;padding:12px 10px 13px 12px;box-shadow:0 12px 32px rgba(20,15,10,.18),0 2px 6px rgba(20,15,10,.08);border:1px solid rgba(0,0,0,.06);font-size:14px;line-height:1.4;opacity:0;transform:translateY(18px) scale(.97);transition:transform .32s cubic-bezier(.2,.9,.25,1.15),opacity .22s ease}
 #fd-toasts .fd-toast.in{opacity:1;transform:none}#fd-toasts .fd-toast.out{opacity:0;transform:translateX(40px) scale(.98);transition:transform .24s ease,opacity .2s ease}
@@ -181,7 +182,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-toasts .tc{border:0;background:none;color:#8a847b;font-size:20px;line-height:1;cursor:pointer;padding:2px;border-radius:6px}#fd-toasts .tc:hover{color:#1f1d1a;background:#f2efe9}
 #fd-toasts .pb{position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--c);opacity:.45;transform-origin:left;animation:fdpb linear forwards}#fd-toasts .paused .pb{animation-play-state:paused}
 @keyframes fdpb{from{transform:scaleX(1)}to{transform:scaleX(0)}}@keyframes fdpop{from{transform:scale(.4)}to{transform:scale(1)}}
-@media(max-width:600px){#fd-toasts{left:12px;right:12px;width:auto;bottom:calc(12px + env(safe-area-inset-bottom))}#fd-toasts .fd-toast{font-size:14px;padding:12px 8px 13px 12px}}
+@media(max-width:600px){#fd-toasts{left:12px;right:12px;width:auto;bottom:calc(12px + env(safe-area-inset-bottom))}#fd-toasts[popover]{left:12px}#fd-toasts .fd-toast{font-size:14px;padding:12px 8px 13px 12px}}
 @media(prefers-reduced-motion:reduce){#fd-toasts .fd-toast,#fd-toasts .fd-toast.out{transition:opacity .15s}#fd-toasts .fd-toast{transform:none}#fd-toasts .fd-toast.in .ic{animation:none}}
 #fd-app .tbl table.order{min-width:0}#fd-app table.order td.a{min-width:160px}#fd-app table.order td.a small{display:block;color:var(--muted);font-size:12px;line-height:1.3}
 #fd-app table.order input.q{width:84px;text-align:right}#fd-app table.order input.nm{width:70px;text-align:right}#fd-app table.order th.num,#fd-app table.order td.num{text-align:right;white-space:nowrap}
@@ -1446,6 +1447,21 @@ const TICON={ok:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" str
   warn:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 6v8M12 18.5v.5"/></svg>',
   err:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M7 7l10 10M17 7L7 17"/></svg>',
   info:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 11v7M12 6v.5"/></svg>'};
+/* уведомления — всегда на самом верхнем слое, поверх открытых окон (карточка товара, документа, просмотр файла).
+   Окна открываются через showModal и встают в «верхний слой» браузера; уведомления тоже кладём туда (popover) и поднимаем над последним окном. */
+function toastTop(){ const box=document.getElementById("fd-toasts"); if(!box || !box.children.length) return;
+  /* внутрь верхнего открытого окна — иначе браузер делает уведомление некликабельным (всё вне окна «заморожено») */
+  const dl=[...document.querySelectorAll("dialog[open]")].filter(d=>!d.classList.contains("out")).pop(), host=dl||document.body;
+  const pop=typeof box.showPopover==="function";
+  if(pop && !box.hasAttribute("popover")) box.setAttribute("popover","manual");
+  if(box.parentElement!==host) host.appendChild(box);
+  if(pop){ try{ if(box.matches(":popover-open")) box.hidePopover(); box.showPopover(); }catch(e){} } }
+(function(){ const P=window.HTMLDialogElement&&HTMLDialogElement.prototype; if(!P||P.__fdTop) return; P.__fdTop=1; const sm=P.showModal;
+  P.showModal=function(){ const r=sm.apply(this,arguments); try{ toastTop(); }catch(e){} return r; };
+  /* окно закрывается — уведомления переезжают обратно и остаются видны */
+  const back=d=>{ const box=document.getElementById("fd-toasts"); if(box && d && d.contains && d.contains(box)){ document.body.appendChild(box); toastTop(); } };
+  document.addEventListener("close",e=>back(e.target), true);
+  new MutationObserver(ms=>ms.forEach(m=>m.removedNodes.forEach(n=>{ const b=n.nodeType===1 ? (n.id==="fd-toasts" ? n : n.querySelector && n.querySelector("#fd-toasts")) : null; if(b && !b.isConnected){ document.body.appendChild(b); toastTop(); } }))).observe(document.body,{childList:true, subtree:true}); })();
 function toast(type, title, text, opt){
   opt=opt||{}; let box=document.getElementById("fd-toasts");
   if(!box){ box=document.createElement("div"); box.id="fd-toasts"; document.body.appendChild(box); }
@@ -1454,7 +1470,7 @@ function toast(type, title, text, opt){
   const el=document.createElement("div"); el.className="fd-toast t-"+type; el.dataset.key=title+"|"+(text||"");
   el.setAttribute("role", type==="err"?"alert":"status"); el.setAttribute("aria-live", type==="err"?"assertive":"polite");
   el.innerHTML=`<div class="ic">${TICON[type]||TICON.info}</div><div class="tx"><b>${esc(title)}</b>${text?`<span>${esc(text)}</span>`:""}${opt.action?`<button type="button" class="ta">${esc(opt.action.label)}</button>`:""}</div><button type="button" class="tc" aria-label="Закрыть">×</button><i class="pb" style="animation-duration:${ms}ms"></i>`;
-  box.appendChild(el); const maxN=window.innerWidth<=600?2:3; while(box.children.length>maxN) box.firstElementChild.remove();
+  box.appendChild(el); toastTop(); const maxN=window.innerWidth<=600?2:3; while(box.children.length>maxN) box.firstElementChild.remove();
   requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add("in")));
   let left=ms, t0=Date.now(), timer=setTimeout(close, ms), gone=false;
   function close(){ if(gone) return; gone=true; clearTimeout(timer); el.classList.remove("in"); el.classList.add("out"); setTimeout(()=>el.remove(), 260); }
