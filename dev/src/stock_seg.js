@@ -160,20 +160,53 @@ function skDrawList(){
   if(SKV.tab==="exp"){ const L=X.S.batches.filter(b=>skFact(b.id)>0 && (!q||skK((X.item[b.itemId]||{}).name).includes(q))).sort((a,b)=>(skExp(a)||"9999").localeCompare(skExp(b)||"9999"));
     h = L.length ? L.map(b=>{ const e=skExp(b); return `<button type="button" class="skrow sm" data-skbatch="${b.id}"><span class="skn"><b>${esc((X.item[b.itemId]||{}).name||"")}</b><small>${esc(b.name)} · ${skQf(skFact(b.id),b.unit)}</small></span><span class="skm">${e?`<span class="skexp ${skExpCls(e)}">годен до ${fd(e)}</span>`:`<span class="muted">Срок годности не указан</span>`}</span></button>`; }).join("") : `<div class="skempty"><b>Нет партий с остатком</b></div>`; }
   if(SKV.tab==="files"){ h=skDeclList(SKV.q); }
-  if(SKV.tab==="log"){ const pend=skQ().map(x=>({at:x.at, by:x.by, action:"Ожидает отправки", object:x.label, pend:1}));
-    const L=pend.concat(X.S.log.slice().reverse()).filter(l=>(!q||skK([l.action,l.object,l.before,l.after,l.reason,l.by].join(" ")).includes(q)) && (!SKV.hf||l.action===SKV.hf||(SKV.hf==="Резерв"&&/^Резерв/.test(l.action))));
-    const acts=[...new Set(X.S.log.map(l=>/^Резерв/.test(l.action)?"Резерв":l.action))].sort();
-    h = `<div class="pfchips">${["",...acts].map(a=>`<button type="button" data-skhf="${esc(a)}" class="${SKV.hf===a?"on":""}">${a?esc(a):"Все"}</button>`).join("")}</div>`
-      + (L.length ? `<div class="sklog">${L.slice(0,SKV.shown).map(skLogRow).join("")}</div>${L.length>SKV.shown?`<div class="row"><button type="button" class="btn ghost sm" data-sk="more">Показать ещё (${L.length-SKV.shown})</button></div>`:""}` : `<div class="skempty"><b>Записей нет</b></div>`); }
+  if(SKV.tab==="log"){ h=skLogHtml(q, X); }
   box.innerHTML=h;
 }
+/* ---------- история склада: период, кто, действие, порядок, по страницам ---------- */
+const SKLG={per:"all", from:"", to:"", who:"", act:"", sort:"new", page:0};
+const skLgSize = () => { const v=(getPrefs().skLogSize); return v===0?1e9:(+v||10); };
+const skDay = iso => { const d=new Date(iso); if(isNaN(d)) return ""; return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
+const skActGroup = a => /^Резерв/.test(a||"") ? "Резерв" : (a||"");
+const skActCls = a => /приход|остаток|возврат/i.test(a)&&!/отмен|закрыт/i.test(a)?"in":/отгруз/i.test(a)?"ship":/списан|отмен|удален|удалён|закрыт/i.test(a)?"bad":/инвент|исправл|перевзвеш/i.test(a)?"fix":/деклар/i.test(a)?"doc":/резерв/i.test(a)?"res":/ожидает/i.test(a)?"pend":"";
+function skLogHtml(q, X){ const G=SKLG, pend=skQ().map(x=>({at:x.at, by:x.by, action:"Ожидает отправки", object:x.label, pend:1})), all=pend.concat(X.S.log.slice().reverse());
+  const t=todayISO(), back=n=>{ const d=new Date(t+"T12:00:00"); d.setDate(d.getDate()-n); return skDay(d.toISOString()); };
+  const [d1,d2]=G.per==="today"?[t,t]:G.per==="7"?[back(6),t]:G.per==="30"?[back(29),t]:G.per==="range"?[G.from||"0000-00-00",G.to||"9999-99-99"]:["0000-00-00","9999-99-99"];
+  const inPer=l=>{ const d=skDay(l.at); return l.pend || (d>=d1 && d<=d2); }, inQ=l=>!q||skK([l.action,l.object,l.before,l.after,l.reason,l.by].join(" ")).includes(q);
+  const base=all.filter(l=>inPer(l)&&inQ(l)), L=base.filter(l=>(!G.who||l.by===G.who) && (!G.act||skActGroup(l.action)===G.act));
+  if(G.sort==="old") L.reverse();
+  const acts={}; base.filter(l=>!G.who||l.by===G.who).forEach(l=>{ const a=skActGroup(l.action); acts[a]=(acts[a]||0)+1; });
+  const whos={}; base.forEach(l=>{ if(l.by) whos[l.by]=(whos[l.by]||0)+1; });
+  const size=skLgSize(), pages=Math.max(1,Math.ceil(L.length/size)); if(G.page>=pages) G.page=pages-1; const from=G.page*size, list=L.slice(from, from+size);
+  const dayLbl=d=>d===t?"Сегодня":d===back(1)?"Вчера":fd(d)+" · "+new Date(d+"T12:00:00").toLocaleDateString("ru-RU",{weekday:"long"});
+  let last="", rows=""; list.forEach((l,k)=>{ const d=l.pend?"pend":skDay(l.at); if(d!==last){ last=d; rows+=`<div class="sklday">${l.pend?"Ожидает отправки":esc(dayLbl(d))}</div>`; } rows+=skLogRow(l,k); });
+  const per=[["all","Всё время","Всё"],["today","Сегодня","Сегодня"],["7","7 дней","7 дн."],["30","30 дней","30 дн."],["range","Период…","Период"]];
+  return `<div class="sklg-bar"><div class="sklg-seg" role="group" aria-label="Период">${per.map(([k,v,m])=>`<button type="button" data-sklg-per="${k}" class="${G.per===k?"on":""}"><span class="mi-desk">${v}</span><span class="mi-mob">${m}</span></button>`).join("")}</div>
+      ${G.per==="range"?`<div class="sklg-range"><label>с <input type="date" class="sklg-from" value="${esc(G.from)}"></label><label>по <input type="date" class="sklg-to" value="${esc(G.to)}"></label></div>`:""}
+      <div class="sklg-f"><select class="sklg-act" aria-label="Действие"><option value="">Все действия (${base.filter(l=>!G.who||l.by===G.who).length})</option>${Object.keys(acts).sort((a,b)=>a.localeCompare(b,"ru")).map(a=>`<option value="${esc(a)}"${G.act===a?" selected":""}>${esc(a)} (${acts[a]})</option>`).join("")}</select>
+        <select class="sklg-who" aria-label="Кто"><option value="">Все сотрудники</option>${Object.keys(whos).sort().map(w=>`<option value="${esc(w)}"${G.who===w?" selected":""}>${esc(w)} (${whos[w]})</option>`).join("")}</select>
+        <button type="button" class="btn ghost sm sklg-sort" data-sklg-sort="1" title="Порядок">${G.sort==="new"?"↓ Сначала новые":"↑ Сначала старые"}</button>
+        ${G.per!=="all"||G.who||G.act||q?`<button type="button" class="btn ghost sm" data-sklg-reset="1">Сбросить</button>`:""}</div></div>`
+    + (L.length ? `<div class="sklog">${rows}</div><div class="pager" id="sk-lgpager">${pagerHtml(G.page, pages, L.length, from, list.length, size)}</div>`
+      : `<div class="skempty"><b>Записей нет</b><span>${base.length||all.length?"Поменяйте период или фильтр.":"Здесь появятся приходы, отгрузки, списания и другие действия со складом."}</span></div>`); }
+function skLgRedraw(){ skDrawList(); const el=$("#sk-list .sklog"); if(el){ el.classList.remove("pgfade"); void el.offsetWidth; el.classList.add("pgfade"); } }
+document.addEventListener("click", e=>{ const t=e.target; if(!t.closest || !t.closest("#sk-list")) return; const G=SKLG;
+  const p=t.closest("[data-sklg-per]"); if(p){ G.per=p.dataset.sklgPer; G.page=0; skLgRedraw(); return; }
+  if(t.closest("[data-sklg-sort]")){ G.sort=G.sort==="new"?"old":"new"; G.page=0; skLgRedraw(); return; }
+  if(t.closest("[data-sklg-reset]")){ Object.assign(G,{per:"all", from:"", to:"", who:"", act:"", page:0}); SKV.q=""; const qi=$("#sk-q"); if(qi) qi.value=""; skLgRedraw(); return; }
+  const b=t.closest("#sk-lgpager [data-pg],#sk-lgpager [data-ps]"); if(b && !b.disabled){ if(b.dataset.ps!=null){ const pr=getPrefs(); pr.skLogSize=+b.dataset.ps; setPrefs(pr,true); G.page=0; } else G.page=+b.dataset.pg; skLgRedraw(); const top=$("#sk-segs"); if(top) top.scrollIntoView({behavior:"smooth", block:"start"}); } });
+document.addEventListener("change", e=>{ const t=e.target; if(!t.closest || !t.closest("#sk-list")) return; const G=SKLG;
+  if(t.classList.contains("sklg-act")){ G.act=t.value; G.page=0; skLgRedraw(); return; }
+  if(t.classList.contains("sklg-who")){ G.who=t.value; G.page=0; skLgRedraw(); return; }
+  if(t.classList.contains("sklg-from")||t.classList.contains("sklg-to")){ G[t.classList.contains("sklg-from")?"from":"to"]=t.value; G.page=0; skLgRedraw(); } });
 const skExpCls = e => { const d=Math.round((new Date(e+"T12:00:00")-new Date(todayISO()+"T12:00:00"))/864e5); return d<0?"bad":d<=7?"warn":""; };
-const skLogRow = l => `<div class="sklr${l.pend?" pend":""}"><span class="skla">${esc(l.action)}</span><span class="sklo"><b>${esc(l.object||"")}</b>${l.before||l.after?`<small>${l.before&&l.before!=="—"?esc(l.before)+" → ":""}${esc(l.after||"")}</small>`:""}${l.reason?`<small class="muted">${esc(l.reason)}</small>`:""}</span><span class="sklw">${esc(l.by||"")}<small>${skWhen(l.at)}</small></span></div>`;
+const skLogRow = (l,k) => { const tm=l.at?new Date(l.at):null, hm=tm&&!isNaN(tm)?tm.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}):"";
+  return `<div class="sklr${l.pend?" pend":""}" style="--d:${Math.min(k||0,10)*18}ms"><span class="sklt">${hm}</span><span class="skla ${skActCls(l.action)}" title="${esc(l.action)}">${esc(l.action)}</span><span class="sklo"><b>${esc(l.object||"")}</b>${l.before||l.after?`<small>${l.before&&l.before!=="—"?esc(l.before)+" → ":""}${esc(l.after||"")}</small>`:""}${l.reason?`<small class="muted">${esc(l.reason)}</small>`:""}</span><span class="sklw">${esc(l.by||"")}</span></div>`; };
 function skFileRow(f){ return dRow(f); }   /* декларация — одна и та же строка везде (decl_seg.js) */
 
 /* ---------- карточка товара ---------- */
 let SKI={id:"", f:"", edit:false, linkQ:""};
-function skItemCard(id){ SKI={id, f:"", edit:false, linkQ:""}; skModal(skItemHtml, true); }
+function skItemCard(id){ SKMVN.i=10; SKI={id, f:"", edit:false, linkQ:""}; skModal(skItemHtml, true); }
 function skItemHtml(){ const X=skIdx(), it=X.item[SKI.id]; if(!it) return skHead("Склад","Товар не найден","Обновите страницу.");
   const U=skUnitsOf(it.id), B=X.byItem[it.id]||[], ML=X.S.moves.filter(m=>m.itemId===it.id).slice().reverse(), types=[...new Set(ML.map(m=>m.type))];
   const RL=X.S.res.filter(r=>r.itemId===it.id), files=X.filesI[it.id]||[];
@@ -186,13 +219,18 @@ function skItemHtml(){ const X=skIdx(), it=X.item[SKI.id]; if(!it) return skHead
       <div class="sklinkadd"><input class="sklq" data-keep="1" placeholder="Найти позицию документов, например «ягоды сушёные (шиповник)»" value="${esc(SKI.linkQ)}"><div class="sklsug">${skLinkSug(it)}</div></div></div>`
   + skDefBox(it)
   + `<div class="skbox"><div class="skbh"><b>Декларации</b><button type="button" class="btn sm" data-sk="attachItem">Прикрепить декларацию</button></div>${files.length?files.map(f=>skFileRow(f,false)).join(""):`<p class="muted">Файлов нет.</p>`}</div>`
-  + `<div class="skbox"><div class="skbh"><b>История движений</b></div><div class="pfchips">${["",...types].map(t=>`<button type="button" data-skmf="${t}" class="${SKI.f===t?"on":""}">${t?SK_T[t]:"Все"}</button>`).join("")}</div>${skMoves(ML.filter(m=>!SKI.f||m.type===SKI.f))}</div>`
+  + `<div class="skbox"><div class="skbh"><b>История движений</b></div>${types.length>1?`<div class="pfchips skmf">${["",...types].map(t=>`<button type="button" data-skmf="${t}" class="${SKI.f===t?"on":""}">${t?SK_T[t]:"Все"}</button>`).join("")}</div>`:""}${skMoves(ML.filter(m=>!SKI.f||m.type===SKI.f),"i")}</div>`
   + (SKI.edit ? `<div class="skbox"><div class="skbh"><b>Название и единица</b></div><div class="skgrid"><label class="f">Название<input class="skin" data-keep="1" value="${esc(it.name)}"></label><label class="f">Другие названия (через ;)<input class="skalt" data-keep="1" value="${esc(it.alt||"")}"></label><label class="f">Основная единица${skUnitSel(it.unit,"skiu")}</label></div><div class="row"><button type="button" class="btn pri sm" data-sk="itemSave">Сохранить</button><button type="button" class="btn ghost sm" data-sk="itemEditOff">Отмена</button></div></div>` : "")
   + (SKI.merge ? skMergeBox(it) : "")
   + `<div class="dc-acts">${SKI.edit||SKI.merge?"":`<button class="btn ghost" data-sk="mergeOn">Объединить с другим…</button><button class="btn" data-sk="itemEdit">Изменить название</button>`}<button class="btn" data-sk="close">Закрыть</button></div>`; }
-function skMoves(L){ if(!L.length) return `<p class="muted">Движений нет.</p>`;
-  return `<div class="skmv">${L.slice(0,80).map(m=>{ const q=+m.qty, sign=SK_NOSTOCK[m.type]?"":q>0?"+":"−";
-    return `<div class="skmr t-${m.type}"><span class="skmt">${SK_T[m.type]||m.typeName}</span><span><b>${sign}${skQf(Math.abs(q),m.unit)}</b>${m.cost!==""&&m.cost!=null?`<small>себест. ${fm(+m.cost)} ₽</small>`:""}${m.price?`<small>продажа ${fm(+m.price)} ₽</small>`:""}</span><span>${m.party?esc(m.party):""}${m.doc?`<small>${m.docId?`<a href="#" data-skdoc="${m.docId}">${esc(m.doc)}</a>`:esc(m.doc)}</small>`:""}${m.reason?`<small class="muted">${esc(m.reason)}</small>`:""}</span><span class="sklw">${esc(m.by)}<small>${skWhen(m.at)}</small></span></div>`; }).join("")}</div>`; }
+const SKMVN={};   /* сколько движений показано в окне (по 10) */
+const skIdLike = v => /^[a-z0-9:_\-]{12,}$/i.test(String(v||"")) && !/\s/.test(String(v||""));
+function skMoves(L, key){ if(!L.length) return `<p class="muted">Движений нет.</p>`; key=key||"m"; const n=SKMVN[key]||10, list=L.slice(0,n);
+  return `<div class="skmv">${list.map((m,k)=>{ const q=+m.qty, sign=SK_NOSTOCK[m.type]?"":q>0?"+":"−", doc=m.doc&&!(!m.docId&&skIdLike(m.doc))?m.doc:"", party=skIdLike(m.party)?"":m.party||"";
+    const tm=m.at?new Date(m.at):null, when=tm&&!isNaN(tm)?tm.toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"}):"";
+    return `<div class="skmr t-${m.type}" style="--d:${Math.min(k,10)*15}ms"><span class="skmt" title="${esc(SK_T[m.type]||m.typeName||"")}">${esc(SK_T[m.type]||m.typeName||"")}</span><span class="skmq"><b>${sign}${skQf(Math.abs(q),m.unit)}</b>${m.cost!==""&&m.cost!=null?`<small>себест. ${fm(+m.cost)} ₽</small>`:""}${m.price?`<small>продажа ${fm(+m.price)} ₽</small>`:""}</span><span class="skmd">${party?`<b>${esc(party)}</b>`:""}${doc?`<small>${m.docId?`<a href="#" data-skdoc="${m.docId}">${esc(doc)}</a>`:esc(doc)}</small>`:""}${m.reason?`<small class="muted">${esc(m.reason)}</small>`:""}${!party&&!doc&&!m.reason?`<small class="muted">—</small>`:""}</span><span class="sklw">${esc(m.by||"")}<small>${when}</small></span></div>`; }).join("")}</div>
+    ${L.length>n?`<div class="skmv-more"><span class="muted">Показано ${n} из ${L.length}</span><button type="button" class="btn ghost sm" data-skmv="${key}" data-n="10">Ещё 10</button><button type="button" class="btn ghost sm" data-skmv="${key}" data-n="all">Все</button></div>`:""}`; }
+document.addEventListener("click", e=>{ const b=e.target.closest && e.target.closest("[data-skmv]"); if(!b) return; const k=b.dataset.skmv; SKMVN[k]=b.dataset.n==="all"?1e9:(SKMVN[k]||10)+10; skModalRefresh(); });
 function skLinkSug(it){ const q=skK(SKI.linkQ); const words=q.split(" ").filter(Boolean);
   const L=(words.length?D.products.filter(p=>!(it._links||[]).includes(p.id) && words.every(w=>skK(p.name).includes(w))):skCandidates(it)).slice(0,6);
   if(!L.length) return words.length?`<small class="muted">Ничего не найдено</small>`:"";
@@ -205,7 +243,7 @@ function skUnitSel(u, cls){ const X=skIdx(), L=X.units.slice(); if(u && !L.some(
 
 /* ---------- карточка партии ---------- */
 let SKB={id:"", mode:""};
-function skBatchCard(id){ SKB={id, mode:""}; skModal(skBatchHtml, true); }
+function skBatchCard(id){ SKMVN.b=10; SKB={id, mode:""}; skModal(skBatchHtml, true); }
 function skBatchHtml(){ const X=skIdx(), b=X.batch[SKB.id]; if(!b) return skHead("Склад","Партия не найдена","");
   const it=X.item[b.itemId]||{}, f=skFact(b.id), r=skRes(b.id), root=skRoot(b), e=root.exp||"", ML=X.S.moves.filter(m=>m.batchId===b.id).slice().reverse(), files=(X.filesI[b.itemId]||[]).filter(x=>x.batchId===b.id||x.batchId===root.id);
   const lim=docLimited(), info=[["Дата приёмки",fd(b.date)],["Поставщик",b.supplier||"—"],["Входящий документ",b.docRef||"—"],["Пришло",skQf(b.qty,b.unit)+(skBPcs(b,+b.qty)?" ("+skBPcs(b,+b.qty)+")":"")],["Фасовка",skPack(b)?skPackTxt(b):skK(b.unit)==="шт"?"—":"не указана"],["Закупочная цена",b.price!==""&&b.price!=null?fm(+b.price)+" ₽ за "+b.unit:"не указана"],["Сумма прихода",b.price!==""&&b.price!=null?fm(r2(b.qty*b.price))+" ₽":"—"],["Годен до",e?fd(e)+(root.id!==b.id?" (срок исходной партии)":""):"Срок годности не указан"]].concat(b.parent?[["Из партии",(X.batch[b.parent]||{}).name||""]]:[]);
@@ -225,7 +263,7 @@ function skBatchHtml(){ const X=skIdx(), b=X.batch[SKB.id]; if(!b) return skHead
    + `<div class="skuv one"><div><small>${esc(b.unit)}</small><b>${skQf(f)}</b><span>на складе</span><span class="skfree">резерв <b>${skQf(r)}</b> · свободно <b>${skQf(r3(f-r))}</b></span>${skBPcs(b,f)?`<span class="skpcs">${skBPcs(b,f)}${r?" · свободно "+skBPcs(b,r3(f-r)).replace(/^≈ /,""):""}</span>`:""}</div></div>`
    + `<dl class="dc-info">${info.map(([a,v])=>`<div><dt>${a}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>` + form
    + `<div class="skbox"><div class="skbh"><b>Декларации партии</b><button type="button" class="btn sm" data-sk="attachBatch">Прикрепить</button></div>${files.length?files.map(x=>skFileRow(x,false)).join(""):`<p class="muted">Файлов нет.</p>`}</div>`
-   + `<div class="skbox"><div class="skbh"><b>История партии</b></div>${skMoves(ML)}</div>`
+   + `<div class="skbox"><div class="skbh"><b>История партии</b></div>${skMoves(ML,"b")}</div>`
    + `<div class="dc-acts"><button class="btn" data-sk="item" data-id="${b.itemId}">‹ К товару</button>${SKB.mode?"":`<button class="btn" data-sk="mode" data-m="edit">Изменить</button><button class="btn" data-sk="mode" data-m="wo"${f-r>0?"":" disabled"}>Списать</button>${skK(b.unit)!=="кг"?`<button class="btn" data-sk="mode" data-m="rw"${f-r>0?"":" disabled"}>Перевзвесить</button>`:""}${skCanCancel(b)?`<button class="btn ghost danger" data-sk="mode" data-m="cancel">Отменить приход</button>`:""}`}<button class="btn pri" data-sk="close">Готово</button></div>`; }
 
 /* ---------- приход / начальный остаток ---------- */
@@ -407,7 +445,7 @@ document.addEventListener("click", async e=>{
   const ul=t.closest("[data-skunlink]"); if(ul){ if(!armed(ul,"Убрать?")) return; const it=skIdx().item[SKI.id]; await skDo("item",{itemId:it.id, links:(it._links||[]).filter(x=>x!==ul.dataset.skunlink)},"Связь: "+it.name,"Связь убрана"); return; }
   const lt=t.closest("[data-sklinkto]"); if(lt){ const it=skIdx().item[lt.dataset.sklinkto], l=D.draft.lines[SKL.i]; if(!it||!l) return; skBusy(lt,true,"Связываю…"); try{ await skSend("item",{itemId:it.id, links:(it._links||[]).concat(l.productId)},"Связь: "+it.name); toast("ok","Связано","Теперь «"+((prod(l.productId)||{}).name||"")+"» берётся со склада как «"+it.name+"»."); }catch(er){ skErr(er,"связь"); } return; }
   const pk=t.closest("[data-skpick]"); if(pk){ skInRead(); const it=skIdx().item[pk.dataset.skpick]; if(it){ SKIN.itemId=it.id; SKIN.name=it.name; SKIN.unit=it.unit||SKIN.unit; if(!skNum(SKIN.pack)) SKIN.pack=skLastPack(it.id,SKIN.unit); } else SKIN.itemId=""; SKIN.sugOpen=false; skModalRefresh(); const q=$("#sk-dlg .skf-qty"); q&&q.focus(); return; }
-  const mf=t.closest("[data-skmf]"); if(mf){ SKI.f=mf.dataset.skmf; skModalRefresh(); return; }
+  const mf=t.closest("[data-skmf]"); if(mf){ SKI.f=mf.dataset.skmf; SKMVN.i=10; skModalRefresh(); return; }
   const rl=t.closest("[data-skresl]"); if(rl){ SKI.resU=SKI.resU===rl.dataset.skresl?null:rl.dataset.skresl; skModalRefresh(); return; }
   const ws=t.closest("[data-skwship]"); if(ws){ const j=D.journal.find(x=>x.id===ws.dataset.skwship); if(j) skShipForm(j,"ship"); return; }
   const dy=t.closest("[data-skday]"); if(dy){ skDayShip(dy.dataset.skday); return; }
@@ -792,5 +830,6 @@ document.addEventListener("click", async e=>{ const b=e.target.closest && e.targ
   if(a==="pcs" && r){ r.open=!r.open; if(r.open && r.itemId && !skNum(r.pack)) r.pack=skLastPack(r.itemId,r.unit); miSaveDraft(); miRedraw(r.open?`.mi-pcs-n[data-k="${r.k}"]`:null); return; }
   if(a==="conv" && r){ miConv(r); miSaveDraft(); miRedraw(`.mi-pcs-p[data-k="${r.k}"]`); toast("ok","Переведено в "+r.unit, r.pcs+" шт × "+r.pack+" "+r.unit+" = "+r.qty+" "+r.unit); return; }
 });
+window.__sk = { send:(op,d,l)=>skSend(op,d,l||op), logN:()=>skQ().length+skD().log.length };
 window.__mi = { open: skMultiIn, st: () => SKMI };
 SK_READY=true;
