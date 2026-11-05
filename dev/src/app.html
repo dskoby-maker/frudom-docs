@@ -318,7 +318,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .skuv>div>.skpcs{display:table;margin:8px 0 0;padding:3px 10px;border-radius:999px;background:rgba(31,95,122,.12);color:#1f5f7a;font-size:12.5px;font-weight:600;animation:fdin .3s ease}
 #fd-app .skpackb{border-radius:14px;padding:10px 12px 12px;background:linear-gradient(160deg,rgba(31,95,122,.07),rgba(31,95,122,.02));border:1px dashed rgba(31,95,122,.28)}
 #fd-app .skpackh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}#fd-app .skpackh b{display:inline-flex;align-items:center;gap:6px;font-size:13.5px}#fd-app .skpackh small{font-size:12px;color:var(--muted)}
-#fd-app .skpackg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}#fd-app .skpackg .f{margin:0}
+#fd-app .skpackg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}#fd-app .skpackg .f{margin:0}#fd-app .skpackg.sk2{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:10px}
 #fd-app dialog.dcard.wide.xwide{width:min(1100px,calc(100vw - 24px))}
 #fd-app .mi-head{display:grid;grid-template-columns:1.4fr 1fr 1.2fr 1fr;gap:10px;margin-top:12px}#fd-app .mi-head .f{margin:0}#fd-app .mi-head small{font-size:11px}
 #fd-app .mi-rest{margin-top:10px;padding:8px 12px;border-radius:12px;background:rgba(179,134,0,.10);font-size:13px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;animation:fdin .3s ease}#fd-app .mi-rest.ok{background:rgba(46,125,50,.10)}
@@ -338,7 +338,12 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .mi-pcs{display:block;text-align:right;font-size:11.5px;font-weight:600;color:#1f5f7a;margin-top:3px}
 #fd-app .mi-ca{display:flex;gap:4px;padding-top:2px}#fd-app .mi-pk,#fd-app .mi-x{border:1px solid rgba(28,34,32,.12);background:#fff;border-radius:9px;height:34px;min-width:30px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted);transition:all .2s}
 #fd-app .mi-pk.on{background:rgba(31,95,122,.14);color:#1f5f7a;border-color:rgba(31,95,122,.3)}#fd-app .mi-pk:disabled{opacity:.35;cursor:default}#fd-app .mi-x:hover{color:var(--err);border-color:rgba(198,40,40,.4)}
-#fd-app .mi-pcsb{grid-column:2/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:8px 10px;border-radius:10px;border:1px dashed rgba(31,95,122,.3);background:rgba(31,95,122,.05);animation:fdin .25s ease}
+#fd-app .mi-pcsb{grid-column:2/-1;display:grid;gap:8px;padding:8px 10px;border-radius:10px;border:1px dashed rgba(31,95,122,.3);background:rgba(31,95,122,.05);animation:fdin .25s ease}
+#fd-app .mi-pg{display:grid;grid-template-columns:72px repeat(3,minmax(0,1fr));gap:8px;align-items:end}
+#fd-app .mi-pgh{align-self:center;font-size:12px;font-weight:700;color:#1f5f7a;text-transform:uppercase;letter-spacing:.04em;padding-top:14px}
+#fd-app .mi-pgb{padding-top:8px;border-top:1px dashed rgba(31,95,122,.22)}#fd-app .mi-pcsb.sht .mi-pgb{padding-top:0;border-top:0}
+#fd-app .mi-pcsb small.mi-pgn{margin:0;font-size:11.5px}
+#fd-app .mi-pg input{transition:background .35s}#fd-app .mi-pg input.fl{background:rgba(31,95,122,.12)}
 #fd-app .mi-pcsb .f{margin:0}#fd-app .mi-pcsb small{display:block;font-size:11.5px;color:var(--muted);margin-bottom:3px}#fd-app .mi-pcsb input{width:100%;padding:7px 9px}
 #fd-app .mi-foot{margin-top:12px}#fd-app .mi-sum1{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;font-size:14px}
 #fd-app .mi-okb{color:var(--ok);font-weight:600}#fd-app .mi-bad{color:var(--err);font-weight:600}
@@ -443,13 +448,13 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
   #fd-app .mi-x{position:absolute;top:6px;right:8px;height:28px;min-width:28px;border-radius:50%;border:0;background:rgba(28,34,32,.06);font-size:16px;line-height:1}
   #fd-app .mi-pcs{text-align:left}
   #fd-app .mi-cn{order:1}#fd-app .mi-cq{order:2}#fd-app .mi-cu{order:3}#fd-app .mi-cp{order:4}#fd-app .mi-cs{order:5}#fd-app .mi-ce{order:6}#fd-app .mi-ca{order:7}#fd-app .mi-pcsb{order:8}
-  #fd-app .mi-pcsb{grid-column:1/-1;grid-template-columns:minmax(0,1fr) minmax(0,1fr);padding:10px}#fd-app .mi-pcsb .f:last-child{grid-column:1/-1}#fd-app .mi-pcsb input{font-size:16px;min-height:44px}
+  #fd-app .mi-pcsb{grid-column:1/-1;padding:10px}#fd-app .mi-pg{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#fd-app .mi-pgh{grid-column:1/-1;padding-top:0}#fd-app .mi-pg .f:last-child{grid-column:1/-1}#fd-app .mi-pcsb input{font-size:16px;min-height:44px}
   #fd-app .mi-addr .btn{min-height:44px}#fd-app .mi-add{flex:1}#fd-app .mi-addr .mi-one{margin-left:0;flex-basis:100%;justify-content:center}
   #fd-app .mi-bar{bottom:calc(-14px - env(safe-area-inset-bottom,0px));margin:12px -16px calc(-14px - env(safe-area-inset-bottom,0px));padding:10px 16px calc(12px + env(safe-area-inset-bottom,0px))}
   #fd-app .mi-sum1{font-size:13.5px;gap:2px 12px}#fd-app .mi-bar .dc-acts{display:grid;grid-template-columns:auto 1fr;gap:8px}#fd-app .mi-bar .dc-acts .btn{min-height:46px;margin:0}
 }
 #fd-app .skpackn{display:block;margin-top:8px;font-size:12px;line-height:1.4}
-@media (max-width:560px){#fd-app .skpackg{grid-template-columns:1fr 1fr}#fd-app .skpackg .f:last-child{grid-column:1/-1}}
+@media (max-width:560px){#fd-app .skpackg{grid-template-columns:1fr 1fr}#fd-app .skpackg:not(.sk2) .f:last-child{grid-column:1/-1}}
 #fd-app .skbl{display:grid;gap:4px}
 #fd-app .skbr{display:grid;grid-template-columns:minmax(0,1.3fr) auto auto minmax(0,1fr);gap:10px;align-items:center;text-align:left;font:inherit;color:inherit;border:0;border-radius:10px;padding:8px 10px;background:rgba(255,255,255,.75);cursor:pointer;transition:background .2s}
 #fd-app .skbr:hover{background:#fff}#fd-app .skbr.empty{opacity:.6}#fd-app .skbr b{display:block;font-size:13.5px}#fd-app .skbr small{display:block;font-size:11.5px;color:var(--muted)}#fd-app .skbr .num{text-align:right;white-space:nowrap}
@@ -1737,7 +1742,7 @@ function handleErr(e){ if(e.message==="auth"){ showLogin("Неверный па�
   else if(e && !e.net){ setStatus("err","Ошибка таблицы, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Таблица ответила ошибкой","«"+String(e.message||e).slice(0,160)+"». Всё сохранено на этом устройстве, повторю сам. Если повторяется — пришлите этот текст Claude."); } }
   else { setStatus("err","Не сохранено — нет связи, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Нет связи с Google Таблицей",(e&&e.message?"Причина: "+e.message+". ":"")+"Всё сохранено на этом устройстве и отправится автоматически, когда связь появится. Ничего делать не нужно."); } } }
 
-const NEED_VER=10;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
+const NEED_VER=11;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
 function srvVerCheck(v){ const el=$("#srvOld"); if(!el) return; const old=(+v||0)<NEED_VER; el.hidden=!old || docLimited(); D.srvVer=+v||0; }
 document.addEventListener("click",e=>{ if(!e.target.closest || !e.target.closest("#srvOldHow")) return; openCard(`<div class="dc-head"><div><div class="dc-kicker">Code.gs</div><h3>Как обновить скрипт таблицы</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
   <ol class="srvsteps"><li>GitHub → файл <b>dev/Code.template.gs</b> → кнопка «Copy raw file» (два квадратика).</li><li>Таблица «Документы ФД» → «Расширения» → «Apps Script» → файл <b>Код.gs</b> → Ctrl+A → Ctrl+V → «Сохранить». Файл «Пароли.gs» не трогать.</li><li>«Начать развёртывание» → «Управление развёртываниями» → карандаш → «Версия: новая версия» → «Развернуть».</li><li>Обновите эту страницу — жёлтая плашка исчезнет.</li></ol>
