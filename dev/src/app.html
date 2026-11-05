@@ -60,6 +60,24 @@
 #fd-app .dcard .dc-t tbody tr{animation:fdin .25s ease both}#fd-app .dcard .dc-t tbody tr:nth-child(2){animation-delay:.03s}#fd-app .dcard .dc-t tbody tr:nth-child(3){animation-delay:.06s}#fd-app .dcard .dc-t tbody tr:nth-child(n+4){animation-delay:.09s}
 #fd-app .dcard .dc-total{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:14px 2px 4px;color:var(--muted);font-size:13px}#fd-app .dcard .dc-total b{font-size:22px;color:var(--ink);letter-spacing:-.01em}
 #fd-app .dcard .dc-note{font-size:12px;color:var(--muted);margin:2px 2px 0}
+#fd-app .jcm{display:inline-flex;align-items:center;justify-content:center;gap:3px;vertical-align:middle;margin-left:6px;height:20px;min-width:20px;padding:0 5px;border-radius:99px;background:rgba(106,44,78,.1);color:var(--accent);font-size:11px;font-weight:600;cursor:pointer;animation:jcmIn .35s cubic-bezier(.2,.9,.3,1.4) both;transition:background .15s,transform .15s}
+#fd-app .jcm svg{width:14px;height:14px}#fd-app .jcm:hover{background:rgba(106,44,78,.2);transform:scale(1.08)}
+#fd-app .who .jcm{margin-left:6px}#fd-app .kd-w .jcm{margin-left:8px}
+@keyframes jcmIn{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:none}}
+#fd-app .dcard .dc-cm{margin-top:14px;border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:linear-gradient(180deg,rgba(106,44,78,.035),transparent 70%);transition:border-color .2s,box-shadow .2s}
+#fd-app .dcard .dc-cm:focus-within{border-color:rgba(106,44,78,.45);box-shadow:0 0 0 4px rgba(106,44,78,.08)}
+#fd-app .dcard .dc-cm.flash{animation:cmFlash 1.1s ease}
+@keyframes cmFlash{0%{box-shadow:0 0 0 0 rgba(106,44,78,.35)}100%{box-shadow:0 0 0 14px rgba(106,44,78,0)}}
+#fd-app .dc-cm .cmh{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;margin-bottom:8px}
+#fd-app .dc-cm .cmh svg{width:17px;height:17px;color:var(--accent)}#fd-app .dc-cm .cmh small{margin-left:auto;font-weight:400;color:var(--muted);font-size:12px}
+#fd-app .dcard .dc-cm textarea,#fd-app .dcard .dc-cm textarea:focus{box-shadow:none;border:0;background:transparent;border-radius:0}
+#fd-app .dc-cm textarea{width:100%;box-sizing:border-box;min-height:44px;max-height:260px;resize:none;border:0;background:transparent;font:inherit;font-size:14px;line-height:1.45;color:var(--ink);padding:2px 0;outline:none;overflow:auto}
+#fd-app .dc-cm textarea::placeholder{color:var(--muted)}
+#fd-app .dc-cm .cmt{white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:1.45}
+#fd-app .dc-cm .cma{display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-height:0;opacity:0;visibility:hidden;overflow:hidden;transition:max-height .25s ease,opacity .2s ease,margin .25s ease,visibility 0s .25s}
+#fd-app .dc-cm.dirty .cma{max-height:60px;opacity:1;visibility:visible;margin-top:8px;transition:max-height .25s ease,opacity .2s ease,margin .25s ease,visibility 0s}
+#fd-app .dc-cm .cma span{color:var(--muted);font-size:12px}
+@media (prefers-reduced-motion: reduce){#fd-app .jcm,#fd-app .dcard .dc-cm.flash{animation:none}#fd-app .dc-cm .cma{transition:none}}
 #fd-app .dcard .dc-acts{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:16px}
 @media (max-width:600px){#fd-app dialog.dcard{width:100vw;max-width:100vw;margin:auto 0 0;border-radius:20px 20px 0 0;max-height:90vh;padding:18px 16px calc(14px + env(safe-area-inset-bottom,0px));transform:translateY(40px)}#fd-app dialog.dcard.out{transform:translateY(60px)}#fd-app .dcard .dc-acts .btn{flex:1 1 auto}#fd-app .dcard .dc-t{font-size:13px}#fd-app .dcard .dc-t th,#fd-app .dcard .dc-t td{padding:8px}}
 @media (prefers-reduced-motion:reduce){#fd-app dialog.dcard,#fd-app dialog.dcard.in,#fd-app dialog.dcard.out{transition:none;transform:none}#fd-app .dcard .dc-t tbody tr{animation:none}#fd-app dialog.dcard::backdrop{animation:none}}
@@ -3834,8 +3852,8 @@ function jRowHtml(j, kid, arch){ const w=jWho(j), pv=!!(j.snap.c&&j.snap.c.priv)
     : `${cj}${view} <button class="btn ghost sm" data-edit="${j.id}">Изменить</button>
     <details class="more"><summary class="btn ghost sm">Ещё ▾</summary><div class="menu"><button class="btn sm" data-x="${j.id}">XML для ЕИС</button><button class="btn sm" data-copy="${j.id}">Сделать копию</button><button class="btn sm danger" data-arch="${j.id}">В архив</button></div></details>`;
   const ad = arch ? `<span class="muted" title="Убран в архив">в архиве с ${dtShort(j.snap.meta.arch)}</span>` : jDl(j);
-  if(kid) return `<div class="kd"><div class="kd-n">№ ${esc(j.number)}</div><div class="kd-w jcard" data-card="${j.id}" title="Подробнее о документе"><span>${esc(kLbl(j)||w.main)}</span>${skJBadge(j)}</div><div class="kd-s">${fm(j.sum)}</div><div class="kd-p">${ad}</div><div class="kd-a acts">${acts}</div></div>`;
-  return `<tr class="${kid?"kid":""}"><td>${fd(j.date)}</td><td>${esc(j.number)}</td><td class="jcard" data-card="${j.id}" title="Подробнее о документе"><div class="who">${esc(kid&&kLbl(j)?kLbl(j):w.main)}</div>${skJBadge(j)}</td><td class="num">${fm(j.sum)}</td><td>${ad}</td><td class="acts">${acts}</td></tr>`; }
+  if(kid) return `<div class="kd"><div class="kd-n">№ ${esc(j.number)}</div><div class="kd-w jcard" data-card="${j.id}" title="Подробнее о документе"><span>${esc(kLbl(j)||w.main)}</span>${jCmIcon(j)}${skJBadge(j)}</div><div class="kd-s">${fm(j.sum)}</div><div class="kd-p">${ad}</div><div class="kd-a acts">${acts}</div></div>`;
+  return `<tr class="${kid?"kid":""}"><td>${fd(j.date)}</td><td>${esc(j.number)}</td><td class="jcard" data-card="${j.id}" title="Подробнее о документе"><div class="who">${esc(kid&&kLbl(j)?kLbl(j):w.main)}${jCmIcon(j)}</div>${skJBadge(j)}</td><td class="num">${fm(j.sum)}</td><td>${ad}</td><td class="acts">${acts}</td></tr>`; }
 /* строки журнала с комплектами; arch — показываем архив */
 /* разделитель дня в журнале (при сортировке по дате документа) */
 function jDaySep(iso, st){ const d=new Date(iso+"T12:00:00"), t=todayISO(), tm=new Date(); tm.setDate(tm.getDate()+1); const tmIso=tm.getFullYear()+"-"+String(tm.getMonth()+1).padStart(2,"0")+"-"+String(tm.getDate()).padStart(2,"0");
@@ -3855,7 +3873,7 @@ function jBuild(rows, arch, openSet, daySep){
     const gacts = arch ? `<button class="btn sm" data-gunarch>Вернуть комплект</button>`
       : docLimited() ? `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button>`
       : `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button> <button class="btn ghost sm ic" data-gedit title="Изменить комплект (откроется во вкладке «Заявка»)" aria-label="Изменить комплект">${IC_EDIT}</button><button class="btn ghost sm ic del" data-garch title="Убрать комплект в архив" aria-label="Убрать комплект в архив">${IC_TRASH}</button>`;
-    out.push(`<tr class="grp${open?" gopen":""}" data-g="${esc(k)}"><td>${fd(g[0].date)}</td><td>${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))}</td><td class="jcard" data-gcard="1" title="Подробнее о комплекте"><div class="who"><span class="tag">Комплект · ${g.length}</span>${esc(w.main)}</div></td><td class="num"><b>${fm(sum)}</b></td><td>${arch?`<span class="muted">в архиве</span>`:dls.length?`<span class="dl">${dtShort(dls[dls.length-1])}</span>`:`<span class="muted">—</span>`}</td>
+    out.push(`<tr class="grp${open?" gopen":""}" data-g="${esc(k)}"><td>${fd(g[0].date)}</td><td>${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))}</td><td class="jcard" data-gcard="1" title="Подробнее о комплекте"><div class="who"><span class="tag">Комплект · ${g.length}</span>${esc(w.main)}${jCmGroup(g)}</div></td><td class="num"><b>${fm(sum)}</b></td><td>${arch?`<span class="muted">в архиве</span>`:dls.length?`<span class="dl">${dtShort(dls[dls.length-1])}</span>`:`<span class="muted">—</span>`}</td>
       <td class="acts">${gacts} <button class="btn ghost sm gt${open?" on":""}" data-gt title="${open?"Скрыть документы комплекта":"Показать документы комплекта"}" aria-label="${open?"Скрыть документы комплекта":"Показать документы комплекта"}" aria-expanded="${open}"><span class="chev"></span></button></td></tr>`);
     out.push(`<tr class="kids${open?" open":""}" data-gk="${esc(k)}"><td colspan="6" class="full"><div class="kw"><div class="ki">${g.map(x=>jRowHtml(x,true,arch)).join("")}</div></div></td></tr>`);
   });
@@ -3884,7 +3902,7 @@ function renderJournal(){
   $("#jr-body").innerHTML = out.length ? out.join("")
     : `<tr><td colspan="6" class="muted" style="padding:16px 6px">${live.length?"По этим фильтрам ничего нет.":"Пока пусто. Документ попадает сюда, когда вы его формируете."}</td></tr>`;
 }
-const jMatch = (j,q) => !q || [j.number, j.snap.c.name, j.snap.c.branchLabel||"", j.snap.s.name, j.snap.dr.ship||"", fd(j.date), ...Object.values(j.snap.prods||{}).map(p=>p.name)].join(" ").toLowerCase().includes(q);
+const jMatch = (j,q) => !q || [j.number, j.snap.c.name, j.snap.c.branchLabel||"", j.snap.s.name, j.snap.dr.ship||"", fd(j.date), cmOf(j).t||"", ...Object.values(j.snap.prods||{}).map(p=>p.name)].join(" ").toLowerCase().includes(q);
 const arOpen=new Set();
 function renderArchive(){
   const q=($("#ar-q").value||"").toLowerCase().trim();
@@ -3920,7 +3938,7 @@ $("#ar-q").addEventListener("input",renderArchive);
 $("#jr-reset").onclick=()=>{ D.jf={per:"all",sup:"",cus:"",br:"",q:"",from:"",to:"",sort:"cr_d"}; saveLocal(); $("#jr-q").value=""; renderJournal(); };
 function onJClick(arch){ return async e=>{
   const b=e.target.closest("button"), msgEl=arch?$("#ar-msg"):$("#jr-msg");
-  const cardTd=!b && e.target.closest("[data-card]"); if(cardTd){ const j=D.journal.find(x=>x.id===cardTd.dataset.card); if(j) docCard(j, arch); return; }
+  const cardTd=!b && e.target.closest("[data-card]"); if(cardTd){ const j=D.journal.find(x=>x.id===cardTd.dataset.card); if(j){ docCard(j, arch); if(e.target.closest(".jcm")) cmFocus(); } return; }
   const tr=e.target.closest("tr.grp");
   if(tr){ const k=tr.dataset.g, g=D.journal.filter(j=>j.snap&&isArch(j)===arch&&jKey(j)===k).sort(jNumSort), openSet=arch?arOpen:jOpen;
     if(!b && e.target.closest("[data-gcard]")){ bundleCard(g, arch); return; }
@@ -3995,12 +4013,12 @@ function openCard(html, wide, onAct){
   const old=document.getElementById("fd-dcard"); if(old) old.remove();
   const d=document.createElement("dialog"); d.id="fd-dcard"; d.className="dcard"+(wide?" wide":""); d.innerHTML=html;
   document.getElementById("fd-app").appendChild(d);
-  const close=()=>{ if(d.classList.contains("out")) return; d.classList.add("out"); setTimeout(()=>{ try{ d.close(); }catch(x){} d.remove(); }, matchMedia("(prefers-reduced-motion: reduce)").matches?0:200); };
+  const close=()=>{ if(d.classList.contains("out")) return; const cmb=d.querySelector("#dc-cm.dirty"); if(cmb) cmSave(); d.classList.add("out"); setTimeout(()=>{ try{ d.close(); }catch(x){} d.remove(); }, matchMedia("(prefers-reduced-motion: reduce)").matches?0:200); };
   d.addEventListener("cancel", e=>{ e.preventDefault(); if(document.getElementById("fd-help")){ closeHelp(); return; } close(); });
   d.addEventListener("click", e=>{
     if(e.target===d){ const r=d.getBoundingClientRect(); if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom) close(); return; }
     const b=e.target.closest("[data-dc]"); if(!b) return; const a=b.dataset.dc; close(); if(a!=="close") setTimeout(()=>onAct(a, b), 0); });
-  d.showModal(); requestAnimationFrame(()=>d.classList.add("in"));
+  d.showModal(); requestAnimationFrame(()=>d.classList.add("in")); const ct=d.querySelector("#dc-cmt"); if(ct) cmGrow(ct);
 }
 function docCard(j, arch){
   const k=calc(j.snap.dr, j.snap), dr=j.snap.dr, m=j.snap.meta||{}, w=jWho(j), lim=docLimited(), inG=!arch && jKey(j) && D.journal.filter(x=>x.snap&&!isArch(x)&&jKey(x)===jKey(j)).length>1;
@@ -4012,6 +4030,7 @@ function docCard(j, arch){
     ${linesTable(k)}
     <div class="dc-total"><span>${k.lines.length} ${posWord(k.lines.length)}${k.t.kg?" · "+nq3(k.t.kg)+" кг":""}${k.rate?" · в т.ч. НДС "+fm(k.t.vat)+" ₽":""}</span><b>${fm(k.t.sum)} ₽</b></div>
     ${m.pr?`<div class="dc-note">Распечатан со склада: ${esc(dtShort(m.pr))}</div>`:""}
+    ${cmHtml(j, arch)}
     ${skDocBlock(j)}
     ${histHtml(histOf(j))}
     ${!arch&&me().admin?`<div class="dc-zk" id="dc-zk" data-doc="${j.id}"><div class="dc-zki" id="dc-zki"></div></div>`:""}
@@ -4021,6 +4040,32 @@ function docCard(j, arch){
       const fake=document.createElement("button"); fake.dataset[{combo:"comboJ",upd:"p",nakl:"p",edit:"edit",qty:"qty"}[a]] = (a==="upd"||a==="nakl") ? a : j.id; if(a==="upd"||a==="nakl") fake.dataset.id=j.id;
       onJClick(arch)({target:fake}); });
 }
+/* ---------- комментарий к документу: snap.meta.cm = {t, by, at}; в печатные формы и XML не попадает ---------- */
+const IC_CM='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.9A8 8 0 1 1 21 12Z"/><path d="M8.5 10.5h7M8.5 13.5h4.5"/></svg>';
+const cmOf = j => { const c=j&&j.snap&&j.snap.meta&&j.snap.meta.cm; return c&&c.t ? c : {}; };
+const cmTip = c => (c.t.length>220?c.t.slice(0,220)+"…":c.t)+(c.by?"\n— "+c.by+(c.at?", "+dtShort(c.at):""):"");
+function jCmIcon(j){ const c=cmOf(j); return c.t ? `<span class="jcm" title="${esc(cmTip(c))}" aria-label="Есть комментарий">${IC_CM}</span>` : ""; }
+function jCmGroup(g){ const n=g.filter(j=>cmOf(j).t).length; if(!n) return ""; const L=g.filter(j=>cmOf(j).t).map(j=>"№ "+j.number+": "+cmTip(cmOf(j))).join("\n\n");
+  return `<span class="jcm" title="${esc(L)}" aria-label="Комментарии: ${n}">${IC_CM}${n>1?n:""}</span>`; }
+function cmHtml(j, arch){ const c=cmOf(j), who=c.t?`${esc(c.by||"")}${c.at?" · "+esc(dtShort(c.at)):""}`:"";
+  if(arch) return c.t ? `<div class="dc-cm"><div class="cmh">${IC_CM}Комментарий<small>${who}</small></div><div class="cmt">${esc(c.t)}</div></div>` : "";
+  return `<div class="dc-cm" id="dc-cm" data-doc="${j.id}"><div class="cmh">${IC_CM}Комментарий<small id="dc-cmw">${who||"виден всем, в документы не печатается"}</small></div>
+    <textarea id="dc-cmt" rows="2" maxlength="2000" placeholder="Например: заказчик попросил привезти до 10:00, звонить Ольге" aria-label="Комментарий к документу">${esc(c.t||"")}</textarea>
+    <div class="cma"><button type="button" class="btn pri sm" data-cm="save">Сохранить</button><button type="button" class="btn ghost sm" data-cm="cancel">Отмена</button><span>Ctrl+Enter — сохранить</span></div></div>`; }
+function cmGrow(t){ t.style.height="auto"; t.style.height=Math.min(260, t.scrollHeight+2)+"px"; }
+function cmFocus(){ setTimeout(()=>{ const t=$("#dc-cmt"), box=$("#dc-cm"); if(!box) return; box.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth", block:"center"}); box.classList.remove("flash"); void box.offsetWidth; box.classList.add("flash"); if(t){ t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }, 120); }
+function cmSave(){ const box=$("#dc-cm"), t=$("#dc-cmt"); if(!box||!t) return; const j=D.journal.find(x=>x.id===box.dataset.doc); if(!j||!j.snap) return;
+  const v=t.value.replace(/\s+$/,"").replace(/^\s+/,""), old=cmOf(j).t||""; if(v===old){ box.classList.remove("dirty"); return; }
+  const m=j.snap.meta=j.snap.meta||{}; if(v) m.cm={t:v, by:curUser()||"", at:new Date().toISOString()}; else delete m.cm;
+  dirty("journal", j.id); saveLocal();
+  logEv("Журнал",(v?(old?"Изменён":"Добавлен"):"Удалён")+" комментарий: № "+j.number+" от "+fd(j.date)+" — "+jWho(j).main, j.id);
+  t.value=v; cmGrow(t); box.classList.remove("dirty"); const w=$("#dc-cmw"); if(w) w.textContent=v?((curUser()||"")+" · "+dtShort(m.cm.at)):"виден всем, в документы не печатается";
+  toast("ok", v?"Комментарий сохранён":"Комментарий удалён", "№ "+j.number+" от "+fd(j.date)+".");
+  if(curTab==="journal") renderJournal(); }
+document.addEventListener("input", e=>{ if(e.target.id!=="dc-cmt") return; const box=$("#dc-cm"), j=box&&D.journal.find(x=>x.id===box.dataset.doc); cmGrow(e.target); box.classList.toggle("dirty", e.target.value.trim()!==(cmOf(j).t||"")); });
+document.addEventListener("click", e=>{ const b=e.target.closest("#fd-dcard [data-cm]"); if(!b) return; if(b.dataset.cm==="save"){ cmSave(); return; }
+  const box=$("#dc-cm"), t=$("#dc-cmt"), j=box&&D.journal.find(x=>x.id===box.dataset.doc); if(t){ t.value=cmOf(j).t||""; cmGrow(t); } box&&box.classList.remove("dirty"); });
+document.addEventListener("keydown", e=>{ if(e.target.id!=="dc-cmt") return; if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); cmSave(); } else if(e.key==="Escape" && $("#dc-cm").classList.contains("dirty")){ e.preventDefault(); e.stopPropagation(); $('#fd-dcard [data-cm="cancel"]').click(); } }, true);
 /* ---------- закупка прямо из окна документа (только администратор) ---------- */
 const dcZkHas = j => { const L=dcLines(docCost(j.id)); return Object.keys(L).some(k=>k[0]!=="_" && L[k]!==""); };
 function dcZkSum(j, box){ const k=calc(j.snap.dr, j.snap), tx=taxOf(j.supplierId)/100; let cost=0, miss=0;
