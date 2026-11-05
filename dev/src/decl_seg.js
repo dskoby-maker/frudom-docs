@@ -75,15 +75,20 @@ function dFormHtml(){ const F=SKDF, edit=!!F.id, f=edit?skD().files.find(x=>x.id
        <label class="f">Изготовитель<input class="dcf-mk" data-keep="1" value="${esc(F.maker)}" placeholder="необязательно"></label>
        <label class="f wide">Комментарий<input class="dcf-nt" data-keep="1" value="${esc(F.note)}" placeholder="необязательно"></label></div>
      <div class="dc-acts"><button class="btn" data-dl="cancel">Отмена</button><button class="btn pri" data-dl="save"${F.busy?" disabled":""}>${F.busy?"Сохраняю…":edit?"Сохранить":"Добавить декларацию"}</button></div>`; }
+function dPickItem(id){ const it=skIdx().item[id]; if(!it) return; const ex=SKDF.chips.find(c=>skK(c.t)===skK(it.name)); if(ex) ex.item=it.id; else SKDF.chips.push({t:it.name, item:it.id}); }
+function dPickPid(id){ const p=prod(id); if(!p||!p.id) return; const ex=SKDF.chips.find(c=>skK(c.t)===skK(p.name)); if(ex) ex.pid=p.id; else SKDF.chips.push({t:p.name, pid:p.id}); }
+function dSugList(){ const F=SKDF, q=skK(F.q), X=skIdx(), has=(k,id)=>F.chips.some(c=>c[k]===id), w=q.split(" ").filter(Boolean), hit=n=>w.every(x=>skK(n).includes(x));
+  if(!q) return {I:[], P:[]};
+  return {I:X.S.items.filter(i=>!has("item",i.id) && [i.name,i.alt||""].some(hit)).slice(0,8), P:D.products.filter(p=>!has("pid",p.id) && hit(p.name)).slice(0,12)}; }
 function dSugHtml(){ const F=SKDF, q=skK(F.q); if(!q) return F.chips.length?"":`<small class="muted">Начните вводить — предложу товары склада и позиции документов. Можно просто вписать название и нажать Enter.</small>`;
-  const X=skIdx(), has=(k,id)=>F.chips.some(c=>c[k]===id), w=q.split(" ").filter(Boolean), hit=n=>w.every(x=>skK(n).includes(x));
-  const I=X.S.items.filter(i=>!has("item",i.id) && [i.name,i.alt||""].some(hit)).slice(0,5), P=D.products.filter(p=>!has("pid",p.id) && hit(p.name)).slice(0,7);
-  return `<button type="button" class="dcf-s new" data-dl="addtxt"><b>+ «${esc(skN(F.q))}»</b><small>по названию — найдётся во всех документах с похожим товаром</small></button>`
+  const {I, P}=dSugList(), n=I.length+P.length;
+  return `<div class="dcf-sh"><small class="muted">${n?"Нажимайте на нужные — можно выбрать несколько подряд":"Больше ничего не найдено"}</small>${n>1?`<button type="button" class="btn ghost sm" data-dl="addall">Выбрать все (${n})</button>`:""}<button type="button" class="btn ghost sm" data-dl="qclr">Готово</button></div>
+    <button type="button" class="dcf-s new" data-dl="addtxt"><b>+ «${esc(skN(F.q))}»</b><small>по названию — найдётся во всех документах с похожим товаром</small></button>`
     + I.map(i=>`<button type="button" class="dcf-s" data-dl="additem" data-id="${i.id}"><b>🔗 ${esc(i.name)}</b><small>товар склада${(i._links||[]).length?" · "+i._links.length+" поз. документов":""}</small></button>`).join("")
     + P.map(p=>`<button type="button" class="dcf-s" data-dl="addpid" data-id="${p.id}"><b>🔗 ${esc(p.name)}</b><small>позиция документов</small></button>`).join(""); }
 function dFormRead(){ const d=SKM&&SKM.d; if(!d||!SKDF) return; const v=c=>{ const el=d.querySelector(c); return el?el.value:null; };
   [["num",".dcf-num"],["validTo",".dcf-to"],["maker",".dcf-mk"],["note",".dcf-nt"],["q",".dcf-q"]].forEach(([k,c])=>{ const x=v(c); if(x!=null) SKDF[k]=x; }); }
-function dRedraw(focus){ if(!SKM||SKM.render!==dFormHtml) return; const d=SKM.d, st=d.scrollTop; d.innerHTML=dFormHtml(); d.scrollTop=st; if(focus){ const el=d.querySelector(focus); el&&el.focus(); } }
+function dRedraw(focus){ if(!SKM||SKM.render!==dFormHtml) return; const d=SKM.d, st=d.scrollTop; d.innerHTML=dFormHtml(); d.scrollTop=st; if(focus){ const el=d.querySelector(focus); if(el){ el.focus({preventScroll:true}); try{ const n=el.value.length; el.setSelectionRange(n,n); }catch(e){} } } }
 function dAddText(t){ String(t||"").split(/[,;\n]/).map(skN).filter(Boolean).forEach(x=>{ if(!SKDF.chips.some(c=>skK(c.t)===skK(x))) SKDF.chips.push({t:x}); }); SKDF.q=""; }
 /* несколько фото/PDF → один PDF */
 async function dLib(){ await loadScript(LIBCDN+"pdf-lib/1.17.1/pdf-lib.min.js", ()=>window.PDFLib); return window.PDFLib; }
@@ -202,8 +207,11 @@ document.addEventListener("click", e=>{ const t=e.target; if(!t.closest) return;
     if(a==="save"){ dSave(); return; } if(a==="ai"){ dAi(); return; }
     if(a==="unchip"){ SKDF.chips.splice(+b.dataset.i,1); dRedraw(); return; }
     if(a==="addtxt"){ dAddText(SKDF.q); dRedraw(".dcf-q"); return; }
-    if(a==="additem"){ const it=skIdx().item[b.dataset.id]; if(it){ const ex=SKDF.chips.find(c=>skK(c.t)===skK(it.name)); if(ex) ex.item=it.id; else SKDF.chips.push({t:it.name, item:it.id}); } SKDF.q=""; dRedraw(".dcf-q"); return; }
-    if(a==="addpid"){ const p=prod(b.dataset.id); if(p){ const ex=SKDF.chips.find(c=>skK(c.t)===skK(p.name)); if(ex) ex.pid=p.id; else SKDF.chips.push({t:p.name, pid:p.id}); } SKDF.q=""; dRedraw(".dcf-q"); return; }
+    /* выбранное пропадает из подсказок, а поиск остаётся — можно выбрать подряд несколько */
+    if(a==="additem"){ dPickItem(b.dataset.id); dRedraw(matchMedia("(pointer:fine)").matches?".dcf-q":null); return; }
+    if(a==="addpid"){ dPickPid(b.dataset.id); dRedraw(matchMedia("(pointer:fine)").matches?".dcf-q":null); return; }
+    if(a==="addall"){ const S=dSugList(); S.I.forEach(i=>dPickItem(i.id)); S.P.forEach(p=>dPickPid(p.id)); SKDF.q=""; dRedraw(".dcf-q"); return; }
+    if(a==="qclr"){ SKDF.q=""; dRedraw(".dcf-q"); return; }
     return; }
   const dd=t.closest("[data-dd]"); if(dd && SKDD){ const a=dd.dataset.dd;
     if(a==="pdf"||a==="zip"){ dBuild(a); return; }

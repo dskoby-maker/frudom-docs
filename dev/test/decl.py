@@ -49,6 +49,15 @@ async def main():
             await pg.fill('#sk-dlg .dcf-q', f'Яблоки красные {W}'); await pg.wait_for_timeout(200)
             await pg.click(f'#sk-dlg [data-dl="addpid"][data-id="pa{W}"]'); await pg.wait_for_timeout(200)
             ok(await pg.locator('#sk-dlg .dcf-c.lk').count()==1, f'{W}: товар привязан к позиции документов (🔗)')
+            ok(await pg.input_value('#sk-dlg .dcf-q')==f'Яблоки красные {W}' and await pg.locator(f'#sk-dlg [data-dl="addpid"][data-id="pa{W}"]').count()==0, f'{W}: после выбора поиск остался, выбранное пропало из подсказок')
+            await pg.fill('#sk-dlg .dcf-q', f'{W}'); await pg.wait_for_timeout(200)
+            n0=await pg.locator('#sk-dlg .dcf-c').count(); await pg.click('#sk-dlg [data-dl="addall"]'); await pg.wait_for_timeout(200)
+            ok(await pg.locator('#sk-dlg .dcf-c').count()>n0+1, f'{W}: «Выбрать все» добавил сразу несколько')
+            for _ in range(10):
+                x=pg.locator('#sk-dlg .dcf-c:not(.lk) button, #sk-dlg .dcf-c.lk:not(:first-child) button')
+                if await pg.locator('#sk-dlg .dcf-c').count()<=1: break
+                await pg.locator('#sk-dlg .dcf-c').last.locator('button').click(); await pg.wait_for_timeout(100)
+            await pg.fill('#sk-dlg .dcf-q', '')
             await pg.fill('#sk-dlg .dcf-num', f'ЯБЛ-{W}'); await pg.fill('#sk-dlg .dcf-to','2026-01-31')
             await pg.click('#sk-dlg [data-dl="save"]'); ok(await until(pg,"!document.querySelector('#sk-dlg')",15000), f'{W}: два фото сохранены одной декларацией')
             await pg.wait_for_timeout(600)
