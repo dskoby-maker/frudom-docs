@@ -30,7 +30,7 @@ async def main():
             await pg.screenshot(path=f'/tmp/claude-0/pack-in-{vw[0]}.png')
             # единица шт — блок пропадает
             await pg.select_option('#sk-dlg .skf-unit','шт'); await pg.wait_for_timeout(200)
-            ok(await pg.locator('#sk-dlg .skpackb').count()==0, f'{vw[0]}: для «шт» блок скрыт')
+            ok(await pg.locator('#sk-dlg .skf-pcs').count()==0 and await pg.locator('#sk-dlg .skf-bx').count()==1, f'{vw[0]}: для «шт» — только коробки')
             await pg.select_option('#sk-dlg .skf-unit','кг'); await pg.wait_for_timeout(200)
             ok(await pg.input_value('#sk-dlg .skf-pcs')=='40', f'{vw[0]}: значения не потерялись')
             await pg.fill('#sk-dlg .skf-sup','ИП Малишава К.А.'); await pg.fill('#sk-dlg .skf-doc','№ 000008819 от 05.11.26')
