@@ -361,6 +361,20 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .dd-opts{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13px}
 @media (max-width:760px){#fd-app .dcl{grid-template-columns:40px minmax(0,1fr);gap:8px 10px}#fd-app .dcl-i{width:40px;height:40px}#fd-app .dcl-s{grid-column:2}#fd-app .dcl-a{grid-column:1/-1;justify-content:flex-end}#fd-app .dcl-a .btn{min-height:40px;min-width:44px}#fd-app .dcl-tip{display:none}
   #fd-app .dcf-ai{flex:1 1 100%;min-height:46px}#fd-app .dcf-q{font-size:16px}#fd-app .dcf-meta input{font-size:16px}#fd-app .dd-o{padding:10px}#fd-app .dd-o input{width:22px;height:22px}#fd-app .dd-pick{font-size:16px;min-height:44px}#fd-app .dd-more .btn{min-height:44px}}
+#fd-app .pdtools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 8px}#fd-app .pdtools #pd-q{flex:1 1 240px;max-width:420px}#fd-app .pdtools #pd-catm{margin-left:auto}
+#fd-app .catrow{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}#fd-app .catrow:empty{display:none}
+#fd-app .catc{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(28,34,32,.12);background:#fff;border-radius:999px;padding:5px 12px 5px 10px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink);transition:background .2s,border-color .2s,box-shadow .2s}
+#fd-app .catc i{width:9px;height:9px;border-radius:50%;background:var(--cc,#9aa19d);flex:none}#fd-app .catc em{font-style:normal;color:var(--muted);font-size:12px}
+#fd-app .catc:hover{border-color:var(--cc,rgba(28,34,32,.3))}#fd-app .catc.on{background:color-mix(in srgb,var(--cc,#7a264a) 14%,#fff);border-color:var(--cc,#7a264a);box-shadow:0 0 0 1px var(--cc,#7a264a) inset;font-weight:600}
+#fd-app .catc.all{--cc:#7a264a}#fd-app .catc.all i{display:none}#fd-app .catc:disabled{cursor:default;opacity:1}
+#fd-app .cattag{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:color-mix(in srgb,var(--cc) 70%,#1c2220)}#fd-app .cattag::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--cc)}
+#fd-app select.pdcat{box-shadow:inset 4px 0 0 var(--cc,transparent)}
+#fd-app .catm{display:grid;gap:6px;margin-top:12px}#fd-app .catm-r{display:grid;grid-template-columns:40px minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:6px 8px;border-radius:12px;background:rgba(255,255,255,.8);border:1px solid rgba(28,34,32,.07);animation:fdin .25s ease}
+#fd-app .catm-col{width:36px;height:36px;padding:2px;border-radius:10px;border:1px solid rgba(28,34,32,.12);background:#fff;cursor:pointer}#fd-app .catm-n{min-width:0;width:100%}#fd-app .catm-c{font-size:12px;white-space:nowrap}#fd-app .catm-a{display:flex;gap:2px}
+#fd-app .catm-add{display:flex;gap:8px;margin-top:12px}#fd-app .catm-add input{flex:1;min-width:0}
+#fd-app .cata{display:grid;gap:12px;margin-top:12px}#fd-app .cata-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px}#fd-app .cata-h small{font-size:12px}
+#fd-app .cata-r{display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:10px;align-items:center;padding:5px 8px;border-radius:10px}#fd-app .cata-r:nth-child(even){background:rgba(242,243,239,.6)}#fd-app .cata-r span{font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis}#fd-app .cata-r select{min-width:0;width:100%}
+@media (max-width:600px){#fd-app .catm-r{grid-template-columns:40px minmax(0,1fr) auto}#fd-app .catm-c{grid-column:2;grid-row:2}#fd-app .catm-a{grid-column:3;grid-row:1/3}#fd-app .cata-r{grid-template-columns:1fr;gap:4px}#fd-app .cata-r select{font-size:16px;min-height:42px}#fd-app .pdtools #pd-catm{margin-left:0}#fd-app .catrow{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}#fd-app .catrow::-webkit-scrollbar{display:none}#fd-app .catc{flex:none}}
 #fd-app .mi-mob{display:none}#fd-app .mi-addr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}#fd-app .mi-addr .mi-one{margin-left:auto}
 #fd-app .mi-ai{display:inline-flex;align-items:center;gap:8px}#fd-app .mi-ai-i{font-size:16px}#fd-app .mi-ai b{font-weight:600}#fd-app .mi-ai small{display:none}
 #fd-app .mi-sup::-webkit-calendar-picker-indicator,#fd-app .mi-name::-webkit-calendar-picker-indicator{display:none!important;opacity:0}
@@ -1375,6 +1389,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
       <p class="muted">Пустая цена — товара нет в прайсе заказчика, в документ подставится базовая цена. Товары общие для всех заказчиков, цены у каждого свои.</p>
       <div class="row"><select id="pr-copyfrom" style="max-width:320px"></select><button class="btn" id="pr-copy">Скопировать цены</button></div>
       <div class="prtools"><input id="pr-q" type="search" placeholder="Поиск товара" aria-label="Поиск товара в ценах заказчика"><select id="pr-f" aria-label="Какие товары показать"><option value="all">Все товары</option><option value="has">С ценой заказчика</option><option value="no">Без цены</option></select><span class="muted" id="pr-cnt"></span></div>
+      <div class="catrow" id="pr-cats"></div>
       <div class="tbl"><table class="stack" id="pr-tbl" data-full="0"><thead><tr><th>Товар</th><th>Ед.</th><th class="num">Базовая</th><th style="width:130px">Цена заказчика</th><th style="width:150px">ID позиции спец. (СПГЗ)</th><th style="width:120px">ID СТЕ</th><th style="width:150px">Артикул оферты</th></tr></thead><tbody id="pr-body"></tbody></table></div>
       <div class="pager" id="pr-pager"></div>
     </div>
@@ -1396,7 +1411,9 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
   <section class="tab" id="tab-products" hidden>
     <div class="card">
       <h2>Номенклатура <small>общая для всех поставщиков и заказчиков</small></h2>
-      <div class="tbl"><table class="stack" data-full="0"><thead><tr><th>Наименование</th><th style="width:130px">Код (артикул)</th><th style="width:90px">Ед.</th><th style="width:150px">Страна</th><th style="width:120px">Базовая цена</th><th style="width:150px" title="Сайт запоминает сам по заказам: «2 кор» → 6 кг значит 1 кор = 3 кг">Вес упаковки</th><th style="width:40px"></th></tr></thead><tbody id="pd-body"></tbody></table></div>
+      <div class="pdtools"><input id="pd-q" type="search" placeholder="Поиск товара" aria-label="Поиск товара"><button class="btn sm" id="pd-auto" type="button" hidden>Разложить по категориям</button><button class="btn ghost sm" id="pd-catm" type="button">Категории…</button></div>
+      <div class="catrow" id="pd-cats"></div>
+      <div class="tbl"><table class="stack" data-full="0"><thead><tr><th>Наименование</th><th style="width:170px">Категория</th><th style="width:130px">Код (артикул)</th><th style="width:90px">Ед.</th><th style="width:150px">Страна</th><th style="width:120px">Базовая цена</th><th style="width:150px" title="Сайт запоминает сам по заказам: «2 кор» → 6 кг значит 1 кор = 3 кг">Вес упаковки</th><th style="width:40px"></th></tr></thead><tbody id="pd-body"></tbody></table></div>
       <div class="row"><button class="btn" id="pd-add">+ Новый товар</button></div>
     </div>
   </section>
@@ -1537,19 +1554,20 @@ function logEv(action, text, docId){ if(!curUser()) return; evq.push({at:new Dat
 const jDesc = j => "№ "+j.number+" от "+fd(j.date)+" — "+shortCus(calc(j.snap.dr, j.snap));
 function deviceName(){ const u=navigator.userAgent||""; return /Android/i.test(u)?"Android":/iPhone|iPad/i.test(u)?"iPhone/iPad":/Windows/i.test(u)?"Windows":/Mac OS/i.test(u)?"Mac":"браузер"; }
 const online = () => !!(API_URL && pass());
-const pend = {suppliers:new Map(), customers:new Map(), products:new Map(), prices:new Map(), specs:new Map(), contracts:new Map(), journal:new Map(), costs:new Map(), doccosts:new Map(), psettings:new Map(), daytasks:new Map(), purchases:new Map(), pother:new Map()};
+const pend = {suppliers:new Map(), customers:new Map(), products:new Map(), prices:new Map(), specs:new Map(), contracts:new Map(), journal:new Map(), costs:new Map(), doccosts:new Map(), psettings:new Map(), daytasks:new Map(), purchases:new Map(), pother:new Map(), cats:new Map()};
 const specOf = (c,p) => ((D.specs||{})[c]||{})[p] || {};
 function dirtySpec(c,p){ const x=specOf(c,p); pend.specs.set(c+"|"+p,{s:++stamp, del:!(x.spec||x.ste||x.art)}); undoNote("specs",c+"|"+p); changed(); }
 let serverOld=false;
 let stamp=0;
-function dirty(type,id,del){ pend[type].set(id,{s:++stamp, del:!!del}); undoNote(type,id); changed(); }
+function dirty(type,id,del){ if(type==="products" && !del){ const p=D.products.find(x=>x.id===id); if(p && (p.cat===undefined||p._ca) && p.name){ try{ const g=catGuess(p.name); if(g && g!==p.cat){ p.cat=g; p._ca=1; } }catch(e){} } }   /* новый товар — категория по названию, пока её не выбрали руками */
+  pend[type].set(id,{s:++stamp, del:!!del}); undoNote(type,id); changed(); }
 function dirtyPrice(c,p){ const v=custPrice(c,p); pend.prices.set(c+"|"+p,{s:++stamp, del:(v==null||v==="")}); undoNote("prices",c+"|"+p); changed(); }
 let syncT=null, flushing=false;
 const PENDK="frudom-docs-pend";
 function savePend(){ try{ const o={}; Object.keys(pend).forEach(t=>{ if(pend[t].size) o[t]=[...pend[t].entries()]; }); lsSet(PENDK, Object.keys(o).length?JSON.stringify(o):null); }catch(e){} }
 (function(){ try{ const o=JSON.parse(lsGet(PENDK)||"null"); if(!o) return; Object.keys(o).forEach(t=>{ if(!pend[t]) return; (o[t]||[]).forEach(([id,v])=>{ pend[t].set(id,v); if(v&&v.s>stamp) stamp=v.s; }); }); }catch(e){} })();
 function changed(){ saveLocal(); savePend(); if(!online()) return; setStatus("wait","Есть несохранённое"); clearTimeout(syncT); syncT=setTimeout(flush,1200); }
-const hasPending = () => Object.keys(pend).some(t=>pend[t].size && (t!=="pother" || D.poSrv)) || evq.length>0;
+const hasPending = () => Object.keys(pend).some(t=>pend[t].size && (t!=="pother" || D.poSrv) && (t!=="cats" || D.catSrv)) || evq.length>0;
 
 /* запрос к таблице: не дольше 45 секунд; при ошибке понятно, что случилось — нет интернета, Google не ответил или таблица вернула ошибку */
 async function apiFetch(url, opt){ const ac=window.AbortController?new AbortController():null, tm=ac&&setTimeout(()=>ac.abort(),(opt&&opt.tmo)||45000);
@@ -1564,8 +1582,8 @@ async function api(payload){
 /*__SYNC_GUARD__*/
 function buildChanges(){
   const ch={}, sent={};
-  ["suppliers","customers","products","contracts","journal","costs","doccosts","psettings","daytasks","purchases","pother"].forEach(t=>{
-    if(!pend[t].size || (t==="pother" && !D.poSrv)) return;   /* старый скрипт таблицы не знает этот лист — держим на устройстве */ const up=[], del=[]; sent[t]=new Map(pend[t]);
+  ["suppliers","customers","cats","products","contracts","journal","costs","doccosts","psettings","daytasks","purchases","pother"].forEach(t=>{
+    if(!pend[t].size || (t==="pother" && !D.poSrv) || (t==="cats" && !D.catSrv)) return;   /* старый скрипт таблицы не знает этот лист — держим на устройстве */ const up=[], del=[]; sent[t]=new Map(pend[t]);
     pend[t].forEach((v,id)=>{ if(v.del) del.push(id); else { const o = t==="journal" ? jRow(D.journal.find(x=>x.id===id)) : (D[t]||[]).find(x=>x.id===id); if(o) up.push(o); else del.push(id); } });
     ch[t]={upsert:up, del};
   });
@@ -1646,6 +1664,7 @@ function applyServer(d){
   D.suppliers = d.suppliers.map(x=>Object.assign(x,{next:+x.next||1, vat:x.vat||"none"}));
   D.customers = d.customers.map(x=>Object.assign(x,{acct:x.acct||"bank"}));
   D.products = d.products;
+  if(Array.isArray(d.cats)){ D.cats=d.cats; D.catSrv=true; } else { D.cats=D.cats||[]; D.catSrv=false; }
   serverOld = !Array.isArray(d.contracts) || !Array.isArray(d.specs) || (d.customers.length>0 && !("branches" in d.customers[0]));
   if(Array.isArray(d.contracts)) D.contracts = d.contracts;
   if(Array.isArray(d.specs)){ D.specs={}; d.specs.forEach(r=>{ (D.specs[r.customerId]=D.specs[r.customerId]||{})[r.productId]={spec:r.spec, ste:r.ste, art:r.art}; }); }
@@ -1661,7 +1680,7 @@ function applyServer(d){
   D.demo=false; $("#demoNote").hidden=true;
   if(D.draft.supplierId && !D.suppliers.some(x=>x.id===D.draft.supplierId) && D.suppliers[0]) D.draft.supplierId=D.suppliers[0].id;
   if(D.draft.customerId && !D.customers.some(x=>x.id===D.draft.customerId)) D.draft.customerId=(D.customers[0]||{}).id||"";
-  if(!isStaff()) patchAll(); saveLocal();
+  if(!isStaff()) patchAll(); try{ catSeed(); }catch(e){} saveLocal();
   if(!isStaff() && Array.isArray(d.daytasks) && !lsGet("frudom-auto-bf2")){ const t=todayISO(); docTasks(D.journal.filter(j=>j.snap && !isArch(j) && j.date>=t).map(j=>j.date), true); lsSet("frudom-auto-bf2","1"); }
 }
 let lastPullAt=0;
@@ -4336,7 +4355,7 @@ function renderPrices(cid){
   const pl=D.prices[cid]=D.prices[cid]||{};
   $("#pr-copyfrom").innerHTML=`<option value="">Скопировать цены другого заказчика…</option>`+opts(D.customers.filter(x=>x.id!==cid));
   if(PRV.cid!==cid){ PRV.cid=cid; PRV.page=0; PRV.q=""; $("#pr-q").value=""; }
-  const q=norm(PRV.q||""), has=p=>pl[p.id]!=null&&pl[p.id]!=="", all=D.products.filter(p=>(!q||norm(p.name).includes(q)) && (PRV.f==="all"||(PRV.f==="has")===has(p)));
+  const q=norm(PRV.q||""), has=p=>pl[p.id]!=null&&pl[p.id]!=="", all=D.products.filter(p=>(!q||norm(p.name).includes(q)) && (PRV.f==="all"||(PRV.f==="has")===has(p)) && prCatOk(p)); prCatChips(cid);
   const size=prSize(), pages=Math.max(1,Math.ceil(all.length/size)); if(PRV.page>=pages) PRV.page=pages-1; const from=PRV.page*size, list=all.slice(from, from+size);
   $("#pr-f").value=PRV.f; $("#pr-cnt").textContent=D.products.filter(has).length+" с ценой из "+D.products.length;
   $("#pr-pager").innerHTML=pagerHtml(PRV.page, pages, all.length, from, list.length, size);
@@ -4702,7 +4721,9 @@ function patchAll(){ patchPrivate(); patchKigm(); patchSuppliers(); if(!serverOl
 
 /* ---------- товары ---------- */
 function renderProducts(){
-  $("#pd-body").innerHTML=D.products.map(p=>`<tr data-id="${p.id}"><td><input data-k="name" value="${esc(p.name)}" placeholder="Наименование"></td>
+  pdToolbar(); const L=pdFiltered();
+  $("#pd-body").innerHTML=(L.length?"":`<tr><td colspan="8" class="muted" style="padding:12px 6px">Ничего не найдено.</td></tr>`)+L.map(p=>`<tr data-id="${p.id}"><td><input data-k="name" value="${esc(p.name)}" placeholder="Наименование"></td>
+    <td><select data-k="cat" class="pdcat" style="--cc:${esc((catOf(p)||{}).color||"transparent")}">${catOptions(p.cat||"", true)}</select></td>
     <td><input data-k="code" value="${esc(p.code)}" placeholder="00-00000001"></td>
     <td><select data-k="unit">${Object.keys(UNITS).map(u=>`<option${u===p.unit?" selected":""}>${u}</option>`).join("")}</select></td>
     <td><select data-k="country">${Object.entries(COUNTRIES).map(([k,v])=>`<option value="${k}"${k===p.country?" selected":""}>${v}</option>`).join("")}</select></td>
@@ -4711,13 +4732,16 @@ function renderProducts(){
 const pb=$("#pd-body");
 const pdSet=e=>{ const k=e.target.dataset.k; if(!k) return; const p=prod(e.target.closest("tr").dataset.id);
   if(k==="packs"){ const o={}; String(e.target.value).split(/[;\n]/).forEach(x=>{ const m=x.match(/([а-яёa-z.]+)\s*[=:≈-]?\s*(\d+(?:[.,]\d+)?)/i); if(!m) return; const pk=parsePack("1 "+m[1]); const u=pk?pk.u:m[1].toLowerCase(); o[u]=+m[2].replace(",","."); }); p.packs=Object.keys(o).length?JSON.stringify(o):""; dirty("products",p.id); return; }
-  p[k]=k==="price"?num(e.target.value):e.target.value; dirty("products",p.id); };
+  if(k==="cat"){ delete p._ca; e.target.style.setProperty("--cc",(catById(e.target.value)||{}).color||"transparent"); }
+  p[k]=k==="price"?num(e.target.value):e.target.value; dirty("products",p.id);
+  if(k==="name" && p._ca){ const s=e.target.closest("tr").querySelector(".pdcat"); if(s && s.value!==p.cat){ s.value=p.cat; s.style.setProperty("--cc",(catOf(p)||{}).color||"transparent"); } }
+  if(k==="cat") pdToolbar(); };
 pb.addEventListener("input",pdSet); pb.addEventListener("change",e=>{ if(e.target.tagName==="SELECT") pdSet(e); });
 pb.addEventListener("click",e=>{ const b=e.target.closest("[data-del]"); if(!b) return;
   if(!b.dataset.armed){ b.dataset.armed=1; b.textContent="Удалить?"; return; }
   const id=b.closest("tr").dataset.id; D.products=D.products.filter(p=>p.id!==id); Object.keys(D.prices).forEach(c=>{ if(id in D.prices[c]){ delete D.prices[c][id]; dirtyPrice(c,id); } });
   dirty("products",id,true); renderProducts(); });
-$("#pd-add").onclick=()=>{ const p={id:uid(), name:"", code:"", unit:"кг", country:"", price:""}; D.products.push(p); dirty("products",p.id); renderProducts(); const r=pb.lastElementChild; r&&r.querySelector("input").focus(); };
+$("#pd-add").onclick=()=>{ const c=PDV.cat!=="all"&&PDV.cat!=="none"?PDV.cat:""; PDV.q=""; $("#pd-q").value=""; if(!c) PDV.cat="all"; const p={id:uid(), name:"", code:"", unit:"кг", country:"", price:""}; if(c) p.cat=c; D.products.push(p); dirty("products",p.id); renderProducts(); const r=pb.lastElementChild; r&&r.querySelector("input").focus(); };
 
 /* ---------- данные ---------- */
 function renderData(){
@@ -5475,6 +5499,7 @@ const HELP={
   "Декларации":["Все декларации о соответствии в одном месте. В поиске пишите товар («огурцы»), номер или изготовителя; фильтры сверху — действующие, истекают в ближайший месяц, истекли.","При добавлении укажите, на какие товары декларация — можно несколько. Тогда в любом документе кнопка «Декларации» сама найдёт нужные и скачает их одним PDF."],
   "Товары в декларации":["Перечислите всё, что указано в декларации: огурцы, томаты, перец… Впишите и нажмите Enter — сайт найдёт декларацию в документах с похожими товарами («по названию»).","Со значком 🔗 — точная привязка к товару склада или позиции документов: такая декларация подставится всегда. Привязка добавляется и сама, когда вы скачиваете декларации к документу с галочкой «Запомнить выбор»."],
   "Декларации к документу":["Для каждого товара документа сайт подобрал декларации: «привязана» — точно эта позиция, «по названию» — похожее название. Отметьте нужные галочками.","«Скачать одним PDF» соберёт все выбранные файлы в один PDF (первая страница — список товаров и номеров деклараций). Word и Excel в PDF не вставляются — для них есть «ZIP-архив». Истёкшие к дате поставки отмечены красным и не выбираются сами."],
+  "Категории товаров":["Категории помогают быстро найти товар: во вкладках «Товары», «Цены для заказчика» и на складе сверху есть фильтр по категориям.","Новому товару категория ставится сама по названию — её можно поменять в колонке «Категория». Свои категории добавляются в «Категории…»; там же цвет и порядок."],
   "Штуки в приходе":["Для товара, который купили поштучно, а продаём в кг: пачки макарон, банки, бутылки.","Впишите, сколько штук и сколько весит одна — сайт сам посчитает кг. Если в накладной цена за штуку, впишите её — цена за кг посчитается сама. Остатки, резерв и отгрузка остаются в кг, а штуки показываются рядом, чтобы не считать вручную. В следующий приход этого товара вес 1 шт подставится сам."],
   "Перевзвешивание":["Товар пришёл мешками или коробками, а продаём в кг.","Впишите, сколько упаковок взвесили и сколько вышло кг. Стоимость упаковок перейдёт в новую партию в кг, срок годности и декларации — те же."],
   "Приход на склад":["Товар пришёл на склад.",["Начните вводить название — покажу похожие товары. Нового товара нет — он добавится сам.","Цена — за единицу. Не знаете — оставьте пусто, прибыль будет «предварительной».","Если похожий приход уже был — сайт переспросит, чтобы не задвоить."]],

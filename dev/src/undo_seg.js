@@ -6,10 +6,10 @@
    Сохранение документа в журнал, загрузка из таблицы и автоматические правки в шаги не попадают.
    Отмена сама проверяет, что запись с тех пор не менял кто-то другой — иначе этот кусок пропускается. */
 var UNDO=null;
-const UN_TABLES=["suppliers","customers","products","contracts","journal","costs","doccosts","psettings","daytasks","prices","specs","purchases","pother"];
+const UN_TABLES=["suppliers","customers","products","contracts","journal","costs","doccosts","psettings","daytasks","prices","specs","purchases","pother","cats"];
 const UN_NOISE=["seen","_new","updated"];   /* служебные поля: «прочитано», время правки — сами по себе не повод для отмены */
-const UN_GEN={suppliers:"поставщика",customers:"заказчика",products:"товара",contracts:"контракта",journal:"документа",costs:"закупочной цены",doccosts:"себестоимости накладной",psettings:"налога",daytasks:"задачи",prices:"цены",specs:"СТЕ/СПГЗ",purchases:"закупки",pother:"прочего дохода/расхода"};
-const UN_ORDER=["L:draft","L:order","L:zk","journal","customers","products","suppliers","contracts","prices","specs","costs","doccosts","purchases","pother","psettings","L:prefs","daytasks"];
+const UN_GEN={suppliers:"поставщика",customers:"заказчика",products:"товара",contracts:"контракта",journal:"документа",costs:"закупочной цены",doccosts:"себестоимости накладной",psettings:"налога",daytasks:"задачи",prices:"цены",specs:"СТЕ/СПГЗ",purchases:"закупки",pother:"прочего дохода/расхода",cats:"категории"};
+const UN_ORDER=["L:draft","L:order","L:zk","journal","customers","products","suppliers","contracts","prices","specs","costs","doccosts","purchases","pother","cats","psettings","L:prefs","daytasks"];
 const UN_DF={supplierId:"поставщик",customerId:"заказчик",branchId:"ОП",contractId:"договор",noCtr:"договор",number:"номер",date:"дата",basis:"основание",shipSel:"адрес доставки",ship:"адрес доставки",buyer:"покупатель",bphone:"телефон покупателя",sign:"печать и подпись",stamp:"печать и подпись"};
 const unPj = j => { try{ return j==null?null:JSON.parse(j); }catch(e){ return null; } };
 const unPN = l => (l && ((l.name&&String(l.name).trim()) || (prod(l.productId)||{}).name)) || "товар";
