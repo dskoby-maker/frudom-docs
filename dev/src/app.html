@@ -389,8 +389,11 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app table.akt-t{width:100%}#fd-app table.akt-t tr.bad td{background:#fdf2f1}#fd-app table.akt-t tfoot td{font-weight:600}
 #fd-app .aktact{margin-top:12px;align-items:center}#fd-app .aktact .aktold{font-size:12px}
 #fd-app .aktedit{margin-top:14px;padding:14px;border-radius:16px;background:rgba(242,243,239,.7);border:1px solid rgba(28,34,32,.07);animation:fdglass .3s var(--ease,ease)}
-#fd-app .akth{margin:16px 0 6px;font-size:14px}#fd-app .aktspec{max-height:420px;overflow:auto}#fd-app .aktspec table{min-width:760px;width:100%}#fd-app .aktspec input,#fd-app .aktspec select{width:100%;padding:5px 7px;font-size:13px}#fd-app .aktspec input.sm{width:78px}
+#fd-app .akth{margin:16px 0 6px;font-size:14px}#fd-app .akth.first{margin-top:4px}#fd-app .aktspec{max-height:420px;overflow:auto}#fd-app .aktspec table{min-width:760px;width:100%}#fd-app .aktspec input,#fd-app .aktspec select{width:100%;padding:5px 7px;font-size:13px}#fd-app .aktspec input.sm{width:78px}
 #fd-app .aktspec td{padding:3px 4px}
+#fd-app .aktfiles{margin-top:16px;padding-top:12px;border-top:1px solid rgba(28,34,32,.08)}#fd-app #akt-box:empty+.aktfiles{margin-top:4px;padding-top:0;border-top:0}
+#fd-app .aktfh{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end;margin-bottom:8px}#fd-app .aktfh .f{margin:0}#fd-app .aktfm input{width:auto}#fd-app .aktfh .btn.dis{opacity:.6;pointer-events:none}
+#fd-app .aktfl{display:grid;gap:2px}
 @media(max-width:700px){#fd-app .tbl table.akt-t{min-width:0}#fd-app table.akt-t th:nth-child(4),#fd-app table.akt-t td:nth-child(4),#fd-app table.akt-t th:nth-child(6),#fd-app table.akt-t td:nth-child(6){display:none}#fd-app table.akt-t tfoot td[colspan]{font-size:13px}}
 #fd-app .prtools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 8px}#fd-app .prtools input{flex:1 1 200px;max-width:320px}#fd-app .prtools select{width:auto}#fd-app .prtools .muted{font-size:12.5px;margin-left:auto}
 #fd-app .pager{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:10px}#fd-app .pager:empty{display:none}
@@ -1253,9 +1256,10 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
       <div class="row"><button class="btn" id="ct-add">+ Добавить контракт</button></div>
     </div>
     <div class="card" id="akt-card">
-      <h2>Месячный акт <small id="akt-name"></small></h2>
-      <p class="muted">Акт приёмки-передачи за месяц собирается сам из накладных этого заказчика по выбранному договору. Один раз настройте шаблон (или загрузите прошлый акт, который принял заказчик) — дальше только выбрать месяц и скачать.</p>
+      <h2>Акты <small id="akt-name"></small></h2>
+      <p class="muted" id="akt-desc"></p>
       <div id="akt-box"></div>
+      <div id="akt-files" class="aktfiles"></div>
     </div>
     <div class="card">
       <h2>Нумерация документов <small id="nm-name"></small></h2>
@@ -5335,6 +5339,7 @@ $("#tk-showhid").onclick=()=>{ tkShowHid=!tkShowHid; drawTasks(); };
 
 /* ================= подсказки «?» у заголовков ================= */
 const HELP={
+  "Акты":["Акты приёмки-передачи заказчика.",["«+ Загрузить акт» — файл (Word, PDF, скан) сохранится за этим заказчиком на Google Диске и откроется с любого устройства. Месяц — для порядка в списке.","У заказчиков с настроенным актом (сейчас — цирк) акт за месяц собирается сам — см. ниже."]],
   "Месячный акт":["Акт приёмки-передачи за месяц — для заказчиков, которые принимают товар актом (цирк и др.).",["Выберите договор и месяц. В акт попадут все накладные этого заказчика по договору за месяц — галочкой можно убрать лишнюю.","Раздел 2 — спецификация договора (что и сколько всего можно поставить), раздел 3 — что поставлено за месяц, п. 7 — сколько поставлено с начала договора.","Один раз нажмите «Загрузить прошлый акт (.docx)» — сайт сам заполнит спецификацию, предмет договора и сроки. Проверьте и «Сохранить шаблон».","Красные замечания — цена не как в договоре, превышение количества или товар не из спецификации. Исправьте до отправки заказчику.","Акт скачивается в Word — его можно поправить перед печатью."]],
   "Склад":["Один общий склад на всю команду, без деления по ИП.",["Приход — товар пришёл на склад. Каждый приход — своя партия (дата, цена, поставщик, срок годности).","Начальный остаток — сколько товара уже лежит сейчас. Много позиций — «Ввести списком».","Резерв — товар отложен под накладную. Появляется сам, когда в строке документа выбрано «Со склада» и документ сохранён.","Отгрузка — товар фактически уехал. Только тогда он списывается со склада.","Плитки сверху нажимаются — откроется список.","Кнопка «Обновить» сверяет остатки с таблицей."]],
   "Товар склада":["Карточка одного товара.",["Сверху — сколько есть, сколько в резерве (нажмите, чтобы увидеть накладные) и сколько свободно.","Партии — каждый приход отдельно, по старшинству.","«Позиции в документах» — по каким названиям из контрактов этот товар берётся со склада.","Комментарий виден только здесь."]],

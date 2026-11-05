@@ -64,6 +64,8 @@ const S = {
   slog: { title: 'Склад: история', key: 'id', cols: [
     ['at','Когда'],['by','Кто'],['action','Действие'],['object','Объект'],['before','Было'],['after','Стало'],['reason','Причина'],['id','ID'],['docId','ID документа'],['batchId','ID партии'],['itemId','ID товара'],['op','Операция']]},
   sops: { title: 'Склад: операции (служебный)', key: 'id', cols: [['id','ID запроса'],['at','Когда'],['by','Кто'],['kind','Операция'],['status','Статус'],['data','Данные (не редактировать)']]},
+  cakts: { title: 'Акты заказчиков', key: 'id', cols: [
+    ['customerName','Заказчик'],['name','Файл'],['month','За месяц'],['by','Кто загрузил'],['at','Когда'],['mime','Тип'],['size','Размер'],['id','ID (не менять)'],['customerId','ID заказчика'],['file','ID файла на Диске']]},
   journal: { title: 'Журнал', key: 'id', cols: [
     ['date','Дата'],['number','Номер'],['supplierName','Поставщик'],['customerName','Заказчик'],['sum','Сумма'],
     ['updated','Изменён'],['id','ID'],['supplierId','ID поставщика'],['customerId','ID заказчика'],['snap','Данные документа (не редактировать)']]}
@@ -210,6 +212,7 @@ function handle_(p) {
     if (p.action === 'sync') { const g = guardChanges_(p.changes, p.base, p.protocol, me); if (g.error) return g; syncIn_(g.changes, me); return { ok: true, concurrency: 1, accepted: syncState_(g.changes, me) }; }
     if (p.action === 'plist')    { if (me.role === 'staff') return { ok: false, error: 'forbidden' }; return plist_(p, me); }
     if (p.action === 'stock') return stock_(p, me);
+    if (/^akt(List|Add|Get|Del)$/.test(p.action || '')) return cakt_(p, me);
     if (p.action === 'addPhoto') return addPhoto_(p, me);
     if (p.action === 'photo')    { const r = read_('taskphotos').find(x => x.id === String(p.id)); if (!r) return { ok: false, error: 'фото не найдено' };
       const b = DriveApp.getFileById(r.file).getBlob(); return { ok: true, data: 'data:' + (b.getContentType() || 'image/jpeg') + ';base64,' + Utilities.base64Encode(b.getBytes()) }; }
@@ -613,6 +616,36 @@ function stAfterDocs_(ids, me) {
     const rid = 'auto' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), W = stReserveW_(c, me || { name: 'система' }, want, rid, 'doc');
     if (W.sres.upsert.length || W.sres.del.length || W.slog.upsert.length) stCommit_(rid, me || { name: 'система' }, 'reserve', W);
   } catch (e) { /* склад не должен ломать сохранение документов */ }
+}
+
+/* ---------- акты заказчиков: файлы в закрытой папке Диска, в таблице — ссылка на заказчика ---------- */
+function caktFolder_() {
+  const pr = PropertiesService.getScriptProperties(), id = pr.getProperty('caktFolder');
+  if (id) { try { const f = DriveApp.getFolderById(id); if (!f.isTrashed()) return f; } catch (x) {} }
+  const f = DriveApp.createFolder('Документы ФД — акты заказчиков'); pr.setProperty('caktFolder', f.getId()); return f;
+}
+function cakt_(p, me) {
+  if (lim_(me)) return { ok: false, error: 'forbidden' };
+  const clean = r => { const x = Object.assign({}, r); delete x.file; return x; };
+  if (p.action === 'aktList') return { ok: true, list: read_('cakts').filter(r => r.customerId === String(p.customerId || '')).map(clean) };
+  if (p.action === 'aktGet') { const r = read_('cakts').find(x => x.id === String(p.id || '')); if (!r) return { ok: false, error: 'файл не найден' };
+    const b = DriveApp.getFileById(r.file).getBlob(); return { ok: true, name: r.name, mime: r.mime || b.getContentType(), data: Utilities.base64Encode(b.getBytes()) }; }
+  if (p.action === 'aktDel') { const rows = read_('cakts'), r = rows.find(x => x.id === String(p.id || '')); if (!r) return { ok: true };
+    try { DriveApp.getFileById(r.file).setTrashed(true); } catch (x) {}
+    write_('cakts', rows.filter(x => x.id !== r.id)); log_(me, [{ action: 'Справочники', text: 'Удалён акт «' + r.name + '» — ' + r.customerName }]); return { ok: true }; }
+  /* aktAdd: повтор того же запроса (rid) не создаёт второй файл и вторую строку */
+  const rid = String(p.rid || ''); if (!/^[\w\-]{6,80}$/.test(rid)) return { ok: false, error: 'нет номера операции — обновите страницу' };
+  const cid = String(p.customerId || ''), cn = nameMap_('customers'); if (!cn[cid]) return { ok: false, error: 'заказчик не найден' };
+  const was = read_('cakts').find(x => x.id === rid); if (was) return { ok: true, item: clean(was) };
+  const mime = String(p.mime || ''), name = stN_(p.name).replace(/[\\/:*?"<>|]+/g, ' ').slice(0, 150) || 'акт', data = String(p.data || '');
+  if (!ST_MIME[mime]) return { ok: false, error: 'Такой тип файла не подходит. Можно Word, PDF, Excel или фото' };
+  if (!data) return { ok: false, error: 'Пустой файл' }; if (data.length * 0.75 > ST_FILE_MAX) return { ok: false, error: 'Файл больше 20 МБ' };
+  const folder = caktFolder_(), fname = rid + '__' + name; let file = null; const it = folder.getFilesByName(fname); if (it.hasNext()) file = it.next();
+  if (!file) file = folder.createFile(Utilities.newBlob(Utilities.base64Decode(data), mime, fname));
+  const row = { id: rid, customerId: cid, customerName: cn[cid], name: name, month: /^\d{4}-\d{2}$/.test(String(p.month || '')) ? String(p.month) : '', by: me.name, at: new Date().toISOString(), mime: mime, size: String(Math.round(data.length * 0.75)), file: file.getId() };
+  const sh = sheet_('cakts'), n = sh.getLastRow(), cols = S.cakts.cols, rng = sh.getRange(n + 1, 1, 1, cols.length); rng.setNumberFormat('@'); rng.setValues([cols.map(c => row[c[0]] == null ? '' : String(row[c[0]]))]); delete MEMO_.cakts;
+  log_(me, [{ action: 'Справочники', text: 'Загружен акт «' + name + '»' + (row.month ? ' за ' + row.month.split('-').reverse().join('.') : '') + ' — ' + cn[cid] }]);
+  return { ok: true, item: clean(row) };
 }
 
 /* ---------- папка деклараций (закрытая, как фото задач) ---------- */
