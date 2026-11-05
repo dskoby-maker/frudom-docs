@@ -34,6 +34,20 @@ async def main():
             # товара нет в контракте
             await pg.evaluate("(()=>{const D=__fd.D(); D.products.push({id:'zz',name:'Ананас тест',unit:'кг',price:'99'}); D.draft.lines.push({productId:'zz',qty:'1',price:'99'}); })()"); await pg.evaluate(REN); await pg.wait_for_timeout(300)
             ok('нет в контракте' in await pg.text_content('#d-lines .line[data-i="3"] .ctrnote'), f'{vw[0]}: товар не из контракта отмечен')
+            # не тот товар: «Сельдерей (корень)» (лишняя цена 382,50 в прайсе) вместо «…(корнеплод обрезной)» 254,30
+            await pg.evaluate("""(()=>{const D=__fd.D(); D.products.push({id:'s1',name:'Сельдерей свежий (корнеплод обрезной)',unit:'кг',price:'254.3'},{id:'s2',name:'Сельдерей (корень)',unit:'кг',price:'382.5'},{id:'s3',name:'Сельдерей свежий черешковый',unit:'кг',price:'204.15'});
+              D.prices.cirk={s1:'254.30',s2:'382.5',s3:'204.15'}; D.draft.customerId='cirk'; D.draft.lines=[{productId:'s2',qty:'4',price:'254.3',src:'20.Сельдерей корень'},{productId:'s3',qty:'1.5',price:'204.15'}]; })()"""); await pg.evaluate(REN); await pg.wait_for_timeout(400)
+            t=await pg.text_content('#d-lines .line[data-i="0"] .ctrnote') or ''
+            ok('не тот товар' in t and 'корнеплод обрезной' in t, f'{vw[0]}: подсказка «не тот товар»: {t[:90]}')
+            ok('не тот товар' in (await pg.text_content('#d-ctrwarn') or ''), f'{vw[0]}: в общем блоке тоже')
+            await pg.screenshot(path=f'/tmp/ctr-alt-{vw[0]}.png', full_page=False)
+            await pg.click('#d-lines .line[data-i="0"] [data-ctrswap]'); await pg.wait_for_timeout(300)
+            L=await pg.evaluate("__fd.D().draft.lines.map(l=>l.productId+'='+l.price)")
+            ok(L[0]=='s1=254.30' and await pg.locator('#d-lines .line.offc').count()==0, f'{vw[0]}: товар заменён, цена прежняя {L}')
+            # общая кнопка тоже меняет товар
+            await pg.evaluate("__fd.D().draft.lines[0].productId='s2'"); await pg.evaluate(REN); await pg.wait_for_timeout(300)
+            await pg.click('[data-ctrfixall]'); await pg.wait_for_timeout(300)
+            ok(await pg.evaluate("__fd.D().draft.lines[0].productId")=='s1', f'{vw[0]}: «Исправить по контракту» заменило товар')
             # частник — без проверки
             await pg.select_option('#d-cus','ooo'); await pg.wait_for_timeout(400)
             ok(await pg.locator('#d-lines .line.offc').count()==0 and await pg.is_hidden('#d-ctrwarn'), f'{vw[0]}: у ООО предупреждений нет')

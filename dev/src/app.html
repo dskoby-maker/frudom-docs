@@ -1803,8 +1803,13 @@ function isGovCus(cid){ const c=cus(cid); if(!c.id || isPriv(cid) || c.plist==="
 function ctrIssues(dr){ dr=dr||D.draft; if(!dr || !isGovCus(dr.customerId)) return []; const out=[];
   (dr.lines||[]).forEach((l,i)=>{ if(!l.productId) return; const v=custPrice(dr.customerId,l.productId);
     if(v==null || v===""){ out.push({i, k:"none"}); return; }
-    if(Math.round(+v*100)!==Math.round((+l.price||0)*100)) out.push({i, k:"price", want:+v}); });
+    if(Math.round(+v*100)!==Math.round((+l.price||0)*100)){ const alt=ctrAlt(dr.customerId,l); out.push(alt?{i, k:"price", want:+v, alt}:{i, k:"price", want:+v}); } });
   return out; }
+/* цена строки совпадает с ценой ДРУГОГО похожего товара контракта → скорее выбран не тот товар (корень ↔ корнеплод) */
+function ctrAlt(cid,l){ const p=prod(l.productId); if(!p||!p.id || !(+l.price>0)) return null;
+  const S=stems(p.name), same=impByPrice(cid,l.price).filter(q=>q.id!==p.id);
+  const near=same.filter(q=>stems(q.name).some(w=>S.includes(w)));
+  const q=near.length===1?near[0]:same.length===1?same[0]:null; return q?{id:q.id, name:q.name, price:+custPrice(cid,q.id)}:null; }
 /* при смене заказчика: товар не из его прайса → похожая позиция из его прайса (по названию в заявке и по названию товара) */
 function ctrRemap(dr, cid){ const pl=D.prices[cid]||{}, has=id=>pl[id]!=null && pl[id]!=="", inPl=D.products.filter(p=>has(p.id)); if(!inPl.length) return [];
   const clean=s=>norm(s).replace(/[«»"]/g,"").replace(/\s+/g," ").trim(), sim=(A,B)=>{ if(!A.length||!B.length) return 0; const i=A.filter(w=>B.includes(w)).length; return i/(A.length+B.length-i); };
@@ -1827,15 +1832,22 @@ function ctrToast(rm){ const dr=D.draft, iss=ctrIssues(dr), sw=(rm||[]).filter(x
 /* подсветка строк и общее предупреждение над товарами (вызывается из renderTotals) */
 function ctrMark(){ const dr=D.draft, box=$("#d-ctrwarn"); if(!dr || !box) return; const iss=ctrIssues(dr), by={}; iss.forEach(x=>by[x.i]=x); const ro=!!dr.qtyOnly||docLimited();
   document.querySelectorAll("#d-lines .line[data-i]").forEach(el=>{ const x=by[+el.dataset.i], n=el.querySelector(".ctrnote"); el.classList.toggle("offc", !!x); if(!n) return;
-    const key=x?x.k+":"+x.want:""; if(n.dataset.k===key) return; n.dataset.k=key; n.hidden=!x;
-    n.innerHTML = !x ? "" : x.k==="price" ? `<span>Цена не по контракту. По контракту — <b>${fm(x.want)} ₽</b></span>${ro?"":`<button type="button" class="btn ghost" data-ctrfix="${el.dataset.i}">Поставить ${fm(x.want)} ₽</button>`}`
+    const key=x?x.k+":"+x.want+":"+(x.alt?x.alt.id:""):""; if(n.dataset.k===key) return; n.dataset.k=key; n.hidden=!x;
+    n.innerHTML = !x ? "" : x.alt ? `<span>Похоже, выбран не тот товар. Цена ${fm(x.alt.price)} ₽ по контракту — у «<b>${esc(x.alt.name)}</b>», а у «${esc((prod(dr.lines[x.i].productId)||{}).name||"")}» в прайсе заказчика ${fm(x.want)} ₽.</span>${ro?"":`<button type="button" class="btn" data-ctrswap="${el.dataset.i}">Заменить на «${esc(x.alt.name)}»</button><button type="button" class="btn ghost" data-ctrfix="${el.dataset.i}">Нет, поставить ${fm(x.want)} ₽</button>`}`
+      : x.k==="price" ? `<span>Цена не по контракту. По контракту — <b>${fm(x.want)} ₽</b></span>${ro?"":`<button type="button" class="btn ghost" data-ctrfix="${el.dataset.i}">Поставить ${fm(x.want)} ₽</button>`}`
       : `<span>Этого товара нет в контракте заказчика — выберите позицию из контракта (в подсказках они сверху).</span>`; });
-  const np=iss.filter(x=>x.k==="price").length, nn=iss.length-np; box.hidden=!iss.length;
-  box.innerHTML = !iss.length ? "" : `<b>Внимание: не по контракту — ${iss.length} поз.</b> У госзаказчика цены по контракту фиксированные.${np?" Цена отличается: "+np+".":""}${nn?" Нет в контракте: "+nn+".":""}${np&&!ro?`<button type="button" class="btn" data-ctrfixall>Поставить цены по контракту</button>`:""}`; }
-function ctrFix(idx){ const dr=D.draft; let n=0; ctrIssues(dr).forEach(x=>{ if(x.k!=="price" || (idx!=null && x.i!==idx)) return; dr.lines[x.i].price=String(custPrice(dr.customerId,dr.lines[x.i].productId)); n++; });
-  if(n){ saveLocal(); renderLines(); toast("ok", n===1?"Цена по контракту поставлена":"Цены по контракту поставлены ("+n+")"); } }
+  const np=iss.filter(x=>x.k==="price").length, na=iss.filter(x=>x.alt).length, nn=iss.length-np; box.hidden=!iss.length;
+  box.innerHTML = !iss.length ? "" : `<b>Внимание: не по контракту — ${iss.length} поз.</b> У госзаказчика цены по контракту фиксированные.${np-na?" Цена отличается: "+(np-na)+".":""}${na?" Похоже, выбран не тот товар: "+na+".":""}${nn?" Нет в контракте: "+nn+".":""}${np&&!ro?`<button type="button" class="btn" data-ctrfixall>${na?"Исправить по контракту":"Поставить цены по контракту"}</button>`:""}`; }
+/* «Поставить цены по контракту» для всех: где выбран не тот товар — меняется товар (цена уже верная), остальным — цена контракта */
+function ctrFix(idx){ const dr=D.draft; let n=0, sw=[]; ctrIssues(dr).forEach(x=>{ if(x.k!=="price" || (idx!=null && x.i!==idx)) return; const l=dr.lines[x.i];
+    if(idx==null && x.alt){ sw.push("«"+((prod(l.productId)||{}).name||"")+"» → «"+x.alt.name+"»"); l.productId=x.alt.id; l.price=String(custPrice(dr.customerId,x.alt.id)); return; }
+    l.price=String(custPrice(dr.customerId,l.productId)); n++; });
+  if(n||sw.length){ saveLocal(); renderLines(); toast("ok", sw.length?"Исправлено по контракту":n===1?"Цена по контракту поставлена":"Цены по контракту поставлены ("+n+")", [sw.length?"Заменён товар: "+sw.join("; ")+".":"", sw.length&&n?"Цена поставлена: "+n+" поз.":""].filter(Boolean).join(" ")); } }
+function ctrSwap(i){ const dr=D.draft, x=ctrIssues(dr).find(y=>y.i===i&&y.alt); if(!x) return; const l=dr.lines[i], from=(prod(l.productId)||{}).name||"";
+  l.productId=x.alt.id; l.price=String(custPrice(dr.customerId,x.alt.id)); saveLocal(); renderLines(); dupWarn&&dupWarn(i);
+  toast("ok","Товар заменён","«"+from+"» → «"+x.alt.name+"», "+fm(x.alt.price)+" ₽ по контракту."); }
 $("#d-ctrwarn").addEventListener("click",e=>{ if(e.target.closest("[data-ctrfixall]")) ctrFix(); });
-dl.addEventListener("click",e=>{ const b=e.target.closest("[data-ctrfix]"); if(b) ctrFix(+b.dataset.ctrfix); });
+dl.addEventListener("click",e=>{ const s=e.target.closest("[data-ctrswap]"); if(s){ ctrSwap(+s.dataset.ctrswap); return; } const b=e.target.closest("[data-ctrfix]"); if(b) ctrFix(+b.dataset.ctrfix); });
 /* поиск товара по мере ввода: сначала прайс заказчика, потом остальные товары */
 let PS=null;
 function psFind(q){ const dr=D.draft, cid=dr.customerId, inP=p=>custPrice(cid,p.id)!=null&&custPrice(cid,p.id)!=="";
@@ -4787,8 +4799,10 @@ function learnPacks(dr){ const got=[];
   if(got.length){ saveLocal(); toast("info","Запомнил вес упаковки", got.join("; ")+". В следующих заказах подставлю сам."); } }
 /* после сохранения документа: запомнить, как товар назван в заявке, и цену для заказчика, если товара не было в его прайсе */
 function learnNames(dr){ if(!dr||docLimited()||dr.qtyOnly) return; const names=[], prices=[], cid=dr.customerId, pl=D.prices[cid]=D.prices[cid]||{};
-  (dr.lines||[]).forEach(l=>{ const p=prod(l.productId); if(!p||!p.id) return;
-    if(l.src && norm(l.src)!==norm(p.name)){ const al=aliasesOf(p); if(!al.some(a=>norm(a)===norm(l.src))){ al.push(l.src); p.aliases=JSON.stringify(al.slice(-20)); dirty("products",p.id); names.push("«"+l.src+"» = «"+p.name+"»"); } }
+  const gov=cid && isGovCus(cid), bad=new Set(gov?ctrIssues(dr).filter(x=>x.k==="none"||x.alt).map(x=>x.i):[]);
+  (dr.lines||[]).forEach((l,i)=>{ const p=prod(l.productId); if(!p||!p.id) return;
+    /* госзаказчик: товар не из контракта или «не тот товар» — не запоминаем название, иначе ошибка повторится в следующих заявках */
+    if(l.src && norm(l.src)!==norm(p.name) && !bad.has(i)){ const al=aliasesOf(p); if(!al.some(a=>norm(a)===norm(l.src))){ al.push(l.src); p.aliases=JSON.stringify(al.slice(-20)); dirty("products",p.id); names.push("«"+l.src+"» = «"+p.name+"»"); } }
     if(cid && !isGovCus(cid) && +l.price>0 && +l.qty>0 && (pl[p.id]==null || pl[p.id]==="")){ pl[p.id]=+l.price; dirtyPrice(cid,p.id); prices.push(p.name+" — "+fm(+l.price)+" ₽"); } });
   if(names.length||prices.length){ saveLocal(); toast("info","Запомнил на будущее", [names.length?"Названия: "+names.join("; "):"", prices.length?"В прайс заказчика: "+prices.join("; "):""].filter(Boolean).join(". ")+"."); } }
 { const _cd=commitDoc; commitDoc=async function(dr0,opt){ const dr=dr0||D.draft; try{ const iss=ctrIssues(dr); if(iss.length) toast("warn","Сохранено с ценами не по контракту",iss.length+" поз. — проверьте: у госзаказчика цены по контракту фиксированные."); }catch(e){} const r=await _cd(dr0,opt); try{ learnPacks(dr); }catch(e){} try{ learnNames(dr); }catch(e){} return r; }; }
