@@ -94,13 +94,20 @@ const AI_PROMPT_ = [
   '"qty_text":"количество как написано, если это не число в кг/шт (например 2 кор, 1 уп)","unsure":true если плохо видно, исправлено от руки или сомневаешься}]}',
   'Правила: строку «Итого» не включай; строки с нулевым или пустым количеством не включай; десятичные числа с точкой; если значение исправлено от руки — бери исправленное и ставь unsure:true.'
 ].join('\n');
+/* накладная поставщика (приход на склад) */
+const AI_PROMPT_IN_ = [
+  'Это накладная (чек, счёт, ТОРГ-12, УПД) от поставщика на купленные продукты — скан или фото. Перепиши её в JSON строго по тому, что написано, ничего не придумывай.',
+  'Формат: {"supplier":"продавец/поставщик как написано (ИП, ООО…)","number":"номер документа","date":"дата документа ДД.ММ.ГГГГ","total":итоговая сумма числом или null,',
+  '"items":[{"name":"наименование как написано","unit":"единица (кг, шт, уп…)","qty":количество числом,"price":цена за единицу числом или null,"sum":сумма строки числом или null,"unsure":true если плохо видно или исправлено от руки}]}',
+  'Правила: строки «Итого», «Всего», «НДС» не включай; «Мест» — это не количество; десятичные числа с точкой; пробелы и апострофы в числах убери (2\'500.00 → 2500).'
+].join('\n');
 function aiRead_(p) {
   const pr = PropertiesService.getScriptProperties(), key = pr.getProperty('GEMINI_KEY');
   if (!key) return { ok: false, error: 'nokey' };
   const mime = String(p.mime || ''), data = String(p.data || '');
   if (!/^(application\/pdf|image\/(jpeg|png|webp|heic|heif))$/.test(mime)) return { ok: false, error: 'такой файл ИИ не читает — нужен PDF или фото' };
   if (data.length > 18e6) return { ok: false, error: 'файл больше 13 МБ — для ИИ слишком большой' };
-  const body = { contents: [{ parts: [{ inline_data: { mime_type: mime, data: data } }, { text: AI_PROMPT_ }] }], generationConfig: { temperature: 0, responseMimeType: 'application/json' } };
+  const body = { contents: [{ parts: [{ inline_data: { mime_type: mime, data: data } }, { text: p.kind === 'in' ? AI_PROMPT_IN_ : AI_PROMPT_ }] }], generationConfig: { temperature: 0, responseMimeType: 'application/json' } };
   const models = [pr.getProperty('GEMINI_MODEL') || 'gemini-flash-latest', 'gemini-3.8-flash']; let last = '';
   for (let i = 0; i < models.length; i++) {
     const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + models[i] + ':generateContent',
@@ -762,7 +769,7 @@ const ST_OPS = {
     const rows = (d.rows || []).filter(Boolean); if (!rows.length) stErr_('Список пуст'); if (rows.length > 300) stErr_('За один раз — не больше 300 строк');
     const W = { sbatches: { upsert: [] }, smoves: { upsert: [] } }, out = [];
     rows.forEach((x, i) => { let r; try { r = stInRow_(Object.assign({}, x, { kind: d.kind, force: true }), me, c, rid, String(i), W); } catch (e) { stErr_('Строка ' + (i + 1) + ' («' + stN_(x.newName || (c.item[x.itemId] || {}).name || '') + '»): ' + e.message); } out.push(r); });
-    return { W: W, out: { n: out.length } };
+    return { W: W, out: { n: out.length, rows: out } };
   },
   /* отменить ошибочный приход: только если из партии ещё ничего не брали */
   cancelIn: function (d, me, c, rid) {

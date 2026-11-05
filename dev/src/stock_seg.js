@@ -432,7 +432,8 @@ document.addEventListener("click", async e=>{
     for(const o of L){ const lines=o.L.map(x=>({lineId:x.l.lid, qty:String(x.res)})); try{ await skSend("ship",{docId:o.j.id, lines},"Отгрузка № "+o.j.number); ok++; }catch(e){ if(e.queued){ q++; continue; } toast("err","№ "+o.j.number+": не отгружено", e.message); } }
     skBusy(b,false); toast(q?"warn":"ok", ok?"Отгружено со склада: "+ok+" "+plural(ok,["накладная","накладные","накладных"]):"Ничего не отгружено", q?q+" ждут отправки — нет связи.":""); skClose(); if(curTab==="calendar") renderCalendar(); return; }
   if(a==="close"){ skClose(); return; }
-  if(a==="in"||a==="init"){ skInForm(a); return; }
+  if(a==="in"){ skMultiIn(); return; }
+  if(a==="init"){ skInForm(a); return; }
   if(a==="inv"){ skInv(); return; }
   if(a==="flush"){ skFlushQ(); return; }
   if(a==="more"){ SKV.shown+=100; skDrawList(); return; }
@@ -618,4 +619,181 @@ function skStockQ(j, l){ if(!SK_READY || !l || !l.stk || !l.stk.m) return 0; con
 function skAfterEdit(e){ if(!SK_READY || !e || !e.snap) return; const L=skDocLines(e).filter(x=>x.shipped-x.ret>x.req+0.0005);
   if(!L.length) return; const j=e;
   toast("warn","Со склада отгружено больше, чем теперь в документе", L.map(x=>(x.item?x.item.name:"")+": отгружено "+skQf(x.shipped-x.ret,x.unit)+", в документе со склада "+skQf(x.req,x.unit)).join("; ")+". Если товар вернулся — проведите возврат.", {ms:15000, action:{label:"Провести возврат", fn:()=>skShipForm(j,"ret")}}); }
+
+/* ================= ПРИХОД ПО НАКЛАДНОЙ: много позиций за раз =================
+   Шапка (поставщик, дата, № документа, сумма по накладной) — один раз, ниже строки товаров. Можно: вписать руками (Enter — следующая строка),
+   вставить строки из Excel, прочитать фото/PDF накладной через ИИ. Проводится одной операцией bulk — целиком или никак. Черновик хранится на устройстве. */
+let SKMI=null;
+const MIKEY = () => "frudom-stockin:"+(curUser()||"-");
+const miRow = o => Object.assign({k:uid(), name:"", itemId:"", unit:"кг", qty:"", price:"", sum:"", by:"price", exp:"", pcs:"", pack:"", ppc:"", open:false, note:"", unsure:false}, o||{});
+function miSaveDraft(){ if(!SKMI) return; try{ const R=SKMI.rows.map(r=>{ const x=Object.assign({},r); delete x.file; return x; }); lsSet(MIKEY(), JSON.stringify({sup:SKMI.sup, date:SKMI.date, doc:SKMI.doc, total:SKMI.total, rows:R, at:Date.now()})); }catch(e){} }
+const miHas = () => SKMI && SKMI.rows.some(r=>skN(r.name)||String(r.qty).trim());
+function skMultiIn(){ let dr=null; try{ dr=JSON.parse(lsGet(MIKEY())||"null"); }catch(e){}
+  const fresh={sup:"", date:todayISO(), doc:"", total:"", rows:[miRow(),miRow(),miRow()], ai:null, restored:false};
+  SKMI = dr && (dr.rows||[]).some(r=>skN(r.name)) ? Object.assign(fresh, dr, {rows:dr.rows.map(miRow), restored:true}) : fresh;
+  skModal(miHtml, true); SKM.d.classList.add("xwide"); setTimeout(()=>{ const f=$("#sk-dlg "+(SKMI.restored?".mi-name":".mi-sup")); f&&f.focus(); },120); }
+/* сумма строки и цена: что вписали последним, от того и считаем */
+function miCalc(r){ const q=skNum(r.qty), p=skNum(r.price), sm=skNum(r.sum);
+  if(r.by==="sum"){ return {q, price:q>0&&sm>=0?sm/q:NaN, sum:sm}; } return {q, price:p, sum:q>0&&p>=0?q*p:NaN}; }
+function miItem(r){ const X=skIdx(), k=skK(r.name); if(!k) return null; return X.item[r.itemId] && skK(X.item[r.itemId].name)===k ? X.item[r.itemId] : X.S.items.find(i=>skK(i.name)===k || String(i.alt||"").split(";").some(a=>skK(a)===k)) || null; }
+/* вес одной штуки из названия: «Лапша 450г», «Сок 0,2 л», «Мука 2 кг» */
+function miWeight(name){ const m=String(name||"").replace(",",".").match(/(\d+(?:\.\d+)?)\s*(кг|гр|г|мл|л)(?![а-яёa-z])/i); if(!m) return null; const v=+m[1], u=m[2].toLowerCase();
+  return u==="кг"?{unit:"кг",w:v}:u==="л"?{unit:"л",w:v}:u==="мл"?{unit:"л",w:v/1000}:{unit:"кг",w:v/1000}; }
+function miCheck(r, i){ const it=miItem(r), c=miCalc(r), out=[]; if(!skN(r.name) && !String(r.qty).trim()) return {empty:true, it, c, err:[]};
+  if(!skN(r.name)) out.push("нет товара"); if(!(c.q>0)) out.push("нет количества"); if(skK(r.unit)==="шт" && c.q>0 && Math.round(c.q)!==c.q) out.push("штуки — целым числом");
+  if(r.exp && SKMI.date && r.exp<SKMI.date) out.push("срок раньше даты приёмки");
+  if(String(r.pack).trim()!=="" && !(skNum(r.pack)>0)) out.push("вес 1 шт — число больше нуля");
+  return {empty:false, it, c, err:out}; }
+function miTagHtml(r){ const it=miItem(r); const X=skIdx(); let h="";
+  if(!skN(r.name)) h=""; else if(it){ const U=skUnitsOf(it.id).filter(u=>u.fact>0); h=`<span class="mi-ok">на складе: ${U.length?U.map(u=>skQf(u.fact,u.unit)+((pc=>pc?" · "+pc:"")(skUPcs(it.id,u.unit,"fact")))).join(", "):"нет остатка"}</span>`; }
+  else h=`<span class="mi-new">новый товар</span>`;
+  const w=miWeight(r.name); if(skK(r.unit)==="шт" && w && skNum(r.qty)>0) h+=` <button type="button" class="mi-conv" data-mi="conv">в ${w.unit}: 1 шт = ${skFmtN(w.w,3)} ${w.unit} ›</button>`;
+  if(r.note) h+=` <span class="mi-src" title="Как написано в накладной">${r.unsure?"⚠ ":""}в накладной: «${esc(r.note)}»</span>`; else if(r.unsure) h+=` <span class="mi-src">⚠ ИИ не уверен — сверьте</span>`;
+  return h; }
+function miPcsTxt(r){ const pk=skNum(r.pack), q=skNum(r.qty); return pk>0 && q>0 && skK(r.unit)!=="шт" ? skPcN(q/pk) : ""; }
+function miRowHtml(r, i){ const c=miCalc(r), u=esc(r.unit||"кг"), k=r.k, pcs=miPcsTxt(r);
+  const unitSel=`<select class="mi-unit" data-k="${k}">${skIdx().units.concat(skIdx().units.some(x=>skK(x)===skK(r.unit))||!r.unit?[]:[r.unit]).map(x=>`<option${skK(x)===skK(r.unit)?" selected":""}>${esc(x)}</option>`).join("")}</select>`;
+  return `<div class="mi-row${r.unsure?" unsure":""}" data-k="${k}" style="--d:${Math.min(i,10)*20}ms">
+    <span class="mi-n">${i+1}</span>
+    <label class="mi-c mi-cn"><small>Товар</small><input class="mi-name" data-k="${k}" data-keep="1" list="mi-items" autocomplete="off" value="${esc(r.name)}" placeholder="Название товара"><span class="mi-tag" data-tag="${k}">${miTagHtml(r)}</span></label>
+    <label class="mi-c mi-cu"><small>Ед.</small>${unitSel}</label>
+    <label class="mi-c mi-cq"><small>Кол-во</small><input class="mi-qty" data-k="${k}" data-keep="1" inputmode="decimal" value="${esc(r.qty)}" placeholder="0"><span class="mi-pcs" data-pcs="${k}">${pcs}</span></label>
+    <label class="mi-c mi-cp"><small>Цена за ед., ₽</small><input class="mi-price" data-k="${k}" data-keep="1" inputmode="decimal" value="${esc(r.by==="sum"?(c.price>=0&&isFinite(c.price)?skFmtN(c.price,4):""):r.price)}" placeholder="—"></label>
+    <label class="mi-c mi-cs"><small>Сумма, ₽</small><input class="mi-sum" data-k="${k}" data-keep="1" inputmode="decimal" value="${esc(r.by==="sum"?r.sum:(isFinite(c.sum)?skFmtN(c.sum,2):""))}" placeholder="—"></label>
+    <label class="mi-c mi-ce"><small>Годен до</small><input type="date" class="mi-exp" data-k="${k}" data-keep="1" value="${esc(r.exp)}"></label>
+    <span class="mi-c mi-ca"><button type="button" class="mi-pk${r.open||skNum(r.pack)>0?" on":""}" data-mi="pcs" data-k="${k}" title="Штуки: сколько штук, вес 1 шт, цена за шт" ${skK(r.unit)==="шт"?"disabled":""}>шт</button><button type="button" class="mi-x" data-mi="del" data-k="${k}" aria-label="Удалить строку">×</button></span>
+    ${r.open&&skK(r.unit)!=="шт"?`<div class="mi-pcsb"><label class="f"><small>Сколько штук</small><input class="mi-pcs-n" data-k="${k}" data-keep="1" inputmode="decimal" value="${esc(r.pcs)}" placeholder="например 40"></label><label class="f"><small>Вес 1 шт, ${u}</small><input class="mi-pcs-w" data-k="${k}" data-keep="1" inputmode="decimal" value="${esc(r.pack)}" placeholder="например 0,45"></label><label class="f"><small>Цена за 1 шт, ₽</small><input class="mi-pcs-p" data-k="${k}" data-keep="1" inputmode="decimal" value="${esc(r.ppc)}" placeholder="как в накладной"></label></div>`:""}
+  </div>`; }
+function miFootHtml(){ const M=SKMI, R=M.rows.map((r,i)=>Object.assign({r},miCheck(r,i))).filter(x=>!x.empty), bad=R.filter(x=>x.err.length), sum=R.reduce((a,x)=>a+(isFinite(x.c.sum)?x.c.sum:0),0), np=R.filter(x=>!isFinite(x.c.sum)).length;
+  const tot=skNum(M.total), diff=tot>=0 && R.length ? r2(tot-sum) : null;
+  return `<div class="mi-sum1"><span>Позиций: <b>${R.length}</b>${R.filter(x=>!x.it&&skN(x.r.name)).length?` · новых товаров: ${R.filter(x=>!x.it&&skN(x.r.name)).length}`:""}</span><span>Итого по строкам: <b>${fm(r2(sum))} ₽</b>${np?` <small class="miss">(без цены: ${np})</small>`:""}</span>
+    ${diff==null?"":Math.abs(diff)<0.005?`<span class="mi-okb">✓ сходится с накладной</span>`:`<span class="mi-bad">не сходится с накладной: ${diff>0?"не хватает":"лишние"} ${fm(Math.abs(diff))} ₽</span>`}</div>
+    ${bad.length?`<div class="mi-errs">${bad.slice(0,4).map(x=>`<span>Строка ${M.rows.indexOf(x.r)+1}${skN(x.r.name)?" («"+esc(skN(x.r.name))+"»)":""}: ${x.err.join(", ")}</span>`).join("")}</div>`:""}`; }
+function miHtml(){ const M=SKMI, X=skIdx(), sups=[...new Set(X.S.batches.map(b=>b.supplier).filter(Boolean))].slice(-40), n=M.rows.filter(r=>skN(r.name)).length;
+  return skHead("Приход на склад","Приход по накладной","Шапку — один раз, ниже все товары. Можно вписать руками, вставить из Excel или прочитать фото накладной.","Приход по накладной")
+  + (M.restored?`<div class="mi-rest">Черновик восстановлен — продолжайте, где остановились. <button type="button" class="btn ghost sm" data-mi="clear">Начать заново</button></div>`:"")
+  + `<div class="mi-head"><label class="f">Поставщик<input class="mi-sup" data-keep="1" list="mi-sups" value="${esc(M.sup)}" placeholder="ИП, рынок, Саид…"></label>
+      <label class="f">Дата приёмки<input type="date" class="mi-date" data-keep="1" value="${esc(M.date)}"></label>
+      <label class="f">№ накладной<input class="mi-doc" data-keep="1" value="${esc(M.doc)}" placeholder="например 8819 от 05.11.26"></label>
+      <label class="f">Итого по накладной, ₽<input class="mi-total" data-keep="1" inputmode="decimal" value="${esc(M.total)}" placeholder="для сверки"></label></div>
+    <datalist id="mi-sups">${sups.map(s=>`<option value="${esc(s)}">`).join("")}</datalist><datalist id="mi-items">${X.S.items.map(i=>`<option value="${esc(i.name)}">`).join("")}</datalist>
+    <div class="mi-tools"><label class="btn sm mi-ai${M.ai&&M.ai.busy?" busy":""}">${M.ai&&M.ai.busy?`<i class="spin"></i>ИИ читает накладную…`:"📷 Фото накладной → заполнить"}<input type="file" class="mi-aif" accept="image/*,application/pdf" hidden ${M.ai&&M.ai.busy?"disabled":""}></label>${skHQ("Приход по накладной")}<span class="muted mi-tip">или скопируйте строки из Excel и вставьте в поле «Товар»</span><button type="button" class="btn ghost sm mi-one" data-mi="one">Один товар с декларацией ›</button></div>
+    ${M.ai&&M.ai.err?`<div class="mi-errs"><span>ИИ не прочитал: ${esc(M.ai.err)}</span></div>`:""}${M.ai&&M.ai.done?`<div class="mi-rest ok">${esc(M.ai.done)}</div>`:""}
+    <div class="mi-tbl"><div class="mi-hd"><span>#</span><span>Товар</span><span>Ед.</span><span>Кол-во</span><span>Цена за ед., ₽</span><span>Сумма, ₽</span><span>Годен до</span><span></span></div>
+      <div class="mi-rows">${M.rows.map(miRowHtml).join("")}</div></div>
+    <div class="row"><button type="button" class="btn sm" data-mi="add">+ Строка</button><button type="button" class="btn ghost sm" data-mi="add5">+ 5 строк</button><span class="muted mi-tip">Enter — следующая строка</span></div>
+    <div class="mi-foot" id="mi-foot">${miFootHtml()}</div>
+    <div class="dc-acts"><button class="btn" data-mi="close">Закрыть</button><button class="btn pri" data-mi="save"${n?"":" disabled"}>${n?"Провести приход · "+n+" "+plural(n,["позиция","позиции","позиций"]):"Провести приход"}</button></div>`; }
+function miRedraw(focus){ if(!SKM || SKM.render!==miHtml) return; const d=SKM.d, st=d.scrollTop; d.innerHTML=miHtml(); d.scrollTop=st; if(focus){ const el=d.querySelector(focus); if(el){ el.focus(); try{ el.select&&el.select(); }catch(e){} } } }
+function miSync(r){ const d=SKM&&SKM.d; if(!d) return; const k=r.k, c=miCalc(r), set=(sel,v)=>{ const el=d.querySelector(sel+`[data-k="${k}"]`); if(el && el!==document.activeElement) el.value=v; };
+  if(r.by==="sum") set(".mi-price", c.price>=0&&isFinite(c.price)?skFmtN(c.price,4):""); else set(".mi-sum", isFinite(c.sum)?skFmtN(c.sum,2):"");
+  const t=d.querySelector(`[data-tag="${k}"]`); if(t) t.innerHTML=miTagHtml(r); const pc=d.querySelector(`[data-pcs="${k}"]`); if(pc) pc.textContent=miPcsTxt(r);
+  const f=$("#mi-foot"); if(f) f.innerHTML=miFootHtml(); const n=SKMI.rows.filter(x=>skN(x.name)).length, b=d.querySelector('[data-mi="save"]'); if(b){ b.disabled=!n; b.textContent=n?"Провести приход · "+n+" "+plural(n,["позиция","позиции","позиций"]):"Провести приход"; }
+  miSaveDraft(); }
+/* штуки в строке: штуки × вес = количество, цена за шт ÷ вес = цена за ед. */
+function miPcsLink(r, cls){ const n=skNum(r.pcs), pk=skNum(r.pack), q=skNum(r.qty), ppc=skNum(r.ppc), d=SKM.d, set=(c,v,f)=>{ r[f]=v; const el=d.querySelector(c+`[data-k="${r.k}"]`); if(el && el!==document.activeElement) el.value=v; };
+  if(cls==="n"||cls==="w"){ if(n>0&&pk>0) set(".mi-qty",skFmtN(n*pk,3),"qty"); else if(cls==="n"&&n>0&&q>0&&!(pk>0)) set(".mi-pcs-w",skFmtN(q/n,6),"pack"); }
+  const pk2=skNum(r.pack); if(ppc>=0 && pk2>0){ r.by="price"; set(".mi-price",skFmtN(ppc/pk2,4),"price"); } }
+/* когда строка — новый товар: подставить единицу и вес 1 шт из склада */
+function miPickItem(r){ const it=miItem(r); if(!it){ r.itemId=""; return; } if(r.itemId===it.id) return; r.itemId=it.id; r.name=it.name;
+  if(!String(r.qty).trim()) r.unit=it.unit||r.unit; if(!skNum(r.pack)){ const lp=skLastPack(it.id, r.unit); if(lp){ r.pack=lp; } } }
+function miConv(r){ const w=miWeight(r.name); if(!w) return; const n=skNum(r.qty), c=miCalc(r); r.pcs=String(n).replace(".",","); r.pack=skFmtN(w.w,6); if(c.price>=0&&isFinite(c.price)) r.ppc=skFmtN(c.price,2);
+  r.unit=w.unit; r.qty=skFmtN(n*w.w,3); if(r.by==="sum"){ /* сумма та же */ } else if(c.price>=0&&isFinite(c.price)) r.price=skFmtN(c.price/w.w,4); r.open=true; }
+/* вставка из Excel: товар, кол-во, ед., цена, сумма (что есть) */
+function miPaste(txt, at){ const L=String(txt||"").replace(/\r/g,"").split("\n").map(s=>s.trim()).filter(Boolean); if(L.length<2 && !/\t/.test(txt)) return false;
+  const X=skIdx(), rows=[];
+  L.forEach((line,i)=>{ const a=line.split(/\t|;/).map(x=>x.trim()); if(i===0 && /товар|наимен/i.test(a[0]||"") ) return; const nm=a[0]; if(!nm) return;
+    const nums=a.slice(1).map(x=>({x, v:skNum(String(x).replace(/[\s ']/g,""))})), unitCell=a.slice(1).find(x=>/^[а-яёa-z.]{1,6}$/i.test(x));
+    const vals=nums.filter(o=>isFinite(o.v)).map(o=>o.v), u0=unitCell?skN(unitCell).replace(/\.$/,""):"", uu=X.units.find(x=>skK(x)===skK(u0))||u0||"кг";
+    const r=miRow({name:nm, unit:uu, qty:vals[0]!=null?String(vals[0]).replace(".",","):"", price:vals[1]!=null?String(vals[1]).replace(".",","):""});
+    if(vals.length>=3 && vals[1]>0 && Math.abs(vals[0]*vals[1]-vals[2])>0.05 && vals[0]>0){ r.by="sum"; r.sum=String(vals[2]).replace(".",","); }
+    miPickItem(r); rows.push(r); });
+  if(!rows.length) return false;
+  const M=SKMI, before=M.rows.slice(0,at), after=M.rows.slice(at).filter(r=>skN(r.name)||String(r.qty).trim()); M.rows=before.concat(rows, after, [miRow()]);
+  toast("ok","Вставлено строк: "+rows.length,"Проверьте единицы и цены."); return true; }
+/* ИИ: фото/PDF накладной → шапка и строки */
+async function miAi(f){ const M=SKMI; if(!f) return; if(!/^(image\/|application\/pdf)/.test(f.type||"") && !/\.(pdf|jpe?g|png|webp|heic)$/i.test(f.name)){ toast("err","Нужен PDF или фото","");  return; }
+  M.ai={busy:1}; miRedraw();
+  try{ const d=await aiPrep(f); if(d.data.length>18e6) throw new Error("файл больше 13 МБ");
+    let j; try{ j=await apiFetch(API_URL,{method:"POST", tmo:150000, body:JSON.stringify({key:pass(), user:curUser(), action:"aiRead", kind:"in", mime:d.mime, data:d.data})}); }
+    catch(e){ const m=e.message||""; if(m==="nokey"||m==="badkey") throw new Error(m==="nokey"?"не вставлен ключ Gemini — Даниил вставляет его во вкладке «Новый документ» → «Заказ из файла»":"ключ Gemini не подходит"); if(m==="unknown action") throw new Error("скрипт таблицы старый — нужно обновить Code.gs"); throw e; }
+    let x; try{ x=JSON.parse(String(j.text).replace(/^```(json)?|```$/g,"").trim()); }catch(e){ throw new Error("ИИ ответил не по форме — попробуйте ещё раз"); }
+    const its=(Array.isArray(x.items)?x.items:[]).filter(it=>it&&it.name); if(!its.length) throw new Error("в файле не нашлось строк с товарами");
+    const dt=s=>{ const m=String(s||"").match(/(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})/); return m?(m[3].length===2?"20"+m[3]:m[3])+"-"+m[2].padStart(2,"0")+"-"+m[1].padStart(2,"0"):""; };
+    if(x.supplier && !skN(M.sup)) M.sup=skN(x.supplier); if((x.number||x.request) && !skN(M.doc)) M.doc=skN((x.number||x.request)+(x.date?" от "+x.date:""));
+    if(x.total>0 && !String(M.total).trim()) M.total=String(x.total).replace(".",",");
+    const X=skIdx(), rows=its.map(it=>{ const u0=skN(it.unit||"").replace(/\.$/,""), uu=X.units.find(v=>skK(v)===skK(u0))||u0||"кг";
+      const r=miRow({name:skN(it.name), unit:uu, qty:it.qty!=null?String(it.qty).replace(".",","):"", price:it.price!=null?String(it.price).replace(".",","):"", unsure:!!it.unsure});
+      if(it.sum!=null && (it.price==null || (+it.qty>0 && Math.abs(it.qty*it.price-it.sum)>0.05))){ r.by="sum"; r.sum=String(it.sum).replace(".",","); }
+      /* название из накладной → складской товар: точное, другое название, похожее */
+      let hit=miItem(r); if(!hit && typeof stems==="function"){ const T=stems(r.name); let bs=0; X.S.items.forEach(i=>{ [i.name,...String(i.alt||"").split(";")].forEach(nm=>{ const U=stems(nm); if(!U.length) return; const k=U.filter(w=>T.includes(w)).length/Math.max(U.length,T.length); if(k>bs){ bs=k; hit=i; } }); }); if(bs<0.6) hit=null; }
+      if(hit){ if(skK(hit.name)!==skK(r.name)) r.note=r.name; r.name=hit.name; r.itemId=hit.id;
+        /* поштучно в накладной, а на складе в кг с известным весом 1 шт — сразу переводим */
+        const lp=skNum(skLastPack(hit.id, hit.unit)); if(skK(r.unit)==="шт" && skK(hit.unit)!=="шт" && lp>0){ const n=skNum(r.qty), c=miCalc(r); r.pcs=String(n).replace(".",","); r.pack=skFmtN(lp,6); if(c.price>=0&&isFinite(c.price)) r.ppc=skFmtN(c.price,2); r.unit=hit.unit; r.qty=skFmtN(n*lp,3); if(r.by!=="sum" && c.price>=0) r.price=skFmtN(c.price/lp,4); r.open=true; } }
+      return r; });
+    const keep=M.rows.filter(r=>skN(r.name)||String(r.qty).trim()); M.rows=keep.concat(rows,[miRow()]);
+    M.ai={done:"ИИ заполнил "+rows.length+" "+plural(rows.length,["строку","строки","строк"])+(rows.some(r=>r.unsure)?" — строки с ⚠ сверьте особенно внимательно":"")+". Проверьте товары, количество и цены с бумагой."};
+    logEv("Склад","Накладная «"+f.name+"» прочитана ИИ для прихода");
+  }catch(e){ M.ai={err:e.message||String(e)}; }
+  miRedraw(); miSaveDraft(); }
+async function miSave(){ const M=SKMI, d=SKM.d; skInReadHead();
+  const R=M.rows.map((r,i)=>Object.assign({r,i},miCheck(r,i))).filter(x=>!x.empty);
+  if(!R.length){ toast("err","Добавьте хотя бы один товар",""); return; }
+  const bad=R.filter(x=>x.err.length); if(bad.length){ toast("err","Проверьте строки", bad.slice(0,3).map(x=>"строка "+(x.i+1)+": "+x.err.join(", ")).join("; ")); const el=d.querySelector(`.mi-row[data-k="${bad[0].r.k}"]`); el&&el.scrollIntoView({block:"center",behavior:"smooth"}); el&&el.classList.add("bad"); return; }
+  if(!M.date){ toast("err","Укажите дату приёмки",""); return; }
+  const X=skIdx(), dupDoc=skN(M.doc) && X.S.batches.find(b=>!b.cancel && skK(b.docRef)===skK(M.doc) && skK(b.supplier)===skK(M.sup));
+  if(dupDoc && !confirm("Приход по накладной «"+M.doc+"» от «"+(M.sup||"—")+"» уже проводили ("+dupDoc.date.split("-").reverse().join(".")+").\n\nПровести ещё раз?")) return;
+  const tot=skNum(M.total), sum=R.reduce((a,x)=>a+(isFinite(x.c.sum)?x.c.sum:0),0);
+  if(tot>=0 && Math.abs(tot-sum)>=0.01 && !confirm("Итого по строкам "+fm(r2(sum))+" ₽, а в накладной "+fm(tot)+" ₽.\n\nВсё равно провести?")) return;
+  const rows=R.map(x=>{ const r=x.r, it=x.it, pk=skNum(r.pack); const o={itemId:it?it.id:"", newName:it?"":skN(r.name), unit:r.unit, qty:String(x.c.q), price:isFinite(x.c.price)&&x.c.price>=0?String(Math.round(x.c.price*1e4)/1e4):"", date:M.date, supplier:skN(M.sup), docRef:skN(M.doc), exp:r.exp||""};
+    if(pk>0 && skK(r.unit)!=="шт") o.pack=String(pk); return o; });
+  const b=d.querySelector('[data-mi="save"]'); b.disabled=true; b.textContent="Провожу…";
+  try{ const j=await skSend("bulk",{kind:"in", rows},"Приход по накладной"+(M.doc?" "+M.doc:"")+": "+rows.length+" "+plural(rows.length,["позиция","позиции","позиций"]));
+    const out=(j.out||{}).rows||[]; out.forEach((o,i)=>{ if(o && o.batchId && rows[i].pack) skPackSave(o.batchId, rows[i].pack); });
+    toast("ok","Приход проведён", rows.length+" "+plural(rows.length,["позиция","позиции","позиций"])+(sum>0?" на "+fm(r2(sum))+" ₽":"")+". Декларации можно прикрепить в карточке товара.");
+    lsSet(MIKEY(), null); SKMI=null; skClose(true);
+  }catch(e){ if(e.queued){ lsSet(MIKEY(), null); SKMI=null; skErr(e,"приход по накладной"); skClose(); return; }
+    skErr(e,"приход по накладной"); b.disabled=false; b.textContent="Провести приход"; } }
+function skInReadHead(){ const d=SKM&&SKM.d; if(!d||!SKMI) return; const v=c=>{ const el=d.querySelector(c); return el?el.value:null; };
+  ["sup","date","doc","total"].forEach(f=>{ const x=v(".mi-"+f); if(x!=null) SKMI[f]=x; }); }
+const miFind = k => SKMI && SKMI.rows.find(r=>r.k===k);
+document.addEventListener("input", e=>{ const t=e.target; if(!SKMI || !SKM || SKM.render!==miHtml || !t.closest || !t.closest("#sk-dlg")) return;
+  if(/mi-(sup|date|doc|total)\b/.test(t.className)){ skInReadHead(); if(/mi-(total|date)/.test(t.className)){ const f=$("#mi-foot"); if(f) f.innerHTML=miFootHtml(); } miSaveDraft(); return; }
+  const r=miFind(t.dataset.k); if(!r) return; const cl=t.className;
+  if(cl.includes("mi-name")){ r.name=t.value; r.note=""; r.unsure=false; const was=r.itemId; miPickItem(r); if(r.itemId!==was && r.itemId){ const us=SKM.d.querySelector(`.mi-unit[data-k="${r.k}"]`); if(us && !String(r.qty).trim()) us.value=r.unit; } }
+  else if(cl.includes("mi-qty")){ r.qty=t.value; if(skNum(r.pcs)>0 && skNum(r.qty)>0) { r.pack=skFmtN(skNum(r.qty)/skNum(r.pcs),6); const w=SKM.d.querySelector(`.mi-pcs-w[data-k="${r.k}"]`); if(w) w.value=r.pack; } }
+  else if(cl.includes("mi-price")){ r.price=t.value; r.by="price"; const pk=skNum(r.pack); if(pk>0 && skNum(r.price)>=0){ r.ppc=skFmtN(skNum(r.price)*pk,2); const w=SKM.d.querySelector(`.mi-pcs-p[data-k="${r.k}"]`); if(w) w.value=r.ppc; } }
+  else if(cl.includes("mi-sum")){ r.sum=t.value; r.by=String(t.value).trim()===""?"price":"sum"; if(r.by==="price") r.price=""; }
+  else if(cl.includes("mi-exp")){ r.exp=t.value; }
+  else if(cl.includes("mi-pcs-n")){ r.pcs=t.value; miPcsLink(r,"n"); }
+  else if(cl.includes("mi-pcs-w")){ r.pack=t.value; miPcsLink(r,"w"); }
+  else if(cl.includes("mi-pcs-p")){ r.ppc=t.value; miPcsLink(r,"p"); }
+  t.closest(".mi-row") && t.closest(".mi-row").classList.remove("bad");
+  miSync(r); });
+document.addEventListener("change", e=>{ const t=e.target; if(!SKMI || !SKM || SKM.render!==miHtml || !t.closest || !t.closest("#sk-dlg")) return;
+  if(t.classList.contains("mi-unit")){ const r=miFind(t.dataset.k); if(!r) return; r.unit=t.value; if(skK(r.unit)==="шт"){ r.open=false; } else if(r.itemId && !skNum(r.pack)) r.pack=skLastPack(r.itemId,r.unit); miSaveDraft(); miRedraw(`.mi-qty[data-k="${r.k}"]`); return; }
+  if(t.classList.contains("mi-aif")){ const f=t.files&&t.files[0]; t.value=""; skInReadHead(); miAi(f); return; }
+  if(t.classList.contains("mi-name")){ const r=miFind(t.dataset.k); if(r){ miPickItem(r); miSync(r); } } });
+document.addEventListener("paste", e=>{ const t=e.target; if(!SKMI || !t.classList || !t.classList.contains("mi-name")) return; const txt=(e.clipboardData||window.clipboardData).getData("text");
+  if(!/\n|\t/.test(String(txt).trim())) return; e.preventDefault(); skInReadHead(); const at=SKMI.rows.findIndex(r=>r.k===t.dataset.k); const cur=SKMI.rows[at]; if(cur && !skN(cur.name) && !String(cur.qty).trim()) SKMI.rows.splice(at,1);
+  if(miPaste(txt, Math.max(0,at))){ miSaveDraft(); miRedraw(); } });
+document.addEventListener("keydown", e=>{ const t=e.target; if(!SKMI || e.key!=="Enter" || !t.closest || !t.closest("#sk-dlg .mi-row") || e.isComposing) return;
+  e.preventDefault(); const k=t.dataset.k, i=SKMI.rows.findIndex(r=>r.k===k); if(i<0) return; const r=SKMI.rows[i];
+  if(t.classList.contains("mi-name")) miPickItem(r);
+  if(i===SKMI.rows.length-1){ SKMI.rows.push(miRow()); miSaveDraft(); miRedraw(`.mi-name[data-k="${SKMI.rows[i+1].k}"]`); }
+  else { const n=SKM.d.querySelector(`.mi-name[data-k="${SKMI.rows[i+1].k}"]`); n&&n.focus(); }
+}, true);
+document.addEventListener("click", async e=>{ const b=e.target.closest && e.target.closest("[data-mi]"); if(!b || !SKMI || !SKM || SKM.render!==miHtml) return; const a=b.dataset.mi; skInReadHead();
+  if(a==="close"){ skClose(); if(miHas()) toast("info","Черновик прихода сохранён","Откройте «+ Приход» — продолжите с того же места."); return; }
+  if(a==="save"){ miSave(); return; }
+  if(a==="one"){ miSaveDraft(); skInForm("in"); return; }
+  if(a==="add"||a==="add5"){ const n=a==="add"?1:5; for(let i=0;i<n;i++) SKMI.rows.push(miRow()); miSaveDraft(); miRedraw(`.mi-name[data-k="${SKMI.rows[SKMI.rows.length-n].k}"]`); return; }
+  if(a==="clear"){ if(miHas() && !confirm("Очистить все строки и начать новый приход?")) return; lsSet(MIKEY(), null); SKMI=null; skMultiIn(); SKMI.restored=false; miRedraw(".mi-sup"); return; }
+  const r=miFind(b.dataset.k)||miFind((b.closest(".mi-row")||{}).dataset&&b.closest(".mi-row").dataset.k);
+  if(a==="del" && r){ const i=SKMI.rows.indexOf(r); SKMI.rows.splice(i,1); if(!SKMI.rows.length) SKMI.rows.push(miRow()); miSaveDraft(); miRedraw();
+    if(skN(r.name)) toast("info","Строка удалена", "«"+skN(r.name)+"»", {action:{label:"Вернуть", fn:()=>{ if(!SKMI) return; SKMI.rows.splice(Math.min(i,SKMI.rows.length),0,r); miSaveDraft(); miRedraw(); }}}); return; }
+  if(a==="pcs" && r){ r.open=!r.open; if(r.open && r.itemId && !skNum(r.pack)) r.pack=skLastPack(r.itemId,r.unit); miSaveDraft(); miRedraw(r.open?`.mi-pcs-n[data-k="${r.k}"]`:null); return; }
+  if(a==="conv" && r){ miConv(r); miSaveDraft(); miRedraw(`.mi-pcs-p[data-k="${r.k}"]`); toast("ok","Переведено в "+r.unit, r.pcs+" шт × "+r.pack+" "+r.unit+" = "+r.qty+" "+r.unit); return; }
+});
+window.__mi = { open: skMultiIn, st: () => SKMI };
 SK_READY=true;
