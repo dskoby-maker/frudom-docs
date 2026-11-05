@@ -7,6 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
+const CODE_VER = 8;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -194,7 +195,7 @@ function handle_(p) {
   lock.waitLock(25000);
   try {
     if (p.action === 'load' && me.admin) seedEis_();
-    if (p.action === 'load') return { ok: true, concurrency: 1, eis: 1, akt: 1, cats: 1, me: me, prefs: (read_('uprefs').find(r => r.id === me.name) || {}).data || '', data: {
+    if (p.action === 'load') return { ok: true, ver: CODE_VER, concurrency: 1, eis: 1, akt: 1, cats: 1, me: me, prefs: (read_('uprefs').find(r => r.id === me.name) || {}).data || '', data: {
       suppliers: me.role === 'staff' ? read_('suppliers').map(s => { const x = Object.assign({}, s); delete x.stamp; delete x.sign; return x; }) : read_('suppliers'), customers: read_('customers'), products: read_('products'), cats: read_('cats'),
       prices: read_('prices'), specs: read_('specs'), contracts: read_('contracts'), journal: read_('journal').slice(-2000),
       daytasks: (function () { const d = new Date(); d.setDate(d.getDate() - 120); const from = Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd');

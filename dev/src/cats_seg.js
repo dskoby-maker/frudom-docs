@@ -8,13 +8,20 @@ const CAT_DEF=[
   {id:"c-veg", name:"Овощи", color:"#3f8f4f", re:/огур|томат|помидор|перец|капуст|картоф|морков|свекл|свёкл|лук|кабач|цукини|баклаж|редис|дайкон|тыкв|батат|сельдер|чеснок|шампиньон|гриб|кукуруз|имбир|хрен|редьк|репа|пастернак|брокколи|спарж/},
   {id:"c-green", name:"Зелень", color:"#6aa84f", re:/укроп|петрушк|кинза|кориандр|базилик|розмарин|тимьян|чабрец|зелен|салат|руккол|шпинат|айсберг|романо|щавел|мят[аы]|эстрагон|майоран/},
   {id:"c-pickle", name:"Соленья и консервы", color:"#8e6c2f", re:/солён|солен|квашен|маринов|консерв|в сиропе|горошек|оливк|маслин/},
+  {id:"c-nuts", name:"Орехи", color:"#8d6e63", re:/орех|миндал|кешью|фундук|арахис|семена|фисташ|пекан/, extra:1},
   {id:"c-dried", name:"Сухофрукты и орехи", color:"#a0522d", re:/изюм|курага|чернослив|финик|орех|миндал|кешью|фундук|арахис|семена|шиповник|инжир|сушён|сушен|сухофрукт|компот|цукат|фисташ/},
   {id:"c-groc", name:"Бакалея", color:"#7a6a58", re:/лавров|дрожж|перец обработ|ванил|казеин|какао|цикорий|кофе|чай|сахар|крахмал|рис\b|рис |горох|фасоль|макарон|вермишел|лапш|изделия макарон|мука|крупа|гречк|пшен|овсян|мёд|мед фас|соль|масло|уксус|молоко|сливки|конфет|сушки|печенье|повидло|джем|сухари|крошка|специ|мак /},
   {id:"c-frozen", name:"Замороженная продукция", color:"#2f7fb0", re:/заморож|морожен|пюре|протёрт|протерт/},
   {id:"c-bread", name:"Хлеб и выпечка", color:"#c9a227", re:/хлеб|батон|тарталет|булк|лаваш|выпечк/}
 ];
 /* порядок проверки: сначала самые «узкие» признаки (заморозка, соленья, бакалея), потом сухофрукты и свежее */
-const CAT_GUESS_ORDER=["c-frozen","c-pickle","c-bread","c-groc","c-dried","c-green","c-berry","c-fruit","c-veg"];
+const CAT_GUESS_ORDER=["c-frozen","c-pickle","c-bread","c-groc","c-nuts","c-dried","c-green","c-berry","c-fruit","c-veg"];
+/* свои категории с похожим названием («Овощи», «Замарозка», «Орехи») тоже узнаются; если нужной нет — ближайшая */
+const CAT_KEYS={"c-fruit":["фрукт"],"c-berry":["ягод"],"c-veg":["овощ"],"c-green":["зелен","зелён"],"c-pickle":["солен","солён","консерв","маринад"],"c-dried":["сухоф","сушен","сушён"],"c-nuts":["орех"],"c-groc":["бакал"],"c-frozen":["замор","замар","мороз"],"c-bread":["хлеб","выпеч"]};
+const CAT_FALL={"c-nuts":"c-dried","c-berry":"c-fruit","c-bread":"c-groc"};
+function catTarget(defId, seen){ const L=D.cats||[]; if(L.some(c=>c.id===defId)) return defId; const k=CAT_KEYS[defId]||[];
+  const own=L.find(c=>{ const n=String(c.name||"").toLowerCase(); return k.some(w=>n.includes(w)); }); if(own) return own.id;
+  const f=CAT_FALL[defId]; if(f && !(seen||[]).includes(f)) return catTarget(f, (seen||[]).concat(defId)); return ""; }
 const CAT_COLORS=["#e0782f","#c2185b","#3f8f4f","#6aa84f","#8e6c2f","#a0522d","#7a6a58","#2f7fb0","#c9a227","#6d4c9f","#00897b","#5d6d7e"];
 const catList = () => (D.cats||[]).slice().sort((a,b)=>(+a.order||0)-(+b.order||0)||String(a.name).localeCompare(String(b.name),"ru"));
 const catById = id => (D.cats||[]).find(c=>c.id===id) || null;
@@ -22,14 +29,14 @@ const catOf = p => p && p.cat ? catById(p.cat) : null;
 const catCan = () => !docLimited() && !!curUser();
 function catGuess(name){ const n=String(name||"").toLowerCase().replace(/ё/g,"е"), L=D.cats||[];
   /* «Сельдерей (корень)» — овощ, «сельдерей черешковый» — тоже; «лук зелёный» — зелень, не овощ */
-  if(/лук\s*(свеж\w*\s*)?зел|зел\w*\s*лук/.test(n)) return L.find(c=>c.id==="c-green")?"c-green":"";
-  for(const id of CAT_GUESS_ORDER){ const d=CAT_DEF.find(x=>x.id===id); if(d && d.re.test(n) && L.some(c=>c.id===id)) return id; }
+  if(/лук\s*(свеж\w*\s*)?зел|зел\w*\s*лук/.test(n)) return catTarget("c-green");
+  for(const id of CAT_GUESS_ORDER){ const d=CAT_DEF.find(x=>x.id===id); if(d && d.re.test(n)){ const t=catTarget(id); if(t) return t; } }
   /* свои категории: название категории встречается в названии товара */
   const own=L.find(c=>!CAT_DEF.some(d=>d.id===c.id) && c.name.length>=4 && n.includes(c.name.toLowerCase().replace(/ё/g,"е").slice(0,5)));
   return own?own.id:""; }
 /* стандартные категории — один раз, когда таблица уже знает лист и он пуст */
 function catSeed(){ if(!D.catSrv || (D.cats||[]).length || !catCan() || lsGet("frudom-cats-seed")) return;
-  D.cats=CAT_DEF.map((d,i)=>({id:d.id, name:d.name, order:String((i+1)*10), color:d.color})); D.cats.forEach(c=>dirty("cats",c.id)); lsSet("frudom-cats-seed","1"); }
+  D.cats=CAT_DEF.filter(d=>!d.extra).map((d,i)=>({id:d.id, name:d.name, order:String((i+1)*10), color:d.color})); D.cats.forEach(c=>dirty("cats",c.id)); lsSet("frudom-cats-seed","1"); }
 const catChip = (c, n, on, attr) => `<button type="button" ${attr} class="catc${on?" on":""}" style="--cc:${esc(c?c.color||"#888":"#9aa19d")}"><i></i>${esc(c?c.name:"Без категории")}${n!=null?` <em>${n}</em>`:""}</button>`;
 const catTag = c => c ? `<span class="cattag" style="--cc:${esc(c.color||"#888")}">${esc(c.name)}</span>` : "";
 function catOptions(sel, withNone){ return (withNone?`<option value=""${!sel?" selected":""}>— без категории —</option>`:"")+catList().map(c=>`<option value="${esc(c.id)}"${c.id===sel?" selected":""}>${esc(c.name)}</option>`).join(""); }
@@ -83,9 +90,11 @@ function pdToolbar(){ const box=$("#pd-cats"); if(!box) return; const q=norm(PDV
   box.innerHTML=`<button type="button" data-pdc="all" class="catc all${PDV.cat==="all"?" on":""}">Все <em>${base.length}</em></button>`
     + catList().map(c=>{ const n=base.filter(p=>p.cat===c.id).length; return n||PDV.cat===c.id?catChip(c,n,PDV.cat===c.id,`data-pdc="${esc(c.id)}"`):""; }).join("")
     + (none?catChip(null,none,PDV.cat==="none",'data-pdc="none"'):"");
-  const nn=D.products.filter(p=>!p.cat && p.name).length, au=$("#pd-auto"), canA=catCan() && (D.cats||[]).length && nn && D.products.some(p=>!p.cat && catGuess(p.name));
+  const nn=D.products.filter(p=>!p.cat && p.name).length, au=$("#pd-auto"), canA=catCan() && D.catSrv && (D.cats||[]).length && nn && D.products.some(p=>!p.cat && catGuess(p.name));
   if(au){ au.hidden=!canA; au.textContent="Разложить по категориям ("+nn+")"; }
-  const mg=$("#pd-catm"); if(mg) mg.hidden=!catCan(); }
+  const mg=$("#pd-catm"); if(mg) mg.hidden=!catCan() || !D.catSrv;
+  /* старый скрипт таблицы не сохраняет категории — не даём их расставлять, чтобы работа не пропала */
+  if(!D.catSrv) box.innerHTML=`<div class="sknoteb catold">Категории заработают после обновления Code.gs в таблице — до этого их нельзя расставить: таблица их не сохранит. <button type="button" class="btn sm" id="srvOldHow">Как обновить</button></div>`; }
 document.addEventListener("click", e=>{ const t=e.target; if(!t.closest) return;
   const c=t.closest("[data-pdc]"); if(c){ PDV.cat=c.dataset.pdc; renderProducts(); return; }
   if(t.closest("#pd-catm")){ catManage(); return; } if(t.closest("#pd-auto")){ catAuto(); return; }

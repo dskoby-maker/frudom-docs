@@ -397,6 +397,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
   #fd-app .sklg-f select{flex:1 1 100%;font-size:16px;min-height:42px}#fd-app .sklg-f .btn{min-height:40px}
   #fd-app .skmr{grid-template-columns:minmax(0,1fr) auto;gap:3px 8px}#fd-app .skmr .skmt{grid-column:1;grid-row:1}#fd-app .skmr .skmq{grid-column:1;grid-row:2}#fd-app .skmr .skmd{grid-column:1/-1;grid-row:3}#fd-app .skmr .sklw{grid-column:2;grid-row:1/3}
 }
+#fd-app .srvold{background:rgba(179,134,0,.12);border:1px solid rgba(179,134,0,.35);display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}#fd-app .srvsteps{margin:12px 0 0;padding-left:20px;display:grid;gap:8px;font-size:14px;line-height:1.45}
 #fd-app .mi-mob{display:none}#fd-app .mi-addr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}#fd-app .mi-addr .mi-one{margin-left:auto}
 #fd-app .mi-ai{display:inline-flex;align-items:center;gap:8px}#fd-app .mi-ai-i{font-size:16px}#fd-app .mi-ai b{font-weight:600}#fd-app .mi-ai small{display:none}
 #fd-app .mi-sup::-webkit-calendar-picker-indicator,#fd-app .mi-name::-webkit-calendar-picker-indicator{display:none!important;opacity:0}
@@ -1046,6 +1047,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
   </div>
 
   <div id="fd-main">
+  <div id="srvOld" class="note srvold" style="margin-top:16px" hidden><b>Скрипт таблицы (Code.gs) старый.</b> Часть новых функций (категории, декларации, штуки на складе) не сохраняется в таблицу, пока его не обновить. <button type="button" class="btn sm" id="srvOldHow">Как обновить</button></div>
   <div id="demoNote" class="note" style="margin-top:16px" hidden>Реквизиты, товары и цены заполнены для примера. Замените их на свои во вкладках «Поставщики», «Товары» и «Заказчики и цены». <button class="btn ghost sm" id="hideDemo">Понятно</button></div>
 
   <section class="tab" id="tab-doc">
@@ -1674,12 +1676,24 @@ function handleErr(e){ if(e.message==="auth"){ showLogin("Неверный па�
   else if(e && !e.net){ setStatus("err","Ошибка таблицы, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Таблица ответила ошибкой","«"+String(e.message||e).slice(0,160)+"». Всё сохранено на этом устройстве, повторю сам. Если повторяется — пришлите этот текст Claude."); } }
   else { setStatus("err","Не сохранено — нет связи, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Нет связи с Google Таблицей",(e&&e.message?"Причина: "+e.message+". ":"")+"Всё сохранено на этом устройстве и отправится автоматически, когда связь появится. Ничего делать не нужно."); } } }
 
+const NEED_VER=8;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
+function srvVerCheck(v){ const el=$("#srvOld"); if(!el) return; const old=(+v||0)<NEED_VER; el.hidden=!old || docLimited(); D.srvVer=+v||0; }
+document.addEventListener("click",e=>{ if(!e.target.closest || !e.target.closest("#srvOldHow")) return; openCard(`<div class="dc-head"><div><div class="dc-kicker">Code.gs</div><h3>Как обновить скрипт таблицы</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+  <ol class="srvsteps"><li>GitHub → файл <b>dev/Code.template.gs</b> → кнопка «Copy raw file» (два квадратика).</li><li>Таблица «Документы ФД» → «Расширения» → «Apps Script» → файл <b>Код.gs</b> → Ctrl+A → Ctrl+V → «Сохранить». Файл «Пароли.gs» не трогать.</li><li>«Начать развёртывание» → «Управление развёртываниями» → карандаш → «Версия: новая версия» → «Развернуть».</li><li>Обновите эту страницу — жёлтая плашка исчезнет.</li></ol>
+  <div class="dc-acts"><button class="btn pri" data-dc="close">Понятно</button></div>`, false, ()=>{}); });
 function applyServer(d){
   rememberBase(d);
   D.suppliers = d.suppliers.map(x=>Object.assign(x,{next:+x.next||1, vat:x.vat||"none"}));
   D.customers = d.customers.map(x=>Object.assign(x,{acct:x.acct||"bank"}));
-  D.products = d.products;
-  if(Array.isArray(d.cats)){ D.cats=d.cats; D.catSrv=true; } else { D.cats=D.cats||[]; D.catSrv=false; }
+  const catMig = Array.isArray(d.cats) && !d.cats.length && (D.cats||[]).length && !D.catSrv;   /* скрипт только что обновили, а на устройстве уже есть категории */
+  { const old={}; (D.products||[]).forEach(p=>{ if(p.cat) old[p.id]=p.cat; });
+    D.products = d.products;
+    /* старый скрипт не знает категорий — не теряем то, что расставлено на устройстве */
+    if(catMig || !Array.isArray(d.cats) || (d.products.length && !("cat" in d.products[0]))) D.products.forEach(p=>{ if(old[p.id] && !p.cat) p.cat=old[p.id]; }); }
+  if(Array.isArray(d.cats)){
+    if(catMig){ D.catSrv=true; D.cats.forEach(c=>dirty("cats",c.id)); D.products.forEach(p=>{ if(p.cat) dirty("products",p.id); }); }   /* скрипт только что обновили: категории с устройства уходят в таблицу */
+    else { D.cats=d.cats; D.catSrv=true; } }
+  else { D.cats=D.cats||[]; D.catSrv=false; }
   serverOld = !Array.isArray(d.contracts) || !Array.isArray(d.specs) || (d.customers.length>0 && !("branches" in d.customers[0]));
   if(Array.isArray(d.contracts)) D.contracts = d.contracts;
   if(Array.isArray(d.specs)){ D.specs={}; d.specs.forEach(r=>{ (D.specs[r.customerId]=D.specs[r.customerId]||{})[r.productId]={spec:r.spec, ste:r.ste, art:r.art}; }); }
@@ -1716,7 +1730,7 @@ async function pull(force){
       Object.keys(D.specs).forEach(c=>Object.keys(D.specs[c]).forEach(p=>dirtySpec(c,p)));
       await flush(); setStatus("ok","Таблица заполнена"); return;
     }
-    applyServer(j.data); if(syncBlocked){rerender();return;} setStatus("ok"); skLoad(true); if(j.concurrency!==1)toast("warn","Нужно обновить Code.gs","Защита от одновременных правок заработает после установки нового скрипта таблицы."); if(serverOld) setStatus("err","Обновите скрипт таблицы (новая версия)"); rerender(); setTimeout(plAuto, 1500);
+    applyServer(j.data); srvVerCheck(j.ver); if(syncBlocked){rerender();return;} setStatus("ok"); skLoad(true); if(j.concurrency!==1)toast("warn","Нужно обновить Code.gs","Защита от одновременных правок заработает после установки нового скрипта таблицы."); if(serverOld) setStatus("err","Обновите скрипт таблицы (новая версия)"); rerender(); setTimeout(plAuto, 1500);
   }catch(e){ handleErr(e); }
 }
 function setStatus(s, text){
@@ -4738,7 +4752,7 @@ function patchAll(){ patchPrivate(); patchKigm(); patchSuppliers(); if(!serverOl
 function renderProducts(){
   pdToolbar(); const L=pdFiltered();
   $("#pd-body").innerHTML=(L.length?"":`<tr><td colspan="8" class="muted" style="padding:12px 6px">Ничего не найдено.</td></tr>`)+L.map(p=>`<tr data-id="${p.id}"><td><input data-k="name" value="${esc(p.name)}" placeholder="Наименование"></td>
-    <td><select data-k="cat" class="pdcat" style="--cc:${esc((catOf(p)||{}).color||"transparent")}">${catOptions(p.cat||"", true)}</select></td>
+    <td><select data-k="cat" class="pdcat" style="--cc:${esc((catOf(p)||{}).color||"transparent")}"${D.catSrv?"":" disabled title=\"Сначала обновите Code.gs\""}>${catOptions(p.cat||"", true)}</select></td>
     <td><input data-k="code" value="${esc(p.code)}" placeholder="00-00000001"></td>
     <td><select data-k="unit">${Object.keys(UNITS).map(u=>`<option${u===p.unit?" selected":""}>${u}</option>`).join("")}</select></td>
     <td><select data-k="country">${Object.entries(COUNTRIES).map(([k,v])=>`<option value="${k}"${k===p.country?" selected":""}>${v}</option>`).join("")}</select></td>
