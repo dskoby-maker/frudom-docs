@@ -27,7 +27,7 @@ function skIdx(){
       if(m.type==="ship"){ o.shipped=r3(o.shipped-(+m.qty||0)); o.cost+=(-(+m.qty||0))*(+m.cost||0); if(m.cost===""||m.cost==null) o.noCost=1; }
       else if(m.type==="close") o.closed=r3(o.closed+(+m.qty||0)); else if(m.type==="ret"){ o.ret=r3(o.ret+(+m.qty||0)); o.retCost+=(+m.qty||0)*(+m.cost||0); } else if(m.type==="direct") o.direct=r3(o.direct+(+m.qty||0)); } });
   S.res.forEach(r=>{ X.resB[r.batchId]=r3((X.resB[r.batchId]||0)+(+r.qty||0)); const k=r.docId+"|"+r.lineId; X.resL[k]=r3((X.resL[k]||0)+(+r.qty||0)); });
-  S.files.forEach(f=>{ (X.filesI[f.itemId]=X.filesI[f.itemId]||[]).push(f); });
+  S.files.forEach(f=>{ const I=dItems(f); I.forEach(id=>{ (X.filesI[id]=X.filesI[id]||[]).push(f); }); });
   Object.values(X.byItem).forEach(L=>L.sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.at).localeCompare(String(b.at))||String(a.id).localeCompare(String(b.id))));
   const seen=new Set(); SK_UNITS0.concat(S.units.map(u=>u.name)).forEach(u=>{ const k=skK(u); if(u && !seen.has(k)){ seen.add(k); X.units.push(u); } });
   SKC=X; return X; }
@@ -150,7 +150,7 @@ function skExpBatches(){ const X=skIdx(), bad=[], soon=[]; X.S.batches.forEach(b
 function skDrawPending(){ const L=skQ(), el=$("#sk-pend"); if(!el) return;
   el.innerHTML = L.length ? `<div class="skpend"><b>Ожидает отправки (${L.length})</b>${L.map(q=>`<div><span>${esc(q.label)}</span><small>${skWhen(q.at)}${q.err?" · "+esc(q.err):""}</small></div>`).join("")}<button type="button" class="btn sm" data-sk="flush">Отправить сейчас</button></div>` : ""; }
 function skDrawList(){
-  const X=skIdx(), q=skK(SKV.q), box=$("#sk-list"); let h="";
+  const X=skIdx(), q=skK(SKV.q), box=$("#sk-list"); let h=""; const qi=$("#sk-q"); if(qi) qi.placeholder=SKV.tab==="files"?"Поиск декларации: товар, номер, изготовитель":SKV.tab==="log"?"Поиск по истории":"Поиск: товар, другое название, позиция документа";
   const hitI = i => !q || [i.name, i.alt||"", ...(i._links||[]).map(pid=>(prod(pid)||{}).name||"")].some(t=>skK(t).includes(q));
   if(SKV.tab==="items"){ const L=X.S.items.filter(hitI).sort((a,b)=>{ const fa=skUnitsOf(a.id).some(u=>u.fact>0), fb=skUnitsOf(b.id).some(u=>u.fact>0); return (fb-fa)||a.name.localeCompare(b.name,"ru"); });
     h = L.length ? L.map((i,k)=>{ const U=skUnitsOf(i.id), bs=(X.byItem[i.id]||[]).filter(b=>skFact(b.id)>0), ex=bs.map(skExp).filter(Boolean).sort()[0], files=(X.filesI[i.id]||[]).length;
@@ -159,8 +159,7 @@ function skDrawList(){
         <span class="skm">${ex?`<span class="skexp ${skExpCls(ex)}">до ${fd(ex)}</span>`:""}${files?`<span class="skf">📄 ${files}</span>`:""}${i.note?`<span class="skf" title="${esc(i.note)}">💬</span>`:""}</span></button>`; }).join("") : `<div class="skempty"><b>${q?"Ничего не найдено":"Склад пока пуст"}</b><span>${q?"Попробуйте другое название.":"Нажмите «+ Приход» или «Начальный остаток», чтобы завести товар."}</span></div>`; }
   if(SKV.tab==="exp"){ const L=X.S.batches.filter(b=>skFact(b.id)>0 && (!q||skK((X.item[b.itemId]||{}).name).includes(q))).sort((a,b)=>(skExp(a)||"9999").localeCompare(skExp(b)||"9999"));
     h = L.length ? L.map(b=>{ const e=skExp(b); return `<button type="button" class="skrow sm" data-skbatch="${b.id}"><span class="skn"><b>${esc((X.item[b.itemId]||{}).name||"")}</b><small>${esc(b.name)} · ${skQf(skFact(b.id),b.unit)}</small></span><span class="skm">${e?`<span class="skexp ${skExpCls(e)}">годен до ${fd(e)}</span>`:`<span class="muted">Срок годности не указан</span>`}</span></button>`; }).join("") : `<div class="skempty"><b>Нет партий с остатком</b></div>`; }
-  if(SKV.tab==="files"){ const L=X.S.files.filter(f=>!q||skK(f.itemName+" "+f.name).includes(q)).sort((a,b)=>String(b.at).localeCompare(String(a.at)));
-    h = `<div class="row"><button type="button" class="btn pri sm" data-sk="attach">+ Прикрепить декларацию</button></div>` + (L.length ? L.map(f=>skFileRow(f, true)).join("") : `<div class="skempty"><b>Деклараций пока нет</b><span>Прикрепите файл при приходе или из карточки товара.</span></div>`); }
+  if(SKV.tab==="files"){ h=skDeclList(SKV.q); }
   if(SKV.tab==="log"){ const pend=skQ().map(x=>({at:x.at, by:x.by, action:"Ожидает отправки", object:x.label, pend:1}));
     const L=pend.concat(X.S.log.slice().reverse()).filter(l=>(!q||skK([l.action,l.object,l.before,l.after,l.reason,l.by].join(" ")).includes(q)) && (!SKV.hf||l.action===SKV.hf||(SKV.hf==="Резерв"&&/^Резерв/.test(l.action))));
     const acts=[...new Set(X.S.log.map(l=>/^Резерв/.test(l.action)?"Резерв":l.action))].sort();
@@ -170,9 +169,7 @@ function skDrawList(){
 }
 const skExpCls = e => { const d=Math.round((new Date(e+"T12:00:00")-new Date(todayISO()+"T12:00:00"))/864e5); return d<0?"bad":d<=7?"warn":""; };
 const skLogRow = l => `<div class="sklr${l.pend?" pend":""}"><span class="skla">${esc(l.action)}</span><span class="sklo"><b>${esc(l.object||"")}</b>${l.before||l.after?`<small>${l.before&&l.before!=="—"?esc(l.before)+" → ":""}${esc(l.after||"")}</small>`:""}${l.reason?`<small class="muted">${esc(l.reason)}</small>`:""}</span><span class="sklw">${esc(l.by||"")}<small>${skWhen(l.at)}</small></span></div>`;
-function skFileRow(f, showItem){ const im=/^image\//.test(f.mime), pdf=f.mime==="application/pdf";
-  return `<div class="skfile"><span class="skfi">${pdf?"PDF":im?"Фото":"Файл"}</span><span class="skfn"><b>${esc(f.name)}</b><small>${showItem?esc(f.itemName)+" · ":""}${f.batchId?esc(f.batchName):"весь товар"} · ${esc(f.by)} · ${skWhen(f.at)}</small></span>
-    <span class="skfa">${im||pdf?`<button type="button" class="btn ghost sm" data-skfview="${f.id}">Открыть</button>`:""}<button type="button" class="btn ghost sm" data-skfget="${f.id}">Скачать</button><button type="button" class="btn ghost sm danger" data-skfdel="${f.id}" aria-label="Удалить">×</button></span></div>`; }
+function skFileRow(f){ return dRow(f); }   /* декларация — одна и та же строка везде (decl_seg.js) */
 
 /* ---------- карточка товара ---------- */
 let SKI={id:"", f:"", edit:false, linkQ:""};
@@ -437,12 +434,12 @@ document.addEventListener("click", async e=>{
   if(a==="inv"){ skInv(); return; }
   if(a==="flush"){ skFlushQ(); return; }
   if(a==="more"){ SKV.shown+=100; skDrawList(); return; }
-  if(a==="attach"){ skAttachPick(); return; }
+  if(a==="attach"){ dForm(); return; }
   if(a==="reload"){ skLoad(); return; }
   if(a==="item"){ skItemCard(b.dataset.id); return; }
   if(a==="inItem"){ const id=SKI.id; skInForm("in", id); return; }
-  if(a==="attachItem"){ skPickFile(SKI.id,""); return; }
-  if(a==="attachBatch"){ const bt=skIdx().batch[SKB.id]; if(bt) skPickFile(bt.itemId, bt.id); return; }
+  if(a==="attachItem"){ const it=skIdx().item[SKI.id], back=SKI.id; if(it) dForm({chips:[{t:it.name, item:it.id}]}, ()=>skItemCard(back)); return; }
+  if(a==="attachBatch"){ const bt=skIdx().batch[SKB.id], it=bt&&skIdx().item[bt.itemId], back=SKB.id; if(it) dForm({chips:[{t:it.name, item:it.id}], batchId:bt.id}, ()=>skBatchCard(back)); return; }
   if(a==="resclose"){ SKI.resU=null; skModalRefresh(); return; }
   if(a==="itemEdit"){ SKI.edit=true; skModalRefresh(); return; } if(a==="itemEditOff"){ SKI.edit=false; skModalRefresh(); return; }
   if(a==="itemSave"){ const u=skVal(".skiu"); const j=await skDo("item",{itemId:SKI.id, name:skVal(".skin"), alt:skVal(".skalt"), unit:u==="__new"?undefined:u},"Товар склада","Сохранено",b); if(j){ SKI.edit=false; skModalRefresh(); } return; }

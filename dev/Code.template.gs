@@ -59,7 +59,7 @@ const S = {
   sres: { title: 'Склад: резервы', key: 'id', cols: [
     ['doc','Документ'],['itemName','Товар'],['qty','Количество'],['unit','Ед.'],['id','ID (не менять)'],['docId','ID документа'],['lineId','ID строки'],['itemId','ID товара'],['batchId','ID партии'],['at','Когда'],['op','Операция']]},
   sfiles: { title: 'Склад: декларации', key: 'id', cols: [
-    ['name','Файл'],['itemName','Товар'],['batchName','Партия'],['by','Кто'],['at','Когда'],['mime','Тип'],['size','Размер'],['id','ID (не менять)'],['itemId','ID товара'],['batchId','ID партии'],['file','ID файла на Диске'],['op','Операция']]},
+    ['name','Файл'],['itemName','Товар'],['batchName','Партия'],['by','Кто'],['at','Когда'],['mime','Тип'],['size','Размер'],['id','ID (не менять)'],['itemId','ID товара'],['batchId','ID партии'],['file','ID файла на Диске'],['op','Операция'],['goods','Что в декларации'],['num','№ декларации'],['validTo','Действует до'],['maker','Изготовитель'],['note','Комментарий'],['items','Товары склада (ID)'],['prods','Позиции документов (ID)']]},
   sacts: { title: 'Склад: инвентаризация', key: 'id', cols: [['at','Когда'],['by','Кто'],['diff','Расхождений'],['rows','Строки акта (не редактировать)'],['id','ID (не менять)'],['op','Операция']]},
   slog: { title: 'Склад: история', key: 'id', cols: [
     ['at','Когда'],['by','Кто'],['action','Действие'],['object','Объект'],['before','Было'],['after','Стало'],['reason','Причина'],['id','ID'],['docId','ID документа'],['batchId','ID партии'],['itemId','ID товара'],['op','Операция']]},
@@ -101,13 +101,20 @@ const AI_PROMPT_IN_ = [
   '"items":[{"name":"наименование как написано","unit":"единица (кг, шт, уп…)","qty":количество числом,"price":цена за единицу числом или null,"sum":сумма строки числом или null,"unsure":true если плохо видно или исправлено от руки}]}',
   'Правила: строки «Итого», «Всего», «НДС» не включай; «Мест» — это не количество; десятичные числа с точкой; пробелы и апострофы в числах убери (2\'500.00 → 2500).'
 ].join('\n');
+/* декларация о соответствии / сертификат */
+const AI_PROMPT_DECL_ = [
+  'Это декларация о соответствии ЕАЭС (или сертификат) на пищевую продукцию — скан или фото. Перепиши в JSON строго по тексту, ничего не придумывай.',
+  'Формат: {"number":"регистрационный номер декларации как написано (например ЕАЭС N RU Д-RU.РА01.В.12345/24)","validTo":"срок действия «по» или «до» в виде ДД.ММ.ГГГГ или пусто",',
+  '"maker":"изготовитель (кратко, как написано)","applicant":"заявитель (кратко)","goods":["каждый вид продукции отдельно, коротко и в именительном падеже, например Огурцы свежие, Томаты свежие"]}',
+  'Правила: в goods только сами продукты, без ГОСТ, ТР ТС и кодов ТН ВЭД; если перечислено через запятую — разбей на отдельные строки.'
+].join('\n');
 function aiRead_(p) {
   const pr = PropertiesService.getScriptProperties(), key = pr.getProperty('GEMINI_KEY');
   if (!key) return { ok: false, error: 'nokey' };
   const mime = String(p.mime || ''), data = String(p.data || '');
   if (!/^(application\/pdf|image\/(jpeg|png|webp|heic|heif))$/.test(mime)) return { ok: false, error: 'такой файл ИИ не читает — нужен PDF или фото' };
   if (data.length > 18e6) return { ok: false, error: 'файл больше 13 МБ — для ИИ слишком большой' };
-  const body = { contents: [{ parts: [{ inline_data: { mime_type: mime, data: data } }, { text: p.kind === 'in' ? AI_PROMPT_IN_ : AI_PROMPT_ }] }], generationConfig: { temperature: 0, responseMimeType: 'application/json' } };
+  const body = { contents: [{ parts: [{ inline_data: { mime_type: mime, data: data } }, { text: p.kind === 'in' ? AI_PROMPT_IN_ : p.kind === 'decl' ? AI_PROMPT_DECL_ : AI_PROMPT_ }] }], generationConfig: { temperature: 0, responseMimeType: 'application/json' } };
   const models = [pr.getProperty('GEMINI_MODEL') || 'gemini-flash-latest', 'gemini-3.8-flash']; let last = '';
   for (let i = 0; i < models.length; i++) {
     const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + models[i] + ':generateContent',
@@ -534,7 +541,7 @@ function stState_(limitLog) {
       if (m.type === 'ship') { o.shipped = stR3_(o.shipped - (+m.qty || 0)); o.cost += (-(+m.qty || 0)) * (+m.cost || 0); if (m.cost === '' || m.cost == null) o.noCost = 1; }
       else if (m.type === 'close') o.closed = stR3_(o.closed + (+m.qty || 0)); else if (m.type === 'ret') { o.ret = stR3_(o.ret + (+m.qty || 0)); o.retCost += (+m.qty || 0) * (+m.cost || 0); } else if (m.type === 'direct') o.direct = stR3_(o.direct + (+m.qty || 0)); } });
   return { units: stRows_('sunits', done), items: stRows_('sitems', done), batches: stRows_('sbatches', done), moves: recent, agg: agg, keepDays: ST_KEEP_DAYS,
-    res: stRows_('sres', done), files: stRows_('sfiles', done).map(f => { const x = Object.assign({}, f); delete x.file; return x; }), acts: stRows_('sacts', done),
+    res: stRows_('sres', done), files: stRows_('sfiles', done).map(f => { const x = Object.assign({}, f); delete x.file; return x; }), acts: stRows_('sacts', done), decl: 2,
     log: log.slice(-(limitLog || 1500)), at: new Date().toISOString() };
 }
 const stUnitOk_ = u => !!stN_(u) && stN_(u).length <= 20;
@@ -730,6 +737,24 @@ function stInRow_(d, me, c, rid, n, W) {
   return { batchId: b.id, itemId: it.id };
 }
 
+/* описание декларации: товары склада, позиции документов, что в ней (текстом), номер, срок, изготовитель */
+function stDeclMeta_(d, c, f) {
+  const arr = v => (Array.isArray(v) ? v : stParse_(v, [])).map(x => String(x || '').trim()).filter(Boolean).filter((x, i, a) => a.indexOf(x) === i);
+  const items = d.items != null ? arr(d.items) : (f ? stParse_(f.items, []) : []);
+  if (d.itemId && items.indexOf(String(d.itemId)) < 0) items.unshift(String(d.itemId));
+  items.forEach(id => { if (!c.item[id]) stErr_('Товар склада не найден — обновите страницу'); });
+  const goodsL = d.goods != null ? arr(d.goods).map(stN_).slice(0, 60) : null;
+  const o = { items: JSON.stringify(items), itemId: items[0] || (f ? f.itemId : '') || '', itemName: items.map(id => c.item[id].name).join('; ') || (f ? f.itemName : '') || '' };
+  if (goodsL) o.goods = goodsL.join('; '); else if (!f) o.goods = o.itemName;
+  if (d.prods != null) o.prods = JSON.stringify(arr(d.prods).slice(0, 200));
+  if (d.num != null) o.num = stN_(d.num).slice(0, 120);
+  if (d.validTo != null) o.validTo = d.validTo ? stDate_(d.validTo, 'срок действия') : '';
+  if (d.maker != null) o.maker = stN_(d.maker).slice(0, 200);
+  if (d.note != null) o.note = String(d.note).slice(0, 1000).trim();
+  const goodsF = o.goods != null ? o.goods : (f ? f.goods || f.itemName : ''), prodsF = stParse_(o.prods != null ? o.prods : (f ? f.prods : '[]'), []);
+  if (!stN_(goodsF) && !items.length && !prodsF.length) stErr_('Укажите, на какие товары декларация');
+  return o;
+}
 const ST_OPS = {
   /* новый складской товар или правка: название, другие названия, комментарий, основная единица, связи с позициями документов */
   item: function (d, me, c, rid) {
@@ -793,7 +818,8 @@ const ST_OPS = {
     c.sbatches.filter(x => x.itemId === a.id).forEach(x => W.sbatches.upsert.push(Object.assign({}, x, { itemId: b.id, itemName: b.name })));
     c.smoves.filter(x => x.itemId === a.id).forEach(x => W.smoves.upsert.push(Object.assign({}, x, { itemId: b.id, itemName: b.name })));
     c.sres.filter(x => x.itemId === a.id).forEach(x => W.sres.upsert.push(Object.assign({}, x, { itemId: b.id, itemName: b.name })));
-    c.sfiles.filter(x => x.itemId === a.id).forEach(x => W.sfiles.upsert.push(Object.assign({}, x, { itemId: b.id, itemName: b.name })));
+    c.sfiles.filter(x => x.itemId === a.id || stParse_(x.items, []).indexOf(a.id) >= 0).forEach(x => { const I = stParse_(x.items, []).map(y => y === a.id ? b.id : y).filter((y, i, arr) => arr.indexOf(y) === i);
+      W.sfiles.upsert.push(Object.assign({}, x, { itemId: x.itemId === a.id ? b.id : x.itemId, itemName: x.itemId === a.id ? b.name : x.itemName, items: I.length ? JSON.stringify(I) : (x.items || '') })); });
     stLog_(W, rid, me, 0, { action: 'Товары объединены', object: b.name, before: '«' + a.name + '» + «' + b.name + '»', after: '«' + b.name + '»', reason: 'партий перенесено: ' + W.sbatches.upsert.length, itemId: b.id });
     return { W: W, out: { itemId: b.id } };
   },
@@ -931,7 +957,7 @@ const ST_OPS = {
   },
   /* декларация: файл в закрытой папке Диска; повтор того же запроса находит уже загруженный файл по имени и не дублирует его */
   file: function (d, me, c, rid) {
-    const it = c.item[d.itemId]; if (!it) stErr_('Товар склада не найден');
+    const m0 = stDeclMeta_(d, c, null);
     if (d.batchId && !c.batch[d.batchId]) stErr_('Партия не найдена');
     const mime = String(d.mime || ''), name = stN_(d.name).replace(/[\\/:*?"<>|]+/g, ' ').slice(0, 150) || 'декларация';
     if (!ST_MIME[mime]) stErr_('Такой тип файла не поддерживается. Можно PDF, фото (JPG, PNG, WEBP, HEIC), Word, Excel');
@@ -941,9 +967,20 @@ const ST_OPS = {
     const it2 = folder.getFilesByName ? folder.getFilesByName(fname) : null; if (it2 && it2.hasNext()) file = it2.next();
     if (!file) file = folder.createFile(Utilities.newBlob(Utilities.base64Decode(data), mime, fname));
     const b = d.batchId ? c.batch[d.batchId] : null, at = new Date().toISOString();
-    const W = { sfiles: { upsert: [{ id: rid + ':f', name: name, itemName: it.name, batchName: b ? b.name : '(весь товар)', by: me.name, at: at, mime: mime, size: String(Math.round(data.length * 0.75)), itemId: it.id, batchId: b ? b.id : '', file: file.getId() }] } };
-    stLog_(W, rid, me, 0, { action: 'Декларация прикреплена', object: it.name + (b ? ' — ' + b.name : ' (весь товар)'), after: name, itemId: it.id, batchId: b ? b.id : '' });
-    return { W: W, out: { fileId: rid + ':f' } };
+    const row = Object.assign({ id: rid + ':f', name: name, batchName: b ? b.name : '', by: me.name, at: at, mime: mime, size: String(Math.round(data.length * 0.75)), batchId: b ? b.id : '', file: file.getId() }, m0);
+    const W = { sfiles: { upsert: [row] } };
+    stLog_(W, rid, me, 0, { action: 'Декларация добавлена', object: row.goods || row.itemName || name, after: name + (row.num ? ' · № ' + row.num : '') + (row.validTo ? ' · до ' + stD_(row.validTo) : ''), itemId: row.itemId, batchId: row.batchId });
+    return { W: W, out: { fileId: row.id } };
+  },
+  /* правка описания декларации: что в ней, номер, срок, изготовитель (файл не меняется) */
+  fileEdit: function (d, me, c, rid) {
+    const f = c.sfiles.find(x => x.id === String(d.id || '')); if (!f) stErr_('Декларация не найдена — обновите страницу');
+    const m = stDeclMeta_(d, c, f), nf = Object.assign({}, f, m), ch = [];
+    [['goods', 'что в декларации'], ['num', '№'], ['validTo', 'срок'], ['maker', 'изготовитель'], ['note', 'комментарий'], ['prods', 'позиции документов']].forEach(([k, t]) => { if (String(f[k] || '') !== String(nf[k] || '')) ch.push(t); });
+    if (!ch.length) return { W: {} };
+    const W = { sfiles: { upsert: [nf] } };
+    stLog_(W, rid, me, 0, { action: 'Декларация изменена', object: nf.goods || nf.name, before: f.goods || '—', after: 'изменено: ' + ch.join(', '), itemId: nf.itemId });
+    return { W: W };
   },
   fileDel: function (d, me, c, rid) {
     const f = c.sfiles.find(x => x.id === String(d.id || '')); if (!f) stErr_('Файл уже удалён');

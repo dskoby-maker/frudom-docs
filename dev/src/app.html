@@ -330,6 +330,37 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .mi-foot{margin-top:12px}#fd-app .mi-sum1{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;font-size:14px}
 #fd-app .mi-okb{color:var(--ok);font-weight:600}#fd-app .mi-bad{color:var(--err);font-weight:600}
 #fd-app .mi-errs{display:grid;gap:3px;margin-top:8px;padding:8px 12px;border-radius:10px;background:rgba(198,40,40,.07);color:var(--err);font-size:12.5px}
+#fd-app .dcl-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}#fd-app .dcl-tip{font-size:12px}#fd-app .dcl-chips{margin-bottom:10px}#fd-app .dcl-chips em{font-style:normal;opacity:.6;margin-left:2px}
+#fd-app .dcl-list{display:grid;gap:6px}
+#fd-app .dcl{display:grid;grid-template-columns:44px minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.82);border:1px solid rgba(28,34,32,.07);animation:fdin .28s ease both;animation-delay:var(--d,0ms);transition:box-shadow .2s}
+#fd-app .dcl:hover{box-shadow:0 6px 18px -10px rgba(28,34,32,.3)}
+#fd-app .dcl-i{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;font-size:11px;font-weight:700;letter-spacing:.02em;background:rgba(122,38,74,.10);color:#7a264a}#fd-app .dcl-i.img{background:rgba(31,95,122,.12);color:#1f5f7a}#fd-app .dcl-i.doc{background:rgba(28,34,32,.07);color:var(--muted)}
+#fd-app .dcl-m{min-width:0;display:block}#fd-app .dcl-g{display:flex;flex-wrap:wrap;gap:4px}#fd-app .dcl-g i{font-style:normal;font-size:13px;font-weight:600;padding:2px 9px;border-radius:999px;background:rgba(46,107,69,.10);color:#24553a}#fd-app .dcl-g i.more{background:rgba(28,34,32,.06);color:var(--muted)}#fd-app .dcl-g i.miss{background:rgba(179,38,30,.08);color:var(--err)}
+#fd-app .dcl-m small{display:block;margin-top:4px;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fd-app .dcl-v{display:inline-block;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap;background:rgba(46,107,69,.10);color:#24553a}#fd-app .dcl-v.warn{background:rgba(179,134,0,.14);color:#7a5a00}#fd-app .dcl-v.bad{background:rgba(179,38,30,.10);color:var(--err)}#fd-app .dcl-v.none{background:rgba(28,34,32,.06);color:var(--muted);font-weight:500}
+#fd-app .dcl-a{display:flex;gap:4px}#fd-app .dcl-a .btn{min-width:34px}
+#fd-app .dcf-file{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap;margin-top:12px}
+#fd-app .dcf-drop{flex:1 1 260px;display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:14px;border:1.5px dashed rgba(122,38,74,.35);background:rgba(122,38,74,.04);cursor:pointer;transition:background .2s,border-color .2s}#fd-app .dcf-drop:hover{background:rgba(122,38,74,.08)}#fd-app .dcf-drop.has{border-style:solid;border-color:rgba(46,107,69,.35);background:rgba(46,107,69,.05)}
+#fd-app .dcf-drop b{display:block;font-size:14px}#fd-app .dcf-drop small{display:block;font-size:12px;color:var(--muted)}#fd-app .dcf-ic{font-size:26px}#fd-app .dcf-fl{flex:1;display:grid;gap:4px;min-width:0}#fd-app .dcf-fl span{display:flex;gap:8px;align-items:baseline;min-width:0}#fd-app .dcf-fl b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fd-app .dcf-ch{font-size:12.5px;font-weight:600;color:#7a264a}
+#fd-app .dcf-ai{align-self:center}#fd-app .dcf-ai .spin,#fd-app .dd-opts+.dc-acts .spin,#fd-app [data-dd] .spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;margin-right:6px;vertical-align:-1px;animation:fdspin .8s linear infinite}
+#fd-app .dcf-goods{margin-top:14px}#fd-app .dcf-lbl{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);margin-bottom:6px}
+#fd-app .dcf-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding:8px;border-radius:14px;border:1px solid rgba(28,34,32,.14);background:#fff;min-height:48px;transition:box-shadow .2s}#fd-app .dcf-chips:focus-within{box-shadow:0 0 0 3px rgba(122,38,74,.15);border-color:rgba(122,38,74,.4)}
+#fd-app .dcf-c{display:inline-flex;align-items:center;gap:4px;padding:4px 4px 4px 11px;border-radius:999px;background:rgba(46,107,69,.10);color:#24553a;font-size:13.5px;font-weight:600;animation:fdin .2s ease}#fd-app .dcf-c.lk{background:rgba(31,95,122,.12);color:#1f5f7a}
+#fd-app .dcf-c button{border:0;background:rgba(255,255,255,.7);border-radius:50%;width:22px;height:22px;cursor:pointer;font:inherit;line-height:1;color:inherit}
+#fd-app .dcf-q{flex:1 1 140px;min-width:120px;border:0!important;outline:0;box-shadow:none!important;background:transparent;padding:6px 4px;font-size:15px}
+#fd-app .dcf-sug{display:grid;gap:4px;margin-top:6px}#fd-app .dcf-s{display:flex;justify-content:space-between;gap:10px;align-items:baseline;text-align:left;border:0;border-radius:10px;padding:8px 12px;background:rgba(242,243,239,.8);font:inherit;cursor:pointer;color:inherit}#fd-app .dcf-s:hover{background:rgba(122,38,74,.08)}#fd-app .dcf-s small{color:var(--muted);font-size:12px;text-align:right}#fd-app .dcf-s.new b{color:#7a264a}
+#fd-app .dcf-meta{margin-top:14px}
+#fd-app .dd-sum{display:flex;flex-wrap:wrap;gap:6px 16px;margin:12px 0 4px;font-size:14px}#fd-app .dd-sum .pos{color:var(--ok);font-weight:600}
+#fd-app .dd-list{display:grid;gap:8px;margin-top:8px}
+#fd-app .dd-p{padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.82);border:1px solid rgba(28,34,32,.07);animation:fdin .28s ease both;animation-delay:var(--d)}#fd-app .dd-p.miss{border-color:rgba(179,38,30,.25);background:rgba(179,38,30,.03)}
+#fd-app .dd-ph{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}#fd-app .dd-ph small{color:var(--muted)}#fd-app .dd-ph em{font-style:normal;font-size:12px;font-weight:600;color:var(--err);margin-left:auto}
+#fd-app .dd-os{display:grid;gap:4px;margin-top:8px}
+#fd-app .dd-o{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:7px 10px;border-radius:10px;background:rgba(242,243,239,.7);cursor:pointer;transition:background .2s}#fd-app .dd-o.on{background:rgba(46,107,69,.09)}#fd-app .dd-o.bad{opacity:.75}
+#fd-app .dd-o b{display:block;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fd-app .dd-o small{display:block;font-size:12px;color:var(--muted)}#fd-app .dd-o input{width:18px;height:18px;accent-color:#2f6b45}
+#fd-app .dd-more{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}#fd-app .dd-pick{flex:1 1 220px;min-width:0;max-width:100%}
+#fd-app .dd-opts{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13px}
+@media (max-width:760px){#fd-app .dcl{grid-template-columns:40px minmax(0,1fr);gap:8px 10px}#fd-app .dcl-i{width:40px;height:40px}#fd-app .dcl-s{grid-column:2}#fd-app .dcl-a{grid-column:1/-1;justify-content:flex-end}#fd-app .dcl-a .btn{min-height:40px;min-width:44px}#fd-app .dcl-tip{display:none}
+  #fd-app .dcf-ai{flex:1 1 100%;min-height:46px}#fd-app .dcf-q{font-size:16px}#fd-app .dcf-meta input{font-size:16px}#fd-app .dd-o{padding:10px}#fd-app .dd-o input{width:22px;height:22px}#fd-app .dd-pick{font-size:16px;min-height:44px}#fd-app .dd-more .btn{min-height:44px}}
 #fd-app .mi-mob{display:none}#fd-app .mi-addr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}#fd-app .mi-addr .mi-one{margin-left:auto}
 #fd-app .mi-ai{display:inline-flex;align-items:center;gap:8px}#fd-app .mi-ai-i{font-size:16px}#fd-app .mi-ai b{font-weight:600}#fd-app .mi-ai small{display:none}
 #fd-app .mi-sup::-webkit-calendar-picker-indicator,#fd-app .mi-name::-webkit-calendar-picker-indicator{display:none!important;opacity:0}
@@ -3906,7 +3937,7 @@ function docCard(j, arch){
   const k=calc(j.snap.dr, j.snap), dr=j.snap.dr, m=j.snap.meta||{}, w=jWho(j), lim=docLimited(), inG=!arch && jKey(j) && D.journal.filter(x=>x.snap&&!isArch(x)&&jKey(x)===jKey(j)).length>1;
   const info=[["Поставщик",j.snap.s.name||""],["Адрес доставки",dr.ship||j.snap.c.address||""],["Основание",dr.basis||""]].concat(whoLine(j)).filter(x=>x[1]);
   const acts = arch ? `<button class="btn" data-dc="close">Закрыть</button>`
-    : (j.snap.c&&j.snap.c.priv?`<button class="btn" data-dc="nakl">Накладная</button>`:`<button class="btn" data-dc="combo">Счёт+ТОРГ</button><button class="btn" data-dc="upd">УПД</button>`)+(inG&&!lim?`<button class="btn" data-dc="gedit">Редактировать комплект</button>`:"")+(me().admin?`<button class="btn" data-zkc="toggle" aria-expanded="false">${dcZkHas(j)?"Закупка ✓":"Добавить закупку"}</button>`:"")+(lim?`<button class="btn pri" data-dc="qty">Изменить количество</button>`:`<button class="btn pri" data-dc="edit">Изменить</button>`);
+    : `<button class="btn" data-dc="decl" title="Скачать декларации на товары документа">Декларации</button>`+(j.snap.c&&j.snap.c.priv?`<button class="btn" data-dc="nakl">Накладная</button>`:`<button class="btn" data-dc="combo">Счёт+ТОРГ</button><button class="btn" data-dc="upd">УПД</button>`)+(inG&&!lim?`<button class="btn" data-dc="gedit">Редактировать комплект</button>`:"")+(me().admin?`<button class="btn" data-zkc="toggle" aria-expanded="false">${dcZkHas(j)?"Закупка ✓":"Добавить закупку"}</button>`:"")+(lim?`<button class="btn pri" data-dc="qty">Изменить количество</button>`:`<button class="btn pri" data-dc="edit">Изменить</button>`);
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Документ № ${esc(j.number)} · ${fd(j.date)}</div><h3>${esc(w.main)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <dl class="dc-info">${info.map(([a,b])=>`<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>
     ${linesTable(k)}
@@ -3917,6 +3948,7 @@ function docCard(j, arch){
     ${!arch&&me().admin?`<div class="dc-zk" id="dc-zk" data-doc="${j.id}"><div class="dc-zki" id="dc-zki"></div></div>`:""}
     <div class="dc-acts">${acts}</div>`, false, a=>{
       if(a==="gedit"){ bundleEdit(D.journal.filter(x=>x.snap&&!isArch(x)&&jKey(x)===jKey(j)).sort(jNumSort)); return; }
+      if(a==="decl"){ skDeclDocs([j]); return; }
       const fake=document.createElement("button"); fake.dataset[{combo:"comboJ",upd:"p",nakl:"p",edit:"edit",qty:"qty"}[a]] = (a==="upd"||a==="nakl") ? a : j.id; if(a==="upd"||a==="nakl") fake.dataset.id=j.id;
       onJClick(arch)({target:fake}); });
 }
@@ -3960,7 +3992,7 @@ function bundleCard(g, arch){
   const info=[["Поставщик",g[0].snap.s.name||""],["Основание",g[0].snap.dr.basis||""],["Документы","№ "+(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))]].filter(x=>x[1]);
   const docs=g.map((j,i)=>{ const k=ks[i]; return `<section class="dc-doc" style="animation-delay:${Math.min(i,8)*0.04}s"><button class="dc-dh" data-dc="doc" data-id="${j.id}" title="Открыть документ"><span><b>№ ${esc(j.number)}</b> · ${esc(kLbl(j)||stLabel(k.dr.ship||k.c.address||"", k.c.address))}</span><span class="s">${fm(k.t.sum)} ₽ ›</span></button>${linesTable(k)}</section>`; }).join("");
   const acts = arch ? `<button class="btn" data-dc="close">Закрыть</button>`
-    : `<button class="btn" data-dc="gpdf" data-k="invoice,torg12">Счета+ТОРГ</button><button class="btn" data-dc="gpdf" data-k="upd">Все УПД</button>`+(lim?"":`<button class="btn pri" data-dc="gedit">Редактировать комплект</button>`);
+    : `<button class="btn" data-dc="decl">Декларации</button><button class="btn" data-dc="gpdf" data-k="invoice,torg12">Счета+ТОРГ</button><button class="btn" data-dc="gpdf" data-k="upd">Все УПД</button>`+(lim?"":`<button class="btn pri" data-dc="gedit">Редактировать комплект</button>`);
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Комплект · ${g.length} ${docsWord(g.length)} · ${fd(g[0].date)}</div><h3>${esc(w.main)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <dl class="dc-info">${info.map(([a,b])=>`<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>
     <div class="dc-docs">${docs}</div>
@@ -3969,6 +4001,7 @@ function bundleCard(g, arch){
     <div class="dc-acts">${acts}</div>`, true, (a,b)=>{
       if(a==="doc"){ const j=D.journal.find(x=>x.id===b.dataset.id); if(j) docCard(j, arch); return; }
       if(a==="gedit"){ bundleEdit(g); return; }
+      if(a==="decl"){ skDeclDocs(g); return; }
       if(a==="gpdf"){ const kinds=b.dataset.k.split(","); showPreviewSet(ks.flatMap(k=>kinds.map(kind=>({kind,k}))), kinds.map(x=>KSHORT[x]).join(" и ")+" № "+(nums.length>1?nums[0]+"–"+nums[nums.length-1]:nums[0])+" от "+fd(g[0].date)+" — "+shortCus(ks[0])); } });
 }
 /* ---------- редактирование комплекта во вкладке «Заявка» ---------- */
@@ -5439,6 +5472,9 @@ const HELP={
   "Объединить товары":["Если один товар завели дважды (например, «Огурец» и «Огурцы»).","Всё переедет в выбранный товар: партии, остатки, резервы, декларации, связи. Второе название станет «другим названием» для поиска."],
   "Отменить приход":["Для ошибочного прихода (не тот товар, задвоили).","Можно, только пока из партии ничего не брали. Если уже брали — исправьте количество с причиной или сделайте инвентаризацию."],
   "Приход по накладной":["Одна накладная — много товаров за раз. Поставщик, дату и номер накладной впишите один раз сверху.","Товары: вписывайте по строкам (Enter — следующая строка), или скопируйте строки из Excel и вставьте в поле «Товар», или нажмите «Фото накладной» — ИИ сам заполнит строки. Можно вписать цену за единицу или сумму строки — второе посчитается само. Кнопка «шт» — если купили поштучно, а храним в кг. Впишите «Сумму по накладной» — сайт покажет, сходится ли итог. Проводится всё сразу: либо вся накладная, либо ничего. Если закрыть окно, черновик останется."],
+  "Декларации":["Все декларации о соответствии в одном месте. В поиске пишите товар («огурцы»), номер или изготовителя; фильтры сверху — действующие, истекают в ближайший месяц, истекли.","При добавлении укажите, на какие товары декларация — можно несколько. Тогда в любом документе кнопка «Декларации» сама найдёт нужные и скачает их одним PDF."],
+  "Товары в декларации":["Перечислите всё, что указано в декларации: огурцы, томаты, перец… Впишите и нажмите Enter — сайт найдёт декларацию в документах с похожими товарами («по названию»).","Со значком 🔗 — точная привязка к товару склада или позиции документов: такая декларация подставится всегда. Привязка добавляется и сама, когда вы скачиваете декларации к документу с галочкой «Запомнить выбор»."],
+  "Декларации к документу":["Для каждого товара документа сайт подобрал декларации: «привязана» — точно эта позиция, «по названию» — похожее название. Отметьте нужные галочками.","«Скачать одним PDF» соберёт все выбранные файлы в один PDF (первая страница — список товаров и номеров деклараций). Word и Excel в PDF не вставляются — для них есть «ZIP-архив». Истёкшие к дате поставки отмечены красным и не выбираются сами."],
   "Штуки в приходе":["Для товара, который купили поштучно, а продаём в кг: пачки макарон, банки, бутылки.","Впишите, сколько штук и сколько весит одна — сайт сам посчитает кг. Если в накладной цена за штуку, впишите её — цена за кг посчитается сама. Остатки, резерв и отгрузка остаются в кг, а штуки показываются рядом, чтобы не считать вручную. В следующий приход этого товара вес 1 шт подставится сам."],
   "Перевзвешивание":["Товар пришёл мешками или коробками, а продаём в кг.","Впишите, сколько упаковок взвесили и сколько вышло кг. Стоимость упаковок перейдёт в новую партию в кг, срок годности и декларации — те же."],
   "Приход на склад":["Товар пришёл на склад.",["Начните вводить название — покажу похожие товары. Нового товара нет — он добавится сам.","Цена — за единицу. Не знаете — оставьте пусто, прибыль будет «предварительной».","Если похожий приход уже был — сайт переспросит, чтобы не задвоить."]],
