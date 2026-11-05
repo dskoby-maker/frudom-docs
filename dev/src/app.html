@@ -395,6 +395,9 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .aktfh{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:flex-end;margin-bottom:8px}#fd-app .aktfh .f{margin:0}#fd-app .aktfm input{width:auto}#fd-app .aktfh .btn.dis{opacity:.6;pointer-events:none}
 #fd-app .aktfl{display:grid;gap:2px}
 @media(max-width:700px){#fd-app .tbl table.akt-t{min-width:0}#fd-app table.akt-t th:nth-child(4),#fd-app table.akt-t td:nth-child(4),#fd-app table.akt-t th:nth-child(6),#fd-app table.akt-t td:nth-child(6){display:none}#fd-app table.akt-t tfoot td[colspan]{font-size:13px}}
+#fd-app .pdfcard{text-align:center;padding:34px 22px;max-width:560px;margin:0 auto}#fd-app .pdfcard h2{justify-content:center}
+#fd-app .pdfic{width:64px;height:64px;margin:0 auto 12px;border-radius:18px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#b3261e,#e5534b);box-shadow:0 12px 26px -12px rgba(179,38,30,.7);animation:fdpop .4s var(--ease,ease)}#fd-app .pdfic svg{width:34px;height:34px}
+#fd-app .pdfcard .btn{margin-top:8px;text-decoration:none}
 #fd-app .prtools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 8px}#fd-app .prtools input{flex:1 1 200px;max-width:320px}#fd-app .prtools select{width:auto}#fd-app .prtools .muted{font-size:12.5px;margin-left:auto}
 #fd-app .pager{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:10px}#fd-app .pager:empty{display:none}
 #fd-app .pgnav{display:flex;gap:4px;flex-wrap:wrap}
@@ -894,6 +897,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
     <button data-tab="products">Товары</button>
     <button data-tab="suppliers">Поставщики</button>
     <button data-tab="data">Данные</button>
+    <button data-tab="pdf" title="Откроется frudom.ru/pdf в новой вкладке">Редактор PDF ↗</button>
     <button data-tab="profit" hidden>Прибыль</button>
     <button data-tab="purchase" hidden>Закупка</button>
     <button data-tab="events" hidden>События</button>
@@ -1166,6 +1170,15 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
       <div class="sksegs" id="sk-segs" role="group" aria-label="Раздел склада"><i></i><button type="button" data-skt="items">Товары</button><button type="button" data-skt="exp"><span class="sl">Сроки годности</span><span class="ss">Сроки</span></button><button type="button" data-skt="files">Декларации</button><button type="button" data-skt="log">История</button></div>
       <div class="row"><input id="sk-q" type="search" placeholder="Поиск: товар, другое название, позиция документа" style="max-width:420px" aria-label="Поиск по складу"></div>
       <div id="sk-list" class="sklist"></div>
+    </div>
+  </section>
+
+  <section class="tab" id="tab-pdf" hidden>
+    <div class="card pdfcard">
+      <div class="pdfic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h1.5a1.5 1.5 0 0 1 0 3H9v-5M14 16v-5h2M14 13.5h1.5"/></svg></div>
+      <h2>Редактор PDF</h2>
+      <p class="muted">Объединить, разделить, повернуть, подписать PDF — в отдельном редакторе на frudom.ru. Он открывается в новой вкладке, сайт с документами остаётся открытым.</p>
+      <a class="btn pri" id="pdf-go" href="https://frudom.ru/pdf" target="_blank" rel="noopener">Открыть редактор PDF ↗</a>
     </div>
   </section>
 
@@ -1668,7 +1681,10 @@ let curTab="doc";
 /* у кого сайт открывается сразу на календаре (на сегодняшнем дне) */
 const START_TAB={"Гриша":"calendar","Склад":"journal"};   /* с какой вкладки открывается сайт у пользователя */
 function startTab(){ const t0=START_TAB[curUser()]; if(!t0 || !pass()) return; if(t0==="calendar"){ const c=CAL(), t=todayISO(); c.sel=t; c.ym=t.slice(0,7); saveLocal(); } showTab(t0); }
-document.querySelectorAll("#fd-app nav.tabs button[data-tab]").forEach(b=>b.onclick=()=>{ if($("#fd-app nav.tabs").classList.contains("editing")) return; showTab(b.dataset.tab); });
+const PDF_URL="https://frudom.ru/pdf";
+/* вкладка «Редактор PDF»: по нажатию открываем frudom.ru/pdf в новой вкладке (и показываем страницу с кнопкой — если браузер не дал открыть) */
+function goTab(t){ if(t==="pdf"){ let w=null; try{ w=window.open(PDF_URL,"_blank","noopener"); }catch(e){} logEv("Вход","Открыт редактор PDF"); if(curTab!=="pdf") showTab("pdf"); return; } showTab(t); }
+document.querySelectorAll("#fd-app nav.tabs button[data-tab]").forEach(b=>b.onclick=()=>{ if($("#fd-app nav.tabs").classList.contains("editing")) return; goTab(b.dataset.tab); });
 function showTab(t){
   curTab=t;
   document.querySelectorAll("#fd-app nav.tabs button[data-tab]").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t));
@@ -4689,12 +4705,13 @@ const TAB_ICON={
   events:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   tasks:'<rect x="4" y="4" width="16" height="17" rx="2"/><path d="M8 9l1.5 1.5L12 8M8 15l1.5 1.5L12 14M14 9.5h3M14 15.5h3"/>',
   stock:'<path d="M3 9l9-5 9 5v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M7 20v-7h10v7M7 16h10"/>',
+  pdf:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h1.5a1.5 1.5 0 0 1 0 3H9v-5M14 16v-5h2M14 13.5h1.5"/>',
   more:'<circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/>'};
 const TAB_COLOR={doc:"#6a2c4e,#9b3d6f",order:"#b4532a,#e07a3f",driver:"#1f6f8b,#2fa3c4",calendar:"#c0392b,#ec6a5a",journal:"#3d4f9f,#6576d3",archive:"#6b6b6b,#9a9a9a",
-  customers:"#2f7d4f,#4cb377",products:"#8a5a12,#d39a2c",suppliers:"#4a3a8f,#7d67d6",data:"#455a64,#78909c",profit:"#0f7a5f,#28b38c",purchase:"#5d7a1f,#8db33a",events:"#7a3d8f,#b061cc",tasks:"#b8860b,#e6b422",stock:"#1f5f7a,#3a93b8"};
+  customers:"#2f7d4f,#4cb377",products:"#8a5a12,#d39a2c",suppliers:"#4a3a8f,#7d67d6",data:"#455a64,#78909c",profit:"#0f7a5f,#28b38c",purchase:"#5d7a1f,#8db33a",events:"#7a3d8f,#b061cc",tasks:"#b8860b,#e6b422",stock:"#1f5f7a,#3a93b8",pdf:"#b3261e,#e5534b"};
 const svgI = id => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${TAB_ICON[id]||TAB_ICON.more}</svg>`;
 const visTabs = () => [...document.querySelectorAll("#fd-app nav.tabs button[data-tab]")].filter(b=>!b.hidden).map(b=>({id:b.dataset.tab, name:b.textContent.trim()}));
-const SHORTN={doc:"Документ", customers:"Заказчики"};
+const SHORTN={doc:"Документ", customers:"Заказчики", pdf:"PDF"};
 function renderMobileNav(){
   const bar=$("#mbar"), logged=!$("#fd-login") || $("#fd-login").hidden, V=visTabs();
   bar.hidden = !logged || !V.length;
@@ -4703,7 +4720,7 @@ function renderMobileNav(){
     + `<button type="button" data-mt="__more" aria-selected="${!inMain}">${svgI("more")}<span>${inMain?"Ещё":esc(SHORTN[curTab]||(V.find(x=>x.id===curTab)||{}).name||"Ещё")}</span></button>`;
   const cur=V.find(x=>x.id===curTab); $("#mtitle").textContent = !logged ? "Вход" : cur ? cur.name : "Документы";
 }
-$("#mbar").addEventListener("click",e=>{ const b=e.target.closest("[data-mt]"); if(!b) return; if(b.dataset.mt==="__more") openSheet(false); else showTab(b.dataset.mt); });
+$("#mbar").addEventListener("click",e=>{ const b=e.target.closest("[data-mt]"); if(!b) return; if(b.dataset.mt==="__more") openSheet(false); else goTab(b.dataset.mt); });
 /* --- лист «Все разделы» --- */
 let tsEdit=false;
 function drawTiles(){
@@ -4743,7 +4760,7 @@ document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !$("#tsheet").hi
     const L=tiles(), t2=dragOver(grid, L, drag.el, e.clientX, e.clientY, drag.st); if(!t2) return;
     const after=L.indexOf(t2)>L.indexOf(drag.el); flipMove(()=>grid.insertBefore(drag.el, after?t2.nextSibling:t2)); place(e);
     tiles().forEach((x,i)=>x.classList.toggle("bar",i<4)); }
-  const end=e=>{ if(press){ clearTimeout(press.t); const el=press.el; press=null; if(e.type==="pointerup" && !tsEdit){ closeSheet(); showTab(el.dataset.tile); } return; }
+  const end=e=>{ if(press){ clearTimeout(press.t); const el=press.el; press=null; if(e.type==="pointerup" && !tsEdit){ closeSheet(); goTab(el.dataset.tile); } return; }
     if(!drag || (e.pointerId!=null && e.pointerId!==drag.id)) return; const el=drag.el; drag=null; lastE=null; if(raf){ cancelAnimationFrame(raf); raf=0; } grid.classList.remove("dragging");
     el.style.transition="transform .22s cubic-bezier(.2,.8,.2,1)"; el.style.transform=""; el.style.pointerEvents=""; setTimeout(()=>{ el.classList.remove("drag"); el.style.transition=""; },230); saveTileOrder(false); };
   grid.addEventListener("pointerup",end); grid.addEventListener("pointercancel",end);
