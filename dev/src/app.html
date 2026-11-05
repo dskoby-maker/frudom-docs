@@ -704,6 +704,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .dtg-i .dt{opacity:0;transform:translateY(-4px);transition:opacity .25s ease,transform .3s ease,background .25s,border-color .25s,box-shadow .25s;animation:none}
 #fd-app .dtg.open .dtg-i .dt{opacity:1;transform:none}
 #fd-app .dtg.open .dtg-i .dt:nth-child(2){transition-delay:.03s}#fd-app .dtg.open .dtg-i .dt:nth-child(3){transition-delay:.06s}#fd-app .dtg.open .dtg-i .dt:nth-child(n+4){transition-delay:.09s}
+#fd-app .dtg-i .dvp{opacity:0;transform:translateY(-4px);transition:opacity .25s ease,transform .3s ease}#fd-app .dtg.open .dtg-i .dvp{opacity:1;transform:none}
 #fd-app .dtg-i .dt.hc{background:#fff;border-left-width:1px;border-color:hsl(var(--h) 45% 90%);padding-left:10px}
 @media (max-width:520px){#fd-app .dtg-pts i{max-width:120px}#fd-app .dtg-h{padding:9px 8px}}
 @media (prefers-reduced-motion: reduce){#fd-app .dtg-b,#fd-app .dtg-i,#fd-app .dtg-i .dt,#fd-app .dtg-ch{transition:none}#fd-app .dtg-new{animation:none}}
@@ -870,6 +871,12 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .ptg{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px 10px}#fd-app .ptg .wide{grid-column:1/-1}#fd-app .ptg input[type=time]{min-width:0}
 #fd-app .ptsec{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
 #fd-app .dvp{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:6px;margin-bottom:10px}
+#fd-app .dvp.hc{background:hsl(var(--h) 70% 98.8%);border-color:hsl(var(--h) 40% 89%);border-left:4px solid hsl(var(--h) 55% 72%)}
+#fd-app .dvp.hc h3 i{background:hsl(var(--h) 45% 42%)}
+#fd-app .dvg{margin-bottom:12px}#fd-app .dvg .dtg-i .dvp{margin:0;background:#fff;border-left-width:1px;border-color:hsl(var(--h) 40% 90%)}
+#fd-app .dvg .dvg-n{width:auto;min-width:30px;padding:0 8px;border-radius:99px;font-size:12.5px;background:hsl(var(--h) 45% 42%);color:#fff}
+#fd-app .dvg-miss{flex:none;font-size:11.5px;font-weight:600;color:#9a5b00;background:#fdf1dc;border-radius:99px;padding:2px 9px}
+@media (max-width:520px){#fd-app .dvg-miss{display:none}}
 #fd-app .dvp h3{margin:0;font-size:15px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}#fd-app .dvp h3 i{font-style:normal;background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:inline-grid;place-items:center;font-size:12px;flex:none}
 #fd-app .dvp .ad{color:var(--muted);font-size:13px}#fd-app .dvp ul{margin:0;padding-left:18px;font-size:14px}#fd-app .dvp .ct{font-size:13px}#fd-app .dvp .ct.miss{color:var(--warn)}
 #fd-app .dvp .dv-more{justify-self:start;background:none;border:0;padding:2px 0;color:var(--accent);font:inherit;font-size:13px;cursor:pointer;text-decoration:underline;text-underline-offset:3px}#fd-app .dvp li[hidden]{display:none}
@@ -2689,17 +2696,36 @@ function renderDriver(){
   $("#dv-sup").innerHTML=`<option value="">Все</option>`+opts(D.suppliers,f.sup); $("#dv-full").checked=!!f.full; $("#dv-load").checked=f.load!==false;
   const P=dvPoints();
   $("#dv-count").textContent=P.length?P.length+" "+(P.length===1?"точка":P.length<5?"точки":"точек"):"";
-  $("#dv-points").innerHTML = P.length ? P.map((p,i)=>{ const pi=ptInfo(p.cid,p.addr), has=pi.phone||pi.contact||ptTime(pi)||pi.note||pi.phone2||pi.tag;
-      return `<div class="dvp"><h3><i>${i+1}</i>${esc(dvWho(p))}<span class="muted" style="font-weight:400">${esc(stLabel(p.addr,p.c.address))}</span></h3>
+  const card=(p,i,ing)=>{ const pi=ptInfo(p.cid,p.addr), has=pi.phone||pi.contact||ptTime(pi)||pi.note||pi.phone2||pi.tag, hu=dtHue(p.cid), br=p.c.branchLabel?dvWho(p):"";
+      return `<div class="dvp${hu!=null?" hc":""}"${hu!=null?` style="--h:${hu}"`:""}><h3><i>${i+1}</i>${ing?esc(ptName(p))+(br?`<span class="muted" style="font-weight:400">${esc(br)}</span>`:""):esc(dvWho(p))+`<span class="muted" style="font-weight:400">${esc(stLabel(p.addr,p.c.address))}</span>`}</h3>
         <div class="ad">${esc(pi.daddr||p.addr)} · накладн. № ${esc(p.docs.map(j=>j.number).join(", "))}</div>
         ${(()=>{ const IT=Object.values(p.items), k=p.cid+"|"+p.addr, op=dvOpen.has(k), more=IT.length-DV_SHOW;
           return `<ul>${IT.map((it,n)=>`<li${n>=DV_SHOW&&!op?" hidden":""}>${esc(it.name)} — <b>${esc(qfmt(it.qty,it.unit))}</b>${it.st>0?` <em class="dvst" title="Взять со склада">${skIcon}склад ${esc(qfmt(it.st,it.unit))}</em>`:""}</li>`).join("")}</ul>`
             + (more>0?`<button type="button" class="dv-more" data-dvmore="${esc(k)}" aria-expanded="${op}">${op?"Свернуть список":"Раскрыть весь список (ещё "+more+")"}</button>`:""); })()}
         <div class="ct${has?"":" miss"}">${has?esc([pi.tag&&("("+pi.tag+")"), pi.phone&&("📞 "+pi.phone+(pi.contact?" — "+pi.contact:"")), !pi.phone&&pi.contact&&("👤 "+pi.contact), pi.phone2&&("📞 "+pi.phone2), ptTime(pi)&&("🕗 "+ptTime(pi)), pi.note&&("⚠️ "+pi.note)].filter(Boolean).join("   ")):"Контакты точки не заполнены — для наёмного водителя лучше заполнить"}</div>
-        ${isStaff()?"":`<details><summary>${has?"Изменить контакты точки":"Заполнить контакты точки"}</summary>${ptFields(p.cid,p.addr)}</details>`}</div>`; }).join("")
+        ${isStaff()?"":`<details><summary>${has?"Изменить контакты точки":"Заполнить контакты точки"}</summary>${ptFields(p.cid,p.addr)}</details>`}</div>`; };
+  const G=[]; P.forEach((p,i)=>{ let g=G.find(x=>x.cid===p.cid); if(!g){ g={cid:p.cid, L:[]}; G.push(g); } g.L.push({p,i}); });
+  $("#dv-points").innerHTML = P.length ? G.map(g=>g.L.length>1 ? dvGroupHtml(g, f.date, card) : card(g.L[0].p, g.L[0].i)).join("")
     : `<p class="muted">На ${fd(f.date)} накладных нет. Маршрут собирается из накладных с этой датой — создайте их во вкладках «Заявка» или «Новый документ», или выберите другую дату.</p>`;
   $("#dv-text").value=dvText(P);
 }
+/* маршрут: несколько точек одного заказчика — одна сворачиваемая карточка (как в задачах), по умолчанию свёрнута */
+const DVGK="frudom-dvg";
+function dvgSet(){ try{ const o=JSON.parse(lsGet(DVGK)||"{}"); return o&&typeof o==="object"?o:{}; }catch(e){ return {}; } }
+function dvgStore(day,cid,on){ const o=dvgSet(), k=day+"|"+cid; if(on) o[k]=Date.now(); else delete o[k]; const n={}; Object.keys(o).sort((a,b)=>o[b]-o[a]).slice(0,80).forEach(x=>n[x]=o[x]); try{ lsSet(DVGK, JSON.stringify(n)); }catch(e){} }
+function dvGroupHtml(g, day, card){ const c=cus(g.cid), hu=dtHue(g.cid), open=!!dvgSet()[day+"|"+g.cid], P=g.L.map(x=>x.p);
+  const docs=P.reduce((a,p)=>a+p.docs.length,0), kg=r3(P.reduce((a,p)=>a+Object.values(p.items).reduce((s,it)=>s+(/^кг$/i.test(String(it.unit||"").trim())?it.qty:0),0),0));
+  const first=g.L[0].i+1, last=g.L[g.L.length-1].i+1, lbl=P.map(p=>ptName(p)), show=lbl.slice(0,4), more=lbl.length-show.length;
+  const miss=P.filter(p=>{ const pi=ptInfo(p.cid,p.addr); return !(pi.phone||pi.contact||ptTime(pi)||pi.note||pi.phone2||pi.tag); }).length;
+  return `<div class="dtg dvg${open?" open":""}" data-dvg="${esc(g.cid)}" style="--h:${hu==null?30:hu}">
+    <button type="button" class="dtg-h" data-dvgt aria-expanded="${open}" title="${open?"Свернуть":"Показать все точки заказчика"}">
+      <span class="dtg-av dvg-n" aria-hidden="true">${first}–${last}</span>
+      <span class="dtg-m"><b>${esc(cusShort(c.name||(P[0].c||{}).name||""))}</b><span class="dtg-s"><em>${P.length} ${plural(P.length,["точка","точки","точек"])}</em> · ${docs} ${plural(docs,["накладная","накладные","накладных"])}${kg>0?` · ${esc(qfmt(kg,"кг"))}`:""}<span class="dtg-pts">${show.map(t=>`<i>${esc(t)}</i>`).join("")}${more>0?`<i class="more">+${more}</i>`:""}</span></span></span>
+      ${miss&&!isStaff()?`<span class="dvg-miss" title="У ${miss} ${plural(miss,["точки","точек","точек"])} не заполнены контакты">без контактов: ${miss}</span>`:""}
+      <span class="dtg-ch" aria-hidden="true"></span></button>
+    <div class="dtg-b"><div class="dtg-i">${g.L.map(x=>card(x.p,x.i,true)).join("")}</div></div></div>`; }
+$("#dv-points").addEventListener("click",e=>{ const t=e.target.closest("[data-dvgt]"); if(!t) return; const g=t.closest(".dvg"), on=!g.classList.contains("open");
+  g.classList.toggle("open",on); t.setAttribute("aria-expanded",on); t.title=on?"Свернуть":"Показать все точки заказчика"; dvgStore(DV().date, g.dataset.dvg, on); });
 const dvSet=(k,v)=>{ DV()[k]=v; saveLocal(); renderDriver(); };
 $("#dv-points").addEventListener("click",e=>{ const b=e.target.closest("[data-dvmore]"); if(!b) return; const k=b.dataset.dvmore, op=!dvOpen.has(k);
   if(op) dvOpen.add(k); else dvOpen.delete(k);
