@@ -667,6 +667,41 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .dt-c{max-width:100%;white-space:normal;overflow-wrap:anywhere}#fd-app .dt-cbar select,#fd-app .dt-edrow select{max-width:100%}#fd-app .dt-comp textarea.dt-in{width:100%;box-sizing:border-box}
 #fd-app .dt{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid #f1e3c4;border-radius:10px;padding:8px 10px;animation:fdin .18s ease;transition:opacity .2s}
 #fd-app .dt.new{border-color:#e9b75a;box-shadow:0 0 0 2px #fbe3b0}
+#fd-app .dt.hc{background:hsl(var(--h) 70% 98.6%);border-color:hsl(var(--h) 45% 88%);border-left:4px solid hsl(var(--h) 55% 72%);padding-left:12px;transition:background .25s,border-color .25s,box-shadow .25s}
+#fd-app .dt.hc .dt-c{background:hsl(var(--h) 65% 92%);color:hsl(var(--h) 45% 27%)}
+#fd-app .dt.hc.new{box-shadow:0 0 0 3px hsl(var(--h) 70% 90%)}
+#fd-app .dtg-i .dt.hc.new{border-color:hsl(var(--h) 55% 78%)}
+#fd-app .dt-c svg{width:12px;height:12px;vertical-align:-1px;margin-right:3px;opacity:.75}
+#fd-app .dtg{--h:30;border-radius:12px;background:hsl(var(--h) 70% 98.6%);border:1px solid hsl(var(--h) 45% 87%);border-left:4px solid hsl(var(--h) 55% 70%);animation:fdin .18s ease;position:relative;transition:box-shadow .3s ease,margin .3s ease}
+#fd-app .dtg:not(.open){margin-bottom:8px;box-shadow:0 4px 0 -1px hsl(var(--h) 60% 95%),0 4px 0 0 hsl(var(--h) 45% 88%),0 8px 0 -2px hsl(var(--h) 60% 96.5%),0 8px 0 -1px hsl(var(--h) 45% 90%)}
+#fd-app .dtg-h{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px 9px 10px;cursor:pointer;border-radius:10px;-webkit-tap-highlight-color:transparent}
+#fd-app .dtg-h:hover{background:hsl(var(--h) 70% 96%)}#fd-app .dtg-h:focus-visible{outline:2px solid hsl(var(--h) 55% 55%);outline-offset:2px}
+#fd-app .dtg-av{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:hsl(var(--h) 60% 88%);color:hsl(var(--h) 45% 28%);font-weight:700;font-size:14px}
+#fd-app .dtg-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+#fd-app .dtg-m b{font-size:14.5px;color:hsl(var(--h) 40% 22%);overflow-wrap:anywhere}
+#fd-app .dtg-s{font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+#fd-app .dtg-s em{font-style:normal;font-weight:600;color:hsl(var(--h) 40% 35%)}
+#fd-app .dtg-pts{display:inline-flex;flex-wrap:wrap;gap:4px;margin-left:4px}
+#fd-app .dtg-pts i{font-style:normal;font-size:11.5px;background:hsl(var(--h) 65% 93%);color:hsl(var(--h) 40% 30%);border-radius:99px;padding:0 8px;line-height:19px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:opacity .25s}
+#fd-app .dtg.open .dtg-pts{opacity:.0;max-height:0;overflow:hidden}
+#fd-app .dtg-pts{transition:opacity .2s}
+#fd-app .dtg-new{flex:none;font-size:11.5px;font-weight:600;color:#fff;background:#d9822b;border-radius:99px;padding:2px 9px;animation:dtgPulse 1.8s ease-in-out infinite;transition:opacity .25s,transform .25s}
+#fd-app .dtg-new.gone{opacity:0;transform:scale(.6)}
+@keyframes dtgPulse{0%,100%{box-shadow:0 0 0 0 rgba(217,130,43,.35)}50%{box-shadow:0 0 0 5px rgba(217,130,43,0)}}
+#fd-app .dtg-ok{flex:none;width:22px;height:22px;display:grid;place-items:center;border-radius:50%;background:#e3f2e8;color:#2f7d4f;font-size:12px;font-weight:700}
+#fd-app .dtg-ch{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:hsl(var(--h) 60% 93%);transition:transform .3s cubic-bezier(.3,.9,.3,1),background .2s}
+#fd-app .dtg-ch::before{content:"";width:7px;height:7px;border-right:2px solid hsl(var(--h) 40% 35%);border-bottom:2px solid hsl(var(--h) 40% 35%);transform:translateY(-2px) rotate(45deg)}
+#fd-app .dtg.open .dtg-ch{transform:rotate(180deg)}
+#fd-app .dtg-b{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s cubic-bezier(.3,.9,.3,1)}
+#fd-app .dtg.open .dtg-b{grid-template-rows:1fr}
+#fd-app .dtg-i{overflow:hidden;min-height:0;display:grid;gap:6px;padding:0 8px;transition:padding .32s}
+#fd-app .dtg.open .dtg-i{padding:2px 8px 8px}
+#fd-app .dtg-i .dt{opacity:0;transform:translateY(-4px);transition:opacity .25s ease,transform .3s ease,background .25s,border-color .25s,box-shadow .25s;animation:none}
+#fd-app .dtg.open .dtg-i .dt{opacity:1;transform:none}
+#fd-app .dtg.open .dtg-i .dt:nth-child(2){transition-delay:.03s}#fd-app .dtg.open .dtg-i .dt:nth-child(3){transition-delay:.06s}#fd-app .dtg.open .dtg-i .dt:nth-child(n+4){transition-delay:.09s}
+#fd-app .dtg-i .dt.hc{background:#fff;border-left-width:1px;border-color:hsl(var(--h) 45% 90%);padding-left:10px}
+@media (max-width:520px){#fd-app .dtg-pts i{max-width:120px}#fd-app .dtg-h{padding:9px 8px}}
+@media (prefers-reduced-motion: reduce){#fd-app .dtg-b,#fd-app .dtg-i,#fd-app .dtg-i .dt,#fd-app .dtg-ch{transition:none}#fd-app .dtg-new{animation:none}}
 #fd-app .dt-b{flex:1;min-width:0}#fd-app .dt-t{font-size:14.5px;overflow-wrap:anywhere;white-space:pre-wrap}#fd-app .dt-t[data-dtedit]{cursor:text}
 #fd-app .dt-c{display:inline-block;background:#f6ead0;color:#7a4b08;border-radius:6px;padding:0 6px;margin-right:6px;font-size:12.5px;font-weight:600;vertical-align:1px}
 #fd-app .dt-b small{display:block;color:var(--muted);font-size:12px;margin-top:2px}#fd-app .dt-b small b{color:#2f7d4f;font-weight:600}
@@ -2727,28 +2762,61 @@ function dtEdRow(x){ const e=EDf();
     <div class="dt-cbar"><label class="dt-pbtn">${ICAM}<span>Фото</span><input type="file" accept="image/*" multiple hidden data-phfile></label>
       <span class="dt-hint">Enter — сохранить · Shift+Enter — новая строка</span>
       <button type="button" class="btn sm" data-edno>Отмена</button><button type="button" class="btn pri sm" data-edok>Сохранить</button></div></div></div>`; }
-function dtRow(x){ const e=EDf(); if(e && e.id===x.id && dtCan(x)) return dtEdRow(x);
-  const c=x.customerId?cus(x.customerId):null, cn=c&&c.id?cusShort(c.name)+(x.addr?" · "+stLabel(x.addr,c.address):""):"", sn=dtSeen(x);
+function dtRow(x, ing){ const e=EDf(); if(e && e.id===x.id && dtCan(x)) return dtEdRow(x);
+  const c=x.customerId?cus(x.customerId):null, cn=c&&c.id?(ing?(x.addr?stLabel(x.addr,c.address):"без точки"):cusShort(c.name)+(x.addr?" · "+stLabel(x.addr,c.address):"")):"", sn=dtSeen(x), hu=dtHue(x.customerId);
   const others=USERS_LIST.filter(n=>n!==x.by), rd=others.filter(n=>sn[n]), nr=others.filter(n=>!sn[n]);
   const tm = n => (sn[n].slice(0,10)===todayISO()?"":fd(sn[n].slice(0,10)).slice(0,5)+" ")+hhmm(sn[n]);
   const who = (rd.length?`<span class="ok"><em>Прочитал:</em> ${rd.map(n=>`<b title="Увидел ${esc(fd(sn[n].slice(0,10)))} в ${hhmm(sn[n])}">${esc(n)}</b> <s>${tm(n)}</s>`).join(", ")}</span>`:"")
     + (nr.length?`<span class="no"><em>Не прочитал:</em> ${nr.map(esc).join(", ")}</span>`:"");
-  return `<div class="dt${x._new?" new":""}" data-dt="${esc(x.id)}">
-    <div class="dt-b"><div class="dt-top">${cn?`<span class="dt-c">${esc(cn)}</span>`:""}${who?`<div class="dt-rd${nr.length?"":" all"}" aria-label="Кто прочитал">${who}</div>`:""}</div>
+  return `<div class="dt${x._new?" new":""}${hu!=null?" hc":""}" data-dt="${esc(x.id)}"${hu!=null?` style="--h:${hu}"`:""}>
+    <div class="dt-b"><div class="dt-top">${cn?`<span class="dt-c"${ing?' title="Точка"':""}>${ing?IPIN:""}${esc(cn)}</span>`:""}${who?`<div class="dt-rd${nr.length?"":" all"}" aria-label="Кто прочитал">${who}</div>`:""}</div>
       <div class="dt-t"${dtCan(x)?' data-dtedit title="Нажмите, чтобы исправить"':""}>${esc(x.text)}</div>
       <div class="dt-phs" data-phs="${esc(x.id)}">${phItems(x.id,x.photos,false)}</div>
       <small>${esc(x.by||"")}${x.created?" · "+(x.created.slice(0,10)===todayISO()?"сегодня ":fd(x.created.slice(0,10))+" ")+hhmm(x.created):""}</small></div>
     <div class="dt-a">${dtCan(x)?`<button type="button" class="dt-pen" data-dtpen title="Изменить задачу" aria-label="Изменить задачу">${IPEN}</button>`:""}<label class="dt-cam" title="Прикрепить фото" aria-label="Прикрепить фото">${ICAM}<input type="file" accept="image/*" multiple hidden data-phfile></label>${dtCan(x)?`<button type="button" class="dt-x" data-dtdel title="Удалить" aria-label="Удалить">×</button>`:""}</div></div>`; }
+/* цвет заказчика: мягкий оттенок, свой у каждого и всегда один и тот же (порядок в справочнике × «золотой угол») */
+function dtHue(cid){ if(!cid) return null; const i=D.customers.findIndex(c=>c.id===cid); if(i<0) return null; return Math.round((i*137.508+24)%360); }
+const IPIN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z"/><circle cx="12" cy="10" r="2.3"/></svg>';
+/* группы: задачи одного заказчика (2 и больше) сворачиваются в одну карточку; порядок — по первой задаче */
+function dtGroups(L){ const out=[], by={}; L.forEach(x=>{ const k=x.customerId&&cus(x.customerId)&&cus(x.customerId).id?x.customerId:""; if(!k){ out.push({cid:"", items:[x]}); return; }
+    if(!by[k]){ by[k]={cid:k, items:[]}; out.push(by[k]); } by[k].items.push(x); });
+  out.forEach(g=>g.multi=!!g.cid && g.items.length>1); return out; }
+const DTGK="frudom-dtg";
+function dtgSet(){ try{ const o=JSON.parse(lsGet(DTGK)||"{}"); return o&&typeof o==="object"?o:{}; }catch(e){ return {}; } }
+const dtgOpen = (day,cid) => !!dtgSet()[day+"|"+cid];
+function dtgStore(day,cid,on){ const o=dtgSet(), k=day+"|"+cid; if(on) o[k]=Date.now(); else delete o[k];
+  const ks=Object.keys(o).sort((a,b)=>o[b]-o[a]).slice(0,80), n={}; ks.forEach(x=>n[x]=o[x]); try{ lsSet(DTGK, JSON.stringify(n)); }catch(e){} }
+function dtGroupHtml(g, day){ const c=cus(g.cid), hu=dtHue(g.cid), e=EDf(), open=dtgOpen(day,g.cid)||!!(e&&g.items.some(x=>x.id===e.id));
+  const me=curUser(), nNew=g.items.filter(x=>dtNew(x)).length, pts=[], seen={};
+  g.items.forEach(x=>{ const l=x.addr?stLabel(x.addr,c.address):""; if(l && !seen[l]){ seen[l]=1; pts.push(l); } });
+  const nPts=pts.length, show=pts.slice(0,3), more=nPts-show.length;
+  const allRead=g.items.every(x=>{ const sn=dtSeen(x); return USERS_LIST.filter(n=>n!==x.by).every(n=>sn[n]); });
+  return `<div class="dtg${open?" open":""}" data-dtg="${esc(g.cid)}" style="--h:${hu}">
+    <button type="button" class="dtg-h" data-dtgt aria-expanded="${open}" title="${open?"Свернуть":"Показать все задачи заказчика"}">
+      <span class="dtg-av" aria-hidden="true">${esc((cusShort(c.name)||"?").replace(/^[«"'\s]+/,"").charAt(0).toUpperCase())}</span>
+      <span class="dtg-m"><b>${esc(cusShort(c.name))}</b><span class="dtg-s"><em>${g.items.length} ${plural(g.items.length,["задача","задачи","задач"])}</em>${nPts?` · ${nPts} ${plural(nPts,["точка","точки","точек"])}`:""}${show.length?`<span class="dtg-pts">${show.map(t=>`<i>${esc(t)}</i>`).join("")}${more>0?`<i class="more">+${more}</i>`:""}</span>`:""}</span></span>
+      ${nNew?`<span class="dtg-new" title="Новые для вас">${nNew} ${plural(nNew,["новая","новые","новых"])}</span>`:allRead?`<span class="dtg-ok" title="Все прочитали">✓</span>`:""}
+      <span class="dtg-ch" aria-hidden="true"></span></button>
+    <div class="dtg-b"><div class="dtg-i">${g.items.map(x=>dtRow(x,true)).join("")}</div></div></div>`; }
+function dtgToggle(el){ const g=el.closest(".dtg"); if(!g) return; const on=!g.classList.contains("open"), day=CAL().sel, cid=g.dataset.dtg;
+  const b=g.querySelector(".dtg-h"); b.setAttribute("aria-expanded", on); b.title=on?"Свернуть":"Показать все задачи заказчика"; dtgStore(day, cid, on);
+  if(on){ const L=DTS().filter(x=>x.date===day && x.customerId===cid).sort((a,b)=>String(a.created).localeCompare(String(b.created))), nNew=L.filter(x=>dtNew(x)).length;
+    if(nNew){ dtMarkSeen(L); saveLocal(); const box=g.querySelector(".dtg-i"); if(box && !box.querySelector(".dt-edit")) box.innerHTML=L.map(x=>dtRow(x,true)).join(""); L.forEach(x=>delete x._new); }
+    const nb=g.querySelector(".dtg-new"); if(nb){ nb.classList.add("gone"); setTimeout(()=>nb.remove(), 300); }
+    void g.offsetWidth; }
+  g.classList.toggle("open", on); }
+$("#dt-list").addEventListener("click", e=>{ const t=e.target.closest("[data-dtgt]"); if(t){ e.stopPropagation(); dtgToggle(t); } });
 /* отмечаем «видел» за текущего пользователя — только когда задачи дня реально показаны на экране */
 function dtMarkSeen(L){ const me=curUser(); if(!me) return; const now=new Date().toISOString();
   L.forEach(x=>{ if(x.by===me) return; const sn=dtSeen(x); if(sn[me]) return; x._new=1; sn[me]=now; x.seen=JSON.stringify(sn); dirty("daytasks", x.id); }); }
 function drawDayTasks(){
   const c=CAL(), sel=c.sel, all=DTS().filter(x=>!c.cus||!x.customerId||x.customerId===c.cus);
   const L=all.filter(x=>x.date===sel).sort((a,b)=>String(a.created).localeCompare(String(b.created)));
-  if(curTab==="calendar" && !document.hidden) dtMarkSeen(L);
   const e=EDf(); if(e && !DTS().some(x=>x.id===e.id)){ ED=null; edSave(); }
+  const G=dtGroups(L, sel), shown=G.flatMap(g=>!g.multi||dtgOpen(sel,g.cid)||(e&&g.items.some(x=>x.id===e.id))?g.items:[]);
+  if(curTab==="calendar" && !document.hidden) dtMarkSeen(shown);
   const ae=document.activeElement, hadFocus=!!(ae && ae.classList && ae.classList.contains("dt-edit"));
-  $("#dt-list").innerHTML = L.length ? L.map(x=>dtRow(x)).join("") : `<div class="dt-empty">Задач нет. Добавьте, если на этот день нужно что-то кроме заказа: заменить товар, привезти документы, забрать возврат.</div>`;
+  $("#dt-list").innerHTML = L.length ? G.map(g=>g.multi?dtGroupHtml(g, sel):dtRow(g.items[0])).join("") : `<div class="dt-empty">Задач нет. Добавьте, если на этот день нужно что-то кроме заказа: заменить товар, привезти документы, забрать возврат.</div>`;
   L.forEach(x=>delete x._new);
   const ta=$("#dt-list .dt-edit"); if(ta){ dtGrow(ta); const E=EDf();
     ta.addEventListener("input",()=>{ E.text=ta.value; E.a=ta.selectionStart; edSave(); });
