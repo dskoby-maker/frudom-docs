@@ -301,6 +301,13 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .skuv small{display:block;font-size:12px;color:var(--muted)}#fd-app .skuv>div>b{font-size:24px;letter-spacing:-.01em}#fd-app .skuv>div>span{margin-left:6px;font-size:12px;color:var(--muted)}
 #fd-app .skres{display:flex;align-items:baseline;gap:6px;border:0;background:rgba(255,255,255,.7);border-radius:9px;padding:4px 9px;margin-top:6px;font:inherit;cursor:pointer;color:inherit;transition:background .2s}#fd-app .skres:hover:not(:disabled){background:#fff;color:var(--accent)}#fd-app .skres:disabled{opacity:.55;cursor:default}#fd-app .skres span{font-size:12px;color:var(--muted)}
 #fd-app .skfree{display:block;margin-top:6px;font-size:12.5px;color:var(--ok)}
+#fd-app .skpc{display:block;font-style:normal;font-size:12px;font-weight:600;color:#1f5f7a;margin-top:1px}
+#fd-app .skuv>div>.skpcs{display:table;margin:8px 0 0;padding:3px 10px;border-radius:999px;background:rgba(31,95,122,.12);color:#1f5f7a;font-size:12.5px;font-weight:600;animation:fdin .3s ease}
+#fd-app .skpackb{border-radius:14px;padding:10px 12px 12px;background:linear-gradient(160deg,rgba(31,95,122,.07),rgba(31,95,122,.02));border:1px dashed rgba(31,95,122,.28)}
+#fd-app .skpackh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}#fd-app .skpackh b{display:inline-flex;align-items:center;gap:6px;font-size:13.5px}#fd-app .skpackh small{font-size:12px;color:var(--muted)}
+#fd-app .skpackg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}#fd-app .skpackg .f{margin:0}
+#fd-app .skpackn{display:block;margin-top:8px;font-size:12px;line-height:1.4}
+@media (max-width:560px){#fd-app .skpackg{grid-template-columns:1fr 1fr}#fd-app .skpackg .f:last-child{grid-column:1/-1}}
 #fd-app .skbl{display:grid;gap:4px}
 #fd-app .skbr{display:grid;grid-template-columns:minmax(0,1.3fr) auto auto minmax(0,1fr);gap:10px;align-items:center;text-align:left;font:inherit;color:inherit;border:0;border-radius:10px;padding:8px 10px;background:rgba(255,255,255,.75);cursor:pointer;transition:background .2s}
 #fd-app .skbr:hover{background:#fff}#fd-app .skbr.empty{opacity:.6}#fd-app .skbr b{display:block;font-size:13.5px}#fd-app .skbr small{display:block;font-size:11.5px;color:var(--muted)}#fd-app .skbr .num{text-align:right;white-space:nowrap}
@@ -5379,6 +5386,7 @@ const HELP={
   "Брать со склада автоматически":["Чтобы не выбирать склад в каждой строке.",["«Да» — в новых документах строка с этим товаром сама станет «Со склада», если товар свободен.","Если товара мало — «Часть со склада», остальное от Саида.","Старые документы не меняются. В строке всегда можно выбрать вручную."]],
   "Объединить товары":["Если один товар завели дважды (например, «Огурец» и «Огурцы»).","Всё переедет в выбранный товар: партии, остатки, резервы, декларации, связи. Второе название станет «другим названием» для поиска."],
   "Отменить приход":["Для ошибочного прихода (не тот товар, задвоили).","Можно, только пока из партии ничего не брали. Если уже брали — исправьте количество с причиной или сделайте инвентаризацию."],
+  "Штуки в приходе":["Для товара, который купили поштучно, а продаём в кг: пачки макарон, банки, бутылки.","Впишите, сколько штук и сколько весит одна — сайт сам посчитает кг. Если в накладной цена за штуку, впишите её — цена за кг посчитается сама. Остатки, резерв и отгрузка остаются в кг, а штуки показываются рядом, чтобы не считать вручную. В следующий приход этого товара вес 1 шт подставится сам."],
   "Перевзвешивание":["Товар пришёл мешками или коробками, а продаём в кг.","Впишите, сколько упаковок взвесили и сколько вышло кг. Стоимость упаковок перейдёт в новую партию в кг, срок годности и декларации — те же."],
   "Приход на склад":["Товар пришёл на склад.",["Начните вводить название — покажу похожие товары. Нового товара нет — он добавится сам.","Цена — за единицу. Не знаете — оставьте пусто, прибыль будет «предварительной».","Если похожий приход уже был — сайт переспросит, чтобы не задвоить."]],
   "Начальный остаток":["Сколько товара уже лежит на складе на день запуска.","Это не закупка и не продажа — просто стартовая точка. Старые накладные склад не трогает. Много позиций — кнопка «Ввести списком»."],

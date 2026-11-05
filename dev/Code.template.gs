@@ -53,7 +53,7 @@ const S = {
   sitems: { title: 'Склад: товары', key: 'id', cols: [
     ['name','Товар на складе'],['alt','Другие названия'],['unit','Основная единица'],['note','Комментарий к товару'],['linkNames','Позиции в документах'],['id','ID (не менять)'],['links','ID позиций (не редактировать)'],['by','Кто добавил'],['at','Когда'],['op','Операция'],['def','Брать со склада по умолчанию (s = да)'],['defC','Только для заказчиков (ID)']]},
   sbatches: { title: 'Склад: партии', key: 'id', cols: [
-    ['itemName','Товар'],['name','Партия'],['date','Дата приёмки'],['qty','Количество'],['unit','Ед.'],['price','Закупочная цена за ед.'],['supplier','Поставщик'],['docRef','Входящий документ'],['exp','Годен до'],['kind','Вид'],['id','ID (не менять)'],['itemId','ID товара'],['parent','Из партии'],['by','Кто'],['at','Когда'],['op','Операция'],['cancel','Приход отменён']]},
+    ['itemName','Товар'],['name','Партия'],['date','Дата приёмки'],['qty','Количество'],['unit','Ед.'],['price','Закупочная цена за ед.'],['supplier','Поставщик'],['docRef','Входящий документ'],['exp','Годен до'],['kind','Вид'],['id','ID (не менять)'],['itemId','ID товара'],['parent','Из партии'],['by','Кто'],['at','Когда'],['op','Операция'],['cancel','Приход отменён'],['pack','Вес 1 шт (фасовка)']]},
   smoves: { title: 'Склад: движения', key: 'id', cols: [
     ['at','Когда'],['by','Кто'],['typeName','Операция'],['itemName','Товар'],['qty','Количество'],['unit','Ед.'],['cost','Себестоимость за ед.'],['price','Цена продажи за ед.'],['doc','Документ'],['party','Контрагент'],['reason','Причина'],['id','ID (не менять)'],['type','Код операции'],['itemId','ID товара'],['batchId','ID партии'],['docId','ID документа'],['lineId','ID строки'],['op','Операция']]},
   sres: { title: 'Склад: резервы', key: 'id', cols: [
@@ -686,7 +686,9 @@ function stQty_(q, unit) {
   if (stK_(unit) === 'шт' && Math.round(q) !== q) stErr_('Штуки — только целым числом');
   return stR3_(q);
 }
-function stPrice_(v) { if (v === '' || v == null) return ''; const x = +String(v).replace(',', '.'); if (!(x >= 0) || !isFinite(x)) stErr_('Неверная цена'); return String(stR2_(x)); }
+function stPrice_(v) { if (v === '' || v == null) return ''; const x = +String(v).replace(',', '.'); if (!(x >= 0) || !isFinite(x)) stErr_('Неверная цена'); return String(Math.round(x * 1e4) / 1e4); }   /* 4 знака: 2 500 ₽ за 18 кг = 138,8889 — сумма партии сходится до копейки */
+/* фасовка: вес (объём) одной штуки в единице партии — только для показа штук рядом с кг */
+function stPack_(v, unit) { if (v === '' || v == null || stK_(unit) === 'шт') return ''; const x = +String(v).replace(',', '.'); if (!(x > 0) || !isFinite(x)) stErr_('Вес 1 шт — число больше нуля'); return String(Math.round(x * 1e6) / 1e6); }
 function stDate_(v, what) { const s = String(v || ''); if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) stErr_('Укажите ' + what); return s; }
 function stUnit_(c, W, rid, me, u, n) {
   const k = stK_(u); if (!stUnitOk_(u)) stErr_('Укажите единицу измерения');
@@ -714,10 +716,10 @@ function stInRow_(d, me, c, rid, n, W) {
     const sim = c.sbatches.find(b => b.itemId === it.id && stK_(b.supplier) === stK_(supplier) && (docRef ? stK_(b.docRef) === stK_(docRef) : (b.date === date && +b.qty === qty)));
     if (sim) return { code: 'similar', error: 'Похожий приход уже есть: ' + sim.name + ', ' + stQ_(sim.qty, sim.unit) + (sim.docRef ? ', документ «' + sim.docRef + '»' : ''), info: { batchId: sim.id } };
   }
-  const b = { id: rid + ':b' + n, itemId: it.id, itemName: it.name, name: stBatchName_(c, it.id, date), date: date, qty: qty, unit: unit, price: price, supplier: supplier, docRef: docRef, exp: exp, kind: kind, parent: '', by: me.name, at: at };
+  const b = { id: rid + ':b' + n, itemId: it.id, itemName: it.name, name: stBatchName_(c, it.id, date), date: date, qty: qty, unit: unit, price: price, supplier: supplier, docRef: docRef, exp: exp, kind: kind, parent: '', by: me.name, at: at, pack: stPack_(d.pack, unit) };
   W.sbatches.upsert.push(b); c.sbatches.push(b); c.batch[b.id] = b;
   W.smoves.upsert.push({ id: rid + ':m' + n, at: at, by: me.name, type: kind, typeName: ST_TYPES[kind], itemId: it.id, itemName: it.name, batchId: b.id, qty: qty, unit: unit, cost: price, party: supplier, doc: docRef });
-  stLog_(W, rid, me, 'n' + n, { action: ST_TYPES[kind], object: it.name + ' — ' + b.name, after: stQ_(qty, unit) + (price !== '' ? ' по ' + price + ' ₽' : ' (цена не указана)'), reason: docRef ? 'документ: ' + docRef : '', batchId: b.id, itemId: it.id });
+  stLog_(W, rid, me, 'n' + n, { action: ST_TYPES[kind], object: it.name + ' — ' + b.name, after: stQ_(qty, unit) + (b.pack ? ' (' + Math.round(qty / b.pack * 10) / 10 + ' шт по ' + stQ_(+b.pack, unit) + ')' : '') + (price !== '' ? ' по ' + price + ' ₽' : ' (цена не указана)'), reason: docRef ? 'документ: ' + docRef : '', batchId: b.id, itemId: it.id });
   return { batchId: b.id, itemId: it.id };
 }
 
@@ -800,6 +802,7 @@ const ST_OPS = {
       const e = d.exp ? stDate_(d.exp, 'срок годности') : ''; if (e && e < tgt.date) stErr_('Срок годности не может быть раньше даты приёмки (' + stD_(tgt.date) + ')');
       if (String(tgt.exp || '') !== e) { const old = tgt.exp; tgt.exp = e; if (tgt !== b) W.sbatches.upsert.push(tgt);
         stLog_(W, rid, me, n++, { action: 'Срок годности', object: (it.name || '') + ' — ' + tgt.name, before: old ? stD_(old) : 'не указан', after: e ? stD_(e) : 'не указан', batchId: tgt.id, itemId: b.itemId }); } }
+    if (d.pack != null) { const pk = stPack_(d.pack, b0.unit); if (String(pk) !== String(b0.pack || '')) { b.pack = pk; L('Фасовка партии', b0.pack ? '1 шт = ' + stQ_(+b0.pack, b0.unit) : 'не указана', pk ? '1 шт = ' + stQ_(+pk, b0.unit) : 'не указана'); } }
     if (d.docRef != null && stN_(d.docRef) !== String(b0.docRef || '')) { b.docRef = stN_(d.docRef).slice(0, 200); L('Входящий документ', b0.docRef || '—', b.docRef || '—'); }
     if (d.supplier != null && stN_(d.supplier) !== String(b0.supplier || '')) { b.supplier = stN_(d.supplier).slice(0, 120); L('Поставщик партии', b0.supplier || '—', b.supplier || '—'); }
     if (d.qty != null && stR3_(+String(d.qty).replace(',', '.')) !== stR3_(b0.qty)) {
