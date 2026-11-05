@@ -376,6 +376,22 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .skallb{color:#1f5f7a}#fd-app .zs svg{width:13px;height:13px;vertical-align:-2px;margin-right:3px}#fd-app label.f .fh{display:inline-flex;align-items:center;gap:0}#fd-app label.f .fh .hq{width:18px;height:18px;font-size:11px;vertical-align:0}
 #fd-app .dcard h3 .hq,#fd-app .skbh .hq{vertical-align:3px}
 @media(max-width:700px){#fd-app .skdr.skw{grid-template-columns:1fr}#fd-app .skwa{grid-column:1;grid-row:auto}#fd-app .skopts.row2{grid-template-columns:1fr}}
+/* месячный акт */
+#fd-app .aktbar{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}#fd-app .aktbar .f{margin:0}#fd-app .aktbar .f:first-child{flex:1 1 280px}
+#fd-app .akttiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:14px 0 10px}
+#fd-app .akttiles>div{border-radius:14px;padding:10px 13px;background:rgba(255,255,255,.62);border:1px solid rgba(28,34,32,.07);animation:fdglass .35s var(--ease,ease) backwards}
+#fd-app .akttiles small{display:block;font-size:12px;color:var(--muted)}#fd-app .akttiles b{display:block;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#fd-app .akttiles b.sm{font-size:16px}#fd-app .akttiles b em{font-style:normal;font-size:12px;color:var(--muted);font-weight:500}#fd-app .akttiles span{font-size:11.5px;color:var(--muted)}
+#fd-app .akttiles .hi{background:linear-gradient(160deg,rgba(123,58,94,.14),rgba(106,44,78,.05));border-color:rgba(106,44,78,.16)}#fd-app .akttiles .hi b{color:var(--accent)}
+#fd-app .aktw{display:grid;gap:4px;margin-bottom:10px;padding:10px 12px;border-radius:12px;background:var(--warn-soft);font-size:13px;animation:fdin .25s ease}
+#fd-app .aktw .l0{color:var(--err)}#fd-app .aktw .l0::before{content:"● ";}#fd-app .aktw .l1{color:var(--warn)}#fd-app .aktw .l1::before{content:"● ";}
+#fd-app .aktw.ok{background:rgba(47,107,69,.08);color:var(--ok)}
+#fd-app details.aktdocs{margin-bottom:10px}#fd-app details.aktdocs summary{cursor:pointer;font-size:13.5px;color:var(--accent)}#fd-app .aktdl{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:4px 14px;margin-top:8px;font-size:13px}#fd-app .aktdl input{width:auto}
+#fd-app table.akt-t{width:100%}#fd-app table.akt-t tr.bad td{background:#fdf2f1}#fd-app table.akt-t tfoot td{font-weight:600}
+#fd-app .aktact{margin-top:12px;align-items:center}#fd-app .aktact .aktold{font-size:12px}
+#fd-app .aktedit{margin-top:14px;padding:14px;border-radius:16px;background:rgba(242,243,239,.7);border:1px solid rgba(28,34,32,.07);animation:fdglass .3s var(--ease,ease)}
+#fd-app .akth{margin:16px 0 6px;font-size:14px}#fd-app .aktspec{max-height:420px;overflow:auto}#fd-app .aktspec table{min-width:760px;width:100%}#fd-app .aktspec input,#fd-app .aktspec select{width:100%;padding:5px 7px;font-size:13px}#fd-app .aktspec input.sm{width:78px}
+#fd-app .aktspec td{padding:3px 4px}
+@media(max-width:700px){#fd-app .tbl table.akt-t{min-width:0}#fd-app table.akt-t th:nth-child(4),#fd-app table.akt-t td:nth-child(4),#fd-app table.akt-t th:nth-child(6),#fd-app table.akt-t td:nth-child(6){display:none}#fd-app table.akt-t tfoot td[colspan]{font-size:13px}}
 #fd-app .prtools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 8px}#fd-app .prtools input{flex:1 1 200px;max-width:320px}#fd-app .prtools select{width:auto}#fd-app .prtools .muted{font-size:12.5px;margin-left:auto}
 #fd-app .pager{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:10px}#fd-app .pager:empty{display:none}
 #fd-app .pgnav{display:flex;gap:4px;flex-wrap:wrap}
@@ -1236,6 +1252,11 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
       <div class="tbl"><table class="stack" data-full="0,1,2"><thead><tr><th style="width:190px">Исполнитель</th><th>Основание (номер и дата)</th><th style="width:170px">ИКЗ</th><th style="width:120px">Цена контракта</th><th style="width:140px">Действует до</th><th class="num">Отгружено</th><th style="width:40px"></th></tr></thead><tbody id="ct-body"></tbody></table></div>
       <div class="row"><button class="btn" id="ct-add">+ Добавить контракт</button></div>
     </div>
+    <div class="card" id="akt-card">
+      <h2>Месячный акт <small id="akt-name"></small></h2>
+      <p class="muted">Акт приёмки-передачи за месяц собирается сам из накладных этого заказчика по выбранному договору. Один раз настройте шаблон (или загрузите прошлый акт, который принял заказчик) — дальше только выбрать месяц и скачать.</p>
+      <div id="akt-box"></div>
+    </div>
     <div class="card">
       <h2>Нумерация документов <small id="nm-name"></small></h2>
       <p class="muted">У каждого заказчика своя нумерация. Новый документ получает номер «последний в журнале + 1». Если раньше документы для этого заказчика делали в 1С или Т‑Банке — один раз впишите, с какого номера продолжить.</p>
@@ -1543,7 +1564,7 @@ async function pull(force){
   if(hasPending()){ await flush(); if(hasPending()) return; }
   setStatus("saving","Загружаю…");
   try{
-    const j = await apiFetch(API_URL+"?action=load&key="+encodeURIComponent(pass())+"&user="+encodeURIComponent(curUser())); lastPullAt=Date.now(); eisServerReady=j.eis===1;
+    const j = await apiFetch(API_URL+"?action=load&key="+encodeURIComponent(pass())+"&user="+encodeURIComponent(curUser())); lastPullAt=Date.now(); eisServerReady=j.eis===1; aktSrv=j.akt===1;
     if(hasPending()) { setStatus("wait","Есть несохранённое"); return; }
     if(j.me){ lsSet(MKEY, JSON.stringify(j.me)); applyRole(); }
     if("prefs" in j) serverPrefs(j.prefs); if(prefsDirty) pushPrefs();
@@ -4125,7 +4146,7 @@ function renderCustomers(){
       {k:"t12c",l:"Страна происхождения в документах",opts:{"":"Как обычно (в УПД — только у импортных)","1":"Всегда: в ТОРГ‑12 и УПД, включая Россию (если требует договор)"}},
 ],
     onChange:(c,k)=>{ if(k==="plist"){ if(c.plist==="1") plSync({cid:c.id, force:true}); else { renderPrices(c.id); toast("info","Цены — вручную","Текущие цены остались, дальше меняются только вручную."); } } },
-    onSelect:id=>{ renderPrices(id); renderContracts(id); renderBranches(id); renderPoints(id); renderNums(id); customerAnalytics(id); }});
+    onSelect:id=>{ renderPrices(id); renderContracts(id); renderAkt(id); renderBranches(id); renderPoints(id); renderNums(id); customerAnalytics(id); }});
 }
 function renderNums(cid){
   const c=cus(cid); $("#nm-name").textContent=c&&c.name?"— "+c.name:""; if(!cid||!c.id){ $("#nm-list").innerHTML=""; return; }
@@ -4153,7 +4174,7 @@ function renderBranches(cid){
     saveB(branches(c).filter(x=>x.id!==d.closest("[data-id]").dataset.id)); renderBranches(cid); };
   $("#br-add").onclick=()=>{ const l=branches(c); l.push({id:uid(), label:"", fullName:c.name, kpp:"", address:"", acct:c.acct||"bank", bank:"", bik:"", rs:"", ks:"", ship:""}); saveB(l); renderBranches(cid); };
 }
-function renderContracts(cid){
+function renderContracts(cid){ if(typeof renderAkt==="function" && AKT.cid===cid) setTimeout(()=>{ if(!document.querySelector("#akt-box .aktedit")) renderAkt(cid); },0);
   const c=cus(cid); $("#ct-name").textContent=c.name?"— "+c.name:"";
   const supOpts = sel => `<option value=""${!sel?" selected":""}>любой</option>`+D.suppliers.map(x=>`<option value="${x.id}"${x.id===sel?" selected":""}>${esc(x.name)}</option>`).join("");
   $("#ct-body").innerHTML = ctrs(cid).map(x=>`<tr data-id="${x.id}"><td><select data-k="supplierId">${supOpts(x.supplierId)}</select></td>
@@ -5314,6 +5335,7 @@ $("#tk-showhid").onclick=()=>{ tkShowHid=!tkShowHid; drawTasks(); };
 
 /* ================= подсказки «?» у заголовков ================= */
 const HELP={
+  "Месячный акт":["Акт приёмки-передачи за месяц — для заказчиков, которые принимают товар актом (цирк и др.).",["Выберите договор и месяц. В акт попадут все накладные этого заказчика по договору за месяц — галочкой можно убрать лишнюю.","Раздел 2 — спецификация договора (что и сколько всего можно поставить), раздел 3 — что поставлено за месяц, п. 7 — сколько поставлено с начала договора.","Один раз нажмите «Загрузить прошлый акт (.docx)» — сайт сам заполнит спецификацию, предмет договора и сроки. Проверьте и «Сохранить шаблон».","Красные замечания — цена не как в договоре, превышение количества или товар не из спецификации. Исправьте до отправки заказчику.","Акт скачивается в Word — его можно поправить перед печатью."]],
   "Склад":["Один общий склад на всю команду, без деления по ИП.",["Приход — товар пришёл на склад. Каждый приход — своя партия (дата, цена, поставщик, срок годности).","Начальный остаток — сколько товара уже лежит сейчас. Много позиций — «Ввести списком».","Резерв — товар отложен под накладную. Появляется сам, когда в строке документа выбрано «Со склада» и документ сохранён.","Отгрузка — товар фактически уехал. Только тогда он списывается со склада.","Плитки сверху нажимаются — откроется список.","Кнопка «Обновить» сверяет остатки с таблицей."]],
   "Товар склада":["Карточка одного товара.",["Сверху — сколько есть, сколько в резерве (нажмите, чтобы увидеть накладные) и сколько свободно.","Партии — каждый приход отдельно, по старшинству.","«Позиции в документах» — по каким названиям из контрактов этот товар берётся со склада.","Комментарий виден только здесь."]],
   "Позиции в документах":["Связь склада с договорными названиями.",["Например, на складе «Шиповник сушёный», а в контракте гематологии — «Ягоды сушёные (шиповник)». Свяжите их — и в документе можно будет взять товар со склада.","В документе, PDF и XML остаётся название из контракта.","Похожее название само ничего не связывает — только ваше нажатие «связать»."]],
@@ -5393,6 +5415,7 @@ window.addEventListener("scroll",closeHelp,{passive:true}); document.addEventLis
 new MutationObserver(()=>{ if(addHelp._t) return; addHelp._t=requestAnimationFrame(()=>{ addHelp._t=0; addHelp(); }); }).observe(document.getElementById("fd-app"),{childList:true, subtree:true});
 addHelp();
 
+/*__AKT__*/
 /*__STOCK__*/
 /* ---------- старт ---------- */
 if(!API_URL) patchAll();

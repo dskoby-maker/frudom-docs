@@ -27,7 +27,7 @@ const S = {
     ['customerId','ID заказчика'],['productId','ID товара']]},
   contracts: { title: 'Контракты', key: 'id', cols: [
     ['customerName','Заказчик'],['supplierName','Поставщик (исполнитель)'],['basis','Основание (номер и дата)'],['ikz','ИКЗ'],
-    ['maxSum','Цена контракта'],['dateTo','Действует до'],['id','ID (не менять)'],['customerId','ID заказчика'],['supplierId','ID поставщика'],['eis','Сопоставление ЕИС (заполняется с сайта)']]},
+    ['maxSum','Цена контракта'],['dateTo','Действует до'],['id','ID (не менять)'],['customerId','ID заказчика'],['supplierId','ID поставщика'],['eis','Сопоставление ЕИС (заполняется с сайта)'],['akt','Шаблон месячного акта (заполняется с сайта)']]},
   costs: { title: 'Закупочные цены', key: 'id', cols: [
     ['productName','Товар'],['price','Закупочная цена'],['from','Действует с'],['customerName','Только для заказчика'],['note','Примечание'],
     ['id','ID (не менять)'],['productId','ID товара'],['customerId','ID заказчика']]},
@@ -176,7 +176,7 @@ function handle_(p) {
   lock.waitLock(25000);
   try {
     if (p.action === 'load' && me.admin) seedEis_();
-    if (p.action === 'load') return { ok: true, concurrency: 1, eis: 1, me: me, prefs: (read_('uprefs').find(r => r.id === me.name) || {}).data || '', data: {
+    if (p.action === 'load') return { ok: true, concurrency: 1, eis: 1, akt: 1, me: me, prefs: (read_('uprefs').find(r => r.id === me.name) || {}).data || '', data: {
       suppliers: me.role === 'staff' ? read_('suppliers').map(s => { const x = Object.assign({}, s); delete x.stamp; delete x.sign; return x; }) : read_('suppliers'), customers: read_('customers'), products: read_('products'),
       prices: read_('prices'), specs: read_('specs'), contracts: read_('contracts'), journal: read_('journal').slice(-2000),
       daytasks: (function () { const d = new Date(); d.setDate(d.getDate() - 120); const from = Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd');
