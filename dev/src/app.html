@@ -306,6 +306,36 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .skpackb{border-radius:14px;padding:10px 12px 12px;background:linear-gradient(160deg,rgba(31,95,122,.07),rgba(31,95,122,.02));border:1px dashed rgba(31,95,122,.28)}
 #fd-app .skpackh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}#fd-app .skpackh b{display:inline-flex;align-items:center;gap:6px;font-size:13.5px}#fd-app .skpackh small{font-size:12px;color:var(--muted)}
 #fd-app .skpackg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}#fd-app .skpackg .f{margin:0}
+#fd-app dialog.dcard.wide.xwide{width:min(1100px,calc(100vw - 24px))}
+#fd-app .mi-head{display:grid;grid-template-columns:1.4fr 1fr 1.2fr 1fr;gap:10px;margin-top:12px}#fd-app .mi-head .f{margin:0}#fd-app .mi-head small{font-size:11px}
+#fd-app .mi-rest{margin-top:10px;padding:8px 12px;border-radius:12px;background:rgba(179,134,0,.10);font-size:13px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;animation:fdin .3s ease}#fd-app .mi-rest.ok{background:rgba(46,125,50,.10)}
+#fd-app .mi-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 8px}#fd-app .mi-ai{cursor:pointer;background:linear-gradient(135deg,rgba(31,95,122,.14),rgba(31,95,122,.05));border-color:rgba(31,95,122,.25)}#fd-app .mi-ai.busy{pointer-events:none;opacity:.85}
+#fd-app .mi-ai .spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;margin-right:6px;vertical-align:-1px;animation:fdspin .8s linear infinite}@keyframes fdspin{to{transform:rotate(360deg)}}
+#fd-app .mi-tip{font-size:12px}#fd-app .mi-one{margin-left:auto}
+#fd-app .mi-tbl{border-radius:14px;border:1px solid rgba(28,34,32,.08);background:rgba(242,243,239,.55);padding:4px}
+#fd-app .mi-hd,#fd-app .mi-row{display:grid;grid-template-columns:26px minmax(180px,2.6fr) 78px minmax(70px,.9fr) minmax(84px,1fr) minmax(84px,1fr) 132px 62px;gap:6px;align-items:start}
+#fd-app .mi-hd{padding:6px 8px 4px;font-size:11.5px;color:var(--muted);font-weight:600}
+#fd-app .mi-row{padding:6px 8px;border-radius:10px;background:rgba(255,255,255,.82);margin-top:4px;animation:fdin .25s ease both;animation-delay:var(--d);transition:box-shadow .2s,background .2s}
+#fd-app .mi-row:focus-within{box-shadow:0 0 0 2px rgba(122,38,74,.18);background:#fff}#fd-app .mi-row.bad{box-shadow:0 0 0 2px rgba(198,40,40,.45)}#fd-app .mi-row.unsure{background:rgba(255,248,225,.95)}
+#fd-app .mi-n{font-size:12px;color:var(--muted);padding-top:10px;text-align:center;font-variant-numeric:tabular-nums}
+#fd-app .mi-c{display:block;min-width:0;margin:0}#fd-app .mi-c>small{display:none}#fd-app .mi-c input,#fd-app .mi-c select{width:100%;min-width:0;padding:8px 9px;font-size:14px}
+#fd-app .mi-cq input,#fd-app .mi-cp input,#fd-app .mi-cs input{text-align:right;font-variant-numeric:tabular-nums}
+#fd-app .mi-tag{display:block;font-size:11.5px;margin-top:3px;line-height:1.35;min-height:0}#fd-app .mi-ok{color:var(--ok)}#fd-app .mi-new{color:#1f5f7a;font-weight:600}#fd-app .mi-src{color:var(--muted)}
+#fd-app .mi-conv{border:0;background:rgba(31,95,122,.12);color:#1f5f7a;border-radius:999px;padding:2px 8px;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer;margin-left:2px}
+#fd-app .mi-pcs{display:block;text-align:right;font-size:11.5px;font-weight:600;color:#1f5f7a;margin-top:3px}
+#fd-app .mi-ca{display:flex;gap:4px;padding-top:2px}#fd-app .mi-pk,#fd-app .mi-x{border:1px solid rgba(28,34,32,.12);background:#fff;border-radius:9px;height:34px;min-width:30px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted);transition:all .2s}
+#fd-app .mi-pk.on{background:rgba(31,95,122,.14);color:#1f5f7a;border-color:rgba(31,95,122,.3)}#fd-app .mi-pk:disabled{opacity:.35;cursor:default}#fd-app .mi-x:hover{color:var(--err);border-color:rgba(198,40,40,.4)}
+#fd-app .mi-pcsb{grid-column:2/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:8px 10px;border-radius:10px;border:1px dashed rgba(31,95,122,.3);background:rgba(31,95,122,.05);animation:fdin .25s ease}
+#fd-app .mi-pcsb .f{margin:0}#fd-app .mi-pcsb small{display:block;font-size:11.5px;color:var(--muted);margin-bottom:3px}#fd-app .mi-pcsb input{width:100%;padding:7px 9px}
+#fd-app .mi-foot{margin-top:12px}#fd-app .mi-sum1{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;font-size:14px}
+#fd-app .mi-okb{color:var(--ok);font-weight:600}#fd-app .mi-bad{color:var(--err);font-weight:600}
+#fd-app .mi-errs{display:grid;gap:3px;margin-top:8px;padding:8px 12px;border-radius:10px;background:rgba(198,40,40,.07);color:var(--err);font-size:12.5px}
+@media (max-width:760px){#fd-app .mi-head{grid-template-columns:1fr 1fr}#fd-app .mi-hd{display:none}
+  #fd-app .mi-row{grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;padding:10px;position:relative}
+  #fd-app .mi-n{position:absolute;top:8px;left:10px;padding:0;text-align:left;font-weight:700}
+  #fd-app .mi-c>small{display:block;font-size:11px;color:var(--muted);margin-bottom:3px}
+  #fd-app .mi-cn{grid-column:1/-1;padding-top:16px}#fd-app .mi-cu{grid-column:span 2}#fd-app .mi-cq{grid-column:span 4}#fd-app .mi-cp{grid-column:span 3}#fd-app .mi-cs{grid-column:span 3}#fd-app .mi-ce{grid-column:span 4}
+  #fd-app .mi-ca{grid-column:span 2;align-self:end;justify-content:flex-end}#fd-app .mi-pcsb{grid-column:1/-1;grid-template-columns:1fr 1fr}#fd-app .mi-pcsb .f:last-child{grid-column:1/-1}}
 #fd-app .skpackn{display:block;margin-top:8px;font-size:12px;line-height:1.4}
 @media (max-width:560px){#fd-app .skpackg{grid-template-columns:1fr 1fr}#fd-app .skpackg .f:last-child{grid-column:1/-1}}
 #fd-app .skbl{display:grid;gap:4px}
@@ -5386,6 +5416,7 @@ const HELP={
   "Брать со склада автоматически":["Чтобы не выбирать склад в каждой строке.",["«Да» — в новых документах строка с этим товаром сама станет «Со склада», если товар свободен.","Если товара мало — «Часть со склада», остальное от Саида.","Старые документы не меняются. В строке всегда можно выбрать вручную."]],
   "Объединить товары":["Если один товар завели дважды (например, «Огурец» и «Огурцы»).","Всё переедет в выбранный товар: партии, остатки, резервы, декларации, связи. Второе название станет «другим названием» для поиска."],
   "Отменить приход":["Для ошибочного прихода (не тот товар, задвоили).","Можно, только пока из партии ничего не брали. Если уже брали — исправьте количество с причиной или сделайте инвентаризацию."],
+  "Приход по накладной":["Одна накладная — много товаров за раз. Поставщик, дату и номер накладной впишите один раз сверху.","Товары: вписывайте по строкам (Enter — следующая строка), или скопируйте строки из Excel и вставьте в поле «Товар», или нажмите «Фото накладной» — ИИ сам заполнит строки. Можно вписать цену за единицу или сумму строки — второе посчитается само. Кнопка «шт» — если купили поштучно, а храним в кг. Впишите «Сумму по накладной» — сайт покажет, сходится ли итог. Проводится всё сразу: либо вся накладная, либо ничего. Если закрыть окно, черновик останется."],
   "Штуки в приходе":["Для товара, который купили поштучно, а продаём в кг: пачки макарон, банки, бутылки.","Впишите, сколько штук и сколько весит одна — сайт сам посчитает кг. Если в накладной цена за штуку, впишите её — цена за кг посчитается сама. Остатки, резерв и отгрузка остаются в кг, а штуки показываются рядом, чтобы не считать вручную. В следующий приход этого товара вес 1 шт подставится сам."],
   "Перевзвешивание":["Товар пришёл мешками или коробками, а продаём в кг.","Впишите, сколько упаковок взвесили и сколько вышло кг. Стоимость упаковок перейдёт в новую партию в кг, срок годности и декларации — те же."],
   "Приход на склад":["Товар пришёл на склад.",["Начните вводить название — покажу похожие товары. Нового товара нет — он добавится сам.","Цена — за единицу. Не знаете — оставьте пусто, прибыль будет «предварительной».","Если похожий приход уже был — сайт переспросит, чтобы не задвоить."]],

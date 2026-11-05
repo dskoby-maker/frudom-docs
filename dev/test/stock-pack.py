@@ -19,7 +19,7 @@ async def main():
             await pg.goto('http://localhost:8787/page'); await pg.click('#fd-who [data-who="Даниил"]'); await pg.fill('#fd-pass','1111'); await pg.click('#fd-enter'); await pg.wait_for_timeout(2500)
             await pg.evaluate(TAB+"('stock')"); await pg.wait_for_timeout(1000)
             name=f'Макароны Макфа Лапша 450г {vw[0]}'
-            await pg.click('[data-sk="in"]'); await pg.wait_for_timeout(300)
+            await pg.click('[data-sk="in"]'); await pg.wait_for_timeout(300); await pg.click('#sk-dlg [data-mi="one"]'); await pg.wait_for_timeout(300)
             await pg.fill('#sk-dlg .skf-name',name)
             ok(await pg.locator('#sk-dlg .skpackb').count()==1, f'{vw[0]}: в приходе есть блок «Штуки»')
             await pg.fill('#sk-dlg .skf-pcs','40'); await pg.fill('#sk-dlg .skf-pack','0,45'); await pg.fill('#sk-dlg .skf-ppc','62,5'); await pg.wait_for_timeout(200)
@@ -42,7 +42,7 @@ async def main():
             await pg.click('#sk-dlg [data-sk="close"]'); await pg.wait_for_timeout(400)
             ok('40 шт' in (await pg.text_content('#sk-list') or ''), f'{vw[0]}: в списке остатков видно 40 шт')
             # следующий приход: вес 1 шт подставляется сам, штуки суммируются
-            await pg.click('[data-sk="in"]'); await pg.wait_for_timeout(300); await pg.fill('#sk-dlg .skf-name',name); await pg.wait_for_timeout(200)
+            await pg.click('[data-sk="in"]'); await pg.wait_for_timeout(300); await pg.click('#sk-dlg [data-mi="one"]'); await pg.wait_for_timeout(300); await pg.fill('#sk-dlg .skf-name',name); await pg.wait_for_timeout(200)
             pick=pg.locator('#sk-dlg [data-skpick]:not([data-skpick=""])');
             if await pick.count(): await pick.first.click(); await pg.wait_for_timeout(200)
             ok(await pg.input_value('#sk-dlg .skf-pack')=='0,45', f'{vw[0]}: вес 1 шт подставился из прошлой партии')

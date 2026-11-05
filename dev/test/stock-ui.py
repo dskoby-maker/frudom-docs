@@ -31,7 +31,7 @@ async def main():
         ok(await pg.locator('#sk-kpi .skk').count()==4, 'четыре показателя склада')
         await pg.screenshot(path=f'{SHOT}/sk-empty.png')
         # приход
-        await pg.click('[data-sk="in"]'); await pg.wait_for_timeout(300)
+        await pg.click('[data-sk="in"]'); await pg.wait_for_timeout(300); await pg.click('#sk-dlg [data-mi="one"]'); await pg.wait_for_timeout(300)
         await pg.fill('#sk-dlg .skf-name','шиповник сушёный'); await pg.wait_for_timeout(150)
         ok(await pg.locator('#sk-dlg [data-skpick=""]').count()==1, 'подсказка «+ Новый товар»')
         await pg.fill('#sk-dlg .skf-name','Шиповник сушёный'); await pg.fill('#sk-dlg .skf-qty','8'); await pg.fill('#sk-dlg .skf-price','70'); await pg.fill('#sk-dlg .skf-sup','Саид'); await pg.fill('#sk-dlg .skf-doc','н-1')
@@ -65,7 +65,7 @@ async def main():
         ok('не хватает' in await pg.text_content('#sk-det'), 'показатель «Документов с нехваткой» раскрывается')
         await pg.screenshot(path=f'{SHOT}/sk-tab.png', full_page=True)
         # ещё приход 2 кг и обновление резерва из окна документа
-        await pg.click('[data-sk="in"]'); await pg.wait_for_timeout(300)
+        await pg.click('[data-sk="in"]'); await pg.wait_for_timeout(300); await pg.click('#sk-dlg [data-mi="one"]'); await pg.wait_for_timeout(300)
         await pg.fill('#sk-dlg .skf-name','Шиповник сушёный'); await pg.fill('#sk-dlg .skf-qty','2'); await pg.fill('#sk-dlg .skf-price','75'); await pg.fill('#sk-dlg .skf-sup','Саид'); await pg.fill('#sk-dlg .skf-doc','н-2')
         await pg.click('#sk-dlg [data-sk="inSave"]'); await until(pg,"!!document.querySelector('#sk-dlg .skuv')"); await pg.click('#sk-dlg [data-sk="close"]'); await pg.wait_for_timeout(300)
         await pg.click('#sk-kpi [data-skdet="res"]'); await pg.wait_for_timeout(300); await pg.click('#sk-det [data-skdoc="dsk1"]'); await pg.wait_for_timeout(500)
@@ -89,7 +89,7 @@ async def main():
         bid=[x for x in rows('Склад: партии') if x['Входящий документ']=='н-1'][0]['ID (не менять)']
         await pg.click('#sk-segs [data-skt="items"]'); await pg.wait_for_timeout(200)
         await ctx.set_offline(True)
-        await pg.evaluate("document.querySelector('[data-sk=\"in\"]').click()"); await pg.wait_for_timeout(300)
+        await pg.evaluate("document.querySelector('[data-sk=\"in\"]').click()"); await pg.wait_for_timeout(300); await pg.click('#sk-dlg [data-mi="one"]'); await pg.wait_for_timeout(300)
         await pg.fill('#sk-dlg .skf-name','Шиповник сушёный'); await pg.fill('#sk-dlg .skf-qty','3'); await pg.fill('#sk-dlg .skf-price','80'); await pg.fill('#sk-dlg .skf-sup','Рынок'); await pg.fill('#sk-dlg .skf-doc','н-3')
         await pg.click('#sk-dlg [data-sk="inSave"]'); await pg.wait_for_timeout(800)
         ok('Ожидает отправки' in (await pg.text_content('#sk-pend') or ''), 'без связи приход «ожидает отправки»')
