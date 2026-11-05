@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 8;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 9;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -83,6 +83,45 @@ function authorize() {
   const f = photoFolder_();
   Logger.log('Доступ к Диску есть. Папка для фото: ' + f.getName());
   return 'ok';
+}
+
+/* ---------- резервные копии всей таблицы на Google Диске ----------
+   Каждую ночь (триггер «backupNightly», ставится один раз) и при первом заходе на сайт за сутки (backupTick) —
+   копия всей таблицы в папку «Документы ФД — резервные копии». Хранятся 30 последних + по одной за каждый из 12 месяцев. */
+const BK_DAYS = 30, BK_MONTHS = 12;
+function bkFolder_() {
+  const pr = PropertiesService.getScriptProperties(), id = pr.getProperty('bkFolder');
+  if (id) { try { const f = DriveApp.getFolderById(id); if (!f.isTrashed()) return f; } catch (x) {} }
+  const f = DriveApp.createFolder('Документы ФД — резервные копии'); pr.setProperty('bkFolder', f.getId()); return f;
+}
+function backupMake_(why) {
+  const ss = SpreadsheetApp.getActive(), tz = Session.getScriptTimeZone() || 'Europe/Moscow', now = new Date();
+  const name = 'Документы ФД — копия ' + Utilities.formatDate(now, tz, 'yyyy-MM-dd HH-mm') + (why ? ' (' + why + ')' : '');
+  const f = DriveApp.getFileById(ss.getId()).makeCopy(name, bkFolder_());
+  PropertiesService.getScriptProperties().setProperty('bkLast', now.toISOString());
+  try { bkPrune_(); } catch (x) {}
+  return f;
+}
+function bkList_() { const out = [], it = bkFolder_().getFiles(); while (it.hasNext()) { const f = it.next(); if (!f.isTrashed()) out.push(f); } return out.sort((a, b) => b.getDateCreated() - a.getDateCreated()); }
+function bkPrune_() {
+  const L = bkList_(), keep = {}, months = {}; L.slice(0, BK_DAYS).forEach(f => keep[f.getId()] = 1);
+  L.forEach(f => { const m = Utilities.formatDate(f.getDateCreated(), 'UTC', 'yyyy-MM'); if (!months[m] && Object.keys(months).length < BK_MONTHS) { months[m] = 1; keep[f.getId()] = 1; } });
+  L.forEach(f => { if (!keep[f.getId()]) f.setTrashed(true); });   /* в корзине Диска ещё 30 дней */
+}
+/* для ночного триггера: «Триггеры» → функция backupNightly → «Время» → «Таймер на день» → 3–4 ночи */
+function backupNightly() { backupMake_('ночная'); }
+function backup_(p, me) {
+  const pr = PropertiesService.getScriptProperties(), last = pr.getProperty('bkLast') || '';
+  if (p.action === 'backupTick') {   /* кто бы ни зашёл: если копии не было больше 20 часов — сделать */
+    if (last && Date.now() - Date.parse(last) < 20 * 3600000) return { ok: true, last: last };
+    const lock = LockService.getScriptLock(); if (!lock.tryLock(2000)) return { ok: true, last: last, busy: true };
+    try { const again = pr.getProperty('bkLast') || ''; if (again && Date.now() - Date.parse(again) < 20 * 3600000) return { ok: true, last: again };
+      backupMake_('автоматическая'); return { ok: true, last: pr.getProperty('bkLast'), made: true }; } finally { lock.releaseLock(); }
+  }
+  if (!me.admin) return { ok: false, error: 'forbidden' };
+  if (p.action === 'backupNow') { const f = backupMake_('вручную, ' + me.name); log_(me, [{ action: 'Данные', text: 'Сделана резервная копия таблицы: ' + f.getName() }]); }
+  return { ok: true, last: pr.getProperty('bkLast') || '', folder: bkFolder_().getUrl(),
+    list: bkList_().map(f => ({ id: f.getId(), name: f.getName(), at: f.getDateCreated().toISOString(), size: f.getSize(), url: f.getUrl() })) };
 }
 
 /* скан/фото заявки → Gemini (Google) переписывает её в JSON; товары и цены потом подбирает сам сайт.
@@ -188,6 +227,7 @@ function handle_(p) {
   if (typeof USERS === 'undefined') return { ok: false, error: 'в Apps Script нет файла «Пароли» — создайте его по инструкции (dev/Passwords.template.gs)' };
   const me = auth_(p);
   if (!me) return { ok: false, error: 'auth' };
+  if (/^backup(Tick|List|Now)$/.test(p.action || '')) return backup_(p, me);   // без общей блокировки: копия таблицы делается несколько секунд
   if (p.action === 'aiRead') return aiRead_(p);        // без блокировки: ИИ думает до минуты, остальные в это время работают
   if (p.action === 'aiKey') { if (!me.admin) return { ok: false, error: 'forbidden' }; const k = String(p.gkey || '').trim();
     if (!/^[\w\-]{20,}$/.test(k)) return { ok: false, error: 'это не похоже на ключ Gemini' }; PropertiesService.getScriptProperties().setProperty('GEMINI_KEY', k); return { ok: true }; }
