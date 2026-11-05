@@ -327,10 +327,10 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .mi-errs{display:grid;gap:3px;margin-top:8px;padding:8px 12px;border-radius:10px;background:rgba(198,40,40,.07);color:var(--err);font-size:12.5px}
 #fd-app .dcl-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}#fd-app .dcl-tip{font-size:12px}#fd-app .dcl-chips{margin-bottom:10px}#fd-app .dcl-chips em{font-style:normal;opacity:.6;margin-left:2px}
 #fd-app .dcl-list{display:grid;gap:6px}
-#fd-app .dcl{display:grid;grid-template-columns:44px minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.82);border:1px solid rgba(28,34,32,.07);animation:fdin .28s ease both;animation-delay:var(--d,0ms);transition:box-shadow .2s}
+#fd-app .dcl{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.82);border:1px solid rgba(28,34,32,.07);animation:fdin .28s ease both;animation-delay:var(--d,0ms);transition:box-shadow .2s}
 #fd-app .dcl:hover{box-shadow:0 6px 18px -10px rgba(28,34,32,.3)}
 #fd-app .dcl-i{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;font-size:11px;font-weight:700;letter-spacing:.02em;background:rgba(122,38,74,.10);color:#7a264a}#fd-app .dcl-i.img{background:rgba(31,95,122,.12);color:#1f5f7a}#fd-app .dcl-i.doc{background:rgba(28,34,32,.07);color:var(--muted)}
-#fd-app .dcl-m{min-width:0;display:block}#fd-app .dcl-g{display:flex;flex-wrap:wrap;gap:4px}#fd-app .dcl-g i{font-style:normal;font-size:13px;font-weight:600;padding:2px 9px;border-radius:999px;background:rgba(46,107,69,.10);color:#24553a}#fd-app .dcl-g i.more{background:rgba(28,34,32,.06);color:var(--muted)}#fd-app .dcl-g i.miss{background:rgba(179,38,30,.08);color:var(--err)}
+#fd-app .dcl-m{min-width:0;display:block;text-align:left;border:0;background:none;padding:2px 4px;margin:-2px -4px;border-radius:10px;font:inherit;color:inherit;cursor:pointer;transition:background .2s}#fd-app .dcl-m:hover{background:rgba(122,38,74,.05)}#fd-app .dcl-m:focus-visible{outline:2px solid rgba(122,38,74,.4)}#fd-app .dv-st{margin:10px 0 8px}#fd-app .dv-g{margin-bottom:6px}#fd-app .dv-acts{flex-wrap:wrap}#fd-app .dcl-g{display:flex;flex-wrap:wrap;gap:4px}#fd-app .dcl-g i{font-style:normal;font-size:13px;font-weight:600;padding:2px 9px;border-radius:999px;background:rgba(46,107,69,.10);color:#24553a}#fd-app .dcl-g i.more{background:rgba(28,34,32,.06);color:var(--muted)}#fd-app .dcl-g i.miss{background:rgba(179,38,30,.08);color:var(--err)}
 #fd-app .dcl-m small{display:block;margin-top:4px;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #fd-app .dcl-v{display:inline-block;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap;background:rgba(46,107,69,.10);color:#24553a}#fd-app .dcl-v.warn{background:rgba(179,134,0,.14);color:#7a5a00}#fd-app .dcl-v.bad{background:rgba(179,38,30,.10);color:var(--err)}#fd-app .dcl-v.none{background:rgba(28,34,32,.06);color:var(--muted);font-weight:500}
 #fd-app .dcl-a{display:flex;gap:4px}#fd-app .dcl-a .btn{min-width:34px}
@@ -354,7 +354,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .dd-o b{display:block;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fd-app .dd-o small{display:block;font-size:12px;color:var(--muted)}#fd-app .dd-o input{width:18px;height:18px;accent-color:#2f6b45}
 #fd-app .dd-more{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}#fd-app .dd-pick{flex:1 1 220px;min-width:0;max-width:100%}
 #fd-app .dd-opts{display:flex;flex-wrap:wrap;gap:4px 18px;font-size:13px}
-@media (max-width:760px){#fd-app .dcl{grid-template-columns:40px minmax(0,1fr);gap:8px 10px}#fd-app .dcl-i{width:40px;height:40px}#fd-app .dcl-s{grid-column:2}#fd-app .dcl-a{grid-column:1/-1;justify-content:flex-end}#fd-app .dcl-a .btn{min-height:40px;min-width:44px}#fd-app .dcl-tip{display:none}
+@media (max-width:760px){#fd-app .dcl{grid-template-columns:minmax(0,1fr);gap:8px 10px}#fd-app .dcl-s{grid-column:1}#fd-app .dcl-a{grid-column:1/-1;justify-content:flex-end}#fd-app .dcl-a .btn{min-height:40px;min-width:44px}#fd-app .dcl-tip{display:none}
   #fd-app .dcf-ai{flex:1 1 100%;min-height:46px}#fd-app .dcf-q{font-size:16px}#fd-app .dcf-meta input{font-size:16px}#fd-app .dd-o{padding:10px}#fd-app .dd-o input{width:22px;height:22px}#fd-app .dd-pick{font-size:16px;min-height:44px}#fd-app .dd-more .btn{min-height:44px}}
 #fd-app .pdtools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 8px}#fd-app .pdtools #pd-q{flex:1 1 240px;max-width:420px}#fd-app .pdtools #pd-catm{margin-left:auto}
 #fd-app .catrow{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}#fd-app .catrow:empty{display:none}
@@ -401,6 +401,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .bk-st{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:14px;margin-bottom:10px}#fd-app .bk-st.ok{background:rgba(47,107,69,.09)}#fd-app .bk-st.ok b{color:var(--ok)}#fd-app .bk-st.warn{background:rgba(179,134,0,.12)}#fd-app .bk-st.warn b{color:#7a5a00}#fd-app .bk-st span{font-size:12.5px;color:var(--muted)}
 #fd-app .bk-night{margin:10px 0}#fd-app .bk-night b{display:inline}#fd-app #bk-card a.btn{text-decoration:none}#fd-app .bk-list{display:grid;gap:4px;margin:10px 0 6px}#fd-app .bk-r{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;background:rgba(242,243,239,.7)}#fd-app .bk-r small{display:block;font-size:12px;color:var(--muted)}#fd-app .bk-a{display:flex;gap:4px;flex:none}
 #fd-app .bk-how{margin-top:12px;font-size:14px}#fd-app .bk-how summary{cursor:pointer;font-weight:600;color:var(--accent)}#fd-app .bk-how ol{margin:8px 0;padding-left:20px;display:grid;gap:6px}
+#fd-app .cturl{display:flex;gap:6px;align-items:center}#fd-app .cturl input{flex:1;min-width:0}#fd-app .cturl a.btn{flex:none;text-decoration:none;white-space:nowrap}
 #fd-app .mi-mob{display:none}#fd-app .mi-addr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}#fd-app .mi-addr .mi-one{margin-left:auto}
 #fd-app .mi-ai{display:inline-flex;align-items:center;gap:8px}#fd-app .mi-ai-i{font-size:16px}#fd-app .mi-ai b{font-weight:600}#fd-app .mi-ai small{display:none}
 #fd-app .mi-sup::-webkit-calendar-picker-indicator,#fd-app .mi-name::-webkit-calendar-picker-indicator{display:none!important;opacity:0}
@@ -1389,7 +1390,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
     <div class="card">
       <h2>Контракты и договоры <small id="ct-name"></small></h2>
       <p class="muted">Каждый контракт привязан к конкретному исполнителю. В документе при выборе контракта поставщик, основание и ИКЗ подставятся сами, а по цене контракта считается остаток.</p>
-      <div class="tbl"><table class="stack" data-full="0,1,2"><thead><tr><th style="width:190px">Исполнитель</th><th>Основание (номер и дата)</th><th style="width:170px">ИКЗ</th><th style="width:120px">Цена контракта</th><th style="width:140px">Действует до</th><th class="num">Отгружено</th><th style="width:40px"></th></tr></thead><tbody id="ct-body"></tbody></table></div>
+      <div class="tbl"><table class="stack" data-full="0,1,2,5"><thead><tr><th style="width:190px">Исполнитель</th><th>Основание (номер и дата)</th><th style="width:170px">ИКЗ</th><th style="width:120px">Цена контракта</th><th style="width:140px">Действует до</th><th style="width:230px">Ссылка на договор</th><th class="num">Отгружено</th><th style="width:40px"></th></tr></thead><tbody id="ct-body"></tbody></table></div>
       <div class="row"><button class="btn" id="ct-add">+ Добавить контракт</button></div>
     </div>
     <div class="card" id="akt-card">
@@ -1683,7 +1684,7 @@ function handleErr(e){ if(e.message==="auth"){ showLogin("Неверный па�
   else if(e && !e.net){ setStatus("err","Ошибка таблицы, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Таблица ответила ошибкой","«"+String(e.message||e).slice(0,160)+"». Всё сохранено на этом устройстве, повторю сам. Если повторяется — пришлите этот текст Claude."); } }
   else { setStatus("err","Не сохранено — нет связи, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Нет связи с Google Таблицей",(e&&e.message?"Причина: "+e.message+". ":"")+"Всё сохранено на этом устройстве и отправится автоматически, когда связь появится. Ничего делать не нужно."); } } }
 
-const NEED_VER=9;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
+const NEED_VER=10;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
 function srvVerCheck(v){ const el=$("#srvOld"); if(!el) return; const old=(+v||0)<NEED_VER; el.hidden=!old || docLimited(); D.srvVer=+v||0; }
 document.addEventListener("click",e=>{ if(!e.target.closest || !e.target.closest("#srvOldHow")) return; openCard(`<div class="dc-head"><div><div class="dc-kicker">Code.gs</div><h3>Как обновить скрипт таблицы</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
   <ol class="srvsteps"><li>GitHub → файл <b>dev/Code.template.gs</b> → кнопка «Copy raw file» (два квадратика).</li><li>Таблица «Документы ФД» → «Расширения» → «Apps Script» → файл <b>Код.gs</b> → Ctrl+A → Ctrl+V → «Сохранить». Файл «Пароли.gs» не трогать.</li><li>«Начать развёртывание» → «Управление развёртываниями» → карандаш → «Версия: новая версия» → «Развернуть».</li><li>Обновите эту страницу — жёлтая плашка исчезнет.</li></ol>
@@ -1825,13 +1826,26 @@ window.addEventListener("beforeunload",e=>{ if(online() && hasPending()){ flush(
 let curTab="doc";
 /* у кого сайт открывается сразу на календаре (на сегодняшнем дне) */
 const START_TAB={"Гриша":"calendar","Склад":"journal"};   /* с какой вкладки открывается сайт у пользователя */
-function startTab(){ const t0=START_TAB[curUser()]; if(!t0 || !pass()) return; if(t0==="calendar"){ const c=CAL(), t=todayISO(); c.sel=t; c.ym=t.slice(0,7); saveLocal(); } showTab(t0); }
+/* у каждой вкладки свой адрес (frudom.ru/1c#zhurnal): после обновления страницы и при новом открытии приложения — та же вкладка */
+const TAB_SLUG={doc:"dokument",order:"zayavka",journal:"zhurnal",calendar:"kalendar",customers:"zakazchiki",stock:"sklad",purchase:"zakupka",profit:"pribyl",events:"sobytiya",suppliers:"postavshchiki",tasks:"zadachi",products:"tovary",archive:"arkhiv",data:"dannye"};
+const SLUG_TAB=Object.fromEntries(Object.entries(TAB_SLUG).map(([k,v])=>[v,k]));
+const LTKEY = () => "frudom-lasttab:"+(curUser()||"-");
+const tabOk = t => { const b=t&&document.querySelector(`#fd-app nav.tabs button[data-tab="${t}"]`); return !!(b && !b.hidden && TAB_SLUG[t]); };
+function tabFromHash(){ const h=decodeURIComponent(String(location.hash||"").replace(/^#/,"")).toLowerCase(); return SLUG_TAB[h] || (TAB_SLUG[h]?h:""); }
+function tabRemember(t){ if(!TAB_SLUG[t] || !pass()) return; lsSet(LTKEY(), t);
+  const want="#"+TAB_SLUG[t]; if(location.hash!==want){ try{ history.replaceState(history.state, "", location.pathname+location.search+want); }catch(e){} } }
+function startTab(){ if(!pass()) return; const h=tabFromHash(), last=lsGet(LTKEY()), t0=START_TAB[curUser()];
+  const t = tabOk(h) ? h : tabOk(last) ? last : t0;
+  if(!t){ tabRemember(curTab||"doc"); return; }
+  if(t==="calendar" && !tabOk(h)){ const c=CAL(), d=todayISO(); c.sel=d; c.ym=d.slice(0,7); saveLocal(); }   /* календарь при новом открытии — на сегодня */
+  showTab(t); }
+window.addEventListener("hashchange", ()=>{ const t=tabFromHash(); if(t && t!==curTab && tabOk(t)) showTab(t); });
 const PDF_URL="https://frudom.ru/pdf";
 /* вкладка «Редактор PDF»: по нажатию открываем frudom.ru/pdf в новой вкладке (и показываем страницу с кнопкой — если браузер не дал открыть) */
 function goTab(t){ if(t==="pdf"){ let w=null; try{ w=window.open(PDF_URL,"_blank","noopener"); }catch(e){} logEv("Вход","Открыт редактор PDF"); if(curTab!=="pdf") showTab("pdf"); return; } showTab(t); }
 document.querySelectorAll("#fd-app nav.tabs button[data-tab]").forEach(b=>b.onclick=()=>{ if($("#fd-app nav.tabs").classList.contains("editing")) return; goTab(b.dataset.tab); });
 function showTab(t){
-  curTab=t;
+  curTab=t; tabRemember(t);
   document.querySelectorAll("#fd-app nav.tabs button[data-tab]").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t));
   const ab=document.querySelector(`#fd-app nav.tabs button[data-tab="${t}"]`); if(ab && ab.parentElement.scrollWidth>ab.parentElement.clientWidth){ try{ ab.scrollIntoView({inline:"nearest", block:"nearest"}); }catch(e){} }
   document.querySelectorAll("#fd-app section.tab").forEach(s=>s.hidden = s.id!=="tab-"+t);
@@ -4359,12 +4373,16 @@ function renderContracts(cid){ if(typeof renderAkt==="function" && AKT.cid===cid
   $("#ct-body").innerHTML = ctrs(cid).map(x=>`<tr data-id="${x.id}"><td><select data-k="supplierId">${supOpts(x.supplierId)}</select></td>
     <td><input data-k="basis" value="${esc(x.basis)}" placeholder="ЭЗК-26-91390881 от 30.09.2026"></td><td><input data-k="ikz" value="${esc(x.ikz)}" inputmode="numeric"></td>
     <td><input data-k="maxSum" value="${esc(x.maxSum)}" inputmode="decimal" placeholder="—"></td><td><input data-k="dateTo" type="date" value="${esc(x.dateTo)}"></td>
+    <td><div class="cturl"><input data-k="url" value="${esc(x.url||"")}" placeholder="вставьте ссылку на договор" inputmode="url"${(D.srvVer||0)>=10?"":` disabled title="Сначала обновите Code.gs — иначе ссылка не сохранится"`}>${ctUrl(x.url)?`<a class="btn sm pri" href="${esc(ctUrl(x.url))}" target="_blank" rel="noopener" title="Открыть договор">Открыть ↗</a>`:""}</div></td>
     <td class="num">${fm(ctrUsed(x.id))}</td><td><button class="btn ghost danger sm" data-del title="Удалить контракт">×</button></td></tr>`).join("")
-    || `<tr><td colspan="7" class="muted" style="padding:12px 6px">Контрактов пока нет.</td></tr>`;
+    || `<tr><td colspan="8" class="muted" style="padding:12px 6px">Контрактов пока нет.</td></tr>`;
   $("#ct-add").onclick=()=>{ if(!cid) return; const x={id:uid(), customerId:cid, supplierId:"", basis:"", ikz:"", maxSum:"", dateTo:""}; D.contracts.push(x); dirty("contracts",x.id); renderContracts(cid); };
 }
 const ctb=$("#ct-body");
-const ctSet=e=>{ const k=e.target.dataset.k; if(!k) return; const x=ctr(e.target.closest("tr").dataset.id); if(!x) return; x[k]= k==="maxSum"?num(e.target.value):e.target.value; dirty("contracts",x.id); };
+/* ссылка на договор: что вставили — то и открываем; без http — добавим https:// */
+const ctUrl = v => { v=String(v||"").trim(); if(!v) return ""; if(/^https?:\/\//i.test(v)) return v; if(/^[\w.-]+\.[a-zа-я]{2,}(\/|$)/i.test(v)) return "https://"+v; return ""; };
+const ctSet=e=>{ const k=e.target.dataset.k; if(!k) return; const x=ctr(e.target.closest("tr").dataset.id); if(!x) return; x[k]= k==="maxSum"?num(e.target.value):e.target.value; dirty("contracts",x.id);
+  if(k==="url"){ const box=e.target.closest(".cturl"), u=ctUrl(x.url); let a=box.querySelector("a"); if(u){ if(!a){ a=document.createElement("a"); a.className="btn sm pri"; a.target="_blank"; a.rel="noopener"; a.textContent="Открыть ↗"; a.title="Открыть договор"; box.appendChild(a); } a.href=u; } else if(a) a.remove(); } };
 ctb.addEventListener("input",ctSet); ctb.addEventListener("change",e=>{ if(e.target.tagName==="SELECT") ctSet(e); });
 ctb.addEventListener("click",e=>{ const b=e.target.closest("[data-del]"); if(!b) return;
   if(!b.dataset.armed){ b.dataset.armed=1; b.textContent="Удалить?"; return; }

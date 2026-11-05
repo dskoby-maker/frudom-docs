@@ -34,11 +34,24 @@ function skDeclList(q){ const L0=skD().files.slice().sort((a,b)=>String(b.at).lo
     ${!dSrvOk()&&L0.length?`<div class="sknoteb">Чтобы указывать в декларации несколько товаров, номер и срок — обновите Code.gs в таблице.</div>`:""}
     ${L.length?`<div class="dcl-list">${L.map((f,i)=>dRow(f,i)).join("")}</div>`:`<div class="skempty"><b>${words.length||SKDL.f!=="all"?"Ничего не найдено":"Деклараций пока нет"}</b><span>${words.length||SKDL.f!=="all"?"Попробуйте другое слово или фильтр «Все».":"Нажмите «+ Добавить декларацию»: файл, что в ней, номер и срок."}</span></div>`}`; }
 function dRow(f, i){ const G=dGoods(f), P=[...dProds(f)].length, pdf=dIsPdf(f), im=dIsImg(f);
-  return `<div class="dcl" style="--d:${Math.min(i||0,12)*22}ms"><span class="dcl-i ${pdf?"pdf":im?"img":"doc"}">${pdf?"PDF":im?"Фото":"Файл"}</span>
-    <span class="dcl-m"><span class="dcl-g">${G.slice(0,8).map(g=>`<i>${esc(g)}</i>`).join("")}${G.length>8?`<i class="more">ещё ${G.length-8}</i>`:""}${!G.length?`<i class="miss">товары не указаны</i>`:""}</span>
-      <small>${[f.num?"№ "+esc(f.num):"", f.maker?esc(f.maker):"", P?`привязана к ${P} ${plural(P,["позиции","позициям","позициям"])}`:"", esc(f.name||"")].filter(Boolean).join(" · ")}</small></span>
+  return `<div class="dcl" style="--d:${Math.min(i||0,12)*22}ms">
+    <button type="button" class="dcl-m" data-dl="view" data-id="${f.id}" title="Подробнее о декларации"><span class="dcl-g">${G.slice(0,8).map(g=>`<i>${esc(g)}</i>`).join("")}${G.length>8?`<i class="more">ещё ${G.length-8}</i>`:""}${!G.length?`<i class="miss">товары не указаны</i>`:""}</span>
+      <small>${[f.num?"№ "+esc(f.num):"", f.maker?esc(f.maker):"", P?`привязана к ${P} ${plural(P,["позиции","позициям","позициям"])}`:"", esc(f.name||"")].filter(Boolean).join(" · ")}</small></button>
     <span class="dcl-s">${dBadge(f)}</span>
     <span class="dcl-a">${pdf||im?`<button type="button" class="btn ghost sm" data-skfview="${f.id}">Открыть</button>`:""}<button type="button" class="btn ghost sm" data-skfget="${f.id}" aria-label="Скачать">⤓</button><button type="button" class="btn ghost sm" data-dl="edit" data-id="${f.id}" aria-label="Изменить">✎</button><button type="button" class="btn ghost sm danger" data-skfdel="${f.id}" aria-label="Удалить">×</button></span></div>`; }
+
+/* ---------- карточка декларации: всё о ней и все действия ---------- */
+let SKDV=null;
+function dView(id){ SKDV={id}; skModal(dViewHtml, true); }
+function dViewHtml(){ const f=skD().files.find(x=>x.id===SKDV.id); if(!f) return skHead("Декларации","Декларация удалена","Обновите список.");
+  const G=dGoods(f), X=skIdx(), P=dJ(f.prods).map(id=>prod(id)).filter(p=>p&&p.id), I=dItems(f).map(id=>X.item[id]).filter(Boolean), pdf=dIsPdf(f), im=dIsImg(f);
+  const info=[["№ декларации",f.num||"—"],["Действует до",f.validTo?fd(f.validTo):"не указан"],["Изготовитель",f.maker||"—"],["Файл",(f.name||"")+(+f.size?" · "+(+f.size>=1048576?(f.size/1048576).toFixed(1).replace(".",",")+" МБ":Math.max(1,Math.round(f.size/1024))+" КБ"):"")],["Добавил",(f.by||"—")+(f.at?" · "+skWhen(f.at):"")]].concat(f.batchName?[["Партия",f.batchName]]:[]).concat(f.note?[["Комментарий",f.note]]:[]);
+  return skHead("Декларация", esc(G.join(", ")||f.name||"Декларация"), "", "Декларации")
+   + `<div class="dv-st">${dBadge(f)}</div>
+     <div class="dcl-g dv-g">${G.map(g=>`<i>${esc(g)}</i>`).join("")||`<i class="miss">товары не указаны</i>`}</div>
+     <dl class="dc-info">${info.map(([a,v])=>`<div><dt>${a}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>
+     ${P.length||I.length?`<div class="skbox"><div class="skbh"><b>Привязана к позициям</b><small class="muted">в документах с этими товарами подставится сама</small></div>${P.map(p=>`<span class="sklink">${esc(p.name)}</span>`).join("")}${I.map(i=>`<span class="sklink">🔗 ${esc(i.name)} <small class="muted">склад</small></span>`).join("")}</div>`:""}
+     <div class="dc-acts dv-acts">${pdf||im?`<button class="btn" data-skfview="${f.id}">Открыть</button>`:""}<button class="btn" data-skfget="${f.id}">Скачать</button><button class="btn" data-dl="edit" data-id="${f.id}">Изменить</button><button class="btn ghost danger" data-skfdel="${f.id}">Удалить</button><button class="btn pri" data-sk="close">Готово</button></div>`; }
 
 /* ---------- форма: добавить / изменить декларацию ---------- */
 let SKDF=null;
@@ -183,7 +196,7 @@ async function dBuild(kind){ const M=SKDD, ids=[]; M.pos.forEach(p=>M.sel[p.id].
 document.addEventListener("click", e=>{ const t=e.target; if(!t.closest) return;
   const ch=t.closest("[data-dlf]"); if(ch){ SKDL.f=ch.dataset.dlf; skDrawList(); return; }
   const b=t.closest("[data-dl]"); if(b){ const a=b.dataset.dl;
-    if(a==="add"){ dForm(); return; } if(a==="edit"){ dForm({id:b.dataset.id}); return; }
+    if(a==="add"){ dForm(); return; } if(a==="edit"){ dForm({id:b.dataset.id}); return; } if(a==="view"){ dView(b.dataset.id); return; }
     if(!SKDF) return; dFormRead();
     if(a==="cancel"){ const cb=SKDF.onDone; SKDF=null; skClose(); if(cb) setTimeout(cb,200); return; }
     if(a==="save"){ dSave(); return; } if(a==="ai"){ dAi(); return; }
