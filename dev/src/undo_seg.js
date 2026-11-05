@@ -35,7 +35,7 @@ function unPrefsLabel(b,a){ b=b||{}; a=a||{}; const bt=b.tasks||[], at=a.tasks||
   if(JSON.stringify(b.hide||[])!==JSON.stringify(a.hide||[])) return "скрытие задачи";
   if(JSON.stringify(b.zk)!==JSON.stringify(a.zk)) return "запомненные названия закупки";
   if(JSON.stringify(b.ov)!==JSON.stringify(a.ov)) return "вид таблицы заявки";
-  if(b.prSize!==a.prSize) return "сколько строк показывать";
+  if(b.prSize!==a.prSize || b.skLogSize!==a.skLogSize) return "сколько строк показывать";
   return "личные настройки"; }
 /* черновик документа, заявка, закупка, личные настройки — то, что живёт на устройстве */
 const UN_LOCAL={
@@ -51,8 +51,8 @@ const UN_LOCAL={
       else if(v.id){ const r=(D.purchases||[]).find(x=>x.id===v.id); if(r){ v.upd=r.updated; v.synced=D.zkSrv?1:0; } }
       D.zk=v; const ta=document.getElementById("zk-src"); if(ta) ta.value=v.text||""; saveLocal(); if(String(v.text||"").trim() && typeof zkAutoSave==="function") zkAutoSave(); },
     label:(b,a)=>(b&&b.id&&b.id!==(a&&a.id) ? (a&&a.id ? "переход к другой закупке" : "новая закупка") : "правка закупки")},
-  prefs:{tab:null, get:()=>{ if(!curUser()) return null; const p=getPrefs(); delete p.pfSeen; return p; },   /* pfSeen — служебная отметка «был во вкладке Прибыль», не шаг отмены */
-    set:v=>{ if(!curUser()) return; v=Object.assign({}, v||{}); const ps=getPrefs().pfSeen; if(ps) v.pfSeen=ps; else delete v.pfSeen; setPrefs(v, true); try{ applyTabOrder(); }catch(e){} }, label:unPrefsLabel}
+  prefs:{tab:null, get:()=>{ if(!curUser()) return null; const p=getPrefs(); delete p.pfSeen; delete p.skLogSize; return p; },   /* pfSeen — служебная отметка «был во вкладке Прибыль», не шаг отмены */
+    set:v=>{ if(!curUser()) return; v=Object.assign({}, v||{}); const g=getPrefs(), ps=g.pfSeen; if(ps) v.pfSeen=ps; else delete v.pfSeen; if(g.skLogSize!=null) v.skLogSize=g.skLogSize; else delete v.skLogSize; setPrefs(v, true); try{ applyTabOrder(); }catch(e){} }, label:unPrefsLabel}
 };
 const unKey = (t,id) => t+"\u0001"+id;
 function unRowJ(t,id){ const r=localRow(t,id); return r==null?null:JSON.stringify(r); }
