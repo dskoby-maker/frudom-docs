@@ -398,6 +398,9 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
   #fd-app .skmr{grid-template-columns:minmax(0,1fr) auto;gap:3px 8px}#fd-app .skmr .skmt{grid-column:1;grid-row:1}#fd-app .skmr .skmq{grid-column:1;grid-row:2}#fd-app .skmr .skmd{grid-column:1/-1;grid-row:3}#fd-app .skmr .sklw{grid-column:2;grid-row:1/3}
 }
 #fd-app .srvold{background:rgba(179,134,0,.12);border:1px solid rgba(179,134,0,.35);display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}#fd-app .srvsteps{margin:12px 0 0;padding-left:20px;display:grid;gap:8px;font-size:14px;line-height:1.45}
+#fd-app .bk-st{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:14px;margin-bottom:10px}#fd-app .bk-st.ok{background:rgba(47,107,69,.09)}#fd-app .bk-st.ok b{color:var(--ok)}#fd-app .bk-st.warn{background:rgba(179,134,0,.12)}#fd-app .bk-st.warn b{color:#7a5a00}#fd-app .bk-st span{font-size:12.5px;color:var(--muted)}
+#fd-app .bk-night{margin:10px 0}#fd-app .bk-night b{display:inline}#fd-app #bk-card a.btn{text-decoration:none}#fd-app .bk-list{display:grid;gap:4px;margin:10px 0 6px}#fd-app .bk-r{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;background:rgba(242,243,239,.7)}#fd-app .bk-r small{display:block;font-size:12px;color:var(--muted)}#fd-app .bk-a{display:flex;gap:4px;flex:none}
+#fd-app .bk-how{margin-top:12px;font-size:14px}#fd-app .bk-how summary{cursor:pointer;font-weight:600;color:var(--accent)}#fd-app .bk-how ol{margin:8px 0;padding-left:20px;display:grid;gap:6px}
 #fd-app .mi-mob{display:none}#fd-app .mi-addr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}#fd-app .mi-addr .mi-one{margin-left:auto}
 #fd-app .mi-ai{display:inline-flex;align-items:center;gap:8px}#fd-app .mi-ai-i{font-size:16px}#fd-app .mi-ai b{font-weight:600}#fd-app .mi-ai small{display:none}
 #fd-app .mi-sup::-webkit-calendar-picker-indicator,#fd-app .mi-name::-webkit-calendar-picker-indicator{display:none!important;opacity:0}
@@ -1443,8 +1446,12 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
       <p class="muted" id="dt-store"></p>
       <div class="row"><button class="btn" id="dt-pull">Обновить данные с сервера</button><button class="btn ghost" id="dt-logout">Выйти на этом компьютере</button></div>
     </div>
+    <div class="card" id="bk-card" hidden>
+      <h2>Резервные копии таблицы <small>на вашем Google Диске</small></h2>
+      <div id="bk-box"><p class="muted">Загружаю…</p></div>
+    </div>
     <div class="card">
-      <h2>Резервная копия</h2>
+      <h2>Копия на этом устройстве</h2>
       <p class="muted">Файл со всеми справочниками и журналом. Пригодится как запасная копия.</p>
       <div class="row"><button class="btn pri" id="dt-export">Скачать данные (.json)</button>
         <label class="btn">Загрузить из файла<input type="file" id="dt-import" accept=".json,application/json" hidden></label></div>
@@ -1676,7 +1683,7 @@ function handleErr(e){ if(e.message==="auth"){ showLogin("Неверный па�
   else if(e && !e.net){ setStatus("err","Ошибка таблицы, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Таблица ответила ошибкой","«"+String(e.message||e).slice(0,160)+"». Всё сохранено на этом устройстве, повторю сам. Если повторяется — пришлите этот текст Claude."); } }
   else { setStatus("err","Не сохранено — нет связи, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Нет связи с Google Таблицей",(e&&e.message?"Причина: "+e.message+". ":"")+"Всё сохранено на этом устройстве и отправится автоматически, когда связь появится. Ничего делать не нужно."); } } }
 
-const NEED_VER=8;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
+const NEED_VER=9;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
 function srvVerCheck(v){ const el=$("#srvOld"); if(!el) return; const old=(+v||0)<NEED_VER; el.hidden=!old || docLimited(); D.srvVer=+v||0; }
 document.addEventListener("click",e=>{ if(!e.target.closest || !e.target.closest("#srvOldHow")) return; openCard(`<div class="dc-head"><div><div class="dc-kicker">Code.gs</div><h3>Как обновить скрипт таблицы</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
   <ol class="srvsteps"><li>GitHub → файл <b>dev/Code.template.gs</b> → кнопка «Copy raw file» (два квадратика).</li><li>Таблица «Документы ФД» → «Расширения» → «Apps Script» → файл <b>Код.gs</b> → Ctrl+A → Ctrl+V → «Сохранить». Файл «Пароли.gs» не трогать.</li><li>«Начать развёртывание» → «Управление развёртываниями» → карандаш → «Версия: новая версия» → «Развернуть».</li><li>Обновите эту страницу — жёлтая плашка исчезнет.</li></ol>
@@ -1730,7 +1737,7 @@ async function pull(force){
       Object.keys(D.specs).forEach(c=>Object.keys(D.specs[c]).forEach(p=>dirtySpec(c,p)));
       await flush(); setStatus("ok","Таблица заполнена"); return;
     }
-    applyServer(j.data); srvVerCheck(j.ver); if(syncBlocked){rerender();return;} setStatus("ok"); skLoad(true); if(j.concurrency!==1)toast("warn","Нужно обновить Code.gs","Защита от одновременных правок заработает после установки нового скрипта таблицы."); if(serverOld) setStatus("err","Обновите скрипт таблицы (новая версия)"); rerender(); setTimeout(plAuto, 1500);
+    applyServer(j.data); srvVerCheck(j.ver); bkTick(); if(syncBlocked){rerender();return;} setStatus("ok"); skLoad(true); if(j.concurrency!==1)toast("warn","Нужно обновить Code.gs","Защита от одновременных правок заработает после установки нового скрипта таблицы."); if(serverOld) setStatus("err","Обновите скрипт таблицы (новая версия)"); rerender(); setTimeout(plAuto, 1500);
   }catch(e){ handleErr(e); }
 }
 function setStatus(s, text){
@@ -4773,7 +4780,27 @@ pb.addEventListener("click",e=>{ const b=e.target.closest("[data-del]"); if(!b) 
 $("#pd-add").onclick=()=>{ const c=PDV.cat!=="all"&&PDV.cat!=="none"?PDV.cat:""; PDV.q=""; $("#pd-q").value=""; if(!c) PDV.cat="all"; const p={id:uid(), name:"", code:"", unit:"кг", country:"", price:""}; if(c) p.cat=c; D.products.push(p); dirty("products",p.id); renderProducts(); const r=pb.lastElementChild; r&&r.querySelector("input").focus(); };
 
 /* ---------- данные ---------- */
+/* ---------- резервные копии таблицы (Google Диск): каждую ночь + при первом заходе за сутки ---------- */
+let bkTicked=false, BK=null;
+function bkTick(){ if(bkTicked || !online() || (D.srvVer||0)<9) return; bkTicked=true; api({action:"backupTick"}).then(j=>{ if(j&&j.made) logEv("Данные","Сделана автоматическая резервная копия таблицы"); }).catch(()=>{}); }
+async function bkLoad(now){ const box=$("#bk-box"); if(!box) return;
+  if((D.srvVer||0)<9){ box.innerHTML=`<p class="muted">Резервные копии заработают после обновления Code.gs. <button type="button" class="btn sm" id="srvOldHow">Как обновить</button></p>`; return; }
+  if(now){ const b=$("#bk-now"); if(b){ b.disabled=true; b.textContent="Делаю копию…"; } }
+  try{ BK=await api({action: now?"backupNow":"backupList"}); if(now) toast("ok","Резервная копия готова","Лежит в папке «Документы ФД — резервные копии» на Google Диске."); }
+  catch(e){ box.innerHTML=`<p class="miss">Не получилось: ${esc(e.message)}</p>`; return; }
+  bkDraw(); }
+function bkDraw(){ const box=$("#bk-box"); if(!box||!BK) return; const L=BK.list||[], last=BK.last?new Date(BK.last):null, age=last?(Date.now()-last)/36e5:1e9;
+  const night=L.some(f=>/ночная/.test(f.name) && Date.now()-Date.parse(f.at)<50*36e5), show=BK.all?L:L.slice(0,7);
+  const when=d=>new Date(d).toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
+  box.innerHTML=`<div class="bk-st ${age<26?"ok":"warn"}"><b>${last?(age<26?"✓ ":"⚠ ")+"Последняя копия: "+when(last):"Копий ещё нет"}</b><span>${L.length} ${plural(L.length,["копия","копии","копий"])} · хранятся 30 последних и по одной за каждый месяц (год)</span></div>
+    <div class="row"><button type="button" class="btn pri" id="bk-now">Сделать копию сейчас</button>${BK.folder?`<a class="btn" href="${esc(BK.folder)}" target="_blank" rel="noopener">Открыть папку на Диске ↗</a>`:""}</div>
+    ${night?"":`<div class="sknoteb bk-night"><b>Ночные копии ещё не включены.</b> Пока копия делается при первом заходе на сайт за сутки. Чтобы копия делалась каждую ночь в 3:00 даже без захода — один раз: Apps Script → слева значок будильника «Триггеры» → «+ Добавить триггер» → функция <b>backupNightly</b> → источник «Время» → «Таймер на день» → «С 3 до 4 ночи» → «Сохранить» → «Разрешить».</div>`}
+    ${L.length?`<div class="bk-list">${show.map(f=>`<div class="bk-r"><span><b>${esc(when(f.at))}</b><small>${esc((f.name.match(/\(([^)]+)\)\s*$/)||[])[1]||"")}</small></span><span class="bk-a"><a class="btn ghost sm" href="${esc(f.url)}" target="_blank" rel="noopener">Открыть</a><a class="btn ghost sm" href="https://docs.google.com/spreadsheets/d/${esc(f.id)}/export?format=xlsx" target="_blank" rel="noopener">Excel ⤓</a></span></div>`).join("")}</div>${L.length>show.length?`<button type="button" class="btn ghost sm" id="bk-all">Показать все (${L.length})</button>`:""}`:""}
+    <details class="bk-how"><summary>Как вернуть данные из копии</summary><ol><li>Откройте нужную копию («Открыть») — это обычная Google Таблица на момент копии.</li><li>Правой кнопкой по вкладке листа (например «Заказчики» или «Цены») → «Копировать в» → «Существующая таблица» → «Документы ФД».</li><li>В «Документах ФД» удалите испорченный лист, а скопированный переименуйте точно как был (без «Копия»).</li><li>На сайте: «Данные» → «Обновить данные с сервера».</li></ol><p class="muted">Если не уверены — напишите в чат, вместе вернём нужное без потерь.</p></details>`; }
+document.addEventListener("click",e=>{ const t=e.target; if(!t.closest) return; if(t.closest("#bk-now")){ bkLoad(true); return; } if(t.closest("#bk-all")){ BK.all=1; bkDraw(); } });
 function renderData(){
+  const bc=$("#bk-card"); if(bc){ bc.hidden=!(online() && me().admin); if(!bc.hidden) bkLoad(false); }
+  const im=$("#dt-import"); if(im) im.closest("label").hidden=online() && !me().admin;   /* загрузка из файла перезаписывает данные в таблице — только Даниил */
   $("#dt-store").textContent = !API_URL ? "Хранилище не подключено: данные лежат только в этом браузере. Вставьте ссылку на Google Apps Script в начало кода блока."
     : online() ? "Подключено к Google Таблице. Всё, что вы меняете, сохраняется туда автоматически, и другие пользователи видят это после обновления страницы."
     : "Хранилище подключено, нужен вход.";
@@ -4783,7 +4810,8 @@ $("#dt-pull").onclick=()=>pull(true);
 $("#dt-logout").onclick=()=>logout();
 $("#dt-export").onclick=()=>{ const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([JSON.stringify(D,null,1)],{type:"application/json"}));
   a.download="frudom-docs-"+todayISO()+".json"; document.body.appendChild(a); a.click(); a.remove(); $("#dt-msg").textContent="Файл скачан."; };
-$("#dt-import").onchange=e=>{ const f=e.target.files[0]; if(!f) return; const r=new FileReader();
+$("#dt-import").onchange=e=>{ const f=e.target.files[0]; e.target.value=""; if(!f) return; if(online() && !me().admin) return;
+  if(online() && !confirm("Данные из файла «"+f.name+"» заменят текущие справочники, цены и документы в таблице у всех.\n\nПеред этим лучше сделать резервную копию (кнопка выше). Продолжить?")) return; const r=new FileReader();
   r.onload=()=>{ try{ const x=JSON.parse(r.result); if(!x.suppliers||!x.products) throw 0; const dr=D.draft; D=migrate(x); D.syncBase=BASE; D.syncConflicts=clone(conflictList); D.draft=D.draft||dr; D.demo=false; $("#demoNote").hidden=true;
       if(online()){ D.suppliers.forEach(o=>dirty("suppliers",o.id)); D.customers.forEach(o=>dirty("customers",o.id)); D.products.forEach(o=>dirty("products",o.id));
         Object.keys(D.prices).forEach(c=>Object.keys(D.prices[c]).forEach(p=>dirtyPrice(c,p))); (D.journal||[]).forEach(j=>j.snap&&dirty("journal",j.id)); }
