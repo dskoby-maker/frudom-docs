@@ -19,7 +19,9 @@ const S = {
     ['contract','Основание'],['ikz','ИКЗ'],['acct','Тип счёта'],['bank','Банк'],['bik','БИК'],['rs','Р/с / казн. счёт'],['ks','К/с / ЕКС'],
     ['id','ID (не менять)'],['branches','Обособленные подразделения (заполняется с сайта)'],['edo','ID участника ЭДО (Диадок)'],['points','Контакты точек доставки (заполняется с сайта)'],['t12c','Страна в ТОРГ-12 (1 = да)'],['nums','Нумерация: продолжить с № (заполняется с сайта)'],['signs','Подписи поставщика: 3 = во всех графах'],['vat','НДС в документах (10+ = 10% сверху цены)'],['plist','Цены из моего прайса (1 = да)']]},
   products: { title: 'Товары', key: 'id', cols: [
-    ['name','Наименование'],['code','Код'],['unit','Ед.'],['country','Страна (код)'],['price','Базовая цена'],['id','ID (не менять)'],['packs','Вес упаковки (заполняется с сайта)'],['aliases','Другие названия в заявках (заполняется с сайта)']]},
+    ['name','Наименование'],['code','Код'],['unit','Ед.'],['country','Страна (код)'],['price','Базовая цена'],['id','ID (не менять)'],['packs','Вес упаковки (заполняется с сайта)'],['aliases','Другие названия в заявках (заполняется с сайта)'],['cat','ID категории (не менять)'],['catName','Категория (заполняется с сайта)']]},
+  cats: { title: 'Категории товаров', key: 'id', cols: [
+    ['name','Категория'],['order','Порядок'],['color','Цвет'],['id','ID (не менять)']]},
   prices: { title: 'Цены', key: null, cols: [
     ['customerName','Заказчик'],['productName','Товар'],['price','Цена'],['customerId','ID заказчика'],['productId','ID товара']]},
   specs: { title: 'СТЕ', key: null, cols: [
@@ -192,8 +194,8 @@ function handle_(p) {
   lock.waitLock(25000);
   try {
     if (p.action === 'load' && me.admin) seedEis_();
-    if (p.action === 'load') return { ok: true, concurrency: 1, eis: 1, akt: 1, me: me, prefs: (read_('uprefs').find(r => r.id === me.name) || {}).data || '', data: {
-      suppliers: me.role === 'staff' ? read_('suppliers').map(s => { const x = Object.assign({}, s); delete x.stamp; delete x.sign; return x; }) : read_('suppliers'), customers: read_('customers'), products: read_('products'),
+    if (p.action === 'load') return { ok: true, concurrency: 1, eis: 1, akt: 1, cats: 1, me: me, prefs: (read_('uprefs').find(r => r.id === me.name) || {}).data || '', data: {
+      suppliers: me.role === 'staff' ? read_('suppliers').map(s => { const x = Object.assign({}, s); delete x.stamp; delete x.sign; return x; }) : read_('suppliers'), customers: read_('customers'), products: read_('products'), cats: read_('cats'),
       prices: read_('prices'), specs: read_('specs'), contracts: read_('contracts'), journal: read_('journal').slice(-2000),
       daytasks: (function () { const d = new Date(); d.setDate(d.getDate() - 120); const from = Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd');
         const ph = {}; photosClean_().forEach(r => (ph[r.taskId] = ph[r.taskId] || []).push({ id: r.id, by: r.by, w: +r.w || 0, h: +r.h || 0 }));
@@ -393,7 +395,10 @@ function applySync_(ch, me) {
       ev.push({ action: 'Справочники', text: L.length <= 3 ? L.map(o => one + ' ' + w[0] + ' «' + nm(o) + '»').join('; ') : many + ' ' + w[1] + ': ' + L.length });
     });
   };
+  if (ch.cats) { const r = upsertList_('cats', ch.cats); r.added.concat(r.changed).forEach(o => ev.push({ action: 'Справочники', text: 'Категория товаров «' + (o.name || '') + '»' + (r.added.indexOf(o) >= 0 ? ' добавлена' : ' изменена') })); r.removed.forEach(o => ev.push({ action: 'Справочники', text: 'Категория товаров «' + (o.name || '') + '» удалена' })); }
+  if (ch.products) { const cn = nameMap_('cats'); (ch.products.upsert || []).forEach(o => { o.catName = o.cat ? (cn[o.cat] || '') : ''; }); }
   ['suppliers', 'customers', 'products'].forEach(t => say(t, upsertList_(t, ch[t])));
+  if (ch.cats) { const cn = nameMap_('cats'); const P = read_('products'); let n = 0; P.forEach(o => { const v = o.cat ? (cn[o.cat] || '') : ''; if (String(o.catName || '') !== v) { o.catName = v; n++; } }); if (n) write_('products', P); }
   if (ch.prices) {
     const cn0 = nameMap_('customers'), per = {};
     (ch.prices.upsert || []).concat(ch.prices.del || []).forEach(o => per[o.customerId] = (per[o.customerId] || 0) + 1);
@@ -1040,13 +1045,13 @@ function sameValue_(a,b) { return String(a == null ? '' : a) === String(b == nul
 function guardChanges_(input, base, protocol, me) {
   const changes = JSON.parse(JSON.stringify(input || {})), conflicts = [];
   if (protocol !== 1) return { ok: false, error: 'Обновите страницу: для сохранения нужна новая версия сайта.' };
-  const allowed = lim_(me) ? ['journal','daytasks'] : me.role === 'staff' ? ['suppliers','products','prices','journal','daytasks'] : ['suppliers','customers','products','prices','specs','contracts','journal','daytasks'].concat(me.admin ? ['costs','doccosts','psettings','purchases','pother'] : []);
+  const allowed = lim_(me) ? ['journal','daytasks'] : me.role === 'staff' ? ['suppliers','products','cats','prices','journal','daytasks'] : ['suppliers','customers','products','cats','prices','specs','contracts','journal','daytasks'].concat(me.admin ? ['costs','doccosts','psettings','purchases','pother'] : []);
   for (const t of Object.keys(changes)) {
     if (t === 'events') continue;
     if (!allowed.includes(t)) return { ok: false, error: 'forbidden' };
     const part = changes[t]; if (!part) continue;
     const current = {}; read_(t).forEach(r => current[rowKey_(t,r)] = r);
-    const cols = S[t].cols.map(c => c[0]).filter(k => !['customerName','supplierName','productName'].includes(k));
+    const cols = S[t].cols.map(c => c[0]).filter(k => !['customerName','supplierName','productName','catName'].includes(k));
     const bases = (base || {})[t] || {};
     const check = (o, deleting) => {
       const id = deleting && S[t].key ? String(o) : rowKey_(t,o), now = current[id] || null;
