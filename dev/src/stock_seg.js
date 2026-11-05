@@ -631,7 +631,7 @@ const miHas = () => SKMI && SKMI.rows.some(r=>skN(r.name)||String(r.qty).trim())
 function skMultiIn(){ let dr=null; try{ dr=JSON.parse(lsGet(MIKEY())||"null"); }catch(e){}
   const fresh={sup:"", date:todayISO(), doc:"", total:"", rows:[miRow(),miRow(),miRow()], ai:null, restored:false};
   SKMI = dr && (dr.rows||[]).some(r=>skN(r.name)) ? Object.assign(fresh, dr, {rows:dr.rows.map(miRow), restored:true}) : fresh;
-  skModal(miHtml, true); SKM.d.classList.add("xwide"); setTimeout(()=>{ const f=$("#sk-dlg "+(SKMI.restored?".mi-name":".mi-sup")); f&&f.focus(); },120); }
+  skModal(miHtml, true); SKM.d.classList.add("xwide"); if(matchMedia("(pointer:fine)").matches) setTimeout(()=>{ const f=$("#sk-dlg "+(SKMI.restored?".mi-name":".mi-sup")); f&&f.focus(); },120); }   /* на телефоне клавиатура не выскакивает сама */
 /* сумма строки и цена: что вписали последним, от того и считаем */
 function miCalc(r){ const q=skNum(r.qty), p=skNum(r.price), sm=skNum(r.sum);
   if(r.by==="sum"){ return {q, price:q>0&&sm>=0?sm/q:NaN, sum:sm}; } return {q, price:p, sum:q>0&&p>=0?q*p:NaN}; }
@@ -655,13 +655,13 @@ function miRowHtml(r, i){ const c=miCalc(r), u=esc(r.unit||"кг"), k=r.k, pcs=m
   const unitSel=`<select class="mi-unit" data-k="${k}">${skIdx().units.concat(skIdx().units.some(x=>skK(x)===skK(r.unit))||!r.unit?[]:[r.unit]).map(x=>`<option${skK(x)===skK(r.unit)?" selected":""}>${esc(x)}</option>`).join("")}</select>`;
   return `<div class="mi-row${r.unsure?" unsure":""}" data-k="${k}" style="--d:${Math.min(i,10)*20}ms">
     <span class="mi-n">${i+1}</span>
-    <label class="mi-c mi-cn"><small>Товар</small><input class="mi-name" data-k="${k}" data-keep="1" list="mi-items" autocomplete="off" value="${esc(r.name)}" placeholder="Название товара"><span class="mi-tag" data-tag="${k}">${miTagHtml(r)}</span></label>
+    <label class="mi-c mi-cn"><small>Товар</small><input class="mi-name" data-k="${k}" data-keep="1" list="mi-items" autocomplete="off" enterkeyhint="next" value="${esc(r.name)}" placeholder="Название товара"><span class="mi-tag" data-tag="${k}">${miTagHtml(r)}</span></label>
     <label class="mi-c mi-cu"><small>Ед.</small>${unitSel}</label>
     <label class="mi-c mi-cq"><small>Кол-во</small><input class="mi-qty" data-k="${k}" data-keep="1" inputmode="decimal" value="${esc(r.qty)}" placeholder="0"><span class="mi-pcs" data-pcs="${k}">${pcs}</span></label>
     <label class="mi-c mi-cp"><small>Цена за ед., ₽</small><input class="mi-price" data-k="${k}" data-keep="1" inputmode="decimal" value="${esc(r.by==="sum"?(c.price>=0&&isFinite(c.price)?skFmtN(c.price,4):""):r.price)}" placeholder="—"></label>
     <label class="mi-c mi-cs"><small>Сумма, ₽</small><input class="mi-sum" data-k="${k}" data-keep="1" inputmode="decimal" value="${esc(r.by==="sum"?r.sum:(isFinite(c.sum)?skFmtN(c.sum,2):""))}" placeholder="—"></label>
     <label class="mi-c mi-ce"><small>Годен до</small><input type="date" class="mi-exp" data-k="${k}" data-keep="1" value="${esc(r.exp)}"></label>
-    <span class="mi-c mi-ca"><button type="button" class="mi-pk${r.open||skNum(r.pack)>0?" on":""}" data-mi="pcs" data-k="${k}" title="Штуки: сколько штук, вес 1 шт, цена за шт" ${skK(r.unit)==="шт"?"disabled":""}>шт</button><button type="button" class="mi-x" data-mi="del" data-k="${k}" aria-label="Удалить строку">×</button></span>
+    <span class="mi-c mi-ca"><button type="button" class="mi-pk${r.open||skNum(r.pack)>0?" on":""}" data-mi="pcs" data-k="${k}" title="Штуки: сколько штук, вес 1 шт, цена за шт" ${skK(r.unit)==="шт"?"disabled":""}><span class="mi-desk">шт</span><span class="mi-mob">${r.open||skNum(r.pack)>0?"Штуки ▴":"+ Штуки"}</span></button><button type="button" class="mi-x" data-mi="del" data-k="${k}" aria-label="Удалить строку">×</button></span>
     ${r.open&&skK(r.unit)!=="шт"?`<div class="mi-pcsb"><label class="f"><small>Сколько штук</small><input class="mi-pcs-n" data-k="${k}" data-keep="1" inputmode="decimal" value="${esc(r.pcs)}" placeholder="например 40"></label><label class="f"><small>Вес 1 шт, ${u}</small><input class="mi-pcs-w" data-k="${k}" data-keep="1" inputmode="decimal" value="${esc(r.pack)}" placeholder="например 0,45"></label><label class="f"><small>Цена за 1 шт, ₽</small><input class="mi-pcs-p" data-k="${k}" data-keep="1" inputmode="decimal" value="${esc(r.ppc)}" placeholder="как в накладной"></label></div>`:""}
   </div>`; }
 function miFootHtml(){ const M=SKMI, R=M.rows.map((r,i)=>Object.assign({r},miCheck(r,i))).filter(x=>!x.empty), bad=R.filter(x=>x.err.length), sum=R.reduce((a,x)=>a+(isFinite(x.c.sum)?x.c.sum:0),0), np=R.filter(x=>!isFinite(x.c.sum)).length;
@@ -672,23 +672,23 @@ function miFootHtml(){ const M=SKMI, R=M.rows.map((r,i)=>Object.assign({r},miChe
 function miHtml(){ const M=SKMI, X=skIdx(), sups=[...new Set(X.S.batches.map(b=>b.supplier).filter(Boolean))].slice(-40), n=M.rows.filter(r=>skN(r.name)).length;
   return skHead("Приход на склад","Приход по накладной","Шапку — один раз, ниже все товары. Можно вписать руками, вставить из Excel или прочитать фото накладной.","Приход по накладной")
   + (M.restored?`<div class="mi-rest">Черновик восстановлен — продолжайте, где остановились. <button type="button" class="btn ghost sm" data-mi="clear">Начать заново</button></div>`:"")
-  + `<div class="mi-head"><label class="f">Поставщик<input class="mi-sup" data-keep="1" list="mi-sups" value="${esc(M.sup)}" placeholder="ИП, рынок, Саид…"></label>
+  + `<div class="mi-head"><label class="f">Поставщик<input class="mi-sup" data-keep="1" list="mi-sups" autocomplete="off" value="${esc(M.sup)}" placeholder="Кто продал"></label>
       <label class="f">Дата приёмки<input type="date" class="mi-date" data-keep="1" value="${esc(M.date)}"></label>
-      <label class="f">№ накладной<input class="mi-doc" data-keep="1" value="${esc(M.doc)}" placeholder="например 8819 от 05.11.26"></label>
-      <label class="f">Итого по накладной, ₽<input class="mi-total" data-keep="1" inputmode="decimal" value="${esc(M.total)}" placeholder="для сверки"></label></div>
+      <label class="f">№ накладной<input class="mi-doc" data-keep="1" value="${esc(M.doc)}" placeholder="№ и дата"></label>
+      <label class="f mi-tot">Итого по накладной, ₽<input class="mi-total" data-keep="1" inputmode="decimal" value="${esc(M.total)}" placeholder="для сверки, необязательно"></label></div>
     <datalist id="mi-sups">${sups.map(s=>`<option value="${esc(s)}">`).join("")}</datalist><datalist id="mi-items">${X.S.items.map(i=>`<option value="${esc(i.name)}">`).join("")}</datalist>
-    <div class="mi-tools"><label class="btn sm mi-ai${M.ai&&M.ai.busy?" busy":""}">${M.ai&&M.ai.busy?`<i class="spin"></i>ИИ читает накладную…`:"📷 Фото накладной → заполнить"}<input type="file" class="mi-aif" accept="image/*,application/pdf" hidden ${M.ai&&M.ai.busy?"disabled":""}></label>${skHQ("Приход по накладной")}<span class="muted mi-tip">или скопируйте строки из Excel и вставьте в поле «Товар»</span><button type="button" class="btn ghost sm mi-one" data-mi="one">Один товар с декларацией ›</button></div>
+    <div class="mi-tools"><label class="btn sm mi-ai${M.ai&&M.ai.busy?" busy":""}">${M.ai&&M.ai.busy?`<i class="spin"></i>ИИ читает накладную…`:`<span class="mi-ai-i">📷</span><span><b>Фото накладной</b><small>ИИ сам заполнит строки</small></span>`}<input type="file" class="mi-aif" accept="image/*,application/pdf" hidden ${M.ai&&M.ai.busy?"disabled":""}></label>${skHQ("Приход по накладной")}<span class="muted mi-tip mi-desk">или скопируйте строки из Excel и вставьте в поле «Товар»</span></div>
     ${M.ai&&M.ai.err?`<div class="mi-errs"><span>ИИ не прочитал: ${esc(M.ai.err)}</span></div>`:""}${M.ai&&M.ai.done?`<div class="mi-rest ok">${esc(M.ai.done)}</div>`:""}
     <div class="mi-tbl"><div class="mi-hd"><span>#</span><span>Товар</span><span>Ед.</span><span>Кол-во</span><span>Цена за ед., ₽</span><span>Сумма, ₽</span><span>Годен до</span><span></span></div>
       <div class="mi-rows">${M.rows.map(miRowHtml).join("")}</div></div>
-    <div class="row"><button type="button" class="btn sm" data-mi="add">+ Строка</button><button type="button" class="btn ghost sm" data-mi="add5">+ 5 строк</button><span class="muted mi-tip">Enter — следующая строка</span></div>
-    <div class="mi-foot" id="mi-foot">${miFootHtml()}</div>
-    <div class="dc-acts"><button class="btn" data-mi="close">Закрыть</button><button class="btn pri" data-mi="save"${n?"":" disabled"}>${n?"Провести приход · "+n+" "+plural(n,["позиция","позиции","позиций"]):"Провести приход"}</button></div>`; }
+    <div class="mi-addr"><button type="button" class="btn sm mi-add" data-mi="add">+ Ещё товар</button><button type="button" class="btn ghost sm mi-desk" data-mi="add5">+ 5 строк</button><span class="muted mi-tip mi-desk">Enter — следующая строка</span><button type="button" class="btn ghost sm mi-one" data-mi="one">Один товар с декларацией ›</button></div>
+    <div class="mi-bar"><div class="mi-foot" id="mi-foot">${miFootHtml()}</div>
+    <div class="dc-acts"><button class="btn" data-mi="close">Закрыть</button><button class="btn pri" data-mi="save"${n?"":" disabled"}>${n?"Провести · "+n+" "+plural(n,["позиция","позиции","позиций"]):"Провести приход"}</button></div></div>`; }
 function miRedraw(focus){ if(!SKM || SKM.render!==miHtml) return; const d=SKM.d, st=d.scrollTop; d.innerHTML=miHtml(); d.scrollTop=st; if(focus){ const el=d.querySelector(focus); if(el){ el.focus(); try{ el.select&&el.select(); }catch(e){} } } }
 function miSync(r){ const d=SKM&&SKM.d; if(!d) return; const k=r.k, c=miCalc(r), set=(sel,v)=>{ const el=d.querySelector(sel+`[data-k="${k}"]`); if(el && el!==document.activeElement) el.value=v; };
   if(r.by==="sum") set(".mi-price", c.price>=0&&isFinite(c.price)?skFmtN(c.price,4):""); else set(".mi-sum", isFinite(c.sum)?skFmtN(c.sum,2):"");
   const t=d.querySelector(`[data-tag="${k}"]`); if(t) t.innerHTML=miTagHtml(r); const pc=d.querySelector(`[data-pcs="${k}"]`); if(pc) pc.textContent=miPcsTxt(r);
-  const f=$("#mi-foot"); if(f) f.innerHTML=miFootHtml(); const n=SKMI.rows.filter(x=>skN(x.name)).length, b=d.querySelector('[data-mi="save"]'); if(b){ b.disabled=!n; b.textContent=n?"Провести приход · "+n+" "+plural(n,["позиция","позиции","позиций"]):"Провести приход"; }
+  const f=$("#mi-foot"); if(f) f.innerHTML=miFootHtml(); const n=SKMI.rows.filter(x=>skN(x.name)).length, b=d.querySelector('[data-mi="save"]'); if(b){ b.disabled=!n; b.textContent=n?"Провести · "+n+" "+plural(n,["позиция","позиции","позиций"]):"Провести приход"; }
   miSaveDraft(); }
 /* штуки в строке: штуки × вес = количество, цена за шт ÷ вес = цена за ед. */
 function miPcsLink(r, cls){ const n=skNum(r.pcs), pk=skNum(r.pack), q=skNum(r.qty), ppc=skNum(r.ppc), d=SKM.d, set=(c,v,f)=>{ r[f]=v; const el=d.querySelector(c+`[data-k="${r.k}"]`); if(el && el!==document.activeElement) el.value=v; };
