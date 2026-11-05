@@ -3,6 +3,9 @@
    раздел 3 — что фактически поставлено (сумма строк накладных), п. 7 — нарастающий итог по договору.
    Шаблон хранится в договоре (поле akt, лист «Контракты»); со старым скриптом — на устройстве. Файл — Word (.docx). */
 var aktSrv=false;
+/* у кого акт собирается сам (настраивается вручную под заказчика). Остальным — просто загрузка файлов актов */
+const AKT_GEN_INN=["7736039722"];   /* ГУП «Большой Московский цирк» */
+const aktGen = cid => AKT_GEN_INN.includes(String((cus(cid)||{}).inn||"").trim());
 const AKT_MON_N=["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"];
 const AKT_CTRY={"643":"Российская Федерация","860":"Республика Узбекистан","762":"Республика Таджикистан","417":"Киргизская Республика","398":"Республика Казахстан","364":"Исламская Республика Иран","792":"Турецкая Республика","004":"Исламский Эмират Афганистан","840":"Соединенные Штаты Америки","156":"Китайская Народная Республика","376":"Государство Израиль","032":"Аргентинская Республика","152":"Республика Чили","356":"Республика Индия","818":"Арабская Республика Египет","604":"Республика Перу","188":"Республика Коста-Рика","218":"Республика Эквадор"};
 const AKT_LS = id => "frudom-akt:"+id;
@@ -74,7 +77,7 @@ const AKT_W=[2376,709,1276,969,1304,1588,1417];
 const xs = t => String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 function wr(t, o){ o=o||{}; const rp=(o.b?"<w:b/>":"")+(o.sz?`<w:sz w:val="${o.sz}"/><w:szCs w:val="${o.sz}"/>`:"");
   return String(t).split("\n").map((x,i)=>(i?"<w:r><w:br/></w:r>":"")+`<w:r>${rp?`<w:rPr>${rp}</w:rPr>`:""}<w:t xml:space="preserve">${xs(x)}</w:t></w:r>`).join(""); }
-function wp(parts, o){ o=o||{}; const pp=`<w:pPr>${o.keep?"<w:keepNext/>":""}<w:spacing w:before="${o.before||0}" w:after="${o.after==null?120:o.after}" w:line="${o.line||252}" w:lineRule="auto"/>${o.ind?`<w:ind w:firstLine="${o.ind}"/>`:""}<w:jc w:val="${o.jc||"both"}"/></w:pPr>`;
+function wp(parts, o){ o=o||{}; const pp=`<w:pPr>${o.keep?"<w:keepNext/>":""}<w:spacing w:before="${o.before||0}" w:after="${o.after==null?0:o.after}" w:line="${o.line||240}" w:lineRule="auto"/>${o.ind?`<w:ind w:firstLine="${o.ind}"/>`:""}<w:jc w:val="${o.jc||"both"}"/></w:pPr>`;
   return `<w:p>${pp}${(Array.isArray(parts)?parts:[[parts,o]]).map(x=>Array.isArray(x)?wr(x[0],Object.assign({sz:o.sz},x[1]||{})):wr(x,{sz:o.sz})).join("")}</w:p>`; }
 function wc(t, w, o){ o=o||{}; return `<w:tc><w:tcPr><w:tcW w:w="${w}" w:type="dxa"/>${o.nb?`<w:tcBorders><w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/></w:tcBorders>`:""}<w:vAlign w:val="${o.va||"center"}"/></w:tcPr>${wp(o.parts||[[t,{b:o.b}]],{jc:o.jc||"left",after:o.after==null?0:o.after,line:240,sz:o.sz})}</w:tc>`; }
 function wtbl(rows, widths, o){ o=o||{}; const brd=o.nb?"":`<w:tblBorders>${["top","left","bottom","right","insideH","insideV"].map(k=>`<w:${k} w:val="single" w:sz="4" w:space="0" w:color="000000"/>`).join("")}</w:tblBorders>`;
@@ -87,7 +90,7 @@ function aktDocXml(M){ const {ctr,c,s,cfg}=M, b=ctr.basis||"", nm=aktShort(b), c
   const fact=M.F.map(o=>({name:o.name, unit:o.unit, qty:aktQ(o.qty), price:aktM(o.price), sum:aktM(o.sum), country:o.country||""}));
   const [y,mm]=M.ym.split("-"), per=AKT_MON_N[+mm-1]+" "+y+" г.", yr=(M.date||M.d2).slice(0,4);
   const body=[
-    wp([["АКТ приемки-передачи товара (партии товара)",{b:1}]],{jc:"center",before:200,after:200}),
+    wp([["АКТ приемки-передачи товара (партии товара)",{b:1}]],{jc:"center",before:280,after:200}),
     wtbl([wtr([wc("",5400,{nb:1,parts:[["Дата составления и подписания Акта\nПоставщиком\n"+aktDateL(M.date)+", "+(cfg.city||"Москва"),{b:1}]]}), wc("",4239,{nb:1,parts:[["Дата подписания Акта\nЗаказчиком\n«__»__________"+yr+"г., "+(cfg.city||"Москва"),{b:1}]]})])],[5400,4239],{nb:1}),
     wp(cusFull+", "+aktCusAs(cfg,cusFull)+" в дальнейшем «Заказчик», в лице "+(cfg.cusWho||"__________________________________________________")+" действующего на основании "+(cfg.cusBasis||"__________________________________")+", с одной стороны, и "+aktSupText(s)+", с другой стороны, совместно именуемые «Стороны» и каждый в отдельности «Сторона», составили настоящий акт о нижеследующем:",{before:200}),
     wp("1. В соответствии с "+aktBasis(b,"i")+" Поставщик выполнил обязательства по поставке товаров"+(cfg.subject?", а именно: "+cfg.subject.replace(/\.?$/,"."):".")),
@@ -98,7 +101,7 @@ function aktDocXml(M){ const {ctr,c,s,cfg}=M, b=ctr.basis||"", nm=aktShort(b), c
     wp([["6. Срок поставки по "+nm[1]+": с "+aktFd(cfg.from)+" по "+aktFd(cfg.to||ctr.dateTo)+"",{b:1}]]),
     wp([["Фактический срок поставки: с "+aktFd(M.df)+" по "+aktFd(M.dl)+"",{b:1}]],{ind:709}),
     wp("7. Всего с даты начала поставки по "+nm[1]+" поставлено товара на сумму "+aktM(M.cum)+" руб., "+vatT.replace("в т.ч.","в том числе")+", в том числе за отчетный период ("+per+") "+aktM(M.total)+" руб., "+vatT.replace("в т.ч.","в том числе")+"."),
-    cfg.penalty?wp([[cfg.penalty,{b:1}]],{ind:709}):"",
+    cfg.penalty?wp([[cfg.penalty,{b:1}]],{ind:709,before:80}):"",
     wp("8. Сумма, подлежащая уплате Поставщику, за товар, принятый по настоящему акту, — "+aktM(M.total)+" руб. "+aktWords(M.total)+", "+vatT+"."),
     wtbl([wtr([wc("",4819,{nb:1,va:"top",parts:[["Заказчик:\n\n"+(c.name||"")+"\n\n_____________/______________/\n\nМ.П.",{b:1}]]}), wc("",4819,{nb:1,va:"top",parts:[["Поставщик:\n\n"+(isIP(s)||String(s.ogrn||"").replace(/\D/g,"").length===15?"Индивидуальный предприниматель":(s.name||""))+"\n\n_______________/ "+aktIni(s.fio)+"/\n\nМ.П.",{b:1}]]})])],[4819,4819],{nb:1})
   ].join("");
@@ -107,7 +110,7 @@ async function aktDocx(M){ const z=new EisZip();
   z.file("[Content_Types].xml",`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>`);
   z.file("_rels/.rels",`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`);
   z.file("word/_rels/document.xml.rels",`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`);
-  z.file("word/styles.xml",`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Cambria" w:hAnsi="Cambria" w:eastAsia="Cambria" w:cs="Times New Roman"/><w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="ru-RU" w:eastAsia="ru-RU"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="120" w:line="252" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="a"><w:name w:val="Normal"/></w:style></w:styles>`);
+  z.file("word/styles.xml",`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia="Times New Roman" w:cs="Times New Roman"/><w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="ru-RU" w:eastAsia="ru-RU"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="a"><w:name w:val="Normal"/></w:style></w:styles>`);
   z.file("word/document.xml", aktDocXml(M));
   return z.generateAsync({type:"blob", mimeType:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}); }
 /* ---------- загрузка прошлого акта (.docx) — заполняет шаблон ---------- */
@@ -132,13 +135,17 @@ async function aktImport(file, ctr){
   const who=all.match(/«Заказчик», в лице\s*(.*?)\s*действующ\S*\s+на основании\s*(.*?),\s*с одной/i); if(who){ if(!/^_+$/.test(who[1].replace(/\s/g,""))) cfg.cusWho=who[1]; if(!/^_+$/.test(who[2].replace(/\s/g,""))) cfg.cusBasis=who[2]; }
   cfg.spec=spec; return {cfg, n:spec.length, matched:spec.filter(r=>r.pid).length}; }
 /* ---------- карточка на вкладке ---------- */
-function renderAkt(cid){ const box=$("#akt-box"); if(!box) return; const L=ctrs(cid);
+function renderAkt(cid){ const box=$("#akt-box"); if(!box) return; const L=ctrs(cid), gen=aktGen(cid);
+  if(AKT.cid!==cid) aktFilesLoad(cid);
+  $("#akt-desc").textContent = gen ? "Акт приёмки-передачи за месяц собирается сам из накладных по договору — выберите месяц и скачайте. Подписанные акты загружайте ниже." : "Загрузите сюда акты этого заказчика (Word, PDF, скан) — они сохранятся за ним и будут доступны с любого устройства.";
+  if(!gen){ if(AKT.cid!==cid) AKT={cid, ctr:"", ym:aktDefYm(), date:"", off:{}, edit:false, all:false, cfg:null, dirty:false}; $("#akt-name").textContent=cus(cid).name?"— "+cus(cid).name:""; box.innerHTML=""; aktFilesDraw(); return; }
   if(AKT.cid!==cid){ AKT={cid, ctr:(L.find(x=>!x.dateTo||x.dateTo>=todayISO())||L[0]||{}).id||"", ym:aktDefYm(), date:"", off:{}, edit:false, all:false, cfg:null, dirty:false}; }
   $("#akt-name").textContent=cus(cid).name?"— "+cus(cid).name:"";
+  aktFilesDraw();
   if(!L.length){ box.innerHTML=`<p class="muted">У заказчика нет договоров — добавьте договор выше, и здесь можно будет собрать акт за месяц.</p>`; return; }
   const ctr=L.find(x=>x.id===AKT.ctr)||L[0]; AKT.ctr=ctr.id; if(!AKT.cfg || AKT.cfg.__id!==ctr.id){ AKT.cfg=Object.assign(aktCfg(ctr),{__id:ctr.id}); AKT.dirty=false; }
   const M=aktModel(), sh=AKT.all?M.F:M.F.slice(0,8);
-  box.innerHTML=`<div class="aktbar">
+  box.innerHTML=`<h4 class="akth first">Собрать акт за месяц${skHQ("Месячный акт")}</h4><div class="aktbar">
       <label class="f">Договор<select id="akt-ctr">${L.map(x=>`<option value="${x.id}"${x.id===ctr.id?" selected":""}>${esc(ctrLabel(x))}</option>`).join("")}</select></label>
       <label class="f">Месяц<input type="month" id="akt-ym" value="${esc(AKT.ym)}"></label>
       <label class="f">Дата акта<input type="date" id="akt-date" value="${esc(M.date)}"></label></div>
@@ -189,7 +196,38 @@ $("#akt-box").addEventListener("click", async e=>{ const t=e.target, ctr=(D.cont
       a.href=url; a.download=fileSafe("Акт приемки-передачи "+String(M.c.name||"").replace(/[«»"]/g,"")+" за "+AKT_MON_N[+m-1]+" "+y)+".docx"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),60000);
       logEv("Скачивание","Скачан месячный акт за "+AKT_MON_N[+m-1]+" "+y+" — "+(M.c.name||"")+", "+fm(M.total)+" ₽, документов: "+M.docs.length);
       if(AKT.dirty && !(M.cfg.spec&&M.cfg.spec.length)) {}
-      toast(M.W.some(w=>w.l===0)?"warn":"ok","Акт скачан", M.W.some(w=>w.l===0)?"Есть замечания (красные) — проверьте их перед отправкой заказчику.":AKT_MON_N[+m-1]+" "+y+": "+fm(M.total)+" ₽, "+M.F.length+" поз.");
+      const fname=a.download;
+      toast(M.W.some(w=>w.l===0)?"warn":"ok","Акт скачан", M.W.some(w=>w.l===0)?"Есть замечания (красные) — проверьте их перед отправкой заказчику.":AKT_MON_N[+m-1]+" "+y+": "+fm(M.total)+" ₽, "+M.F.length+" поз.", {ms:9000, action:{label:"Сохранить копию в акты заказчика", fn:()=>aktFileUp(new File([blob], fname, {type:blob.type}), M.c.id, M.ym)}});
     }catch(er){ toast("err","Не получилось сделать акт", er.message); } finally{ b.disabled=false; b.textContent=t0; } return; }
 });
-window.__akt={model:()=>aktModel(), get st(){ return AKT; }};   /* для тестов */
+/* ---------- файлы актов заказчика (Google Диск, лист «Акты заказчиков») ---------- */
+const AKTF={cid:"", list:null, err:"", ym:aktDefYm(), busy:0};
+const AKT_EXT=/\.(pdf|docx?|xlsx?|jpe?g|png|webp|heic|heif|txt)$/i;
+async function aktFilesLoad(cid){ AKTF.cid=cid; AKTF.list=null; AKTF.err=""; aktFilesDraw();
+  if(!API_URL || !pass()){ AKTF.list=[]; aktFilesDraw(); return; }
+  try{ const j=await api({action:"aktList", customerId:cid}); if(AKTF.cid!==cid) return; AKTF.list=j.list||[]; }
+  catch(e){ if(AKTF.cid!==cid) return; AKTF.list=[]; AKTF.err=/unknown action/.test(e.message)?"Чтобы загружать акты, обновите скрипт Google Таблицы (новая версия Code.gs).":"Список актов не загрузился: "+e.message; }
+  aktFilesDraw(); }
+const aktMonL = ym => ym ? AKT_MON_N[+ym.slice(5)-1]+" "+ym.slice(0,4) : "";
+function aktFilesDraw(){ const box=$("#akt-files"); if(!box) return; const L=(AKTF.list||[]).slice().sort((a,b)=>String(b.month||"").localeCompare(String(a.month||""))||String(b.at).localeCompare(String(a.at)));
+  box.innerHTML=`<div class="aktfh">${aktGen(AKTF.cid)?`<b>Подписанные и прошлые акты</b><span style="flex:1"></span>`:""}<label class="f aktfm">За месяц<input type="month" id="aktf-ym" value="${esc(AKTF.ym)}"></label><label class="btn pri sm${AKTF.busy?" dis":""}">${AKTF.busy?"Загружаю…":"+ Загрузить акт"}<input type="file" id="aktf-file" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.webp,.heic" hidden${AKTF.busy?" disabled":""}></label></div>
+    ${AKTF.err?`<p class="note">${esc(AKTF.err)}</p>`:""}
+    ${AKTF.list==null?`<p class="muted">Загружаю список актов…</p>`:L.length?`<div class="aktfl">${L.map(f=>{ const pdf=f.mime==="application/pdf", im=/^image\//.test(f.mime||""), w=/word|msword/.test(f.mime||""), x=/excel|sheet/.test(f.mime||"");
+      return `<div class="skfile"><span class="skfi">${pdf?"PDF":im?"Фото":w?"DOC":x?"XLS":"Файл"}</span><span class="skfn"><b>${esc(f.name)}</b><small>${f.month?"за "+esc(aktMonL(f.month))+" · ":""}${esc(f.by||"")} · ${skWhen(f.at)}</small></span><span class="skfa">${pdf||im?`<button type="button" class="btn ghost sm" data-aktfv="${f.id}">Открыть</button>`:""}<button type="button" class="btn ghost sm" data-aktfg="${f.id}">Скачать</button><button type="button" class="btn ghost sm danger" data-aktfd="${f.id}" aria-label="Удалить">×</button></span></div>`; }).join("")}</div>`:`<p class="muted">Актов пока нет. Нажмите «+ Загрузить акт» — файл сохранится за этим заказчиком.</p>`}`; }
+async function aktFileUp(f, cid, ym){ if(!f) return; if(!AKT_EXT.test(f.name)){ toast("err","Такой файл не подходит","Можно Word, PDF, Excel или фото."); return; } if(f.size>20*1024*1024){ toast("err","Файл больше 20 МБ",""); return; }
+  if(!API_URL || !pass()){ toast("err","Нет связи с таблицей","Акты хранятся в Google Таблице — войдите в систему."); return; }
+  const data=await new Promise((ok,bad)=>{ const r=new FileReader(); r.onload=()=>ok(String(r.result).split(",")[1]||""); r.onerror=()=>bad(new Error("не получилось прочитать файл")); r.readAsDataURL(f); });
+  const rid="a"+Date.now().toString(36)+uid(), body={action:"aktAdd", rid, customerId:cid, name:f.name, mime:skMime(f), month:ym||"", data};
+  AKTF.busy++; aktFilesDraw(); let j=null;
+  for(let i=0;i<3 && !j;i++){ try{ j=await api(body); }catch(e){ if(!e.net || i===2){ AKTF.busy--; aktFilesDraw(); toast("err","Акт не загрузился", e.net?"Нет связи — попробуйте ещё раз, файл не задвоится.":(/unknown action/.test(e.message)?"Обновите скрипт Google Таблицы (новая версия Code.gs).":e.message)); return; } await new Promise(r=>setTimeout(r,1500)); } }
+  AKTF.busy--; if(AKTF.cid===cid){ AKTF.list=(AKTF.list||[]).filter(x=>x.id!==j.item.id).concat([j.item]); } aktFilesDraw(); toast("ok","Акт сохранён",f.name+(ym?" — за "+aktMonL(ym):"")); }
+async function aktFileGet(id, view){ try{ const j=await api({action:"aktGet", id}), bin=atob(j.data), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
+    const blob=new Blob([u8],{type:j.mime||"application/octet-stream"}), url=URL.createObjectURL(blob);
+    if(view){ const im=/^image\//.test(j.mime), v=document.createElement("dialog"); v.className="dcard wide skview"; v.innerHTML=`<div class="dc-head"><div><div class="dc-kicker">Акт</div><h3>${esc(j.name)}</h3></div><button class="dc-x" aria-label="Закрыть">×</button></div>${im?`<img src="${url}" alt="${esc(j.name)}">`:`<iframe src="${url}" title="${esc(j.name)}"></iframe>`}<div class="dc-acts"><a class="btn" href="${url}" download="${esc(j.name)}">Скачать</a></div>`;
+      document.getElementById("fd-app").appendChild(v); v.querySelector(".dc-x").onclick=()=>v.close(); v.addEventListener("close",()=>{ v.remove(); URL.revokeObjectURL(url); }); v.showModal(); requestAnimationFrame(()=>v.classList.add("in")); }
+    else { const a=document.createElement("a"); a.href=url; a.download=j.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),60000); }
+  }catch(e){ toast("err","Файл не открылся", e.message); } }
+$("#akt-files").addEventListener("change", e=>{ const t=e.target; if(t.id==="aktf-ym"){ AKTF.ym=t.value; return; } if(t.id==="aktf-file"){ const f=t.files[0]; t.value=""; aktFileUp(f, AKTF.cid, AKTF.ym); } });
+$("#akt-files").addEventListener("click", async e=>{ const v=e.target.closest("[data-aktfv],[data-aktfg]"); if(v){ aktFileGet(v.dataset.aktfv||v.dataset.aktfg, !!v.dataset.aktfv); return; }
+  const d=e.target.closest("[data-aktfd]"); if(d){ if(!armed(d,"Удалить?")) return; const id=d.dataset.aktfd; try{ await api({action:"aktDel", id}); AKTF.list=(AKTF.list||[]).filter(x=>x.id!==id); aktFilesDraw(); toast("info","Акт удалён",""); }catch(er){ toast("err","Не удалилось", er.message); } } });
+window.__akt={model:()=>aktModel(), get st(){ return AKT; }, files:AKTF};   /* для тестов */   /* для тестов */
