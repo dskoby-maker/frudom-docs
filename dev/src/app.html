@@ -339,7 +339,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 .zkn{margin:10px 0 0;padding:9px 12px;border-radius:12px;background:#f8f1df;color:#7d6630;font-size:13px}
 .zkn>b{display:block;margin-bottom:3px;color:#8a6d2a}.zkn ul{margin:0;padding-left:18px;display:grid;gap:2px}.zkn li b{color:#5b4a22}
 .zkn.ok{background:#e9f2eb;color:#4f7a5c;animation:fdglass .3s ease}
-.zkloss{display:flex;align-items:baseline;gap:7px;margin:8px 2px 0;font-size:12.5px;color:#a15d52}.zkloss i{width:6px;height:6px;border-radius:50%;background:#c97a6c;flex:none;transform:translateY(-1px)}.zkloss span{color:var(--muted)}
+.zkloss{display:block;margin:8px 2px 0;font-size:12.5px;line-height:1.45;color:#a15d52;overflow-wrap:anywhere}.zkloss i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#c97a6c;margin-right:7px;vertical-align:1px}.zkloss span{color:var(--muted)}
 #fd-app .jzk{position:relative}#fd-app .jzk .jzk-l{position:absolute;top:-2px;right:-2px;width:7px;height:7px;border-radius:50%;background:#c97a6c;box-shadow:0 0 0 2px var(--surface,#fff)}
 .dc-zk{display:grid;grid-template-rows:0fr;transition:grid-template-rows .38s var(--ease,ease),margin .38s var(--ease,ease);margin-top:0}
 #fd-app .dcard .dc-zk.open{grid-template-rows:1fr;margin-top:14px}#fd-app .dcard .dc-zki{overflow:hidden;min-height:0}
@@ -364,6 +364,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .dcard .dzseg button{border:0;background:transparent;font:inherit;font-size:12px;padding:4px 10px;border-radius:7px;color:var(--muted);cursor:pointer;min-height:28px;transition:background .15s,color .15s}
 #fd-app .dcard .dzseg button:hover{color:var(--accent)}#fd-app .dcard .dzseg button.on{background:#fff;color:var(--accent);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.08)}
 #fd-app .dcard .dzseg button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+@media(max-width:480px){#fd-app .dcard .dzseg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));width:100%;box-sizing:border-box}#fd-app .dcard .dzseg button{padding:4px 4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#fd-app .dcard .dzseg .dzlong{display:none}}
 #fd-app .dcard .dzskd{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
 #fd-app .dcard .dzskd label{display:flex;flex-direction:column;gap:2px}#fd-app .dcard .dzskd label small{font-size:11px;color:var(--muted)}#fd-app .dcard .dzskd label i{font-style:normal;opacity:.8}
 #fd-app .dcard .skpk{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:4px}#fd-app .dcard .skpk>small{font-size:11px;color:var(--muted)}#fd-app .dcard .skpk>small i{font-style:normal;opacity:.8}
@@ -4783,6 +4784,8 @@ function zkNotesHtml(N0, miss, net){ const LS=N0.filter(x=>x.loss), N=N0.filter(
 function zkNotesBody(N, miss){ if(N.length) return `<div class="zkn"><b>Почему значок закупки жёлтый</b><ul>${N.slice(0,6).map(x=>`<li>${x.t}</li>`).join("")}${N.length>6?`<li class="muted">и ещё ${N.length-6}</li>`:""}</ul></div>`;
   return miss ? "" : `<p class="zkn ok">✓ Всё заполнено — после сохранения значок в журнале станет зелёным.</p>`; }
 const dcZkHas = j => { const L=dcLines(docCost(j.id)); return Object.keys(L).some(k=>k[0]!=="_" && L[k]!==""); };
+/* плитка «Закупка» в блоке закупки: товар + прочие расходы (доставка, грузчики, телега) */
+const zkCostTile = (cost, exp) => `<div><small>Закупка${exp?" с расходами":""}</small><b>${fm(r2(cost+exp))}</b>${exp?`<span>товар ${fm(r2(cost))} + расходы ${fm(r2(exp))}</span>`:""}</div>`;
 function dcZkSum(j, box){ const k=calc(j.snap.dr, j.snap), tx=taxOf(j.supplierId)/100; let cost=0, miss=0; const N=[];
   k.lines.forEach(l=>{ const el=box.querySelector(`.dzc[data-k="${dzKey(l)}"]`), v=el?num(el.value):""; const typed=v!=="" && !isNaN(+v), c = typed ? +v : (el && el.placeholder && !isNaN(+num(el.placeholder)) ? +num(el.placeholder) : null);
     if(!(l.qty>0)) return;
@@ -4793,7 +4796,7 @@ function dcZkSum(j, box){ const k=calc(j.snap.dr, j.snap), tx=taxOf(j.supplierId
     if(c==null) miss++; else { cost+=c*qq; if(typed) zkNote(N, l.name, c*qq/l.qty, l, PC["dz|"+dzKey(l)]); } });
   ((zkJState(j)||{}).tip||"").split("\n").slice(1).filter(t=>/склад/.test(t)).forEach(t=>N.push({t:esc(t)}));
   const exp=+num((box.querySelector(".dze")||{}).value||"")||0, rev=k.t.net, tax=r2(rev*tx), gross=r2(rev-cost-tax), net=r2(gross-exp);
-  box.querySelector("#dc-zks").innerHTML=`<div><small>Выручка</small><b>${fm(rev)}</b></div><div><small>Закупка</small><b>${fm(r2(cost))}</b></div><div><small>Налог ${String(tx*100).replace(".",",")}%</small><b>${fm(tax)}</b></div><div class="hi"><small>Прибыль${exp?" (после расходов)":""}</small><b class="${net<0?"neg":""}">${fm(net)}</b><span>маржа ${pct(net,rev)}</span></div>`+(miss?`<p class="miss">Нет закупки у ${miss} ${plural(miss,["позиции","позиций","позиций"])}</p>`:"")+zkNotesHtml(N, miss, net); }
+  box.querySelector("#dc-zks").innerHTML=`<div><small>Выручка</small><b>${fm(rev)}</b></div>${zkCostTile(cost, exp)}<div><small>Налог ${String(tx*100).replace(".",",")}%</small><b>${fm(tax)}</b></div><div class="hi"><small>Прибыль${exp?" (после расходов)":""}</small><b class="${net<0?"neg":""}">${fm(net)}</b><span>маржа ${pct(net,rev)}</span></div>`+(miss?`<p class="miss">Нет закупки у ${miss} ${plural(miss,["позиции","позиций","позиций"])}</p>`:"")+zkNotesHtml(N, miss, net); }
 function dcZkDraw(j, keep){ const box=$("#dc-zki"); if(!box) return; const x=docProfit(j), dc=docCost(j.id), ov=dcLines(dc);
   if(!keep || !DZ || DZ.doc!==j.id){ dzInit(j); pcReset("dz"); }
   const V=keep||{}, val=(kk,d)=>V[kk]!=null?V[kk]:d;
@@ -4962,7 +4965,7 @@ function bzSrcHtml(o){ const s=bzSt(o); if(!s || !dzOn()) return ""; const X=skI
       else { const A=bzAlloc(o,sq), parts=o.lines.map((x,i)=>A[i]>0?"№ "+esc(x.j.number)+" — "+skQf(A[i],o.unit):"").filter(Boolean);
         info=`<span>«${esc(it.name)}»: ${skQf(sq,o.unit)} со склада · себестоимость ${e.unk?`<span class="miss">у партии нет цены</span>`:`<b>${fm(e.cost)} ₽</b> (${fm(r2(e.cost/sq))} ₽/${u})`}${s.m==="x"?` · от Саида ${skQf(r3(o.qty-sq),o.unit)} — цена справа`:""}</span>${o.lines.length>1&&s.m==="x"?`<small class="muted">По накладным: ${parts.join(", ")}</small>`:""}`; } }
     det=`<div class="dzskd">${pick}${qf}<div class="dzinf">${info}</div></div>`; }
-  return `<div class="dzsk"><div class="dzseg" role="group" aria-label="Откуда товар">${b("","Закупка")}${b("s","Со склада")}${b("x","Часть со склада")}</div>${det}</div>`; }
+  return `<div class="dzsk"><div class="dzseg" role="group" aria-label="Откуда товар">${b("","Закупка")}${b("s","Со склада")}${b("x",`Часть<span class="dzlong"> со склада</span>`)}</div>${det}</div>`; }
 function bzPrice(o){ const box=$("#bz-zki"), el=box&&box.querySelector(`.bzc[data-k="${CSS.escape(o.k)}"]`); if(!el) return null; const v=num(el.value);
   if(v!==""&&!isNaN(+v)) return +v; if(!BZ.touched[o.k] && o.mixed) return "mixed"; return null; }
 function bzSum(){ const box=$("#bz-zki"); if(!box||!BZ) return; const G=bzDocs(); let rev=0, tax=0, cost=0, miss=0;
@@ -4970,7 +4973,7 @@ function bzSum(){ const box=$("#bz-zki"); if(!box||!BZ) return; const G=bzDocs()
   const N=[]; BZ.rows.forEach(o=>{ const p=bzPrice(o), c=bzCost(o, p); if(c==null) miss++; else { cost+=c; if(p==null && o.dq>0) N.push({t:`<b>${esc(o.name)}</b>: своя цена не вписана — берётся из «Закупочных цен». Впишите цену, чтобы закупка считалась заполненной.`}); if(o.qty>0 && (p!=null||!o.dq)) zkNote(N, o.name, c/o.qty, {price:o.net/o.qty, priceNet:o.net/o.qty, unit:o.unit}, PC["bz|"+o.k]); } });
   [...new Set([].concat(...G.map(j=>((zkJState(j)||{}).tip||"").split("\n").slice(1).filter(t=>/склад/.test(t)).map(t=>"№ "+j.number+" · "+t))))].forEach(t=>N.push({t:esc(t)}));
   const exp=+num((box.querySelector(".bze")||{}).value||"")||0; rev=r2(rev); tax=r2(tax); cost=r2(cost); const net=r2(rev-cost-tax-exp);
-  box.querySelector("#bz-zks").innerHTML=`<div><small>Выручка</small><b>${fm(rev)}</b></div><div><small>Закупка</small><b>${fm(cost)}</b></div><div><small>Налог</small><b>${fm(tax)}</b></div><div class="hi"><small>Прибыль${exp?" (после расходов)":""}</small><b class="${net<0?"neg":""}">${fm(net)}</b><span>маржа ${pct(net,rev)}</span></div>`+(miss?`<p class="miss">Нет закупки у ${miss} ${plural(miss,["позиции","позиций","позиций"])}</p>`:"")+zkNotesHtml(N, miss, net); }
+  box.querySelector("#bz-zks").innerHTML=`<div><small>Выручка</small><b>${fm(rev)}</b></div>${zkCostTile(cost, exp)}<div><small>Налог</small><b>${fm(tax)}</b></div><div class="hi"><small>Прибыль${exp?" (после расходов)":""}</small><b class="${net<0?"neg":""}">${fm(net)}</b><span>маржа ${pct(net,rev)}</span></div>`+(miss?`<p class="miss">Нет закупки у ${miss} ${plural(miss,["позиции","позиций","позиций"])}</p>`:"")+zkNotesHtml(N, miss, net); }
 function bzDraw(keep){ const box=$("#bz-zki"); if(!box||!BZ) return; const G=bzDocs(); BZ.rows=bzRows(G); if(!keep || !BZ.s) bzInitS(); if(!keep) pcReset("bz"); const V=keep||{};
   const exp0=r2(G.reduce((a,j)=>{ const dc=docCost(j.id); return a+(+(dc&&dc.expense)||0); },0));
   const row=o=>{ const kk=esc(o.k), u=esc(o.unit||"ед."), s=bzSt(o), m=s?(s.lock?s.m0:s.m):"", st=o.stockQ>0||!!m;

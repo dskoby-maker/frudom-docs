@@ -962,7 +962,7 @@ function dzSrcHtml(j, l){ if(!dzOn() || !DZ || DZ.doc!==j.id) return ""; const s
       else if(e.short>0) info=`<span class="miss">На складе свободно только ${skQf(e.avail,l.unit)} — не хватает ${skQf(e.short,l.unit)}. Проведите приход или выберите «Часть».</span>`;
       else info=`<span>«${esc(it.name)}»: ${skQf(sq,l.unit)} со склада · себестоимость ${e.unk?`<span class="miss">у партии нет цены</span>`:`<b>${fm(e.cost)} ₽</b> (${fm(r2(e.cost/sq))} ₽/${u})`}${s.m==="x"?` · от Саида ${skQf(r3((+l.qty||0)-sq),l.unit)} — цена справа`:""}</span>`; }
     det=`<div class="dzskd">${pick}${qf}<div class="dzinf">${info}</div></div>`; }
-  return `<div class="dzsk" data-k="${k}"><div class="dzseg" role="group" aria-label="Откуда товар">${b("","Закупка")}${b("s","Со склада")}${b("x","Часть со склада")}</div>${det}</div>`; }
+  return `<div class="dzsk" data-k="${k}"><div class="dzseg" role="group" aria-label="Откуда товар">${b("","Закупка")}${b("s","Со склада")}${b("x",`Часть<span class="dzlong"> со склада</span>`)}</div>${det}</div>`; }
 /* что поменялось по складу и всё ли можно провести */
 function dzChanges(j){ if(!dzOn() || !DZ || DZ.doc!==j.id) return {list:[]}; const k=calc(j.snap.dr, j.snap), list=[], X=skIdx();
   for(const l of k.lines){ const s=dzSt(j,l); if(!s || dzLocked(j,l)) continue; const sq=dzQ(l,s);

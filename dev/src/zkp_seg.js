@@ -22,7 +22,7 @@ function zkpCalc(it){ const g=it.g.map(j=>D.journal.find(x=>x.id===j.id)||j).fil
   if(g.length>1){ it.lbl = it.st==="ok"?"✓":it.st==="none"?"нет":done+"/"+S.length; it.tip=it.st==="ok"?"Закупка заполнена во всех накладных":it.st==="none"?"Закупка не заполнена":"Закупка заполнена в "+done+" из "+S.length+" накладных"; }
   else { const s=S[0]; it.lbl = s?zkJLbl(s):"нет"; it.tip = s?s.tip.split("\n")[0]:"Закупка не заполнена"; }
   it.loss=zkLossSum(S);
-  let sum=0, rev=0, cost=0, prof=0; g.forEach(j=>{ const x=docProfit(j); sum+=x.k.t.sum; rev+=x.rev; cost+=x.cost; prof+=x.profit; });
+  let sum=0, rev=0, cost=0, prof=0; g.forEach(j=>{ const x=docProfit(j); sum+=x.k.t.sum; rev+=x.rev; cost+=x.cost+(x.exp||0); prof+=x.profit; });
   Object.assign(it, {sum:r2(sum), rev:r2(rev), cost:r2(cost), prof:r2(prof), date:g[0].date}); return it; }
 function zkpItems(){ const [a,b]=zkpRange(), G={}, out=[];
   D.journal.filter(j=>j.snap && !isArch(j) && j.date>=a && j.date<=b).forEach(j=>{ const k=jKey(j); if(k) (G[k]=G[k]||[]).push(j); else out.push({key:"d:"+j.id, g:[j]}); });
