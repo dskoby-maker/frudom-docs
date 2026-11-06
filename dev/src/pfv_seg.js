@@ -120,13 +120,13 @@ const pvAva = cid => { const h=dtHue(cid), n=pvCusName(cid).replace(/[«»"']/g,
 function pvCusDraw(keepInput){
   const box=$("#pv-cus"), f=PV(), [d1,d2]=pvRange(), all=pvCusData(d1,d2), q=(f.q||"").trim().toLowerCase();
   const L=q ? all.filter(g=>pvCusName(g.cid).toLowerCase().includes(q)) : all;
-  const T=all.reduce((a,g)=>({rev:a.rev+g.rev, rs:a.rs+g.rs, cost:a.cost+g.cost, profit:a.profit+g.profit, n:a.n+g.docs.length, miss:a.miss+g.miss}),{rev:0,rs:0,cost:0,profit:0,n:0,miss:0});
+  const T=all.reduce((a,g)=>({rev:a.rev+g.rev, rs:a.rs+g.rs, cost:a.cost+g.cost+g.exp, profit:a.profit+g.profit, n:a.n+g.docs.length, miss:a.miss+g.miss}),{rev:0,rs:0,cost:0,profit:0,n:0,miss:0});
   const tiles = L.length ? L.map((g,i)=>{ const mg=g.rev>0?Math.max(0,Math.min(100,g.profit/g.rev*100)):0;
     return `<button type="button" class="pvcus" data-pvc="${esc(g.cid)}" style="--d:${Math.min(i,12)*30}ms">
       <div class="pvch">${pvAva(g.cid)}<div class="pvcn"><b>${esc(pvCusName(g.cid))}</b><small>${g.docs.length} ${plural(g.docs.length,["накладная","накладные","накладных"])} · последняя ${fd(g.last).slice(0,5)}</small></div>${g.miss?`<span class="pvwarn" title="Нет закупки у ${g.miss} ${plural(g.miss,["накладной","накладных","накладных"])}"><i></i>${g.miss}</span>`:""}</div>
       <div class="pvcp"><small>Прибыль</small><b class="${g.profit<0?"neg":""}">${fm(g.profit)} ₽</b><span>${pct(g.profit,g.rev)}</span></div>
       <div class="pvbar"><i style="width:${mg}%"></i></div>
-      <dl class="pvcs"><div><dt>Сумма</dt><dd>${fm(g.rev)}</dd></div><div><dt>На р/с</dt><dd>${fm(g.rs)}</dd></div><div><dt>Закупка</dt><dd>${fm(g.cost)}</dd></div></dl>
+      <dl class="pvcs"><div><dt>Сумма</dt><dd>${fm(g.rev)}</dd></div><div><dt>На р/с</dt><dd>${fm(g.rs)}</dd></div><div><dt>Закупка</dt><dd>${fm(r2(g.cost+g.exp))}</dd></div></dl>
       <span class="pvgo">Открыть ›</span></button>`; }).join("")
     : `<div class="pvempty">${pvIco("folder","big")}<b>${all.length?"Никого не нашлось":"За этот месяц накладных нет"}</b><small>${all.length?"Попробуйте другое название.":"Выберите другой месяц стрелками сверху."}</small></div>`;
   const head = `<div class="pvhead"><div><h2>По заказчикам</h2><small class="muted">Нажмите на заказчика — накладные, «на р/с», закупка и прибыль, как в вашей таблице</small></div>${pvMonBar()}</div>
@@ -160,7 +160,7 @@ function pvLedgerDraw(){
   const docs=D.journal.filter(j=>j.snap && !isArch(j) && (j.customerId||"-")===cid).sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:-jNumSort(a,b)).map(docProfit);
   const M=new Map(); docs.forEach(x=>{ const k=x.j.date.slice(0,7); if(!M.has(k)) M.set(k,[]); M.get(k).push(x); });
   const sum=(L,f)=>r2(L.reduce((a,x)=>a+f(x),0));
-  const all={rev:sum(docs,x=>x.rev), rs:sum(docs,x=>x.rev-x.tax), cost:sum(docs,x=>x.cost), profit:sum(docs,x=>x.profit)};
+  const all={rev:sum(docs,x=>x.rev), rs:sum(docs,x=>x.rev-x.tax), cost:sum(docs,x=>x.cost+(x.exp||0)), profit:sum(docs,x=>x.profit)};
   const P=docs.map(x=>({x, p:payOf(x.j)})), due=r2(P.reduce((a,o)=>a+o.p.left,0)), nDue=P.filter(o=>o.p.left>0.005).length, PD=P.filter(o=>o.p.st==="paid"&&o.p.d), avg=PD.length?Math.round(PD.reduce((a,o)=>a+pvPayDays(o.x.j,o.p),0)/PD.length):null;
   $("#pv-srcn").innerHTML=pvSrcNames().map(n=>`<option value="${esc(n)}">`).join("");
   box.innerHTML = `<div class="pvkpi sm"><div><small>Сумма за всё время</small><b>${fm(all.rev)}</b><span>${docs.length} ${plural(docs.length,["накладная","накладные","накладных"])}</span></div><div><small>На р/с</small><b>${fm(all.rs)}</b></div><div><small>Закупка</small><b>${fm(all.cost)}</b></div><div class="pos"><small>Прибыль</small><b class="${all.profit<0?"neg":""}">${fm(all.profit)}</b><span>маржа ${pct(all.profit,all.rev)}</span></div>
@@ -178,8 +178,8 @@ function pvPayBtn(j){ const p=payOf(j);
   const age=j.date>todayISO()?0:daysSince(j.date), cls=ageCls(age);
   return `<button type="button" class="pvpay ${p.st} ${cls}" data-pvpay="${j.id}" title="Нажмите, когда пришла оплата — сайт запомнит сегодняшнюю дату"><span><i></i>${p.st==="part"?"Частично":"Не оплачена"}</span><small>${p.st==="part"?"осталось "+fm(p.left):ageTxt(j.date)}</small></button>`; }
 function pvLedgerRow(x){ const j=x.j, src=pvSrc(j), ed=PVL.ed===j.id, rs=r2(x.rev-x.tax);
-  const chips = src ? src.map(s=>`<span class="pvchip">${esc(s.n||"—")} <b>${fm(+s.s||0)}</b></span>`).join("")
-    : x.miss ? `<span class="pvchip miss">+ вписать закупку</span>` : `<span class="pvchip prod" title="Закупка посчитана по товарам">по товарам <b>${fm(x.cost)}</b></span>`;
+  const chips = (src ? src.map(s=>`<span class="pvchip">${esc(s.n||"—")} <b>${fm(+s.s||0)}</b></span>`).join("")
+    : x.miss ? `<span class="pvchip miss">+ вписать закупку</span>` : `<span class="pvchip prod" title="Закупка посчитана по товарам">по товарам <b>${fm(x.cost)}</b></span>`)+(x.exp?`<span class="pvchip" title="Прочие расходы: доставка, грузчики, телега">расходы <b>${fm(x.exp)}</b></span>`:"");
   return `<div class="pvr ${ed?"ed":""}" data-pvr="${j.id}"><div class="pvrl" role="button" tabindex="0" data-pve="${j.id}" aria-expanded="${ed}">
       <span class="pvd">${fd(j.date).slice(0,5)}</span><span class="pvn">№ ${esc(j.number)}</span><span class="num">${fm(x.rev)}</span><span class="num muted">${fm(rs)}</span><span class="pvsrcs">${chips}</span>${pvPayBtn(j)}<span class="num pvp ${x.profit<0?"neg":""}">${fm(x.profit)}</span></div>
     <div class="pvrx"><div>${ed?pvEditor(x):""}</div></div></div>`; }
@@ -195,7 +195,7 @@ const pvSrcRow = s => `<div class="pvsr"><input class="pvsn" list="pv-srcn" plac
 function pvEdRows(){ return [...document.querySelectorAll("#pvsrc .pvsr")].map(r=>({n:r.querySelector(".pvsn").value.trim(), s:num(r.querySelector(".pvss").value)})); }
 function pvCalc(){ const el=$("#pvcalc"); if(!el) return; const j=D.journal.find(x=>x.id===PVL.ed); if(!j) return; const x=docProfit(j);
   const c=r2(pvEdRows().reduce((a,r)=>a+(+r.s||0),0)), p=r2(x.rev-x.tax-c-x.exp);
-  el.innerHTML=`<div><small>Сумма</small><b>${fm(x.rev)}</b></div><div><small>На р/с</small><b>${fm(r2(x.rev-x.tax))}</b></div><div><small>Закупка</small><b>${fm(c)}</b></div><div class="pos"><small>Прибыль</small><b class="${p<0?"neg":""}">${fm(p)}</b><span>${pct(p,x.rev)}</span></div>`; }
+  el.innerHTML=`<div><small>Сумма</small><b>${fm(x.rev)}</b></div><div><small>На р/с</small><b>${fm(r2(x.rev-x.tax))}</b></div><div><small>Закупка${x.exp?" с расходами":""}</small><b>${fm(r2(c+x.exp))}</b>${x.exp?`<span>+ расходы ${fm(x.exp)}</span>`:""}</div><div class="pos"><small>Прибыль</small><b class="${p<0?"neg":""}">${fm(p)}</b><span>${pct(p,x.rev)}</span></div>`; }
 function pvLedgerInput(e){ if(e.target.closest("#pvsrc")) pvCalc(); }
 function pvLedgerClick(e){
   const pb=e.target.closest("[data-pvpay]"); if(pb){ e.stopPropagation(); const j=D.journal.find(x=>x.id===pb.dataset.pvpay); if(!j) return; const p=payOf(j);
