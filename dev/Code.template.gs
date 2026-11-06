@@ -230,7 +230,7 @@ function handle_(p) {
   if (/^backup(Tick|List|Now)$/.test(p.action || '')) return backup_(p, me);   // без общей блокировки: копия таблицы делается несколько секунд
   if (p.action === 'aiRead') return aiRead_(p);        // без блокировки: ИИ думает до минуты, остальные в это время работают
   if (p.action === 'aiKey') { if (!me.admin) return { ok: false, error: 'forbidden' }; const k = String(p.gkey || '').trim();
-    if (!/^[\w\-]{20,}$/.test(k)) return { ok: false, error: 'это не похоже на ключ Gemini' }; PropertiesService.getScriptProperties().setProperty('GEMINI_KEY', k); return { ok: true }; }
+    if (!/^[\w.\-]{20,}$/.test(k)) return { ok: false, error: 'это не похоже на ключ Gemini' }; PropertiesService.getScriptProperties().setProperty('GEMINI_KEY', k); return { ok: true }; }
   const lock = LockService.getScriptLock();
   lock.waitLock(25000);
   try {
