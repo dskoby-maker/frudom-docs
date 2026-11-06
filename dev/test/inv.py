@@ -108,6 +108,12 @@ async def main():
         cls=await pg.evaluate("document.querySelector('#jr-body [data-zkj=\"iv1\"]').className"); tip=await pg.get_attribute('#jr-body [data-zkj="iv1"]','title')
         ok('part' in cls and 'дороже продажи' in tip, f'закупка дороже продажи — жёлтый с пояснением: {tip}')
         await pg.locator('#jr-body').screenshot(path=f'{SHOT}/inv-journal.png')
+        lbl=await pg.text_content('#jr-body [data-zkj="iv1"]'); ok(lbl.strip()=='!', f'подпись на плашке: все цены есть, но есть замечание — «!»: {lbl}')
+        box=await pg.evaluate("(()=>{const b=document.querySelector('#jr-body [data-zkj=\"iv1\"]').getBoundingClientRect(); return [b.width,b.height]})()"); ok(box[0]>=56 and box[1]>=24, f'плашка крупная, легко попасть: {box}')
+        await pg.set_viewport_size({'width':390,'height':844}); await pg.wait_for_timeout(400)
+        await pg.locator('#jr-body').screenshot(path=f'{SHOT}/inv-journal-phone.png')
+        sw=await pg.evaluate("document.documentElement.scrollWidth"); ok(sw<=390, f'журнал на телефоне без прокрутки вбок ({sw})')
+        await pg.click('#jr-body [data-zkj="iv1"]'); await pg.wait_for_timeout(1200); ok(await pg.locator('#fd-dcard #dc-zk.open').count()==1, 'на телефоне нажатие на плашку открывает закупку')
         ok(not errs, f'ошибок нет {errs[:2]}'); await ctx.close()
         # Наталья видит счета, Гриша — нет
         for who,pw,see in [('Наталья','2222',True),('Гриша','3333',False)]:
