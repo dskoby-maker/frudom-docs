@@ -1347,6 +1347,12 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .bnpt em{font-style:normal;font-weight:600;color:var(--warn)}#fd-app .bnpt em.ok{color:var(--ok)}#fd-app .bnpt em.bad{color:var(--err)}
 #fd-app .bnhow{border:1px solid var(--line);border-radius:14px;margin:14px 0 4px;padding:0 14px}#fd-app .bnhow summary{cursor:pointer;padding:11px 0;font-weight:600;color:var(--accent)}#fd-app .bnhow ol{margin:0 0 12px;padding-left:20px;display:grid;gap:6px;font-size:13.5px}
 #fd-app .bnkl{display:grid;gap:10px;margin-top:12px}
+#fd-app .bnpx{margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:14px;display:grid;gap:10px;animation:fdin .25s ease}#fd-app .bnpx.on{border-color:rgba(47,107,69,.4);background:rgba(47,107,69,.05)}
+#fd-app .bnpxh{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}#fd-app .bnpxh>.pvi{flex:none;width:34px;height:34px;padding:7px;border-radius:10px;background:var(--accent-soft);color:var(--accent)}#fd-app .bnpx.on .bnpxh>.pvi{background:rgba(47,107,69,.14);color:var(--ok)}
+#fd-app .bnpxh>div{display:grid;gap:2px;flex:1 1 260px}#fd-app .bnpxh small{color:var(--muted);font-size:12.5px;line-height:1.4}
+#fd-app .bnsteps{margin:0;padding-left:22px;display:grid;gap:8px;font-size:13.5px;line-height:1.45}#fd-app .bnsteps code{background:var(--bg);border-radius:6px;padding:1px 6px;font-size:12.5px}#fd-app .bnsteps .btn{margin-left:4px;vertical-align:baseline}
+#fd-app .bnsec{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}#fd-app .bnsec code{font-family:ui-monospace,Menlo,monospace;word-break:break-all}
+#fd-app .bnpxn{font-size:12.5px;margin:0}
 #fd-app .bnkr{display:grid;gap:8px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;transition:border-color .2s}#fd-app .bnkr.on{border-color:rgba(47,107,69,.4);background:rgba(47,107,69,.04)}
 #fd-app .bnkn{display:grid;gap:2px}#fd-app .bnkn small{font-size:12.5px;color:var(--ok)}#fd-app .bnkr:not(.on) .bnkn small{color:var(--muted)}#fd-app .bnki{display:flex;gap:8px;flex-wrap:wrap}#fd-app .bnki input{flex:1;min-width:200px;font-family:ui-monospace,Menlo,monospace;font-size:13px}
 @media (max-width:700px){#fd-app .pvseg button{flex-direction:column;gap:2px;font-size:11px;padding:7px 2px;white-space:normal;line-height:1.15;text-align:center;position:relative}#fd-app .pvseg button em{position:absolute;top:2px;right:4px}
@@ -2151,7 +2157,7 @@ function handleErr(e){ if(e.message==="auth"){ showLogin("Неверный па�
   else if(e && !e.net){ setStatus("err","Ошибка таблицы, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Таблица ответила ошибкой","«"+String(e.message||e).slice(0,160)+"». Всё сохранено на этом устройстве, повторю сам. Если повторяется — пришлите этот текст Claude."); } }
   else { setStatus("err","Не сохранено — нет связи, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Нет связи с Google Таблицей",(e&&e.message?"Причина: "+e.message+". ":"")+"Всё сохранено на этом устройстве и отправится автоматически, когда связь появится. Ничего делать не нужно."); } } }
 
-const NEED_VER=16;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
+const NEED_VER=17;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
 function srvVerCheck(v){ const el=$("#srvOld"); if(!el) return; const old=(+v||0)<NEED_VER; el.hidden=!old || docLimited(); D.srvVer=+v||0; }
 document.addEventListener("click",e=>{ if(!e.target.closest || !e.target.closest("#srvOldHow")) return; openCard(`<div class="dc-head"><div><div class="dc-kicker">Code.gs</div><h3>Как обновить скрипт таблицы</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
   <ol class="srvsteps"><li>GitHub → файл <b>dev/Code.template.gs</b> → кнопка «Copy raw file» (два квадратика).</li><li>Таблица «Документы ФД» → «Расширения» → «Apps Script» → файл <b>Код.gs</b> → Ctrl+A → Ctrl+V → «Сохранить». Файл «Пароли.gs» не трогать.</li><li>«Начать развёртывание» → «Управление развёртываниями» → карандаш → «Версия: новая версия» → «Развернуть».</li><li>Обновите эту страницу — жёлтая плашка исчезнет.</li></ol>

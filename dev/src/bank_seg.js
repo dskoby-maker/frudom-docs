@@ -91,7 +91,7 @@ async function bnSync(quiet){
     await bnPush();
     const j=await api({action:"bank", op: B.keys.length ? "sync" : "list"});
     if(!j || j.ok===false) throw new Error(j&&j.error||"нет ответа");
-    B.keys=j.keys||[]; bnMerge(j.ops); B.at=new Date().toISOString();
+    B.keys=j.keys||[]; if('proxy' in j) B.proxy=j.proxy; bnMerge(j.ops); B.at=new Date().toISOString();
     const n=bnAuto(); saveLocal(); if(Object.keys(B.pend).length) await bnPush();
     if(n){ drawProfit(); toast("ok","Оплаты разнесены автоматически", n+" "+plural(n,["поступление","поступления","поступлений"])+" из банка — смотрите «Прибыль» → «Поступления»."); }
     const w=B.ops.filter(o=>o.status==="wait").length, errs=Object.values(j.errs||{});
@@ -198,21 +198,58 @@ function bnPickSave(){
 function bnKeysOpen(){
   const B=BNK(), has=sid=>B.keys.find(k=>k.supplierId===sid);
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Т-Бизнес</div><h3>Подключение банка</h3><div class="dc-sub">Токен даёт сайту только чтение выписки — платить по нему нельзя.</div></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+    ${bnProxyHtml()}
     <details class="bnhow"><summary>Как получить токен (2 минуты)</summary><ol>
       <li>Откройте <b>business.tbank.ru</b> под нужным ИП → «Интеграции» → <b>T-API</b> → «Выпустить токен».</li>
       <li>Доступы: отметьте только <b>«Счета и выписки»</b> (информация о счетах и операциях). Больше ничего не нужно.</li>
-      <li>Ограничение по IP-адресам <b>не ставьте</b> — запросы идут с серверов Google, у них меняются адреса.</li>
+      <li>Ограничение по IP-адресам <b>не ставьте</b> — запросы идут через посредника в Яндекс Облаке, у него меняются адреса.</li>
       <li>Скопируйте токен и вставьте ниже у этого ИП → «Подключить». Токен действует, пока им пользуются (90 дней с последнего запроса).</li></ol></details>
     <div class="bnkl">${D.suppliers.map(s=>{ const k=has(s.id); return `<div class="bnkr ${k?"on":""}" data-sid="${esc(s.id)}"><div class="bnkn"><b>${esc(s.name)}</b>${k?`<small>${k.err?`<span class="neg">Ошибка: ${esc(k.err)}</span>`:`подключено · токен …${esc(k.tail)} · счета ${esc((k.acc||[]).join(", "))}`}</small>`:`<small class="muted">не подключено${/Байдаров/i.test(s.name)?" — оплаты отмечаются вручную":""}</small>`}</div>
       <div class="bnki"><input class="bntok" placeholder="${k?"новый токен (если нужно заменить)":"вставьте токен T-API"}" autocomplete="off" spellcheck="false"><button type="button" class="btn ${k?"":"pri"} sm" data-bnk="key">${k?"Заменить":"Подключить"}</button>${k?`<button type="button" class="btn ghost sm danger" data-bnk="del">Отключить</button>`:""}</div></div>`; }).join("")}</div>`, true, ()=>{});
   const d=$("#fd-dcard"); d.classList.add("bnk-d");
+  d.addEventListener("click", bnProxyClick);
   d.addEventListener("click", async e=>{ const b=e.target.closest("[data-bnk]"); if(!b) return; const row=b.closest("[data-sid]"), sid=row.dataset.sid;
-    if(b.dataset.bnk==="del"){ if(!armed(b,"Точно отключить?")) return; try{ const j=await api({action:"bank", op:"delKey", supplierId:sid}); if(j.ok===false) throw new Error(j.error); BNK().keys=j.keys||[]; saveLocal(); logEv("Данные","Банк: отключён Т-Бизнес у «"+(sup(sid).name||"")+"»"); bnKeysOpen(); pvDraw(); }catch(x){ toast("err","Не получилось",x.message); } return; }
+    if(b.dataset.bnk==="del"){ if(!armed(b,"Точно отключить?")) return; try{ const j=await api({action:"bank", op:"delKey", supplierId:sid}); if(j.ok===false) throw new Error(j.error); BNK().keys=j.keys||[]; if('proxy' in j) BNK().proxy=j.proxy; saveLocal(); logEv("Данные","Банк: отключён Т-Бизнес у «"+(sup(sid).name||"")+"»"); bnKeysOpen(); pvDraw(); }catch(x){ toast("err","Не получилось",x.message); } return; }
     const tok=row.querySelector(".bntok").value.trim(); if(tok.length<20){ toast("err","Вставьте токен","Скопируйте его в Т-Бизнесе → Интеграции → T-API."); row.querySelector(".bntok").focus(); return; }
     b.disabled=true; b.textContent="Проверяю в банке…";
     try{ const j=await api({action:"bank", op:"key", supplierId:sid, token:tok}); if(!j || j.ok===false) throw new Error(j&&j.error||"нет ответа");
-      const B=BNK(); B.keys=j.keys||[]; bnMerge(j.ops); B.at=new Date().toISOString(); const n=bnAuto(); saveLocal(); bnPush();
+      const B=BNK(); B.keys=j.keys||[]; if('proxy' in j) B.proxy=j.proxy; bnMerge(j.ops); B.at=new Date().toISOString(); const n=bnAuto(); saveLocal(); bnPush();
       logEv("Данные","Банк: подключён Т-Бизнес у «"+(sup(sid).name||"")+"»");
       toast("ok","Т-Бизнес подключён", (j.added?"Загружено поступлений: "+j.added+". ":"")+(n?"Сразу разнесено: "+n+".":"")); bnKeysOpen(); drawProfit();
     }catch(x){ b.disabled=false; b.textContent="Подключить"; toast("err","Банк не подключился", x.message||String(x)); } });
+}
+
+/* ---------- посредник в России (Яндекс Облако): Google до Т-Бизнеса не достаёт ---------- */
+const BN_PROXY_CODE = /*__TBPROXY__*/"";
+function bnSecret(){ const B=BNK(); if(!B.pxSecret){ const a=new Uint8Array(24); (window.crypto||{}).getRandomValues ? crypto.getRandomValues(a) : a.forEach((_,i)=>a[i]=Math.random()*256|0); B.pxSecret=[...a].map(x=>"abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"[x%55]).join(""); saveLocal(); } return B.pxSecret; }
+function bnProxyHtml(){
+  const B=BNK(), px=B.proxy, old=(D.srvVer||0)<17, open=!px||B.pxEdit;
+  if(px && !B.pxEdit) return `<div class="bnpx on"><div class="bnpxh">${pvIco("check")}<div><b>Посредник в России подключён</b><small>Яндекс Облако · …${esc(String(px.url).slice(-10))} · секрет …${esc(px.tail||"")}</small></div><span style="flex:1"></span><button type="button" class="btn ghost sm" data-bnx="edit">Изменить</button><button type="button" class="btn ghost sm danger" data-bnx="off">Убрать</button></div></div>`;
+  return `<div class="bnpx"><div class="bnpxh">${pvIco("bank")}<div><b>Шаг 1. Посредник в России</b><small>Т-Банк не отвечает серверам Google («Ошибка SSL»). Маленькая функция в Яндекс Облаке будет передавать запросы. Она только читает выписку и ничего не хранит. Делается один раз, примерно 15 минут, стоит копейки.</small></div></div>
+    ${old?`<p class="note">Сначала обновите скрипт таблицы (Code.gs, версия 17). <button type="button" class="btn sm" id="srvOldHow">Как обновить</button></p>`:""}
+    <ol class="bnsteps">
+      <li>Откройте <a href="https://console.yandex.cloud" target="_blank" rel="noopener"><b>console.yandex.cloud</b></a>, войдите через Яндекс ID. Если просят — создайте <b>платёжный аккаунт</b> (карта; для новых даётся стартовый грант, а эта функция укладывается в бесплатный объём).</li>
+      <li>Слева «Все сервисы» → <b>Cloud Functions</b> → «Создать функцию». Имя: <code>tbank-proxy</code> → «Создать».</li>
+      <li>Среда выполнения: <b>Node.js 22</b> (снимите галочку «Добавить файлы с примерами кода»). Способ: <b>Редактор кода</b> → «Создать файл» <code>index.js</code> → вставьте код: <button type="button" class="btn sm" data-bnx="copy">Скопировать код</button></li>
+      <li>Ниже: точка входа <code>index.handler</code>, таймаут <b>30</b> секунд, память <b>128 МБ</b>. «Переменные окружения» → «Добавить»: ключ <code>SECRET</code>, значение — этот секрет: <span class="bnsec"><code id="bnx-sec">${esc(bnSecret())}</code><button type="button" class="btn sm" data-bnx="copysec">Скопировать</button></span> → <b>«Сохранить изменения»</b>.</li>
+      <li>Вкладка «Обзор» функции → включите <b>«Публичная функция»</b> → скопируйте <b>«Ссылку для вызова»</b> (https://functions.yandexcloud.net/…) и вставьте ниже.</li></ol>
+    <div class="bnki"><input id="bnx-url" placeholder="https://functions.yandexcloud.net/…" value="${esc(px?px.url:"")}" autocomplete="off" spellcheck="false"><input id="bnx-key" placeholder="секрет" value="${esc(bnSecret())}" autocomplete="off" spellcheck="false"><button type="button" class="btn pri sm" data-bnx="save" ${old?"disabled":""}>Сохранить и проверить</button>${B.pxEdit?`<button type="button" class="btn ghost sm" data-bnx="cancel">Отмена</button>`:""}</div>
+    <p class="muted bnpxn">Шаг 2 — токены ниже. Подключать токен лучше после посредника.</p></div>`;
+}
+async function bnProxyClick(e){
+  const b=e.target.closest("[data-bnx]"); if(!b) return; const a=b.dataset.bnx, B=BNK();
+  const copy=(t,what)=>{ (navigator.clipboard&&navigator.clipboard.writeText ? navigator.clipboard.writeText(t) : Promise.reject()).then(()=>toast("ok","Скопировано",what)).catch(()=>{ const ta=document.createElement("textarea"); ta.value=t; document.body.appendChild(ta); ta.select(); try{ document.execCommand("copy"); toast("ok","Скопировано",what); }catch(x){} ta.remove(); }); };
+  if(a==="copy"){ copy(BN_PROXY_CODE,"Код функции — вставьте его в index.js в Яндекс Облаке."); return; }
+  if(a==="copysec"){ copy(bnSecret(),"Секрет — вставьте его как значение SECRET."); return; }
+  if(a==="edit"){ B.pxEdit=true; bnKeysOpen(); return; }
+  if(a==="cancel"){ B.pxEdit=false; bnKeysOpen(); return; }
+  if(a==="off"){ if(!armed(b,"Точно убрать?")) return; try{ const j=await api({action:"bank", op:"proxy", url:""}); if(!j||j.ok===false) throw new Error(j&&j.error||"нет ответа"); B.proxy=null; saveLocal(); bnKeysOpen(); }catch(x){ toast("err","Не получилось",x.message); } return; }
+  if(a==="save"){ const url=$("#bnx-url").value.trim(), key=$("#bnx-key").value.trim();
+    if(!/^https:\/\//.test(url)){ toast("err","Вставьте ссылку","«Ссылка для вызова» из обзора функции в Яндекс Облаке."); $("#bnx-url").focus(); return; }
+    b.disabled=true; b.textContent="Проверяю…";
+    try{ const j=await api({action:"bank", op:"proxy", url, secret:key}); if(!j||j.ok===false) throw new Error(j&&j.error||"нет ответа");
+      B.proxy=j.proxy; B.pxEdit=false; B.pxSecret=key; saveLocal(); logEv("Данные","Банк: подключён посредник в Яндекс Облаке");
+      toast("ok","Посредник работает","Банк отвечает через Яндекс Облако. Теперь подключите токены ниже."); bnKeysOpen();
+      if(B.keys.length) bnSync(true);
+    }catch(x){ b.disabled=false; b.textContent="Сохранить и проверить"; toast("err","Посредник не подключился", x.message||String(x)); } }
 }

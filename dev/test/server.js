@@ -16,11 +16,18 @@ function mkSheet(name){ const data=[]; const sh={name,data,
 const ss={ getId:()=>'SS1', getSheetByName:n=>sheets[n]||null, insertSheet:n=>(sheets[n]=mkSheet(n)) };
 const ctx={ SpreadsheetApp:{getActive:()=>ss}, LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){},tryLock(){return true}})},
   ContentService:{MimeType:{JSON:'json'}, createTextOutput:t=>({t, setMimeType(){return this}})}, JSON, String, Math, Object, parseInt, Date, isNaN, Array, Session:{getScriptTimeZone:()=>'Europe/Moscow'}, PropertiesService:{getScriptProperties:()=>({getProperty:k=>props[k]||null,setProperty:(k,v)=>{props[k]=v;},deleteProperty:k=>{delete props[k];}})},
-  UrlFetchApp:{ fetch:(url,o)=>{ if(/business\.tbank\.ru/.test(url)){ const tb=ctx.__tb||{}, au=((o&&o.headers)||{}).Authorization||''; globalThis.__tbCalls=(globalThis.__tbCalls||0)+1;   /* тестовый Т-Бизнес: ctx.__tb = {tokens:{токен:{accounts:[...], ops:[...]}}} */
-      const T=(tb.tokens||{})[au.replace('Bearer ','')]; if(!T) return {getResponseCode:()=>401,getContentText:()=>'{"errorMessage":"unauthorized"}'};
-      if(/bank-accounts/.test(url)) return {getResponseCode:()=>200,getContentText:()=>JSON.stringify(T.accounts.map(a=>({accountNumber:a,currency:'643',name:'Расчётный'})))};
-      if(/statement/.test(url)){ const acc=new URL(url).searchParams.get('accountNumber'); return {getResponseCode:()=>200,getContentText:()=>JSON.stringify({operations:(T.ops||[]).filter(x=>!x.acc||x.acc===acc)})}; }
-      return {getResponseCode:()=>404,getContentText:()=>'{}'}; }
+  UrlFetchApp:{ fetch:(url,o)=>{ const tbFake=(u,tok)=>{ const tb=ctx.__tb||{}, T=(tb.tokens||{})[tok]; globalThis.__tbCalls=(globalThis.__tbCalls||0)+1;   /* тестовый Т-Бизнес: ctx.__tb = {tokens:{токен:{accounts, ops}}, sslFail, proxy:{key}} */
+      if(!T) return {code:401, text:'{"errorMessage":"unauthorized"}'};
+      if(/bank-accounts/.test(u)) return {code:200, text:JSON.stringify(T.accounts.map(a=>({accountNumber:a,currency:'643',name:'Расчётный'})))};
+      if(/statement/.test(u)){ const acc=new URL('https://x'+u.replace(/^https?:\/\/[^/]+/,'')).searchParams.get('accountNumber'); return {code:200, text:JSON.stringify({operations:(T.ops||[]).filter(x=>!x.acc||x.acc===acc)})}; }
+      return {code:404, text:'{}'}; };
+    if(/business\.tbank\.ru/.test(url)){ if((ctx.__tb||{}).sslFail) throw new Error('Ошибка SSL: '+url);
+      const r=tbFake(url, (((o&&o.headers)||{}).Authorization||'').replace('Bearer ','')); return {getResponseCode:()=>r.code,getContentText:()=>r.text}; }
+    if(/functions\.yandexcloud\.net/.test(url)){ const px=(ctx.__tb||{}).proxy||{}, k=((o&&o.headers)||{})['X-Proxy-Key'];
+      if(!px.key) return {getResponseCode:()=>404,getContentText:()=>'not found'};
+      if(k!==px.key) return {getResponseCode:()=>403,getContentText:()=>'{"error":"wrong secret"}'};
+      const b=JSON.parse(o.payload||'{}'); if(b.path==='/ping') return {getResponseCode:()=>200,getContentText:()=>'{"ok":true,"proxy":1}'};
+      ctx.__pxCalls=(ctx.__pxCalls||0)+1; const r=tbFake(b.path, b.token); return {getResponseCode:()=>200,getContentText:()=>JSON.stringify({code:r.code, body:r.text})}; }
     const fake=process.env.AI_FAKE?fs.readFileSync(process.env.AI_FAKE,'utf8'):'{}'; const key=(o&&o.headers||{})['x-goog-api-key'];
     if(/api\.anthropic\.com/.test(url)){ const ck=(o&&o.headers||{})['x-api-key']; if(ck==='sk-ant-bad-key-000000000000') return {getResponseCode:()=>401,getContentText:()=>'{"type":"error","error":{"type":"authentication_error"}}'};
       if(/\/v1\/models/.test(url)) return {getResponseCode:()=>200,getContentText:()=>JSON.stringify({data:[{id:'claude-sonnet-5-5',display_name:'Claude Sonnet 5.5'},{id:'claude-haiku-5-5',display_name:'Claude Haiku 5.5'}]})};
