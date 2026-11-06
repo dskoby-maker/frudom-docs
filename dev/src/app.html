@@ -121,6 +121,14 @@
 @media (max-width:600px){#fd-app dialog.dcard{width:100vw;max-width:100vw;margin:auto 0 0;border-radius:20px 20px 0 0;max-height:90vh;padding:18px 16px calc(14px + env(safe-area-inset-bottom,0px));transform:translateY(40px)}#fd-app dialog.dcard.out{transform:translateY(60px)}#fd-app .dcard .dc-acts .btn{flex:1 1 auto}#fd-app .dcard .dc-t{font-size:13px}#fd-app .dcard .dc-t th,#fd-app .dcard .dc-t td{padding:8px}}
 @media (prefers-reduced-motion:reduce){#fd-app dialog.dcard,#fd-app dialog.dcard.in,#fd-app dialog.dcard.out{transition:none;transform:none}#fd-app .dcard .dc-t tbody tr{animation:none}#fd-app dialog.dcard::backdrop{animation:none}}
 #fd-app dialog.dcard.wide{width:min(760px,calc(100vw - 24px))}
+@media (max-width:600px){#fd-app dialog.dcard.wide{width:100vw;max-width:100vw}}
+#fd-app .dcard .dc-t .dc-m{display:none}
+/* узкий экран: в таблице товаров два столбца — «товар, под ним количество × цена» и «сумма» */
+@media (max-width:480px){#fd-app .dcard .dc-t th:nth-child(2),#fd-app .dcard .dc-t th:nth-child(3),#fd-app .dcard .dc-t td:nth-child(2),#fd-app .dcard .dc-t td:nth-child(3){display:none}
+  #fd-app .dcard .dc-t .dc-m{display:block;margin-top:2px;font-size:12.5px;color:var(--muted);white-space:nowrap}#fd-app .dcard .dc-t td:first-child{overflow-wrap:anywhere}
+  #fd-app .dcard .dc-t th,#fd-app .dcard .dc-t td{padding:9px 12px}}
+#fd-app .dcard .dc-docs{grid-template-columns:minmax(0,1fr)}#fd-app .dcard .dc-doc,#fd-app .dcard .dc-tw{min-width:0;max-width:100%}
+#fd-app .dcard .dc-dh>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis}#fd-app .dcard .dc-dh>.s{flex:none;white-space:nowrap}
 #fd-app .dcard .dc-docs{display:grid;gap:12px}
 #fd-app .dcard .dc-doc{animation:fdin .28s ease both}
 #fd-app .dcard .dc-dh{all:unset;box-sizing:border-box;display:flex;justify-content:space-between;gap:10px;width:100%;padding:6px 4px 8px;cursor:pointer;font:500 14px var(--ui);color:var(--ink);border-radius:8px;transition:color .15s}
@@ -378,6 +386,9 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .dcard .pcres b{color:var(--accent)}
 #fd-app .dcard .dzr em{white-space:nowrap}
 @media(max-width:600px){#fd-app .dcard .dzs-sum{grid-template-columns:repeat(2,minmax(0,1fr))}#fd-app .dcard .dzr{grid-template-columns:minmax(0,1fr) 84px 88px;gap:6px}#fd-app .dcard .pcsw button{padding:4px 5px;font-size:11px}}
+/* узкий экран: название товара — целиком сверху, ниже поле цены и переключатель */
+@media(max-width:480px){#fd-app .dcard .dzr{grid-template-columns:minmax(0,1fr) auto;row-gap:6px}#fd-app .dcard .dzr>span:first-child{grid-column:1/-1}
+  #fd-app .dcard .dzr>span:first-child b{white-space:normal;overflow:visible}#fd-app .dcard .dzr>input,#fd-app .dcard .dzr>.dzsc{min-width:0}}
 /* ===== Счета на оплату ===== */
 #fd-app .invh{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}#fd-app .invh h2{margin:0}#fd-app .invh p{margin:4px 0 0;font-size:13px}
 #fd-app .invf{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.3fr) minmax(0,1fr) auto;gap:8px;margin:14px 0 8px;align-items:center}#fd-app .invarch{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--muted);white-space:nowrap}
@@ -4520,7 +4531,7 @@ function histHtml(items, open){
 function whoLine(j){ const h=histOf(j), c=h.find(x=>(x.w||[])[0]==="создан"), last=h.filter(x=>(x.w||[])[0]!=="создан").sort((a,b)=>String(a.at).localeCompare(String(b.at))).pop();
   return [["Создан", c?(dtShort(c.at)+(c.by?" · "+c.by:"")):""], ["Изменён", last?(dtShort(last.at)+(last.by?" · "+last.by:"")):""]].filter(x=>x[1]); }
 const posWord = n => n%10===1&&n%100!==11?"позиция":(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))?"позиции":"позиций";
-const linesTable = k => `<div class="dc-tw"><table class="dc-t"><thead><tr><th>Товар</th><th class="num">Кол-во</th><th class="num">Цена, ₽</th><th class="num">Сумма, ₽</th></tr></thead><tbody>${k.lines.map(l=>`<tr><td><b>${esc(l.name)}</b></td><td class="num">${esc(nq3(l.qty))}&nbsp;${esc(l.unit||"")}</td><td class="num">${fm(l.price)}</td><td class="num"><b>${fm(l.sum)}</b></td></tr>`).join("")}</tbody></table></div>`;
+const linesTable = k => `<div class="dc-tw"><table class="dc-t"><thead><tr><th>Товар</th><th class="num">Кол-во</th><th class="num">Цена, ₽</th><th class="num">Сумма, ₽</th></tr></thead><tbody>${k.lines.map(l=>`<tr><td><b>${esc(l.name)}</b><small class="dc-m">${esc(nq3(l.qty))}&nbsp;${esc(l.unit||"")} × ${fm(l.price)}</small></td><td class="num">${esc(nq3(l.qty))}&nbsp;${esc(l.unit||"")}</td><td class="num">${fm(l.price)}</td><td class="num"><b>${fm(l.sum)}</b></td></tr>`).join("")}</tbody></table></div>`;
 /* общий вид всплывающей карточки: плавное появление, закрытие крестиком / Esc / кликом мимо */
 // окна: тень под шапкой при прокрутке; --dch — высота шапки (для внутренних липких заголовков)
 /* сжатая шапка окна: высокая шапка (подпись + длинное название) прилипает только нижней полоской,

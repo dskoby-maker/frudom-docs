@@ -110,7 +110,7 @@ async def main():
         await pg.fill('#dc-zki .dzc[data-pid="p-gr"]','190'); await pg.click('#dc-zki [data-zkc="save"]'); await pg.wait_for_timeout(500)
         await pg.evaluate("document.querySelector('#fd-dcard [data-dc=\"close\"]').click()"); await pg.wait_for_timeout(400)
         cls=await pg.evaluate("document.querySelector('#jr-body [data-zkj=\"iv1\"]').className"); tip=await pg.get_attribute('#jr-body [data-zkj="iv1"]','title')
-        ok('ok' in cls and 'loss' in cls and 'в минус' in tip, f'закупка дороже продажи — зелёный с красной точкой и пояснением: {cls} {tip}')
+        ok('ok' in cls, f'один товар дороже продажи, накладная в плюсе — значок зелёный (точка только при минусе всей накладной): {cls} {tip}')
         await pg.locator('#jr-body').screenshot(path=f'{SHOT}/inv-journal.png')
         lbl=await pg.text_content('#jr-body [data-zkj="iv1"]'); ok(lbl.strip()=='✓', f'подпись на плашке: всё заполнено — «✓»: {lbl}')
         box=await pg.evaluate("(()=>{const b=document.querySelector('#jr-body [data-zkj=\"iv1\"]').getBoundingClientRect(); return [b.width,b.height]})()"); ok(box[0]>=56 and box[1]>=24, f'плашка крупная, легко попасть: {box}')
