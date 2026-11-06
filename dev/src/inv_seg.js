@@ -39,8 +39,14 @@ function invBuild(docs, mode){
 const invLineSum = x => r2((+num(x.qty)||0)*(+num(x.price)||0));
 
 /* ---------- список ---------- */
+function invRowHtml(r,i){ const d=invData(r), c=cus(r.customerId)||{}, n=(d.docs||[]).length;
+    return `<div class="invr" role="button" tabindex="0" data-inv="${r.id}" style="--d:${Math.min(i,12)*22}ms">
+      <span class="invd"><b>№ ${esc(r.number)}</b><small>${fd(r.date)}</small></span>
+      <span class="invw"><b>${esc(c.name||"заказчик удалён")}${r.place?` <em>${esc(r.place)}</em>`:""}</b><small>${[r.period, n?`${n} ${plural(n,["накладная","накладные","накладных"])}`:"без накладных", esc(sup(r.supplierId).name||"")].filter(Boolean).join(" · ")}</small></span>
+      <span class="invs">${fm(+r.sum||0)} ₽</span>
+      <span class="inva"><button type="button" class="btn sm" data-invp="${r.id}">Открыть счёт</button><button type="button" class="btn ghost sm" data-inve="${r.id}">Изменить</button></span></div>`; }
 let INVF={q:"", cus:"", per:"", arch:false};
-function renderInvoices(){ if(!invCan()) return;
+function renderInvoices(){ if(!invCan() || !$("#inv-list")) return;
   const old=$("#inv-old"); old.innerHTML = D.invSrv===false ? `<div class="sknoteb">Чтобы счета сохранялись в таблице и были видны всем — обновите Code.gs (версия 14). До этого создать счёт нельзя: таблица его не сохранит. <button type="button" class="btn sm" id="srvOldHow">Как обновить</button></div>` : "";
   $("#inv-new").disabled = D.invSrv===false;
   const cs=$("#inv-cus"), used=[...new Set(invRows().map(r=>r.customerId))];
@@ -54,12 +60,7 @@ function invFiltered(){ const q=String(INVF.q||"").toLowerCase().replace(/ё/g,"
 function invDrawList(){ const L=invFiltered(), box=$("#inv-list"); if(!box) return; const tot=r2(L.reduce((a,r)=>a+(+r.sum||0),0));
   $("#inv-sum").textContent = L.length ? `Найдено: ${L.length} ${plural(L.length,["счёт","счёта","счетов"])} на ${fm(tot)} ₽` : "";
   if(!L.length){ box.innerHTML=`<div class="skempty"><b>${invRows().length?"Ничего не найдено":"Счетов пока нет"}</b><span>${invRows().length?"Измените поиск или фильтры.":"Нажмите «+ Новый счёт»: выберите заказчика, подразделение и месяц — сайт сам соберёт накладные."}</span></div>`; return; }
-  box.innerHTML=`<div class="invl">${L.map((r,i)=>{ const d=invData(r), c=cus(r.customerId)||{}, n=(d.docs||[]).length;
-    return `<div class="invr" role="button" tabindex="0" data-inv="${r.id}" style="--d:${Math.min(i,12)*22}ms">
-      <span class="invd"><b>№ ${esc(r.number)}</b><small>${fd(r.date)}</small></span>
-      <span class="invw"><b>${esc(c.name||"заказчик удалён")}${r.place?` <em>${esc(r.place)}</em>`:""}</b><small>${[r.period, n?`${n} ${plural(n,["накладная","накладные","накладных"])}`:"без накладных", esc(sup(r.supplierId).name||"")].filter(Boolean).join(" · ")}</small></span>
-      <span class="invs">${fm(+r.sum||0)} ₽</span>
-      <span class="inva"><button type="button" class="btn sm" data-invp="${r.id}">Открыть счёт</button><button type="button" class="btn ghost sm" data-inve="${r.id}">Изменить</button></span></div>`; }).join("")}</div>`;
+  box.innerHTML=`<div class="invl">${L.map(invRowHtml).join("")}</div>`;
   box.querySelector(".invl").classList.add("pgfade"); }
 document.addEventListener("input", e=>{ if(e.target.id==="inv-q"){ INVF.q=e.target.value; invDrawList(); } });
 document.addEventListener("change", e=>{ const id=e.target.id; if(id==="inv-cus"){ INVF.cus=e.target.value; invDrawList(); } else if(id==="inv-per"){ INVF.per=e.target.value; invDrawList(); } else if(id==="inv-arch"){ INVF.arch=e.target.checked; invDrawList(); } });
@@ -67,7 +68,9 @@ document.addEventListener("click", e=>{ const t=e.target; if(!t.closest) return;
   if(t.closest("#inv-new")){ invEdit(null); return; }
   const p=t.closest("[data-invp]"); if(p){ e.stopPropagation(); invPreview(p.dataset.invp); return; }
   const ed=t.closest("[data-inve]"); if(ed){ e.stopPropagation(); invEdit(ed.dataset.inve); return; }
-  const r=t.closest("#inv-list [data-inv]"); if(r){ invCard(r.dataset.inv); return; } });
+  if(t.closest("#inv-new2")){ invEdit(null); return; }
+  if(t.closest("#inv-all")){ invAll(); return; }
+  const r=t.closest("#inv-list [data-inv], #inv-dc [data-inv]"); if(r){ invCard(r.dataset.inv); return; } });
 document.addEventListener("keydown", e=>{ const r=e.target; if(r.classList && r.classList.contains("invr") && (e.key==="Enter"||e.key===" ")){ e.preventDefault(); invCard(r.dataset.inv); } });
 
 function invPreview(id){ const r=invRows().find(x=>x.id===id); if(!r) return; showPreview("invoice", invK(r)); }
@@ -75,6 +78,7 @@ function invPreview(id){ const r=invRows().find(x=>x.id===id); if(!r) return; sh
 function invCard(id){ const r=invRows().find(x=>x.id===id); if(!r) return; const d=invData(r), c=cus(r.customerId)||{}, ar=!!d.arch;
   const docs=(d.docs||[]).map(x=>D.journal.find(j=>j.id===x)).filter(Boolean);
   const info=[["Поставщик",sup(r.supplierId).name||""],["Заказчик",(c.name||"")+(r.place?", "+r.place:"")],["Период",r.period||""],["Основание",d.basis||""],["Комментарий",d.note||""],["Создал",(d.by||"")+(d.at?" · "+dtShort(d.at):"")]].filter(x=>x[1]);
+  CARD_RE=()=>{ if(invRows().some(x=>x.id===id)) invCard(id); };
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Счёт на оплату${ar?" · в архиве":""}</div><h3>№ ${esc(r.number)} от ${fd(r.date)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <dl class="dc-info">${info.map(([a,b])=>`<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>
     <div class="dc-tw"><table class="dc-t"><thead><tr><th>Товар</th><th class="num">Кол-во</th><th class="num">Цена, ₽</th><th class="num">Сумма, ₽</th></tr></thead><tbody>${(d.lines||[]).map(x=>`<tr><td><b>${esc(x.name)}</b></td><td class="num">${esc(nq3(+num(x.qty)||0))}&nbsp;${esc(x.unit||"")}</td><td class="num">${fm(+num(x.price)||0)}</td><td class="num"><b>${fm(invLineSum(x))}</b></td></tr>`).join("")}</tbody></table></div>
@@ -86,13 +90,13 @@ function invCard(id){ const r=invRows().find(x=>x.id===id); if(!r) return; const
     if(a==="edit"){ invEdit(id); return; }
     if(a==="copy"){ invEdit(id, true); return; }
     if(a==="doc"){ const j=D.journal.find(x=>x.id===b.dataset.id); if(j) docCard(j, isArch(j)); return; }
-    if(a==="arch"||a==="unarch"){ invSetArch(id, a==="arch"); } }); }
+    if(a==="arch"||a==="unarch"){ invSetArch(id, a==="arch"); if(NAV.st.length) navBack(); } }); }   /* из списка — вернуться в список */
 function invHist(d, w){ const h=Array.isArray(d.hist)?d.hist.slice(-29):[]; h.push({at:new Date().toISOString(), by:curUser()||"", w}); d.hist=h; }
 function invSetArch(id, on){ const r=invRows().find(x=>x.id===id); if(!r) return; const d=Object.assign({}, invData(r));
   if(on) d.arch=new Date().toISOString(); else delete d.arch; invHist(d, [on?"в архив":"возвращён из архива"]);
   r.data=JSON.stringify(d); r.updated=new Date().toISOString(); dirty("invoices", r.id); saveLocal();
   toast(on?"info":"ok", on?"Счёт убран в архив":"Счёт возвращён", "№ "+r.number+" от "+fd(r.date)+".", on?{action:{label:"Вернуть", fn:()=>invSetArch(id,false)}}:{});
-  if(curTab==="invoices") invDrawList(); }
+  invViews(); }
 
 /* ---------- создание и правка ---------- */
 let INV=null;
@@ -193,5 +197,22 @@ function invSave(open){ const F=INV, lines=F.lines.map(x=>({name:String(x.name||
   D.invoices=D.invoices||[]; const i=D.invoices.findIndex(x=>x.id===row.id); if(i>=0) D.invoices[i]=Object.assign(D.invoices[i], row); else D.invoices.push(row);
   dirty("invoices", row.id); saveLocal(); INV.dirty=false; invClose(true);
   toast("ok", old?"Счёт изменён":"Счёт сохранён", "№ "+row.number+" от "+fd(row.date)+" · "+fm(+row.sum)+" ₽"+(row.place?" · "+row.place:"")+".");
-  if(curTab==="invoices") renderInvoices(); if(open) setTimeout(()=>invPreview(row.id), 220); }
+  invViews(); if(open) setTimeout(()=>invPreview(row.id), 220); }
 window.__inv = { rows:()=>invRows(), edit:invEdit, st:()=>INV };
+
+/* ---------- счета живут во вкладке «Новый документ»: блок внизу + окно «Все счета» (вкладки «Счета» больше нет) ---------- */
+function invViews(){ invDocCard(); if($("#inv-list")) renderInvoices(); }
+function invDocCard(){ const box=$("#inv-dc"); if(!box) return; box.hidden=!invCan(); if(box.hidden) return;
+  const live=invRows().filter(r=>!invArch(r)).sort((a,b)=>String(b.date).localeCompare(String(a.date)) || invNumN(b.number)-invNumN(a.number)), n=live.length;
+  box.innerHTML=`<div class="invh"><div><h2>Отдельный счёт на оплату</h2><p class="muted">За месяц или период, по подразделению — сайт сам соберёт накладные. Это не новая накладная: на контракт, журнал и прибыль не влияет.</p></div>
+    <div class="invbtn"><button class="btn" type="button" id="inv-all">Все счета${n?` <span class="invn">${n}</span>`:""}</button><button class="btn pri" type="button" id="inv-new2"${D.invSrv===false?" disabled":""}>+ Отдельный счёт</button></div></div>
+    ${D.invSrv===false?`<div class="sknoteb" style="margin-top:10px">Чтобы счета сохранялись в таблице и были видны всем — обновите Code.gs (версия 14). <button type="button" class="btn sm" id="srvOldHow">Как обновить</button></div>`:""}
+    ${n?`<div class="invmini"><div class="invmh">Последние счета</div><div class="invl">${live.slice(0,3).map(invRowHtml).join("")}</div></div>`:""}`; }
+function invAll(){ if(!invCan()) return; CARD_RE=()=>invAll();
+  openCard(`<div class="dc-head"><div><div class="dc-kicker">Счета на оплату</div><h3>Все отдельные счета</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+    <div class="invh invh2"><p class="muted">Например, за месяц по каждому подразделению. На сумму контракта, журнал и прибыль не влияют.</p><button class="btn pri" type="button" id="inv-new">+ Новый счёт</button></div>
+    <div id="inv-old"></div>
+    <div class="invf"><input id="inv-q" type="search" placeholder="Поиск: номер, заказчик, подразделение, товар" aria-label="Поиск счетов"><select id="inv-cus" aria-label="Заказчик"></select><select id="inv-per" aria-label="Период"><option value="">Всё время</option><option value="m0">Этот месяц</option><option value="m1">Прошлый месяц</option><option value="y">Этот год</option></select><label class="invarch"><input type="checkbox" id="inv-arch"> Архив</label></div>
+    <div id="inv-sum" class="muted"></div>
+    <div id="inv-list"></div>`, true, ()=>{});
+  const d=$("#fd-dcard"); if(d) d.classList.add("xwide"); renderInvoices(); }
