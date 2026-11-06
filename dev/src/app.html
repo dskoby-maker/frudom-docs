@@ -1288,8 +1288,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .pvpi{display:grid;grid-template-columns:repeat(auto-fill,minmax(38px,1fr));gap:4px}#fd-app .pvpi button{border:0;background:none;font-size:19px;height:38px;border-radius:10px;cursor:pointer;color:var(--ink);display:grid;place-items:center;transition:background .12s,transform .12s}#fd-app .pvpi button:hover{background:var(--bg);transform:scale(1.12)}#fd-app .pvpi button.on{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent)}
 #fd-app .pvph{display:flex;gap:8px;flex-wrap:wrap}#fd-app .pvph button{width:26px;height:26px;border-radius:50%;border:0;cursor:pointer;background:hsl(var(--h) 60% 60%);transition:transform .12s}#fd-app .pvph button:hover{transform:scale(1.15)}#fd-app .pvph button.on{box-shadow:0 0 0 2px #fff,0 0 0 4px hsl(var(--h) 60% 45%)}
 @media (max-width:700px){
- #fd-app .pvseg{max-width:none}#fd-app .pvseg button{font-size:12.5px;gap:4px;padding:9px 4px}#fd-app .pvseg button .pvi{width:14px;height:14px}#fd-app .pvseg .pvl{display:none}#fd-app .pvseg .pvs{display:inline}#fd-app .pvseg button{min-width:0;overflow:hidden}}
-@media (max-width:420px){#fd-app .pvseg button .pvi{display:none}
+ #fd-app .pvseg{max-width:none}#fd-app .pvseg button{font-size:12.5px;gap:4px;padding:9px 4px}#fd-app .pvseg button .pvi{width:14px;height:14px}#fd-app .pvseg .pvl{display:none}#fd-app .pvseg .pvs{display:inline}#fd-app .pvseg button{min-width:0;overflow:hidden}
  #fd-app .pvmon{width:100%}#fd-app .pvmon b{flex:1;min-width:0}
  #fd-app .pvkpi{grid-template-columns:1fr 1fr}#fd-app .pvkpi b{font-size:18px}
  #fd-app .pvlh{display:none}
@@ -1342,6 +1341,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 @media (max-width:700px){#fd-app .pvseg button{flex-direction:column;gap:2px;font-size:11px;padding:7px 2px;white-space:normal;line-height:1.15;text-align:center;position:relative}#fd-app .pvseg button em{position:absolute;top:2px;right:4px}
  #fd-app .bnop{padding:12px;gap:10px}#fd-app .bnico{width:30px;height:30px}#fd-app .bns .bnst{margin-left:0}#fd-app .bnpr{grid-template-columns:22px minmax(0,1fr) 100px;grid-template-areas:"c n s" ". d d"}#fd-app .bnpr .bnpc{grid-area:c}#fd-app .bnpr .bnpn{grid-area:n}#fd-app .bnpr .bnps{grid-area:s}#fd-app .bnpr .bnpd{grid-area:d}}
 @media (prefers-reduced-motion:reduce){#fd-app .bnop,#fd-app .bnop.wait .bnico{animation:none}}
+@media (max-width:420px){#fd-app .pvseg button .pvi{display:none}}
 @media (prefers-reduced-motion:reduce){#fd-app .pvseg>i,#fd-app .pvkind>i,#fd-app .pvmb,#fd-app .pvrx{transition:none}#fd-app .pvcus,#fd-app .pvday,#fd-app .pvcb,#fd-app .pvbar i,#fd-app .pvcbb>i,#fd-app .pvkpi>div{animation:none}}
 #fd-app .pfoadd #po-sup{width:auto;max-width:240px}
 @media(max-width:560px){#fd-app #pf-paysum{grid-template-columns:repeat(2,minmax(0,1fr))}#fd-app #pf-paysum>div:first-child{grid-column:span 2}#fd-app #pf-paysum b{font-size:17px}#fd-app .pfoadd #po-sup{max-width:none;width:100%}}
