@@ -165,7 +165,9 @@ const Eis = (() => {
     if(files.length===1&&/\.zip$/i.test(files[0].name)){
       if(files[0].size>20*1024*1024)throw Error('Образец ZIP должен быть меньше 20 МБ.');
       const z=await EisZip.loadAsync(await files[0].arrayBuffer());
-      const entries=Object.values(z.files).filter(f=>!f.dir&&/\.xml$/i.test(f.name));
+      // Архив уже принятого документа содержит ещё ответ заказчика (DP_PDPOL…, титул покупателя) — он для образца не нужен.
+      let entries=Object.values(z.files).filter(f=>!f.dir&&/\.xml$/i.test(f.name));
+      const upd=entries.filter(f=>/(^|\/)(PRIL_)?ON_NSCHF[^/]*\.xml$/i.test(f.name));if(entries.length!==2&&upd.length===2)entries=upd;
       if(entries.length!==2)throw Error('В ZIP должны быть два XML одного УПД: основной и PRIL.');
       for(const f of entries){if(f._data?.uncompressedSize>300000)throw Error('XML образца слишком большой.');const b=await f.async('uint8array');if(b.length>300000)throw Error('XML образца слишком большой.');docs.push({text:decode(b),bytes:b});}
     }else{
@@ -174,6 +176,8 @@ const Eis = (() => {
     }
     const main=docs.find(x=>parse(x.text).documentElement.tagName==='Файл'),pril=docs.find(x=>parse(x.text).documentElement.tagName==='ФайлУПДПрод');
     if(!main||!pril)throw Error('Не найдена пара XML УПД и приложения PRIL.');
+    // Вложения образца (декларации, сведения о стране) относятся к старому документу — в новый не переносятся, их прикрепляют в ЕИС заново.
+    if(/<Вложен[\s>]/.test(pril.text)){const d=parse(pril.text);[...d.documentElement.children].filter(n=>n.tagName==='Вложен').forEach(n=>n.remove());pril.text=xml(d);}
     const t=inspect(main.text,pril.text),hash=attr(t.p.documentElement,'ХэшФайл');
     if(hash&&hash.toLowerCase()!==eisHash(main.bytes))throw Error('Контрольная сумма основного XML не совпадает с приложением. Выберите исходный архив из ЕИС.');
     return {main:main.text,pril:pril.text,mapping:{},ship:''};
