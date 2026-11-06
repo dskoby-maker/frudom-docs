@@ -65,7 +65,7 @@ async def main():
         await pg.select_option('#jr-sk','wait'); await pg.wait_for_timeout(300); n1=await pg.locator('#jr-body .skjb').count(); ok(n1>=1, 'фильтр «Ждут отгрузки» показывает документ')
         await pg.screenshot(path=f'{SHOT}/u2-journal.png'); await pg.select_option('#jr-sk','')
         # 5. закупка Саида: строка «В склад»
-        await pg.evaluate(TAB+"('purchase')"); await pg.wait_for_timeout(1500)
+        await pg.evaluate(TAB+"('purchase')"); await pg.wait_for_timeout(1500); await pg.evaluate("document.querySelector('#zkx-said').open=true")
         await pg.fill('#zk-src','Цирк\nКурага 5х200=1000\nЧернослив 4х250=1000'); await pg.wait_for_timeout(800)
         zp=pg.locator('#zk-blocks select.zp').nth(1)
         await zp.select_option('k'); await pg.wait_for_timeout(500)

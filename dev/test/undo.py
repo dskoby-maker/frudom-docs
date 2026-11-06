@@ -105,7 +105,7 @@ async def main():
         ok(await pg.evaluate("document.querySelectorAll('#tk-my .tk.my').length")==k0+1, 'задача вернулась')
         ok('купить коробки' in await pg.text_content('#tk-my'), 'та же задача')
         # 6б. закупка: текст Саида
-        await tab(pg,'purchase'); await pg.wait_for_timeout(800)
+        await tab(pg,'purchase'); await pg.wait_for_timeout(800); await pg.evaluate("document.querySelector('#zkx-said').open=true")
         z0=await pg.input_value('#zk-src')
         await pg.click('#zk-src'); await pg.keyboard.type('Цирк\nПамидор 37х110=4050'); await pg.wait_for_timeout(2500)
         ok((await pg.evaluate("__fd.D().zk.text")).endswith('4050'), 'закупка набрана')
