@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 16;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 17;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -345,17 +345,32 @@ function seedEis_() {
 const TB_URL = 'https://business.tbank.ru/openapi';
 function tbKeys_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('TB_KEYS') || '{}') || {}; } catch (e) { return {}; } }
 function tbKeysSet_(o) { PropertiesService.getScriptProperties().setProperty('TB_KEYS', JSON.stringify(o)); }
+/* посредник в России (Яндекс Облако, dev/tbank-proxy/index.js): Google до Т-Бизнеса не достаёт — «Ошибка SSL». Свойство TB_PROXY = {url, key} */
+function tbProxy_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('TB_PROXY') || 'null'); } catch (e) { return null; } }
+function tbViaProxy_(px, path, token) {
+  const r = UrlFetchApp.fetch(px.url, { method: 'post', contentType: 'application/json', headers: { 'X-Proxy-Key': px.key }, payload: JSON.stringify({ path, token: token || '' }), muteHttpExceptions: true });
+  const c = r.getResponseCode(), t = r.getContentText(); let j = {}; try { j = JSON.parse(t) || {}; } catch (e) { j = {}; }
+  if (c === 403) throw new Error('посредник не принял секрет — проверьте, что секрет на сайте совпадает с переменной SECRET в Яндекс Облаке');
+  if (c === 404) throw new Error('посредник не найден по ссылке — проверьте ссылку и что функция «публичная»');
+  if (c >= 300) throw new Error('посредник: ' + (j.error || ('ответ ' + c + ' ' + t.slice(0, 150))));
+  return { code: +j.code || 0, text: String(j.body || ''), ping: j.proxy };
+}
 function tbGet_(path, token) {
-  const o = { method: 'get', headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }, muteHttpExceptions: true };
-  let r;
-  try { r = UrlFetchApp.fetch(TB_URL + path, o); }
-  catch (e) {   /* у банка сертификат Минцифры — если Google ему не доверяет, повторяем без проверки сертификата (запрос только на чтение) */
-    if (!/ssl|certif|сертиф|handshake/i.test(String(e))) throw e;
-    o.validateHttpsCertificates = false; r = UrlFetchApp.fetch(TB_URL + path, o); }
-  const code = r.getResponseCode(), t = r.getContentText();
+  const px = tbProxy_(); let code, t;
+  if (px && px.url) { const r = tbViaProxy_(px, path, token); code = r.code; t = r.text; }
+  else {
+    const o = { method: 'get', headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }, muteHttpExceptions: true };
+    let r;
+    try { r = UrlFetchApp.fetch(TB_URL + path, o); }
+    catch (e) {   /* у банка сертификат Минцифры — если Google ему не доверяет, повторяем без проверки сертификата (запрос только на чтение) */
+      if (!/ssl|certif|сертиф|handshake/i.test(String(e))) throw e;
+      o.validateHttpsCertificates = false;
+      try { r = UrlFetchApp.fetch(TB_URL + path, o); } catch (e2) { throw new Error('Google не может соединиться с Т-Бизнесом (' + String(e2.message || e2).slice(0, 80) + ') — нужен посредник в России: «Подключение банка» → «Посредник»'); } }
+    code = r.getResponseCode(); t = r.getContentText();
+  }
   if (code === 401 || code === 403) throw new Error('банк не принял токен (' + code + '): проверьте, что токен действующий и в нём включён доступ «Счета и выписки», без ограничения по IP');
   if (code === 429) throw new Error('банк просит подождать (слишком много запросов) — попробуйте через минуту');
-  if (code >= 300) throw new Error('ответ банка ' + code + ': ' + t.slice(0, 200));
+  if (code >= 300 || !code) throw new Error('ответ банка ' + code + ': ' + t.slice(0, 200));
   try { return JSON.parse(t); } catch (e) { throw new Error('банк ответил не JSON'); }
 }
 function tbAccounts_(token) {
@@ -398,6 +413,7 @@ function bankSync_(sids) {
   }
   return { added, errs };
 }
+function bankProxyView_() { const x = tbProxy_(); return x && x.url ? { url: x.url, tail: String(x.key || '').slice(-4) } : null; }
 function bankKeysView_() { const keys = tbKeys_(), sn = nameMap_('suppliers');
   return Object.keys(keys).map(sid => ({ supplierId: sid, name: sn[sid] || '', tail: String(keys[sid].k || '').slice(-4), acc: (keys[sid].acc || []).map(a => '…' + a.slice(-4)), last: keys[sid].last || '', err: keys[sid].err || '' })); }
 function bank_(p, me) {
@@ -410,10 +426,22 @@ function bank_(p, me) {
       if (!/^[\w.\-]{20,}$/.test(k)) return { ok: false, error: 'это не похоже на токен T-API' };
       const acc = tbAccounts_(k); if (!acc.length) return { ok: false, error: 'по этому токену банк не показал ни одного рублёвого счёта — проверьте доступ «Счета и выписки»' };
       const keys = tbKeys_(); keys[sid] = { k, acc, last: '', err: '' }; tbKeysSet_(keys);
-      const r = bankSync_([sid]); return { ok: true, keys: bankKeysView_(), added: r.added, errs: r.errs, ops: read_('bankops') };
+      const r = bankSync_([sid]); return { ok: true, keys: bankKeysView_(), proxy: bankProxyView_(), added: r.added, errs: r.errs, ops: read_('bankops') };
     }
-    if (op === 'delKey') { const keys = tbKeys_(); delete keys[String(p.supplierId || '')]; tbKeysSet_(keys); return { ok: true, keys: bankKeysView_() }; }
-    if (op === 'sync') { const r = bankSync_(null); return { ok: true, keys: bankKeysView_(), added: r.added, errs: r.errs, ops: read_('bankops') }; }
+    if (op === 'proxy') {   /* сохранить / проверить / убрать посредника */
+      const url = String(p.url || '').trim(), key = String(p.secret || '').trim(), pr = PropertiesService.getScriptProperties();
+      if (!url) { pr.deleteProperty('TB_PROXY'); return { ok: true, keys: bankKeysView_(), proxy: null }; }
+      if (!/^https:\/\/[\w.\-]+\.(yandexcloud\.net|yandex\.net|ru|рф)\/\S+$/i.test(url)) return { ok: false, error: 'ссылка должна быть вида https://functions.yandexcloud.net/…' };
+      if (key.length < 16) return { ok: false, error: 'секрет слишком короткий (нужно от 16 знаков)' };
+      const px = { url, key }, ping = tbViaProxy_(px, '/ping', '');
+      if (!ping.ping) return { ok: false, error: 'по ссылке отвечает не посредник — проверьте, что вставлен код из dev/tbank-proxy/index.js' };
+      const t = tbViaProxy_(px, '/api/v4/bank-accounts', 'test-without-token');   /* без токена банк должен ответить 401 — значит, связь с банком есть */
+      if (!(t.code >= 200 && t.code < 500)) return { ok: false, error: 'посредник работает, но банк не ответил (' + (t.code || 'нет связи') + ')' };
+      pr.setProperty('TB_PROXY', JSON.stringify(px));
+      return { ok: true, keys: bankKeysView_(), proxy: { url, tail: key.slice(-4) } };
+    }
+    if (op === 'delKey') { const keys = tbKeys_(); delete keys[String(p.supplierId || '')]; tbKeysSet_(keys); return { ok: true, keys: bankKeysView_(), proxy: bankProxyView_() }; }
+    if (op === 'sync') { const r = bankSync_(null); return { ok: true, keys: bankKeysView_(), proxy: bankProxyView_(), added: r.added, errs: r.errs, ops: read_('bankops') }; }
     if (op === 'set') {   /* сайт разнёс / подтвердил / пропустил операции */
       const L = Array.isArray(p.rows) ? p.rows : []; if (!L.length) return { ok: true };
       const lock = LockService.getScriptLock(); lock.waitLock(25000);
@@ -422,7 +450,7 @@ function bank_(p, me) {
         if (up.length) upsertList_('bankops', { upsert: up }); } finally { lock.releaseLock(); }
       return { ok: true };
     }
-    return { ok: true, keys: bankKeysView_(), ops: read_('bankops') };
+    return { ok: true, keys: bankKeysView_(), proxy: bankProxyView_(), ops: read_('bankops') };
   } catch (e) { return { ok: false, error: String(e.message || e) }; }
 }
 function handle_(p) {
