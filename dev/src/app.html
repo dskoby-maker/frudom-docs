@@ -306,13 +306,40 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .sksegs .ss{display:none}@media(max-width:700px){#fd-app .sksegs .sl{display:none}#fd-app .sksegs .ss{display:inline}}
 #fd-app .sksegs button{overflow:hidden;text-overflow:ellipsis;border:0;background:none;font:500 13px var(--ui);color:var(--muted);padding:7px 6px;border-radius:9px;cursor:pointer;white-space:nowrap;transition:color .2s}#fd-app .sksegs button.on{color:var(--accent);font-weight:600}
 #fd-app .sklist{display:grid;gap:6px;margin-top:8px}
-#fd-app .skrow{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1.2fr) auto;gap:12px;align-items:center;text-align:left;font:inherit;color:inherit;border-radius:14px;padding:11px 14px;background:rgba(255,255,255,.6);border:1px solid rgba(28,34,32,.06);cursor:pointer;transition:background .2s,box-shadow .2s,transform .15s;animation:fdin .3s ease backwards;animation-delay:var(--d,0ms)}
+#fd-app .skrow{display:grid;grid-template-columns:minmax(0,1fr) 170px 388px;gap:12px;align-items:center;text-align:left;font:inherit;color:inherit;border-radius:14px;padding:11px 14px;background:rgba(255,255,255,.6);border:1px solid rgba(28,34,32,.06);cursor:pointer;transition:background .2s,box-shadow .2s,transform .15s;animation:fdin .3s ease backwards;animation-delay:var(--d,0ms)}
 #fd-app .skrow:hover{background:#fff;box-shadow:0 8px 18px -14px rgba(48,32,44,.4)}#fd-app .skrow:active{transform:scale(.995)}#fd-app .skrow.sm{grid-template-columns:minmax(0,1fr) auto}
 #fd-app .skn b{display:block;font-size:14.5px}#fd-app .skn small{display:block;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #fd-app .sku{display:flex;flex-wrap:wrap;gap:4px 12px}#fd-app .skuq b{display:block;font-size:15px}#fd-app .skuq em{display:block;font-style:normal;font-size:11.5px;color:var(--muted)}
 #fd-app .skm{display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
 #fd-app .skexp{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:99px;background:rgba(28,34,32,.06);color:var(--muted);white-space:nowrap}#fd-app .skexp.warn{background:var(--warn-soft);color:var(--warn)}#fd-app .skexp.bad{background:#fbe9e7;color:var(--err)}
 #fd-app .skf{font-size:12px;color:var(--muted)}
+#fd-app .skib .ls{display:none}#fd-app .skrows{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}#fd-app .skib{min-width:0}
+#fd-app .skrow:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#fd-app .skrow .sku{flex-direction:column;flex-wrap:nowrap;align-items:flex-start;gap:3px;font-variant-numeric:tabular-nums}#fd-app .skrow .skuq b{font-variant-numeric:tabular-nums}
+#fd-app .skrow .skm{display:grid;grid-template-columns:154px 226px;gap:8px;justify-content:end}
+#fd-app .skib{display:inline-flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:7px 12px;border-radius:10px;border:1px solid rgba(106,44,78,.16);background:#fff;color:var(--accent);font:600 12.5px var(--ui);cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s,box-shadow .15s,transform .1s}
+#fd-app .skib svg{width:16px;height:16px;flex:none}#fd-app .skib span{overflow:hidden;text-overflow:ellipsis}
+#fd-app .skib em{font-style:normal;font-size:11px;font-weight:700;min-width:18px;height:18px;line-height:18px;border-radius:9px;background:var(--accent-soft);padding:0 5px}
+#fd-app .skib:hover{background:var(--accent-soft);border-color:rgba(106,44,78,.3);box-shadow:0 4px 10px -6px rgba(106,44,78,.45)}#fd-app .skib:active{transform:scale(.97)}#fd-app .skib:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#fd-app .skib.up{border-style:dashed;color:var(--muted);background:rgba(255,255,255,.6)}#fd-app .skib.up:hover{color:var(--accent);background:#fff}
+@media(max-width:1100px){#fd-app .skrow{grid-template-columns:minmax(0,1fr) 120px 360px}#fd-app .skrow .skm{grid-template-columns:146px 206px}#fd-app .skib{font-size:12px;padding:7px 9px;gap:6px}}
+/* история товара */
+#fd-app .skh-kpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:4px 0 12px}#fd-app .skh-kpi>div{border-radius:12px;padding:9px 11px;background:rgba(255,255,255,.7);border:1px solid rgba(28,34,32,.06)}
+#fd-app .skh-kpi small{display:block;font-size:11.5px;color:var(--muted)}#fd-app .skh-kpi b{display:block;font-size:15px;font-variant-numeric:tabular-nums}
+#fd-app .skh-pw{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:14px;align-items:start}
+#fd-app .skh-spark{width:100%;height:auto;color:var(--accent)}#fd-app .skh-spark circle{fill:#fff;stroke:currentColor;stroke-width:2}
+#fd-app .skh-pl{display:grid;gap:2px}#fd-app .skh-pr{display:grid;grid-template-columns:minmax(0,1fr) 92px 58px;gap:8px;align-items:center;text-align:left;font:inherit;font-size:12.5px;color:inherit;border:0;background:none;padding:4px 6px;border-radius:8px;cursor:pointer}
+#fd-app .skh-pr:hover{background:rgba(106,44,78,.06)}#fd-app .skh-pr span{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fd-app .skh-pr b{text-align:right;font-variant-numeric:tabular-nums}
+#fd-app .skh-pr em{font-style:normal;font-size:11.5px;font-weight:600;text-align:right}#fd-app .skh-pr em.up{color:var(--err)}#fd-app .skh-pr em.dn{color:var(--ok)}#fd-app .okc{color:var(--ok)}
+#fd-app .skh-note{font-size:12px;margin:8px 0 0}
+#fd-app .skh-f{margin:12px 0 6px}
+#fd-app .skh-list{display:grid;gap:10px}#fd-app .skh-dh{position:sticky;top:-1px;z-index:1;font-size:12px;font-weight:700;color:var(--muted);padding:4px 2px;background:linear-gradient(var(--surface,#fff) 70%,transparent);text-transform:none}
+#fd-app .skh-r{display:grid;grid-template-columns:42px 12px minmax(0,1fr) 128px 84px;gap:8px;align-items:start;padding:8px 6px;border-bottom:1px solid rgba(28,34,32,.06);font-size:13px}
+#fd-app .skh-t{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;padding-top:1px}
+#fd-app .skh-i{width:9px;height:9px;border-radius:50%;margin-top:5px;background:var(--muted)}#fd-app .k-in .skh-i{background:var(--ok)}#fd-app .k-out .skh-i{background:#1f5f7a}#fd-app .k-wo .skh-i{background:var(--warn)}#fd-app .k-price .skh-i{background:var(--accent)}
+#fd-app .skh-m b{display:block;font-weight:600}#fd-app .skh-m small{display:block;font-size:12px;color:var(--muted)}#fd-app .skh-m a{color:var(--accent)}
+#fd-app .skh-q{text-align:right;font-variant-numeric:tabular-nums}#fd-app .skh-q b{display:block}#fd-app .skh-q b.pos{color:var(--ok)}#fd-app .skh-q b.neg{color:var(--err)}#fd-app .skh-q small{display:block;font-size:11.5px;color:var(--muted)}
+#fd-app .skh-w{font-size:12px;color:var(--muted);text-align:right;overflow:hidden;text-overflow:ellipsis}
 #fd-app .skempty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:28px 10px;color:var(--muted)}#fd-app .skempty b{color:var(--ink);font-size:15px}
 #fd-app .skfile{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 6px;border-bottom:1px solid rgba(28,34,32,.06)}
 #fd-app .skfi{display:grid;place-items:center;height:36px;border-radius:9px;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:700}
@@ -510,7 +537,9 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .dcard .skdoc .row{margin:10px 0 0}
 @media(max-width:700px){
   #fd-app .skkpi{grid-template-columns:repeat(2,minmax(0,1fr))}#fd-app .skk b{font-size:18px}
-  #fd-app .skrow{grid-template-columns:minmax(0,1fr) auto;gap:6px 10px}#fd-app .skrow .sku{grid-column:1/-1;grid-row:2}#fd-app .skrow .skm{grid-row:1;grid-column:2}
+  #fd-app .skrow{grid-template-columns:minmax(0,1fr);gap:8px}#fd-app .skrow .sku{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:4px 10px}#fd-app .skrow .skm{grid-template-columns:minmax(0,1fr) minmax(0,1fr);justify-content:stretch}#fd-app .skib .lf{display:none}#fd-app .skib .ls{display:inline}
+  #fd-app .skh-kpi{grid-template-columns:repeat(2,minmax(0,1fr))}#fd-app .skh-pw{grid-template-columns:1fr}
+  #fd-app .skh-r{grid-template-columns:38px 10px minmax(0,1fr) 96px;gap:6px}#fd-app .skh-w{grid-column:3/-1;text-align:left;margin-top:-4px}
   #fd-app .sksegs button{font-size:12px;padding:7px 2px}
   #fd-app .skbr{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}#fd-app .skbr>span:nth-child(3){grid-row:2}#fd-app .skbr>span:nth-child(4){grid-row:2;text-align:right}
   #fd-app .skfile{grid-template-columns:38px minmax(0,1fr)}#fd-app .skfa{grid-column:1/-1;justify-content:flex-start}
