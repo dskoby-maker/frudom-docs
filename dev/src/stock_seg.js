@@ -326,6 +326,8 @@ function skInLink(cls){ const d=$("#sk-dlg"); if(!d||!SKIN) return; const g=c=>d
   skInBoxLink(cls); skInRead(); const s=$("#sk-insum"); if(s) s.innerHTML=skInSum(); }
 function skInBoxLink(cls){ const d=$("#sk-dlg"); if(!d||!SKIN) return; const set=(c,v)=>{ const el=d.querySelector(c); if(el && el!==document.activeElement) el.value=v; };
   skInRead(); const F=SKIN, sht=skK(F.unit)==="шт", bx=skNum(F.bx), bn=skNum(F.bn), pc=sht?skNum(F.qty):(skNum(F.pcs)>0?skNum(F.pcs):(skNum(F.pack)>0&&skNum(F.qty)>0?skNum(F.qty)/skNum(F.pack):NaN));
+  if(cls==="skf-bx") F._bxA=0;
+  if(cls!=="skf-bx" && (!(bx>0) || F._bxA) && pc>0 && bn>0){ set(".skf-bx", skFmtN(pc/bn,3)); F._bxA=1; return; }
   if(!(bx>0)) return;
   if(cls==="skf-bn" || (cls==="skf-bx" && !(pc>0))){ if(bn>0){ const n=bn*bx; if(sht) set(".skf-qty",skFmtN(n,3)); else { set(".skf-pcs",skFmtN(n,3)); skInRead(); const pk=skNum(SKIN.pack); if(pk>0) set(".skf-qty",skFmtN(n*pk,3)); } } return; }
   if(pc>0) set(".skf-bn", skFmtN(pc/bx,3)); }
@@ -760,17 +762,25 @@ function miSync(r){ const d=SKM&&SKM.d; if(!d) return; const k=r.k, c=miCalc(r),
 /* штуки и коробки в строке: коробки × штук в коробке = штуки; штуки × вес = количество; цена за коробку ÷ штук в коробке = цена за шт; цена за шт ÷ вес = цена за ед.
    Пересчитывается то, что сейчас не вводят. Штук в коробке поменяли — при известных штуках пересчитываются коробки. */
 function miSetF(d,r,c,v,f){ r[f]=v; const el=d.querySelector(c+`[data-k="${r.k}"]`); if(el && el!==document.activeElement && el.value!==v){ el.value=v; el.classList.remove("fl"); void el.offsetWidth; el.classList.add("fl"); setTimeout(()=>el.classList.remove("fl"),450); } }
+/* «Штук в коробке» пустое (или посчитано сайтом, r.bxA) — считается из штук и коробок: штуки ÷ коробки. Вписали руками — дальше от него считаются коробки */
+const miBxAuto = r => !(skNum(r.bx)>0) || !!r.bxA;
+function miBxFrom(r){ const pc=miPcN(r), bn=skNum(r.bn); if(!(pc>0 && bn>0)) return false; miSetF(SKM.d,r,".mi-box-x",skFmtN(pc/bn,3),"bx"); r.bxA=1; return true; }
 function miPcsLink(r, cls){ const d=SKM.d, sht=skK(r.unit)==="шт", set=(c,v,f)=>miSetF(d,r,c,v,f);
+  if(cls==="bx") r.bxA=0;
+  let fromPb=false; if(cls==="pb" && miBxAuto(r) && (r.bxA==="p" || !(miPcN(r)>0 && skNum(r.bn)>0))){ const pp=sht?miCalc(r).price:skNum(r.ppc), pb=skNum(r.ppb); if(pp>0 && pb>0){ set(".mi-box-x",skFmtN(pb/pp,3),"bx"); r.bxA="p"; fromPb=true; } }
+  const fromBn = cls==="bn" && miBxAuto(r) && miBxFrom(r);
   const bx=skNum(r.bx), bn=skNum(r.bn), ppb=skNum(r.ppb);
-  if(bx>0 && (cls==="bn" || (cls==="bx" && !(miPcN(r)>0))) && bn>0){ const pc=bn*bx; if(sht) set(".mi-qty",skFmtN(pc,3),"qty"); else { set(".mi-pcs-n",skFmtN(pc,3),"pcs"); cls="n"; } }
-  if(bx>0 && (cls==="pb" || (cls==="bx" && ppb>=0 && !(sht?miCalc(r).price>=0:skNum(r.ppc)>=0)))){ const v=ppb/bx; if(sht){ r.by="price"; set(".mi-price",skFmtN(v,4),"price"); } else { set(".mi-pcs-p",skFmtN(v,2),"ppc"); } }
+  if(!fromBn && bx>0 && (cls==="bn" || (cls==="bx" && !(miPcN(r)>0))) && bn>0){ const pc=bn*bx; if(sht) set(".mi-qty",skFmtN(pc,3),"qty"); else { set(".mi-pcs-n",skFmtN(pc,3),"pcs"); cls="n"; } }
+  if(bx>0 && !fromPb && (cls==="pb" || (cls==="bx" && ppb>=0 && !(sht?miCalc(r).price>=0:skNum(r.ppc)>=0)))){ const v=ppb/bx; if(sht){ r.by="price"; set(".mi-price",skFmtN(v,4),"price"); } else { set(".mi-pcs-p",skFmtN(v,2),"ppc"); } }
   if(!sht){ const n=skNum(r.pcs), pk=skNum(r.pack), q=skNum(r.qty);
     if(cls==="n"||cls==="w"){ if(n>0&&pk>0) set(".mi-qty",skFmtN(n*pk,3),"qty"); else if(cls==="n"&&n>0&&q>0&&!(pk>0)) set(".mi-pcs-w",skFmtN(q/n,6),"pack"); }
     const ppc=skNum(r.ppc), pk2=skNum(r.pack); if(ppc>=0 && pk2>0){ r.by="price"; set(".mi-price",skFmtN(ppc/pk2,4),"price"); } }
   miBoxTail(r, cls); }
 /* штуки → коробки, цена за шт → цена за коробку (кроме поля, которое сейчас вводят) */
-function miBoxTail(r, cls){ const bx=skNum(r.bx); if(!(bx>0)) return; const d=SKM.d, set=(c,v,f)=>miSetF(d,r,c,v,f);
-  const pc=miPcN(r); if(pc>0 && cls!=="bn") set(".mi-box-n",skFmtN(pc/bx,3),"bn");
+function miBoxTail(r, cls){ const d=SKM.d, set=(c,v,f)=>miSetF(d,r,c,v,f); let auto=false;
+  if(cls!=="bx" && cls!=="bn" && cls!=="pb" && miBxAuto(r)) auto=miBxFrom(r);
+  const bx=skNum(r.bx); if(!(bx>0)) return;
+  const pc=miPcN(r); if(pc>0 && cls!=="bn" && !auto) set(".mi-box-n",skFmtN(pc/bx,3),"bn");
   const pp=skK(r.unit)==="шт" ? miCalc(r).price : skNum(r.ppc); if(pp>=0 && isFinite(pp) && cls!=="pb") set(".mi-box-p",skFmtN(pp*bx,2),"ppb"); }
 /* когда строка — новый товар: подставить единицу и вес 1 шт из склада */
 function miPickItem(r){ const it=miItem(r); if(!it){ r.itemId=""; return; } if(r.itemId===it.id) return; r.itemId=it.id; r.name=it.name;
