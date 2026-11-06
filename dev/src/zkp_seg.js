@@ -2,8 +2,13 @@
    Сверху — список накладных и комплектов за период со статусом закупки (как значок в журнале), плитки итогов, фильтры.
    Нажатие на строку раскрывает под ней тот же редактор, что в окне документа (dcZkDraw) или комплекта (bzDraw).
    Открыт только один редактор: у них общие id (#dc-zk/#bz-zk), поэтому перед открытием окна (openCard) он сворачивается. */
-const ZKP={per:"30", st:"need", q:"", n:30, open:"", list:[]};
+const ZKP={per:"7", st:"need", q:"", n:30, open:"", list:[], view:(()=>{ try{ return localStorage.getItem("frudom-zkpv")==="cal"?"cal":"list"; }catch(e){ return "list"; } })(), ym:"", day:""};
+/* вид «Календарь»: месяц сеткой, у дня — накладные цветом закупки; нажатие на день — список за этот день */
+const zkpYm = () => ZKP.ym || (ZKP.ym=todayISO().slice(0,7));
+const zkpYmShift = (ym, d) => { const t=new Date(+ym.slice(0,4), +ym.slice(5,7)-1+d, 1); return t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0"); };
+const ZKP_MON=["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
 function zkpRange(){ const n=new Date(), iso=jIso;
+  if(ZKP.view==="cal"){ const ym=zkpYm(), y=+ym.slice(0,4), m=+ym.slice(5,7); return [ym+"-01", iso(new Date(y,m,0))]; }
   if(ZKP.per==="7") return [iso(new Date(n.getFullYear(),n.getMonth(),n.getDate()-6)), "9999"];
   if(ZKP.per==="30") return [iso(new Date(n.getFullYear(),n.getMonth(),n.getDate()-29)), "9999"];
   if(ZKP.per==="m") return [iso(new Date(n.getFullYear(),n.getMonth(),1)), iso(new Date(n.getFullYear(),n.getMonth()+1,0))];
@@ -48,15 +53,16 @@ function zkpDraw(force){ const box=$("#zkp-list"); if(!box || !me().admin) retur
   if(!pfLoaded){ box.innerHTML=`<p class="muted zkp-empty">Загружаю данные о закупке…</p>`; return; }
   ZKP.list=zkpItems(); const q=ZKP.q.trim().toLowerCase();
   const L=ZKP.list.filter(it=>!q || (zkpTitle(it)+" "+it.g.map(j=>j.number+" "+(kLbl(j)||"")).join(" ")).toLowerCase().includes(q));
-  zkpKpi(L); const V=L.filter(it=>zkpPass(it, ZKP.st)), sh=V.slice(0, ZKP.n), keep=ZKP.open&&box.querySelector(".zkp-it.open");
+  zkpView(); zkpCalDraw(L); const LD=ZKP.view==="cal"&&ZKP.day ? L.filter(it=>it.date===ZKP.day) : L;
+  zkpKpi(LD); const V=LD.filter(it=>zkpPass(it, ZKP.st)), sh=V.slice(0, ZKP.n), keep=ZKP.open&&box.querySelector(".zkp-it.open");
   box.innerHTML = sh.length ? sh.map(zkpRow).join("") + (V.length>sh.length?`<button type="button" class="btn ghost zkp-more" data-zkpmore>Показать ещё ${Math.min(30, V.length-sh.length)} из ${V.length-sh.length}</button>`:"")
-    : `<p class="muted zkp-empty">${!L.length?"За этот период накладных нет.":ZKP.st==="need"?"✓ Все накладные за период с закупкой — заполнять нечего.":"Ничего не найдено."}</p>`;
+    : `<p class="muted zkp-empty">${!LD.length?(ZKP.view==="cal"&&ZKP.day?"В этот день накладных нет.":"За этот период накладных нет."):ZKP.st==="need"?"✓ Все накладные за период с закупкой — заполнять нечего.":"Ничего не найдено."}</p>`;
   /* открытый редактор переносим в новый список как есть (с набранным) */
   if(keep){ const n=box.querySelector(`.zkp-it[data-key="${CSS.escape(ZKP.open)}"]`); if(n) n.replaceWith(keep); else ZKP.open=""; } }
 /* обновить строки и плитки на месте (после сохранения закупки) */
 function zkpRefresh(){ if(!$("#zkp-list")) return; ZKP.list.forEach(zkpCalc); ZKP.list=ZKP.list.filter(x=>!x.gone);
   ZKP.list.forEach(it=>{ const r=document.querySelector(`#zkp-list .zkp-it[data-key="${CSS.escape(it.key)}"] > .zkp-row`); if(r) r.innerHTML=zkpRowIn(it); });
-  const q=ZKP.q.trim().toLowerCase(); zkpKpi(ZKP.list.filter(it=>!q || (zkpTitle(it)+" "+it.g.map(j=>j.number).join(" ")).toLowerCase().includes(q))); }
+  const q=ZKP.q.trim().toLowerCase(), L=ZKP.list.filter(it=>!q || (zkpTitle(it)+" "+it.g.map(j=>j.number).join(" ")).toLowerCase().includes(q)); zkpCalDraw(L); zkpKpi(ZKP.view==="cal"&&ZKP.day?L.filter(it=>it.date===ZKP.day):L); }
 function zkpAfter(){ if(curTab==="purchase") zkpRefresh(); }
 /* свернуть открытый редактор: id убираем сразу (их ищут по документу), содержимое — после анимации */
 function zkpCollapse(){ const o=document.querySelector("#zkp-list .zkp-it.open"); ZKP.open=""; if(!o) return; o.classList.remove("open"); const r=o.querySelector(".zkp-row"); if(r) r.setAttribute("aria-expanded","false");
@@ -73,10 +79,33 @@ async function zkpOpen(key){ const it=ZKP.list.find(x=>x.key===key); if(!it) ret
   if(one) dcZkDraw(D.journal.find(x=>x.id===j.id)||j); else { BZ={ids:it.g.map(x=>x.id), touched:{}, expT:false, rows:[], s:null, ship:null}; bzDraw(); }
   setTimeout(()=>{ if(ZKP.open!==key) return; const r=el.getBoundingClientRect(); if(r.top<70 || r.top>innerHeight*0.6) el.scrollIntoView({behavior:"smooth", block:"start"});
     const f=el.querySelector(one?".dzs":".bzs"); if(f && matchMedia("(hover:hover)").matches) f.focus({preventScroll:true}); }, 300); }
-document.addEventListener("click", e=>{ const t=e.target.closest&&e.target.closest("#zkp [data-zkpo],#zkp [data-zkpp],#zkp [data-zkpst],#zkp [data-zkpmore],#zkp [data-zkpcard]"); if(!t) return;
+document.addEventListener("click", e=>{ const t=e.target.closest&&e.target.closest("#zkp [data-zkpo],#zkp [data-zkpp],#zkp [data-zkpst],#zkp [data-zkpmore],#zkp [data-zkpcard],#zkp [data-zkpv],#zkp [data-zkpm],#zkp [data-zkpd]"); if(!t) return;
+  if(t.dataset.zkpv){ if(ZKP.view===t.dataset.zkpv) return; ZKP.view=t.dataset.zkpv; ZKP.day=""; ZKP.n=30; try{ localStorage.setItem("frudom-zkpv", ZKP.view); }catch(x){} zkpCollapse(); zkpDraw(true); return; }
+  if(t.dataset.zkpm){ ZKP.ym = t.dataset.zkpm==="0" ? todayISO().slice(0,7) : zkpYmShift(zkpYm(), +t.dataset.zkpm); ZKP.day=""; ZKP.n=30; zkpCollapse(); zkpDraw(true); return; }
+  if(t.dataset.zkpd!=null){ ZKP.day = ZKP.day===t.dataset.zkpd ? "" : t.dataset.zkpd; if(ZKP.day) ZKP.st="all"; ZKP.n=30; zkpCollapse(); zkpDraw(true); if(ZKP.day){ const l=$("#zkp-list"); setTimeout(()=>l&&l.scrollIntoView({behavior:"smooth", block:"nearest"}), 60); } return; }
   if(t.dataset.zkpo!=null){ if(ZKP.open===t.dataset.zkpo) zkpCollapse(); else zkpOpen(t.dataset.zkpo); return; }
   if(t.dataset.zkpp){ ZKP.per=t.dataset.zkpp; ZKP.n=30; zkpCollapse(); zkpDraw(true); return; }
   if(t.dataset.zkpst){ ZKP.st=t.dataset.zkpst; ZKP.n=30; zkpCollapse(); zkpDraw(true); return; }
   if(t.dataset.zkpmore!=null){ ZKP.n+=30; zkpDraw(true); return; }
   if(t.dataset.zkpcard){ const it=ZKP.list.find(x=>x.key===t.dataset.zkpcard); if(!it) return; zkpCollapse(); if(it.g.length===1) docCard(it.g[0], false); else bundleCard(it.g, false); } });
 document.addEventListener("input", e=>{ if(e.target.id!=="zkp-q") return; ZKP.q=e.target.value; ZKP.n=30; clearTimeout(zkpDraw._t); zkpDraw._t=setTimeout(()=>{ zkpCollapse(); zkpDraw(true); }, 200); });
+
+/* переключатель «Список / Календарь» и сам календарь */
+function zkpView(){ const sw=$("#zkp-vw"); if(!sw) return; const cal=ZKP.view==="cal";
+  sw.querySelectorAll("[data-zkpv]").forEach(b=>{ const on=b.dataset.zkpv===ZKP.view; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); }); sw.style.setProperty("--x", cal?"100%":"0%");
+  const per=$("#zkp-per"); if(per) per.hidden=cal; const c=$("#zkp-cal"); if(c) c.hidden=!cal; }
+function zkpCalDraw(L){ const box=$("#zkp-cal"); if(!box) return; if(ZKP.view!=="cal"){ box.innerHTML=""; return; }
+  const ym=zkpYm(), y=+ym.slice(0,4), m=+ym.slice(5,7), days=new Date(y,m,0).getDate(), first=(new Date(y,m-1,1).getDay()+6)%7, t=todayISO(), by={};
+  L.forEach(it=>{ (by[it.date]=by[it.date]||[]).push(it); });
+  const rank={none:0, part:1, ok:2}, cells=[];
+  for(let i=0;i<first;i++) cells.push(`<span class="zkc-e" aria-hidden="true"></span>`);
+  for(let d=1; d<=days; d++){ const iso=ym+"-"+String(d).padStart(2,"0"), I=by[iso]||[], wd=(first+d-1)%7;
+    if(!I.length){ cells.push(`<span class="zkc-d empty${iso===t?" today":""}${wd>4?" we":""}"><i>${d}</i></span>`); continue; }
+    const worst=I.reduce((a,x)=>rank[x.st]<rank[a]?x.st:a, "ok"), n=I.reduce((a,x)=>a+x.g.length,0), sum=r2(I.reduce((a,x)=>a+x.sum,0)), loss=I.some(x=>x.loss);
+    const dots=I.slice(0,8).map(x=>`<b class="${x.st}"></b>`).join("")+(I.length>8?`<em>+${I.length-8}</em>`:"");
+    cells.push(`<button type="button" class="zkc-d ${worst}${iso===ZKP.day?" sel":""}${iso===t?" today":""}${wd>4?" we":""}" data-zkpd="${iso}" aria-pressed="${iso===ZKP.day}" title="${esc(fd(iso)+": "+n+" "+plural(n,["накладная","накладные","накладных"])+" на "+fm(sum)+" ₽")}"><i>${d}</i><span class="zkc-n">${n} ${plural(n,["нак.","нак.","нак."])}</span><span class="zkc-s">${fm(Math.round(sum)).replace(/,00$/,"")}</span><span class="zkc-dots">${dots}</span>${loss?`<u class="jzk-l" aria-hidden="true"></u>`:""}</button>`); }
+  const cnt=k=>L.filter(x=>x.st===k).length;
+  box.innerHTML=`<div class="zkc-h"><button type="button" class="zkc-a" data-zkpm="-1" aria-label="Прошлый месяц">‹</button><b>${ZKP_MON[m-1]} ${y}</b><button type="button" class="zkc-a" data-zkpm="1" aria-label="Следующий месяц">›</button>${ym!==t.slice(0,7)?`<button type="button" class="btn ghost sm" data-zkpm="0">Сегодня</button>`:""}
+      <span class="zkc-leg"><span><b class="none"></b>нет закупки ${cnt("none")}</span><span><b class="part"></b>частично ${cnt("part")}</span><span><b class="ok"></b>заполнено ${cnt("ok")}</span></span></div>
+    <div class="zkc-w">${["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].map(x=>`<span>${x}</span>`).join("")}</div><div class="zkc-g">${cells.join("")}</div>
+    ${ZKP.day?`<p class="zkc-f">Показаны накладные за <b>${fd(ZKP.day)}</b> · <button type="button" class="btn ghost sm" data-zkpd="${ZKP.day}">Весь месяц</button></p>`:`<p class="zkc-f muted">Нажмите на день — ниже останутся накладные этого дня.</p>`}`; }
