@@ -71,8 +71,8 @@ const Eis = (() => {
       const countries=child(p,'originCountry').map(x=>val(x,'countryCode'));
       const regs=child(at(p,'registrationNumbersInfo'),'registrationNumberInfo');
       if(val(p,'hierarchyType')!=='ND'||val(p,'type')!=='PRODUCT'||val(p,'VATRateInfo/VATCode')!=='RN'||val(p,'improvedProductReplacement')!=='false'||val(p,'isSoftware')!=='false'||countries.length!==1||regs.some(x=>val(x,'typeRegistry')!=='none'))throw Error('Позиция '+val(p,'indexNum')+': пока поддерживаются обычные товары без НДС, без реестровых номеров и замены характеристик.');
-      const x={id:val(p,'guid'),tech:val(p,'sid'),ext:val(p,'externalSid'),num:val(p,'indexNum'),name:val(p,'name'),okei:val(p,'OKEI/code'),price:val(p,'price'),code:val(p,'KTRU/code')||val(p,'OKPD2/code'),country:countries[0]};
-      if(!/^[A-Fa-f0-9]{32}$/.test(x.id)||!/^\d+$/.test(x.tech)||!x.ext||!/^\d+$/.test(x.num)||!x.name||!['166','796'].includes(x.okei)||!/^\d+(\.\d{1,11})?$/.test(x.price)||!x.code||!/^\d{3}$/.test(x.country))throw Error('В позиции '+x.num+' отсутствуют или не поддерживаются реквизиты ЕИС.');
+      const x={id:val(p,'guid'),tech:val(p,'sid'),ext:val(p,'externalSid'),num:val(p,'indexNum'),name:val(p,'name'),okei:val(p,'OKEI/code'),price:val(p,'price').replace(/(\.\d*?)0+$/,'$1').replace(/\.$/,''),code:val(p,'KTRU/code')||val(p,'OKPD2/code'),country:countries[0]};
+      if(!/^[A-Fa-f0-9]{32}$/.test(x.id)||!/^\d+$/.test(x.tech)||!/^\d+$/.test(x.num)||!x.name||!['166','796'].includes(x.okei)||!/^\d+(\.\d{1,11})?$/.test(x.price)||!x.code||!/^\d{3}$/.test(x.country))throw Error('В позиции '+x.num+' отсутствуют или не поддерживаются реквизиты ЕИС.');
       return x;
     });
     if(new Set(positions.map(x=>x.id)).size!==positions.length||new Set(positions.map(x=>x.tech)).size!==positions.length)throw Error('В контракте повторяются идентификаторы позиций.');
@@ -87,11 +87,11 @@ const Eis = (() => {
     if(c.kind!=='contract'||c.register!==t.register||c.version!==attr(t.contract,'ИдВерсКонт')||c.number!==t.number||dd(c.date)!==t.date||c.sinn!==t.sinn||c.cinn!==t.cinn||c.ckpp!==t.ckpp)throw Error('Полный XML контракта не совпадает с версией, датой или участниками образца УПД. Нужен образец из этой же версии контракта.');
     if(!c.stages.some(s=>s.id===attr(t.contract,'ИдЭтапКонт')&&s.tech===attr(t.contract,'ТехИдЭтапКонт'))||!c.places.includes(attr(t.place,'ИдМестаПоставкиКонт')))throw Error('Этап или адрес образца отсутствует в полном XML контракта.');
     // Cross-check mapping against actual EIS-created rows before using the same fields for new positions.
-    for(const pos of t.positions){const x=c.positions.find(x=>x.id===pos.id);if(!x||x.tech!==attr(pos.link,'ТехИдТРУ')||x.ext!==attr(pos.link,'ВнешТехИдТРУ')||x.price!==attr(one(pos.link,'НеЛПСвед'),'ЦенаИзКонтСНДС')||x.okei!==pos.okei)throw Error('Позиции образца не совпадают со спецификацией контракта.');}
+    for(const pos of t.positions){const x=c.positions.find(x=>x.id===pos.id);if(!x||x.tech!==attr(pos.link,'ТехИдТРУ')||(x.ext||'')!==attr(pos.link,'ВнешТехИдТРУ')||Number(x.price)!==Number(attr(one(pos.link,'НеЛПСвед'),'ЦенаИзКонтСНДС'))||x.okei!==pos.okei)throw Error('Позиции образца не совпадают со спецификацией контракта.');}
     const base=t.positions[0];t.positions=c.positions.map((x,i)=>{
       const row=base.row.cloneNode(true),link=base.link.cloneNode(true),wrapper=base.link.parentNode.cloneNode(false);wrapper.appendChild(link);
       attrs(row,{НомСтр:i+1,НаимТов:x.name,ОКЕИ_Тов:x.okei,НаимЕдИзм:x.okei==='166'?'Килограмм':'Штука'});
-      attrs(one(row,'ДопСведТов'),{КодТов:x.code});attrs(link,{ИдТРУ:x.id,ТехИдТРУ:x.tech,ВнешТехИдТРУ:x.ext,НаимТовИсх:x.name});attrs(one(link,'НеЛПСвед'),{НомСтр:i+1,ЦенаИзКонтСНДС:x.price});attrs(one(link,'СтранаПроисх'),{Код:x.country,Наим:COUNTRIES[x.country]||''});
+      attrs(one(row,'ДопСведТов'),{КодТов:x.code});attrs(link,{ИдТРУ:x.id,ТехИдТРУ:x.tech,НаимТовИсх:x.name});if(x.ext)link.setAttribute('ВнешТехИдТРУ',x.ext);else link.removeAttribute('ВнешТехИдТРУ');attrs(one(link,'НеЛПСвед'),{НомСтр:i+1,ЦенаИзКонтСНДС:x.price});attrs(one(link,'СтранаПроисх'),{Код:x.country,Наим:COUNTRIES[x.country]||''});
       return {...x,unit:attr(row,'НаимЕдИзм'),row,link};
     });return t;
   }

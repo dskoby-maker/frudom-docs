@@ -1,7 +1,9 @@
 /* ---------- форматирование ---------- */
 const $ = s => document.querySelector(s);
 const esc = s => String(s==null?"":s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const r2 = x => Math.round((x + Number.EPSILON) * 100) / 100;
+/* округление до копеек «как в бухгалтерии и ЕИС»: половина копейки — вверх (1808,325 → 1808,33).
+   Сначала убираем ошибку двоичной дроби (13,5 × 133,95 = 1808,3249999…), иначе выходило бы на копейку меньше. */
+const r2 = x => { const v=+x; if(!isFinite(v)) return v; const r=Math.round(Number((Math.abs(v)*100).toPrecision(15)))/100; return v<0&&r?-r:r; };
 const fm = x => (+x||0).toLocaleString("ru-RU",{minimumFractionDigits:2, maximumFractionDigits:2});
 const fq = x => (+x||0).toLocaleString("ru-RU",{maximumFractionDigits:3});
 const MON = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
