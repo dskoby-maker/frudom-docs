@@ -928,6 +928,20 @@ function dzItemOpts(l, cur){ const X=skIdx(), tk=s=>skK(s).replace(/[()«»"',.]
   const sc=i=>tk(i.name+" "+(i.alt||"")).filter(w=>P.has(w)).length, fr=i=>skFreeU(i.id,l.unit);
   const L=X.S.items.filter(i=>i.id===cur || sc(i)>0 || fr(i)>0).sort((a,b)=>sc(b)-sc(a) || (fr(b)>0)-(fr(a)>0) || a.name.localeCompare(b.name,"ru"));
   return `<option value="">— какой товар на складе? —</option>`+L.map(i=>`<option value="${i.id}"${i.id===cur?" selected":""}>${esc(i.name)} · ${fr(i)>0?"свободно "+skQf(fr(i),l.unit):"нет в наличии"}</option>`).join(""); }
+/* ---------- выбор товара склада поиском (как поиск товара в документе): вводишь — появляются подсказки ----------
+   scope: "dz" (окно накладной) / "bz" (окно комплекта); k — ключ строки; l — {name, unit}; cur — выбранный товар склада */
+const SKPQ={};
+function skPickList(l, q, cur){ const X=skIdx(), w=skK(q).split(" ").filter(Boolean), tk=s=>skK(s).replace(/[()«»"',.]/g," ").split(" ").filter(x=>x.length>=4).map(x=>x.slice(0,5)), P=new Set(tk(l.name));
+  const sc=i=>tk(i.name+" "+(i.alt||"")).filter(x=>P.has(x)).length, fr=i=>skFreeU(i.id,l.unit);
+  const L = w.length ? X.S.items.filter(i=>w.every(x=>skK(i.name+" "+(i.alt||"")+" "+(i._links||[]).map(pid=>(prod(pid)||{}).name||"").join(" ")).includes(x)))
+                     : X.S.items.filter(i=>sc(i)>0 || fr(i)>0);
+  return L.sort((a,b)=>(w.length?0:sc(b)-sc(a)) || (fr(b)>0)-(fr(a)>0) || a.name.localeCompare(b.name,"ru")).slice(0,8); }
+function skPickSug(sc, k, l, q){ const L=skPickList(l, q||"");
+  return L.length ? (!(q||"").trim()?`<small class="muted skpk-h">Похожие по названию и что есть на складе:</small>`:"")+L.map((i,n)=>{ const fr=skFreeU(i.id,l.unit); return `<button type="button" class="skpk-i${n===0?" act":""}" data-skpk="${i.id}" data-sc="${sc}" data-k="${esc(k)}"><b>${esc(i.name)}</b><small class="${fr>0?"":"miss"}">${fr>0?"свободно "+skQf(fr,l.unit):"нет в наличии"+(skUnitsOf(i.id).some(u=>u.free>0)?" в «"+esc(l.unit)+"»":"")}</small></button>`; }).join("")
+    : `<small class="muted skpk-h">${(q||"").trim()?"Не найдено. Попробуйте другое слово или заведите товар приходом на складе.":"Начните вводить название товара со склада."}</small>`; }
+function skPickHtml(sc, k, l, cur){ const it=cur?skIdx().item[cur]:null, key=sc+"|"+k;
+  if(it) return `<div class="skpk on"><small>Товар на складе <i>(связь запомнится)</i></small><div class="skpk-sel"><b>${esc(it.name)}</b><span>свободно ${skQf(skFreeU(it.id,l.unit),l.unit)}</span><button type="button" class="btn ghost sm" data-skpkclr="${esc(k)}" data-sc="${sc}">Сменить</button></div></div>`;
+  return `<div class="skpk"><small>Товар на складе <i>(связь запомнится)</i></small><input class="skpq" data-sc="${sc}" data-k="${esc(k)}" autocomplete="off" placeholder="Начните вводить: рис, фасоль, Макфа…" value="${esc(SKPQ[key]||"")}" aria-label="Найти товар на складе"><div class="skpk-l" data-for="${esc(k)}">${skPickSug(sc, k, l, SKPQ[key]||"")}</div></div>`; }
 /* строка источника под товаром в блоке закупки */
 function dzSrcHtml(j, l){ if(!dzOn() || !DZ || DZ.doc!==j.id) return ""; const s=dzSt(j,l); if(!s) return ""; const X=skIdx(); if(!X.S.items.length && !s.m0) return "";
   const k=esc(dzKey(l)), u=esc(l.unit||""), lk=dzLocked(j,l);
@@ -936,7 +950,7 @@ function dzSrcHtml(j, l){ if(!dzOn() || !DZ || DZ.doc!==j.id) return ""; const s
   const b=(m,t)=>`<button type="button" class="${s.m===m?"on":""}" data-dzm="${m}" data-k="${k}" aria-pressed="${s.m===m}">${t}</button>`;
   let det="";
   if(s.m){ const it=s.itemId?X.item[s.itemId]:null, sq=dzQ(l,s);
-    const pick = !s.it0 ? `<label class="dzpick"><small>Товар на складе <i>(связь запомнится)</i></small><select class="dzit" data-k="${k}" aria-label="Товар на складе">${dzItemOpts(l, s.itemId)}</select></label>` : "";
+    const pick = !s.it0 ? skPickHtml("dz", k, l, s.itemId) : "";
     const qf = s.m==="x" ? `<label class="dzpq"><small>Со склада, ${u}</small><input class="dzq" data-k="${k}" inputmode="decimal" value="${esc(s.q)}" placeholder="из ${esc(nq3(l.qty))}"></label>` : "";
     let info="";
     if(!it) info=`<span class="miss">Выберите, какой товар взяли со склада.</span>`;

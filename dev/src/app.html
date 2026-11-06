@@ -276,9 +276,16 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .dcard .dzseg button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 #fd-app .dcard .dzskd{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
 #fd-app .dcard .dzskd label{display:flex;flex-direction:column;gap:2px}#fd-app .dcard .dzskd label small{font-size:11px;color:var(--muted)}#fd-app .dcard .dzskd label i{font-style:normal;opacity:.8}
-#fd-app .dcard .dzpick{flex:1 1 220px;min-width:0}#fd-app .dcard .dzpick select{width:100%;padding:6px 8px;font-size:13px}
+#fd-app .dcard .skpk{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:4px}#fd-app .dcard .skpk>small{font-size:11px;color:var(--muted)}#fd-app .dcard .skpk>small i{font-style:normal;opacity:.8}
+#fd-app .dcard .skpq{width:100%;padding:7px 10px;font-size:13px}
+#fd-app .dcard .skpk-l{display:grid;gap:2px;max-height:212px;overflow:auto;border-radius:10px;background:#fff;border:1px solid rgba(28,34,32,.08);padding:4px}
+#fd-app .dcard .skpk-h{padding:4px 6px;font-size:11.5px}
+#fd-app .dcard .skpk-i{display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;border:0;background:none;font:inherit;font-size:13px;color:inherit;padding:7px 8px;border-radius:8px;cursor:pointer;min-height:34px}
+#fd-app .dcard .skpk-i b{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}#fd-app .dcard .skpk-i small{flex:none;font-size:11.5px;color:var(--ok)}#fd-app .dcard .skpk-i small.miss{color:var(--muted)}
+#fd-app .dcard .skpk-i:hover,#fd-app .dcard .skpk-i.act{background:var(--accent-soft)}
+#fd-app .dcard .skpk-sel{display:flex;align-items:center;gap:10px;padding:6px 6px 6px 10px;border-radius:10px;background:#fff;border:1px solid rgba(106,44,78,.18)}#fd-app .dcard .skpk-sel b{flex:1;min-width:0;font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fd-app .dcard .skpk-sel span{font-size:11.5px;color:var(--ok);white-space:nowrap}
 #fd-app .dcard .dzpq input{width:110px;text-align:right;padding:6px 8px}
-#fd-app .dcard .dzinf{flex:1 1 100%;line-height:1.4}
+#fd-app .dcard .dzinf{flex:1 1 100%;line-height:1.4}#fd-app .dcard .dzinf small{display:block;margin-top:2px}
 #fd-app .dcard .dzsk.lock{flex-direction:row;align-items:flex-start;gap:6px;color:var(--text)}#fd-app .dcard .dzsk svg{width:15px;height:15px;flex:none;margin-top:1px;color:var(--accent)}#fd-app .dcard .dzsk.lock small{display:block;color:var(--muted);font-size:11.5px}
 #fd-app .dcard .dzship{display:flex;gap:10px;align-items:flex-start;margin-top:10px;padding:10px;border-radius:12px;background:rgba(255,255,255,.7);cursor:pointer;font-size:13px}#fd-app .dcard .dzship input{margin-top:3px;width:18px;height:18px;accent-color:var(--accent)}#fd-app .dcard .dzship small{display:block;color:var(--muted);font-size:12px}
 @media(max-width:600px){#fd-app .dcard .dzs-sum{grid-template-columns:repeat(2,minmax(0,1fr))}#fd-app .dcard .dzr{grid-template-columns:minmax(0,1fr) 92px 38px}}
@@ -4278,9 +4285,8 @@ document.addEventListener("click", async e=>{ const b=e.target.closest("#fd-dcar
 /* выбор «Закупка / Со склада / Часть со склада» у строки */
 document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("#dc-zki [data-dzm]"); if(!b) return; const wrap=$("#dc-zk"), j=wrap&&D.journal.find(x=>x.id===wrap.dataset.doc); if(!j||!DZ) return;
   const s=DZ.s[b.dataset.k]; if(!s) return; s.m=b.dataset.dzm; if(s.m==="x" && !s.q){ const l=calc(j.snap.dr, j.snap).lines.find(x=>dzKey(x)===b.dataset.k); if(l && s.itemId){ const fr=dzEst(j,l,s.itemId,+l.qty||0).avail; if(fr>0 && fr<(+l.qty||0)) s.q=String(fr).replace(".",","); } }
-  dcZkKeep(j); $("#dc-zkmsg").textContent=""; const f=$(`#dc-zki ${s.m==="x"?".dzq":".dzit"}[data-k="${b.dataset.k}"]`); if(f && (s.m==="x"||!s.itemId)) f.focus(); });
+  dcZkKeep(j); $("#dc-zkmsg").textContent=""; const f=$(`#dc-zki ${s.m==="x"&&s.itemId?".dzq":".skpq"}[data-k="${CSS.escape(b.dataset.k)}"]`); if(f && s.m) f.focus(); });
 document.addEventListener("change", e=>{ const el=e.target; if(!el.closest || !el.closest("#dc-zki")) return; const wrap=$("#dc-zk"), j=wrap&&D.journal.find(x=>x.id===wrap.dataset.doc); if(!j||!DZ) return;
-  if(el.classList.contains("dzit")){ const s=DZ.s[el.dataset.k]; if(s){ s.itemId=el.value; dcZkKeep(j); } return; }
   if(el.classList.contains("dzshipc")){ DZ.ship=el.checked; return; } });
 document.addEventListener("input", e=>{ const el=e.target; if(!el.closest || !el.closest("#dc-zki")) return; const wrap=$("#dc-zk"), j=wrap&&D.journal.find(x=>x.id===wrap.dataset.doc); if(!j) return;
   if(el.classList.contains("dzq")){ const s=DZ&&DZ.s[el.dataset.k]; if(s) s.q=el.value; const l=calc(j.snap.dr, j.snap).lines.find(x=>dzKey(x)===el.dataset.k), inf=el.closest(".dzsk"); if(l&&inf){ const t=document.createElement("div"); t.innerHTML=dzSrcHtml(j,l); const n=t.querySelector(".dzinf"), o=inf.querySelector(".dzinf"); if(n&&o) o.replaceWith(n); } dcZkSum(j, $("#dc-zki")); $("#dc-zkmsg").textContent=""; return; }
@@ -4293,73 +4299,175 @@ document.addEventListener("keydown", e=>{ if(e.key!=="Enter" || !e.target.closes
 let BZ=null;
 const bzDocs = () => (BZ&&BZ.ids||[]).map(id=>D.journal.find(x=>x.id===id)).filter(j=>j&&j.snap);
 function bzHas(g){ const n=g.filter(dcZkHas).length; return n===g.length?"Закупка ✓":n?`Закупка ${n}/${g.length}`:"Добавить закупку"; }
+/* сколько со склада по строке накладной (как сохранено) */
+const bzLineSQ = l => { const st=l.stk||{}, q=+l.qty||0; return st.m==="s"?q:st.m==="x"?Math.min(q,Math.max(0,+st.q||0)):0; };
 function bzRows(G){ const R=[], by={};
   G.forEach(j=>{ const x=docProfit(j), ov=dcLines(docCost(j.id));
-    x.lines.forEach(r=>{ const l=r.l, k=l.pid+"|"+(l.unit||""); let o=by[k]; if(!o){ o=by[k]={k, pid:l.pid, name:l.name, unit:l.unit, qty:0, dq:0, net:0, dnet:0, stockCost:0, stockQ:0, prelim:false, docs:[], own:[], e:null}; R.push(o); }
-      const sk=r.sk, sq=sk?sk.stockQ:0, dq=r3(l.qty-sq);
+    x.lines.forEach(r=>{ const l=r.l, k=l.pid+"|"+(l.unit||""); let o=by[k]; if(!o){ o=by[k]={k, pid:l.pid, name:l.name, unit:l.unit, qty:0, dq:0, net:0, dnet:0, stockCost:0, stockQ:0, prelim:false, docs:[], own:[], e:null, lines:[]}; R.push(o); }
+      const sk=r.sk, sq=sk?sk.stockQ:0, dq=r3(l.qty-sq), v=ov[l.pid];
       o.qty=r3(o.qty+l.qty); o.dq=r3(o.dq+dq); o.net+=l.net; o.dnet+=l.qty?l.net*dq/l.qty:0;
       if(sk){ o.stockQ=r3(o.stockQ+sq); o.stockCost=r2(o.stockCost+sk.stockCost); if(sk.prelim||sk.short>0) o.prelim=true; }
-      o.docs.push(j.id); const v=ov[l.pid]; o.own.push(v!=null&&v!==""?String(+v):"");
+      o.docs.push(j.id); o.own.push(v!=null&&v!==""?String(+v):"");
+      o.lines.push({j, l, own:v!=null&&v!==""?+v:null, e:r.e?+r.e.price:null, sq0:bzLineSQ(l)});
       if(!o.e && r.e) o.e=r.e; }); });
   R.forEach(o=>{ const u=[...new Set(o.own)]; o.same = u.length===1 ? u[0] : null; o.mixed = u.length>1; o.vals=u.filter(Boolean).map(Number).sort((a,b)=>a-b); });
   return R; }
+/* склад в комплекте: состояние строки-товара */
+function bzInitS(){ BZ.s={}; if(!dzOn()) return; BZ.rows.forEach(o=>{ const it=skItemOf(o.pid), sq=r3(o.lines.reduce((a,x)=>a+x.sq0,0)), m0=sq<=0?"":sq>=o.qty-0.0005?"s":"x", q0=m0==="x"?String(sq).replace(".",","):"";
+  const lk=o.lines.reduce((a,x)=>{ const si=dzLocked(x.j, x.l); return si?a+r3(si.shipped-si.ret):a; },0);
+  BZ.s[o.k]={m:m0, q:q0, itemId:it?it.id:"", m0, q0, it0:it?it.id:"", lock:lk>0?r3(lk):0}; }); }
+const bzSt = o => BZ&&BZ.s ? BZ.s[o.k] : null;
+const bzChanged = s => !!s && !s.lock && (s.m!==s.m0 || (s.m==="x" && r3(skNum(s.q))!==r3(skNum(s.q0))) || (!!s.m && s.itemId!==s.it0));
+const bzSQ = (o,s) => !s||!s.m ? 0 : s.m==="s" ? o.qty : (v=>isFinite(v)&&v>0?r3(Math.min(o.qty,v)):0)(skNum(s.q));
+/* раскладка складского количества по накладным: по порядку, каждая накладная — целиком, последняя — остаток */
+function bzAlloc(o, sq){ let left=r3(sq); return o.lines.map(x=>{ const a=r3(Math.min(+x.l.qty||0, Math.max(0,left))); left=r3(left-a); return a; }); }
+function bzEst(o, itemId, q){ const X=skIdx(), own={}, key=new Set(o.lines.map(x=>x.j.id+"|"+x.l.lid));
+  X.S.res.forEach(r=>{ if(key.has(r.docId+"|"+r.lineId)) own[r.batchId]=(own[r.batchId]||0)+(+r.qty||0); });
+  let left=r3(q), cost=0, unk=false, avail=0;
+  (X.byItem[itemId]||[]).filter(b=>!b.cancel && skK(b.unit)===skK(o.unit)).forEach(b=>{ const f=r3(Math.max(0, skFree(b.id)+(own[b.id]||0))); avail=r3(avail+f); if(left<=0) return;
+    const t=r3(Math.min(left,f)); if(t<=0) return; left=r3(left-t); if(b.price===""||b.price==null) unk=true; else cost+=t*(+b.price); });
+  return {short:r3(left), cost:r2(cost), unk, avail, unitOk:(X.byItem[itemId]||[]).some(b=>!b.cancel && skK(b.unit)===skK(o.unit))}; }
+/* себестоимость строки-товара: price — вписанная цена (null — не вписана, "mixed" — разные цены по накладным) */
+function bzCost(o, price){ const s=bzSt(o), ch=bzChanged(s);
+  let stock, A;
+  if(ch){ const sq=bzSQ(o,s); if(s.m && (!s.itemId || !(sq>0))) return null; if(sq>0){ const e=bzEst(o,s.itemId,sq); if(e.short>0||e.unk||!e.unitOk) return null; stock=e.cost; } else stock=0; A=bzAlloc(o,sq); }
+  else { stock=o.stockCost; A=o.lines.map(x=>x.sq0); }
+  let t=stock;
+  for(let i=0;i<o.lines.length;i++){ const x=o.lines[i], dq=r3((+x.l.qty||0)-A[i]); if(dq<=0) continue;
+    const p = price!=null && price!=="mixed" ? price : (x.own!=null ? x.own : x.e); if(p==null) return null; t+=p*dq; }
+  return r2(t); }
+function bzSrcHtml(o){ const s=bzSt(o); if(!s || !dzOn()) return ""; const X=skIdx(); if(!X.S.items.length && !s.m0) return ""; const k=esc(o.k), u=esc(o.unit||"");
+  if(s.lock) return `<div class="dzsk lock">${skIcon}<span>Со склада отгружено <b>${skQf(s.lock,o.unit)}</b> · себестоимость <b>${fm(o.stockCost)} ₽</b>${o.dq>0?` · остальное (${skQf(o.dq,o.unit)}) — по цене справа`:""}<small>Изменить — через «Возврат» в окне отдельной накладной.</small></span></div>`;
+  const b=(m,t)=>`<button type="button" class="${s.m===m?"on":""}" data-bzm="${m}" data-k="${k}" aria-pressed="${s.m===m}">${t}</button>`;
+  let det="";
+  if(s.m){ const it=s.itemId?X.item[s.itemId]:null, sq=bzSQ(o,s);
+    const pick = !s.it0 ? skPickHtml("bz", o.k, o, s.itemId) : "";
+    const qf = s.m==="x" ? `<label class="dzpq"><small>Со склада, ${u} (всего)</small><input class="bzq" data-k="${k}" inputmode="decimal" value="${esc(s.q)}" placeholder="из ${esc(nq3(o.qty))}"></label>` : "";
+    let info="";
+    if(!it) info=`<span class="miss">Найдите и выберите, какой товар взяли со склада.</span>`;
+    else { const e=bzEst(o,it.id,sq||0);
+      if(!e.unitOk) info=`<span class="miss">На складе «${esc(it.name)}» нет в единицах «${u}» — сначала перевзвесьте на складе.</span>`;
+      else if(s.m==="x" && !(sq>0 && sq<o.qty)) info=`<span class="muted">Свободно ${skQf(e.avail,o.unit)}. Впишите, сколько всего взяли со склада (меньше ${esc(nq3(o.qty))}).</span>`;
+      else if(e.short>0) info=`<span class="miss">На складе свободно только ${skQf(e.avail,o.unit)} — не хватает ${skQf(e.short,o.unit)}. Проведите приход или выберите «Часть».</span>`;
+      else { const A=bzAlloc(o,sq), parts=o.lines.map((x,i)=>A[i]>0?"№ "+esc(x.j.number)+" — "+skQf(A[i],o.unit):"").filter(Boolean);
+        info=`<span>«${esc(it.name)}»: ${skQf(sq,o.unit)} со склада · себестоимость ${e.unk?`<span class="miss">у партии нет цены</span>`:`<b>${fm(e.cost)} ₽</b> (${fm(r2(e.cost/sq))} ₽/${u})`}${s.m==="x"?` · от Саида ${skQf(r3(o.qty-sq),o.unit)} — цена справа`:""}</span>${o.lines.length>1&&s.m==="x"?`<small class="muted">По накладным: ${parts.join(", ")}</small>`:""}`; } }
+    det=`<div class="dzskd">${pick}${qf}<div class="dzinf">${info}</div></div>`; }
+  return `<div class="dzsk"><div class="dzseg" role="group" aria-label="Откуда товар">${b("","Закупка")}${b("s","Со склада")}${b("x","Часть со склада")}</div>${det}</div>`; }
+function bzPrice(o){ const box=$("#bz-zki"), el=box&&box.querySelector(`.bzc[data-k="${CSS.escape(o.k)}"]`); if(!el) return null; const v=num(el.value);
+  if(v!==""&&!isNaN(+v)) return +v; if(!BZ.touched[o.k] && o.mixed) return "mixed"; return null; }
 function bzSum(){ const box=$("#bz-zki"); if(!box||!BZ) return; const G=bzDocs(); let rev=0, tax=0, cost=0, miss=0;
   G.forEach(j=>{ const k=calc(j.snap.dr, j.snap); rev+=k.t.net; tax+=r2(k.t.net*taxOf(j.supplierId)/100); });
-  BZ.rows.forEach(o=>{ const el=box.querySelector(`.bzc[data-k="${CSS.escape(o.k)}"]`); let c=null;
-    if(el){ const v=num(el.value); if(v!==""&&!isNaN(+v)) c=+v; else if(!BZ.touched[o.k] && o.mixed) c="mixed"; else if(el.placeholder && !isNaN(+num(el.placeholder))) c=+num(el.placeholder); }
-    let t=o.stockCost;
-    if(o.dq>0){ if(c==="mixed"){ G.forEach(j=>{ const x=docProfit(j); x.lines.forEach(r=>{ if(r.l.pid===o.pid && (r.l.unit||"")===o.unit && !r.sk && r.c!=null) t+=r.c*r.l.qty; }); }); }
-      else if(c==null){ miss++; } else t+=c*o.dq; }
-    cost+=t; });
+  BZ.rows.forEach(o=>{ const c=bzCost(o, bzPrice(o)); if(c==null) miss++; else cost+=c; });
   const exp=+num((box.querySelector(".bze")||{}).value||"")||0; rev=r2(rev); tax=r2(tax); cost=r2(cost); const net=r2(rev-cost-tax-exp);
   box.querySelector("#bz-zks").innerHTML=`<div><small>Выручка</small><b>${fm(rev)}</b></div><div><small>Закупка</small><b>${fm(cost)}</b></div><div><small>Налог</small><b>${fm(tax)}</b></div><div class="hi"><small>Прибыль${exp?" (после расходов)":""}</small><b class="${net<0?"neg":""}">${fm(net)}</b><span>маржа ${pct(net,rev)}</span></div>`+(miss?`<p class="miss">Нет закупки у ${miss} ${plural(miss,["позиции","позиций","позиций"])}</p>`:""); }
-function bzDraw(keep){ const box=$("#bz-zki"); if(!box||!BZ) return; const G=bzDocs(); BZ.rows=bzRows(G); const V=keep||{};
+function bzDraw(keep){ const box=$("#bz-zki"); if(!box||!BZ) return; const G=bzDocs(); BZ.rows=bzRows(G); if(!keep || !BZ.s) bzInitS(); const V=keep||{};
   const exp0=r2(G.reduce((a,j)=>{ const dc=docCost(j.id); return a+(+(dc&&dc.expense)||0); },0));
-  const row=o=>{ const kk=esc(o.k), u=esc(o.unit||"ед."), st=o.stockQ>0;
-    const ph = o.mixed ? "разные: "+o.vals.map(v=>fm(v)).join(" / ") : o.e ? String(o.e.price).replace(".",",") : (st?"цена Саида":"цена за "+u);
+  const row=o=>{ const kk=esc(o.k), u=esc(o.unit||"ед."), s=bzSt(o), m=s?(s.lock?s.m0:s.m):"", st=o.stockQ>0||!!m;
+    const allStock = s ? (s.lock ? o.dq<=0 : m==="s") : o.dq<=0;
+    const ph = o.mixed ? "разные: "+o.vals.map(v=>fm(v)).join(" / ") : o.e ? String(o.e.price).replace(".",",") : (m==="x"?"цена Саида":"цена за "+u);
     const v = V[o.k]!=null ? V[o.k] : (o.same?String(o.same).replace(".",","):"");
-    const inp = o.dq>0 ? `<input class="bzc${o.mixed?" mix":""}" inputmode="decimal" data-k="${kk}" value="${esc(v)}" placeholder="${esc(ph)}" aria-label="Закупка за единицу: ${esc(o.name)}">` : `<span class="dzsc" title="Всё со склада">${o.qty?fm(r2(o.stockCost/o.qty)):"склад"}</span>`;
-    return `<div class="dzr${st?" sk":""}"><span><b>${esc(o.name)}</b><small>${esc(qfmt(o.qty,o.unit))} · ${o.docs.length} ${plural(o.docs.length,["накладная","накладные","накладных"])}${o.mixed?` · <span class="miss">цены в накладных разные</span>`:""}</small></span>${inp}<em>₽/${u}</em>${st?`<div class="dzsk lock">${skIcon}<span>Со склада ${skQf(o.stockQ,o.unit)} · себестоимость <b>${fm(o.stockCost)} ₽</b>${o.dq>0?` · цена справа — за ${skQf(o.dq,o.unit)} от Саида`:""}${o.prelim?` · <span class="miss">предварительно</span>`:""}</span></div>`:""}</div>`; };
-  box.innerHTML=`<div class="dzh"><b>Закупка на комплект</b><small class="muted">Одна цена за товар — сразу во все ${G.length} ${docsWord(G.length)}. Пустое поле — цена из «Закупочных цен». Товар со склада отмечается в окне отдельной накладной.</small></div>
+    const c0 = allStock ? bzCost(o, null) : null;
+    const inp = !allStock ? `<input class="bzc${o.mixed&&!BZ.touched[o.k]?" mix":""}" inputmode="decimal" data-k="${kk}" value="${esc(v)}" placeholder="${esc(ph)}" aria-label="${m==="x"?"Цена Саида за единицу (часть не со склада)":"Закупка за единицу"}: ${esc(o.name)}">` : `<span class="dzsc" title="Себестоимость со склада">${c0!=null&&o.qty?fm(r2(c0/o.qty)):"склад"}</span>`;
+    const old = !s && o.stockQ>0 ? `<div class="dzsk lock">${skIcon}<span>Со склада ${skQf(o.stockQ,o.unit)} · себестоимость <b>${fm(o.stockCost)} ₽</b>${o.dq>0?` · цена справа — за ${skQf(o.dq,o.unit)} от Саида`:""}</span></div>` : "";
+    return `<div class="dzr${st?" sk":""}"><span><b>${esc(o.name)}</b><small>${esc(qfmt(o.qty,o.unit))} · ${o.docs.length} ${plural(o.docs.length,["накладная","накладные","накладных"])}${o.mixed?` · <span class="miss">цены в накладных разные</span>`:""}</small></span>${inp}<em>₽/${u}</em>${bzSrcHtml(o)||old}</div>`; };
+  const any=BZ.s&&BZ.rows.some(o=>{ const s=bzSt(o); return s && !s.lock && (s.m||s.m0); });
+  if(BZ.ship==null) BZ.ship=G.every(j=>j.date<=todayISO());
+  box.innerHTML=`<div class="dzh"><b>Закупка на комплект</b><small class="muted">Одна цена за товар — сразу во все ${G.length} ${docsWord(G.length)}. Пустое поле — цена из «Закупочных цен».${dzOn()?" Если товар взяли со склада — нажмите «Со склада» под товаром.":""}</small></div>
     <div class="dzbulk"><label>Вся закупка одной суммой<input class="bzs" inputmode="decimal" value="${esc(V._bulk||"")}" placeholder="0"> ₽</label><button type="button" class="btn sm" data-bzk="spread">Разнести по товарам</button></div>
     <div class="dzl">${BZ.rows.map(row).join("")}</div>
     <label class="dzr dzx"><span><b>Прочие расходы</b><small>на весь комплект · делятся по накладным пропорционально сумме</small></span><input class="bze" inputmode="decimal" value="${esc(V._exp!=null?V._exp:(exp0?String(exp0).replace(".",","):""))}" placeholder="0"><em>₽</em></label>
+    ${any?`<label class="dzship"><input type="checkbox" class="bzshipc"${BZ.ship?" checked":""}><span><b>Товар уже уехал — сразу списать со склада</b><small>Снимите галочку, если поставка ещё не уехала: товар только зарезервируется, отгрузить можно будет кнопкой «Отгрузить» в накладной.</small></span></label>`:""}
     <div class="dzs-sum" id="bz-zks"></div>
     <div class="row dzact"><button type="button" class="btn pri" data-bzk="save">Сохранить закупку</button><span class="muted" id="bz-msg"></span></div>`;
   bzSum(); }
+/* перерисовать, не теряя набранное */
+function bzKeep(){ const box=$("#bz-zki"), V={}; if(!box) return; box.querySelectorAll(".bzc").forEach(el=>V[el.dataset.k]=el.value);
+  const e=box.querySelector(".bze"), s=box.querySelector(".bzs"); if(e) V._exp=e.value; if(s) V._bulk=s.value;
+  const a=document.activeElement, c0=a&&String(a.className||"").split(" ")[0], sel=a&&box.contains(a)&&c0&&/^(INPUT|SELECT)$/.test(a.tagName)&&a.dataset&&a.dataset.k?`.${c0}[data-k="${CSS.escape(a.dataset.k)}"]`:null, st=(box.querySelector(".dzl")||{}).scrollTop||0;
+  bzDraw(V); const l=box.querySelector(".dzl"); if(l) l.scrollTop=st; if(sel){ const f=box.querySelector(sel); if(f){ f.focus(); try{ const n=f.value.length; f.setSelectionRange&&f.setSelectionRange(n,n); }catch(x){} } } }
+/* что поменялось по складу и всё ли можно провести */
+function bzChanges(){ const out=[];
+  for(const o of BZ.rows){ const s=bzSt(o); if(!bzChanged(s)) continue; const sq=bzSQ(o,s);
+    if(s.m){ const it=skIdx().item[s.itemId]; if(!it) return {err:"«"+o.name+"»: выберите товар на складе"};
+      if(s.m==="x" && !(sq>0 && sq<o.qty)) return {err:"«"+o.name+"»: впишите, сколько всего взяли со склада — больше 0 и меньше "+nq3(o.qty)};
+      const e=bzEst(o,it.id,sq); if(!e.unitOk) return {err:"«"+o.name+"»: на складе нет единицы «"+o.unit+"» — сначала перевзвесьте"};
+      if(e.short>0) return {err:"«"+o.name+"»: на складе свободно только "+skQf(e.avail,o.unit)+" — не хватает "+skQf(e.short,o.unit)}; }
+    out.push({o, s, sq}); }
+  return {list:out}; }
 document.addEventListener("click", async e=>{ const b=e.target.closest&&e.target.closest("#fd-dcard [data-bzk]"); if(!b) return; const wrap=$("#bz-zk"); if(!wrap) return; const a=b.dataset.bzk;
   if(a==="toggle"){ const on=!wrap.classList.contains("open"); wrap.classList.toggle("open", on); b.setAttribute("aria-expanded", on); b.classList.toggle("on", on);
-    if(on){ BZ={ids:wrap.dataset.ids.split(","), touched:{}, expT:false, rows:[]};
+    if(on){ BZ={ids:wrap.dataset.ids.split(","), touched:{}, expT:false, rows:[], s:null, ship:null};
       if(!pfLoaded){ $("#bz-zki").innerHTML=`<p class="muted">Загружаю данные о прибыли…</p>`; await loadProfit(true); }
+      if(SK_READY && skCan() && skSrv!==false && (!SK || !SK.at || Date.now()-new Date(SK.at).getTime()>120000)){ $("#bz-zki").innerHTML=`<p class="muted">Сверяю склад…</p>`; await skLoad(true); }
       bzDraw(); setTimeout(()=>{ wrap.scrollIntoView({behavior:"smooth", block:"nearest"}); const f=wrap.querySelector(".bzs"); if(f && matchMedia("(hover:hover)").matches) f.focus(); }, 260); }
     return; }
-  const box=$("#bz-zki"); if(!BZ||!box) return; const G=bzDocs();
-  if(a==="spread"){ const v=+num(box.querySelector(".bzs").value), P=BZ.rows.filter(o=>o.dq>0 && o.dnet>0), base=P.reduce((s,o)=>s+o.dnet,0);
+  const box=$("#bz-zki"); if(!BZ||!box) return; let G=bzDocs();
+  if(a==="spread"){ const v=+num(box.querySelector(".bzs").value), P=[];
+    BZ.rows.forEach(o=>{ const s=bzSt(o), el=box.querySelector(`.bzc[data-k="${CSS.escape(o.k)}"]`); if(!el) return; const dq = s&&bzChanged(s) ? r3(o.qty-bzSQ(o,s)) : o.dq; if(dq>0) P.push({o, dq, w:o.qty?o.net*dq/o.qty:0, el}); });
+    const base=P.reduce((x,p)=>x+p.w,0);
     if(!(v>0) || !(base>0)){ toast("err","Впишите сумму","Сколько всего стоила закупка у Саида для этого комплекта."); box.querySelector(".bzs").focus(); return; }
-    let left=r2(v); P.forEach((o,i)=>{ const part=i===P.length-1?left:r2(v*o.dnet/base); left=r2(left-part); const el=box.querySelector(`.bzc[data-k="${CSS.escape(o.k)}"]`); if(el){ el.value=String(Math.round(part/o.dq*10000)/10000).replace(".",","); BZ.touched[o.k]=1; el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); } });
+    let left=r2(v); P.forEach((p,i)=>{ const part=i===P.length-1?left:r2(v*p.w/base); left=r2(left-part); p.el.value=String(Math.round(part/p.dq*10000)/10000).replace(".",","); BZ.touched[p.o.k]=1; p.el.classList.remove("flash","mix"); void p.el.offsetWidth; p.el.classList.add("flash"); });
     bzSum(); $("#bz-msg").textContent="Разнесено — проверьте и нажмите «Сохранить закупку»."; return; }
-  if(a==="save"){ let nDoc=0; const touched={};
-    BZ.rows.forEach(o=>{ const el=box.querySelector(`.bzc[data-k="${CSS.escape(o.k)}"]`); if(!el) return; const v=num(el.value), cur=o.same?String(o.same):"";
+  if(a==="save"){ const ch=bzChanges(); if(ch.err){ toast("err","Склад: проверьте строку", ch.err); $("#bz-msg").textContent=ch.err; return; }
+    const cv={}; box.querySelectorAll(".bzc").forEach(el=>cv[el.dataset.k]=el.value); const ev0=box.querySelector(".bze").value;
+    const allS={}; BZ.rows.forEach(o=>{ const s=bzSt(o); if(s && !s.lock && s.m==="s") allS[o.k]=1; });
+    let rep=null;
+    if(ch.list.length){ b.disabled=true; const t0=b.textContent; b.textContent="Провожу по складу…"; rep={n:0, shipped:0, short:[]};
+      try{ if(!online()) throw new Error("нет связи с таблицей — склад меняется только онлайн");
+        const X=skIdx(), add={}; ch.list.forEach(c=>{ if(c.s.m && c.s.itemId!==c.s.it0) (add[c.s.itemId]=add[c.s.itemId]||[]).push(c.o.pid); });
+        for(const id of Object.keys(add)){ const it=X.item[id]; await skSend("item",{itemId:id, links:[...new Set((it._links||[]).concat(add[id]))]},"Связь: "+it.name); }
+        const per={}; ch.list.forEach(c=>{ const A=bzAlloc(c.o, c.sq); c.o.lines.forEach((x,i)=>{ const q=A[i], m=!c.s.m||q<=0?"":q>=(+x.l.qty||0)-0.0005?"s":"x"; (per[x.j.id]=per[x.j.id]||[]).push({l:x.l, s:{m, itemId:c.s.itemId, it0:c.s.itemId}, sq:q}); }); });
+        for(const j0 of G){ const L=per[j0.id]; if(!L) continue; const j=D.journal.find(x=>x.id===j0.id)||j0;
+          try{ const r=await dzApply(j, L, !!BZ.ship); rep.n+=r.n; rep.shipped+=r.shipped; rep.short=rep.short.concat(r.short); }
+          catch(er){ throw new Error("№ "+j.number+": "+(er.queued?"нет связи — операция склада ждёт отправки":er.message)); } } }
+      catch(er){ toast("err","Склад не изменён до конца", er.message+". Откройте закупку комплекта ещё раз — уже проведённое будет видно."); $("#bz-msg").textContent="Склад: "+er.message; b.disabled=false; b.textContent=t0; bzDraw(); return; }
+      b.disabled=false; b.textContent=t0; G=bzDocs(); BZ.rows=bzRows(G); }
+    let nDoc=0; const touched={};
+    BZ.rows.forEach(o=>{ if(allS[o.k]){ touched[o.k]=null; return; } if(!(o.k in cv)) return; const v=num(cv[o.k]), cur=o.same?String(o.same):"";
       if(!BZ.touched[o.k] && (v===""?"":String(+v))===cur) return;   /* не трогали — разные цены в накладных остаются как есть */
       touched[o.k]= v===""||isNaN(+v) ? null : String(+v); });
-    const ev=num(box.querySelector(".bze").value), expCh=BZ.expT;
-    const revs=G.map(j=>calc(j.snap.dr, j.snap).t.net), rb=revs.reduce((a,x)=>a+x,0); let left=ev===""||isNaN(+ev)?0:r2(+ev);
-    G.forEach((j,i)=>{ const dc=dcUpsert(j), L=dcLines(dc); let ch=false;
-      Object.keys(touched).forEach(k=>{ const o=BZ.rows.find(x=>x.k===k); if(!o||!o.docs.includes(j.id)) return; if(touched[k]==null) delete L[o.pid]; else L[o.pid]=touched[k]; ch=true; });
-      if(expCh){ const part = ev===""||isNaN(+ev) ? "" : (i===G.length-1 ? left : r2(+ev*(rb?revs[i]/rb:1/G.length))); if(part!=="") left=r2(left-part); dc.expense = part===""||!(+part)?"":String(part); ch=true; }
-      if(ch){ dc.lines=JSON.stringify(L); dirty("doccosts", dc.id); nDoc++; } });
-    if(!nDoc){ $("#bz-msg").textContent="Изменений нет."; return; }
-    saveLocal(); const cost=r2(G.reduce((a,j)=>a+docProfit(j).cost,0)), prof=r2(G.reduce((a,j)=>a+docProfit(j).profit,0));
-    logEv("Прибыль","Закупка комплекта № "+G.map(j=>j.number).join(", ")+" от "+fd(G[0].date)+" — "+jWho(G[0]).main+": "+fm(cost)+" ₽");
-    toast("ok","Закупка комплекта сохранена", nDoc+" "+plural(nDoc,["накладная","накладные","накладных"])+" · закупка "+fm(cost)+" ₽ · прибыль "+fm(prof)+" ₽.");
-    BZ.touched={}; BZ.expT=false; bzDraw(); $("#bz-msg").textContent="Сохранено ✓";
+    const ev=num(ev0), expCh=BZ.expT;
+    const revs=G.map(j=>calc(j.snap.dr, j.snap).t.net), rb=revs.reduce((x,y)=>x+y,0); let left=ev===""||isNaN(+ev)?0:r2(+ev);
+    G.forEach((j,i)=>{ const dc=dcUpsert(j), L=dcLines(dc); let chd=false;
+      Object.keys(touched).forEach(k=>{ const o=BZ.rows.find(x=>x.k===k); if(!o||!o.docs.includes(j.id)) return; if(touched[k]==null){ if(o.pid in L){ delete L[o.pid]; chd=true; } } else { L[o.pid]=touched[k]; chd=true; } });
+      if(expCh){ const part = ev===""||isNaN(+ev) ? "" : (i===G.length-1 ? left : r2(+ev*(rb?revs[i]/rb:1/G.length))); if(part!=="") left=r2(left-part); dc.expense = part===""||!(+part)?"":String(part); chd=true; }
+      if(chd){ dc.lines=JSON.stringify(L); dirty("doccosts", dc.id); nDoc++; } });
+    if(!nDoc && !rep){ $("#bz-msg").textContent="Изменений нет."; return; }
+    saveLocal(); const cost=r2(G.reduce((x,j)=>x+docProfit(j).cost,0)), prof=r2(G.reduce((x,j)=>x+docProfit(j).profit,0));
+    logEv("Прибыль","Закупка комплекта № "+G.map(j=>j.number).join(", ")+" от "+fd(G[0].date)+" — "+jWho(G[0]).main+": "+fm(cost)+" ₽"+(rep?" (со склада: "+ch.list.length+" поз.)":""));
+    const sh=rep&&rep.short.length?" Не хватило на складе: "+rep.short.map(y=>(y.item?y.item.name:"")+" "+skQf(y.short,y.unit)).join(", ")+".":"";
+    toast(sh?"warn":"ok","Закупка комплекта сохранена", "закупка "+fm(cost)+" ₽ · прибыль "+fm(prof)+" ₽."+(rep?(rep.shipped?" Со склада списано: "+ch.list.length+" поз.":" Со склада зарезервировано: "+ch.list.length+" поз."):"")+sh);
+    BZ.touched={}; BZ.expT=false; BZ.s=null; bzDraw(); $("#bz-msg").textContent="Сохранено ✓";
     const tb=$('#fd-dcard [data-bzk="toggle"]'); if(tb) tb.textContent=bzHas(G); if(curTab==="profit") drawProfit(); }
 });
+/* «Закупка / Со склада / Часть со склада» у товара комплекта */
+document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("#bz-zki [data-bzm]"); if(!b||!BZ||!BZ.s) return; const s=BZ.s[b.dataset.k]; if(!s) return; s.m=b.dataset.bzm;
+  if(s.m==="x" && !s.q && s.itemId){ const o=BZ.rows.find(x=>x.k===b.dataset.k), fr=o?bzEst(o,s.itemId,o.qty).avail:0; if(o && fr>0 && fr<o.qty) s.q=String(fr).replace(".",","); }
+  bzKeep(); $("#bz-msg").textContent=""; const f=$(`#bz-zki ${s.m==="x"&&s.itemId?".bzq":".skpq"}[data-k="${CSS.escape(b.dataset.k)}"]`); if(f && s.m) f.focus(); });
+document.addEventListener("change", e=>{ const el=e.target; if(el.classList && el.classList.contains("bzshipc") && BZ) BZ.ship=el.checked; });
 document.addEventListener("input", e=>{ const el=e.target; if(!el.closest || !el.closest("#bz-zki") || !BZ) return;
+  if(el.classList.contains("bzq")){ const s=BZ.s&&BZ.s[el.dataset.k]; if(s) s.q=el.value; const o=BZ.rows.find(x=>x.k===el.dataset.k), sk=el.closest(".dzsk"); if(o&&sk){ const t=document.createElement("div"); t.innerHTML=bzSrcHtml(o); const n=t.querySelector(".dzinf"), old=sk.querySelector(".dzinf"); if(n&&old) old.replaceWith(n); } bzSum(); $("#bz-msg").textContent=""; return; }
   if(el.classList.contains("bzc")){ BZ.touched[el.dataset.k]=1; el.classList.remove("mix"); }
   if(el.classList.contains("bze")) BZ.expT=true;
   if(el.classList.contains("bzc")||el.classList.contains("bze")){ bzSum(); $("#bz-msg").textContent=""; } });
-document.addEventListener("keydown", e=>{ if(e.key!=="Enter" || !e.target.closest || !e.target.closest("#bz-zki")) return; e.preventDefault(); const b=$('#fd-dcard [data-bzk="'+(e.target.classList.contains("bzs")?"spread":"save")+'"]'); b&&b.click(); });
+document.addEventListener("keydown", e=>{ if(e.key!=="Enter" || !e.target.closest || !e.target.closest("#bz-zki") || e.target.type==="checkbox" || e.target.classList.contains("skpq")) return; e.preventDefault(); if(e.target.classList.contains("bzq")){ e.target.blur(); return; } const b=$('#fd-dcard [data-bzk="'+(e.target.classList.contains("bzs")?"spread":"save")+'"]'); b&&b.click(); });
+/* поиск товара склада в закупке (накладная и комплект) */
+function skPickCtx(sc){ if(sc==="dz"){ const w=$("#dc-zk"), j=w&&D.journal.find(x=>x.id===w.dataset.doc); if(!j||!DZ) return null; const ln=k=>calc(j.snap.dr, j.snap).lines.find(x=>dzKey(x)===k);
+    return {S:DZ.s, line:ln, fill:(k,id)=>{ const l=ln(k); return l?{avail:dzEst(j,l,id,+l.qty||0).avail, qty:+l.qty||0}:null; }, redraw:()=>{ dcZkKeep(j); $("#dc-zkmsg").textContent=""; }}; }
+  if(!BZ) return null; const ro=k=>(BZ.rows||[]).find(x=>x.k===k);
+  return {S:BZ.s, line:k=>{ const o=ro(k); return o&&{name:o.name, unit:o.unit}; }, fill:(k,id)=>{ const o=ro(k); return o?{avail:bzEst(o,id,o.qty).avail, qty:o.qty}:null; }, redraw:()=>{ bzKeep(); $("#bz-msg").textContent=""; }}; }
+document.addEventListener("input", e=>{ const el=e.target; if(!el.classList||!el.classList.contains("skpq")) return; const C=skPickCtx(el.dataset.sc), k=el.dataset.k; if(!C) return; SKPQ[el.dataset.sc+"|"+k]=el.value;
+  const l=C.line(k), box=el.parentElement.querySelector(".skpk-l"); if(l&&box) box.innerHTML=skPickSug(el.dataset.sc, k, l, el.value); });
+document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-skpk],[data-skpkclr]"); if(!b) return; const C=skPickCtx(b.dataset.sc); if(!C) return;
+  if(b.dataset.skpkclr!=null){ const s=C.S[b.dataset.skpkclr]; if(s){ s.itemId=""; } C.redraw(); const f=document.querySelector(`.skpq[data-k="${CSS.escape(b.dataset.skpkclr)}"]`); f&&f.focus(); return; }
+  const s=C.S[b.dataset.k]; if(!s) return; s.itemId=b.dataset.skpk; delete SKPQ[b.dataset.sc+"|"+b.dataset.k];
+  if(s.m==="x" && !String(s.q||"").trim()){ const f=C.fill(b.dataset.k, s.itemId); if(f && f.avail>0 && f.avail<f.qty) s.q=String(f.avail).replace(".",","); }   /* «Часть»: подставляем всё свободное */
+  C.redraw();
+  const q=document.querySelector(`.dzq[data-k="${CSS.escape(b.dataset.k)}"],.bzq[data-k="${CSS.escape(b.dataset.k)}"]`); if(q && s.m==="x") q.focus(); });
+document.addEventListener("keydown", e=>{ const el=e.target; if(!el.classList||!el.classList.contains("skpq")) return; const box=el.parentElement.querySelector(".skpk-l"), L=box?[...box.querySelectorAll("[data-skpk]")]:[]; if(e.key==="Enter" && !L.length){ e.preventDefault(); e.stopPropagation(); return; } if(!L.length) return;
+  let i=L.findIndex(x=>x.classList.contains("act"));
+  if(e.key==="ArrowDown"||e.key==="ArrowUp"){ e.preventDefault(); e.stopPropagation(); L.forEach(x=>x.classList.remove("act")); i=(i+(e.key==="ArrowDown"?1:-1)+L.length)%L.length; L[i].classList.add("act"); L[i].scrollIntoView({block:"nearest"}); return; }
+  if(e.key==="Enter"){ e.preventDefault(); e.stopPropagation(); (L[i]||L[0]).click(); return; } }, true);
 function bundleCard(g, arch){
   if(!g.length) return; const ks=g.map(j=>calc(j.snap.dr, j.snap)), w={main:gTitle(g)}, lim=docLimited(), sum=r2(ks.reduce((a,k)=>a+k.t.sum,0)), kg=ks.reduce((a,k)=>a+k.t.kg,0);
   const nums=g.map(j=>j.number), hist=[].concat(...g.map(j=>histOf(j).map(x=>Object.assign(x,{num:j.number}))));
