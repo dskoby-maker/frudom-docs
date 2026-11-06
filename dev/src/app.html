@@ -45,19 +45,27 @@
 #fd-app dialog.dcard::backdrop{background:rgba(28,34,32,.38);backdrop-filter:blur(2px);animation:fdbd .2s ease}
 @keyframes fdbd{from{opacity:0}}
 #fd-app .dcard .dc-head{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
-/* окно: шапка остаётся сверху при прокрутке, аккуратный ползунок внутри окна */
-#fd-app dialog.dcard{--dcp-t:22px;--dcp-x:22px;overscroll-behavior:contain}
+/* окно: шапка «жидкое стекло» во всю ширину, свой тонкий ползунок поверх содержимого */
+#fd-app dialog.dcard{--dcp-t:22px;--dcp-x:22px;overscroll-behavior:contain;scrollbar-width:none}
+#fd-app dialog.dcard::-webkit-scrollbar{display:none;width:0;height:0}
 @media (max-width:600px){#fd-app dialog.dcard{--dcp-t:18px;--dcp-x:16px}}
-#fd-app dialog.dcard>.dc-head{position:sticky;top:calc(-1 * var(--dcp-t));z-index:6;margin:calc(-1 * var(--dcp-t)) calc(-1 * var(--dcp-x)) 0;padding:var(--dcp-t) var(--dcp-x) 12px;background:transparent;border-bottom:1px solid transparent;transition:background-color .2s,border-color .2s,box-shadow .2s}
-#fd-app dialog.dcard.scrolled>.dc-head{background:rgba(250,251,251,.95);-webkit-backdrop-filter:blur(18px) saturate(1.6);backdrop-filter:blur(18px) saturate(1.6);border-bottom-color:rgba(28,34,32,.08);box-shadow:0 10px 18px -16px rgba(28,34,32,.45)}
-#fd-app dialog.dcard::-webkit-scrollbar,#fd-app dialog.dcard ::-webkit-scrollbar{width:14px;height:14px}
-#fd-app dialog.dcard::-webkit-scrollbar-track,#fd-app dialog.dcard ::-webkit-scrollbar-track{background:transparent}
-#fd-app dialog.dcard::-webkit-scrollbar-track{margin:var(--dchh,18px) 0 18px}
-#fd-app dialog.dcard::-webkit-scrollbar-thumb,#fd-app dialog.dcard ::-webkit-scrollbar-thumb{background:rgba(106,44,78,.22);border:4px solid transparent;background-clip:padding-box;border-radius:99px;min-height:40px}
-#fd-app dialog.dcard::-webkit-scrollbar-thumb:hover,#fd-app dialog.dcard ::-webkit-scrollbar-thumb:hover{background-color:rgba(106,44,78,.45)}
-#fd-app dialog.dcard::-webkit-scrollbar-thumb:active,#fd-app dialog.dcard ::-webkit-scrollbar-thumb:active{background-color:var(--accent)}
-#fd-app dialog.dcard::-webkit-scrollbar-corner,#fd-app dialog.dcard ::-webkit-scrollbar-corner{background:transparent}
-@supports not selector(::-webkit-scrollbar){#fd-app dialog.dcard,#fd-app dialog.dcard *{scrollbar-width:thin;scrollbar-color:rgba(106,44,78,.3) transparent}}
+#fd-app dialog.dcard>.dc-head{position:sticky;top:calc(-1 * var(--dcp-t));z-index:6;margin:calc(-1 * var(--dcp-t)) calc(-1 * var(--dcp-x)) 0;padding:var(--dcp-t) var(--dcp-x) 12px;background:transparent;isolation:isolate;transition:background-color .25s ease,box-shadow .25s ease,-webkit-backdrop-filter .25s ease,backdrop-filter .25s ease}
+#fd-app dialog.dcard>.dc-head::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;pointer-events:none;opacity:0;transition:opacity .25s ease;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(28,34,32,.12) 18%,rgba(28,34,32,.12) 82%,rgba(255,255,255,0))}
+#fd-app dialog.dcard.scrolled>.dc-head{background:linear-gradient(180deg,rgba(255,255,255,.96) 0%,rgba(255,255,255,.9) 55%,rgba(251,249,251,.86) 100%);-webkit-backdrop-filter:blur(30px) saturate(2) brightness(1.05);backdrop-filter:blur(30px) saturate(2) brightness(1.05);box-shadow:inset 0 1px 0 rgba(255,255,255,.95),inset 0 -1px 0 rgba(255,255,255,.55),0 12px 24px -18px rgba(28,34,32,.45)}
+#fd-app dialog.dcard.scrolled>.dc-head::after{opacity:1}
+#fd-app dialog.dcard.scrolled>.dc-head .dc-x{background:rgba(255,255,255,.6);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 1px 3px rgba(28,34,32,.1)}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){#fd-app dialog.dcard.scrolled>.dc-head{background:rgba(252,252,252,.97)}}
+@media (prefers-reduced-transparency:reduce){#fd-app dialog.dcard.scrolled>.dc-head{background:#fff;-webkit-backdrop-filter:none;backdrop-filter:none}}
+#fd-app dialog.dcard>.dc-sb{position:absolute;right:4px;top:0;width:6px;height:40px;border-radius:99px;background:rgba(106,44,78,.26);z-index:7;opacity:0;cursor:pointer;touch-action:none;transition:opacity .2s ease,width .15s ease,right .15s ease,background-color .15s ease}
+#fd-app dialog.dcard>.dc-sb.on{opacity:1}
+#fd-app dialog.dcard>.dc-sb:hover,#fd-app dialog.dcard>.dc-sb.drag{width:9px;right:3px;background:rgba(106,44,78,.5)}
+#fd-app dialog.dcard>.dc-sb.drag{background:var(--accent)}
+#fd-app dialog.dcard>.dc-sb::before{content:"";position:absolute;inset:-6px -6px -6px -10px}
+#fd-app dialog.dcard ::-webkit-scrollbar{width:12px;height:12px}
+#fd-app dialog.dcard ::-webkit-scrollbar-track,#fd-app dialog.dcard ::-webkit-scrollbar-corner{background:transparent}
+#fd-app dialog.dcard ::-webkit-scrollbar-thumb{background:rgba(106,44,78,.22);border:3px solid transparent;background-clip:padding-box;border-radius:99px}
+#fd-app dialog.dcard ::-webkit-scrollbar-thumb:hover{background-color:rgba(106,44,78,.45)}
+@supports not selector(::-webkit-scrollbar){#fd-app dialog.dcard *{scrollbar-width:thin;scrollbar-color:rgba(106,44,78,.3) transparent}}
 #fd-app .dcard .dc-kicker{font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--accent);background:var(--accent-soft);display:inline-block;padding:3px 10px;border-radius:99px}
 #fd-app .dcard h3{margin:8px 0 2px;font-size:20px;line-height:1.25;letter-spacing:-.01em}
 #fd-app .dcard .dc-sub{color:var(--muted);font-size:13px}
@@ -4187,13 +4195,37 @@ const linesTable = k => `<div class="dc-tw"><table class="dc-t"><thead><tr><th>�
 // окна: тень под шапкой при прокрутке; --dch — высота шапки (для внутренних липких заголовков)
 function dcFit(d){
   d.classList.toggle("scrolled", d.scrollTop>4);
-  const h=d.querySelector(":scope>.dc-head"); if(!h) return; const pt=parseFloat(getComputedStyle(d).paddingTop)||0;
-  const v=Math.max(0, Math.round(h.getBoundingClientRect().bottom - d.getBoundingClientRect().top - pt))+"px";
-  if(d.style.getPropertyValue("--dch")!==v) d.style.setProperty("--dch", v);
-  const hh=(parseFloat(v)+pt+4)+"px"; if(d.style.getPropertyValue("--dchh")!==hh) d.style.setProperty("--dchh", hh);
+  const h=d.querySelector(":scope>.dc-head"), pt=parseFloat(getComputedStyle(d).paddingTop)||0;
+  const hb=h ? Math.round(h.getBoundingClientRect().bottom - d.getBoundingClientRect().top) : 0;
+  const v=Math.max(0, hb-pt)+"px"; if(d.style.getPropertyValue("--dch")!==v) d.style.setProperty("--dch", v);
+  dcSb(d, hb);
+}
+// свой ползунок: начинается под шапкой, не заходит на углы, тянется мышью/пальцем
+function dcSb(d, hb){
+  let t=d.querySelector(":scope>.dc-sb");
+  if(!t){ t=document.createElement("div"); t.className="dc-sb"; t.setAttribute("aria-hidden","true"); d.appendChild(t);
+    t.addEventListener("pointerdown", e=>{ e.preventDefault(); e.stopPropagation(); t.setPointerCapture(e.pointerId); t.classList.add("drag");
+      const y0=e.clientY, s0=d.scrollTop, k=(d.scrollHeight-d.clientHeight)/Math.max(1,(d._sbTrack||1)-(d._sbH||0));
+      const mv=ev=>{ d.scrollTop=s0+(ev.clientY-y0)*k; }, up=()=>{ t.classList.remove("drag"); t.removeEventListener("pointermove",mv); t.removeEventListener("pointerup",up); t.removeEventListener("pointercancel",up); };
+      t.addEventListener("pointermove",mv); t.addEventListener("pointerup",up); t.addEventListener("pointercancel",up); });
+    t.addEventListener("click", e=>e.stopPropagation());
+  }
+  const ch=d.clientHeight, sh=d.scrollHeight, max=sh-ch;
+  if(max<2){ t.classList.remove("on"); return; }
+  const top=Math.max(14,(hb||0)+6), bot=14, track=Math.max(20, ch-top-bot), hh=Math.max(36, Math.round(track*ch/sh));
+  d._sbTrack=track; d._sbH=hh;
+  const y=top+(track-hh)*Math.min(1,Math.max(0,d.scrollTop/max));
+  t.style.height=hh+"px"; t.style.transform="translateY("+Math.round(d.scrollTop+y)+"px)"; t.classList.add("on");
+}
+function dcWatch(d){
+  if(d._dcw) return; d._dcw=1; let q=0; const go=()=>{ if(q) return; q=requestAnimationFrame(()=>{ q=0; if(d.isConnected) dcFit(d); }); };
+  new MutationObserver(ms=>{ if(ms.some(m=>[...m.addedNodes,...m.removedNodes].some(n=>!(n.classList&&n.classList.contains("dc-sb"))))) go(); }).observe(d,{childList:true,subtree:true});
+  if(window.ResizeObserver) new ResizeObserver(go).observe(d);
+  d.addEventListener("load", go, true); go();
 }
 document.addEventListener("scroll", e=>{ const d=e.target; if(d && d.matches && d.matches("dialog.dcard")) dcFit(d); }, true);
-document.addEventListener("focusin", e=>{ const d=e.target.closest && e.target.closest("dialog.dcard"); if(d) dcFit(d); });
+document.addEventListener("focusin", e=>{ const d=e.target.closest && e.target.closest("dialog.dcard"); if(d){ dcWatch(d); dcFit(d); } });
+new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{ if(n.tagName==="DIALOG" && n.classList.contains("dcard")) dcWatch(n); }))).observe(document.documentElement,{childList:true,subtree:true});
 function openCard(html, wide, onAct){
   const old=document.getElementById("fd-dcard"); if(old) old.remove();
   const d=document.createElement("dialog"); d.id="fd-dcard"; d.className="dcard"+(wide?" wide":""); d.innerHTML=html;
