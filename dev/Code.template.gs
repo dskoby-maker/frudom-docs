@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 12;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 13;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -172,27 +172,61 @@ function aiStatAdd_(e) {   // счётчики и последние 20 запр
   try { const s = aiStatGet_(); if (!e.x) { s.n++; s.mn++; s.tok += e.t || 0; s.mtok += e.t || 0; if (!e.ok) s.err++; }   // x — отказ на нашей стороне, в Google не ходили
     s.log.unshift(e); s.log = s.log.slice(0, 20); PropertiesService.getScriptProperties().setProperty('AI_STAT', JSON.stringify(s)); } finally { lock.releaseLock(); }
 }
-function aiCall_(key, models, body) {   // по очереди: основная модель, при «нет модели / лимит / перегружено» — запасная
-  let last = '';
-  for (let i = 0; i < models.length; i++) {
-    const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(models[i]) + ':generateContent',
-      { method: 'post', contentType: 'application/json', headers: { 'x-goog-api-key': key }, payload: JSON.stringify(body), muteHttpExceptions: true });
-    const code = r.getResponseCode(), t = r.getContentText();
-    if (code === 200) { let j; try { j = JSON.parse(t); } catch (x) { return { ok: false, error: 'Gemini вернул непонятный ответ', model: models[i] }; }
-      const txt = ((((j.candidates || [])[0] || {}).content || {}).parts || []).map(x => x.text || '').join('');
-      if (!txt) return { ok: false, error: 'Gemini не смог прочитать файл', model: models[i] };
-      return { ok: true, text: txt, model: models[i], tokens: (j.usageMetadata || {}).totalTokenCount || 0 }; }
-    last = code + ' ' + t.slice(0, 300);
-    if (!/^(404|429|500|503)$/.test(String(code))) break;
+/* Два ИИ: модель «claude-…» — Claude (Anthropic, ключ CLAUDE_KEY), остальные — Google Gemini (ключ GEMINI_KEY). */
+const AI_CLAUDE_DEF_ = ['claude-sonnet-5-5', 'claude-haiku-5-5'];
+function aiProv_(m) { return /^claude/i.test(String(m || '')) ? 'claude' : 'gemini'; }
+function aiKeyName_(prov) { return prov === 'claude' ? 'CLAUDE_KEY' : 'GEMINI_KEY'; }
+function aiJson_(t) { t = String(t || '').trim().replace(/^```(json)?\s*/i, '').replace(/```\s*$/, '').trim();   // Claude иногда оборачивает JSON в ```
+  const a = t.indexOf('{'), b = t.lastIndexOf('}'); return a >= 0 && b > a && (a > 0 || b < t.length - 1) ? t.slice(a, b + 1) : t; }
+/* один запрос к одной модели; req = {prompt, mime?, data?, json?}; key — если проверяем ключ до сохранения */
+function aiOne_(model, req, key) {
+  const prov = aiProv_(model); key = key || PropertiesService.getScriptProperties().getProperty(aiKeyName_(prov));
+  if (!key) return { ok: false, model: model, prov: prov, code: 0, error: prov === 'claude' ? 'не вставлен ключ Claude — «Данные» → «ИИ»' : 'nokey' };
+  let url, o;
+  if (prov === 'claude') {
+    const c = [];
+    if (req.data) {
+      if (req.mime === 'application/pdf') c.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: req.data } });
+      else if (/^image\/(jpeg|png|webp|gif)$/.test(req.mime)) { if (req.data.length > 6.9e6) return { ok: false, model: model, prov: prov, code: 400, error: 'Claude читает фото до 5 МБ — уменьшите фото или выберите Gemini' }; c.push({ type: 'image', source: { type: 'base64', media_type: req.mime, data: req.data } }); }
+      else return { ok: false, model: model, prov: prov, code: 400, error: 'Claude не читает фото HEIC — сохраните как JPG или выберите Gemini' };
+    }
+    c.push({ type: 'text', text: req.prompt + (req.json ? '\nОтветь только JSON, без пояснений и без ```.' : '') });
+    url = 'https://api.anthropic.com/v1/messages';
+    o = { method: 'post', contentType: 'application/json', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' }, payload: JSON.stringify({ model: model, max_tokens: 8000, temperature: 0, messages: [{ role: 'user', content: c }] }), muteHttpExceptions: true };
+  } else {
+    const parts = req.data ? [{ inline_data: { mime_type: req.mime, data: req.data } }] : [];
+    parts.push({ text: req.prompt });
+    url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent';
+    o = { method: 'post', contentType: 'application/json', headers: { 'x-goog-api-key': key }, payload: JSON.stringify({ contents: [{ parts: parts }], generationConfig: req.json ? { temperature: 0, responseMimeType: 'application/json' } : { temperature: 0 } }), muteHttpExceptions: true };
   }
-  if (/^429/.test(last)) return { ok: false, error: 'исчерпан лимит Gemini на сегодня/минуту — попробуйте позже' };
-  if (/^(400|401|403)/.test(last) && /key|API_KEY|permission/i.test(last)) return { ok: false, error: 'badkey' };
-  if (/^404/.test(last)) return { ok: false, error: 'модель «' + models[0] + '» не найдена — выберите другую в «Данные» → «ИИ»' };
-  return { ok: false, error: 'Gemini не ответил (' + last.slice(0, 150) + ')' };
+  const r = UrlFetchApp.fetch(url, o), code = r.getResponseCode(), t = r.getContentText();
+  if (code === 200) { let j; try { j = JSON.parse(t); } catch (x) { return { ok: false, model: model, prov: prov, code: 200, error: 'ИИ вернул непонятный ответ' }; }
+    const txt = prov === 'claude' ? (j.content || []).map(x => x.text || '').join('') : ((((j.candidates || [])[0] || {}).content || {}).parts || []).map(x => x.text || '').join('');
+    if (!txt) return { ok: false, model: model, prov: prov, code: 200, error: 'ИИ не смог прочитать файл' };
+    const u = j.usage || {}, tok = prov === 'claude' ? (u.input_tokens || 0) + (u.output_tokens || 0) : (j.usageMetadata || {}).totalTokenCount || 0;
+    return { ok: true, text: req.json ? aiJson_(txt) : txt, model: model, tokens: tok }; }
+  const nm = prov === 'claude' ? 'Claude' : 'Gemini';
+  let e = nm + ' не ответил (' + code + ' ' + t.slice(0, 150) + ')';
+  if (code === 404) e = 'модель «' + model + '» не найдена — выберите другую в «Данные» → «ИИ»';
+  else if (prov === 'claude' && /credit balance/i.test(t)) e = 'на балансе Claude закончились деньги — пополните на console.anthropic.com';
+  else if (code === 429) e = prov === 'claude' ? 'Claude: слишком много запросов — попробуйте через минуту' : 'исчерпан лимит Gemini на сегодня/минуту — попробуйте позже';
+  else if (code === 401 || code === 403 || code === 400 && /key|API_KEY|permission/i.test(t)) e = prov === 'claude' ? 'ключ Claude не подходит — «Данные» → «ИИ»' : 'badkey';
+  else if (code >= 500) e = nm + ' перегружен — попробуйте позже';
+  return { ok: false, model: model, prov: prov, code: code, error: e };
+}
+function aiTxtErr_(e) { return e === 'nokey' ? 'не вставлен ключ Gemini' : e === 'badkey' ? 'ключ Gemini не подходит' : e; }
+/* основная модель, при сбое — запасная (если она есть) */
+function aiCall_(models, req) {
+  const errs = [];
+  for (let i = 0; i < models.length; i++) {
+    const r = aiOne_(models[i], req); if (r.ok) return r; errs.push(r);
+    if (r.code === 401 || r.code === 403) continue;   // чужой ключ не мешает попробовать другой ИИ
+  }
+  if (errs.every(r => r.error === errs[0].error)) return { ok: false, error: errs[0].error, model: errs[0].model };   // одна и та же причина (например, нет ключа) — без повтора
+  return { ok: false, model: errs[0].model, error: errs.map(r => r.model + ': ' + aiTxtErr_(r.error)).join('; ') };
 }
 function aiRead_(p, me) {
-  const pr = PropertiesService.getScriptProperties(), key = pr.getProperty('GEMINI_KEY'), c = aiCfgGet_(), kind = AI_KINDS_[p.kind] ? p.kind : 'order';
-  if (!key) return { ok: false, error: 'nokey' };
+  const c = aiCfgGet_(), kind = AI_KINDS_[p.kind] ? p.kind : 'order';
   const no = m => { aiStatAdd_({ at: new Date().toISOString(), u: me ? me.name : '', k: kind, m: '', ok: false, e: m.slice(0, 120), t: 0, ms: 0, x: 1 }); return { ok: false, error: m }; };
   if (c.off[kind]) return no('чтение через ИИ («' + AI_KINDS_[kind] + '») выключено в настройках: «Данные» → «ИИ»');
   if (me && !me.admin && (c.who === 'office' && me.role !== 'manager' || c.who === 'nodriver' && lim_(me))) return no('Даниил выключил для вас чтение через ИИ');
@@ -201,9 +235,8 @@ function aiRead_(p, me) {
   if (!/^(application\/pdf|image\/(jpeg|png|webp|heic|heif))$/.test(mime)) return { ok: false, error: 'такой файл ИИ не читает — нужен PDF или фото' };
   if (data.length > c.maxMb * 1.37e6) return { ok: false, error: 'файл больше ' + c.maxMb + ' МБ — для ИИ слишком большой' };
   const prompt = aiPrompt_(kind) + (c.extra[kind].trim() ? '\nДополнительные указания владельца (соблюдай, но формат JSON не меняй): ' + c.extra[kind].trim() : '');
-  const body = { contents: [{ parts: [{ inline_data: { mime_type: mime, data: data } }, { text: prompt }] }], generationConfig: { temperature: 0, responseMimeType: 'application/json' } };
   const models = [c.model].concat(c.fallback && c.fallback !== c.model ? [c.fallback] : []), t0 = Date.now();
-  const r = aiCall_(key, models, body);
+  const r = aiCall_(models, { prompt: prompt, mime: mime, data: data, json: true });
   aiStatAdd_({ at: new Date().toISOString(), u: me ? me.name : '', k: kind, m: r.model || models[0], ok: !!r.ok, e: r.ok ? '' : String(r.error).slice(0, 120), t: r.tokens || 0, ms: Date.now() - t0 });
   return r;
 }
@@ -213,32 +246,41 @@ function aiCfg_(p, me) {
   if (op === 'set') {
     const c = p.cfg || {}, o = {}, okModel = m => /^[\w.\-]{1,80}$/.test(m);
     o.model = String(c.model || '').trim().replace(/^models\//, ''); if (!okModel(o.model)) return { ok: false, error: 'неверное название основной модели' };
+    if (!pr.getProperty(aiKeyName_(aiProv_(o.model)))) return { ok: false, error: 'сначала вставьте ключ ' + (aiProv_(o.model) === 'claude' ? 'Claude' : 'Gemini') + ' для основной модели' };
     o.fallback = String(c.fallback || '').trim().replace(/^models\//, ''); if (o.fallback && !okModel(o.fallback)) return { ok: false, error: 'неверное название запасной модели' };
     o.who = /^(all|nodriver|office)$/.test(c.who) ? c.who : 'all'; o.maxMb = Math.min(13, Math.max(1, +c.maxMb || 13)); o.limit = Math.max(0, Math.min(100000, Math.floor(+c.limit || 0)));
     o.extra = {}; o.off = {}; Object.keys(AI_KINDS_).forEach(k => { o.extra[k] = String((c.extra || {})[k] || '').slice(0, 2000); o.off[k] = !!(c.off || {})[k]; });
     pr.setProperty('AI_CFG', JSON.stringify(o)); pr.deleteProperty('GEMINI_MODEL');
   }
-  if (op === 'key') { const k = String(p.gkey || '').trim(); if (!keyOk(k)) return { ok: false, error: 'это не похоже на ключ Gemini' }; pr.setProperty('GEMINI_KEY', k); }
-  if (op === 'delKey') pr.deleteProperty('GEMINI_KEY');
+  const prov = p.prov === 'claude' ? 'claude' : 'gemini', pn = prov === 'claude' ? 'Claude' : 'Gemini';
+  if (op === 'key') { const k = String(p.gkey || '').trim(); if (!keyOk(k)) return { ok: false, error: 'это не похоже на ключ ' + pn }; pr.setProperty(aiKeyName_(prov), k); }
+  if (op === 'delKey') pr.deleteProperty(aiKeyName_(prov));
   if (op === 'reset') pr.deleteProperty('AI_CFG');
   if (op === 'resetStat') pr.deleteProperty('AI_STAT');
-  if (op === 'test') {   // короткий запрос без файла: подходит ли ключ и отвечает ли модель
-    const k = String(p.gkey || '').trim() || pr.getProperty('GEMINI_KEY'); if (!k) return { ok: false, error: 'nokey' }; if (!keyOk(k)) return { ok: false, error: 'это не похоже на ключ Gemini' };
-    const m = String(p.model || '').trim().replace(/^models\//, '') || aiCfgGet_().model, t0 = Date.now();
-    const r = aiCall_(k, [m], { contents: [{ parts: [{ text: 'Ответь одним словом: работает' }] }], generationConfig: { temperature: 0 } });
+  if (op === 'test') {   // короткий запрос без файла: подходит ли ключ и отвечает ли модель этого ИИ
+    const k = String(p.gkey || '').trim(); if (k && !keyOk(k)) return { ok: false, error: 'это не похоже на ключ ' + pn };
+    const cm = aiCfgGet_(), m = String(p.model || '').trim().replace(/^models\//, '') || ([cm.model, cm.fallback].find(x => x && aiProv_(x) === prov) || (prov === 'claude' ? AI_CLAUDE_DEF_[1] : AI_DEF_.model));
+    if (aiProv_(m) !== prov) return { ok: false, error: 'модель «' + m + '» не от ' + pn };
+    const t0 = Date.now(), r = aiOne_(m, { prompt: 'Ответь одним словом: работает' }, k);
     return r.ok ? { ok: true, model: r.model, ms: Date.now() - t0, text: String(r.text).trim().slice(0, 60) } : { ok: false, error: r.error };
   }
-  if (op === 'models') {
-    const k = String(p.gkey || '').trim() || pr.getProperty('GEMINI_KEY'); if (!k) return { ok: false, error: 'nokey' };
-    const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': k }, muteHttpExceptions: true });
-    if (r.getResponseCode() !== 200) return { ok: false, error: /^(400|401|403)$/.test(String(r.getResponseCode())) ? 'badkey' : 'Gemini не ответил (' + r.getResponseCode() + ')' };
-    let j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) { }
-    const list = (j.models || []).filter(x => (x.supportedGenerationMethods || []).indexOf('generateContent') >= 0 && /gemini/i.test(x.name || ''))
-      .map(x => ({ id: String(x.name).replace(/^models\//, ''), name: x.displayName || '', note: String(x.description || '').slice(0, 120) }));
-    return { ok: true, models: list };
+  if (op === 'models') {   // модели обоих ИИ, у которых есть ключ
+    const out = [], errs = [];
+    ['gemini', 'claude'].forEach(pv => {
+      const k = (pv === prov && String(p.gkey || '').trim()) || pr.getProperty(aiKeyName_(pv)); if (!k) return;
+      const r = pv === 'claude' ? UrlFetchApp.fetch('https://api.anthropic.com/v1/models?limit=100', { headers: { 'x-api-key': k, 'anthropic-version': '2023-06-01' }, muteHttpExceptions: true })
+        : UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': k }, muteHttpExceptions: true });
+      if (r.getResponseCode() !== 200) { errs.push((pv === 'claude' ? 'Claude' : 'Gemini') + ': ' + (/^(400|401|403)$/.test(String(r.getResponseCode())) ? 'ключ не подходит' : 'не ответил (' + r.getResponseCode() + ')')); return; }
+      let j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) { }
+      if (pv === 'claude') (j.data || []).forEach(x => { if (/^claude/.test(x.id || '')) out.push({ id: x.id, name: x.display_name || '', prov: 'claude' }); });
+      else (j.models || []).filter(x => (x.supportedGenerationMethods || []).indexOf('generateContent') >= 0 && /gemini/i.test(x.name || ''))
+        .forEach(x => out.push({ id: String(x.name).replace(/^models\//, ''), name: x.displayName || '', prov: 'gemini' }));
+    });
+    if (!out.length && errs.length) return { ok: false, error: errs.join('; ') };
+    return { ok: true, models: out, warn: errs.join('; ') };
   }
-  const key = pr.getProperty('GEMINI_KEY') || '', s = aiStatGet_();
-  return { ok: true, hasKey: !!key, mask: key ? '…' + key.slice(-4) : '', cfg: aiCfgGet_(), def: AI_DEF_, kinds: AI_KINDS_,
+  const key = pr.getProperty('GEMINI_KEY') || '', ck = pr.getProperty('CLAUDE_KEY') || '', s = aiStatGet_();
+  return { ok: true, hasKey: !!key, mask: key ? '…' + key.slice(-4) : '', cKey: !!ck, cMask: ck ? '…' + ck.slice(-4) : '', claudeDef: AI_CLAUDE_DEF_, cfg: aiCfgGet_(), def: AI_DEF_, kinds: AI_KINDS_,
     prompts: { order: AI_PROMPT_, in: AI_PROMPT_IN_, decl: AI_PROMPT_DECL_ }, stat: { d: s.d, n: s.n, tok: s.tok, err: s.err, m: s.m, mn: s.mn, mtok: s.mtok }, log: s.log };
 }
 
