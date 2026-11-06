@@ -470,6 +470,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 }
 #fd-app .srvold{background:rgba(179,134,0,.12);border:1px solid rgba(179,134,0,.35);display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}#fd-app .srvsteps{margin:12px 0 0;padding-left:20px;display:grid;gap:8px;font-size:14px;line-height:1.45}
 #fd-app .bk-st{display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:14px;margin-bottom:10px}#fd-app .bk-st.ok{background:rgba(47,107,69,.09)}#fd-app .bk-st.ok b{color:var(--ok)}#fd-app .bk-st.warn{background:rgba(179,134,0,.12)}#fd-app .bk-st.warn b{color:#7a5a00}#fd-app .bk-st span{font-size:12.5px;color:var(--muted)}
+#fd-app .ai-h{font-size:15px;margin:18px 0 6px}#fd-app .ai-n{font-size:12.5px;margin:6px 0}#fd-app .ai-ok{color:var(--ok)}#fd-app .ai-l{display:flex;flex-direction:column;gap:4px;font-size:13px;margin:6px 0;min-width:0}#fd-app .ai-l select,#fd-app .ai-l input,#fd-app .ai-l textarea{width:100%;box-sizing:border-box;max-width:100%}#fd-app .ai-g{display:grid;grid-template-columns:1fr 1fr;gap:10px}@media(max-width:640px){#fd-app .ai-g{grid-template-columns:1fr}}#fd-app .ai-own{flex:1;min-width:180px;margin:0}#fd-app .ai-r{display:grid;gap:6px;font-size:14px}#fd-app .ai-r label{display:flex;gap:8px;align-items:flex-start}#fd-app .ai-p summary,#fd-app .ai-log summary{cursor:pointer;font-size:12.5px;color:var(--muted)}#fd-app .ai-p pre{white-space:pre-wrap;word-break:break-word;font-size:12px;background:rgba(242,243,239,.7);padding:8px 10px;border-radius:10px;max-height:220px;overflow:auto}#fd-app .ai-save{margin-top:14px}#fd-app .ai-log{margin-top:16px}#fd-app #ai-box .bk-r span:last-child{text-align:right;font-size:12.5px}
 #fd-app .bk-night{margin:10px 0}#fd-app .bk-night b{display:inline}#fd-app #bk-card a.btn{text-decoration:none}#fd-app .bk-list{display:grid;gap:4px;margin:10px 0 6px}#fd-app .bk-r{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;background:rgba(242,243,239,.7)}#fd-app .bk-r small{display:block;font-size:12px;color:var(--muted)}#fd-app .bk-a{display:flex;gap:4px;flex:none}
 #fd-app .bk-how{margin-top:12px;font-size:14px}#fd-app .bk-how summary{cursor:pointer;font-weight:600;color:var(--accent)}#fd-app .bk-how ol{margin:8px 0;padding-left:20px;display:grid;gap:6px}
 #fd-app .cturl{display:flex;gap:6px;align-items:center}#fd-app .cturl input{flex:1;min-width:0}#fd-app .cturl a.btn{flex:none;text-decoration:none;white-space:nowrap}
@@ -1562,6 +1563,10 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
       <p class="muted" id="dt-store"></p>
       <div class="row"><button class="btn" id="dt-pull">Обновить данные с сервера</button><button class="btn ghost" id="dt-logout">Выйти на этом компьютере</button></div>
     </div>
+    <div class="card" id="ai-card" hidden>
+      <h2>ИИ <small>чтение сканов и фото (Google Gemini)</small></h2>
+      <div id="ai-box"><p class="muted">Загружаю…</p></div>
+    </div>
     <div class="card" id="bk-card" hidden>
       <h2>Резервные копии таблицы <small>на вашем Google Диске</small></h2>
       <div id="bk-box"><p class="muted">Загружаю…</p></div>
@@ -1799,7 +1804,7 @@ function handleErr(e){ if(e.message==="auth"){ showLogin("Неверный па�
   else if(e && !e.net){ setStatus("err","Ошибка таблицы, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Таблица ответила ошибкой","«"+String(e.message||e).slice(0,160)+"». Всё сохранено на этом устройстве, повторю сам. Если повторяется — пришлите этот текст Claude."); } }
   else { setStatus("err","Не сохранено — нет связи, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Нет связи с Google Таблицей",(e&&e.message?"Причина: "+e.message+". ":"")+"Всё сохранено на этом устройстве и отправится автоматически, когда связь появится. Ничего делать не нужно."); } } }
 
-const NEED_VER=11;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
+const NEED_VER=12;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
 function srvVerCheck(v){ const el=$("#srvOld"); if(!el) return; const old=(+v||0)<NEED_VER; el.hidden=!old || docLimited(); D.srvVer=+v||0; }
 document.addEventListener("click",e=>{ if(!e.target.closest || !e.target.closest("#srvOldHow")) return; openCard(`<div class="dc-head"><div><div class="dc-kicker">Code.gs</div><h3>Как обновить скрипт таблицы</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
   <ol class="srvsteps"><li>GitHub → файл <b>dev/Code.template.gs</b> → кнопка «Copy raw file» (два квадратика).</li><li>Таблица «Документы ФД» → «Расширения» → «Apps Script» → файл <b>Код.gs</b> → Ctrl+A → Ctrl+V → «Сохранить». Файл «Пароли.gs» не трогать.</li><li>«Начать развёртывание» → «Управление развёртываниями» → карандаш → «Версия: новая версия» → «Развернуть».</li><li>Обновите эту страницу — жёлтая плашка исчезнет.</li></ol>
@@ -1846,6 +1851,7 @@ async function pull(force){
     if(hasPending()) { setStatus("wait","Есть несохранённое"); return; }
     if(j.me){ lsSet(MKEY, JSON.stringify(j.me)); applyRole(); }
     if("prefs" in j) serverPrefs(j.prefs); if(prefsDirty) pushPrefs();
+    srvVerCheck(j.ver);   /* версию скрипта знаем сразу, даже если таблица пустая */
     if(!j.data.suppliers.length){ // пустая таблица: выгрузить то, что есть здесь
       patchAll();
       D.suppliers.forEach(x=>dirty("suppliers",x.id)); D.customers.forEach(x=>dirty("customers",x.id)); D.products.forEach(x=>dirty("products",x.id)); D.contracts.forEach(x=>dirty("contracts",x.id));
@@ -5231,6 +5237,7 @@ function bkDraw(){ const box=$("#bk-box"); if(!box||!BK) return; const L=BK.list
     <details class="bk-how"><summary>Как вернуть данные из копии</summary><ol><li>Откройте нужную копию («Открыть») — это обычная Google Таблица на момент копии.</li><li>Правой кнопкой по вкладке листа (например «Заказчики» или «Цены») → «Копировать в» → «Существующая таблица» → «Документы ФД».</li><li>В «Документах ФД» удалите испорченный лист, а скопированный переименуйте точно как был (без «Копия»).</li><li>На сайте: «Данные» → «Обновить данные с сервера».</li></ol><p class="muted">Если не уверены — напишите в чат, вместе вернём нужное без потерь.</p></details>`; }
 document.addEventListener("click",e=>{ const t=e.target; if(!t.closest) return; if(t.closest("#bk-now")){ bkLoad(true); return; } if(t.closest("#bk-all")){ BK.all=1; bkDraw(); } });
 function renderData(){
+  const ac=$("#ai-card"); if(ac){ ac.hidden=!(online() && me().admin); if(!ac.hidden) aiLoad(); }
   const bc=$("#bk-card"); if(bc){ bc.hidden=!(online() && me().admin); if(!bc.hidden) bkLoad(false); }
   const im=$("#dt-import"); if(im) im.closest("label").hidden=online() && !me().admin;   /* загрузка из файла перезаписывает данные в таблице — только Даниил */
   $("#dt-store").textContent = !API_URL ? "Хранилище не подключено: данные лежат только в этом браузере. Вставьте ссылку на Google Apps Script в начало кода блока."
@@ -5542,7 +5549,7 @@ function drawImp(){
   const box=$("#imp-res"); if(!IMP){ box.innerHTML=""; return; }
   if(IMP.scan){ box.innerHTML=`<div class="impg"><div class="ih"><b>«${esc(IMP.file)}»: ${esc(IMP.msg||"скан")}.</b></div>`
       + (IMP.busy?`<p class="muted">ИИ читает заявку… обычно 10–40 секунд.</p>`
-      : IMP.key?(me().admin?`<p>${IMP.key==="badkey"?"Ключ Gemini не подошёл. ":"ИИ ещё не подключён. "}Вставьте ключ Gemini (aistudio.google.com → Get API key):</p><div class="row"><input id="imp-gkey" type="password" autocomplete="off" placeholder="ключ Gemini" style="flex:1;min-width:0"><button class="btn pri sm" type="button" data-aikey>Сохранить и прочитать</button></div>`:`<p>ИИ для сканов ещё не подключён — попросите Даниила. Пока можно вставить текст заявки («Вставить текст»).</p>`)
+      : IMP.key?(me().admin?`<p>${IMP.key==="badkey"?"Ключ Gemini не подошёл. ":"ИИ ещё не подключён. "}Вставьте ключ Gemini (aistudio.google.com → Get API key; потом его можно сменить в «Данные» → «ИИ»):</p><div class="row"><input id="imp-gkey" type="password" autocomplete="off" placeholder="ключ Gemini" style="flex:1;min-width:0"><button class="btn pri sm" type="button" data-aikey>Сохранить и прочитать</button></div>`:`<p>ИИ для сканов ещё не подключён — попросите Даниила. Пока можно вставить текст заявки («Вставить текст»).</p>`)
       : `<p class="muted">Сайт может прочитать его через ИИ (Gemini от Google). Файл уйдёт в Google через вашу таблицу. Или вставьте текст заявки кнопкой «Вставить текст».</p><div class="row"><button class="btn pri sm" type="button" data-aigo>Прочитать через ИИ</button><button class="btn ghost sm" id="imp-close" type="button">Отмена</button></div>`)
       + `</div>`; return; }
   if(IMP.err){ box.innerHTML=`<div class="impg"><ul><li class="e">Файл «${esc(IMP.file)}» не прочитан: ${esc(IMP.err)}.</li></ul></div>`; return; }

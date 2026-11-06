@@ -1,0 +1,64 @@
+"""«Данные» → «ИИ»: ключ (сохранить, проверить, удалить), список моделей, своя модель, кто пользуется,
+что читает ИИ, лимиты, свои указания, статистика, «по умолчанию»; Наталья раздела не видит; телефон без прокрутки вбок."""
+import asyncio, os, json, re, urllib.request
+from playwright.async_api import async_playwright
+fails=[]
+def ok(c,m): print(('OK  ' if c else 'FAIL'),str(m).replace(chr(10),' ')); (None if c else fails.append(m))
+API='http://localhost:8787/exec'
+PW={'Даниил':'1111','Наталья':'2222','Гриша':'3333','Склад':'4444'}
+PNG='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+def call(user,**p):
+    body=json.dumps(dict(key=PW[user],user=user,**p)).encode()
+    return json.loads(urllib.request.urlopen(urllib.request.Request(API,data=body,method='POST')).read())
+def ai(user,kind='order'): return call(user,action='aiRead',kind=kind,mime='image/png',data=PNG)
+async def login(b,who,vw):
+    pg=await b.new_page(viewport={'width':vw[0],'height':vw[1]}); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e))); pg.on('dialog',lambda d:asyncio.ensure_future(d.accept()))
+    await pg.goto('http://localhost:8787/page'); await pg.click(f'#fd-who [data-who="{who}"]'); await pg.fill('#fd-pass',PW[who]); await pg.click('#fd-enter'); await pg.wait_for_timeout(2500)
+    await pg.evaluate("document.querySelector('nav.tabs button[data-tab=data]').click()"); await pg.wait_for_timeout(900); return pg,errs
+async def st(pg): return (await pg.text_content('#ai-box .bk-st')).strip()
+async def main():
+    async with async_playwright() as p:
+        b=await p.chromium.launch(executable_path=os.environ.get("BROWSER_EXECUTABLE_PATH"))
+        pg,errs=await login(b,'Даниил',(1300,900))
+        ok(await pg.is_visible('#ai-card'), 'Даниил видит раздел «ИИ»')
+        ok('Ключ не вставлен' in await st(pg), 'без ключа — жёлтая плашка')
+        ok(call('Наталья',action='aiCfg',op='get').get('error')=='forbidden', 'настройки ИИ на сервере — только Даниилу')
+        await pg.fill('#ai-key','AQ.Ab8RN6test-key_1234567890abcd'); await pg.click('#ai-key-save'); await pg.wait_for_timeout(900)
+        ok('Ключ подключён (…abcd)' in await st(pg), f'ключ нового формата AQ.… сохранён, видны только 4 знака: {await st(pg)}')
+        ok('AQ.Ab8RN6' not in await pg.content(), 'сам ключ на странице не показывается')
+        await pg.click('#ai-test'); await pg.wait_for_timeout(900); t=await pg.text_content('#ai-test-res'); ok('✓ Работает' in t, f'«Проверить»: {t}')
+        await pg.fill('#ai-key','bad'); await pg.click('#ai-test'); await pg.wait_for_timeout(700); t=await pg.text_content('#ai-test-res'); ok('похоже' in t, f'кривой ключ не принимается: {t}')
+        await pg.fill('#ai-key',''); await pg.click('#ai-models'); await pg.wait_for_timeout(900)
+        opts=await pg.eval_on_selector_all('#ai-model option','e=>e.map(o=>o.value)')
+        ok('gemini-3.8-flash' in opts and 'text-embedding-004' not in opts, f'список моделей из Google (только те, что читают): {opts}')
+        await pg.fill('#ai-model-own','nope'); await pg.click('#ai-test'); await pg.wait_for_timeout(800); t=await pg.text_content('#ai-test-res')
+        ok('не найдена' in t, f'несуществующая модель — понятная ошибка: {t}')
+        await pg.fill('#ai-model-own',''); await pg.select_option('#ai-model','gemini-3.8-flash'); await pg.select_option('#ai-fb','')
+        await pg.check('[name="ai-who"][value="office"]'); await pg.uncheck('[data-aion="decl"]'); await pg.fill('#ai-limit','2'); await pg.fill('#ai-mb','5')
+        await pg.fill('[data-aix="order"]','Количество в коробках не пересчитывай'); await pg.click('#ai-save'); await pg.wait_for_timeout(900)
+        await pg.reload(); await pg.wait_for_timeout(2500); await pg.evaluate("document.querySelector('nav.tabs button[data-tab=data]').click()"); await pg.wait_for_timeout(900)
+        ok(await pg.input_value('#ai-model')=='gemini-3.8-flash' and await pg.input_value('#ai-fb')=='', 'модель сохранилась после перезагрузки')
+        ok(await pg.is_checked('[name="ai-who"][value="office"]') and not await pg.is_checked('[data-aion="decl"]'), '«кто» и «что читает» сохранились')
+        ok(await pg.input_value('#ai-limit')=='2' and await pg.input_value('#ai-mb')=='5' and 'коробках' in await pg.input_value('[data-aix="order"]'), 'лимиты и свои указания сохранились')
+        ok('Даниил выключил' in str(ai('Гриша').get('error')), 'Гриша не может (только Даниил и Наталья)')
+        ok('выключено' in str(ai('Наталья','decl').get('error')), 'декларации выключены')
+        r=ai('Наталья'); ok(r.get('ok') and r.get('model')=='gemini-3.8-flash', f'Наталья читает заявку выбранной моделью: {r.get("model")}')
+        ai('Даниил'); ok('лимит' in str(ai('Наталья').get('error')), 'дневной лимит 2 запроса сработал')
+        await pg.evaluate("document.querySelector('nav.tabs button[data-tab=journal]').click()"); await pg.evaluate("document.querySelector('nav.tabs button[data-tab=data]').click()"); await pg.wait_for_timeout(900)
+        s=await st(pg); ok('Сегодня: 2' in s and '2468' in re.sub(r'\D','',s), f'счётчик запросов и токенов: {s}')
+        await pg.click('.ai-log summary'); log=await pg.text_content('.ai-log'); ok('Наталья' in log and '✓ прочитано' in log and 'лимит' in log, 'список последних запросов: кто, результат, ошибки')
+        await pg.click('#ai-reset'); await pg.wait_for_timeout(900)
+        ok(await pg.input_value('#ai-model')=='gemini-flash-latest' and await pg.is_checked('[data-aion="decl"]') and await pg.input_value('[data-aix="order"]')=='', '«Вернуть по умолчанию»')
+        ok(ai('Гриша').get('ok'), 'после сброса Гриша снова может')
+        await pg.click('.ai-log summary'); await pg.wait_for_timeout(200); await pg.click('#ai-stat-reset')
+        await pg.wait_for_timeout(800); ok('Сегодня: 0' in await st(pg), 'счётчики обнулены')
+        await pg.click('#ai-key-del'); await pg.wait_for_timeout(900); ok('Ключ не вставлен' in await st(pg) and ai('Наталья').get('error')=='nokey', 'ключ удалён')
+        ok(not errs, f'нет ошибок JS {errs[:2]}'); await pg.close()
+        pg,errs=await login(b,'Даниил',(390,844)); await pg.click('.ai-p summary'); await pg.wait_for_timeout(200)
+        ok(await pg.evaluate("document.documentElement.scrollWidth")<=390, 'телефон: нет прокрутки вбок')
+        await pg.evaluate("document.querySelector('#ai-card').scrollIntoView()"); await pg.screenshot(path=os.environ.get('SHOT','/tmp/claude-0/')+'ai-390.png', full_page=False)
+        ok(not errs, f'телефон: нет ошибок JS {errs[:2]}'); await pg.close()
+        pg,errs=await login(b,'Наталья',(1300,900)); ok(not await pg.is_visible('#ai-card'), 'Наталья раздел не видит'); await pg.close()
+        await b.close()
+    print('ИТОГ:', 'всё прошло' if not fails else f'провалов {len(fails)}')
+asyncio.run(main())

@@ -15,8 +15,10 @@ function mkSheet(name){ const data=[]; const sh={name,data,
   return sh; }
 const ss={ getId:()=>'SS1', getSheetByName:n=>sheets[n]||null, insertSheet:n=>(sheets[n]=mkSheet(n)) };
 const ctx={ SpreadsheetApp:{getActive:()=>ss}, LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){},tryLock(){return true}})},
-  ContentService:{MimeType:{JSON:'json'}, createTextOutput:t=>({t, setMimeType(){return this}})}, JSON, String, Math, Object, parseInt, Date, isNaN, Array, Session:{getScriptTimeZone:()=>'Europe/Moscow'}, PropertiesService:{getScriptProperties:()=>({getProperty:k=>props[k]||null,setProperty:(k,v)=>{props[k]=v;}})},
+  ContentService:{MimeType:{JSON:'json'}, createTextOutput:t=>({t, setMimeType(){return this}})}, JSON, String, Math, Object, parseInt, Date, isNaN, Array, Session:{getScriptTimeZone:()=>'Europe/Moscow'}, PropertiesService:{getScriptProperties:()=>({getProperty:k=>props[k]||null,setProperty:(k,v)=>{props[k]=v;},deleteProperty:k=>{delete props[k];}})},
   UrlFetchApp:{ fetch:(url,o)=>{ const fake=process.env.AI_FAKE?fs.readFileSync(process.env.AI_FAKE,'utf8'):'{}'; const key=(o&&o.headers||{})['x-goog-api-key'];
+    if(/\/models\?/.test(url)) return key==='bad'?{getResponseCode:()=>403,getContentText:()=>'{}'}:{getResponseCode:()=>200,getContentText:()=>JSON.stringify({models:[{name:'models/gemini-flash-latest',displayName:'Gemini Flash Latest',supportedGenerationMethods:['generateContent']},{name:'models/gemini-3.8-flash',displayName:'Gemini 3.8 Flash',supportedGenerationMethods:['generateContent']},{name:'models/text-embedding-004',supportedGenerationMethods:['embedContent']}]})};
+    if(/models\/nope:/.test(url)) return {getResponseCode:()=>404,getContentText:()=>'{"error":{"message":"not found"}}'};
     const code=/:generateContent$/.test(url)?(key==='bad'?403:200):200, t=code===200?JSON.stringify({candidates:[{content:{parts:[{text:fake}]}}],usageMetadata:{totalTokenCount:1234}}):'{"error":{"message":"API key not valid"}}';
     return {getResponseCode:()=>code, getContentText:()=>t}; } },
   DriveApp:{ createFolder:n=>mkFolder(), getFolderById:id=>mkFolder(),

@@ -812,7 +812,7 @@ async function miAi(f){ const M=SKMI; if(!f) return; if(!/^(image\/|application\
   M.ai={busy:1}; miRedraw();
   try{ const d=await aiPrep(f); if(d.data.length>18e6) throw new Error("файл больше 13 МБ");
     let j; try{ j=await apiFetch(API_URL,{method:"POST", tmo:150000, body:JSON.stringify({key:pass(), user:curUser(), action:"aiRead", kind:"in", mime:d.mime, data:d.data})}); }
-    catch(e){ const m=e.message||""; if(m==="nokey"||m==="badkey") throw new Error(m==="nokey"?"не вставлен ключ Gemini — Даниил вставляет его во вкладке «Новый документ» → «Заказ из файла»":"ключ Gemini не подходит"); if(m==="unknown action") throw new Error("скрипт таблицы старый — нужно обновить Code.gs"); throw e; }
+    catch(e){ const m=e.message||""; if(m==="nokey"||m==="badkey") throw new Error(m==="nokey"?"не вставлен ключ Gemini — Даниил вставляет его во вкладке «Данные» → «ИИ»":"ключ Gemini не подходит — Даниил меняет его во вкладке «Данные» → «ИИ»"); if(m==="unknown action") throw new Error("скрипт таблицы старый — нужно обновить Code.gs"); throw e; }
     let x; try{ x=JSON.parse(String(j.text).replace(/^```(json)?|```$/g,"").trim()); }catch(e){ throw new Error("ИИ ответил не по форме — попробуйте ещё раз"); }
     const its=(Array.isArray(x.items)?x.items:[]).filter(it=>it&&it.name); if(!its.length) throw new Error("в файле не нашлось строк с товарами");
     const dt=s=>{ const m=String(s||"").match(/(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})/); return m?(m[3].length===2?"20"+m[3]:m[3])+"-"+m[2].padStart(2,"0")+"-"+m[1].padStart(2,"0"):""; };

@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 11;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 12;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -150,28 +150,96 @@ const AI_PROMPT_DECL_ = [
   '"maker":"изготовитель (кратко, как написано)","applicant":"заявитель (кратко)","goods":["каждый вид продукции отдельно, коротко и в именительном падеже, например Огурцы свежие, Томаты свежие"]}',
   'Правила: в goods только сами продукты, без ГОСТ, ТР ТС и кодов ТН ВЭД; если перечислено через запятую — разбей на отдельные строки.'
 ].join('\n');
-function aiRead_(p) {
-  const pr = PropertiesService.getScriptProperties(), key = pr.getProperty('GEMINI_KEY');
-  if (!key) return { ok: false, error: 'nokey' };
-  const mime = String(p.mime || ''), data = String(p.data || '');
-  if (!/^(application\/pdf|image\/(jpeg|png|webp|heic|heif))$/.test(mime)) return { ok: false, error: 'такой файл ИИ не читает — нужен PDF или фото' };
-  if (data.length > 18e6) return { ok: false, error: 'файл больше 13 МБ — для ИИ слишком большой' };
-  const body = { contents: [{ parts: [{ inline_data: { mime_type: mime, data: data } }, { text: p.kind === 'in' ? AI_PROMPT_IN_ : p.kind === 'decl' ? AI_PROMPT_DECL_ : AI_PROMPT_ }] }], generationConfig: { temperature: 0, responseMimeType: 'application/json' } };
-  const models = [pr.getProperty('GEMINI_MODEL') || 'gemini-flash-latest', 'gemini-3.8-flash']; let last = '';
+/* Настройки ИИ — свойство скрипта AI_CFG (JSON), меняет Даниил на сайте: «Данные» → «ИИ».
+   model / fallback — модели Gemini; extra — дополнительные указания к каждой инструкции; off — что выключено;
+   who — кто может пользоваться (all / nodriver / office); maxMb — размер файла; limit — запросов в день (0 — без лимита). */
+const AI_KINDS_ = { order: 'Заявки заказчиков', in: 'Накладные прихода на склад', decl: 'Декларации' };
+const AI_DEF_ = { model: 'gemini-flash-latest', fallback: 'gemini-3.8-flash', who: 'all', maxMb: 13, limit: 0 };
+function aiPrompt_(k) { return k === 'in' ? AI_PROMPT_IN_ : k === 'decl' ? AI_PROMPT_DECL_ : AI_PROMPT_; }
+function aiCfgGet_() {
+  const pr = PropertiesService.getScriptProperties(); let c = {};
+  try { c = JSON.parse(pr.getProperty('AI_CFG') || '{}') || {}; } catch (e) { c = {}; }
+  const o = { model: String(c.model || pr.getProperty('GEMINI_MODEL') || AI_DEF_.model), fallback: c.fallback === undefined ? AI_DEF_.fallback : String(c.fallback || ''),
+    who: /^(all|nodriver|office)$/.test(c.who) ? c.who : AI_DEF_.who, maxMb: Math.min(13, Math.max(1, +c.maxMb || AI_DEF_.maxMb)), limit: Math.max(0, Math.floor(+c.limit || 0)), extra: {}, off: {} };
+  Object.keys(AI_KINDS_).forEach(k => { o.extra[k] = String((c.extra || {})[k] || ''); o.off[k] = !!(c.off || {})[k]; });
+  return o;
+}
+function aiDay_() { const tz = Session.getScriptTimeZone() || 'Europe/Moscow'; return Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd'); }
+function aiStatGet_() { let s = {}; try { s = JSON.parse(PropertiesService.getScriptProperties().getProperty('AI_STAT') || '{}') || {}; } catch (e) { s = {}; }
+  const d = aiDay_(); if (s.d !== d) { s.d = d; s.n = 0; s.tok = 0; s.err = 0; } if (s.m !== d.slice(0, 7)) { s.m = d.slice(0, 7); s.mn = 0; s.mtok = 0; } s.log = s.log || []; return s; }
+function aiStatAdd_(e) {   // счётчики и последние 20 запросов; если таблица занята — просто не считаем этот раз
+  const lock = LockService.getScriptLock(); if (!lock.tryLock(3000)) return;
+  try { const s = aiStatGet_(); if (!e.x) { s.n++; s.mn++; s.tok += e.t || 0; s.mtok += e.t || 0; if (!e.ok) s.err++; }   // x — отказ на нашей стороне, в Google не ходили
+    s.log.unshift(e); s.log = s.log.slice(0, 20); PropertiesService.getScriptProperties().setProperty('AI_STAT', JSON.stringify(s)); } finally { lock.releaseLock(); }
+}
+function aiCall_(key, models, body) {   // по очереди: основная модель, при «нет модели / лимит / перегружено» — запасная
+  let last = '';
   for (let i = 0; i < models.length; i++) {
-    const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + models[i] + ':generateContent',
+    const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(models[i]) + ':generateContent',
       { method: 'post', contentType: 'application/json', headers: { 'x-goog-api-key': key }, payload: JSON.stringify(body), muteHttpExceptions: true });
     const code = r.getResponseCode(), t = r.getContentText();
-    if (code === 200) { let j; try { j = JSON.parse(t); } catch (x) { return { ok: false, error: 'Gemini вернул непонятный ответ' }; }
+    if (code === 200) { let j; try { j = JSON.parse(t); } catch (x) { return { ok: false, error: 'Gemini вернул непонятный ответ', model: models[i] }; }
       const txt = ((((j.candidates || [])[0] || {}).content || {}).parts || []).map(x => x.text || '').join('');
-      if (!txt) return { ok: false, error: 'Gemini не смог прочитать файл' };
+      if (!txt) return { ok: false, error: 'Gemini не смог прочитать файл', model: models[i] };
       return { ok: true, text: txt, model: models[i], tokens: (j.usageMetadata || {}).totalTokenCount || 0 }; }
     last = code + ' ' + t.slice(0, 300);
-    if (code !== 404) break;
+    if (!/^(404|429|500|503)$/.test(String(code))) break;
   }
-  if (/^429/.test(last)) return { ok: false, error: 'исчерпан бесплатный лимит Gemini на сегодня/минуту — попробуйте позже' };
+  if (/^429/.test(last)) return { ok: false, error: 'исчерпан лимит Gemini на сегодня/минуту — попробуйте позже' };
   if (/^(400|401|403)/.test(last) && /key|API_KEY|permission/i.test(last)) return { ok: false, error: 'badkey' };
+  if (/^404/.test(last)) return { ok: false, error: 'модель «' + models[0] + '» не найдена — выберите другую в «Данные» → «ИИ»' };
   return { ok: false, error: 'Gemini не ответил (' + last.slice(0, 150) + ')' };
+}
+function aiRead_(p, me) {
+  const pr = PropertiesService.getScriptProperties(), key = pr.getProperty('GEMINI_KEY'), c = aiCfgGet_(), kind = AI_KINDS_[p.kind] ? p.kind : 'order';
+  if (!key) return { ok: false, error: 'nokey' };
+  const no = m => { aiStatAdd_({ at: new Date().toISOString(), u: me ? me.name : '', k: kind, m: '', ok: false, e: m.slice(0, 120), t: 0, ms: 0, x: 1 }); return { ok: false, error: m }; };
+  if (c.off[kind]) return no('чтение через ИИ («' + AI_KINDS_[kind] + '») выключено в настройках: «Данные» → «ИИ»');
+  if (me && !me.admin && (c.who === 'office' && me.role !== 'manager' || c.who === 'nodriver' && lim_(me))) return no('Даниил выключил для вас чтение через ИИ');
+  if (c.limit && aiStatGet_().n >= c.limit) return no('дневной лимит запросов к ИИ (' + c.limit + ') исчерпан — его можно поменять в «Данные» → «ИИ»');
+  const mime = String(p.mime || ''), data = String(p.data || '');
+  if (!/^(application\/pdf|image\/(jpeg|png|webp|heic|heif))$/.test(mime)) return { ok: false, error: 'такой файл ИИ не читает — нужен PDF или фото' };
+  if (data.length > c.maxMb * 1.37e6) return { ok: false, error: 'файл больше ' + c.maxMb + ' МБ — для ИИ слишком большой' };
+  const prompt = aiPrompt_(kind) + (c.extra[kind].trim() ? '\nДополнительные указания владельца (соблюдай, но формат JSON не меняй): ' + c.extra[kind].trim() : '');
+  const body = { contents: [{ parts: [{ inline_data: { mime_type: mime, data: data } }, { text: prompt }] }], generationConfig: { temperature: 0, responseMimeType: 'application/json' } };
+  const models = [c.model].concat(c.fallback && c.fallback !== c.model ? [c.fallback] : []), t0 = Date.now();
+  const r = aiCall_(key, models, body);
+  aiStatAdd_({ at: new Date().toISOString(), u: me ? me.name : '', k: kind, m: r.model || models[0], ok: !!r.ok, e: r.ok ? '' : String(r.error).slice(0, 120), t: r.tokens || 0, ms: Date.now() - t0 });
+  return r;
+}
+function aiCfg_(p, me) {
+  if (!me.admin) return { ok: false, error: 'forbidden' };
+  const pr = PropertiesService.getScriptProperties(), op = String(p.op || 'get'), keyOk = k => /^[\w.\-]{20,}$/.test(k);
+  if (op === 'set') {
+    const c = p.cfg || {}, o = {}, okModel = m => /^[\w.\-]{1,80}$/.test(m);
+    o.model = String(c.model || '').trim().replace(/^models\//, ''); if (!okModel(o.model)) return { ok: false, error: 'неверное название основной модели' };
+    o.fallback = String(c.fallback || '').trim().replace(/^models\//, ''); if (o.fallback && !okModel(o.fallback)) return { ok: false, error: 'неверное название запасной модели' };
+    o.who = /^(all|nodriver|office)$/.test(c.who) ? c.who : 'all'; o.maxMb = Math.min(13, Math.max(1, +c.maxMb || 13)); o.limit = Math.max(0, Math.min(100000, Math.floor(+c.limit || 0)));
+    o.extra = {}; o.off = {}; Object.keys(AI_KINDS_).forEach(k => { o.extra[k] = String((c.extra || {})[k] || '').slice(0, 2000); o.off[k] = !!(c.off || {})[k]; });
+    pr.setProperty('AI_CFG', JSON.stringify(o)); pr.deleteProperty('GEMINI_MODEL');
+  }
+  if (op === 'key') { const k = String(p.gkey || '').trim(); if (!keyOk(k)) return { ok: false, error: 'это не похоже на ключ Gemini' }; pr.setProperty('GEMINI_KEY', k); }
+  if (op === 'delKey') pr.deleteProperty('GEMINI_KEY');
+  if (op === 'reset') pr.deleteProperty('AI_CFG');
+  if (op === 'resetStat') pr.deleteProperty('AI_STAT');
+  if (op === 'test') {   // короткий запрос без файла: подходит ли ключ и отвечает ли модель
+    const k = String(p.gkey || '').trim() || pr.getProperty('GEMINI_KEY'); if (!k) return { ok: false, error: 'nokey' }; if (!keyOk(k)) return { ok: false, error: 'это не похоже на ключ Gemini' };
+    const m = String(p.model || '').trim().replace(/^models\//, '') || aiCfgGet_().model, t0 = Date.now();
+    const r = aiCall_(k, [m], { contents: [{ parts: [{ text: 'Ответь одним словом: работает' }] }], generationConfig: { temperature: 0 } });
+    return r.ok ? { ok: true, model: r.model, ms: Date.now() - t0, text: String(r.text).trim().slice(0, 60) } : { ok: false, error: r.error };
+  }
+  if (op === 'models') {
+    const k = String(p.gkey || '').trim() || pr.getProperty('GEMINI_KEY'); if (!k) return { ok: false, error: 'nokey' };
+    const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': k }, muteHttpExceptions: true });
+    if (r.getResponseCode() !== 200) return { ok: false, error: /^(400|401|403)$/.test(String(r.getResponseCode())) ? 'badkey' : 'Gemini не ответил (' + r.getResponseCode() + ')' };
+    let j = {}; try { j = JSON.parse(r.getContentText()); } catch (e) { }
+    const list = (j.models || []).filter(x => (x.supportedGenerationMethods || []).indexOf('generateContent') >= 0 && /gemini/i.test(x.name || ''))
+      .map(x => ({ id: String(x.name).replace(/^models\//, ''), name: x.displayName || '', note: String(x.description || '').slice(0, 120) }));
+    return { ok: true, models: list };
+  }
+  const key = pr.getProperty('GEMINI_KEY') || '', s = aiStatGet_();
+  return { ok: true, hasKey: !!key, mask: key ? '…' + key.slice(-4) : '', cfg: aiCfgGet_(), def: AI_DEF_, kinds: AI_KINDS_,
+    prompts: { order: AI_PROMPT_, in: AI_PROMPT_IN_, decl: AI_PROMPT_DECL_ }, stat: { d: s.d, n: s.n, tok: s.tok, err: s.err, m: s.m, mn: s.mn, mtok: s.mtok }, log: s.log };
 }
 
 function doGet(e)  { return out_(handle_(Object.assign({}, e && e.parameter))); }
@@ -228,7 +296,8 @@ function handle_(p) {
   const me = auth_(p);
   if (!me) return { ok: false, error: 'auth' };
   if (/^backup(Tick|List|Now)$/.test(p.action || '')) return backup_(p, me);   // без общей блокировки: копия таблицы делается несколько секунд
-  if (p.action === 'aiRead') return aiRead_(p);        // без блокировки: ИИ думает до минуты, остальные в это время работают
+  if (p.action === 'aiRead') return aiRead_(p, me);        // без блокировки: ИИ думает до минуты, остальные в это время работают
+  if (p.action === 'aiCfg') return aiCfg_(p, me);      // настройки ИИ («Данные» → «ИИ»), только Даниил, без общей блокировки
   if (p.action === 'aiKey') { if (!me.admin) return { ok: false, error: 'forbidden' }; const k = String(p.gkey || '').trim();
     if (!/^[\w.\-]{20,}$/.test(k)) return { ok: false, error: 'это не похоже на ключ Gemini' }; PropertiesService.getScriptProperties().setProperty('GEMINI_KEY', k); return { ok: true }; }
   const lock = LockService.getScriptLock();
