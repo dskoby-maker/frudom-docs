@@ -45,6 +45,19 @@
 #fd-app dialog.dcard::backdrop{background:rgba(28,34,32,.38);backdrop-filter:blur(2px);animation:fdbd .2s ease}
 @keyframes fdbd{from{opacity:0}}
 #fd-app .dcard .dc-head{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+/* окно: шапка остаётся сверху при прокрутке, аккуратный ползунок внутри окна */
+#fd-app dialog.dcard{--dcp-t:22px;--dcp-x:22px;overscroll-behavior:contain}
+@media (max-width:600px){#fd-app dialog.dcard{--dcp-t:18px;--dcp-x:16px}}
+#fd-app dialog.dcard>.dc-head{position:sticky;top:calc(-1 * var(--dcp-t));z-index:6;margin:calc(-1 * var(--dcp-t)) calc(-1 * var(--dcp-x)) 0;padding:var(--dcp-t) var(--dcp-x) 12px;background:transparent;border-bottom:1px solid transparent;transition:background-color .2s,border-color .2s,box-shadow .2s}
+#fd-app dialog.dcard.scrolled>.dc-head{background:rgba(250,251,251,.95);-webkit-backdrop-filter:blur(18px) saturate(1.6);backdrop-filter:blur(18px) saturate(1.6);border-bottom-color:rgba(28,34,32,.08);box-shadow:0 10px 18px -16px rgba(28,34,32,.45)}
+#fd-app dialog.dcard::-webkit-scrollbar,#fd-app dialog.dcard ::-webkit-scrollbar{width:14px;height:14px}
+#fd-app dialog.dcard::-webkit-scrollbar-track,#fd-app dialog.dcard ::-webkit-scrollbar-track{background:transparent}
+#fd-app dialog.dcard::-webkit-scrollbar-track{margin:var(--dchh,18px) 0 18px}
+#fd-app dialog.dcard::-webkit-scrollbar-thumb,#fd-app dialog.dcard ::-webkit-scrollbar-thumb{background:rgba(106,44,78,.22);border:4px solid transparent;background-clip:padding-box;border-radius:99px;min-height:40px}
+#fd-app dialog.dcard::-webkit-scrollbar-thumb:hover,#fd-app dialog.dcard ::-webkit-scrollbar-thumb:hover{background-color:rgba(106,44,78,.45)}
+#fd-app dialog.dcard::-webkit-scrollbar-thumb:active,#fd-app dialog.dcard ::-webkit-scrollbar-thumb:active{background-color:var(--accent)}
+#fd-app dialog.dcard::-webkit-scrollbar-corner,#fd-app dialog.dcard ::-webkit-scrollbar-corner{background:transparent}
+@supports not selector(::-webkit-scrollbar){#fd-app dialog.dcard,#fd-app dialog.dcard *{scrollbar-width:thin;scrollbar-color:rgba(106,44,78,.3) transparent}}
 #fd-app .dcard .dc-kicker{font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--accent);background:var(--accent-soft);display:inline-block;padding:3px 10px;border-radius:99px}
 #fd-app .dcard h3{margin:8px 0 2px;font-size:20px;line-height:1.25;letter-spacing:-.01em}
 #fd-app .dcard .dc-sub{color:var(--muted);font-size:13px}
@@ -347,7 +360,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .skh-pr em{font-style:normal;font-size:11.5px;font-weight:600;text-align:right}#fd-app .skh-pr em.up{color:var(--err)}#fd-app .skh-pr em.dn{color:var(--ok)}#fd-app .okc{color:var(--ok)}
 #fd-app .skh-note{font-size:12px;margin:8px 0 0}
 #fd-app .skh-f{margin:12px 0 6px}
-#fd-app .skh-list{display:grid;gap:10px}#fd-app .skh-dh{position:sticky;top:-1px;z-index:1;font-size:12px;font-weight:700;color:var(--muted);padding:4px 2px;background:linear-gradient(var(--surface,#fff) 70%,transparent);text-transform:none}
+#fd-app .skh-list{display:grid;gap:10px}#fd-app .skh-dh{position:sticky;top:calc(var(--dch,0px) - 1px);z-index:1;font-size:12px;font-weight:700;color:var(--muted);padding:4px 2px;background:linear-gradient(var(--surface,#fff) 70%,transparent);text-transform:none}
 #fd-app .skh-r{display:grid;grid-template-columns:42px 12px minmax(0,1fr) 128px 84px;gap:8px;align-items:start;padding:8px 6px;border-bottom:1px solid rgba(28,34,32,.06);font-size:13px}
 #fd-app .skh-t{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;padding-top:1px}
 #fd-app .skh-i{width:9px;height:9px;border-radius:50%;margin-top:5px;background:var(--muted)}#fd-app .k-in .skh-i{background:var(--ok)}#fd-app .k-out .skh-i{background:#1f5f7a}#fd-app .k-wo .skh-i{background:var(--warn)}#fd-app .k-price .skh-i{background:var(--accent)}
@@ -454,7 +467,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .sklg-range{display:flex;gap:10px;flex-wrap:wrap;animation:fdin .2s ease}#fd-app .sklg-range label{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--muted)}#fd-app .sklg-range input{width:auto}
 #fd-app .sklg-f{display:flex;gap:8px;flex-wrap:wrap;align-items:center}#fd-app .sklg-f select{width:auto;max-width:100%;min-width:0;flex:0 1 240px}
 #fd-app .sklog{display:grid}
-#fd-app .sklday{position:sticky;top:0;z-index:1;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:12px 6px 6px;background:linear-gradient(var(--surface) 70%,transparent)}#fd-app .sklday:first-letter{text-transform:uppercase}
+#fd-app .sklday{position:sticky;top:var(--dch,0px);z-index:1;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:12px 6px 6px;background:linear-gradient(var(--surface) 70%,transparent)}#fd-app .sklday:first-letter{text-transform:uppercase}
 #fd-app .sklr{display:grid;grid-template-columns:48px 210px minmax(0,1fr) 96px;gap:12px;align-items:start;padding:9px 6px;border-bottom:1px solid rgba(28,34,32,.06);font-size:13.5px;animation:fdin .25s ease both;animation-delay:var(--d,0ms)}
 #fd-app .sklr.pend{background:var(--warn-soft);border-radius:10px}
 #fd-app .sklt{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12.5px;padding-top:2px}
@@ -4171,6 +4184,16 @@ function whoLine(j){ const h=histOf(j), c=h.find(x=>(x.w||[])[0]==="создан
 const posWord = n => n%10===1&&n%100!==11?"позиция":(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))?"позиции":"позиций";
 const linesTable = k => `<div class="dc-tw"><table class="dc-t"><thead><tr><th>Товар</th><th class="num">Кол-во</th><th class="num">Цена, ₽</th><th class="num">Сумма, ₽</th></tr></thead><tbody>${k.lines.map(l=>`<tr><td><b>${esc(l.name)}</b></td><td class="num">${esc(nq3(l.qty))}&nbsp;${esc(l.unit||"")}</td><td class="num">${fm(l.price)}</td><td class="num"><b>${fm(l.sum)}</b></td></tr>`).join("")}</tbody></table></div>`;
 /* общий вид всплывающей карточки: плавное появление, закрытие крестиком / Esc / кликом мимо */
+// окна: тень под шапкой при прокрутке; --dch — высота шапки (для внутренних липких заголовков)
+function dcFit(d){
+  d.classList.toggle("scrolled", d.scrollTop>4);
+  const h=d.querySelector(":scope>.dc-head"); if(!h) return; const pt=parseFloat(getComputedStyle(d).paddingTop)||0;
+  const v=Math.max(0, Math.round(h.getBoundingClientRect().bottom - d.getBoundingClientRect().top - pt))+"px";
+  if(d.style.getPropertyValue("--dch")!==v) d.style.setProperty("--dch", v);
+  const hh=(parseFloat(v)+pt+4)+"px"; if(d.style.getPropertyValue("--dchh")!==hh) d.style.setProperty("--dchh", hh);
+}
+document.addEventListener("scroll", e=>{ const d=e.target; if(d && d.matches && d.matches("dialog.dcard")) dcFit(d); }, true);
+document.addEventListener("focusin", e=>{ const d=e.target.closest && e.target.closest("dialog.dcard"); if(d) dcFit(d); });
 function openCard(html, wide, onAct){
   const old=document.getElementById("fd-dcard"); if(old) old.remove();
   const d=document.createElement("dialog"); d.id="fd-dcard"; d.className="dcard"+(wide?" wide":""); d.innerHTML=html;
