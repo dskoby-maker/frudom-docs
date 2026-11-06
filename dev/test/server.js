@@ -16,7 +16,12 @@ function mkSheet(name){ const data=[]; const sh={name,data,
 const ss={ getId:()=>'SS1', getSheetByName:n=>sheets[n]||null, insertSheet:n=>(sheets[n]=mkSheet(n)) };
 const ctx={ SpreadsheetApp:{getActive:()=>ss}, LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){},tryLock(){return true}})},
   ContentService:{MimeType:{JSON:'json'}, createTextOutput:t=>({t, setMimeType(){return this}})}, JSON, String, Math, Object, parseInt, Date, isNaN, Array, Session:{getScriptTimeZone:()=>'Europe/Moscow'}, PropertiesService:{getScriptProperties:()=>({getProperty:k=>props[k]||null,setProperty:(k,v)=>{props[k]=v;},deleteProperty:k=>{delete props[k];}})},
-  UrlFetchApp:{ fetch:(url,o)=>{ const fake=process.env.AI_FAKE?fs.readFileSync(process.env.AI_FAKE,'utf8'):'{}'; const key=(o&&o.headers||{})['x-goog-api-key'];
+  UrlFetchApp:{ fetch:(url,o)=>{ if(/business\.tbank\.ru/.test(url)){ const tb=ctx.__tb||{}, au=((o&&o.headers)||{}).Authorization||''; globalThis.__tbCalls=(globalThis.__tbCalls||0)+1;   /* тестовый Т-Бизнес: ctx.__tb = {tokens:{токен:{accounts:[...], ops:[...]}}} */
+      const T=(tb.tokens||{})[au.replace('Bearer ','')]; if(!T) return {getResponseCode:()=>401,getContentText:()=>'{"errorMessage":"unauthorized"}'};
+      if(/bank-accounts/.test(url)) return {getResponseCode:()=>200,getContentText:()=>JSON.stringify(T.accounts.map(a=>({accountNumber:a,currency:'643',name:'Расчётный'})))};
+      if(/statement/.test(url)){ const acc=new URL(url).searchParams.get('accountNumber'); return {getResponseCode:()=>200,getContentText:()=>JSON.stringify({operations:(T.ops||[]).filter(x=>!x.acc||x.acc===acc)})}; }
+      return {getResponseCode:()=>404,getContentText:()=>'{}'}; }
+    const fake=process.env.AI_FAKE?fs.readFileSync(process.env.AI_FAKE,'utf8'):'{}'; const key=(o&&o.headers||{})['x-goog-api-key'];
     if(/api\.anthropic\.com/.test(url)){ const ck=(o&&o.headers||{})['x-api-key']; if(ck==='sk-ant-bad-key-000000000000') return {getResponseCode:()=>401,getContentText:()=>'{"type":"error","error":{"type":"authentication_error"}}'};
       if(/\/v1\/models/.test(url)) return {getResponseCode:()=>200,getContentText:()=>JSON.stringify({data:[{id:'claude-sonnet-5-5',display_name:'Claude Sonnet 5.5'},{id:'claude-haiku-5-5',display_name:'Claude Haiku 5.5'}]})};
       const bd=JSON.parse(o.payload); if(bd.model==='claude-nope') return {getResponseCode:()=>404,getContentText:()=>'{"error":{"type":"not_found_error"}}'};
