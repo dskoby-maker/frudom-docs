@@ -82,10 +82,10 @@ const pvSrc = j => { const L=dcLines(docCost(j.id)); return Array.isArray(L._src
 function pvInit(){
   const tab=$("#tab-profit"); if(!tab || $("#pv-seg")) return;
   tab.insertAdjacentHTML("afterbegin", `<div class="pvseg" id="pv-seg" role="tablist" aria-label="Раздел прибыли"><i></i>
-    <button type="button" role="tab" data-pv="ov">${pvIco("ov")}Обзор</button>
-    <button type="button" role="tab" data-pv="cus">${pvIco("cus")}По заказчикам</button>
-    <button type="button" role="tab" data-pv="fin">${pvIco("fin")}Расходы и доходы</button>
-    <button type="button" role="tab" data-pv="bank">${pvIco("bank")}Поступления<em id="pv-bkn" hidden></em></button></div>`);
+    <button type="button" role="tab" data-pv="ov">${pvIco("ov")}<span>Обзор</span></button>
+    <button type="button" role="tab" data-pv="cus">${pvIco("cus")}<span class="pvl">По заказчикам</span><span class="pvs">Заказчики</span></button>
+    <button type="button" role="tab" data-pv="fin">${pvIco("fin")}<span class="pvl">Расходы и доходы</span><span class="pvs">Расходы</span></button>
+    <button type="button" role="tab" data-pv="bank">${pvIco("bank")}<span class="pvl">Поступления</span><span class="pvs">Банк</span><em id="pv-bkn" hidden></em></button></div>`);
   tab.insertAdjacentHTML("beforeend", `<div class="card pfv-cus" id="pv-cus"></div><div class="card pfv-fin" id="pv-fin"></div><div class="card pfv-bank" id="pv-bank"></div>`);
   $("#pv-seg").addEventListener("click", e=>{ const b=e.target.closest("[data-pv]"); if(!b) return; PV().v=b.dataset.pv; saveLocal(); pvDraw(); window.scrollTo({top:0, behavior:"smooth"}); });
   $("#pv-cus").addEventListener("click", pvCusClick); $("#pv-cus").addEventListener("input", e=>{ if(e.target.id==="pv-q"){ PV().q=e.target.value; pvCusDraw(true); } });
