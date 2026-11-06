@@ -124,7 +124,7 @@ async function dAi(){ const F=SKDF; const x0=F.files.find(x=>/^image\//.test(skM
   dFormRead(); F.ai={busy:1}; dRedraw();
   try{ const d=await aiPrep(x0); if(d.data.length>18e6) throw new Error("файл больше 13 МБ");
     let j; try{ j=await apiFetch(API_URL,{method:"POST", tmo:150000, body:JSON.stringify({key:pass(), user:curUser(), action:"aiRead", kind:"decl", mime:d.mime, data:d.data})}); }
-    catch(e){ const m=e.message||""; if(m==="nokey"||m==="badkey") throw new Error(m==="nokey"?"не вставлен ключ Gemini":"ключ Gemini не подходит"); if(m==="unknown action") throw new Error("скрипт таблицы старый — нужно обновить Code.gs"); throw e; }
+    catch(e){ const m=e.message||""; if(m==="nokey"||m==="badkey") throw new Error(m==="nokey"?"не вставлен ключ Gemini (вкладка «Данные» → «ИИ»)":"ключ Gemini не подходит (вкладка «Данные» → «ИИ»)"); if(m==="unknown action") throw new Error("скрипт таблицы старый — нужно обновить Code.gs"); throw e; }
     let x; try{ x=JSON.parse(String(j.text).replace(/^```(json)?|```$/g,"").trim()); }catch(e){ throw new Error("ИИ ответил не по форме — попробуйте ещё раз"); }
     if(!x.number && !Array.isArray(x.goods)) throw new Error("это не похоже на декларацию — или скрипт таблицы старый (обновите Code.gs)");
     const dt=s=>{ const m=String(s||"").match(/(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})/); return m?(m[3].length===2?"20"+m[3]:m[3])+"-"+m[2].padStart(2,"0")+"-"+m[1].padStart(2,"0"):""; };
