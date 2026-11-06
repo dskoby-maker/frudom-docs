@@ -1131,7 +1131,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app button.pfpay{display:inline-flex;align-items:center;gap:5px;font:600 12.5px var(--ui);padding:5px 11px;border-radius:99px;border:1px solid rgba(47,107,69,.35);background:rgba(47,107,69,.07);color:var(--ok);cursor:pointer;white-space:nowrap;transition:background .2s,transform .15s var(--ease,ease),box-shadow .2s}
 #fd-app button.pfpay:hover{background:var(--ok);color:#fff;box-shadow:0 6px 14px -8px rgba(47,107,69,.7)}#fd-app button.pfpay:active{transform:scale(.95)}
 #fd-app button.pfpay.paid{background:rgba(47,107,69,.1);border-color:transparent}#fd-app button.pfpay.paid i{font-style:normal;display:grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--ok);color:#fff;font-size:10px;animation:fdpop .3s var(--ease,ease)}
-#fd-app button.pfpay.paid small{font-weight:400;opacity:.8}#fd-app button.pfpay.paid:hover{background:rgba(179,38,30,.08);color:var(--err);box-shadow:none}#fd-app button.pfpay.paid:hover i{background:var(--err)}
+#fd-app button.pfpay.paid small{font-weight:400;opacity:.8}#fd-app button.pfpay.paid i .pvi{width:11px;height:11px;stroke-width:2.6}#fd-app button.pfpay.paid:hover{background:rgba(179,38,30,.08);color:var(--err);box-shadow:none}#fd-app button.pfpay.paid:hover i{background:var(--err)}
 #fd-app .pfpaycell{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px}#fd-app .pfpaycell small{flex-basis:100%;font-size:11px}
 #fd-app table.pf td.pfpt{white-space:nowrap}
 #fd-app table.pf tr.pfnew>td{background:rgba(242,231,237,.55)}#fd-app table.pf tr.pfnew>td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
@@ -1156,8 +1156,9 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .pvseg{position:relative;display:grid;grid-template-columns:repeat(3,1fr);background:rgba(28,34,32,.07);border-radius:14px;padding:4px;isolation:isolate;max-width:560px}
 #fd-app .pvseg>i{position:absolute;z-index:-1;top:4px;bottom:4px;left:4px;width:calc((100% - 8px)/3);border-radius:10px;background:var(--surface);box-shadow:0 1px 3px rgba(0,0,0,.1),0 4px 12px -6px rgba(28,34,32,.25);transform:translateX(calc(var(--i,0) * 100%));transition:transform .32s cubic-bezier(.3,.7,.2,1)}
 #fd-app .pvseg button{border:0;background:none;font:500 14px var(--ui);color:var(--muted);padding:9px 8px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:color .2s;white-space:nowrap}
-#fd-app .pvseg button span{font-size:16px;transition:transform .3s cubic-bezier(.3,.7,.2,1.6)}
-#fd-app .pvseg button.on{color:var(--accent);font-weight:600}#fd-app .pvseg button.on span{transform:scale(1.18)}
+#fd-app .pvseg button .pvi{width:16px;height:16px;opacity:.75;transition:opacity .2s}
+#fd-app .pvseg button.on{color:var(--accent);font-weight:600}#fd-app .pvseg button.on .pvi{opacity:1}
+#fd-app .pvi{width:1em;height:1em;flex:none;vertical-align:-.14em}#fd-app .btn .pvi{width:15px;height:15px;margin-right:6px}
 #fd-app #tab-profit[data-v=ov] .pfv-cus,#fd-app #tab-profit[data-v=ov] .pfv-fin,#fd-app #tab-profit:not([data-v]) .pfv-cus,#fd-app #tab-profit:not([data-v]) .pfv-fin,#fd-app #tab-profit #pf-othc{display:none}
 #fd-app #tab-profit[data-v=cus]>.card:not(.pfv-cus),#fd-app #tab-profit[data-v=fin]>.card:not(.pfv-fin){display:none}
 #fd-app .pfv-cus,#fd-app .pfv-fin{animation:fdin .25s ease}
@@ -1170,36 +1171,47 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .pvkpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
 #fd-app .pvkpi>div{background:var(--bg);border-radius:14px;padding:12px 14px;display:grid;gap:2px;animation:fdin .3s ease both}
 #fd-app .pvkpi small{color:var(--muted);font-size:12px}#fd-app .pvkpi b{font-size:21px;letter-spacing:-.01em;font-weight:650}#fd-app .pvkpi span{font-size:12px;color:var(--muted)}#fd-app .pvkpi span.warn{color:var(--warn)}
-#fd-app .pvkpi .pos{background:linear-gradient(135deg,rgba(47,107,69,.1),rgba(47,107,69,.03))}#fd-app .pvkpi .pos b{color:var(--ok)}
+#fd-app .pvkpi .pos{background:var(--bg);box-shadow:inset 3px 0 0 var(--ok)}#fd-app .pvkpi .pos b{color:var(--ok)}#fd-app .pvkpi .due{box-shadow:inset 3px 0 0 #b9a06a}#fd-app .pvkpi>div{border-radius:10px}
 #fd-app .pvkpi .neg b,#fd-app b.neg,#fd-app .pvits.neg,#fd-app span.neg{color:var(--err)}
 #fd-app .pvkpi.sm b{font-size:18px}
-#fd-app .pvsearch{display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:12px;padding:0 12px;max-width:360px;transition:box-shadow .2s}#fd-app .pvsearch:focus-within{box-shadow:0 0 0 2px var(--accent)}
+#fd-app .pvsearch .pvi{width:16px;height:16px;color:var(--muted)}#fd-app .pvsearch{display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:12px;padding:0 12px;max-width:360px;transition:box-shadow .2s}#fd-app .pvsearch:focus-within{box-shadow:0 0 0 2px var(--accent)}
 #fd-app .pvsearch input{border:0;background:none;outline:0;padding:10px 0}#fd-app .pvsearch input:focus{outline:0}
 #fd-app .pvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
 #fd-app .pvcus{all:unset;box-sizing:border-box;cursor:pointer;display:grid;gap:10px;padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--surface);position:relative;animation:fdin .35s ease both;animation-delay:var(--d);transition:transform .18s ease,box-shadow .18s ease,border-color .18s}
 #fd-app .pvcus:hover{transform:translateY(-2px);box-shadow:0 14px 30px -18px rgba(28,34,32,.5);border-color:rgba(106,44,78,.35)}#fd-app .pvcus:focus-visible{outline:2px solid var(--accent)}
 #fd-app .pvch{display:flex;gap:10px;align-items:center;min-width:0}
-#fd-app .pvava{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-weight:700;color:hsl(var(--h),45%,32%);background:hsl(var(--h),60%,92%)}
+#fd-app .pvava{flex:none;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-weight:600;font-size:14px;color:hsl(var(--h),18%,32%);background:hsl(var(--h),14%,93%);box-shadow:inset 0 0 0 1px hsl(var(--h),12%,86%)}
 #fd-app .pvcn{min-width:0;display:grid}#fd-app .pvcn b{font-weight:600;line-height:1.25;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}#fd-app .pvcn small{color:var(--muted);font-size:12px}
-#fd-app .pvwarn{margin-left:auto;flex:none;font-style:normal;font-size:11.5px;font-weight:600;color:var(--warn);background:var(--warn-soft);border-radius:99px;padding:2px 8px}
+#fd-app .pvwarn{margin-left:auto;flex:none;display:inline-flex;align-items:center;gap:5px;font-style:normal;font-size:11.5px;font-weight:500;color:#8a6d2a;background:none;border:1px solid #e3d3a9;border-radius:6px;padding:1px 7px}#fd-app .pvwarn i{width:6px;height:6px;border-radius:50%;background:#c9a24a}
 #fd-app .pvcp{display:flex;align-items:baseline;gap:8px}#fd-app .pvcp small{color:var(--muted);font-size:12px}#fd-app .pvcp b{font-size:20px;color:var(--ok);font-weight:650}#fd-app .pvcp span{color:var(--muted);font-size:12px;margin-left:auto}
-#fd-app .pvbar{height:5px;border-radius:9px;background:var(--bg);overflow:hidden}#fd-app .pvbar i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,#4f9a69,var(--ok));animation:pvgrow .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--d) + .15s);transform-origin:left}
+#fd-app .pvbar{height:5px;border-radius:9px;background:var(--bg);overflow:hidden}#fd-app .pvbar i{display:block;height:100%;border-radius:9px;background:var(--ok);opacity:.75;animation:pvgrow .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--d) + .15s);transform-origin:left}
 @keyframes pvgrow{0%{transform:scaleX(0)}}
 #fd-app .pvcs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0}#fd-app .pvcs dt{font-size:11px;color:var(--muted)}#fd-app .pvcs dd{margin:0;font-size:13.5px;font-weight:500}
 #fd-app .pvgo{position:absolute;right:14px;bottom:12px;font-size:12px;color:var(--accent);opacity:0;transform:translateX(-4px);transition:opacity .18s,transform .18s}#fd-app .pvcus:hover .pvgo{opacity:1;transform:none}
-#fd-app .pvempty{grid-column:1/-1;display:grid;justify-items:center;gap:4px;padding:30px 10px;color:var(--muted);text-align:center;animation:fdin .3s ease}#fd-app .pvempty span{font-size:34px}#fd-app .pvempty b{color:var(--ink)}
+#fd-app .pvempty{grid-column:1/-1;display:grid;justify-items:center;gap:4px;padding:30px 10px;color:var(--muted);text-align:center;animation:fdin .3s ease}#fd-app .pvempty .pvi.big{width:34px;height:34px;color:var(--muted);opacity:.7}#fd-app .pvempty b{color:var(--ink)}
 /* окно заказчика */
 #fd-app .pvl-d .pvkpi{margin:4px 0 14px}
-#fd-app .pvlh,#fd-app .pvrl{display:grid;grid-template-columns:52px 64px 112px 112px minmax(0,1fr) 120px;gap:10px;align-items:center}
+#fd-app .pvlh,#fd-app .pvrl{display:grid;grid-template-columns:48px 60px 104px 104px minmax(0,1fr) 150px 108px;gap:10px;align-items:center}
 #fd-app .pvlh{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:0 12px 6px}
 #fd-app .pvlh .num,#fd-app .pvrl .num{text-align:right}
 #fd-app .pvm{border:1px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden;background:var(--surface)}
 #fd-app .pvmh{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;cursor:pointer;background:var(--bg);flex-wrap:wrap;transition:background .15s}
 #fd-app .pvmh:hover{background:var(--accent-soft)}#fd-app .pvmh b{font-size:15px}#fd-app .pvmh span{color:var(--muted);font-size:13px}#fd-app .pvmh strong{margin-left:auto;color:var(--ok)}#fd-app .pvmh strong.neg{color:var(--err)}#fd-app .pvmh .pvwarn{margin-left:0}
+#fd-app .pvpm{display:inline-flex;align-items:center;gap:4px;font-style:normal;font-size:11.5px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 7px}#fd-app .pvpm .pvi{width:12px;height:12px}#fd-app .pvpm.all{color:var(--ok);border-color:rgba(47,107,69,.3)}
+/* оплата в строке накладной */
+#fd-app .pvpay{all:unset;box-sizing:border-box;display:grid;justify-self:start;min-width:118px;gap:1px;padding:5px 9px;border-radius:8px;border:1px solid var(--line);background:var(--surface);cursor:pointer;line-height:1.2;transition:border-color .15s,background .15s,transform .12s}
+#fd-app .pvpay>span{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;color:var(--ink)}#fd-app .pvpay small{font-size:11px;color:var(--muted);white-space:nowrap}
+#fd-app .pvpay i{width:7px;height:7px;border-radius:50%;border:1.5px solid #9aa39e;box-sizing:border-box}
+#fd-app .pvpay.mid i{border-color:#c9a24a;background:#c9a24a}#fd-app .pvpay.old i{border-color:#c97a6c;background:#c97a6c}#fd-app .pvpay.mid small{color:#8a6d2a}#fd-app .pvpay.old small{color:#a15d52}
+#fd-app .pvpay.part i{background:linear-gradient(90deg,#9aa39e 50%,transparent 50%)}
+#fd-app .pvpay.paid{background:rgba(47,107,69,.06);border-color:rgba(47,107,69,.22)}#fd-app .pvpay.paid>span{color:var(--ok)}#fd-app .pvpay .pvi{width:13px;height:13px}
+#fd-app .pvpay:hover{border-color:var(--accent)}#fd-app .pvpay:active{transform:scale(.97)}#fd-app .pvpay:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+#fd-app .pvpay.pop{animation:pvpop .45s cubic-bezier(.2,.8,.2,1)}@keyframes pvpop{0%{transform:scale(.94);box-shadow:0 0 0 0 rgba(47,107,69,.35)}60%{transform:scale(1.02);box-shadow:0 0 0 6px rgba(47,107,69,0)}100%{transform:none}}
 #fd-app .pvmh i{width:8px;height:8px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(45deg);transition:transform .25s;margin:0 2px 3px 4px}#fd-app .pvm.op .pvmh i{transform:rotate(-135deg);margin-bottom:-3px}
 #fd-app .pvmb{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s cubic-bezier(.2,.8,.2,1)}#fd-app .pvm.op .pvmb{grid-template-rows:1fr}#fd-app .pvmb>div{overflow:hidden;min-height:0}
 #fd-app .pvr{border-top:1px solid var(--line)}#fd-app .pvr:first-child{border-top:0}
-#fd-app .pvrl{all:unset;box-sizing:border-box;display:grid;grid-template-columns:52px 64px 112px 112px minmax(0,1fr) 120px;gap:10px;align-items:center;width:100%;padding:11px 12px;cursor:pointer;font-size:14px;transition:background .15s}
+#fd-app .pvrl:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+#fd-app .pvrl{all:unset;box-sizing:border-box;display:grid;grid-template-columns:48px 60px 104px 104px minmax(0,1fr) 150px 108px;gap:10px;align-items:center;width:100%;padding:11px 12px;cursor:pointer;font-size:14px;transition:background .15s}
 #fd-app .pvrl:hover,#fd-app .pvr.ed .pvrl{background:rgba(106,44,78,.045)}
 #fd-app .pvd{color:var(--muted)}#fd-app .pvn{font-weight:600}#fd-app .pvp{font-weight:650;color:var(--ok)}#fd-app .pvp.neg{color:var(--err)}
 #fd-app .pvsrcs{display:flex;flex-wrap:wrap;gap:4px}
@@ -1219,9 +1231,9 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .pvea{display:flex;gap:8px;flex-wrap:wrap;align-items:center}#fd-app .pvhint{font-size:12.5px}
 /* расходы и доходы */
 #fd-app .pvacts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-#fd-app .pvadd{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:12px;padding:10px 18px 10px 12px;font:600 14.5px var(--ui);cursor:pointer;color:#fff;box-shadow:0 8px 18px -10px currentColor;transition:transform .15s,box-shadow .15s,filter .15s}
+#fd-app .pvadd{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:10px;padding:9px 16px 9px 10px;font:600 14px var(--ui);cursor:pointer;color:#fff;transition:transform .15s,filter .15s}
 #fd-app .pvadd span{width:24px;height:24px;border-radius:8px;background:rgba(255,255,255,.22);display:grid;place-items:center;font-size:17px}
-#fd-app .pvadd.exp{background:linear-gradient(135deg,#c2453c,#9e2b24)}#fd-app .pvadd.inc{background:linear-gradient(135deg,#3f8a5a,#2b6a43)}
+#fd-app .pvadd.exp{background:#8f3a33}#fd-app .pvadd.inc{background:#2f6b45}
 #fd-app .pvadd:hover{transform:translateY(-1px);filter:brightness(1.06)}#fd-app .pvadd:active{transform:scale(.97)}
 #fd-app .pvcats{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}#fd-app .pvcats h3{margin:0 0 8px;font-size:13px;color:var(--muted);font-weight:600}
 #fd-app .pvcats>div{display:grid;gap:4px;align-content:start}
@@ -1230,7 +1242,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .pvcb .pvb{grid-area:i}#fd-app .pvcbn{grid-area:n;display:grid;min-width:0}#fd-app .pvcbn b{font-weight:600;font-size:14px}#fd-app .pvcbn small,#fd-app .pvcbs small{font-size:11.5px;color:var(--muted)}
 #fd-app .pvcbs{grid-area:s;display:grid;text-align:right}#fd-app .pvcbs b{font-weight:600}
 #fd-app .pvcbb{grid-area:b;display:block;height:4px;border-radius:9px;background:var(--bg);overflow:hidden;margin-top:3px}#fd-app .pvcbb>i{display:block;height:100%;border-radius:9px;animation:pvgrow .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--d) + .1s);transform-origin:left}
-#fd-app .pvb{flex:none;width:34px;height:34px;border-radius:11px;display:grid;place-items:center;font-size:17px;background:hsl(var(--h) var(--s) 93%);box-shadow:inset 0 0 0 1px hsl(var(--h) var(--s) 85%)}
+#fd-app .pvb{flex:none;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-size:17px;color:hsl(var(--h) calc(var(--s) * .55) 36%);background:hsl(var(--h) calc(var(--s) * .3) 95%);box-shadow:inset 0 0 0 1px hsl(var(--h) calc(var(--s) * .3) 87%)}
 #fd-app .pvnone{font-size:13px;padding:4px 10px}
 #fd-app .pvfilt{display:flex;align-items:center;gap:8px;background:var(--accent-soft);border-radius:12px;padding:6px 6px 6px 12px;animation:fdin .2s ease}#fd-app .pvfilt .pvb{width:26px;height:26px;font-size:14px;border-radius:8px}#fd-app .pvfilt .btn{margin-left:auto}
 #fd-app .pvlist{display:grid;gap:14px}
@@ -1251,26 +1263,26 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .pvcatl{display:grid;gap:8px}#fd-app .pvcatl>span{font-size:12px;color:var(--muted)}
 #fd-app .pvcg{display:flex;flex-wrap:wrap;gap:6px}
 #fd-app .pvcc{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:6px 12px 6px 7px;font:500 13.5px var(--ui);color:var(--ink);cursor:pointer;transition:background .15s,border-color .15s,transform .12s,box-shadow .15s}
-#fd-app .pvcc span{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:hsl(var(--h) 62% 93%);font-size:14px}
+#fd-app .pvcc span{width:24px;height:24px;border-radius:7px;display:grid;place-items:center;color:hsl(var(--h) 35% 36%);background:hsl(var(--h) 20% 94%);font-size:14px}
 #fd-app .pvcc:hover:not([disabled]){border-color:hsl(var(--h) 50% 60%)}#fd-app .pvcc:active{transform:scale(.95)}
 #fd-app .pvcc.on{background:hsl(var(--h) 62% 93%);border-color:hsl(var(--h) 50% 45%);box-shadow:0 0 0 2px hsl(var(--h) 60% 85%);font-weight:600}
 #fd-app .pvcc.add{padding:6px 12px;color:var(--accent);border-style:dashed}#fd-app .pvcc[disabled]{opacity:.5;cursor:not-allowed}
 /* категории */
 #fd-app .pvcl{display:grid;gap:6px;margin:14px 0}
 #fd-app .pvcr{display:grid;grid-template-columns:40px minmax(0,1fr) 104px 28px auto 36px;gap:8px;align-items:center;padding:6px;border-radius:12px;transition:background .15s}#fd-app .pvcr:hover{background:var(--bg)}#fd-app .pvcr.fresh{animation:pvsaved 1.2s ease}
-#fd-app .pvcico{width:40px;height:40px;border-radius:12px;border:0;font-size:20px;cursor:pointer;background:hsl(var(--h) 62% 92%);box-shadow:inset 0 0 0 1px hsl(var(--h) 55% 82%);transition:transform .15s}#fd-app .pvcico:hover{transform:scale(1.08)}
+#fd-app .pvcico{width:40px;height:40px;border-radius:10px;border:0;font-size:20px;cursor:pointer;display:grid;place-items:center;color:hsl(var(--h) 35% 36%);background:hsl(var(--h) 20% 94%);box-shadow:inset 0 0 0 1px hsl(var(--h) 20% 86%);transition:transform .15s}#fd-app .pvcico:hover{transform:scale(1.08)}
 #fd-app .pvcu{font-size:12px;text-align:center}
-#fd-app .pvcmv{display:flex;gap:2px}#fd-app .pvcmv button,#fd-app .pvcdel{border:0;background:none;width:30px;height:32px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:15px}#fd-app .pvcmv button:hover:not([disabled]),#fd-app .pvcdel:hover{background:var(--surface);color:var(--ink)}#fd-app .pvcmv button[disabled]{opacity:.3}
+#fd-app .pvcmv{display:flex;gap:2px}#fd-app .pvcmv button,#fd-app .pvcdel{border:0;background:none;width:30px;height:32px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:15px;display:inline-grid;place-items:center}#fd-app .pvcmv button:hover:not([disabled]),#fd-app .pvcdel:hover{background:var(--surface);color:var(--ink)}#fd-app .pvcmv button[disabled]{opacity:.3}
 #fd-app .pvcdel.armed{width:auto;padding:0 10px;font-size:12px;color:#fff;background:#c0392b}
 #fd-app .pvpick{grid-column:1/-1;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px;display:grid;gap:10px;animation:fdin .2s ease}
-#fd-app .pvpi{display:grid;grid-template-columns:repeat(auto-fill,minmax(38px,1fr));gap:4px}#fd-app .pvpi button{border:0;background:none;font-size:20px;height:38px;border-radius:10px;cursor:pointer;transition:background .12s,transform .12s}#fd-app .pvpi button:hover{background:var(--bg);transform:scale(1.12)}#fd-app .pvpi button.on{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent)}
+#fd-app .pvpi{display:grid;grid-template-columns:repeat(auto-fill,minmax(38px,1fr));gap:4px}#fd-app .pvpi button{border:0;background:none;font-size:19px;height:38px;border-radius:10px;cursor:pointer;color:var(--ink);display:grid;place-items:center;transition:background .12s,transform .12s}#fd-app .pvpi button:hover{background:var(--bg);transform:scale(1.12)}#fd-app .pvpi button.on{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent)}
 #fd-app .pvph{display:flex;gap:8px;flex-wrap:wrap}#fd-app .pvph button{width:26px;height:26px;border-radius:50%;border:0;cursor:pointer;background:hsl(var(--h) 60% 60%);transition:transform .12s}#fd-app .pvph button:hover{transform:scale(1.15)}#fd-app .pvph button.on{box-shadow:0 0 0 2px #fff,0 0 0 4px hsl(var(--h) 60% 45%)}
 @media (max-width:700px){
- #fd-app .pvseg{max-width:none}#fd-app .pvseg button{font-size:12.5px;gap:4px;padding:9px 4px}#fd-app .pvseg button span{font-size:14px}
+ #fd-app .pvseg{max-width:none}#fd-app .pvseg button{font-size:12.5px;gap:4px;padding:9px 4px}#fd-app .pvseg button .pvi{width:14px;height:14px}
  #fd-app .pvmon{width:100%}#fd-app .pvmon b{flex:1;min-width:0}
  #fd-app .pvkpi{grid-template-columns:1fr 1fr}#fd-app .pvkpi b{font-size:18px}
  #fd-app .pvlh{display:none}
- #fd-app .pvrl{grid-template-columns:auto 1fr auto;grid-template-areas:"d n p" "s s s" "x x x";row-gap:6px}
+ #fd-app .pvrl{grid-template-columns:auto 1fr auto;grid-template-areas:"d n p" "s s s" "x x q";row-gap:6px}#fd-app .pvrl .pvpay{grid-area:q;justify-self:end}
  #fd-app .pvrl .pvd{grid-area:d}#fd-app .pvrl .pvn{grid-area:n}#fd-app .pvrl .pvp{grid-area:p}#fd-app .pvrl .pvsrcs{grid-area:s}
  #fd-app .pvrl>.num:nth-child(3){grid-area:x;text-align:left;font-size:12.5px;color:var(--muted)}#fd-app .pvrl>.num:nth-child(3)::before{content:"Сумма "}
  #fd-app .pvrl>.num:nth-child(4){display:none}
@@ -3519,7 +3531,7 @@ const dnum = d => d+" "+plural(d,["день","дня","дней"]);
 const ageTxt = iso => iso>todayISO() ? "поставка "+fd(iso).slice(0,5) : (d=>d?dnum(d):"сегодня")(daysSince(iso));
 function setPay(j, sum, date, quiet){
   const dc=dcUpsert(j), L=dcLines(dc), tot=docTotal(j); sum=r2(Math.min(Math.max(+sum||0,0), tot));
-  if(sum>0) L._pay={d:date||todayISO(), s:String(sum), by:curUser()}; else delete L._pay;
+  if(sum>0) L._pay={d:date||todayISO(), s:String(sum), by:curUser(), at:new Date().toISOString()}; else delete L._pay;
   dc.lines=JSON.stringify(L); dc.paid = sum<=0 ? "" : sum>=tot-0.005 ? "да, "+fd(L._pay.d) : "частично: "+fm(sum)+" из "+fm(tot)+" ₽, "+fd(L._pay.d);
   dirty("doccosts", dc.id);
   if(!quiet) logEv("Прибыль", (sum>0?(sum>=tot-0.005?"Оплачена":"Частично оплачена ("+fm(sum)+" ₽)"):"Снята отметка об оплате")+": накладная № "+j.number+" от "+fd(j.date)+" — "+jWho(j).main);
@@ -3575,7 +3587,7 @@ function drawPfDocs(docs){
   $("#pf-more").hidden=L.length<=V.length; $("#pf-shown").textContent="Показано "+V.length+" из "+L.length;
 }
 function payCell(x){ const p=x.pay, id=x.j.id, d=daysSince(x.j.date);
-  if(p.st==="paid") return `<button type="button" class="pfpay paid" data-unpay="${id}" title="Оплачена ${fd(p.d)}. Нажмите, чтобы снять отметку"><i>✓</i>Оплачена<small>${fd(p.d)}</small></button>`;
+  if(p.st==="paid") return `<button type="button" class="pfpay paid" data-unpay="${id}" title="Оплачена ${fd(p.d)}. Нажмите, чтобы снять отметку"><i>${pvIco("check")}</i>Оплачена<small>${fd(p.d)}${(()=>{ const j=D.journal.find(x=>x.id===id); if(!j) return ""; const d=pvPayDays(j,p); return " · "+(d?"за "+dnum(d):"в день накладной"); })()}</small></button>`;
   return `<div class="pfpaycell"><span class="pfage ${ageCls(d)}">${p.st==="part"?"Частично · ":""}${ageTxt(x.j.date)}</span>${p.st==="part"?`<small class="muted">оплачено ${fm(p.s)} из ${fm(p.tot)}</small>`:""}<button type="button" class="pfpay" data-pay="${id}">Оплачено</button></div>`; }
 function pfDocRow(x){ const w=jWho(x.j), op=pfOpen.has(x.j.id);
   let h=`<tr class="pfd${op?" open":""}${x.isNew?" pfnew":""}${x.pay.st==="paid"?" ispaid":""}" data-pf="${x.j.id}"><td>${fd(x.j.date)}</td><td>${esc(x.j.number)}${x.isNew?` <span class="pfnewb">новая</span>`:""}</td><td><div class="who">${esc(w.main)}</div><small>${esc(w.pt?w.pt+" · ":"")}${esc(supShort(x.j.snap.s.name))}${x.miss?` · <span class="miss">нет закупки у ${x.miss} поз.</span>`:""}</small></td><td class="num">${fm(x.rev)}</td><td class="num">${fm(x.cost)}</td><td class="num"><b>${sgn(x.profit)}</b>${x.prelim?`<small class="pfprel" title="Есть неизвестная закупка, нехватка или неотгруженный складской резерв">предварительно</small>`:""}</td><td class="num">${pct(x.profit,x.rev)}</td><td class="pfpt">${payCell(x)}</td></tr>`;
