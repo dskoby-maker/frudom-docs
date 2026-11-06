@@ -84,18 +84,21 @@ function pvInit(){
   tab.insertAdjacentHTML("afterbegin", `<div class="pvseg" id="pv-seg" role="tablist" aria-label="Раздел прибыли"><i></i>
     <button type="button" role="tab" data-pv="ov">${pvIco("ov")}Обзор</button>
     <button type="button" role="tab" data-pv="cus">${pvIco("cus")}По заказчикам</button>
-    <button type="button" role="tab" data-pv="fin">${pvIco("fin")}Расходы и доходы</button></div>`);
-  tab.insertAdjacentHTML("beforeend", `<div class="card pfv-cus" id="pv-cus"></div><div class="card pfv-fin" id="pv-fin"></div>`);
+    <button type="button" role="tab" data-pv="fin">${pvIco("fin")}Расходы и доходы</button>
+    <button type="button" role="tab" data-pv="bank">${pvIco("bank")}Поступления<em id="pv-bkn" hidden></em></button></div>`);
+  tab.insertAdjacentHTML("beforeend", `<div class="card pfv-cus" id="pv-cus"></div><div class="card pfv-fin" id="pv-fin"></div><div class="card pfv-bank" id="pv-bank"></div>`);
   $("#pv-seg").addEventListener("click", e=>{ const b=e.target.closest("[data-pv]"); if(!b) return; PV().v=b.dataset.pv; saveLocal(); pvDraw(); window.scrollTo({top:0, behavior:"smooth"}); });
   $("#pv-cus").addEventListener("click", pvCusClick); $("#pv-cus").addEventListener("input", e=>{ if(e.target.id==="pv-q"){ PV().q=e.target.value; pvCusDraw(true); } });
   $("#pv-fin").addEventListener("click", pvFinClick);
+  $("#pv-bank").addEventListener("click", pvBankClick);
 }
 function pvDraw(){
   pvInit(); const f=PV(), tab=$("#tab-profit"); if(!tab) return; tab.dataset.v=f.v;
   const bs=[...$("#pv-seg").querySelectorAll("button")], i=Math.max(0, bs.findIndex(b=>b.dataset.pv===f.v));
   bs.forEach((b,k)=>{ b.classList.toggle("on", k===i); b.setAttribute("aria-selected", k===i); });
   $("#pv-seg").style.setProperty("--i", i);
-  if(f.v==="cus") pvCusDraw(); else if(f.v==="fin") pvFinDraw();
+  const bw=BNK().ops.filter(o=>o.status==="wait"||o.status==="new").length, bn=$("#pv-bkn"); if(bn){ bn.hidden=!bw; bn.textContent=bw; }
+  if(f.v==="cus") pvCusDraw(); else if(f.v==="fin") pvFinDraw(); else if(f.v==="bank") pvBankDraw();
 }
 const pvMonBar = () => { const m=pvMonth(), all=m==="all";
   return `<div class="pvmon"><button type="button" class="pvarr" data-pvm="-1" aria-label="Прошлый месяц" ${all?"disabled":""}>‹</button>

@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 15;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 16;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -24,6 +24,9 @@ const S = {
   invoices: { title: 'Счета на оплату', key: 'id', cols: [
     ['date','Дата'],['number','№'],['supplierName','Поставщик'],['customerName','Заказчик'],['place','Подразделение / точка'],['period','Период'],['sum','Сумма'],
     ['id','ID (не менять)'],['supplierId','ID поставщика'],['customerId','ID заказчика'],['data','Данные счёта (не редактировать)'],['updated','Изменён']]},
+  bankops: { title: 'Поступления (банк)', key: 'id', cols: [
+    ['date','Дата'],['supplierName','ИП'],['sum','Сумма'],['payerName','Плательщик'],['payerInn','ИНН плательщика'],['purpose','Назначение платежа'],['statusName','Статус'],['docsText','Разнесено по накладным'],
+    ['id','ID операции (не менять)'],['supplierId','ID поставщика'],['account','Счёт'],['status','Код статуса'],['docs','Накладные (не редактировать)'],['by','Кто разнёс'],['at','Когда'],['opId','ID операции банка']]},
   cats: { title: 'Категории товаров', key: 'id', cols: [
     ['name','Категория'],['order','Порядок'],['color','Цвет'],['id','ID (не менять)']]},
   prices: { title: 'Цены', key: null, cols: [
@@ -336,13 +339,100 @@ function seedEis_() {
   if(!c.eis)upsertList_('contracts',{upsert:[Object.assign({},c,{eis:JSON.stringify(EIS_INITIAL.config)})]});
   props.setProperty('eis_initial_v1','1');
 }
+/* ===================== БАНК: поступления из Т-Бизнеса (T-API, только чтение выписки) =====================
+   Токены — свойство скрипта TB_KEYS = {ID поставщика: {k: токен, acc: [счета], last: время, err: ''}}; сайт видит только последние 4 знака.
+   Операции «приход» пишутся на лист «Поступления (банк)» один раз (по ID операции), дальше статус меняет только сайт (op: 'set'). */
+const TB_URL = 'https://business.tbank.ru/openapi';
+function tbKeys_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('TB_KEYS') || '{}') || {}; } catch (e) { return {}; } }
+function tbKeysSet_(o) { PropertiesService.getScriptProperties().setProperty('TB_KEYS', JSON.stringify(o)); }
+function tbGet_(path, token) {
+  const o = { method: 'get', headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }, muteHttpExceptions: true };
+  let r;
+  try { r = UrlFetchApp.fetch(TB_URL + path, o); }
+  catch (e) {   /* у банка сертификат Минцифры — если Google ему не доверяет, повторяем без проверки сертификата (запрос только на чтение) */
+    if (!/ssl|certif|сертиф|handshake/i.test(String(e))) throw e;
+    o.validateHttpsCertificates = false; r = UrlFetchApp.fetch(TB_URL + path, o); }
+  const code = r.getResponseCode(), t = r.getContentText();
+  if (code === 401 || code === 403) throw new Error('банк не принял токен (' + code + '): проверьте, что токен действующий и в нём включён доступ «Счета и выписки», без ограничения по IP');
+  if (code === 429) throw new Error('банк просит подождать (слишком много запросов) — попробуйте через минуту');
+  if (code >= 300) throw new Error('ответ банка ' + code + ': ' + t.slice(0, 200));
+  try { return JSON.parse(t); } catch (e) { throw new Error('банк ответил не JSON'); }
+}
+function tbAccounts_(token) {
+  const j = tbGet_('/api/v4/bank-accounts', token), L = Array.isArray(j) ? j : (j.accounts || j.items || []);
+  return L.filter(a => a && /^\d{20}$/.test(String(a.accountNumber || '')) && (!a.currency || String(a.currency) === '643' || String(a.currency) === 'RUB'))
+    .map(a => String(a.accountNumber));
+}
+function tbOps_(token, acc, fromIso) {
+  const out = []; let cursor = '', guard = 0;
+  do {
+    const q = '/api/v1/statement?accountNumber=' + acc + '&from=' + encodeURIComponent(fromIso) + '&operationStatus=Transaction&limit=1000' + (cursor ? '&cursor=' + encodeURIComponent(cursor) : '');
+    const j = tbGet_(q, token); (j.operations || []).forEach(o => out.push(o)); cursor = j.nextCursor || '';
+  } while (cursor && ++guard < 30);
+  return out;
+}
+function tbRow_(o, sid, acc, sn) {
+  const cp = o.counterParty || o.payer || {}, amt = o.accountAmount != null ? o.accountAmount : o.operationAmount != null ? o.operationAmount : o.rubleAmount;
+  const dt = String(o.operationDate || o.date || ''), d = dt ? Utilities.formatDate(new Date(dt), 'Europe/Moscow', 'yyyy-MM-dd') : '';
+  return { id: 'tb-' + String(o.operationId), opId: String(o.operationId), date: d, supplierId: sid, supplierName: sn[sid] || '', account: acc, sum: String(Math.round((+amt || 0) * 100) / 100),
+    payerName: String(cp.name || ''), payerInn: String(cp.inn || ''), purpose: String(o.payPurpose || o.paymentPurpose || o.description || ''), status: 'new', statusName: 'Новое', docs: '', docsText: '', by: '', at: '' };
+}
+function bankSync_(sids) {
+  const keys = tbKeys_(), sn = nameMap_('suppliers'), got = [], errs = {};
+  Object.keys(keys).filter(sid => !sids || sids.indexOf(sid) >= 0).forEach(sid => {
+    const K = keys[sid]; if (!K || !K.k) return;
+    try {
+      if (!K.acc || !K.acc.length) K.acc = tbAccounts_(K.k);
+      const from = K.last ? new Date(new Date(K.last).getTime() - 5 * 864e5) : new Date(Date.now() - 45 * 864e5), now = new Date().toISOString();
+      K.acc.forEach(acc => tbOps_(K.k, acc, from.toISOString()).forEach(o => {
+        if (String(o.typeOfOperation || '') !== 'Credit' || o.operationId == null) return; got.push(tbRow_(o, sid, acc, sn)); }));
+      K.last = now; K.err = '';
+    } catch (e) { K.err = String(e.message || e).slice(0, 300); errs[sid] = K.err; }
+  });
+  tbKeysSet_(keys);
+  let added = 0;
+  if (got.length) {
+    const lock = LockService.getScriptLock(); lock.waitLock(25000);
+    try { const have = {}; read_('bankops').forEach(r => have[r.id] = 1); const add = got.filter(r => !have[r.id] && (have[r.id] = 1));
+      if (add.length) { upsertList_('bankops', { upsert: add }); added = add.length; } } finally { lock.releaseLock(); }
+  }
+  return { added, errs };
+}
+function bankKeysView_() { const keys = tbKeys_(), sn = nameMap_('suppliers');
+  return Object.keys(keys).map(sid => ({ supplierId: sid, name: sn[sid] || '', tail: String(keys[sid].k || '').slice(-4), acc: (keys[sid].acc || []).map(a => '…' + a.slice(-4)), last: keys[sid].last || '', err: keys[sid].err || '' })); }
+function bank_(p, me) {
+  if (!me.admin) return { ok: false, error: 'forbidden' };
+  const op = String(p.op || 'list');
+  try {
+    if (op === 'key') {
+      const sid = String(p.supplierId || ''), k = String(p.token || '').trim();
+      if (!sid) return { ok: false, error: 'не выбран ИП' };
+      if (!/^[\w.\-]{20,}$/.test(k)) return { ok: false, error: 'это не похоже на токен T-API' };
+      const acc = tbAccounts_(k); if (!acc.length) return { ok: false, error: 'по этому токену банк не показал ни одного рублёвого счёта — проверьте доступ «Счета и выписки»' };
+      const keys = tbKeys_(); keys[sid] = { k, acc, last: '', err: '' }; tbKeysSet_(keys);
+      const r = bankSync_([sid]); return { ok: true, keys: bankKeysView_(), added: r.added, errs: r.errs, ops: read_('bankops') };
+    }
+    if (op === 'delKey') { const keys = tbKeys_(); delete keys[String(p.supplierId || '')]; tbKeysSet_(keys); return { ok: true, keys: bankKeysView_() }; }
+    if (op === 'sync') { const r = bankSync_(null); return { ok: true, keys: bankKeysView_(), added: r.added, errs: r.errs, ops: read_('bankops') }; }
+    if (op === 'set') {   /* сайт разнёс / подтвердил / пропустил операции */
+      const L = Array.isArray(p.rows) ? p.rows : []; if (!L.length) return { ok: true };
+      const lock = LockService.getScriptLock(); lock.waitLock(25000);
+      try { const cur = {}; read_('bankops').forEach(r => cur[r.id] = r);
+        const up = L.filter(x => x && cur[x.id]).map(x => Object.assign(cur[x.id], { status: String(x.status || ''), statusName: String(x.statusName || ''), docs: String(x.docs || ''), docsText: String(x.docsText || '').slice(0, 1000), by: me.name, at: new Date().toISOString() }));
+        if (up.length) upsertList_('bankops', { upsert: up }); } finally { lock.releaseLock(); }
+      return { ok: true };
+    }
+    return { ok: true, keys: bankKeysView_(), ops: read_('bankops') };
+  } catch (e) { return { ok: false, error: String(e.message || e) }; }
+}
 function handle_(p) {
   if (typeof USERS === 'undefined') return { ok: false, error: 'в Apps Script нет файла «Пароли» — создайте его по инструкции (dev/Passwords.template.gs)' };
   const me = auth_(p);
   if (!me) return { ok: false, error: 'auth' };
   if (/^backup(Tick|List|Now)$/.test(p.action || '')) return backup_(p, me);   // без общей блокировки: копия таблицы делается несколько секунд
   if (p.action === 'aiRead') return aiRead_(p, me);        // без блокировки: ИИ думает до минуты, остальные в это время работают
-  if (p.action === 'aiCfg') return aiCfg_(p, me);      // настройки ИИ («Данные» → «ИИ»), только Даниил, без общей блокировки
+  if (p.action === 'aiCfg') return aiCfg_(p, me);
+  if (p.action === 'bank') return bank_(p, me);         // Т-Бизнес: поступления на счёт (только Даниил), блокировка — только на запись в лист      // настройки ИИ («Данные» → «ИИ»), только Даниил, без общей блокировки
   if (p.action === 'aiKey') { if (!me.admin) return { ok: false, error: 'forbidden' }; const k = String(p.gkey || '').trim();
     if (!/^[\w.\-]{20,}$/.test(k)) return { ok: false, error: 'это не похоже на ключ Gemini' }; PropertiesService.getScriptProperties().setProperty('GEMINI_KEY', k); return { ok: true }; }
   const lock = LockService.getScriptLock();
