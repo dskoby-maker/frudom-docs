@@ -2,6 +2,7 @@
    Ключ хранится только в свойствах скрипта таблицы; сайт видит лишь последние 4 знака. ===== */
 let AI=null, AIM=null;   /* AI — ответ сервера (настройки, статистика), AIM — список моделей */
 const AI_WHO={all:"Все сотрудники", nodriver:"Все, кроме водителя (Гриши)", office:"Только Даниил и Наталья"};
+const AI_WHO_HINT={all:"Даниил, Наталья, Склад и Гриша", nodriver:"Даниил, Наталья и Склад", office:"Склад и Гриша — без ИИ"};
 const AI_KIND_TXT={order:"Заявки заказчиков («Новый документ» → «Прочитать через ИИ»)", in:"Накладные прихода («Склад» → «+ Приход» → «Фото накладной»)", decl:"Декларации («Склад» → «Декларации» → «Заполнить по файлу»)"};
 function aiErr(m){ return m==="nokey"?"ключ ещё не вставлен":m==="badkey"?"ключ не подходит (проверьте, что скопирован полностью)":m==="unknown action"?"скрипт таблицы старый — обновите Code.gs":m||"ошибка"; }
 async function aiLoad(n){ const box=$("#ai-box"); if(!box) return;
@@ -22,12 +23,12 @@ function aiDraw(){ const box=$("#ai-box"); if(!box||!AI) return; const c=AI.cfg,
     <p id="ai-test-res" class="ai-n" hidden></p>
     <h3 class="ai-h">Модель</h3>
     <div class="ai-g"><label class="ai-l">Основная<select id="ai-model">${opts(c.model)}</select></label><label class="ai-l">Запасная (если основная занята, не найдена или кончился лимит)<select id="ai-fb">${opts(c.fallback,1)}</select></label></div>
-    <div class="row"><button type="button" class="btn ghost sm" id="ai-models">${AIM?"Обновить список моделей":"Загрузить список моделей из Google"}</button><label class="ai-l ai-own">или впишите название<input id="ai-model-own" placeholder="например gemini-2.5-pro" autocomplete="off"></label></div>
+    <div class="ai-mrow"><label class="ai-l ai-own">Или впишите название модели вручную<input id="ai-model-own" placeholder="например gemini-2.5-pro" autocomplete="off"></label><button type="button" class="btn" id="ai-models">${AIM?"Обновить список моделей":"Загрузить список моделей из Google"}</button></div>
     <p class="muted ai-n">«flash» — быстрые и почти всегда бесплатные; «pro» — точнее на плохих сканах, но медленнее и быстрее упираются в лимит.</p>
     <h3 class="ai-h">Кто может пользоваться</h3>
-    <div class="ai-r">${Object.entries(AI_WHO).map(([k,t])=>`<label><input type="radio" name="ai-who" value="${k}"${c.who===k?" checked":""}> ${t}</label>`).join("")}</div>
+    <div class="ai-r">${Object.entries(AI_WHO).map(([k,t])=>`<label class="ai-o"><input type="radio" name="ai-who" value="${k}"${c.who===k?" checked":""}><span><b>${t}</b><small>${AI_WHO_HINT[k]}</small></span></label>`).join("")}</div>
     <h3 class="ai-h">Что читает ИИ</h3>
-    <div class="ai-r">${Object.entries(AI_KIND_TXT).map(([k,t])=>`<label><input type="checkbox" data-aion="${k}"${c.off[k]?"":" checked"}> ${t}</label>`).join("")}</div>
+    <div class="ai-r">${Object.entries(AI_KIND_TXT).map(([k,t])=>`<label class="ai-o"><input type="checkbox" data-aion="${k}"${c.off[k]?"":" checked"}><span><b>${t.replace(/\s*\(.*$/,"")}</b><small>${(t.match(/\((.*)\)$/)||[])[1]||""}</small></span></label>`).join("")}</div>
     <h3 class="ai-h">Ограничения</h3>
     <div class="ai-g"><label class="ai-l">Наибольший размер файла, МБ (1–13)<input id="ai-mb" type="number" min="1" max="13" step="1" value="${c.maxMb}"></label><label class="ai-l">Запросов в день, не больше (0 — без лимита)<input id="ai-limit" type="number" min="0" step="1" value="${c.limit}"></label></div>
     <h3 class="ai-h">Свои указания для ИИ</h3>
