@@ -88,10 +88,12 @@
 #fd-app .dcard .dc-note{font-size:12px;color:var(--muted);margin:2px 2px 0}
 #fd-app .jcm{display:inline-flex;align-items:center;justify-content:center;gap:3px;vertical-align:middle;margin-left:6px;height:20px;min-width:20px;padding:0 5px;border-radius:99px;background:rgba(106,44,78,.1);color:var(--accent);font-size:11px;font-weight:600;cursor:pointer;animation:jcmIn .35s cubic-bezier(.2,.9,.3,1.4) both;transition:background .15s,transform .15s}
 #fd-app .jcm svg{width:14px;height:14px}#fd-app .jcm:hover{background:rgba(106,44,78,.2);transform:scale(1.08)}
-#fd-app .jzk{display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin-left:6px;width:20px;height:20px;border-radius:99px;cursor:pointer;animation:jcmIn .35s ease both;transition:transform .15s,box-shadow .15s}
-#fd-app .jzk svg{width:12px;height:12px}#fd-app .jzk:hover{transform:scale(1.12);box-shadow:0 2px 6px -2px rgba(0,0,0,.25)}
-#fd-app .jzk.ok{background:#e4eee6;color:#6f9a7c}#fd-app .jzk.part{background:#f4ecd6;color:#b2924c}#fd-app .jzk.none{background:#f4e3df;color:#bd8176}
-#fd-app .kd-w .jzk{margin-left:6px}
+#fd-app .jzk{display:flex;align-items:center;justify-content:center;gap:4px;margin:5px 0 0 auto;min-width:58px;height:24px;padding:0 9px;border:0;border-radius:99px;font:600 11.5px var(--ui);cursor:pointer;white-space:nowrap;animation:jcmIn .35s ease both;transition:transform .15s,box-shadow .15s,filter .15s}
+#fd-app .jzk svg{width:13px;height:13px;flex:none}#fd-app .jzk:hover{transform:translateY(-1px);box-shadow:0 3px 8px -4px rgba(0,0,0,.3);filter:saturate(1.15)}#fd-app .jzk:active{transform:scale(.96)}#fd-app .jzk:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#fd-app .jzk.ok{background:#e4eee6;color:#5f8b6b}#fd-app .jzk.part{background:#f4ecd6;color:#a6873f}#fd-app .jzk.none{background:#f4e3df;color:#b27165}
+#fd-app tr.kids .kd-s .jzk{margin-top:4px}
+@media (pointer:coarse){#fd-app .jzk{height:30px;min-width:64px;font-size:12.5px}}
+@media (max-width:700px){#fd-app td.num .jzk{margin-left:0}}
 #fd-app .who .jcm{margin-left:6px}#fd-app .kd-w .jcm{margin-left:8px}
 @keyframes jcmIn{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:none}}
 #fd-app .dcard .dc-cm{margin-top:14px;border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:linear-gradient(180deg,rgba(106,44,78,.035),transparent 70%);transition:border-color .2s,box-shadow .2s}
@@ -4095,8 +4097,8 @@ function jRowHtml(j, kid, arch){ const w=jWho(j), pv=!!(j.snap.c&&j.snap.c.priv)
     : `${cj}${view} <button class="btn ghost sm" data-edit="${j.id}">Изменить</button>
     <details class="more"><summary class="btn ghost sm">Ещё ▾</summary><div class="menu"><button class="btn sm" data-x="${j.id}">XML для ЕИС</button><button class="btn sm" data-copy="${j.id}">Сделать копию</button><button class="btn sm danger" data-arch="${j.id}">В архив</button></div></details>`;
   const ad = arch ? `<span class="muted" title="Убран в архив">в архиве с ${dtShort(j.snap.meta.arch)}</span>` : jDl(j);
-  if(kid) return `<div class="kd"><div class="kd-n">№ ${esc(j.number)}</div><div class="kd-w jcard" data-card="${j.id}" title="Подробнее о документе"><span>${esc(kLbl(j)||w.main)}</span>${jCmIcon(j)}${arch?"":zkJBadge(j)}${skJBadge(j)}</div><div class="kd-s">${fm(j.sum)}</div><div class="kd-p">${ad}</div><div class="kd-a acts">${acts}</div></div>`;
-  return `<tr class="${kid?"kid":""}"><td>${fd(j.date)}</td><td>${esc(j.number)}</td><td class="jcard" data-card="${j.id}" title="Подробнее о документе"><div class="who">${esc(kid&&kLbl(j)?kLbl(j):w.main)}${jCmIcon(j)}${arch?"":zkJBadge(j)}</div>${skJBadge(j)}</td><td class="num">${fm(j.sum)}</td><td>${ad}</td><td class="acts">${acts}</td></tr>`; }
+  if(kid) return `<div class="kd"><div class="kd-n">№ ${esc(j.number)}</div><div class="kd-w jcard" data-card="${j.id}" title="Подробнее о документе"><span>${esc(kLbl(j)||w.main)}</span>${jCmIcon(j)}${skJBadge(j)}</div><div class="kd-s">${fm(j.sum)}${arch?"":zkJBadge(j)}</div><div class="kd-p">${ad}</div><div class="kd-a acts">${acts}</div></div>`;
+  return `<tr class="${kid?"kid":""}"><td>${fd(j.date)}</td><td>${esc(j.number)}</td><td class="jcard" data-card="${j.id}" title="Подробнее о документе"><div class="who">${esc(kid&&kLbl(j)?kLbl(j):w.main)}${jCmIcon(j)}</div>${skJBadge(j)}</td><td class="num">${fm(j.sum)}${arch?"":zkJBadge(j)}</td><td>${ad}</td><td class="acts">${acts}</td></tr>`; }
 /* строки журнала с комплектами; arch — показываем архив */
 /* разделитель дня в журнале (при сортировке по дате документа) */
 function jDaySep(iso, st){ const d=new Date(iso+"T12:00:00"), t=todayISO(), tm=new Date(); tm.setDate(tm.getDate()+1); const tmIso=tm.getFullYear()+"-"+String(tm.getMonth()+1).padStart(2,"0")+"-"+String(tm.getDate()).padStart(2,"0");
@@ -4116,7 +4118,7 @@ function jBuild(rows, arch, openSet, daySep){
     const gacts = arch ? `<button class="btn sm" data-gunarch>Вернуть комплект</button>`
       : docLimited() ? `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button>`
       : `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button> <button class="btn ghost sm ic" data-gedit title="Изменить комплект (откроется во вкладке «Заявка»)" aria-label="Изменить комплект">${IC_EDIT}</button><button class="btn ghost sm ic del" data-garch title="Убрать комплект в архив" aria-label="Убрать комплект в архив">${IC_TRASH}</button>`;
-    out.push(`<tr class="grp${open?" gopen":""}" data-g="${esc(k)}"><td>${fd(g[0].date)}</td><td>${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))}</td><td class="jcard" data-gcard="1" title="Подробнее о комплекте"><div class="who"><span class="tag">Комплект · ${g.length}</span>${esc(w.main)}${jCmGroup(g)}${arch?"":zkJGroup(g)}</div></td><td class="num"><b>${fm(sum)}</b></td><td>${arch?`<span class="muted">в архиве</span>`:dls.length?`<span class="dl">${dtShort(dls[dls.length-1])}</span>`:`<span class="muted">—</span>`}</td>
+    out.push(`<tr class="grp${open?" gopen":""}" data-g="${esc(k)}"><td>${fd(g[0].date)}</td><td>${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))}</td><td class="jcard" data-gcard="1" title="Подробнее о комплекте"><div class="who"><span class="tag">Комплект · ${g.length}</span>${esc(w.main)}${jCmGroup(g)}</div></td><td class="num"><b>${fm(sum)}</b>${arch?"":zkJGroup(g, k)}</td><td>${arch?`<span class="muted">в архиве</span>`:dls.length?`<span class="dl">${dtShort(dls[dls.length-1])}</span>`:`<span class="muted">—</span>`}</td>
       <td class="acts">${gacts} <button class="btn ghost sm gt${open?" on":""}" data-gt title="${open?"Скрыть документы комплекта":"Показать документы комплекта"}" aria-label="${open?"Скрыть документы комплекта":"Показать документы комплекта"}" aria-expanded="${open}"><span class="chev"></span></button></td></tr>`);
     out.push(`<tr class="kids${open?" open":""}" data-gk="${esc(k)}"><td colspan="6" class="full"><div class="kw"><div class="ki">${g.map(x=>jRowHtml(x,true,arch)).join("")}</div></div></td></tr>`);
   });
@@ -4383,14 +4385,18 @@ function zkJState(j){ if(!me().admin || !j || !j.snap || isArch(j)) return null;
   const st = ok===n && !notes.length ? "ok" : (ok===0 && !part && !x.lines.some(r=>r.sk)) ? "none" : "part";
   const tip = st==="ok" ? "Закупка заполнена: все "+n+" "+posWord(n) : st==="none" ? "Закупка не заполнена" : "Закупка заполнена у "+ok+" из "+n+" "+(n%10===1&&n%100!==11?"позиции":"позиций");
   return {st, tip:[tip].concat(notes.slice(0,4)).join("\n"), ok, n}; }
-function zkJIcon(st, tip, id, grp){ if(!st) return ""; return `<span class="jzk ${st}" title="${esc(tip)}" aria-label="${esc(tip.split("\n")[0])}" ${grp?'data-zkjg="1"':`data-zkj="${id}"`}>${IC_ZK}</span>`; }
-const zkJBadge = j => { const s=zkJState(j); return s ? zkJIcon(s.st, s.tip, j.id) : ""; };
-function zkJGroup(g){ const S=g.map(zkJState).filter(Boolean); if(!S.length) return ""; const all=k=>S.every(x=>x.st===k), done=S.filter(x=>x.st==="ok").length;
+/* значок — плашка под суммой: одно и то же место в каждой строке, крупная цель для пальца и мыши */
+function zkJIcon(st, tip, lbl, attr){ if(!st) return ""; return `<button type="button" class="jzk ${st}" title="${esc(tip)}" aria-label="${esc(tip.split("\n")[0])} — открыть закупку" ${attr}>${IC_ZK}<span>${esc(lbl)}</span></button>`; }
+const zkJLbl = s => s.st==="ok" ? "✓" : s.st==="none" ? "нет" : (s.ok===s.n ? "!" : s.ok+"/"+s.n);
+const zkJBadge = j => { const s=zkJState(j); return s ? zkJIcon(s.st, s.tip, zkJLbl(s), `data-zkj="${j.id}"`) : ""; };
+function zkJGroup(g, key){ const S=g.map(zkJState).filter(Boolean); if(!S.length) return ""; const all=k=>S.every(x=>x.st===k), done=S.filter(x=>x.st==="ok").length;
   const st=all("ok")?"ok":all("none")?"none":"part", tip=st==="ok"?"Закупка заполнена во всех накладных комплекта ("+S.length+")":st==="none"?"Закупка не заполнена ни в одной накладной":"Закупка заполнена в "+done+" из "+S.length+" накладных";
-  return zkJIcon(st, tip, "", true); }
+  return zkJIcon(st, tip, st==="ok"?"✓":st==="none"?"нет":done+"/"+S.length, `data-zkjg="${esc(key||"")}"`); }
 let zkJLoading=false;
-/* клик по значку — сразу открыть окно с блоком закупки */
-document.addEventListener("click", e=>{ const z=e.target.closest&&e.target.closest("[data-zkj],[data-zkjg]"); if(!z) return;
+/* клик по значку — окно накладной (или комплекта) сразу с открытым блоком закупки */
+document.addEventListener("click", e=>{ const z=e.target.closest&&e.target.closest("#fd-app [data-zkj],#fd-app [data-zkjg]"); if(!z) return; e.preventDefault(); e.stopPropagation();
+  if(z.dataset.zkj){ const j=D.journal.find(x=>x.id===z.dataset.zkj); if(!j) return; docCard(j, false); }
+  else { const g=D.journal.filter(x=>x.snap && !isArch(x) && jKey(x)===z.dataset.zkjg).sort(jNumSort); if(!g.length) return; bundleCard(g, false); }
   setTimeout(()=>{ const b=document.querySelector('#fd-dcard [data-zkc="toggle"]:not(.on), #fd-dcard [data-bzk="toggle"]:not(.on)'); if(b) b.click(); }, 80); }, true);
 function jCmIcon(j){ const c=cmOf(j); return c.t ? `<span class="jcm" title="${esc(cmTip(c))}" aria-label="Есть комментарий">${IC_CM}</span>` : ""; }
 function jCmGroup(g){ const n=g.filter(j=>cmOf(j).t).length; if(!n) return ""; const L=g.filter(j=>cmOf(j).t).map(j=>"№ "+j.number+": "+cmTip(cmOf(j))).join("\n\n");
