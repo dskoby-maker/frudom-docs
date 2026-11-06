@@ -333,6 +333,8 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .invf{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.3fr) minmax(0,1fr) auto;gap:8px;margin:14px 0 8px;align-items:center}#fd-app .invarch{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--muted);white-space:nowrap}
 #fd-app #inv-sum{font-size:12.5px;margin:2px 0 8px}
 #fd-app .invl{display:grid;gap:6px}
+#fd-app .invdc .invbtn{display:flex;gap:8px;flex-wrap:wrap;align-items:center}#fd-app .invdc .invn{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;margin-left:4px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700}#fd-app .invmini{margin-top:14px}#fd-app .invarch input{width:18px;height:18px;flex:none;margin:0;padding:0}#fd-app .invmh{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 2px 6px}#fd-app .invh2{align-items:center;margin-top:4px}#fd-app .invh2 p{margin:0;flex:1 1 240px}
+@media (max-width:600px){#fd-app .invdc .invbtn{width:100%}#fd-app .invdc .invbtn .btn{flex:1 1 0}}
 #fd-app .invr{display:grid;grid-template-columns:96px minmax(0,1fr) 130px auto;gap:12px;align-items:center;padding:11px 14px;border-radius:14px;background:rgba(255,255,255,.6);border:1px solid rgba(28,34,32,.06);cursor:pointer;transition:background .2s,box-shadow .2s,transform .15s;animation:fdin .3s ease backwards;animation-delay:var(--d,0ms)}
 #fd-app .invr:hover{background:#fff;box-shadow:0 8px 18px -14px rgba(48,32,44,.4)}#fd-app .invr:active{transform:scale(.995)}#fd-app .invr:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #fd-app .invd b{display:block;font-size:14.5px}#fd-app .invd small,#fd-app .invw small{display:block;font-size:12px;color:var(--muted)}
@@ -1338,7 +1340,6 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
     <button data-tab="calendar">Календарь</button>
     <button data-tab="journal">Журнал</button>
     <button data-tab="archive">Архив</button>
-    <button data-tab="invoices">Счета</button>
     <button data-tab="stock">Склад</button>
     <button data-tab="customers">Заказчики и цены</button>
     <button data-tab="products">Товары</button>
@@ -1428,6 +1429,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
       <div class="make2" data-npriv><button class="btn" data-combo="invoice,torg12">Скачать счёт + ТОРГ‑12<small>одним PDF</small></button><button class="btn" data-combo="invoice,upd">Скачать счёт + УПД<small>одним PDF</small></button></div>
       <div class="row"><button class="btn" id="d-save">Сохранить в журнал без печати</button><button class="btn ghost" id="d-new">Очистить и начать новый</button><span class="muted" id="d-saved"></span></div>
     </div>
+    <div class="card invdc" id="inv-dc" hidden></div>
   </section>
 
   <section class="tab" id="tab-order" hidden>
@@ -1630,15 +1632,6 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
     </div>
   </section>
 
-  <section class="tab" id="tab-invoices" hidden>
-    <div class="card">
-      <div class="invh"><div><h2>Счета на оплату</h2><p class="muted">Отдельные счета — например, за месяц по каждому подразделению. На сумму контракта, журнал и прибыль не влияют.</p></div><button class="btn pri" type="button" id="inv-new">+ Новый счёт</button></div>
-      <div id="inv-old"></div>
-      <div class="invf"><input id="inv-q" type="search" placeholder="Поиск: номер, заказчик, подразделение, товар" aria-label="Поиск счетов"><select id="inv-cus" aria-label="Заказчик"></select><select id="inv-per" aria-label="Период"><option value="">Всё время</option><option value="m0">Этот месяц</option><option value="m1">Прошлый месяц</option><option value="y">Этот год</option></select><label class="invarch"><input type="checkbox" id="inv-arch"> Архив</label></div>
-      <div id="inv-sum" class="muted"></div>
-      <div id="inv-list"></div>
-    </div>
-  </section>
   <section class="tab" id="tab-purchase" hidden>
     <div class="card">
       <h2>Закупка Саида <small>видно только вам</small></h2>
@@ -2166,14 +2159,15 @@ let curTab="doc";
 /* у кого сайт открывается сразу на календаре (на сегодняшнем дне) */
 const START_TAB={"Гриша":"calendar","Склад":"journal"};   /* с какой вкладки открывается сайт у пользователя */
 /* у каждой вкладки свой адрес (frudom.ru/1c#zhurnal): после обновления страницы и при новом открытии приложения — та же вкладка */
-const TAB_SLUG={doc:"dokument",order:"zayavka",journal:"zhurnal",calendar:"kalendar",customers:"zakazchiki",stock:"sklad",purchase:"zakupka",invoices:"scheta",profit:"pribyl",events:"sobytiya",suppliers:"postavshchiki",tasks:"zadachi",products:"tovary",archive:"arkhiv",data:"dannye"};
+const TAB_SLUG={doc:"dokument",order:"zayavka",journal:"zhurnal",calendar:"kalendar",customers:"zakazchiki",stock:"sklad",purchase:"zakupka",profit:"pribyl",events:"sobytiya",suppliers:"postavshchiki",tasks:"zadachi",products:"tovary",archive:"arkhiv",data:"dannye"};
 const SLUG_TAB=Object.fromEntries(Object.entries(TAB_SLUG).map(([k,v])=>[v,k]));
 const LTKEY = () => "frudom-lasttab:"+(curUser()||"-");
 const tabOk = t => { const b=t&&document.querySelector(`#fd-app nav.tabs button[data-tab="${t}"]`); return !!(b && !b.hidden && TAB_SLUG[t]); };
 function tabFromHash(){ const h=decodeURIComponent(String(location.hash||"").replace(/^#/,"")).toLowerCase(); return SLUG_TAB[h] || (TAB_SLUG[h]?h:""); }
 function tabRemember(t){ if(!TAB_SLUG[t] || !pass()) return; lsSet(LTKEY(), t);
   const want="#"+TAB_SLUG[t]; if(location.hash!==want){ try{ history.replaceState(history.state, "", location.pathname+location.search+want); }catch(e){} } }
-function startTab(){ if(!pass()) return; const h=tabFromHash(), last=lsGet(LTKEY()), t0=START_TAB[curUser()];
+function startTab(){ if(!pass()) return; if(/^#scheta$/i.test(location.hash||"")){ showTab("doc"); setTimeout(()=>{ if(typeof invAll==="function") invAll(); },300); return; }   /* старая ссылка на вкладку «Счета» */
+  const h=tabFromHash(), last=lsGet(LTKEY()), t0=START_TAB[curUser()];
   const t = tabOk(h) ? h : tabOk(last) ? last : t0;
   if(!t){ tabRemember(curTab||"doc"); return; }
   if(t==="calendar" && !tabOk(h)){ const c=CAL(), d=todayISO(); c.sel=d; c.ym=d.slice(0,7); saveLocal(); }   /* календарь при новом открытии — на сегодня */
@@ -2191,7 +2185,7 @@ function showTab(t){
   rerender(); window.scrollTo(0, $("#fd-app").getBoundingClientRect().top + window.scrollY);
   if(typeof renderMobileNav==="function") renderMobileNav();
 }
-function rerender(){ ({doc:renderDoc, order:renderOrder, customers:renderCustomers, products:renderProducts, suppliers:renderSuppliers, journal:renderJournal, archive:renderArchive, calendar:renderCalendar, events:renderEvents, profit:renderProfit, stock:renderStock, invoices:renderInvoices, purchase:renderPurchase, tasks:renderTasks, data:renderData}[curTab]||(()=>{}))(); }
+function rerender(){ ({doc:renderDoc, order:renderOrder, customers:renderCustomers, products:renderProducts, suppliers:renderSuppliers, journal:renderJournal, archive:renderArchive, calendar:renderCalendar, events:renderEvents, profit:renderProfit, stock:renderStock, purchase:renderPurchase, tasks:renderTasks, data:renderData}[curTab]||(()=>{}))(); }
 $("#demoNote").hidden = !D.demo;
 $("#hideDemo").onclick=()=>{ D.demo=false; saveLocal(); $("#demoNote").hidden=true; };
 
@@ -2209,6 +2203,7 @@ function cusOpts0(supId, sel, CL){
 }
 function opts(list, sel){ return list.map(x=>`<option value="${x.id}"${x.id===sel?" selected":""}>${esc(x.name||"(без названия)")}</option>`).join(""); }
 function renderDoc(){
+  if(typeof invDocCard==="function") invDocCard();
   drawMulti();
   const dr=D.draft;
   if(dr.contractId===undefined || (!dr.contractId && !dr.noCtr && !D.journal.some(j=>j.id===dr.id) && ctrs(dr.customerId).length)){ dr.contractId=pickCtr(); const x=ctr(dr.contractId); if(x){ dr.basis=x.basis||""; if(x.supplierId && x.supplierId!==dr.supplierId){ dr.supplierId=x.supplierId; } } }
