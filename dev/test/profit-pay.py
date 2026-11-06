@@ -73,16 +73,20 @@ async def main():
             cost=await pg.evaluate(f"(()=>{{const D=__fd.D(), j=D.journal.find(x=>x.id==='{bid}'), L=JSON.parse(D.doccosts.find(x=>x.id==='{bid}').lines), k=__fd.calc(j.snap.dr,j.snap); return Math.round(k.lines.reduce((a,l)=>a+(+L[l.pid]||0)*l.qty,0)); }})()")
             ok(abs(cost-1000)<=2, f'{W}: закупка всей накладной разнесена ≈1000 ({cost})')
             # прочие расходы / доходы
-            await pg.fill('#po-sum','5000'); await pg.fill('#po-note','Аренда склада'); await pg.click('#po-add'); await pg.wait_for_timeout(300)
-            await pg.click('#po-kind [data-k="inc"]'); await pg.fill('#po-sum','1200,50'); await pg.fill('#po-note','Проценты по вкладу'); await pg.click('#po-add'); await pg.wait_for_timeout(2600)
+            await pg.click('#pv-seg [data-pv="fin"]'); await pg.wait_for_timeout(300)
+            for kd,sm,nt in [('exp','5000','Аренда склада'),('inc','1200,50','Проценты по вкладу')]:
+                await pg.click(f'#pv-fin [data-pva="{kd}"]'); await pg.wait_for_timeout(300); await pg.fill('#pvi-sum',sm); await pg.fill('#pvi-note',nt); await pg.click('#fd-dcard [data-pvi="save"]'); await pg.wait_for_timeout(400)
+            await pg.wait_for_timeout(2200); await pg.click('#pv-seg [data-pv="ov"]'); await pg.wait_for_timeout(300)
             po=rows('Прочие доходы и расходы'); kinds=sorted(r['Тип'] for r in po)
             ok(kinds==['Доход','Расход'] or len(po)>=2, f'{W}: прочие доходы/расходы в таблице: {[(r["Тип"],r["Сумма"],r["На что / откуда"]) for r in po]}')
             k=(await pg.text_content('#pf-cards [data-k="inc"]')).replace('\xa0',' ').replace('\u202f',' '); ok('1 200,50' in k, f'{W}: плитка «Прочие доходы»: {k.strip()}')
             await pg.screenshot(path=f'{SHOT}/other-{W}.png', full_page=True)
             # удалить строки прочих (чтобы второй прогон начался с чистого листа)
+            await pg.click('#pv-seg [data-pv="fin"]'); await pg.wait_for_timeout(300)
             for _ in range(2):
-                bt=pg.locator('#po-body [data-podel]').first
-                if await bt.count(): await bt.click(); await bt.click(); await pg.wait_for_timeout(200)
+                it=pg.locator('#pv-fin [data-pvx]').first
+                if await it.count(): await it.click(); await pg.wait_for_timeout(350); await pg.click('#fd-dcard [data-pvi="del"]'); await pg.click('#fd-dcard [data-pvi="del"]'); await pg.wait_for_timeout(400)
+            await pg.click('#pv-seg [data-pv="ov"]'); await pg.wait_for_timeout(300)
             ok(not errs, f'{W}: ошибок JS в «Прибыли»: {errs[:2]}')
             # ---------- Окно документа: «Добавить закупку» ----------
             await pg.evaluate(TAB+"('journal')"); await pg.wait_for_timeout(500)
