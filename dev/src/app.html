@@ -51,7 +51,7 @@
 @media (prefers-reduced-motion:reduce){#fd-app dialog.dcard.nav.fwd>*,#fd-app dialog.dcard.nav.back>*{animation:none}}
 #fd-app .dcard .dc-head{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
 /* окно: шапка «жидкое стекло» во всю ширину, свой тонкий ползунок поверх содержимого */
-#fd-app dialog.dcard{--dcp-t:22px;--dcp-x:22px;overscroll-behavior:contain;scrollbar-width:none}
+#fd-app dialog.dcard{--dcp-t:22px;--dcp-x:22px;overscroll-behavior:contain;overflow-x:hidden;overflow-y:auto;scrollbar-width:none}
 #fd-app dialog.dcard::-webkit-scrollbar{display:none;width:0;height:0}
 @media (max-width:600px){#fd-app dialog.dcard{--dcp-t:18px;--dcp-x:16px}}
 #fd-app dialog.dcard>.dc-head{position:sticky;top:calc(-1 * var(--dcp-t));z-index:6;margin:calc(-1 * var(--dcp-t)) calc(-1 * var(--dcp-x)) 0;padding:var(--dcp-t) var(--dcp-x) 12px;background:transparent;isolation:isolate;transition:background-color .25s ease,box-shadow .25s ease,-webkit-backdrop-filter .25s ease,backdrop-filter .25s ease}
@@ -74,6 +74,13 @@
 #fd-app .dcard .dc-kicker{font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--accent);background:var(--accent-soft);display:inline-block;padding:3px 10px;border-radius:99px}
 #fd-app .dcard h3{margin:8px 0 2px;font-size:20px;line-height:1.25;letter-spacing:-.01em}
 #fd-app .dcard .dc-sub{color:var(--muted);font-size:13px}
+#fd-app dialog.dcard>.dc-head>div:first-child{min-width:0}
+#fd-app dialog.dcard>.dc-head>.dc-mini{position:absolute;left:0;right:0;bottom:0;height:58px;display:flex;align-items:center;gap:10px;padding:0 var(--dcp-x);background:#fff;border-radius:inherit;opacity:0;pointer-events:none;transform:translateY(4px);transition:opacity .2s ease,transform .2s ease;z-index:2;box-sizing:border-box}
+#fd-app dialog.dcard.cmp>.dc-head>.dc-mini{opacity:1;pointer-events:auto;transform:none}
+#fd-app dialog.dcard>.dc-head>.dc-mini>b{flex:1;min-width:0;font-size:16px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fd-app dialog.dcard>.dc-head>.dc-mini .dc-back{margin:0;flex:none}#fd-app dialog.dcard>.dc-head>.dc-mini .dc-back span{max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fd-app dialog.dcard>.dc-head>.dc-mini .dc-x{flex:none;width:32px;height:32px}
+@media (max-width:600px){#fd-app .dcard h3{font-size:18px}#fd-app dialog.dcard>.dc-head h3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}}
 #fd-app .dcard .dc-x{border:0;background:var(--bg);width:34px;height:34px;border-radius:50%;font-size:22px;line-height:1;color:var(--muted);cursor:pointer;flex:none;transition:background .15s,color .15s,transform .15s}
 #fd-app .dcard .dc-x:hover{background:var(--accent-soft);color:var(--accent);transform:rotate(90deg)}
 #fd-app .dcard .dc-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 18px;margin:16px 0 14px}
@@ -223,7 +230,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-toasts[popover]{top:auto;left:auto;margin:0;border:0;padding:0;background:transparent;overflow:visible;color:inherit;max-height:none}
 #fd-toasts{position:fixed;z-index:2147483000;right:20px;bottom:20px;display:flex;flex-direction:column;gap:10px;width:min(390px,calc(100vw - 32px));pointer-events:none;font-family:"Onest","Inter",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
 #fd-toasts .fd-toast{--c:#5b2a48;pointer-events:auto;position:relative;overflow:hidden;display:grid;grid-template-columns:28px 1fr 24px;gap:10px;align-items:start;background:#fff;color:#1f1d1a;border-radius:14px;padding:12px 10px 13px 12px;box-shadow:0 12px 32px rgba(20,15,10,.18),0 2px 6px rgba(20,15,10,.08);border:1px solid rgba(0,0,0,.06);font-size:14px;line-height:1.4;opacity:0;transform:translateY(18px) scale(.97);transition:transform .32s cubic-bezier(.2,.9,.25,1.15),opacity .22s ease}
-#fd-toasts .fd-toast.in{opacity:1;transform:none}#fd-toasts .fd-toast.out{opacity:0;transform:translateX(40px) scale(.98);transition:transform .24s ease,opacity .2s ease}
+#fd-toasts .fd-toast.in{opacity:1;transform:none}#fd-toasts .fd-toast.out{opacity:0;transform:translateY(10px) scale(.97);transition:transform .24s ease,opacity .2s ease}
 #fd-toasts .t-ok{--c:#2f7d4f}#fd-toasts .t-warn{--c:#c27a0e}#fd-toasts .t-err{--c:#c2402f}#fd-toasts .t-info{--c:#5b2a48}
 #fd-toasts .ic{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#fff;background:var(--c);margin-top:1px}
 #fd-toasts .fd-toast.in .ic{animation:fdpop .42s cubic-bezier(.2,.9,.3,1.5) both .06s}
@@ -1042,7 +1049,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .calgrid .cs{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #fd-app .calacts .btn{flex:1 1 200px}
 #fd-app #cal-load ul{margin:4px 0 0;padding-left:18px;font-size:14px}
-@media(max-width:700px){#fd-app .calgrid{gap:3px}#fd-app .calgrid button{min-height:52px;padding:4px;border-radius:8px;align-items:center}#fd-app .calgrid .cs{display:none}#fd-app .calgrid .cn{align-self:center;padding:0 5px}#fd-app .calhead h2{min-width:0;flex:1}}
+@media(max-width:700px){#fd-app .calgrid{gap:3px}#fd-app .calgrid button{min-height:52px;padding:4px;border-radius:8px;align-items:center}#fd-app .calgrid .cs{display:none}#fd-app .calgrid .cn{align-self:center;padding:0 5px}#fd-app .calhead h2{min-width:0;flex:1 0 auto;white-space:nowrap}}
 #fd-app .ptc{border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:grid;gap:8px}#fd-app .ptc h3{margin:0;font-size:14px}#fd-app .ptc h3 small{font-weight:400;color:var(--muted);margin-left:6px}
 #fd-app .ptg{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px 10px}#fd-app .ptg .wide{grid-column:1/-1}#fd-app .ptg input[type=time]{min-width:0}
 #fd-app .ptsec{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
@@ -1161,7 +1168,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .pvseg button{border:0;background:none;font:500 14px var(--ui);color:var(--muted);padding:9px 8px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:color .2s;white-space:nowrap}
 #fd-app .pvseg button .pvi{width:16px;height:16px;opacity:.75;transition:opacity .2s}
 #fd-app .pvseg button.on{color:var(--accent);font-weight:600}#fd-app .pvseg button.on .pvi{opacity:1}
-#fd-app .pvi{width:1em;height:1em;flex:none;vertical-align:-.14em}#fd-app .btn .pvi{width:15px;height:15px;margin-right:6px}
+#fd-app .pvi{width:1em;height:1em;flex:none;vertical-align:-.14em}#fd-app .pvseg .pvs{display:none}#fd-app .btn .pvi{width:15px;height:15px;margin-right:6px}
 #fd-app #tab-profit[data-v=ov] .pfv-cus,#fd-app #tab-profit[data-v=ov] .pfv-fin,#fd-app #tab-profit[data-v=ov] .pfv-bank,#fd-app #tab-profit:not([data-v]) .pfv-cus,#fd-app #tab-profit:not([data-v]) .pfv-fin,#fd-app #tab-profit:not([data-v]) .pfv-bank,#fd-app #tab-profit #pf-othc{display:none}
 #fd-app #tab-profit[data-v=cus]>.card:not(.pfv-cus),#fd-app #tab-profit[data-v=fin]>.card:not(.pfv-fin),#fd-app #tab-profit[data-v=bank]>.card:not(.pfv-bank){display:none}
 #fd-app .pfv-cus,#fd-app .pfv-fin,#fd-app .pfv-bank{animation:fdin .25s ease}
@@ -1281,7 +1288,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .pvpi{display:grid;grid-template-columns:repeat(auto-fill,minmax(38px,1fr));gap:4px}#fd-app .pvpi button{border:0;background:none;font-size:19px;height:38px;border-radius:10px;cursor:pointer;color:var(--ink);display:grid;place-items:center;transition:background .12s,transform .12s}#fd-app .pvpi button:hover{background:var(--bg);transform:scale(1.12)}#fd-app .pvpi button.on{background:var(--accent-soft);box-shadow:inset 0 0 0 2px var(--accent)}
 #fd-app .pvph{display:flex;gap:8px;flex-wrap:wrap}#fd-app .pvph button{width:26px;height:26px;border-radius:50%;border:0;cursor:pointer;background:hsl(var(--h) 60% 60%);transition:transform .12s}#fd-app .pvph button:hover{transform:scale(1.15)}#fd-app .pvph button.on{box-shadow:0 0 0 2px #fff,0 0 0 4px hsl(var(--h) 60% 45%)}
 @media (max-width:700px){
- #fd-app .pvseg{max-width:none}#fd-app .pvseg button{font-size:12.5px;gap:4px;padding:9px 4px}#fd-app .pvseg button .pvi{width:14px;height:14px}
+ #fd-app .pvseg{max-width:none}#fd-app .pvseg button{font-size:12.5px;gap:4px;padding:9px 4px}#fd-app .pvseg button .pvi{width:14px;height:14px}#fd-app .pvseg .pvl{display:none}#fd-app .pvseg .pvs{display:inline}#fd-app .pvseg button{min-width:0;overflow:hidden}
  #fd-app .pvmon{width:100%}#fd-app .pvmon b{flex:1;min-width:0}
  #fd-app .pvkpi{grid-template-columns:1fr 1fr}#fd-app .pvkpi b{font-size:18px}
  #fd-app .pvlh{display:none}
@@ -1334,6 +1341,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 @media (max-width:700px){#fd-app .pvseg button{flex-direction:column;gap:2px;font-size:11px;padding:7px 2px;white-space:normal;line-height:1.15;text-align:center;position:relative}#fd-app .pvseg button em{position:absolute;top:2px;right:4px}
  #fd-app .bnop{padding:12px;gap:10px}#fd-app .bnico{width:30px;height:30px}#fd-app .bns .bnst{margin-left:0}#fd-app .bnpr{grid-template-columns:22px minmax(0,1fr) 100px;grid-template-areas:"c n s" ". d d"}#fd-app .bnpr .bnpc{grid-area:c}#fd-app .bnpr .bnpn{grid-area:n}#fd-app .bnpr .bnps{grid-area:s}#fd-app .bnpr .bnpd{grid-area:d}}
 @media (prefers-reduced-motion:reduce){#fd-app .bnop,#fd-app .bnop.wait .bnico{animation:none}}
+@media (max-width:420px){#fd-app .pvseg button .pvi{display:none}}
 @media (prefers-reduced-motion:reduce){#fd-app .pvseg>i,#fd-app .pvkind>i,#fd-app .pvmb,#fd-app .pvrx{transition:none}#fd-app .pvcus,#fd-app .pvday,#fd-app .pvcb,#fd-app .pvbar i,#fd-app .pvcbb>i,#fd-app .pvkpi>div{animation:none}}
 #fd-app .pfoadd #po-sup{width:auto;max-width:240px}
 @media(max-width:560px){#fd-app #pf-paysum{grid-template-columns:repeat(2,minmax(0,1fr))}#fd-app #pf-paysum>div:first-child{grid-column:span 2}#fd-app #pf-paysum b{font-size:17px}#fd-app .pfoadd #po-sup{max-width:none;width:100%}}
@@ -4515,8 +4523,23 @@ const posWord = n => n%10===1&&n%100!==11?"позиция":(n%10>=2&&n%10<=4&&(n
 const linesTable = k => `<div class="dc-tw"><table class="dc-t"><thead><tr><th>Товар</th><th class="num">Кол-во</th><th class="num">Цена, ₽</th><th class="num">Сумма, ₽</th></tr></thead><tbody>${k.lines.map(l=>`<tr><td><b>${esc(l.name)}</b></td><td class="num">${esc(nq3(l.qty))}&nbsp;${esc(l.unit||"")}</td><td class="num">${fm(l.price)}</td><td class="num"><b>${fm(l.sum)}</b></td></tr>`).join("")}</tbody></table></div>`;
 /* общий вид всплывающей карточки: плавное появление, закрытие крестиком / Esc / кликом мимо */
 // окна: тень под шапкой при прокрутке; --dch — высота шапки (для внутренних липких заголовков)
+/* сжатая шапка окна: высокая шапка (подпись + длинное название) прилипает только нижней полоской,
+   поверх неё плавно появляется строка «название в одну строку + ×». Размеры в потоке не меняются — прокрутка не прыгает. */
+const DC_MINI=58;
+function dcMini(d, st){ const h=d.querySelector(":scope>.dc-head"); if(!h) return; const t=h.querySelector("h3");
+  const H=h.offsetHeight, over=t ? (H>DC_MINI+10 ? H-DC_MINI : 0) : 0, top=over?`calc(-1 * var(--dcp-t) - ${over}px)`:"";
+  if(h.style.top!==top) h.style.top=top;
+  let m=h.querySelector(":scope>.dc-mini");
+  if(!over){ if(m) m.remove(); d.classList.remove("cmp"); return; }
+  const key=t.textContent+"|"+!!h.querySelector(".dc-back");
+  if(!m || m.dataset.k!==key){ if(m) m.remove(); const b=h.querySelector(".dc-back");
+    h.insertAdjacentHTML("beforeend", `<div class="dc-mini" aria-hidden="true">${b?b.outerHTML.replace('class="dc-back"','class="dc-back" tabindex="-1"'):""}<b>${esc(t.textContent)}</b><button type="button" class="dc-x" data-dc="close" tabindex="-1" aria-label="Закрыть">×</button></div>`);
+    m=h.querySelector(":scope>.dc-mini"); m.dataset.k=key; }
+  const on=st>over-6; d.classList.toggle("cmp", on); m.setAttribute("aria-hidden", on?"false":"true"); }
 function dcFit(d){
-  d.classList.toggle("scrolled", d.scrollTop>4);
+  const st=d.scrollTop, sc=d.classList.contains("scrolled");
+  d.classList.toggle("scrolled", st>(sc?2:4));
+  dcMini(d, st);
   const h=d.querySelector(":scope>.dc-head"), pt=parseFloat(getComputedStyle(d).paddingTop)||0;
   const hb=h ? Math.round(h.getBoundingClientRect().bottom - d.getBoundingClientRect().top) : 0;
   const v=Math.max(0, hb-pt)+"px"; if(d.style.getPropertyValue("--dch")!==v) d.style.setProperty("--dch", v);
