@@ -16,6 +16,7 @@ function zkpCalc(it){ const g=it.g.map(j=>D.journal.find(x=>x.id===j.id)||j).fil
   it.notes=[].concat(...S.map(s=>s.tip.split("\n").slice(1))); it.notes=[...new Set(it.notes)];
   if(g.length>1){ it.lbl = it.st==="ok"?"✓":it.st==="none"?"нет":done+"/"+S.length; it.tip=it.st==="ok"?"Закупка заполнена во всех накладных":it.st==="none"?"Закупка не заполнена":"Закупка заполнена в "+done+" из "+S.length+" накладных"; }
   else { const s=S[0]; it.lbl = s?zkJLbl(s):"нет"; it.tip = s?s.tip.split("\n")[0]:"Закупка не заполнена"; }
+  it.loss=zkLossSum(S);
   let sum=0, rev=0, cost=0, prof=0; g.forEach(j=>{ const x=docProfit(j); sum+=x.k.t.sum; rev+=x.rev; cost+=x.cost; prof+=x.profit; });
   Object.assign(it, {sum:r2(sum), rev:r2(rev), cost:r2(cost), prof:r2(prof), date:g[0].date}); return it; }
 function zkpItems(){ const [a,b]=zkpRange(), G={}, out=[];
@@ -31,7 +32,7 @@ function zkpRowIn(it){ const sub=zkpNums(it)+(it.g.length>1?" · "+it.g.length+"
   return `<span class="zkp-d">${fd(it.date).slice(0,5)}</span>
     <span class="zkp-t"><b>${esc(zkpTitle(it))}</b><small>${esc(sub)}</small>${note}</span>
     <span class="zkp-s"><b>${fm(it.sum)} ₽</b>${it.st!=="none"?`<small>прибыль <span class="${it.prof<0?"neg":""}">${fm(it.prof)}</span></small>`:`<small class="muted">закупки нет</small>`}</span>
-    <span class="jzk ${it.st}" title="${esc(it.tip)}">${IC_ZK}<span>${esc(it.lbl)}</span></span><span class="zkp-a" aria-hidden="true">▾</span>`; }
+    <span class="jzk ${it.st}${it.loss?" loss":""}" title="${esc(it.tip+(it.loss?"\n"+zkLossTip(it.loss.p, it.loss.neg):""))}">${IC_ZK}<span>${esc(it.lbl)}</span>${it.loss?`<i class="jzk-l" aria-hidden="true"></i>`:""}</span><span class="zkp-a" aria-hidden="true">▾</span>`; }
 function zkpRow(it){ const o=ZKP.open===it.key; return `<div class="zkp-it${o?" open":""}" data-key="${esc(it.key)}"><button type="button" class="zkp-row" data-zkpo="${esc(it.key)}" aria-expanded="${o}">${zkpRowIn(it)}</button><div class="zkp-ed"><div class="zkp-edi dcard"></div></div></div>`; }
 function zkpKpi(L){ const c=k=>L.filter(x=>x.st===k).length, rev=r2(L.reduce((a,x)=>a+x.rev,0)), cost=r2(L.reduce((a,x)=>a+(x.st!=="none"?x.cost:0),0)), prof=r2(L.filter(x=>x.st!=="none").reduce((a,x)=>a+x.prof,0)), docs=L.reduce((a,x)=>a+x.g.length,0);
   $("#zkp-kpi").innerHTML=`<div><small>Накладных</small><b>${docs}</b><span>${L.length} ${plural(L.length,["строка","строки","строк"])} в списке</span></div>
