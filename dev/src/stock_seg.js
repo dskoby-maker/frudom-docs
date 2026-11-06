@@ -887,6 +887,95 @@ document.addEventListener("click", async e=>{ const b=e.target.closest && e.targ
     miSaveDraft(); miRedraw(r.open?(skK(r.unit)==="шт"?`.mi-box-x[data-k="${r.k}"]`:`.mi-pcs-n[data-k="${r.k}"]`):null); return; }
   if(a==="conv" && r){ miConv(r); miSaveDraft(); miRedraw(`.mi-pcs-p[data-k="${r.k}"]`); toast("ok","Переведено в "+r.unit, r.pcs+" шт × "+r.pack+" "+r.unit+" = "+r.qty+" "+r.unit); return; }
 });
+/* ---------- «Закупка по накладной» в окне документа: что из накладной уехало со склада (документ уже сохранён) ----------
+   DZ.s[ключ строки] = {m:""|"s"|"x", q:"со склада (для «Часть»)", itemId:"товар склада", m0/q0/it0 — как сохранено}.
+   Сохранение: связь с товаром склада → источник в накладной (commitDoc, только количество/источник) → резерв → отгрузка. */
+let DZ=null;
+const dzKey = l => l.lid || ("p:"+l.pid);
+const dzOn = () => SK_READY && skSrv!==false && skCan() && !!SK;
+function dzInit(j){ const k=calc(j.snap.dr, j.snap); DZ={doc:j.id, s:{}, ship:j.date<=todayISO(), v:null};
+  if(!dzOn()) return; k.lines.forEach(l=>{ const it=skItemOf(l.pid), st=l.stk||{}, q=st.m==="x"?String(st.q||"").replace(".",","):"";
+    DZ.s[dzKey(l)]={m:st.m||"", q, itemId:it?it.id:"", m0:st.m||"", q0:q, it0:it?it.id:"", pd0:st.pd!=null&&st.pd!==""?String(st.pd):""}; }); }
+function dzSt(j, l){ return DZ && DZ.doc===j.id ? DZ.s[dzKey(l)] : null; }
+/* сохранённое состояние строки на складе: сколько уже уехало со склада */
+function dzDone(j, l){ const si=skLineInfo(j.id, {productId:l.pid, qty:l.qty, lid:l.lid, stk:l.stk}, l.unit); return si; }
+const dzLocked = (j, l) => { const si=dzDone(j,l); return r3(si.shipped-si.ret)>0 ? si : null; };
+/* сколько и почём можно взять со склада под эту строку: партии с самой ранней даты, свой резерв строки считается свободным */
+function dzEst(j, l, itemId, q){ const X=skIdx(), own={}; X.S.res.forEach(r=>{ if(r.docId===j.id && r.lineId===l.lid) own[r.batchId]=(own[r.batchId]||0)+(+r.qty||0); });
+  let left=r3(q), cost=0, unk=false, got=0, avail=0;
+  (X.byItem[itemId]||[]).filter(b=>!b.cancel && skK(b.unit)===skK(l.unit)).forEach(b=>{ const f=r3(Math.max(0, skFree(b.id)+(own[b.id]||0))); avail=r3(avail+f); if(left<=0) return;
+    const t=r3(Math.min(left, f)); if(t<=0) return; left=r3(left-t); got=r3(got+t); if(b.price===""||b.price==null) unk=true; else cost+=t*(+b.price); });
+  const unitOk=(X.byItem[itemId]||[]).some(b=>!b.cancel && skK(b.unit)===skK(l.unit));
+  return {got, short:r3(left), cost:r2(cost), unk, avail, unitOk}; }
+/* сколько по строке берётся со склада по выбору в блоке */
+function dzQ(l, s){ if(!s||!s.m) return 0; if(s.m==="s") return r3(+l.qty||0); const v=skNum(s.q); return isFinite(v)&&v>0 ? r3(Math.min(+l.qty||0, v)) : 0; }
+/* себестоимость строки для живого расчёта: {cost|null, prelim} или null, если склад не участвует */
+function dzCost(j, l, priceVal){ const s=dzSt(j,l); if(!s) return null; const lk=dzLocked(j,l);
+  if(lk){ const sk=skLineCost(j, l); if(!sk) return null; const dq=sk.directQ; if(dq>0 && priceVal==null) return {cost:null, stock:sk.stockCost};
+    return {cost:r2(sk.stockCost+(dq>0?priceVal*dq:0)), stock:sk.stockCost}; }
+  if(!s.m) return null; const sq=dzQ(l,s); if(!s.itemId || !(sq>0)) return {cost:null};
+  const e=dzEst(j,l,s.itemId,sq), dq=r3((+l.qty||0)-sq); if(e.short>0 || e.unk || (dq>0 && priceVal==null)) return {cost:null, e};
+  return {cost:r2(e.cost+(dq>0?priceVal*dq:0)), e}; }
+function dzItemOpts(l, cur){ const X=skIdx(), tk=s=>skK(s).replace(/[()«»"',.]/g," ").split(" ").filter(w=>w.length>=4).map(w=>w.slice(0,5)), P=new Set(tk(l.name));
+  const sc=i=>tk(i.name+" "+(i.alt||"")).filter(w=>P.has(w)).length, fr=i=>skFreeU(i.id,l.unit);
+  const L=X.S.items.filter(i=>i.id===cur || sc(i)>0 || fr(i)>0).sort((a,b)=>sc(b)-sc(a) || (fr(b)>0)-(fr(a)>0) || a.name.localeCompare(b.name,"ru"));
+  return `<option value="">— какой товар на складе? —</option>`+L.map(i=>`<option value="${i.id}"${i.id===cur?" selected":""}>${esc(i.name)} · ${fr(i)>0?"свободно "+skQf(fr(i),l.unit):"нет в наличии"}</option>`).join(""); }
+/* строка источника под товаром в блоке закупки */
+function dzSrcHtml(j, l){ if(!dzOn() || !DZ || DZ.doc!==j.id) return ""; const s=dzSt(j,l); if(!s) return ""; const X=skIdx(); if(!X.S.items.length && !s.m0) return "";
+  const k=esc(dzKey(l)), u=esc(l.unit||""), lk=dzLocked(j,l);
+  if(lk){ const sk=skLineCost(j,l)||{}, sq=lk.req||0;
+    return `<div class="dzsk lock" data-k="${k}">${skIcon}<span>Со склада отгружено <b>${skQf(r3(lk.shipped-lk.ret),l.unit)}</b>${sq>lk.shipped-lk.ret+0.0005?` из ${skQf(sq,l.unit)}`:""}${sk.stockCost!=null?` · себестоимость <b>${fm(sk.stockCost)} ₽</b>`:""}${s.m0==="x"?` · остальное (${skQf(r3((+l.qty||0)-sq),l.unit)}) — по цене справа`:""}<small>Изменить — через «Возврат» в блоке «Склад» выше.</small></span></div>`; }
+  const b=(m,t)=>`<button type="button" class="${s.m===m?"on":""}" data-dzm="${m}" data-k="${k}" aria-pressed="${s.m===m}">${t}</button>`;
+  let det="";
+  if(s.m){ const it=s.itemId?X.item[s.itemId]:null, sq=dzQ(l,s);
+    const pick = !s.it0 ? `<label class="dzpick"><small>Товар на складе <i>(связь запомнится)</i></small><select class="dzit" data-k="${k}" aria-label="Товар на складе">${dzItemOpts(l, s.itemId)}</select></label>` : "";
+    const qf = s.m==="x" ? `<label class="dzpq"><small>Со склада, ${u}</small><input class="dzq" data-k="${k}" inputmode="decimal" value="${esc(s.q)}" placeholder="из ${esc(nq3(l.qty))}"></label>` : "";
+    let info="";
+    if(!it) info=`<span class="miss">Выберите, какой товар взяли со склада.</span>`;
+    else { const e=dzEst(j,l,it.id,sq||0);
+      if(!e.unitOk) info=`<span class="miss">На складе «${esc(it.name)}» нет в единицах «${u}» — сначала перевзвесьте на складе.</span>`;
+      else if(s.m==="x" && !(sq>0 && sq<(+l.qty||0))) info=`<span class="muted">Свободно ${skQf(e.avail,l.unit)}. Впишите, сколько взяли со склада (меньше ${esc(nq3(l.qty))}).</span>`;
+      else if(e.short>0) info=`<span class="miss">На складе свободно только ${skQf(e.avail,l.unit)} — не хватает ${skQf(e.short,l.unit)}. Проведите приход или выберите «Часть».</span>`;
+      else info=`<span>«${esc(it.name)}»: ${skQf(sq,l.unit)} со склада · себестоимость ${e.unk?`<span class="miss">у партии нет цены</span>`:`<b>${fm(e.cost)} ₽</b> (${fm(r2(e.cost/sq))} ₽/${u})`}${s.m==="x"?` · от Саида ${skQf(r3((+l.qty||0)-sq),l.unit)} — цена справа`:""}</span>`; }
+    det=`<div class="dzskd">${pick}${qf}<div class="dzinf">${info}</div></div>`; }
+  return `<div class="dzsk" data-k="${k}"><div class="dzseg" role="group" aria-label="Откуда товар">${b("","Закупка")}${b("s","Со склада")}${b("x","Часть со склада")}</div>${det}</div>`; }
+/* что поменялось по складу и всё ли можно провести */
+function dzChanges(j){ if(!dzOn() || !DZ || DZ.doc!==j.id) return {list:[]}; const k=calc(j.snap.dr, j.snap), list=[], X=skIdx();
+  for(const l of k.lines){ const s=dzSt(j,l); if(!s || dzLocked(j,l)) continue; const sq=dzQ(l,s);
+    const same = s.m===s.m0 && (s.m!=="x" || r3(skNum(s.q))===r3(skNum(s.q0))) && (!s.m || s.itemId===s.it0);
+    if(same) continue;
+    if(s.m){ const it=X.item[s.itemId]; if(!it) return {err:"«"+l.name+"»: выберите товар на складе"};
+      if(s.m==="x" && !(sq>0 && sq<(+l.qty||0))) return {err:"«"+l.name+"»: впишите, сколько взяли со склада — больше 0 и меньше "+nq3(l.qty)};
+      const e=dzEst(j,l,it.id,sq); if(!e.unitOk) return {err:"«"+l.name+"»: на складе нет единицы «"+l.unit+"» — сначала перевзвесьте"};
+      if(e.short>0) return {err:"«"+l.name+"»: на складе свободно только "+skQf(e.avail,l.unit)+" — не хватает "+skQf(e.short,l.unit)}; }
+    list.push({l, s, sq}); }
+  return {list}; }
+/* провести: связь → источник в накладной → резерв → отгрузка */
+async function dzApply(j, list, ship){
+  if(!online()) throw new Error("нет связи с таблицей — склад меняется только онлайн");
+  const X=skIdx(), add={};
+  list.forEach(c=>{ if(c.s.m && c.s.itemId!==c.s.it0){ (add[c.s.itemId]=add[c.s.itemId]||[]).push(c.l.pid); } });
+  for(const id of Object.keys(add)){ const it=X.item[id]; const links=[...new Set((it._links||[]).concat(add[id]))]; await skSend("item",{itemId:id, links},"Связь: "+it.name); }
+  const lines=clone(j.snap.dr.lines||[]), used=new Set(), what=[];
+  list.forEach(c=>{ let i=lines.findIndex((x,n)=>!used.has(n) && c.l.lid && x.lid===c.l.lid); if(i<0) i=lines.findIndex((x,n)=>!used.has(n) && !x.lid && x.productId===c.l.pid); if(i<0) return; used.add(i);
+    const x=lines[i]; if(!x.lid) x.lid=uid()+uid(); c.lid=x.lid;
+    if(!c.s.m) delete x.stk; else if(c.s.m==="s") x.stk={m:"s"}; else x.stk={m:"x", q:String(c.sq)};
+    x.stkSet=1; delete x.stkA;
+    what.push(c.l.name+": "+(!c.s.m?"от Саида (не со склада)":c.s.m==="s"?"со склада "+nq3(c.sq)+" "+c.l.unit:"со склада "+nq3(c.sq)+" из "+nq3(c.l.qty)+" "+c.l.unit)); });
+  const meta=clone(j.snap.meta||{}); histPush(meta, what);
+  const note=await commitDoc({id:j.id, qtyOnly:true, supplierId:j.supplierId, customerId:j.customerId, number:String(j.number), date:j.date, lines}, {meta:{hist:meta.hist}});
+  if(/на этом устройстве/.test(note||"")) throw new Error("накладная не дошла до таблицы — проверьте связь и сохраните ещё раз");
+  const lbl="№ "+j.number+" от "+fd(j.date);
+  /* сервер уже пересчитал резерв при сохранении накладной — берём свежие остатки; если резерва нет (старый скрипт / сбой) — просим явно */
+  const j2=D.journal.find(x=>x.id===j.id)||j, ids=new Set(list.filter(c=>c.s.m).map(c=>c.lid));
+  try{ const st=await api({action:"stock", op:"load"}); skApply(st.stock); }catch(e){}
+  if(skDocLines(j2).some(x=>ids.has(x.l.lid) && x.short>0) || list.some(c=>!c.s.m)) await skSend("reserve",{docId:j.id},"Резерв "+lbl);
+  const L=skDocLines(j2).filter(x=>ids.has(x.l.lid));
+  let shipped=[];
+  if(ship){ const sl=L.filter(x=>x.res>0).map(x=>({lineId:x.l.lid, qty:String(r3(Math.min(x.res, x.need)))})).filter(x=>+x.qty>0);
+    if(sl.length){ await skSend("ship",{docId:j.id, lines:sl},"Отгрузка "+lbl); shipped=sl; } }
+  const short=skDocLines(j2).filter(x=>ids.has(x.l.lid) && x.short>0);
+  return {n:list.length, shipped:shipped.length, short}; }
 window.__sk = { send:(op,d,l)=>skSend(op,d,l||op), logN:()=>skQ().length+skD().log.length };
 window.__mi = { open: skMultiIn, st: () => SKMI };
 SK_READY=true;
