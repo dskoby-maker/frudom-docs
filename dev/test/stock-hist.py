@@ -78,7 +78,10 @@ async def main():
         await pg.click('#sk-dlg [data-skhff=""]'); await pg.wait_for_timeout(300)
         await pg.click('#sk-dlg [data-skdoc="dh1"]'); await pg.wait_for_timeout(600)
         ok(await pg.locator('#fd-dcard').count()==1, 'ссылка из истории открывает накладную')
-        await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
+        ok('Истори' in (await pg.text_content('#fd-dcard .dc-back') or ''), 'в накладной — «‹ История…» назад')
+        await pg.keyboard.press('Escape'); await pg.wait_for_timeout(500)
+        ok(await pg.locator('#sk-dlg[open]').count()==1 and await pg.locator('#fd-dcard').count()==0, 'Esc в накладной — назад в историю товара')
+        await pg.keyboard.press('Escape'); await pg.wait_for_timeout(400)
         # клавиатура: Enter на строке открывает карточку
         await pg.focus(f'#sk-list .skrow[data-skitem="{it}"]'); await pg.keyboard.press('Enter'); await pg.wait_for_timeout(500)
         ok(await pg.locator('#sk-dlg .skuv').count()==1, 'Enter на строке открывает карточку товара')

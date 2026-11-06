@@ -42,7 +42,7 @@ function dRow(f, i){ const G=dGoods(f), P=[...dProds(f)].length, pdf=dIsPdf(f), 
 
 /* ---------- карточка декларации: всё о ней и все действия ---------- */
 let SKDV=null;
-function dView(id){ SKDV={id}; skModal(dViewHtml, true); }
+function dView(id){ SKDV={id}; SK_RE=()=>dView(id); skModal(dViewHtml, true); }
 function dViewHtml(){ const f=skD().files.find(x=>x.id===SKDV.id); if(!f) return skHead("Декларации","Декларация удалена","Обновите список.");
   const G=dGoods(f), X=skIdx(), P=dJ(f.prods).map(id=>prod(id)).filter(p=>p&&p.id), I=dItems(f).map(id=>X.item[id]).filter(Boolean), pdf=dIsPdf(f), im=dIsImg(f);
   const info=[["№ декларации",f.num||"—"],["Действует до",f.validTo?fd(f.validTo):"не указан"],["Изготовитель",f.maker||"—"],["Файл",(f.name||"")+(+f.size?" · "+(+f.size>=1048576?(f.size/1048576).toFixed(1).replace(".",",")+" МБ":Math.max(1,Math.round(f.size/1024))+" КБ"):"")],["Добавил",(f.by||"—")+(f.at?" · "+skWhen(f.at):"")]].concat(f.batchName?[["Партия",f.batchName]]:[]).concat(f.note?[["Комментарий",f.note]]:[]);
@@ -142,7 +142,7 @@ function dDocPositions(docs){ const m=new Map(); docs.forEach(j=>{ const P=(j.sn
 function skDeclDocs(docs){ if(!SK_READY) return; docs=(docs||[]).filter(j=>j&&j.snap); if(!docs.length) return;
   const date=docs.map(j=>j.date).sort()[0], pos=dDocPositions(docs), sel={}, extra={};
   pos.forEach(p=>{ const m=dMatch(p), ok=f=>dState(f,date)!=="bad"; const st=m.strong.filter(ok); sel[p.id]=new Set((st.length?st:m.weak.filter(ok).slice(0,1)).map(f=>f.id)); extra[p.id]=new Set(); });
-  SKDD={docs, date, pos, sel, extra, cover:true, keep:true, busy:""}; skModal(dDocHtml, true); if(!SK || !SK.at) skLoad(true); }
+  SKDD={docs, date, pos, sel, extra, cover:true, keep:true, busy:""}; { const M=SKDD; SK_RE=function r(){ SKDD=M; SK_RE=r; skModal(dDocHtml, true); }; } skModal(dDocHtml, true); if(!SK || !SK.at) skLoad(true); }
 function dDocHtml(){ const M=SKDD, files=skD().files, by=id=>files.find(f=>f.id===id), j0=M.docs[0], nums=M.docs.map(j=>j.number);
   const lbl=(M.docs.length>1?"Комплект № "+(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", ")):"Документ № "+j0.number)+" от "+fd(M.date)+" · "+jWho(j0).main;
   const all=new Set(); M.pos.forEach(p=>M.sel[p.id].forEach(id=>all.add(id))); const none=M.pos.filter(p=>!M.sel[p.id].size).length;

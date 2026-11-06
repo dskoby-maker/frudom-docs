@@ -44,6 +44,11 @@
 #fd-app dialog.dcard.in{opacity:1;transform:none}#fd-app dialog.dcard.out{opacity:0;transform:translateY(10px) scale(.98)}
 #fd-app dialog.dcard::backdrop{background:rgba(28,34,32,.38);backdrop-filter:blur(2px);animation:fdbd .2s ease}
 @keyframes fdbd{from{opacity:0}}
+#fd-app .dcard .dc-back{display:flex;width:fit-content;max-width:100%;align-items:center;gap:2px;border:0;background:transparent;color:var(--accent);font:600 13px/1.2 var(--ui);padding:5px 10px 5px 4px;margin:-4px 0 8px -6px;border-radius:99px;cursor:pointer;transition:background-color .15s,transform .15s}#fd-app .dcard .dc-back svg{width:18px;height:18px;flex:none;transition:transform .18s cubic-bezier(.2,.8,.2,1)}#fd-app .dcard .dc-back span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fd-app .dcard .dc-back:hover{background:var(--accent-soft)}#fd-app .dcard .dc-back:hover svg{transform:translateX(-3px)}#fd-app .dcard .dc-back:active{transform:scale(.97)}#fd-app .dcard .dc-back:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#fd-app dialog.dcard.nav{opacity:1;transform:none;transition:none}#fd-app dialog.dcard.nav::backdrop{animation:none}#fd-app dialog.dcard.nav.out{opacity:0;transform:translateY(10px) scale(.98);transition:opacity .2s ease,transform .2s ease}
+#fd-app dialog.dcard.nav.fwd>*{animation:dcnavf .3s cubic-bezier(.2,.8,.2,1) backwards}#fd-app dialog.dcard.nav.back>*{animation:dcnavb .3s cubic-bezier(.2,.8,.2,1) backwards}
+@keyframes dcnavf{from{opacity:0;transform:translateX(32px)}}@keyframes dcnavb{from{opacity:0;transform:translateX(-32px)}}
+@media (prefers-reduced-motion:reduce){#fd-app dialog.dcard.nav.fwd>*,#fd-app dialog.dcard.nav.back>*{animation:none}}
 #fd-app .dcard .dc-head{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
 /* окно: шапка «жидкое стекло» во всю ширину, свой тонкий ползунок поверх содержимого */
 #fd-app dialog.dcard{--dcp-t:22px;--dcp-x:22px;overscroll-behavior:contain;scrollbar-width:none}
@@ -4282,22 +4287,69 @@ function dcWatch(d){
 document.addEventListener("scroll", e=>{ const d=e.target; if(d && d.matches && d.matches("dialog.dcard")) dcFit(d); }, true);
 document.addEventListener("focusin", e=>{ const d=e.target.closest && e.target.closest("dialog.dcard"); if(d){ dcWatch(d); dcFit(d); } });
 new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{ if(n.tagName==="DIALOG" && n.classList.contains("dcard")) dcWatch(n); }))).observe(document.documentElement,{childList:true,subtree:true});
+/* ---------- переходы между окнами: «‹ Назад» в шапке, Esc, кнопка «Назад» телефона, Alt+←, боковая кнопка мыши ----------
+   Окно, в которое можно вернуться, знает, как открыть себя заново (d._re: CARD_RE у карточек, SK_RE у окон склада) —
+   поэтому при возврате данные свежие, а прокрутка — та же. Крестик и клик мимо окна закрывают всё и забывают путь. */
+const NAV={st:[], pend:null, back:null}; let CARD_RE=null;
+const navDlg=()=>[...document.querySelectorAll("#fd-app dialog.dcard[data-nav]")].find(x=>x.isConnected&&!x._bye)||null;
+const navTxt=(d,s)=>((d.querySelector(".dc-head "+s)||{}).textContent||"").replace(/\s+/g," ").trim();
+const navKey=d=>navTxt(d,".dc-kicker")+"|"+navTxt(d,"h3");
+function navInfo(d){ if(!d) return null; const k=navTxt(d,".dc-kicker").split(" · ")[0], h=navTxt(d,"h3");
+  return {re:d._re||null, key:navKey(d), label:k&&k.length<=28?k:(h.length>28?h.slice(0,27)+"…":h)||"Назад", full:[k,h].filter(Boolean).join(" — "), scroll:d.scrollTop}; }
+function navPrev(){ const p=NAV.pend; NAV.pend=null; return p&&Date.now()-p.at<1500 ? p : navInfo(navDlg()); }
+function navStash(d){ if(NAV.back||!d||d._bye) return; NAV.pend=Object.assign(navInfo(d), {at:Date.now()}); }
+function navReset(){ NAV.st=[]; NAV.pend=null; }
+/* новое окно d уже заполнено; prev — окно, из которого пришли */
+function navOpen(d, re, prev){
+  d.dataset.nav="1"; d._re=re||null; const key=navKey(d); let mode="";
+  if(NAV.back){ mode="back"; d._sc=NAV.back.scroll; NAV.back=null; }
+  else if(prev){ const i=NAV.st.findIndex(x=>x.key===key);
+    if(prev.key===key) mode="";                                   /* то же окно обновилось */
+    else if(i>=0){ NAV.st.length=i; mode="back"; }                /* вернулись в окно, которое уже было в пути */
+    else if(prev.re){ NAV.st.push(prev); if(NAV.st.length>12) NAV.st.shift(); mode="fwd"; }
+    else mode=NAV.st.length?"fwd":""; }                            /* из формы, в которую не возвращаются, — путь до неё сохраняем */
+  else NAV.st=[];
+  if(mode){ d.classList.add("nav",mode); setTimeout(()=>d.classList.remove("fwd","back"),450); }
+  navDecorate(d); return mode; }
+function navAfter(d){ if(d._sc){ d.scrollTop=d._sc; d._sc=0; } dcFit(d); }
+const IC_BACK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>';
+function navDecorate(d){ const h=d.querySelector(".dc-head>div"); if(!h) return; const o=h.querySelector(".dc-back"); if(o) o.remove();
+  const t=NAV.st[NAV.st.length-1]; if(!t) return;
+  h.insertAdjacentHTML("afterbegin",`<button type="button" class="dc-back" data-navback title="Вернуться: ${esc(t.full)} (Esc)" aria-label="Назад: ${esc(t.full)}">${IC_BACK}<span>${esc(t.label)}</span></button>`); }
+function navBack(){ const t=NAV.st.pop(); if(!t) return false;
+  if(document.querySelector("#dc-cm.dirty")) cmSave();
+  NAV.back={scroll:t.scroll};
+  document.querySelectorAll("#fd-app dialog.dcard[data-nav]").forEach(x=>{ x._bye=1; try{ x.close(); }catch(e){} x.remove(); });
+  if(typeof SKM!=="undefined") SKM=null;
+  try{ t.re(); }catch(e){ console.error(e); }
+  if(NAV.back){ NAV.back=null; navReset(); }                     /* окно не открылось (например, документ удалили) */
+  return true; }
+document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("[data-navback]"); if(b){ e.preventDefault(); e.stopPropagation(); navBack(); } }, true);
+document.addEventListener("keydown",e=>{ if(e.altKey&&e.key==="ArrowLeft"&&NAV.st.length&&navDlg()){ e.preventDefault(); navBack(); } });
+document.addEventListener("mouseup",e=>{ if(e.button===3&&NAV.st.length&&navDlg()){ e.preventDefault(); navBack(); } });   /* боковая кнопка «назад» мыши */
 function openCard(html, wide, onAct){
-  const old=document.getElementById("fd-dcard"); if(old) old.remove();
+  const re=CARD_RE; CARD_RE=null; const prev=navPrev();
+  const old=document.getElementById("fd-dcard"); if(old){ old._bye=1; old.remove(); }
   const d=document.createElement("dialog"); d.id="fd-dcard"; d.className="dcard"+(wide?" wide":""); d.innerHTML=html;
   document.getElementById("fd-app").appendChild(d);
-  const close=()=>{ if(d.classList.contains("out")) return; const cmb=d.querySelector("#dc-cm.dirty"); if(cmb) cmSave(); d.classList.add("out"); setTimeout(()=>{ try{ d.close(); }catch(x){} d.remove(); }, matchMedia("(prefers-reduced-motion: reduce)").matches?0:200); };
-  d.addEventListener("cancel", e=>{ e.preventDefault(); if(document.getElementById("fd-help")){ closeHelp(); return; } close(); });
+  /* go — переход в другое окно: старое гасим чуть позже, чтобы новое успело встать на его место без мигания */
+  const close=go=>{ if(d.classList.contains("out")) return; const cmb=d.querySelector("#dc-cm.dirty"); if(cmb) cmSave(); if(!go) d._bye=1; const rm=matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setTimeout(()=>{ if(!d.isConnected) return; d.classList.add("out"); setTimeout(()=>{ d._bye=1; try{ d.close(); }catch(x){} d.remove(); }, rm?0:200); }, go?90:0); };
+  const closeAll=()=>{ navReset(); close(); };
+  d.addEventListener("cancel", e=>{ e.preventDefault(); if(document.getElementById("fd-help")){ closeHelp(); return; } if(NAV.st.length) navBack(); else closeAll(); });
+  d.addEventListener("close", ()=>{ if(d._bye) return; d._bye=1; if(NAV.st.length&&navBack()) return; if(d.querySelector("#dc-cm.dirty")) cmSave(); navReset(); d.remove(); });   /* закрыли снаружи (кнопка «Назад» в приложении) */
   d.addEventListener("click", e=>{
-    if(e.target===d){ const r=d.getBoundingClientRect(); if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom) close(); return; }
-    const b=e.target.closest("[data-dc]"); if(!b) return; const a=b.dataset.dc; close(); if(a!=="close") setTimeout(()=>onAct(a, b), 0); });
-  d.showModal(); requestAnimationFrame(()=>d.classList.add("in")); const ct=d.querySelector("#dc-cmt"); if(ct) cmGrow(ct);
+    if(e.target===d){ const r=d.getBoundingClientRect(); if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom) closeAll(); return; }
+    const b=e.target.closest("[data-dc]"); if(!b) return; const a=b.dataset.dc; if(a==="close"){ closeAll(); return; } close(true); setTimeout(()=>onAct(a, b), 0); });
+  navOpen(d, re, prev);
+  d.showModal(); requestAnimationFrame(()=>d.classList.add("in")); navAfter(d); const ct=d.querySelector("#dc-cmt"); if(ct) cmGrow(ct);
 }
 function docCard(j, arch){
   const k=calc(j.snap.dr, j.snap), dr=j.snap.dr, m=j.snap.meta||{}, w=jWho(j), lim=docLimited(), inG=!arch && jKey(j) && D.journal.filter(x=>x.snap&&!isArch(x)&&jKey(x)===jKey(j)).length>1;
   const info=[["Поставщик",j.snap.s.name||""],["Адрес доставки",dr.ship||j.snap.c.address||""],["Основание",dr.basis||""]].concat(whoLine(j)).filter(x=>x[1]);
   const acts = arch ? `<button class="btn" data-dc="close">Закрыть</button>`
     : `<button class="btn" data-dc="decl" title="Скачать декларации на товары документа">Декларации</button>`+(j.snap.c&&j.snap.c.priv?`<button class="btn" data-dc="nakl">Накладная</button>`:`<button class="btn" data-dc="combo">Счёт+ТОРГ</button><button class="btn" data-dc="upd">УПД</button>`)+(inG&&!lim?`<button class="btn" data-dc="gedit">Редактировать комплект</button>`:"")+(me().admin?`<button class="btn" data-zkc="toggle" aria-expanded="false">${dcZkHas(j)?"Закупка ✓":"Добавить закупку"}</button>`:"")+(lim?`<button class="btn pri" data-dc="qty">Изменить количество</button>`:`<button class="btn pri" data-dc="edit">Изменить</button>`);
+  CARD_RE=()=>{ const x=D.journal.find(y=>y.id===j.id); if(x) docCard(x, arch); else toast("info","Документа уже нет"); };
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Документ № ${esc(j.number)} · ${fd(j.date)}</div><h3>${esc(w.main)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <dl class="dc-info">${info.map(([a,b])=>`<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>
     ${linesTable(k)}
@@ -4674,6 +4726,7 @@ function bundleCard(g, arch){
   const docs=g.map((j,i)=>{ const k=ks[i]; return `<section class="dc-doc" style="animation-delay:${Math.min(i,8)*0.04}s"><button class="dc-dh" data-dc="doc" data-id="${j.id}" title="Открыть документ"><span><b>№ ${esc(j.number)}</b> · ${esc(kLbl(j)||stLabel(k.dr.ship||k.c.address||"", k.c.address))}</span><span class="s">${fm(k.t.sum)} ₽ ›</span></button>${linesTable(k)}</section>`; }).join("");
   const acts = arch ? `<button class="btn" data-dc="close">Закрыть</button>`
     : `<button class="btn" data-dc="decl">Декларации</button><button class="btn" data-dc="gpdf" data-k="invoice,torg12">Счета+ТОРГ</button><button class="btn" data-dc="gpdf" data-k="upd">Все УПД</button>`+(me().admin?`<button class="btn" data-bzk="toggle" aria-expanded="false">${bzHas(g)}</button>`:"")+(lim?"":`<button class="btn pri" data-dc="gedit">Редактировать комплект</button>`);
+  { const ids=g.map(x=>x.id); CARD_RE=()=>{ const gg=ids.map(id=>D.journal.find(y=>y.id===id)).filter(Boolean); if(gg.length) bundleCard(gg, arch); else toast("info","Комплекта уже нет"); }; }
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Комплект · ${g.length} ${docsWord(g.length)} · ${fd(g[0].date)}</div><h3>${esc(w.main)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <dl class="dc-info">${info.map(([a,b])=>`<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>
     <div class="dc-docs">${docs}</div>

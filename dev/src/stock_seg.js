@@ -104,17 +104,19 @@ function skSyncLine(){ const el=$("#sk-sync"); if(!el) return; const q=skQ().len
   el.innerHTML = skLoading ? `<i class="spin"></i>Сверяю с таблицей…` : q ? `<i class="w"></i>Ожидает отправки: ${q}` : SK&&SK.at ? `<i class="ok"></i>Сверено ${skWhen(SK.at)}` : ""; }
 
 /* ---------- окно склада (своё, не закрывается от кнопок внутри) ---------- */
-let SKM=null;
+let SKM=null, SK_RE=null;   /* SK_RE — как открыть это окно заново (для «‹ Назад»); ставят окна-карточки, формы — нет */
 function skModal(render, wide){
-  skClose(true); const d=document.createElement("dialog"); d.id="sk-dlg"; d.className="dcard sk"+(wide?" wide":"");
+  const re=SK_RE; SK_RE=null; skClose(true); const prev=navPrev(); const d=document.createElement("dialog"); d.id="sk-dlg"; d.className="dcard sk"+(wide?" wide":"");
   document.getElementById("fd-app").appendChild(d); SKM={d, render}; skModalRefresh();
-  d.addEventListener("cancel",e=>{ e.preventDefault(); if(document.getElementById("fd-help")){ closeHelp(); return; } skClose(); });   /* Esc сначала закрывает подсказку */
+  d.addEventListener("cancel",e=>{ e.preventDefault(); if(document.getElementById("fd-help")){ closeHelp(); return; } if(NAV.st.length) navBack(); else skClose(); });   /* Esc сначала закрывает подсказку, потом — назад */
+  d.addEventListener("close",()=>{ if(d._bye) return; d._bye=1; if(NAV.st.length&&navBack()) return; if(SKM&&SKM.d===d) SKM=null; navReset(); d.remove(); });   /* закрыли снаружи (кнопка «Назад» в приложении) */
   d.addEventListener("click",e=>{ if(e.target===d){ const r=d.getBoundingClientRect(); if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom) skClose(); } });
-  d.showModal(); requestAnimationFrame(()=>d.classList.add("in")); return d; }
+  navOpen(d, re, prev);
+  d.showModal(); requestAnimationFrame(()=>d.classList.add("in")); navAfter(d); return d; }
 function skModalRefresh(){ if(!SKM) return; const d=SKM.d, st=d.scrollTop, act=document.activeElement, keep=act&&d.contains(act)&&act.dataset&&act.dataset.keep;
   if(keep) return;   /* пользователь печатает в поле — не перерисовываем под рукой */
-  d.innerHTML=SKM.render(); d.scrollTop=st; }
-function skClose(now){ if(!SKM) return; const d=SKM.d; SKM=null; if(now){ try{ d.close(); }catch(x){} d.remove(); return; } d.classList.add("out"); setTimeout(()=>{ try{ d.close(); }catch(x){} d.remove(); },180); }
+  d.innerHTML=SKM.render(); if(d.dataset.nav) navDecorate(d); d.scrollTop=st; }
+function skClose(now){ if(!SKM) return; const d=SKM.d; SKM=null; if(now) navStash(d); else navReset(); d._bye=1; if(now){ try{ d.close(); }catch(x){} d.remove(); return; } d.classList.add("out"); setTimeout(()=>{ try{ d.close(); }catch(x){} d.remove(); },180); }
 const skHQ = k => HELP[k] ? `<button type="button" class="hq" data-hq="${esc(k)}" aria-label="Подсказка: ${esc(k)}">?</button>` : "";
 const skHead = (kick, title, sub, help) => `<div class="dc-head"><div><div class="dc-kicker">${kick}</div><h3>${title}${help?skHQ(help):""}</h3>${sub?`<p class="muted sk-sub">${sub}</p>`:""}</div><button class="dc-x" data-sk="close" aria-label="Закрыть">×</button></div>`;
 const skIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-5 9 5v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M7 20v-7h10v7M7 16h10"/></svg>`;
@@ -217,7 +219,7 @@ function skFileRow(f){ return dRow(f); }   /* декларация — одна 
 
 /* ---------- карточка товара ---------- */
 let SKI={id:"", f:"", edit:false, linkQ:""};
-function skItemCard(id){ SKMVN.i=10; SKI={id, f:"", edit:false, linkQ:""}; skModal(skItemHtml, true); }
+function skItemCard(id){ SKMVN.i=10; SKI={id, f:"", edit:false, linkQ:""}; SK_RE=()=>skItemCard(id); skModal(skItemHtml, true); }
 function skItemHtml(){ const X=skIdx(), it=X.item[SKI.id]; if(!it) return skHead("Склад","Товар не найден","Обновите страницу.");
   const U=skUnitsOf(it.id), B=X.byItem[it.id]||[], ML=X.S.moves.filter(m=>m.itemId===it.id).slice().reverse(), types=[...new Set(ML.map(m=>m.type))];
   const RL=X.S.res.filter(r=>r.itemId===it.id), files=X.filesI[it.id]||[];
@@ -254,7 +256,7 @@ function skUnitSel(u, cls){ const X=skIdx(), L=X.units.slice(); if(u && !L.some(
 
 /* ---------- карточка партии ---------- */
 let SKB={id:"", mode:""};
-function skBatchCard(id){ SKMVN.b=10; SKB={id, mode:""}; skModal(skBatchHtml, true); }
+function skBatchCard(id){ SKMVN.b=10; SKB={id, mode:""}; SK_RE=()=>skBatchCard(id); skModal(skBatchHtml, true); }
 function skBatchHtml(){ const X=skIdx(), b=X.batch[SKB.id]; if(!b) return skHead("Склад","Партия не найдена","");
   const it=X.item[b.itemId]||{}, f=skFact(b.id), r=skRes(b.id), root=skRoot(b), e=root.exp||"", ML=X.S.moves.filter(m=>m.batchId===b.id).slice().reverse(), files=(X.filesI[b.itemId]||[]).filter(x=>x.batchId===b.id||x.batchId===root.id);
   const lim=docLimited(), info=[["Дата приёмки",fd(b.date)],["Поставщик",b.supplier||"—"],["Входящий документ",b.docRef||"—"],["Пришло",skQf(b.qty,b.unit)+(skBPcs(b,+b.qty)?" ("+skBPcs(b,+b.qty)+")":"")],["Фасовка",skPack(b)?skPackTxt(b):skK(b.unit)==="шт"?"—":"не указана"],["Закупочная цена",b.price!==""&&b.price!=null?fm(+b.price)+" ₽ за "+b.unit:"не указана"],["Сумма прихода",b.price!==""&&b.price!=null?fm(r2(b.qty*b.price))+" ₽":"—"],["Годен до",e?fd(e)+(root.id!==b.id?" (срок исходной партии)":""):"Срок годности не указан"]].concat(b.parent?[["Из партии",(X.batch[b.parent]||{}).name||""]]:[]);
@@ -667,7 +669,7 @@ function skJBadge(j){ if(isArch(j)) return ""; const s=skJState(j); if(!s) retur
 /* ---------- календарь: отгрузить всё за день ---------- */
 let SKDAY=null;
 function skDayDocs(date){ return (D.journal||[]).filter(j=>j.snap && !isArch(j) && j.date===date).map(j=>({j, L:skDocLines(j).filter(x=>x.item && x.req>0 && x.res>0)})).filter(o=>o.L.length).sort((a,b)=>jNumSort(a.j,b.j)); }
-function skDayShip(date){ SKDAY={date, off:{}}; skModal(skDayHtml, true); }
+function skDayShip(date){ SKDAY={date, off:{}}; SK_RE=()=>skDayShip(date); skModal(skDayHtml, true); }
 function skDayHtml(){ const L=skDayDocs(SKDAY.date), n=L.filter(o=>!SKDAY.off[o.j.id]).length;
   return skHead("Склад","Отгрузить со склада за "+fd(SKDAY.date),"Всё, что зарезервировано по накладным этого дня, спишется со склада. Отметьте только то, что фактически уехало.", "Отгрузить за день")
    + (L.length?`<div class="skdl">${L.map(o=>`<label class="skdr skday"><span class="skdh2"><input type="checkbox" class="skdaycb" value="${o.j.id}"${SKDAY.off[o.j.id]?"":" checked"}><b>№ ${esc(o.j.number)} — ${esc(jWho(o.j).main)}</b></span><span>${o.L.map(x=>esc(x.item.name)+" "+skQf(x.res,x.unit)+(x.short?` <em class="miss">(нехватка ${skQf(x.short)} останется к допоставке)</em>`:"")).join(" · ")}</span></label>`).join("")}</div>`:`<p class="muted">На этот день нечего отгружать со склада.</p>`)
@@ -1009,7 +1011,7 @@ function skItemFiles(it){ if(!it) return []; const P=new Set(it._links||[]); con
 let SKID=null;
 function skItemDecl(id){ const it=skIdx().item[id], F=skItemFiles(it); if(!it) return;
   const ok=F.filter(f=>dState(f)!=="bad"); if(F.length===1 || ok.length===1){ skFile((ok[0]||F[0]).id, false); return; }
-  SKID={id}; skModal(skItemDeclHtml, true); }
+  SKID={id}; SK_RE=()=>skItemDecl(id); skModal(skItemDeclHtml, true); }
 function skItemDeclHtml(){ const it=skIdx().item[SKID.id], F=skItemFiles(it); if(!it) return skHead("Декларации","Товар не найден","");
   return skHead("Декларации", esc(it.name), "К товару привязано несколько деклараций — скачайте нужную.", "Декларации")+`<div class="dcl-list">${F.map((f,i)=>dRow(f,i)).join("")}</div><div class="dc-acts"><button class="btn" data-sk="attachItemDecl">Загрузить ещё</button><button class="btn pri" data-sk="close">Готово</button></div>`; }
 /* история товара: всё, что с ним было — приходы, куда ушло, списания, правки цены и срока */
@@ -1017,7 +1019,7 @@ let SKH=null;
 const SKH_F=[["","Все"],["in","Пришло"],["out","Ушло"],["wo","Списания и правки"],["price","Цена"]];
 const skhKind = m => m.kind==="log" ? (/цена/i.test(m.action)?"price":"wo") : (m.type==="in"||m.type==="init"||m.type==="ret"||m.type==="rwin") ? "in" : (m.type==="ship"||m.type==="direct") ? "out" : "wo";
 const SKH_SKIP=/^(Приход|Начальный остаток|Отгрузка|Списание|Возврат|Инвентаризация|Перевзвешивание|Исправление прихода|Остаток закрыт|Резерв|Новый товар склада)/;
-function skItemHist(id){ SKH={id, f:"", n:20}; skModal(skItemHistHtml, true); }
+function skItemHist(id){ SKH={id, f:"", n:20}; SK_RE=()=>skItemHist(id); skModal(skItemHistHtml, true); }
 function skhRows(it){ const X=skIdx(), B=X.byItem[it.id]||[];
   const mv=X.S.moves.filter(m=>m.itemId===it.id).map(m=>Object.assign({kind:"mv"}, m));
   const lg=X.S.log.filter(l=>l.itemId===it.id && !SKH_SKIP.test(l.action||"")).map(l=>Object.assign({kind:"log"}, l));
