@@ -238,7 +238,14 @@ function pvFinTot(d1, d2){
   const dp=r2(docs.reduce((a,x)=>a+x.rev-x.cost-x.tax-x.exp,0)), miss=docs.filter(x=>x.miss).length;
   const L=pfArr("pother").filter(x=>x.date>=d1 && x.date<=d2), s=k=>r2(L.filter(x=>pvKind(x)===k).reduce((a,x)=>a+(+x.sum||0),0));
   const E=s("exp"), I=s("inc"), P=s("per"), B=r2(dp+I-E);
-  return {docs:docs.length, dp, miss, E, I, P, B, R:r2(B-P), L}; }
+  const DL=docs.map(x=>{ const pr=r2(x.rev-x.cost-x.tax-x.exp), pay=payOf(x.j), fr=pay.tot>0?Math.min(1, pay.s/pay.tot):0, pd=r2(pr*fr);
+    return {j:x.j, date:x.j.date, p:pr, paid:pd, due:r2(pr-pd), pay, st:pay.st, miss:x.miss}; });
+  const dpPaid=r2(DL.reduce((a,x)=>a+x.paid,0));
+  return {docs:docs.length, dp, dpPaid, dpDue:r2(dp-dpPaid), miss, E, I, P, B, R:r2(B-P), L, DL}; }
+/* строка накладной в ленте: прибыль, оплачена (зелёная) или ждём оплату (светло-зелёная) */
+function pvDocRow(x){ const j=x.j, c=cus(j.customerId), st=x.st, nm=(c.name?cusShort(c.name):"Заказчик");
+  const sub = st==="paid" ? "оплачена"+(x.pay.d?" "+fd(x.pay.d).slice(0,5):"") : st==="part" ? "оплачено "+fm(x.pay.s)+" из "+fm(x.pay.tot) : "ждём оплату · "+ageTxt(j.date);
+  return `<button type="button" class="pvit k-doc ${st==="paid"?"paid":"due"}" data-pvdoc="${esc(j.id)}"><span class="pvb pvdb ${st==="paid"?"paid":"due"}">${pvIco("box")}</span><span class="pvitn"><b>${esc(nm)} · № ${esc(j.number)}</b><small><span class="pvst ${st==="paid"?"paid":"due"}">${esc(sub)}</span> · продажа ${fm(x.pay.tot)}${x.miss?` · <em class="warn">без закупки</em>`:""}</small></span><span class="pvits ${st==="paid"?"pos":"due"}">${pvMoney(x.p,true)} ₽</span></button>`; }
 const pvCmp = (now, was, good) => { if(!was || Math.abs(was)<0.5) return ""; const d=(now-was)/Math.abs(was)*100; if(Math.abs(d)<0.5) return `<span class="pvcmp">как в прошлом месяце</span>`;
   const up=d>0, ok=good==="up"?up:!up; return `<span class="pvcmp ${ok?"good":"bad"}">${up?"▲":"▼"} ${Math.abs(d).toFixed(0)}% к прошлому месяцу</span>`; };
 function pvFinDraw(){
@@ -252,11 +259,14 @@ function pvFinDraw(){
   const inF = x => { const k=pvKind(x); if(f.fk && k!==f.fk) return false; if(cal && f.fday && x.date!==f.fday) return false;
     if(f.fcat){ const [fk,id]=f.fcat.split(":"); if(fk!==k) return false; if(k==="per") return (x.note||"Без описания").trim().toLowerCase()===id; return pvCat(x.cat).id===id; } return true; };
   const L=all.filter(inF).sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
-  const days=new Map(); L.forEach(x=>{ if(!days.has(x.date)) days.set(x.date,[]); days.get(x.date).push(x); });
+  const showDocs = !f.fcat && (!f.fk || f.fk==="inc"), DLs = showDocs ? T.DL.filter(x=>!(cal && f.fday) || x.date===f.fday) : [];
+  const days=new Map(), dd=new Map(); L.forEach(x=>{ if(!days.has(x.date)) days.set(x.date,[]); days.get(x.date).push(x); });
+  DLs.forEach(x=>{ if(!days.has(x.date)) days.set(x.date,[]); if(!dd.has(x.date)) dd.set(x.date,[]); dd.get(x.date).push(x); });
+  const dayKeys=[...days.keys()].sort((a,b)=>a<b?1:a>b?-1:0);
   const fc = f.fcat ? (f.fcat.startsWith("per:") ? Object.assign({},PV_PERC,{n:(all.find(x=>pvKind(x)==="per" && (x.note||"Без описания").trim().toLowerCase()===f.fcat.slice(4))||{}).note||"Личное"}) : pvCat(f.fcat.split(":")[1])) : null;
   const nd = mon==="all" ? 0 : mon===todayISO().slice(0,7) ? +todayISO().slice(8,10) : mon<todayISO().slice(0,7) ? new Date(+mon.slice(0,4), +mon.slice(5,7), 0).getDate() : 0;
   const lim=+(getPrefs().perLim||0), limP = lim>0 ? Math.min(100, T.P/lim*100) : 0;
-  const cnt=k=>all.filter(x=>pvKind(x)===k && (!cal || !f.fday || x.date===f.fday)).length;
+  const nDocs=T.DL.filter(x=>!cal || !f.fday || x.date===f.fday).length, cnt=k=>all.filter(x=>pvKind(x)===k && (!cal || !f.fday || x.date===f.fday)).length + (k==="inc"?nDocs:0);
   const seg=`<div class="fdseg pvfv" role="group" aria-label="Вид"><i style="--x:${cal?"100%":"0%"}"></i><button type="button" data-pvv="list" class="${cal?"":"on"}" aria-pressed="${!cal}">Список</button><button type="button" data-pvv="cal" class="${cal?"on":""}" aria-pressed="${cal}">Календарь</button></div>`;
   const row=(lbl, v, sub, cls, w)=>`<div class="pvfr ${cls||""}"><span class="pvfl">${lbl}${sub?`<small>${sub}</small>`:""}</span><b>${pvMoney(v,true)}</b><i class="pvfb"><i style="--w:${w}%"></i></i></div>`;
   const mx=Math.max(1, Math.abs(T.dp), T.I, T.E, T.P, Math.abs(T.B));
@@ -264,10 +274,10 @@ function pvFinDraw(){
     <div class="pvacts"><button type="button" class="pvadd exp" data-pva="exp"><span>−</span>Расход</button><button type="button" class="pvadd inc" data-pva="inc"><span>+</span>Доход</button><button type="button" class="pvadd per" data-pva="per"><span>${pvIco("user")}</span>Личное</button><span style="flex:1"></span>${seg}<button type="button" class="btn ghost sm" data-pva="xls" title="Скачать записи месяца в Excel">${pvIco("doc")}Excel</button><button type="button" class="btn ghost sm" data-pva="cats">${pvIco("gear")}Категории</button></div>
     ${D.poSrv?"":`<p class="note">Пока скрипт таблицы старый, записи хранятся только на этом устройстве. <button type="button" class="btn sm" id="srvOldHow">Как обновить</button></p>`}
     ${pvCatOk()?"":`<p class="note">Категории начнут сохраняться после обновления скрипта таблицы (Code.gs, версия 15). <button type="button" class="btn sm" id="srvOldHow">Как обновить</button></p>`}
-    ${cal ? pvFinCal(all.filter(x=>!f.fk || pvKind(x)===f.fk), mon) : (f.fv==="cal" ? `<p class="muted bncalno">Календарь — по месяцам: выберите месяц стрелками сверху.</p>` : "")}
+    ${cal ? pvFinCal(all.filter(x=>!f.fk || pvKind(x)===f.fk), mon, !f.fk || f.fk==="inc" ? T.DL : []) : (f.fv==="cal" ? `<p class="muted bncalno">Календарь — по месяцам: выберите месяц стрелками сверху.</p>` : "")}
     <div class="pvsum2">
       <div class="pvflow">
-        ${row("Прибыль с накладных", T.dp, T.docs+" "+plural(T.docs,["накладная","накладные","накладных"])+" · после закупки и налога"+(T.miss?` · <em class="warn">без закупки: ${T.miss}</em>`:""), T.dp<0?"neg":"pos", Math.abs(T.dp)/mx*100)}
+        ${row("Прибыль с накладных", T.dp, T.docs+" "+plural(T.docs,["накладная","накладные","накладных"])+" · после закупки и налога"+(T.miss?` · <em class="warn">без закупки: ${T.miss}</em>`:"")+(T.docs?`<span class="pvpd"><span class="paid"><i></i>оплачено ${fm(T.dpPaid)}</span><span class="due"><i></i>ждём оплату ${fm(T.dpDue)}</span></span>`:""), T.dp<0?"neg":"pos", Math.abs(T.dp)/mx*100)}
         ${row("Прочие доходы", T.I, "", "pos", T.I/mx*100)}
         ${row("Расходы", -T.E, "", "neg", T.E/mx*100)}
         <div class="pvfr tot"><span class="pvfl">Бизнес заработал${W?pvCmp(T.B,W.B,"up"):""}</span><b class="${T.B<0?"neg":""}">${pvMoney(T.B,true)}</b></div>
@@ -278,25 +288,27 @@ function pvFinDraw(){
         <div class="pvlim ${lim&&T.P>lim?"over":""}">${lim?`<div class="pvlimt"><span>Личные: <b>${fm(T.P)}</b> из ${fm(lim)} ₽</span><button type="button" class="pvlink" data-pva="lim">изменить</button></div><i class="pvlimb"><i style="--w:${limP}%"></i></i><small>${T.P>lim?"лимит превышен на "+fm(r2(T.P-lim))+" ₽":"можно ещё "+fm(r2(lim-T.P))+" ₽"}</small>`:`<button type="button" class="pvlink" data-pva="lim">+ Задать лимит личных трат на месяц</button>`}</div></div>
     </div>
     <div class="pvcats three"><div><h3>Расходы по категориям</h3>${bars(by(all.filter(x=>pvKind(x)==="exp")),T.E,"exp")}</div><div><h3>Доходы по категориям</h3>${bars(by(all.filter(x=>pvKind(x)==="inc")),T.I,"inc")}</div><div><h3>Личные — на что</h3>${bars(byNote(all.filter(x=>pvKind(x)==="per")),T.P,"per")}</div></div>
-    <div class="pfchips pvfk">${[["","Все",all.length],["exp","Расходы",cnt("exp")],["inc","Доходы",cnt("inc")],["per","Личные",cnt("per")]].map(([k,l,n])=>`<button type="button" data-pvfk="${k}" class="${f.fk===k?"on":""} k-${k||"all"}" aria-pressed="${f.fk===k}">${l}<i>${n}</i></button>`).join("")}</div>
+    <div class="pfchips pvfk">${[["","Все",all.filter(x=>!cal || !f.fday || x.date===f.fday).length+nDocs],["exp","Расходы",cnt("exp")],["inc","Доходы",cnt("inc")],["per","Личные",cnt("per")]].map(([k,l,n])=>`<button type="button" data-pvfk="${k}" class="${f.fk===k?"on":""} k-${k||"all"}" aria-pressed="${f.fk===k}">${l}<i>${n}</i></button>`).join("")}</div>
     ${fc?`<div class="pvfilt">Показано: ${pvBubble(fc)} <b>${esc(fc.n)}</b><button type="button" class="btn ghost sm" data-pvf="">Показать всё ×</button></div>`:""}
-    <div class="pvlist">${days.size ? [...days.entries()].map(([d,xs],di)=>{ const t=r2(xs.reduce((a,x)=>a+(pvKind(x)==="inc"?1:-1)*(+x.sum||0),0));
-      return `<div class="pvday" style="--d:${Math.min(di,10)*35}ms"><div class="pvdh"><b>${pvDay(d)}</b><span class="${t<0?"neg":"pos"}">${pvMoney(t,true)} ₽</span></div>${xs.map(x=>{ const k=pvKind(x), c=pvCatOf(x), s=+x.sum||0;
+    <div class="pvlist">${days.size ? dayKeys.map((d,di)=>{ const xs=days.get(d), ds=dd.get(d)||[], t=r2(xs.reduce((a,x)=>a+(pvKind(x)==="inc"?1:-1)*(+x.sum||0),0)+ds.reduce((a,x)=>a+x.p,0));
+      return `<div class="pvday" style="--d:${Math.min(di,10)*35}ms"><div class="pvdh"><b>${pvDay(d)}</b><span class="${t<0?"neg":ds.some(x=>x.st!=="paid")?"due":"pos"}">${pvMoney(t,true)} ₽</span></div>${ds.map(pvDocRow).join("")}${xs.map(x=>{ const k=pvKind(x), c=pvCatOf(x), s=+x.sum||0;
         return `<button type="button" class="pvit k-${k}" data-pvx="${esc(x.id)}">${pvBubble(c)}<span class="pvitn"><b>${esc(x.note||c.n)}</b><small>${k==="per"?`<span class="pvtag">личное</span>`:esc(c.n)}${x.supplierId?" · "+esc(supShort(sup(x.supplierId).name||"")):""}${x.by?" · "+esc(x.by):""}</small></span><span class="pvits ${k==="inc"?"pos":k==="per"?"per":"neg"}">${pvMoney(k==="inc"?s:-s,true)} ₽</span></button>`; }).join("")}</div>`; }).join("")
       : `<div class="pvempty">${pvIco("receipt","big")}<b>${all.length?"Здесь записей нет":"За этот месяц записей нет"}</b><small>${all.length?"Выберите другой фильтр или день.":"Нажмите «− Расход», «+ Доход» или «Личное», чтобы добавить."}</small></div>`}</div>`;
 }
-function pvFinCal(list, ym){
-  const f=PV(), y=+ym.slice(0,4), m=+ym.slice(5,7), days=new Date(y,m,0).getDate(), first=(new Date(y,m-1,1).getDay()+6)%7, t=todayISO(), by={}, cells=[];
-  list.forEach(x=>{ (by[x.date]=by[x.date]||[]).push(x); });
+function pvFinCal(list, ym, dl){
+  const f=PV(), y=+ym.slice(0,4), m=+ym.slice(5,7), days=new Date(y,m,0).getDate(), first=(new Date(y,m-1,1).getDay()+6)%7, t=todayISO(), by={}, bd={}, cells=[];
+  list.forEach(x=>{ (by[x.date]=by[x.date]||[]).push(x); }); (dl||[]).forEach(x=>{ (bd[x.date]=bd[x.date]||[]).push(x); });
   for(let i=0;i<first;i++) cells.push(`<span class="zkc-e" aria-hidden="true"></span>`);
   for(let d=1; d<=days; d++){ const iso=ym+"-"+String(d).padStart(2,"0"), I=by[iso]||[], wd=(first+d-1)%7;
-    if(!I.length){ cells.push(`<button type="button" class="zkc-d empty pvcd${iso===t?" today":""}${wd>4?" we":""}" data-pvday="${iso}" data-pvnew="1" title="Добавить запись на ${fd(iso)}"><i>${d}</i><span class="pvcplus">+</span></button>`); continue; }
-    const net=r2(I.reduce((a,x)=>a+(pvKind(x)==="inc"?1:-1)*(+x.sum||0),0));
-    const dots=I.slice(0,8).map(x=>`<b class="k-${pvKind(x)}"></b>`).join("")+(I.length>8?`<em>+${I.length-8}</em>`:"");
-    cells.push(`<button type="button" class="zkc-d pvcd has${iso===f.fday?" sel":""}${iso===t?" today":""}${wd>4?" we":""}" data-pvday="${iso}" aria-pressed="${iso===f.fday}" title="${esc(fd(iso)+": "+I.length+" "+plural(I.length,["запись","записи","записей"])+", "+pvMoney(net,true)+" ₽")}"><i>${d}</i><span class="zkc-s pvcs ${net<0?"neg":"pos"}"><span class="pvcl">${pvMoney(Math.round(net),true).replace(/,00$/,"")}</span><span class="pvcsh">${(net<0?"−":"+")+(Math.abs(net)>=1000?String(+(Math.abs(net)/1000).toFixed(Math.abs(net)<10000?1:0)).replace(".",",")+"к":Math.round(Math.abs(net)))}</span></span><span class="zkc-n">${I.length} ${plural(I.length,["запись","записи","записей"])}</span><span class="zkc-dots">${dots}</span></button>`); }
-  return `<div class="bncal pvcal"><div class="zkc-h"><span class="zkc-leg"><span><b class="k-exp"></b>расход</span><span><b class="k-inc"></b>доход</span><span><b class="k-per"></b>личное</span></span></div>
+    const G=bd[iso]||[];
+    if(!I.length && !G.length){ cells.push(`<button type="button" class="zkc-d empty pvcd${iso===t?" today":""}${wd>4?" we":""}" data-pvday="${iso}" data-pvnew="1" title="Добавить запись на ${fd(iso)}"><i>${d}</i><span class="pvcplus">+</span></button>`); continue; }
+    const net=r2(I.reduce((a,x)=>a+(pvKind(x)==="inc"?1:-1)*(+x.sum||0),0)+G.reduce((a,x)=>a+x.p,0)), due=G.some(x=>x.st!=="paid"), n=I.length+G.length;
+    const dcls = G.length ? (due ? " ddue" : " dok") : "";
+    const dots=G.map(x=>`<b class="k-${x.st==="paid"?"inc":"due"}"></b>`).concat(I.map(x=>`<b class="k-${pvKind(x)}"></b>`)), dt=dots.slice(0,8).join("")+(dots.length>8?`<em>+${dots.length-8}</em>`:"");
+    cells.push(`<button type="button" class="zkc-d pvcd has${dcls}${iso===f.fday?" sel":""}${iso===t?" today":""}${wd>4?" we":""}" data-pvday="${iso}" aria-pressed="${iso===f.fday}" title="${esc(fd(iso)+": "+(G.length?G.length+" "+plural(G.length,["накладная","накладные","накладных"])+(due?" (ждём оплату)":" (оплачено)")+", ":"")+(I.length?I.length+" "+plural(I.length,["запись","записи","записей"])+", ":"")+"итого "+pvMoney(net,true)+" ₽")}"><i>${d}</i><span class="zkc-s pvcs ${net<0?"neg":due?"due":"pos"}"><span class="pvcl">${pvMoney(Math.round(net),true).replace(/,00$/,"")}</span><span class="pvcsh">${(net<0?"−":"+")+(Math.abs(net)>=1000?String(+(Math.abs(net)/1000).toFixed(Math.abs(net)<10000?1:0)).replace(".",",")+"к":Math.round(Math.abs(net)))}</span></span><span class="zkc-n">${G.length?G.length+" нак.":""}${G.length&&I.length?" · ":""}${I.length?I.length+" зап.":""}</span><span class="zkc-dots">${dt}</span></button>`); }
+  return `<div class="bncal pvcal"><div class="zkc-h"><span class="zkc-leg"><span><b class="k-inc"></b>доход получен</span><span><b class="k-due"></b>ждём оплату</span><span><b class="k-exp"></b>расход</span><span><b class="k-per"></b>личное</span></span></div>
     <div class="zkc-w">${["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].map(x=>`<span>${x}</span>`).join("")}</div><div class="zkc-g">${cells.join("")}</div>
-    ${f.fday?`<p class="zkc-f">Показаны записи за <b>${fd(f.fday)}</b> · <button type="button" class="btn ghost sm" data-pvday="${f.fday}">Весь месяц</button> <button type="button" class="btn ghost sm" data-pvday="${f.fday}" data-pvnew="1">+ Запись на этот день</button></p>`:`<p class="zkc-f muted">Нажмите на день — ниже останутся его записи. Пустой день — сразу новая запись.</p>`}</div>`;
+    ${f.fday?`<p class="zkc-f">Показаны записи за <b>${fd(f.fday)}</b> · <button type="button" class="btn ghost sm" data-pvday="${f.fday}">Весь месяц</button> <button type="button" class="btn ghost sm" data-pvday="${f.fday}" data-pvnew="1">+ Запись на этот день</button></p>`:`<p class="zkc-f muted">Доход — прибыль с накладных по дню поставки: зелёный — деньги пришли, светло-зелёный — товар отвезли, ждём оплату. Нажмите на день — ниже останутся его записи; пустой день — сразу новая запись.</p>`}</div>`;
 }
 async function pvFinXls(){
   try{ const X=await loadXLSX(), [d1,d2]=pvRange(), m=pvMonth(), L=pfArr("pother").filter(x=>x.date>=d1 && x.date<=d2).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
@@ -324,6 +336,7 @@ function pvFinClick(e){
   const fk=e.target.closest("[data-pvfk]"); if(fk){ const f=PV(); f.fk=fk.dataset.pvfk; if(f.fcat && f.fk && !f.fcat.startsWith(f.fk+":")) f.fcat=""; saveLocal(); pvFinDraw(); return; }
   const f=e.target.closest("[data-pvf]"); if(f){ const k=f.dataset.pvf; PV().fcat = PV().fcat===k ? "" : k; saveLocal(); pvFinDraw(); return; }
   const a=e.target.closest("[data-pva]"); if(a){ const k=a.dataset.pva; if(k==="cats") pvCatsOpen(); else if(k==="xls") pvFinXls(); else if(k==="lim") pvLimOpen(); else pvItemOpen(null, k); return; }
+  const dj=e.target.closest("[data-pvdoc]"); if(dj){ const j=D.journal.find(y=>y.id===dj.dataset.pvdoc); if(j) docCard(j, false); return; }
   const x=e.target.closest("[data-pvx]"); if(x){ const it=pfArr("pother").find(y=>y.id===x.dataset.pvx); if(it) pvItemOpen(it); }
 }
 let PVI=null;
