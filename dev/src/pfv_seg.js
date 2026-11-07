@@ -1,7 +1,7 @@
 /* ================= «Прибыль»: разделы «Обзор · По заказчикам · Расходы и доходы» ================= */
 /* Быстрая закупка накладной «от кого — сумма»: lines._src=[{n,s}] в «Себестоимости накладных» (работает и со старым скриптом).
    Категории прочих расходов/доходов: список — в личных настройках (prefs.poCats), у записи — поля cat/catName (Code.gs ≥ 15). */
-const PV = () => (D.pfv = D.pfv || {v:"ov", m:"", fcat:"", q:""});
+const PV = () => (D.pfv = D.pfv || {v:"ov", m:"", fcat:"", q:"", fk:"", fv:"list", fday:""});
 /* линейные иконки вместо эмодзи (строгий вид); старые эмодзи в сохранённых категориях переводятся в иконки */
 const PV_SVG = {
   workers:'<circle cx="9" cy="8" r="3"/><path d="M3 20c.8-3.4 3.2-5 6-5s5.2 1.6 6 5"/><path d="M16 5.5a3 3 0 0 1 0 5.6M18 15c1.7.6 2.7 2.2 3 5"/>',
@@ -226,76 +226,165 @@ function pvLedgerClick(e){
 }
 
 /* ---------- Расходы и доходы ---------- */
+/* «Расходы и доходы»: записи `pother` трёх видов — Расход, Доход (бизнес, с категориями) и Личное (без категории, kind = PO_PER).
+   Личные в прибыль бизнеса не входят (poFor их не берёт). Итог месяца (pvFinTot): прибыль с накладных + доходы − расходы = «бизнес заработал»,
+   − личные = «остаётся вам». Вид «Список | Календарь», фильтр по виду и дню, сравнение с прошлым месяцем, лимит личных (prefs.perLim), выгрузка в Excel. */
+const pvKind = x => x.kind===PO_INC ? "inc" : x.kind===PO_PER ? "per" : "exp";
+const PV_KN = {exp:"Расходы", inc:"Доходы", per:"Личные"};
+const PV_PERC = {id:"__per", n:"Личное", i:"user", h:285, k:"per"};
+const pvCatOf = x => pvKind(x)==="per" ? PV_PERC : pvCat(x.cat);
+function pvFinTot(d1, d2){
+  const docs=D.journal.filter(j=>j.snap && !isArch(j) && j.date>=d1 && j.date<=d2).map(docProfit);
+  const dp=r2(docs.reduce((a,x)=>a+x.rev-x.cost-x.tax-x.exp,0)), miss=docs.filter(x=>x.miss).length;
+  const L=pfArr("pother").filter(x=>x.date>=d1 && x.date<=d2), s=k=>r2(L.filter(x=>pvKind(x)===k).reduce((a,x)=>a+(+x.sum||0),0));
+  const E=s("exp"), I=s("inc"), P=s("per"), B=r2(dp+I-E);
+  return {docs:docs.length, dp, miss, E, I, P, B, R:r2(B-P), L}; }
+const pvCmp = (now, was, good) => { if(!was || Math.abs(was)<0.5) return ""; const d=(now-was)/Math.abs(was)*100; if(Math.abs(d)<0.5) return `<span class="pvcmp">как в прошлом месяце</span>`;
+  const up=d>0, ok=good==="up"?up:!up; return `<span class="pvcmp ${ok?"good":"bad"}">${up?"▲":"▼"} ${Math.abs(d).toFixed(0)}% к прошлому месяцу</span>`; };
 function pvFinDraw(){
-  const box=$("#pv-fin"), f=PV(), [d1,d2]=pvRange(), cats=pvCats();
-  const all=pfArr("pother").filter(x=>x.date>=d1 && x.date<=d2), inc=x=>x.kind===PO_INC;
-  const E=r2(all.filter(x=>!inc(x)).reduce((a,x)=>a+(+x.sum||0),0)), I=r2(all.filter(inc).reduce((a,x)=>a+(+x.sum||0),0));
+  const box=$("#pv-fin"), f=PV(), [d1,d2]=pvRange(), mon=pvMonth(), cats=pvCats(); f.fk=f.fk||""; f.fv=f.fv||"list";
+  if(f.fday && (f.fday<d1 || f.fday>d2)) f.fday="";
+  const cal = f.fv==="cal" && mon!=="all", T=pvFinTot(d1,d2), all=T.L;
+  const W = mon!=="all" ? (()=>{ const pm=pvShift(mon,-1), [a,b]=[pm+"-01", jIso(new Date(+pm.slice(0,4), +pm.slice(5,7), 0))]; return pvFinTot(a,b); })() : null;
   const by=(list)=>{ const m=new Map(); list.forEach(x=>{ const c=pvCat(x.cat); const k=c.id; if(!m.has(k)) m.set(k,{c, s:0, n:0}); const g=m.get(k); g.s+=(+x.sum||0); g.n++; }); return [...m.values()].sort((a,b)=>b.s-a.s); };
+  const byNote=(list)=>{ const m=new Map(); list.forEach(x=>{ const k=(x.note||"Без описания").trim(), kk=k.toLowerCase(); if(!m.has(kk)) m.set(kk,{c:Object.assign({},PV_PERC,{id:kk,n:k}), s:0, n:0}); const g=m.get(kk); g.s+=(+x.sum||0); g.n++; }); return [...m.values()].sort((a,b)=>b.s-a.s).slice(0,8); };
   const bars=(list, tot, kind)=> list.length ? list.map((g,i)=>`<button type="button" class="pvcb ${f.fcat===kind+":"+g.c.id?"on":""}" data-pvf="${kind}:${esc(g.c.id)}" style="--d:${i*40}ms">${pvBubble(g.c)}<span class="pvcbn"><b>${esc(g.c.n)}</b><small>${g.n} ${plural(g.n,["запись","записи","записей"])}</small></span><span class="pvcbs"><b>${fm(r2(g.s))}</b><small>${pct(g.s,tot)}</small></span><i class="pvcbb"><i style="width:${tot?Math.max(2,g.s/tot*100):0}%;background:${pvCol(g.c.h,.75)}"></i></i></button>`).join("") : `<p class="muted pvnone">Пока ничего</p>`;
-  const L=all.filter(x=>!f.fcat || (f.fcat===(inc(x)?"inc":"exp")+":"+pvCat(x.cat).id)).sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
+  const inF = x => { const k=pvKind(x); if(f.fk && k!==f.fk) return false; if(cal && f.fday && x.date!==f.fday) return false;
+    if(f.fcat){ const [fk,id]=f.fcat.split(":"); if(fk!==k) return false; if(k==="per") return (x.note||"Без описания").trim().toLowerCase()===id; return pvCat(x.cat).id===id; } return true; };
+  const L=all.filter(inF).sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
   const days=new Map(); L.forEach(x=>{ if(!days.has(x.date)) days.set(x.date,[]); days.get(x.date).push(x); });
-  const fc=f.fcat ? pvCat(f.fcat.split(":")[1]) : null;
-  box.innerHTML = `<div class="pvhead"><div><h2>Расходы и доходы</h2><small class="muted">Всё, что не закупка товара: зарплата, бензин, аренда, проценты…</small></div>${pvMonBar()}</div>
-    <div class="pvacts"><button type="button" class="pvadd exp" data-pva="exp"><span>−</span>Расход</button><button type="button" class="pvadd inc" data-pva="inc"><span>+</span>Доход</button><span style="flex:1"></span><button type="button" class="btn ghost sm" data-pva="cats">${pvIco("gear")}Категории</button></div>
+  const fc = f.fcat ? (f.fcat.startsWith("per:") ? Object.assign({},PV_PERC,{n:(all.find(x=>pvKind(x)==="per" && (x.note||"Без описания").trim().toLowerCase()===f.fcat.slice(4))||{}).note||"Личное"}) : pvCat(f.fcat.split(":")[1])) : null;
+  const nd = mon==="all" ? 0 : mon===todayISO().slice(0,7) ? +todayISO().slice(8,10) : mon<todayISO().slice(0,7) ? new Date(+mon.slice(0,4), +mon.slice(5,7), 0).getDate() : 0;
+  const lim=+(getPrefs().perLim||0), limP = lim>0 ? Math.min(100, T.P/lim*100) : 0;
+  const cnt=k=>all.filter(x=>pvKind(x)===k && (!cal || !f.fday || x.date===f.fday)).length;
+  const seg=`<div class="fdseg pvfv" role="group" aria-label="Вид"><i style="--x:${cal?"100%":"0%"}"></i><button type="button" data-pvv="list" class="${cal?"":"on"}" aria-pressed="${!cal}">Список</button><button type="button" data-pvv="cal" class="${cal?"on":""}" aria-pressed="${cal}">Календарь</button></div>`;
+  const row=(lbl, v, sub, cls, w)=>`<div class="pvfr ${cls||""}"><span class="pvfl">${lbl}${sub?`<small>${sub}</small>`:""}</span><b>${pvMoney(v,true)}</b><i class="pvfb"><i style="--w:${w}%"></i></i></div>`;
+  const mx=Math.max(1, Math.abs(T.dp), T.I, T.E, T.P, Math.abs(T.B));
+  box.innerHTML = `<div class="pvhead"><div><h2>Расходы и доходы</h2><small class="muted">Всё, что не закупка товара, и отдельно — личные траты</small></div>${pvMonBar()}</div>
+    <div class="pvacts"><button type="button" class="pvadd exp" data-pva="exp"><span>−</span>Расход</button><button type="button" class="pvadd inc" data-pva="inc"><span>+</span>Доход</button><button type="button" class="pvadd per" data-pva="per"><span>${pvIco("user")}</span>Личное</button><span style="flex:1"></span>${seg}<button type="button" class="btn ghost sm" data-pva="xls" title="Скачать записи месяца в Excel">${pvIco("doc")}Excel</button><button type="button" class="btn ghost sm" data-pva="cats">${pvIco("gear")}Категории</button></div>
     ${D.poSrv?"":`<p class="note">Пока скрипт таблицы старый, записи хранятся только на этом устройстве. <button type="button" class="btn sm" id="srvOldHow">Как обновить</button></p>`}
     ${pvCatOk()?"":`<p class="note">Категории начнут сохраняться после обновления скрипта таблицы (Code.gs, версия 15). <button type="button" class="btn sm" id="srvOldHow">Как обновить</button></p>`}
-    <div class="pvkpi"><div class="neg"><small>Расходы</small><b>${pvMoney(-E)}</b></div><div class="pos"><small>Доходы</small><b>${pvMoney(I,true)}</b></div><div><small>Итог</small><b class="${I-E<0?"neg":""}">${pvMoney(r2(I-E),true)}</b></div></div>
-    <div class="pvcats"><div><h3>Расходы по категориям</h3>${bars(by(all.filter(x=>!inc(x))),E,"exp")}</div><div><h3>Доходы по категориям</h3>${bars(by(all.filter(inc)),I,"inc")}</div></div>
+    <div class="pvsum2">
+      <div class="pvflow">
+        ${row("Прибыль с накладных", T.dp, T.docs+" "+plural(T.docs,["накладная","накладные","накладных"])+" · после закупки и налога"+(T.miss?` · <em class="warn">без закупки: ${T.miss}</em>`:""), T.dp<0?"neg":"pos", Math.abs(T.dp)/mx*100)}
+        ${row("Прочие доходы", T.I, "", "pos", T.I/mx*100)}
+        ${row("Расходы", -T.E, "", "neg", T.E/mx*100)}
+        <div class="pvfr tot"><span class="pvfl">Бизнес заработал${W?pvCmp(T.B,W.B,"up"):""}</span><b class="${T.B<0?"neg":""}">${pvMoney(T.B,true)}</b></div>
+        ${row("Личные расходы", -T.P, "", "per", T.P/mx*100)}
+      </div>
+      <div class="pvres ${T.R<0?"neg":""}"><small>Остаётся вам</small><b>${pvMoney(T.R,true)} <em>₽</em></b><span>бизнес заработал ${fm(T.B)} − личные ${fm(T.P)}</span>${W?pvCmp(T.R,W.R,"up"):""}
+        ${nd?`<div class="pvavg"><div><small>В среднем за день</small></div><div><span>бизнес</span><b class="${T.B<0?"neg":""}">${pvMoney(r2(T.B/nd),true)}</b></div><div><span>личные</span><b class="per">${fm(r2(T.P/nd))}</b></div>${W&&W.P>0?`<div><span>личные в прошлом месяце</span><b>${fm(W.P)}</b></div>`:""}</div>`:""}
+        <div class="pvlim ${lim&&T.P>lim?"over":""}">${lim?`<div class="pvlimt"><span>Личные: <b>${fm(T.P)}</b> из ${fm(lim)} ₽</span><button type="button" class="pvlink" data-pva="lim">изменить</button></div><i class="pvlimb"><i style="--w:${limP}%"></i></i><small>${T.P>lim?"лимит превышен на "+fm(r2(T.P-lim))+" ₽":"можно ещё "+fm(r2(lim-T.P))+" ₽"}</small>`:`<button type="button" class="pvlink" data-pva="lim">+ Задать лимит личных трат на месяц</button>`}</div></div>
+    </div>
+    <div class="pvcats three"><div><h3>Расходы по категориям</h3>${bars(by(all.filter(x=>pvKind(x)==="exp")),T.E,"exp")}</div><div><h3>Доходы по категориям</h3>${bars(by(all.filter(x=>pvKind(x)==="inc")),T.I,"inc")}</div><div><h3>Личные — на что</h3>${bars(byNote(all.filter(x=>pvKind(x)==="per")),T.P,"per")}</div></div>
+    ${cal ? pvFinCal(all.filter(x=>!f.fk || pvKind(x)===f.fk), mon) : (f.fv==="cal" ? `<p class="muted bncalno">Календарь — по месяцам: выберите месяц стрелками сверху.</p>` : "")}
+    <div class="pfchips pvfk">${[["","Все",all.length],["exp","Расходы",cnt("exp")],["inc","Доходы",cnt("inc")],["per","Личные",cnt("per")]].map(([k,l,n])=>`<button type="button" data-pvfk="${k}" class="${f.fk===k?"on":""} k-${k||"all"}" aria-pressed="${f.fk===k}">${l}<i>${n}</i></button>`).join("")}</div>
     ${fc?`<div class="pvfilt">Показано: ${pvBubble(fc)} <b>${esc(fc.n)}</b><button type="button" class="btn ghost sm" data-pvf="">Показать всё ×</button></div>`:""}
-    <div class="pvlist">${days.size ? [...days.entries()].map(([d,xs],di)=>{ const t=r2(xs.reduce((a,x)=>a+(inc(x)?1:-1)*(+x.sum||0),0));
-      return `<div class="pvday" style="--d:${Math.min(di,10)*35}ms"><div class="pvdh"><b>${pvDay(d)}</b><span class="${t<0?"neg":"pos"}">${pvMoney(t,true)} ₽</span></div>${xs.map(x=>{ const c=pvCat(x.cat), s=+x.sum||0;
-        return `<button type="button" class="pvit" data-pvx="${esc(x.id)}">${pvBubble(c)}<span class="pvitn"><b>${esc(x.note||c.n)}</b><small>${esc(c.n)}${x.supplierId?" · "+esc(supShort(sup(x.supplierId).name||"")):""}${x.by?" · "+esc(x.by):""}</small></span><span class="pvits ${inc(x)?"pos":"neg"}">${pvMoney(inc(x)?s:-s,true)} ₽</span></button>`; }).join("")}</div>`; }).join("")
-      : `<div class="pvempty">${pvIco("receipt","big")}<b>${all.length?"В этой категории записей нет":"За этот месяц записей нет"}</b><small>Нажмите «− Расход» или «+ Доход», чтобы добавить.</small></div>`}</div>`;
+    <div class="pvlist">${days.size ? [...days.entries()].map(([d,xs],di)=>{ const t=r2(xs.reduce((a,x)=>a+(pvKind(x)==="inc"?1:-1)*(+x.sum||0),0));
+      return `<div class="pvday" style="--d:${Math.min(di,10)*35}ms"><div class="pvdh"><b>${pvDay(d)}</b><span class="${t<0?"neg":"pos"}">${pvMoney(t,true)} ₽</span></div>${xs.map(x=>{ const k=pvKind(x), c=pvCatOf(x), s=+x.sum||0;
+        return `<button type="button" class="pvit k-${k}" data-pvx="${esc(x.id)}">${pvBubble(c)}<span class="pvitn"><b>${esc(x.note||c.n)}</b><small>${k==="per"?`<span class="pvtag">личное</span>`:esc(c.n)}${x.supplierId?" · "+esc(supShort(sup(x.supplierId).name||"")):""}${x.by?" · "+esc(x.by):""}</small></span><span class="pvits ${k==="inc"?"pos":k==="per"?"per":"neg"}">${pvMoney(k==="inc"?s:-s,true)} ₽</span></button>`; }).join("")}</div>`; }).join("")
+      : `<div class="pvempty">${pvIco("receipt","big")}<b>${all.length?"Здесь записей нет":"За этот месяц записей нет"}</b><small>${all.length?"Выберите другой фильтр или день.":"Нажмите «− Расход», «+ Доход» или «Личное», чтобы добавить."}</small></div>`}</div>`;
 }
+function pvFinCal(list, ym){
+  const f=PV(), y=+ym.slice(0,4), m=+ym.slice(5,7), days=new Date(y,m,0).getDate(), first=(new Date(y,m-1,1).getDay()+6)%7, t=todayISO(), by={}, cells=[];
+  list.forEach(x=>{ (by[x.date]=by[x.date]||[]).push(x); });
+  for(let i=0;i<first;i++) cells.push(`<span class="zkc-e" aria-hidden="true"></span>`);
+  for(let d=1; d<=days; d++){ const iso=ym+"-"+String(d).padStart(2,"0"), I=by[iso]||[], wd=(first+d-1)%7;
+    if(!I.length){ cells.push(`<button type="button" class="zkc-d empty pvcd${iso===t?" today":""}${wd>4?" we":""}" data-pvday="${iso}" data-pvnew="1" title="Добавить запись на ${fd(iso)}"><i>${d}</i><span class="pvcplus">+</span></button>`); continue; }
+    const net=r2(I.reduce((a,x)=>a+(pvKind(x)==="inc"?1:-1)*(+x.sum||0),0));
+    const dots=I.slice(0,8).map(x=>`<b class="k-${pvKind(x)}"></b>`).join("")+(I.length>8?`<em>+${I.length-8}</em>`:"");
+    cells.push(`<button type="button" class="zkc-d pvcd has${iso===f.fday?" sel":""}${iso===t?" today":""}${wd>4?" we":""}" data-pvday="${iso}" aria-pressed="${iso===f.fday}" title="${esc(fd(iso)+": "+I.length+" "+plural(I.length,["запись","записи","записей"])+", "+pvMoney(net,true)+" ₽")}"><i>${d}</i><span class="zkc-s pvcs ${net<0?"neg":"pos"}">${pvMoney(Math.round(net),true).replace(/,00$/,"")}</span><span class="zkc-n">${I.length} ${plural(I.length,["запись","записи","записей"])}</span><span class="zkc-dots">${dots}</span></button>`); }
+  return `<div class="bncal pvcal"><div class="zkc-h"><span class="zkc-leg"><span><b class="k-exp"></b>расход</span><span><b class="k-inc"></b>доход</span><span><b class="k-per"></b>личное</span></span></div>
+    <div class="zkc-w">${["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].map(x=>`<span>${x}</span>`).join("")}</div><div class="zkc-g">${cells.join("")}</div>
+    ${f.fday?`<p class="zkc-f">Показаны записи за <b>${fd(f.fday)}</b> · <button type="button" class="btn ghost sm" data-pvday="${f.fday}">Весь месяц</button> <button type="button" class="btn ghost sm" data-pvday="${f.fday}" data-pvnew="1">+ Запись на этот день</button></p>`:`<p class="zkc-f muted">Нажмите на день — ниже останутся его записи. Пустой день — сразу новая запись.</p>`}</div>`;
+}
+async function pvFinXls(){
+  try{ const X=await loadXLSX(), [d1,d2]=pvRange(), m=pvMonth(), L=pfArr("pother").filter(x=>x.date>=d1 && x.date<=d2).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+    if(!L.length){ toast("info","Нечего выгружать","За этот период записей нет."); return; }
+    const T=pvFinTot(d1,d2), aoa=[["Расходы и доходы — "+(m==="all"?"все месяцы":pvMon(m))],[],["Дата","Вид","Категория","На что / откуда","ИП","Сумма, ₽","Кто добавил"],
+      ...L.map(x=>{ const k=pvKind(x); return [fd(x.date), k==="inc"?"Доход":k==="per"?"Личное":"Расход", k==="per"?"":pvCat(x.cat).n, x.note||"", x.supplierId?(sup(x.supplierId).name||""):"Общие", (k==="inc"?1:-1)*(+x.sum||0), x.by||""]; }),
+      [],["","","","Прибыль с накладных","",T.dp],["","","","Прочие доходы","",T.I],["","","","Расходы","",-T.E],["","","","Бизнес заработал","",T.B],["","","","Личные","",-T.P],["","","","Остаётся","",T.R]];
+    const ws=X.utils.aoa_to_sheet(aoa); ws["!cols"]=[{wch:11},{wch:9},{wch:18},{wch:40},{wch:30},{wch:13},{wch:12}];
+    const wb=X.utils.book_new(); X.utils.book_append_sheet(wb,ws,"Записи"); X.writeFile(wb,"Расходы и доходы — "+(m==="all"?"все месяцы":pvMon(m))+".xlsx");
+    toast("ok","Excel скачан", L.length+" "+plural(L.length,["запись","записи","записей"])+" — ищите в «Загрузках».");
+  }catch(e){ toast("err","Не получилось выгрузить", e.message); } }
+function pvLimOpen(){ const lim=+(getPrefs().perLim||0);
+  openCard(`<div class="dc-head"><div><div class="dc-kicker">Личные траты</div><h3>Лимит на месяц</h3><div class="dc-sub">Сколько вы готовы тратить на себя за месяц. Сайт покажет, сколько ещё можно, и подсветит, если вышли за лимит.</div></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+    <div class="pvform"><label class="pvsum"><span>Лимит</span><input id="pvl-sum" inputmode="decimal" placeholder="0" value="${lim?esc(String(lim).replace(".",",")):""}" autocomplete="off"><em>₽</em></label>
+    <div class="pvea"><button type="button" class="btn pri" data-pvl="save">Сохранить</button><button type="button" class="btn ghost" data-dc="close">Отмена</button><span style="flex:1"></span>${lim?`<button type="button" class="btn ghost danger" data-pvl="off">Убрать лимит</button>`:""}</div></div>`, false, ()=>{});
+  const d=$("#fd-dcard"); d.classList.add("pvi-d");
+  const go=off=>{ const v=off?0:+num($("#pvl-sum").value)||0; const p=getPrefs(); if(v>0) p.perLim=r2(v); else delete p.perLim; setPrefs(p,true); pvCloseCard(); pvFinDraw(); toast("ok", v>0?"Лимит сохранён":"Лимит убран", v>0?fm(v)+" ₽ в месяц":""); };
+  d.addEventListener("click", e=>{ const b=e.target.closest("[data-pvl]"); if(b) go(b.dataset.pvl==="off"); });
+  d.addEventListener("keydown", e=>{ if(e.key==="Enter" && e.target.id==="pvl-sum"){ e.preventDefault(); go(false); } });
+  setTimeout(()=>{ const s=$("#pvl-sum"); if(s){ s.focus(); s.select(); } }, 60); }
 function pvFinClick(e){
   const m=e.target.closest("[data-pvm]"); if(m){ pvMonClick(m); return; }
+  const v=e.target.closest("[data-pvv]"); if(v){ const f=PV(); f.fv=v.dataset.pvv; f.fday=""; if(f.fv==="cal" && pvMonth()==="all") f.m=todayISO().slice(0,7); saveLocal(); pvFinDraw(); return; }
+  const dy=e.target.closest("[data-pvday]"); if(dy){ const f=PV(), iso=dy.dataset.pvday; if(dy.dataset.pvnew){ pvItemOpen(null, f.fk||"exp", iso); return; } f.fday = f.fday===iso ? "" : iso; saveLocal(); pvFinDraw(); return; }
+  const fk=e.target.closest("[data-pvfk]"); if(fk){ const f=PV(); f.fk=fk.dataset.pvfk; if(f.fcat && f.fk && !f.fcat.startsWith(f.fk+":")) f.fcat=""; saveLocal(); pvFinDraw(); return; }
   const f=e.target.closest("[data-pvf]"); if(f){ const k=f.dataset.pvf; PV().fcat = PV().fcat===k ? "" : k; saveLocal(); pvFinDraw(); return; }
-  const a=e.target.closest("[data-pva]"); if(a){ if(a.dataset.pva==="cats") pvCatsOpen(); else pvItemOpen(null, a.dataset.pva); return; }
+  const a=e.target.closest("[data-pva]"); if(a){ const k=a.dataset.pva; if(k==="cats") pvCatsOpen(); else if(k==="xls") pvFinXls(); else if(k==="lim") pvLimOpen(); else pvItemOpen(null, k); return; }
   const x=e.target.closest("[data-pvx]"); if(x){ const it=pfArr("pother").find(y=>y.id===x.dataset.pvx); if(it) pvItemOpen(it); }
 }
 let PVI=null;
-function pvItemOpen(it, kind){
-  const inc = it ? it.kind===PO_INC : kind==="inc"; PVI={id:it?it.id:"", inc, cat:it?(it.cat||""):""};
-  const m=pvMonth(), dDef = m!=="all" && todayISO().slice(0,7)!==m ? m+"-01" : todayISO();
-  openCard(`<div class="dc-head"><div><div class="dc-kicker">${it?"Изменить запись":inc?"Новый доход":"Новый расход"}</div><h3 id="pvi-t">${inc?"Доход":"Расход"}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
-    <div class="pvform">
-      <div class="pvkind" id="pvi-kind" style="--i:${inc?1:0}"><i></i><button type="button" data-pvk="exp" class="${inc?"":"on"}">− Расход</button><button type="button" data-pvk="inc" class="${inc?"on":""}">+ Доход</button></div>
+function pvItemOpen(it, kind, date, copy){
+  const k = it ? pvKind(it) : (kind==="inc"||kind==="per" ? kind : "exp"); PVI={id:it&&!copy?it.id:"", k, inc:k==="inc", cat:it&&k!=="per"?(it.cat||""):""};
+  const m=pvMonth(), dDef = date || (m!=="all" && todayISO().slice(0,7)!==m ? m+"-01" : todayISO()), ed=it&&!copy;
+  const notes=[...new Set(pfArr("pother").map(x=>x.note).filter(Boolean))].slice(-80).reverse();
+  openCard(`<div class="dc-head"><div><div class="dc-kicker">${ed?"Изменить запись":copy?"Повтор записи":"Новая запись"}</div><h3 id="pvi-t">${PV_KT[k]}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+    <div class="pvform k-${k}" id="pvi-f">
+      <div class="pvkind three" id="pvi-kind" style="--i:${["exp","inc","per"].indexOf(k)}"><i></i><button type="button" data-pvk="exp" class="${k==="exp"?"on":""}">− Расход</button><button type="button" data-pvk="inc" class="${k==="inc"?"on":""}">+ Доход</button><button type="button" data-pvk="per" class="${k==="per"?"on":""}">Личное</button></div>
+      <p class="pvperh">Личные траты не уменьшают прибыль бизнеса — они вычитаются отдельно, в «Остаётся вам».</p>
       <label class="pvsum"><span>Сумма</span><input id="pvi-sum" inputmode="decimal" placeholder="0" value="${it?esc(String(it.sum).replace(".",",")):""}" autocomplete="off"><em>₽</em></label>
       <div class="pvcatl"><span>Категория</span>${pvCatOk()?"":`<small class="muted">сохранится после обновления скрипта таблицы</small>`}<div class="pvcg" id="pvi-cats"></div></div>
-      <div class="grid"><label class="f">Дата<input type="date" id="pvi-date" value="${it?esc(it.date):dDef}"></label>
-        <label class="f">ИП<select id="pvi-sup"><option value="">Общие</option>${opts(D.suppliers, it?it.supplierId:"")}</select></label>
-        <label class="f wide">${inc?"Откуда":"На что"}<input id="pvi-note" list="pvi-notes" maxlength="200" placeholder="${inc?"например, проценты по вкладу":"например, бензин Гриша"}" value="${it?esc(it.note||""):""}"><datalist id="pvi-notes">${[...new Set(pfArr("pother").map(x=>x.note).filter(Boolean))].slice(-60).reverse().map(n=>`<option value="${esc(n)}">`).join("")}</datalist></label></div>
-      <div class="pvea"><button type="button" class="btn pri" data-pvi="save">${it?"Сохранить":"Добавить"}</button><button type="button" class="btn ghost" data-dc="close">Отмена</button><span style="flex:1"></span>${it?`<button type="button" class="btn ghost danger" data-pvi="del">Удалить</button>`:""}</div>
+      <div class="grid"><label class="f">Дата<input type="date" id="pvi-date" value="${ed?esc(it.date):dDef}"></label>
+        <label class="f pvsupw">ИП<select id="pvi-sup"><option value="">Общие</option>${opts(D.suppliers, it&&k!=="per"?it.supplierId:"")}</select></label>
+        <label class="f wide"><span id="pvi-nl">${k==="inc"?"Откуда":"На что"}</span><input id="pvi-note" list="pvi-notes" maxlength="200" placeholder="${PV_PH[k]}" value="${it?esc(it.note||""):""}"><datalist id="pvi-notes">${notes.map(n=>`<option value="${esc(n)}">`).join("")}</datalist></label></div>
+      <p class="pvhint" id="pvi-hint" hidden></p>
+      <div class="pvea"><button type="button" class="btn pri" data-pvi="save">${ed?"Сохранить":"Добавить"}</button><button type="button" class="btn ghost" data-dc="close">Отмена</button><span style="flex:1"></span>${ed?`<button type="button" class="btn ghost" data-pvi="copy" title="Новая такая же запись с сегодняшней датой">Повторить</button><button type="button" class="btn ghost danger" data-pvi="del">Удалить</button>`:""}</div>
     </div>`, false, ()=>{});
   const d=$("#fd-dcard"); d.classList.add("pvi-d"); pvItemCats();
   d.addEventListener("click", pvItemClick); d.addEventListener("keydown", e=>{ if(e.key==="Enter" && /pvi-(sum|note)/.test(e.target.id)){ e.preventDefault(); pvItemSave(); } });
+  d.addEventListener("input", e=>{ if(e.target.id==="pvi-note") pvItemNote(); });
   setTimeout(()=>{ const s=$("#pvi-sum"); if(s){ s.focus(); s.select(); } }, 60);
 }
-function pvItemCats(){ const box=$("#pvi-cats"); if(!box) return; const k=PVI.inc?"inc":"exp", L=pvCats().filter(c=>c.k===k||c.k==="both");
+const PV_KT = {exp:"Расход", inc:"Доход", per:"Личный расход"};
+const PV_PH = {exp:"например, бензин Гриша", inc:"например, проценты по вкладу", per:"например, продукты домой"};
+/* выбрали запись, которая уже была, — подставим категорию и подскажем прошлую сумму */
+function pvItemNote(){ const n=($("#pvi-note").value||"").trim().toLowerCase(), h=$("#pvi-hint"); if(!h) return;
+  const last=n ? pfArr("pother").filter(x=>(x.note||"").trim().toLowerCase()===n && pvKind(x)===PVI.k && x.id!==PVI.id).sort((a,b)=>a.date<b.date?1:-1)[0] : null;
+  if(!last){ h.hidden=true; return; }
+  if(PVI.k!=="per" && !PVI.cat && last.cat && pvCatOk()){ PVI.cat=last.cat; pvItemCats(); }
+  const s=$("#pvi-sum"); h.hidden=false; h.innerHTML=`В прошлый раз ${fd(last.date)} — <b>${fm(+last.sum||0)} ₽</b>${!(+num(s.value)>0)?` <button type="button" class="pvlink" data-pvi="last" data-v="${esc(String(last.sum))}">подставить</button>`:""}`; }
+function pvItemKind(k){ PVI.k=k; PVI.inc=k==="inc"; const s=$("#pvi-kind"); s.style.setProperty("--i", ["exp","inc","per"].indexOf(k)); s.querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.pvk===k));
+  $("#pvi-f").className="pvform k-"+k; $("#pvi-t").textContent=PV_KT[k]; $("#pvi-nl").textContent=k==="inc"?"Откуда":"На что"; $("#pvi-note").placeholder=PV_PH[k]; if(k==="per") PVI.cat=""; pvItemCats(); pvItemNote(); }
+function pvItemCats(){ const box=$("#pvi-cats"); if(!box) return; if(PVI.k==="per"){ box.innerHTML=""; return; } const k=PVI.inc?"inc":"exp", L=pvCats().filter(c=>c.k===k||c.k==="both");
   if(PVI.cat && !L.some(c=>c.id===PVI.cat)) PVI.cat="";
   box.innerHTML=L.map(c=>`<button type="button" class="pvcc ${PVI.cat===c.id?"on":""}" data-pvcat="${esc(c.id)}" style="--h:${c.h==null?0:c.h}" ${pvCatOk()?"":"disabled"}><span>${pvIco(c.i)}</span>${esc(c.n)}</button>`).join("") + `<button type="button" class="pvcc add" data-pvi="cats" title="Добавить или изменить категории">＋</button>`; }
 function pvItemClick(e){
-  const k=e.target.closest("[data-pvk]"); if(k){ PVI.inc=k.dataset.pvk==="inc"; const s=$("#pvi-kind"); s.style.setProperty("--i", PVI.inc?1:0); s.querySelectorAll("button").forEach(b=>b.classList.toggle("on", b===k)); $("#pvi-t").textContent=PVI.inc?"Доход":"Расход"; pvItemCats(); return; }
+  const k=e.target.closest("[data-pvk]"); if(k){ pvItemKind(k.dataset.pvk); return; }
   const c=e.target.closest("[data-pvcat]"); if(c){ PVI.cat = PVI.cat===c.dataset.pvcat ? "" : c.dataset.pvcat; $("#pvi-cats").querySelectorAll("[data-pvcat]").forEach(b=>b.classList.toggle("on", b.dataset.pvcat===PVI.cat)); return; }
   const b=e.target.closest("[data-pvi]"); if(!b) return;
   if(b.dataset.pvi==="save") pvItemSave();
   if(b.dataset.pvi==="cats"){ pvCatsOpen(); }
+  if(b.dataset.pvi==="last"){ $("#pvi-sum").value=String(b.dataset.v).replace(".",","); pvItemNote(); $("#pvi-sum").focus(); }
+  if(b.dataset.pvi==="copy"){ const it=pfArr("pother").find(y=>y.id===PVI.id); pvCloseCard(); if(it) setTimeout(()=>pvItemOpen(it, null, todayISO(), true), 220); }
   if(b.dataset.pvi==="del"){ if(!armed(b,"Точно удалить?")) return; const x=pfArr("pother").find(y=>y.id===PVI.id); D.pother=pfArr("pother").filter(y=>y.id!==PVI.id); dirty("pother", PVI.id, true);
-    if(x) logEv("Прибыль","Удалён "+(x.kind===PO_INC?"прочий доход":"прочий расход")+": "+(x.note||"")+" — "+fm(+x.sum||0)+" ₽"); saveLocal(); pvCloseCard(); drawProfit(); toast("ok","Запись удалена","Вернуть — кнопка «Отменить» внизу."); }
+    if(x) logEv("Прибыль","Удалён "+({inc:"прочий доход",exp:"прочий расход",per:"личный расход"})[pvKind(x)]+": "+(x.note||"")+" — "+fm(+x.sum||0)+" ₽"); saveLocal(); pvCloseCard(); drawProfit(); toast("ok","Запись удалена","Вернуть — кнопка «Отменить» внизу."); }
 }
 function pvItemSave(){
-  const v=+num($("#pvi-sum").value), note=$("#pvi-note").value.trim(), date=$("#pvi-date").value||todayISO(), c=pvCat(PVI.cat);
+  const v=+num($("#pvi-sum").value), note=$("#pvi-note").value.trim(), date=$("#pvi-date").value||todayISO(), k=PVI.k, per=k==="per", c=per?PV_PERC:pvCat(PVI.cat);
   if(!(v>0)){ toast("err","Впишите сумму",""); $("#pvi-sum").focus(); return; }
-  if(!note && !PVI.cat){ toast("err", PVI.inc?"Откуда доход?":"На что расход?", "Выберите категорию или впишите пару слов."); $("#pvi-note").focus(); return; }
+  if(!note && (per || !PVI.cat)){ toast("err", k==="inc"?"Откуда доход?":"На что расход?", per?"Впишите пару слов — например, «продукты» или «отпуск».":"Выберите категорию или впишите пару слов."); $("#pvi-note").focus(); return; }
   const old=PVI.id ? pfArr("pother").find(y=>y.id===PVI.id) : null, x=old || {id:uid(), by:curUser()};
-  Object.assign(x, {date, kind:PVI.inc?PO_INC:PO_EXP, sum:String(r2(v)), note:note||c.n, supplierId:$("#pvi-sup").value||""});
-  if(pvCatOk()){ x.cat=PVI.cat; x.catName=PVI.cat?c.n:""; }
+  Object.assign(x, {date, kind:k==="inc"?PO_INC:per?PO_PER:PO_EXP, sum:String(r2(v)), note:note||c.n, supplierId:per?"":($("#pvi-sup").value||"")});
+  if(pvCatOk()){ x.cat=per?"":PVI.cat; x.catName=per||!PVI.cat?"":c.n; }
   if(!old) pfArr("pother").push(x); dirty("pother", x.id);
-  logEv("Прибыль",(old?"Изменён прочий ":"Прочий ")+(PVI.inc?"доход":"расход")+": "+x.note+(PVI.cat?" ["+c.n+"]":"")+" — "+fm(v)+" ₽ от "+fd(date));
+  logEv("Прибыль",(old?"Изменён ":"")+({inc:"прочий доход",exp:"прочий расход",per:"личный расход"})[k].replace(/^./,s=>old?s:s.toUpperCase())+": "+x.note+(!per&&PVI.cat?" ["+c.n+"]":"")+" — "+fm(v)+" ₽ от "+fd(date));
   saveLocal(); pvCloseCard();
   const m=pvMonth(); if(m!=="all" && date.slice(0,7)!==m){ PV().m=date.slice(0,7); saveLocal(); }
-  drawProfit(); toast("ok", old?"Сохранено":PVI.inc?"Доход добавлен":"Расход добавлен", (PVI.cat?c.n+" · ":"")+fm(v)+" ₽");
-  setTimeout(()=>{ const r=document.querySelector(`#pv-fin [data-pvx="${x.id}"]`); if(r) r.classList.add("fresh"); }, 30);
+  drawProfit(); toast("ok", old?"Сохранено":k==="inc"?"Доход добавлен":per?"Личный расход добавлен":"Расход добавлен", (!per&&PVI.cat?c.n+" · ":"")+fm(v)+" ₽");
+  setTimeout(()=>{ const r=document.querySelector(`#pv-fin [data-pvx="${x.id}"]`); if(r){ r.classList.add("fresh"); r.scrollIntoView({block:"nearest", behavior:"smooth"}); } }, 30);
 }
 function pvCloseCard(){ const d=$("#fd-dcard"); if(!d) return; d.classList.add("out"); setTimeout(()=>{ try{ d.close(); }catch(x){} d.remove(); }, 200); }
 
@@ -329,7 +418,7 @@ function pvCatsChange(e){ const r=e.target.closest("[data-pvcr]"); if(!r) return
   if(e.target.classList.contains("pvck")){ c.k=e.target.value; pvCatsCommit(); } }
 function pvCatsClick(e){ const b=e.target.closest("[data-pvcm]"); if(!b) return; const a=b.dataset.pvcm, r=b.closest("[data-pvcr]"), id=r&&r.dataset.pvcr, i=PVC.list.findIndex(x=>x.id===id), c=PVC.list[i];
   if(a==="new"){ const n={id:"c-"+uid().slice(-8), n:"Новая категория", i:"tag", h:PV_HUES[PVC.list.length%PV_HUES.length], k:"exp"}; PVC.list.push(n); PVC.pick=n.id; pvCatsCommit(); const inp=document.querySelector(`[data-pvcr="${n.id}"] .pvcname`); if(inp){ inp.closest(".pvcr").classList.add("fresh"); inp.focus(); inp.select(); } return; }
-  if(a==="back"){ const bk=PVC.back; pvCloseCard(); setTimeout(()=>{ pvItemOpen(bk.it, bk.inc?"inc":"exp"); PVI.cat=bk.cat; PVI.inc=bk.inc; $("#pvi-sum").value=bk.v; $("#pvi-note").value=bk.n; $("#pvi-date").value=bk.d; $("#pvi-sup").value=bk.s; pvItemCats(); }, 220); return; }
+  if(a==="back"){ const bk=PVC.back; pvCloseCard(); setTimeout(()=>{ pvItemOpen(bk.it, bk.inc?"inc":"exp"); pvItemKind(bk.inc?"inc":"exp"); PVI.cat=bk.cat; $("#pvi-sum").value=bk.v; $("#pvi-note").value=bk.n; $("#pvi-date").value=bk.d; $("#pvi-sup").value=bk.s; pvItemCats(); }, 220); return; }
   if(!c) return;
   if(a==="ico"){ PVC.pick = PVC.pick===id ? "" : id; pvCatsDraw(); return; }
   if(a==="seti"){ c.i=b.dataset.v; pvCatsCommit(); return; }
