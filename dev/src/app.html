@@ -1256,6 +1256,57 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .pvadd{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:10px;padding:9px 16px 9px 10px;font:600 14px var(--ui);cursor:pointer;color:#fff;transition:transform .15s,filter .15s}
 #fd-app .pvadd span{width:24px;height:24px;border-radius:8px;background:rgba(255,255,255,.22);display:grid;place-items:center;font-size:17px}
 #fd-app .pvadd.exp{background:#8f3a33}#fd-app .pvadd.inc{background:#2f6b45}
+/* ---- «Расходы и доходы»: личные траты, итог месяца, календарь ---- */
+#fd-app{--per:#6a4c93;--per-soft:rgba(106,76,147,.1)}
+#fd-app .pvadd.per{background:var(--per)}#fd-app .pvadd.per span .pvi{width:15px;height:15px}
+#fd-app .pvfv{flex:none}#fd-app .pfv-fin .pvacts .btn .pvi{width:15px;height:15px;margin-right:5px;vertical-align:-2px}
+#fd-app .pvsum2{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:12px;margin:14px 0 18px}
+#fd-app .pvflow{background:var(--bg);border-radius:14px;padding:6px 16px;display:grid;animation:fdin .3s ease both}
+#fd-app .pvfr{display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:12px;padding:9px 0 8px;border-bottom:1px solid rgba(28,34,32,.06)}
+#fd-app .pvfr:last-child{border-bottom:0}
+#fd-app .pvfl{display:grid;gap:1px;font-size:14px;color:var(--ink)}#fd-app .pvfl small{font-size:12px;color:var(--muted)}#fd-app .pvfl em.warn{font-style:normal;color:var(--warn)}
+#fd-app .pvfr>b{font-size:16px;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+#fd-app .pvfr.pos>b{color:var(--ok)}#fd-app .pvfr.neg>b{color:var(--err)}#fd-app .pvfr.per>b{color:var(--per)}
+#fd-app .pvfb{grid-column:1/-1;height:4px;border-radius:99px;background:rgba(28,34,32,.05);margin-top:6px;overflow:hidden}
+#fd-app .pvfb>i{display:block;height:100%;width:var(--w);border-radius:inherit;background:currentColor;opacity:.55;transform-origin:left;animation:pvgrow .7s cubic-bezier(.3,.7,.2,1) both}
+#fd-app .pvfr.pos .pvfb{color:var(--ok)}#fd-app .pvfr.neg .pvfb{color:var(--err)}#fd-app .pvfr.per .pvfb{color:var(--per)}
+#fd-app .pvfr.tot{border-top:1.5px solid rgba(28,34,32,.14);border-bottom:1.5px solid rgba(28,34,32,.14);margin:2px 0;padding:11px 0}
+#fd-app .pvfr.tot .pvfl{font-weight:650;font-size:15px}#fd-app .pvfr.tot>b{font-size:19px}
+#fd-app .pvres{position:relative;overflow:hidden;border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:4px;background:linear-gradient(140deg,rgba(47,107,69,.13),rgba(47,107,69,.04));box-shadow:inset 0 0 0 1px rgba(47,107,69,.14);animation:fdin .35s ease both;animation-delay:60ms}
+#fd-app .pvres.neg{background:linear-gradient(140deg,rgba(179,38,30,.12),rgba(179,38,30,.03));box-shadow:inset 0 0 0 1px rgba(179,38,30,.14)}
+#fd-app .pvres>small{font-size:13px;color:var(--muted);font-weight:500}
+#fd-app .pvres>b{font-size:34px;line-height:1.1;font-weight:700;letter-spacing:-.02em;color:var(--ok);font-variant-numeric:tabular-nums}#fd-app .pvres.neg>b{color:var(--err)}#fd-app .pvres>b em{font-style:normal;font-size:20px;opacity:.6}
+#fd-app .pvres>span{font-size:12.5px;color:var(--muted)}
+#fd-app .pvcmp{display:inline-block;font-size:12px;font-weight:600;border-radius:99px;padding:1px 8px;margin-left:6px;background:rgba(28,34,32,.06);color:var(--muted)}
+#fd-app .pvres>.pvcmp{margin:4px 0 0;align-self:flex-start}#fd-app .pvcmp.good{background:rgba(47,107,69,.12);color:var(--ok)}#fd-app .pvcmp.bad{background:rgba(179,38,30,.1);color:var(--err)}
+#fd-app .pvfl .pvcmp{display:inline;margin-left:8px;font-size:11px;vertical-align:1px}
+#fd-app .pvavg{display:grid;gap:4px;margin-top:14px;padding-top:12px;border-top:1px dashed rgba(28,34,32,.14);font-size:13px}#fd-app .pvavg>div{display:flex;justify-content:space-between;gap:8px}#fd-app .pvavg small{font-size:12px;color:var(--muted);font-weight:500}#fd-app .pvavg span{color:var(--muted)}#fd-app .pvavg b{font-weight:600;font-variant-numeric:tabular-nums}#fd-app .pvavg b.per{color:var(--per)}#fd-app .pvavg b.neg{color:var(--err)}
+#fd-app .pvlim{margin-top:auto;padding-top:12px;display:grid;gap:5px;font-size:12.5px;color:var(--muted)}
+#fd-app .pvlimt{display:flex;justify-content:space-between;gap:8px;align-items:baseline}#fd-app .pvlimt b{color:var(--per)}
+#fd-app .pvlimb{height:7px;border-radius:99px;background:rgba(106,76,147,.13);overflow:hidden}#fd-app .pvlimb>i{display:block;height:100%;width:var(--w);border-radius:inherit;background:var(--per);animation:pvgrow .8s cubic-bezier(.3,.7,.2,1) both}
+#fd-app .pvlim.over .pvlimb>i{background:var(--err)}#fd-app .pvlim.over small{color:var(--err);font-weight:600}
+#fd-app .pvlink{all:unset;cursor:pointer;color:var(--accent);font-weight:600;font-size:12.5px;border-radius:4px}#fd-app .pvlink:hover{text-decoration:underline}#fd-app .pvlink:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@keyframes pvgrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+#fd-app .pvcats.three{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+#fd-app .pvfk{margin:16px 0 8px}#fd-app .pvfk button.k-per.on{background:var(--per);border-color:var(--per)}#fd-app .pvfk button.k-exp.on{background:#8f3a33;border-color:#8f3a33}#fd-app .pvfk button.k-inc.on{background:#2f6b45;border-color:#2f6b45}
+#fd-app .pvits.per{color:var(--per)}#fd-app .pvtag{display:inline-block;background:var(--per-soft);color:var(--per);border-radius:6px;padding:0 6px;font-weight:600;font-size:11px}
+#fd-app .pvit.k-per .pvb{border-radius:50%}
+#fd-app .pvcal{margin:16px 0 4px}#fd-app .pvcal .zkc-leg{margin-left:0}
+#fd-app .zkc-leg b.k-exp,#fd-app .zkc-dots b.k-exp{background:#c0574d}#fd-app .zkc-leg b.k-inc,#fd-app .zkc-dots b.k-inc{background:#2f6b45}#fd-app .zkc-leg b.k-per,#fd-app .zkc-dots b.k-per{background:var(--per)}
+#fd-app .pvcd{font:inherit;cursor:pointer;transition:background .15s,transform .15s,box-shadow .15s}#fd-app .pvcd:hover{transform:translateY(-1px)}#fd-app .pvcd:active{transform:scale(.97)}
+#fd-app .pvcd.has{background:var(--surface);box-shadow:inset 0 0 0 1px rgba(28,34,32,.08)}#fd-app .pvcd.sel{box-shadow:inset 0 0 0 2px var(--accent)}
+#fd-app .pvcs{font-weight:600}#fd-app .pvcs.neg{color:var(--err)}#fd-app .pvcs.pos{color:var(--ok)}
+#fd-app .pvcplus{opacity:0;font-size:18px;color:var(--accent);transition:opacity .15s;margin:auto}#fd-app .pvcd.empty:hover .pvcplus,#fd-app .pvcd.empty:focus-visible .pvcplus{opacity:1}
+#fd-app .pvkind.three{grid-template-columns:1fr 1fr 1fr}#fd-app .pvkind.three>i{width:calc(33.333% - 2.67px)}
+#fd-app .pvkind button.on[data-pvk=per]{color:var(--per)}
+#fd-app .pvperh{display:none;margin:0;font-size:12.5px;color:var(--per);background:var(--per-soft);border-radius:10px;padding:8px 12px}
+#fd-app .pvform.k-per .pvperh{display:block;animation:fdin .25s ease both}#fd-app .pvform.k-per .pvcatl,#fd-app .pvform.k-per .pvsupw{display:none}
+#fd-app .pvform .pvcatl,#fd-app .pvform .pvsupw{animation:fdin .25s ease both}
+#fd-app .pvhint{margin:0;font-size:12.5px;color:var(--muted);animation:fdin .2s ease both}#fd-app .pvhint b{color:var(--ink)}
+@media (max-width:760px){#fd-app .pvsum2{grid-template-columns:1fr}#fd-app .pvres>b{font-size:30px}}
+@media (max-width:600px){#fd-app .pfv-fin .pvacts .pvadd{flex:1 1 0;justify-content:center;padding:9px 10px}#fd-app .pfv-fin .pvacts>span[style]{display:none}#fd-app .pvfv{flex:1 1 100%}#fd-app .pvcd .zkc-n{display:none}}
+@media (prefers-reduced-motion:reduce){#fd-app .pvfb>i,#fd-app .pvlimb>i,#fd-app .pvflow,#fd-app .pvres{animation:none}}
+
 #fd-app .pvadd:hover{transform:translateY(-1px);filter:brightness(1.06)}#fd-app .pvadd:active{transform:scale(.97)}
 #fd-app .pvcats{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}#fd-app .pvcats h3{margin:0 0 8px;font-size:13px;color:var(--muted);font-weight:600}
 #fd-app .pvcats>div{display:grid;gap:4px;align-content:start}
@@ -3692,14 +3743,14 @@ let pfSeenPrev=null;
 function pfMarkSeen(){ if(pfSeenPrev!=null) return; const p=getPrefs(); pfSeenPrev=p.pfSeen || new Date(Date.now()-3*864e5).toISOString(); p.pfSeen=new Date().toISOString(); setPrefs(p,true); }
 const pfIsNew = j => pfSeenPrev && jCreated(j) > pfSeenPrev;
 /* ---- прочие доходы и расходы (лист «Прочие доходы и расходы») ---- */
-const PO_EXP="Расход", PO_INC="Доход";
+const PO_EXP="Расход", PO_INC="Доход", PO_PER="Личное";   /* «Личное» — личные траты, в прибыль бизнеса не входят */
 function poMerge(list){
   if(!Array.isArray(list)){ D.poSrv=false; return; }
   const loc=pfArr("pother"), keep=loc.filter(x=>pend.pother.has(x.id) && !pend.pother.get(x.id).del), gone=new Set([...pend.pother.entries()].filter(([,v])=>v.del).map(([k])=>k));
   D.pother=list.filter(x=>!gone.has(x.id)); keep.forEach(x=>{ const i=D.pother.findIndex(y=>y.id===x.id); if(i>=0) D.pother[i]=x; else D.pother.push(x); });
   const was=D.poSrv; D.poSrv=true; if(!was && pend.pother.size) changed();
 }
-function poFor(f, d1, d2){ return pfArr("pother").filter(x=>x.date>=d1 && x.date<=d2 && (!f.sup || x.supplierId===f.sup) && !f.cus); }
+function poFor(f, d1, d2){ return pfArr("pother").filter(x=>x.kind!==PO_PER && x.date>=d1 && x.date<=d2 && (!f.sup || x.supplierId===f.sup) && !f.cus); }
 /* ---- главная функция вкладки ---- */
 function drawProfit(){
   const f=PF(); f.st=f.st||"all"; $("#pf-per").value=f.per; $("#pf-fromw").hidden=$("#pf-tow").hidden=f.per!=="custom"; $("#pf-from").value=f.from||""; $("#pf-to").value=f.to||"";
@@ -3716,7 +3767,7 @@ function drawProfit(){
   const bar = T.rev>0 ? (()=>{ const seg=[["cost","Закупка",T.cost],["tax","Налог "+taxL,T.tax],["exp","Расходы",T.exp+T.oexp],["net","Прибыль",Math.max(0,T.net-T.oinc)]], tot=seg.reduce((a,s)=>a+Math.max(0,s[2]),0)||1;
       return `<div class="pfbar" role="img" aria-label="Из чего состоит выручка">${seg.map(s=>`<i class="b-${s[0]}" style="--w:${(Math.max(0,s[2])/tot*100).toFixed(2)}%" title="${s[1]}: ${fm(s[2])} ₽"></i>`).join("")}</div>
         <div class="pfleg">${seg.map(s=>`<span><i class="b-${s[0]}"></i>${s[1]} <b>${pct(Math.max(0,s[2]),tot)}</b></span>`).join("")}</div>`; })() : "";
-  $("#pf-cards").innerHTML=`<div class="pfk">${tile("rev","Выручка",T.rev,docs.length+" "+plural(docs.length,["накладная","накладные","накладных"]))}${tile("cost","Закупка",T.cost)}${tile("tax","Налог "+taxL,T.tax)}${tile("gross","Валовая прибыль",T.gross,"после налога · маржа "+pct(T.gross,T.rev),"soft")}${tile("exp","Прочие расходы",r2(T.exp+T.oexp),T.exp&&T.oexp?"по накладным "+fm(T.exp)+" · общие "+fm(T.oexp):"")}${tile("inc","Прочие доходы",T.oinc)}${tile("net","Чистая прибыль, ₽",T.net,"маржа "+pct(T.net,T.rev),"main")}${tile("paid","Оплачено за эти накладные",T.paid,"","ok")}${tile("due","Ждём оплату",T.due,docs.filter(x=>x.pay.st!=="paid").length+" "+plural(docs.filter(x=>x.pay.st!=="paid").length,["накладная","накладные","накладных"]),T.due>0?"warn":"")}</div>${bar}`;
+  $("#pf-cards").innerHTML=`<div class="pfk">${tile("rev","Выручка",T.rev,docs.length+" "+plural(docs.length,["накладная","накладные","накладных"]))}${tile("cost","Закупка",T.cost)}${tile("tax","Налог "+taxL,T.tax)}${tile("gross","Валовая прибыль",T.gross,"после налога · маржа "+pct(T.gross,T.rev),"soft")}${tile("exp","Прочие расходы",r2(T.exp+T.oexp),T.exp&&T.oexp?"по накладным "+fm(T.exp)+" · общие "+fm(T.oexp):"")}${tile("inc","Прочие доходы",T.oinc)}${tile("net","Чистая прибыль, ₽",T.net,"маржа "+pct(T.net,T.rev),"main")}${(()=>{ const P=r2(pfArr("pother").filter(x=>x.kind===PO_PER && x.date>=d1 && x.date<=d2).reduce((a,x)=>a+(+x.sum||0),0)); return P>0 && !f.cus && !f.sup ? tile("own","Остаётся после личных",r2(T.net-P),"личные траты "+fm(P)) : ""; })()}${tile("paid","Оплачено за эти накладные",T.paid,"","ok")}${tile("due","Ждём оплату",T.due,docs.filter(x=>x.pay.st!=="paid").length+" "+plural(docs.filter(x=>x.pay.st!=="paid").length,["накладная","накладные","накладных"]),T.due>0?"warn":"")}</div>${bar}`;
   $("#pf-warn").hidden=!T.miss; $("#pf-warn").textContent = T.miss ? "У "+T.miss+" "+(T.miss===1?"накладной":"накладных")+" не для всех товаров есть закупочная цена — их закупка посчитана как 0, прибыль завышена. Откройте накладную ниже и впишите закупку (можно одной суммой на всю накладную) или добавьте цены в «Закупочные цены»." : "";
   /* контракты */
   const byC={}; docs.forEach(x=>{ const id=x.j.snap.dr.contractId||""; (byC[id]=byC[id]||[]).push(x); });
