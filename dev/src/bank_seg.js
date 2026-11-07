@@ -53,7 +53,7 @@ function bnMatch(op){
         +(ot.length?" Другой ИП: "+ot.map(x=>"№ "+x.j.number+" ("+bnSup(x.j.supplierId)+")").join(", ")+".":""), false); } }
   if(!all.length) return {exact:false, cid:cids[0], docs:[], why:"У заказчика нет неоплаченных накладных"};
   if(nums.size && !byNum.length && !ref.length && !(D.invoices||[]).some(r=>cids.includes(r.customerId) && nums.has(String(+r.number||r.number))) && !all.some(x=>bnEq(x.left,sum)))
-    return {exact:false, cid:cids[0], docs:[], why:"В назначении № "+[...nums].slice(0,8).join(", ")+" — таких накладных у этого заказчика на сайте нет (может, они в архиве или у другого заказчика). Нажмите «Выбрать накладные…»."};
+    return {exact:false, cid:cids[0], docs:[], why:"В назначении № "+[...nums].slice(0,8).join(", ")+" — таких накладных у этого заказчика на сайте нет"+(bnMissing(op, cids[0]).length?". Если их просто не заводили — нажмите «Создать накладные…»: всё из платежа заполнится само.":" (может, они в архиве или у другого заказчика). Нажмите «Выбрать накладные…».")};
   /* 2. номер счёта на оплату → его накладные */
   const inv=(D.invoices||[]).filter(r=>cids.includes(r.customerId) && (!op.supplierId||r.supplierId===op.supplierId) && nums.has(String(+r.number||r.number)));
   for(const r of inv){ let d={}; try{ d=JSON.parse(r.data||"{}")||{}; }catch(e){} const ids=new Set(d.docs||[]), L=all.filter(x=>ids.has(x.j.id));
@@ -189,6 +189,7 @@ function bnCard(o, i){
   const cname = m&&m.cid ? pvCusName(m.cid) : applied&&used[0] ? (()=>{ const j=D.journal.find(x=>x.id===used[0].id); return j?pvCusName(j.customerId):""; })() : "";
   const skipWhy = st==="skip" ? bnSkipWhy(o) : "", remembered = skipWhy && (getPrefs().bnSkip||{})[bnDigits(o.payerInn)];
   const rest = applied ? r2((+o.sum||0) - used.reduce((a,u)=>a+(+u.s||0)+(+u.pre||0),0)) : 0;
+  const mk = wait && m ? bnMissing(o, m.cid) : [];
   return `<div class="bnop ${cls}" style="--d:${Math.min(i,12)*30}ms" data-bnop="${esc(o.id)}">
     <span class="bnico">${ico}</span>
     <div class="bnm"><div class="bnt"><b>${esc(o.payerName||"Плательщик не указан")}</b><span class="bnsum">+${fm(+o.sum||0)} ₽</span></div>
@@ -196,9 +197,10 @@ function bnCard(o, i){
       ${o.purpose?`<p class="bnp" title="${man?"Комментарий":"Назначение платежа"}">${esc(o.purpose)}</p>`:man?"":`<p class="bnp">(без назначения)</p>`}
       ${applied ? `<div class="bndocs">${used.map(u=>chip(u)).join("")}</div>${rest>0.004?`<div class="bnwhy">Не разнесено ${fm(rest)} ₽</div>`:""}` : ""}
       ${wait && m ? `<div class="bnwhy">${esc(m.why)}</div>${m.docs.length?`<div class="bndocs">${m.docs.map(u=>chip(u,true)).join("")}</div>`:""}` : wait ? `<div class="bnwhy">Накладные не выбраны</div>` : ""}
+      ${mk.length ? `<div class="bnmk">На сайте нет ${mk.length>1?"накладных":"накладной"} из платежа: ${esc(bnMissText(mk))}</div>` : ""}
       ${skipWhy ? `<div class="bnwhy bnmem">${esc(skipWhy)}</div>` : ""}
       <div class="bna">${man ? `<button type="button" class="btn ${wait?"pri":"ghost"} sm" data-bn="edit">${wait?"Выбрать накладные…":"Изменить…"}</button><button type="button" class="btn ghost sm danger" data-bn="del">Удалить приход</button>`
-        : wait ? `${m.docs.length?`<button type="button" class="btn pri sm" data-bn="ok">${pvIco("check")}Подтвердить</button>`:""}<button type="button" class="btn sm" data-bn="pick">Выбрать накладные…</button><button type="button" class="btn ghost sm" data-bn="skip">Это не оплата накладных</button>`
+        : wait ? `${m.docs.length?`<button type="button" class="btn pri sm" data-bn="ok">${pvIco("check")}Подтвердить</button>`:""}${mk.length?`<button type="button" class="btn ${m.docs.length?"":"pri "}sm" data-bn="mk">Создать ${mk.length>1?"накладные ("+mk.length+")":"накладную"}…</button>`:""}<button type="button" class="btn sm" data-bn="pick">Выбрать накладные…</button><button type="button" class="btn ghost sm" data-bn="skip">Это не оплата накладных</button>`
         : applied ? `<button type="button" class="btn ghost sm" data-bn="pick">Изменить…</button><button type="button" class="btn ghost sm danger" data-bn="undo">Отменить разнесение</button>`
         : `<button type="button" class="btn ghost sm" data-bn="back">Вернуть в «Нужно решить»</button>${remembered?`<button type="button" class="btn ghost sm" data-bn="forget">Не запоминать этого плательщика</button>`:""}`}</div></div></div>`;
 }
@@ -226,6 +228,7 @@ async function pvBankClick(e){
   if(a==="undo"){ if(!armed(b,"Точно отменить?")) return; bnUnapply(op); saveLocal(); bnPush(); drawProfit(); toast("ok","Разнесение отменено","Накладные снова «не оплачены» на эту сумму."); return; }
   if(a==="edit"){ bnPick(op, true); return; }
   if(a==="del"){ if(!armed(b,"Точно удалить?")) return; bnManDel(op); return; }
+  if(a==="mk"){ bnMake(op, bnMatch(op).cid); return; }
   if(a==="pick") bnPick(op);
 }
 function bnManDel(op){ const B=BNK(), had=bnDocsOf(op).length;
@@ -255,7 +258,7 @@ function bnPick(op, man){
       <label class="chk"><input type="checkbox" id="bnp-all"> показать накладные всех ИП</label>
       <label class="chk"><input type="checkbox" id="bnp-paid"> показать и уже оплаченные накладные</label>
       <p class="muted bnpnote">Частичная оплата: отметьте накладную и впишите справа, сколько из неё оплачено — остаток долга останется на накладной.</p>
-      <div id="bnp-l"></div><div class="bnpt" id="bnp-t"></div>
+      <div id="bnp-mk"></div><div id="bnp-l"></div><div class="bnpt" id="bnp-t"></div>
       <div class="pvea"><button type="button" class="btn pri" data-bnp="save">${man?"Сохранить приход":"Разнести"}</button><button type="button" class="btn ghost" data-dc="close">Отмена</button></div></div>`, true, ()=>{});
   const d=$("#fd-dcard"); d.classList.add("bnp-d");
   d.addEventListener("change", e=>{ const t=e.target;
@@ -270,12 +273,16 @@ function bnPick(op, man){
   d.addEventListener("input", e=>{ const t=e.target;
     if(t.matches(".bnps")){ const id=t.dataset.id; BNKP.sel.set(id, t.value); const c=t.closest(".bnpr").querySelector(".bnpc"); c.checked=true; t.closest(".bnpr").classList.add("on"); bnPickTotal(); }
     else if(t.id==="bnp-sum"){ BNKP.sumTyped=t.value; bnPickTotal(); } });
-  d.addEventListener("click", e=>{ const b=e.target.closest("[data-bnp]"); if(b) bnPickSave(); });
+  d.addEventListener("click", e=>{ const b=e.target.closest("[data-bnp]"); if(!b) return;
+    if(b.dataset.bnp==="mk"){ const rem=$("#bnp-rem"); if(rem && rem.checked && BNKP.cid && op.payerInn){ const p=getPrefs(); p.bnInn=Object.assign({}, p.bnInn||{}, {[bnDigits(op.payerInn)]:BNKP.cid}); setPrefs(p,true); } bnMake(op, BNKP.cid); return; }
+    bnPickSave(); });
   bnPickDraw();
 }
 const bnPickCap = () => BNKP.man ? (+num(BNKP.sumTyped)||0) : (+BNKP.op.sum||0);
 function bnPickDraw(keepRows){
   const box=$("#bnp-l"); if(!box) return; const op=BNKP.op;
+  { const mb=$("#bnp-mk"), mk=!BNKP.man && !keepRows ? bnMissing(op, BNKP.cid) : null;
+    if(mb && mk) mb.innerHTML = mk.length ? `<div class="bnmk bnmkp"><span>В назначении есть ${mk.length>1?"накладные":"накладная"}, ${mk.length>1?"которых":"которой"} нет на сайте: <b>${esc(bnMissText(mk))}</b></span><button type="button" class="btn pri sm" data-bnp="mk">Создать ${mk.length>1?"их ("+mk.length+")":"её"}…</button></div>` : ""; }
   if(!keepRows){ const cid=BNKP.cid, sid=BNKP.allSup?"":op.supplierId, seen=new Set(), L=[];
     const add=(j,tag)=>{ if(!j || seen.has(j.id)) return; seen.add(j.id); const p=payOf(j); if(p.tot<=0.004) return; L.push({j, p, tag}); };
     if(cid){
@@ -386,3 +393,84 @@ async function bnProxyClick(e){
       if(B.keys.length) bnSync(true);
     }catch(x){ b.disabled=false; b.textContent="Сохранить и проверить"; toast("err","Посредник не подключился", x.message||String(x)); } }
 }
+
+/* ---------- накладные из платежа, которых нет на сайте: «Создать накладные…» ----------
+   bnRefs читает из назначения «накладной №447 от 10.09.2026 18480-00 руб.» → {num, date, sum}; берём только ссылки с датой или суммой.
+   bnMissing — те, что не нашлись в журнале у заказчика (номер + дата, затем просто номер). bnMake открывает их на «Новом документе»
+   (D.multi с bank:{op,…}): стороны, номер, дата, договор, адрес уже стоят — остаётся вписать товары, количество и закупку.
+   Сохранили — открывается окно накладной с блоком закупки, форма переходит к следующей; все созданы и сумма сошлась — платёж разносится сам. */
+function bnRefs(purpose){
+  const s=String(purpose||"").replace(/[  ]/g," "), out=[], seen=new Set();
+  const kw=/(?<![а-яёa-z])(?:тов\.?\s?накл[а-яё]*|накл[а-яё]*|упд|торг[\s\-]?12|тн|с\/ф|сч(?:ет|ёт)[\s\-]?фактур[а-яё]*)/gi;
+  const N1=/^\s*\.?\s*(?:№|N[°o]?|No\.?)?\s*(\d{1,7})(?![\d\/])/i, N2=/^\s*(?:[,;]|и)\s*(?:№|N[°o]?|No\.?)\s*(\d{1,7})(?![\d\/])/i;
+  const DT=/^\s*(?:от|из)?\s*(\d{1,2})[.\/](\d{1,2})[.\/](\d{4}|\d{2})(?!\d)(?:\s*г(?:ода|\.)?)?/i;
+  const SM=/^\s*[,:\-–—]?\s*(?:на\s+сумму|сумма|сумму)?\s*[:\-]?\s*(\d{1,3}(?:[ ]\d{3})+|\d+)(?:[.,\-](\d{1,2}))?\s*(?:руб[а-яё]*\.?|р\.|р(?![а-яё])|₽|rub)/i;
+  let m; while((m=kw.exec(s))){ let pos=kw.lastIndex, first=true;
+    for(let g=0; g<30; g++){ const t=s.slice(pos), n=(first?N1:N2).exec(t); if(!n) break; let p=n[0].length, date="", sum=0;
+      const d=DT.exec(t.slice(p)); if(d){ const y=d[3].length===2?"20"+d[3]:d[3], mo=+d[2], da=+d[1]; if(mo>=1&&mo<=12&&da>=1&&da<=31){ date=y+"-"+String(mo).padStart(2,"0")+"-"+String(da).padStart(2,"0"); p+=d[0].length; } }
+      const q=SM.exec(t.slice(p)); if(q){ sum=r2(+(q[1].replace(/\s/g,""))+(q[2]?+("0."+q[2].padEnd(2,"0")):0)); p+=q[0].length; }
+      const num=String(+n[1]), k=num+"|"+date;
+      if((date||sum>0) && !seen.has(k)){ seen.add(k); out.push({num, date, sum}); }
+      pos+=p; first=false; }
+    kw.lastIndex=Math.max(kw.lastIndex, pos); }
+  return out;
+}
+function bnMissing(op, cid){
+  const refs=bnRefs(op&&op.purpose); if(!refs.length) return [];
+  const cids=cid?[cid]:bnCustomers(op), pool=D.journal.filter(j=>j.snap && (!cids.length || cids.includes(j.customerId))), used=new Set(), key=j=>String(+j.number||j.number);
+  const take=(r,exact)=>{ const j=pool.find(j=>!used.has(j.id) && key(j)===r.num && (!exact || j.date===r.date)); if(j){ used.add(j.id); return true; } return false; };
+  const rest=refs.filter(r=>!(r.date && take(r,true)));
+  return rest.filter(r=>!take(r,false));
+}
+const bnMissText = L => L.map(r=>"№ "+r.num+(r.date?" от "+fd(r.date):"")+(r.sum?" — "+fm(r.sum)+" ₽":"")).join("; ");
+function bnMake(op, cid){
+  const miss=bnMissing(op, cid); if(!miss.length){ toast("info","Все накладные из платежа уже есть на сайте",""); return; }
+  const go=()=>{
+    const sid=(D.suppliers.find(x=>x.id===op.supplierId)||D.suppliers[0]||{}).id||"", c=cid?cus(cid):null, list=cid?ctrs(cid):[], k=list.find(x=>x.supplierId===sid)||list.find(x=>!x.supplierId), bl=c?branches(c):[];
+    const docs=miss.map(r=>{ const dr=newDraft(D);
+      Object.assign(dr, {supplierId:sid, customerId:cid||"", branchId:bl.length?bl[0].id:"", contractId:k?k.id:"", noCtr:!k && !!list.length, basis:k?(k.basis||""):(c&&!list.length?(c.contract||""):""),
+        date:r.date||op.date||todayISO(), ship:"", number:r.num, numManual:true, lines:[{productId:"", qty:"", price:""}]});
+      if(cid) dr.ship=firstAddr(liveCus(dr));
+      return {dr, saved:"", ch:0, want:r.sum||0, ref:r}; });
+    D.multi={file:"", bank:{op:op.id, payer:op.payerName||"", sum:+op.sum||0, date:op.date}, view:0, docs};
+    D.draft=docs[0].dr; saveLocal(); pvCloseCard();
+    logEv("Документ","Из платежа "+(op.payerName||"")+" "+fm(+op.sum||0)+" ₽ от "+fd(op.date)+" открыты для создания накладные: "+bnMissText(miss));
+    goTab("doc"); { const m=$("#d-saved"); if(m) m.textContent=""; } setTimeout(()=>{ const b=$("#mulbar"), h=document.querySelector("#fd-app header"); if(b) window.scrollTo({top:b.getBoundingClientRect().top+scrollY-Math.max(70,(h?h.offsetHeight:0)+16), behavior:"smooth"}); }, 60);
+    toast("ok", miss.length>1?"Накладные из платежа: "+miss.length:"Накладная из платежа", "Стороны, номер, дата и адрес уже стоят. Впишите товары и количество, потом «Сохранить в журнал» — откроется окно для закупки"+(miss.length>1?", а форма перейдёт к следующей накладной.":"."), {ms:9000}); };
+  if(typeof mulOn==="function" && mulOn() && !D.multi.bank && D.multi.docs.some(M=>!M.saved)){ toast("warn","Сейчас на «Новом документе» открыта заявка из файла","Её несохранённые накладные закроются.", {action:{label:"Всё равно создать", fn:go}}); return; }
+  go();
+}
+/* сохранили накладную из платежа (из полной формы, из списка или кнопкой печати) */
+function bnMulCommitted(e){ const Mu=D.multi; if(!Mu || !Mu.bank || !Array.isArray(Mu.docs)) return; const M=Mu.docs.find(x=>x.dr && x.dr.id===e.id); if(!M) return;
+  M.saved=String(e.number); M.ch=0; if(Mu.docs.every(x=>x.saved)) setTimeout(bnMulDone, 60); }
+function bnMulDone(){ const Mu=D.multi; if(!Mu || !Mu.bank || Mu.bank.told || !Mu.docs.every(x=>x.saved)) return; Mu.bank.told=1;
+  const op=BNK().ops.find(o=>o.id===Mu.bank.op); saveLocal();
+  if(op && bnIsWait(op) && pfLoaded){ const m=bnMatch(op);
+    if(m.exact && m.docs.length && bnApply(op, m.docs, "done")){ Mu.bank.paid=1; saveLocal(); bnPush(); if(curTab==="profit") drawProfit(); else if(curTab==="doc") drawMulti();
+      toast("ok","Платёж разнесён", (op.payerName||"")+", "+fm(+op.sum||0)+" ₽ → "+op.docsText, {ms:9000}); return; } }
+  if(op && bnIsWait(op)) toast("info","Все накладные из платежа созданы","Сумма не сошлась с платежом — разнесите его сами: «Прибыль» → «Поступления» → «Выбрать накладные…».", {ms:9000}); }
+/* «Сохранить в журнал без печати» в накладной из платежа: окно закупки и переход к следующей */
+function bnMulNext(note){ const Mu=D.multi; if(!mulOn() || !Mu.bank || Mu.view<0) return false;
+  const cur=Mu.docs[Mu.view]; if(!cur || cur.dr.id!==D.draft.id) return false; cur.dr=D.draft;
+  const j=D.journal.find(x=>x.id===cur.dr.id), k=Mu.docs.findIndex(M=>!M.saved);
+  if(k>=0){ Mu.view=k; D.draft=Mu.docs[k].dr; }
+  else { Mu.view=-1; D.draft=Object.assign(newDraft(D), {supplierId:cur.dr.supplierId, customerId:cur.dr.customerId}); D.draft.number=nextNum(cur.dr.supplierId, cur.dr.customerId); }
+  saveLocal(); renderDoc();
+  $("#d-saved").textContent=(note||"")+"Накладная № "+cur.dr.number+" сохранена в журнал."+(k>=0?" Сейчас открыта следующая из платежа: № "+Mu.docs[k].dr.number+".":"");
+  if(j && me().admin){ docCard(j, false); setTimeout(()=>{ const b=document.querySelector('#fd-dcard [data-zkc="toggle"]:not(.on)'); if(b) b.click(); }, 80); }
+  if(!Mu.bank.told) toast("ok","Накладная № "+cur.dr.number+" сохранена", "Впишите закупку в открывшемся окне."+(k>=0?" Следующая — № "+Mu.docs[k].dr.number+(Mu.docs[k].ref&&Mu.docs[k].ref.date?" от "+fd(Mu.docs[k].ref.date):"")+", она уже открыта в форме.":""), {ms:8000});
+  return true; }
+function bnMulGo(k){ const Mu=D.multi; if(!mulOn() || !Mu.docs[k]) return; const cur=Mu.docs[Mu.view];
+  if(cur && D.draft && D.draft.id===cur.dr.id) cur.dr=D.draft;
+  Mu.view=k; D.draft=Mu.docs[k].dr; saveLocal(); renderDoc(); const b=$("#mulbar"); if(b) window.scrollTo({top:b.getBoundingClientRect().top+scrollY-70, behavior:"smooth"}); }
+/* подсказка над формой: сколько должно быть по платежу и сколько сейчас */
+function bnMulBar(){ const el=$("#mulbar-bn"); if(!el) return; const Mu=D.multi;
+  if(!mulOn() || !Mu.bank || Mu.view<0 || !Mu.docs[Mu.view]){ el.innerHTML=""; return; }
+  const M=Mu.docs[Mu.view], r=M.ref||{}, now=calc(D.draft).t.sum, w=+M.want||0, d=r2(w-now), nx=Mu.docs.findIndex((x,i)=>i!==Mu.view && !x.saved);
+  el.innerHTML=`<span class="bnmb ${w&&bnEq(d,0)?"ok":""}">Из платежа «${esc(Mu.bank.payer)}» ${fm(Mu.bank.sum)} ₽: № ${esc(r.num||M.dr.number)}${r.date?" от "+fd(r.date):""}${w?` — по платежу <b>${fm(w)}</b> ₽, в документе <b>${fm(now)}</b> ₽${bnEq(d,0)?" ✓":d>0?" · не хватает "+fm(d)+" ₽":" · больше на "+fm(-d)+" ₽"}`:""}</span>${nx>=0?`<button type="button" class="btn ghost sm" data-bnmul="${nx}">Следующая: № ${esc(Mu.docs[nx].dr.number)} →</button>`:""}`; }
+$("#mulbar-bn").addEventListener("click", e=>{ const b=e.target.closest("[data-bnmul]"); if(b) bnMulGo(+b.dataset.bnmul); });
+/* в списке накладных из платежа: сумма по платежу и окно закупки */
+function bnMulLine(M){ if(!D.multi || !D.multi.bank || !M.want) return ""; const now=calc(M.dr).t.sum, d=r2(M.want-now);
+  return `<div class="bnmb ${bnEq(d,0)?"ok":""}">По платежу <b>${fm(M.want)}</b> ₽${bnEq(d,0)?" ✓":now>0?(d>0?" · не хватает "+fm(d)+" ₽":" · больше на "+fm(-d)+" ₽"):" · товары ещё не вписаны — «Открыть в полной форме»"}</div>`; }
+$("#mul").addEventListener("click", e=>{ const z=e.target.closest("[data-mzk]"); if(z){ const j=D.journal.find(x=>x.id===z.dataset.mzk); if(!j) return; docCard(j, false); setTimeout(()=>{ const b=document.querySelector('#fd-dcard [data-zkc="toggle"]:not(.on)'); if(b) b.click(); }, 80); }
+  if(e.target.closest("#mul-bnpay")){ const op=BNK().ops.find(o=>o.id===(D.multi&&D.multi.bank||{}).op); if(!op) return; goTab("profit"); setTimeout(()=>bnPick(op), 120); } });
