@@ -77,7 +77,7 @@ function skApply(S){ if(!S) return; SK=S; SKC=null; skSrv=true; try{ lsSet(SKKEY
   if(curTab==="stock") renderStock(); if(curTab==="doc") skDocHints(); if(curTab==="calendar") renderCalendar(); if(curTab==="journal" && !document.querySelector("#jr-body details[open]")) renderJournal(); skModalRefresh(); }
 async function skLoad(quiet){
   if(!skCan() || skLoading) return; skLoading=true; skSyncLine();
-  try{ const j=await api({action:"stock", op:"load"}); skApply(j.stock); skReport(); await skFlushQ(); }
+  try{ const j=await api({action:"stock", op:"load"}); skApply(j.stock); skReport(); await skFlushQ(); setTimeout(()=>{ try{ pgStockAuto(); }catch(e){} }, 0); }
   catch(e){ if(/unknown action/.test(e.message)){ skSrv=false; if(curTab==="stock") renderStock(); } else if(!quiet) toast("err","Склад не загрузился", e.message); }
   finally{ skLoading=false; skSyncLine(); } }
 function skSoon(){ clearTimeout(skT); skT=setTimeout(()=>skLoad(true), 1800); }

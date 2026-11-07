@@ -3615,10 +3615,25 @@ async function loadProfit(quiet){
 }
 function renderProfit(){ if(!me().admin) return; pfMarkSeen(); if(!pfLoaded){ $("#pf-msg").textContent="Загружаю…"; loadProfit(true); } drawProfit(); }
 const taxOf = sid => { const x=pfArr("psettings").find(y=>y.id===sid); return x && x.tax!=="" && x.tax!=null && !isNaN(+x.tax) ? +x.tax : 8; };
-/* закупочная цена товара на дату: последняя запись «действует с» ≤ даты; запись для конкретного заказчика важнее общей того же дня */
+/* ---- связанные товары (одно и то же под разными названиями, поле grp = ID основного): быстрый указатель для расчётов ----
+   объявлено здесь (функциями), чтобы работало и до загрузки dev/src/pcd_seg.js */
+let PG_VER=0, PGI=null;
+function pgIdx(){ if(PGI && PGI.p===D.products && PGI.v===PG_VER && PGI.n===D.products.length) return PGI;
+  setTimeout(()=>{ PGI=null; }, 0);   /* указатель живёт до конца текущего расчёта — правки, отмена и загрузка из таблицы видны сразу после */
+  const ids=new Set(D.products.map(p=>p.id)), root={}, mem={};
+  D.products.forEach(p=>{ const r=p.grp && p.grp!==p.id && ids.has(p.grp) ? p.grp : p.id; root[p.id]=r; (mem[r]=mem[r]||[]).push(p.id); });
+  return PGI={p:D.products, v:PG_VER, n:D.products.length, root, mem}; }
+function pgRootId(pid){ return pgIdx().root[pid]||pid; }
+function pgSameIds(pid){ return pgIdx().mem[pgRootId(pid)]||[pid]; }
+/* те же товары группы в той же единице (цены в кг и в шт не смешиваем) */
+function pgSameUnit(pid){ const u=(prod(pid)||{}).unit||""; return pgSameIds(pid).filter(id=>id===pid || ((prod(id)||{}).unit||"")===u); }
+/* закупочная цена товара на дату: последняя запись «действует с» ≤ даты; запись для конкретного заказчика важнее общей того же дня;
+   цены связанных названий того же товара (та же единица) тоже подходят, своя — важнее при той же дате */
 function costFor(pid, cid, date){
-  let best=null; pfArr("costs").forEach(e=>{ if(e.productId!==pid || !(+e.price>0)) return; if(e.customerId && e.customerId!==cid) return; if((e.from||"")>date) return;
-    if(!best || (e.from||"")>(best.from||"") || ((e.from||"")===(best.from||"") && e.customerId && !best.customerId)) best=e; });
+  const G=pgSameUnit(pid), inG=G.length>1?new Set(G):null; let best=null;
+  pfArr("costs").forEach(e=>{ if(e.productId!==pid && !(inG && inG.has(e.productId))) return; if(!(+e.price>0)) return; if(e.customerId && e.customerId!==cid) return; if((e.from||"")>date) return;
+    if(!best){ best=e; return; } const a=e.from||"", b=best.from||"";
+    if(a>b || (a===b && (!!e.customerId>!!best.customerId || (!!e.customerId===!!best.customerId && e.productId===pid && best.productId!==pid)))) best=e; });
   return best;
 }
 const docCost = id => pfArr("doccosts").find(x=>x.id===id);
@@ -3705,11 +3720,11 @@ function drawProfit(){
 /* ---- товары, проданные в минус: цена закупки за единицу (с учётом «куплено фактически») выше цены продажи ---- */
 function drawLoss(docs){ const box=$("#pf-loss"), card=$("#pf-lossc"); if(!box||!card) return; const G=new Map();
   docs.forEach(x=>{ if(x.src) return; x.lines.forEach(r=>{ const l=r.l, cu=r.cu!=null?r.cu:r.c; if(!(l.qty>0) || cu==null || !(r.own||r.sk)) return; const sale=l.priceNet!=null?+l.priceNet:+l.price; if(!(cu>sale+0.004)) return;
-    const k=l.pid+"|"+(l.unit||""), g=G.get(k)||{name:l.name, unit:l.unit||"ед.", q:0, s:0, c:0, docs:[]}; g.q=r3(g.q+l.qty); g.s+=sale*l.qty; g.c+=cu*l.qty; g.docs.push({j:x.j, sale, cu}); G.set(k,g); }); });
+    const rt=pgRootId(l.pid), k=rt+"|"+(l.unit||""), g=G.get(k)||{name:(prod(rt)||{}).name||l.name, unit:l.unit||"ед.", q:0, s:0, c:0, docs:[], nm:new Set()}; g.nm.add(l.name); g.q=r3(g.q+l.qty); g.s+=sale*l.qty; g.c+=cu*l.qty; g.docs.push({j:x.j, sale, cu}); G.set(k,g); }); });
   const L=[...G.values()].map(g=>Object.assign(g,{loss:r2(g.c-g.s)})).sort((a,b)=>b.loss-a.loss); card.hidden=!L.length; if(!L.length){ box.innerHTML=""; return; }
   const tot=r2(L.reduce((a,g)=>a+g.loss,0));
   box.innerHTML=`<p class="pfl-sum">${L.length} ${plural(L.length,["товар","товара","товаров"])} · недополучено <b class="neg">${fm(tot)} ₽</b></p><div class="pfl">${L.map(g=>`<div class="pfl-r">
-    <span class="pfl-n"><b>${esc(g.name)}</b><small>продано ${esc(qfmt(g.q,g.unit))} · в среднем продажа ${fm(r2(g.s/g.q))} ₽, закупка ${fm(r2(g.c/g.q))} ₽ за ${esc(g.unit)}</small></span>
+    <span class="pfl-n"><b>${esc(g.name)}</b><small>${g.nm.size>1||!g.nm.has(g.name)?"под названиями: "+[...g.nm].map(esc).join(", ")+" · ":""}продано ${esc(qfmt(g.q,g.unit))} · в среднем продажа ${fm(r2(g.s/g.q))} ₽, закупка ${fm(r2(g.c/g.q))} ₽ за ${esc(g.unit)}</small></span>
     <span class="pfl-l neg">−${fm(g.loss)} ₽</span>
     <span class="pfl-d">${g.docs.slice(0,6).map(d=>`<button type="button" class="pfl-doc" data-card="${d.j.id}" title="${esc(jWho(d.j).main)}: продажа ${fm(d.sale)}, закупка ${fm(d.cu)}">№ ${esc(d.j.number)} · ${fd(d.j.date).slice(0,5)}</button>`).join("")}${g.docs.length>6?`<span class="muted">и ещё ${g.docs.length-6}</span>`:""}</span></div>`).join("")}</div>`; }
 document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("#pf-loss [data-card]"); if(!b) return; const j=D.journal.find(x=>x.id===b.dataset.card); if(j) docCard(j, false); });
@@ -4048,7 +4063,10 @@ function zkLine(it, inv){
   const key=zkKey(it.name), r=zkRules().n[key], f=r && +r.f>0 ? +r.f : 1;
   if(r && r.x) return {kind:"exp", how:"rule", key};
   if(r && r.s) return {kind:"skip", how:"rule", key};
-  if(r && r.p && r.p.length){ const pids=r.p.filter(id=>inv.has(id)); return {kind:"prod", pids, want:r.p, f, how:"rule", key}; }
+  if(r && r.p && r.p.length){ let pids=r.p.filter(id=>inv.has(id));
+    /* выучено на одном названии, а в накладной другое название того же товара — берём его */
+    if(!pids.length) pids=[...new Set([].concat(...r.p.map(id=>pgSameIds(id).filter(x=>inv.has(x)))))];
+    return {kind:"prod", pids, want:r.p, f, how:"rule", key}; }
   if(it.fixed && ZK_EXP.test(key)) return {kind:"exp", how:"auto", key};
   const m=zkAuto(it.name, inv);
   if(m && m.pids) return {kind:"prod", pids:m.pids, f, how:m.how, key};
@@ -5358,8 +5376,8 @@ function drawCustomerAnalytics(docs, range){
       if(!line.productId || !Number.isFinite(qty) || qty <= 0) continue;
       const product = (doc.snap.prods || {})[line.productId] || {};
       const unit = String(product.unit || "").trim();
-      const key = JSON.stringify([line.productId, unit]);
-      const item = products.get(key) || {name:product.name || line.name || "Товар из документа", unit, qty:0, sum:0, n:0, priced:true};
+      const rt = pgRootId(line.productId), key = JSON.stringify([rt, unit]);   /* связанные названия одного товара — одной строкой */
+      const item = products.get(key) || {name:(rt!==line.productId && prod(rt) ? prod(rt).name : "") || product.name || line.name || "Товар из документа", unit, qty:0, sum:0, n:0, priced:true};
       item.qty += qty; const pr=Number(line.price); if(Number.isFinite(pr) && line.price!=="" && line.price!=null) item.sum += r2(qty*pr); else item.priced=false;
       if(!seen.has(key)){ item.n++; seen.add(key); }
       products.set(key, item);

@@ -8,7 +8,7 @@ const pgRoot = p => p ? (p.grp && p.grp!==p.id && prod(p.grp) ? p.grp : p.id) : 
 function pgMembers(id){ const p=prod(id); if(!p) return []; const r=pgRoot(p);
   return D.products.filter(x=>x.id===r || (x.grp===r && x.id!==r)).sort((a,b)=>(a.id===r?-1:b.id===r?1:0) || String(a.name).localeCompare(String(b.name),"ru")); }
 const pgCount = id => pgMembers(id).length;
-const pgSet = (p, v) => { if((p.grp||"")===(v||"")) return; p.grp=v||""; dirty("products", p.id); };
+const pgSet = (p, v) => { if((p.grp||"")===(v||"")) return; p.grp=v||""; PG_VER++; dirty("products", p.id); };
 /* связать a и b: основным остаётся основной большей группы (при равенстве — тот, из чьей карточки связывали) */
 function pgLink(aId, bId){ const A=prod(aId), B=prod(bId); if(!A||!B) return; const ra=pgRoot(A), rb=pgRoot(B); if(ra===rb) return;
   const ma=pgMembers(ra), mb=pgMembers(rb), root = mb.length>ma.length ? rb : ra;
@@ -126,7 +126,7 @@ function pcdHtml(){ const p=prod(PCD.id); if(!p) return `<div class="dc-head"><d
   CP.sort((a,b)=>String((b.last||{}).d||"").localeCompare(String((a.last||{}).d||"")) || a.c.name.localeCompare(b.c.name,"ru"));
   if(CP.length) h+=`<div class="skbox"><div class="skbh"><b>Цены у заказчиков</b><small class="muted">${CP.length} ${plural(CP.length,["цена","цены","цен"])} в прайсах заказчиков</small></div><div class="pcd-cp">${CP.map(o=>`<div class="pcd-cr"><span><b>${esc(o.c.name)}</b><small>${M.length>1?esc(o.x.name)+" · ":""}${o.last?"последняя поставка "+fd(o.last.d)+(o.q?" · "+skQf(o.q,o.x.unit):""):"ещё не поставляли"}</small></span><b>${fm(o.v)} ₽<small>/${esc(o.x.unit||"")}</small></b>${X.adm&&avgB&&o.x.unit===U?`<em class="${o.v<avgB?"up":"dn"}">${pcdPct((o.v/avgB-1)*100)}</em>`:"<em></em>"}</div>`).join("")}</div>${X.adm&&avgB?`<p class="muted skh-note">Справа — наценка цены заказчика к средней закупке.</p>`:""}</div>`;
   /* склад */
-  if(X.items.length) h+=`<div class="skbox"><div class="skbh"><b>На складе</b></div>${X.items.map(it=>{ let now=""; try{ now=skUnitsOf(it.id).filter(u=>u.fact).map(u=>skQf(u.fact,u.unit)+(u.res?" (в резерве "+skQf(u.res,u.unit)+")":"")).join(" · "); }catch(e){}
+  if(X.items.length) h+=`<div class="skbox"><div class="skbh"><b>На складе</b></div>${X.items.length>1?`<p class="sknoteb">Названия этого товара связаны с ${X.items.length} разными товарами склада. Если это один товар — объедините их на складе: карточка товара склада → «Объединить с другим…».</p>`:""}${X.items.map(it=>{ let now=""; try{ now=skUnitsOf(it.id).filter(u=>u.fact).map(u=>skQf(u.fact,u.unit)+(u.res?" (в резерве "+skQf(u.res,u.unit)+")":"")).join(" · "); }catch(e){}
       return `<button type="button" class="skh-pr pcd-sk" data-dc="skh" data-id="${it.id}"><span>${esc(it.name)}</span><b>${now||"0"}</b><em>›</em></button>`; }).join("")}</div>`;
   /* лента: продажи и закупки */
   const ev=S.map(s=>({k:"s", d:s.d, s})).concat(B.filter(b=>b.d).map(b=>({k:"b", d:b.d, b}))).sort((a,b)=>String(b.d).localeCompare(String(a.d)) || (a.k<b.k?1:-1));
@@ -149,7 +149,7 @@ document.addEventListener("click", e=>{ const t=e.target; if(!t.closest || !PCD 
   const ff=t.closest("[data-pcdf]"); if(ff){ PCD.f=ff.dataset.pcdf; PCD.n=15; pcdRedraw(); return; }
   const mo=t.closest("[data-pcdmore]"); if(mo){ PCD.n = mo.dataset.pcdmore==="all" ? 1e9 : PCD.n+15; pcdRedraw(); return; }
   if(!pgCan() || !pgSrv()) return;
-  const lk=t.closest("[data-pglink]"); if(lk){ const o=prod(lk.dataset.pglink); pgLink(PCD.id, lk.dataset.pglink); PCD.q=""; pcdRedraw(); if(curTab==="products") renderProducts(); toast("ok","Товары связаны","«"+(o||{}).name+"» теперь в этой карточке. В документах названия не меняются."); return; }
+  const lk=t.closest("[data-pglink]"); if(lk){ const o=prod(lk.dataset.pglink); pgLink(PCD.id, lk.dataset.pglink); PCD.q=""; pcdRedraw(); pgStockAuto().then(n=>{ if(n){ toast("ok","Склад: связано ещё "+n+" "+plural(n,["название","названия","названий"]),"Теперь «Со склада» работает для всех названий этого товара."); pcdRedraw(); } }); if(curTab==="products") renderProducts(); toast("ok","Товары связаны","«"+(o||{}).name+"» теперь в этой карточке. В документах названия не меняются."); return; }
   const un=t.closest("[data-pgun]"); if(un){ const id=un.dataset.pgun, o=prod(id); pgUnlink(id); pcdRedraw(); if(curTab==="products") renderProducts(); toast("ok","Отвязан","«"+(o||{}).name+"» — снова отдельный товар."); return; }
   const mn=t.closest("[data-pgmain]"); if(mn){ pgMain(mn.dataset.pgmain); pcdRedraw(); if(curTab==="products") renderProducts(); } });
 
@@ -168,6 +168,18 @@ function pgfRedraw(){ const el=document.getElementById("pgf"); if(el) el.innerHT
 document.addEventListener("change", e=>{ const c=e.target.closest&&e.target.closest("[data-pgc]"); if(!c||!PGF) return; PGF.sel[c.dataset.pgc]=c.checked?1:0; });
 document.addEventListener("click", e=>{ const t=e.target; if(!t.closest || !t.closest("#pgf")) return;
   const j=t.closest("[data-pgjoin]"); if(j){ if(!pgCan()||!pgSrv()) return; const k=j.dataset.pgjoin, g=pgClusters().find(x=>x.k===k); if(!g) return; const L=g.L.filter(p=>PGF.sel[k+"|"+p.id]);
-    if(L.length<2){ toast("info","Отметьте хотя бы два названия",""); return; } L.slice(1).forEach(p=>pgLink(L[0].id, p.id)); pgfRedraw(); if(curTab==="products") renderProducts();
+    if(L.length<2){ toast("info","Отметьте хотя бы два названия",""); return; } L.slice(1).forEach(p=>pgLink(L[0].id, p.id)); pgfRedraw(); pgStockAuto(); if(curTab==="products") renderProducts();
     toast("ok","Связано: "+L.length+" "+plural(L.length,["название","названия","названий"]),"Теперь это одна карточка товара."); return; }
   const n=t.closest("[data-pgno]"); if(n){ const p=getPrefs(); p.pgNo=[...new Set((p.pgNo||[]).concat(n.dataset.pgno))]; setPrefs(p,true); pgfRedraw(); } });
+
+/* ---- склад для связанных названий: если одно название связано с товаром склада, остальные (в той же единице) связываются с ним же ---- */
+let PGSK=false;
+async function pgStockAuto(){ if(PGSK || docLimited() || !online() || typeof SK==="undefined" || !SK || !skCan()) return 0; PGSK=true; let n=0;
+  try{ const X=skIdx(), roots=[...new Set(D.products.filter(p=>p.grp).map(p=>pgRoot(p)))];
+    for(const r of roots){ const M=pgMembers(r), items=[...new Set(M.map(p=>X.link[p.id]).filter(Boolean))]; if(items.length!==1) continue;
+      const it=X.item[items[0]], un=new Set(M.filter(p=>X.link[p.id]).map(p=>p.unit||"")), miss=M.filter(p=>!X.link[p.id] && un.has(p.unit||"")).map(p=>p.id); if(!it||!miss.length) continue;
+      await skSend("item",{itemId:it.id, links:[...new Set((it._links||[]).concat(miss))]},"Связь: "+it.name+" (связанные названия)"); n+=miss.length; } }
+  catch(e){ console.warn(e); } finally{ PGSK=false; }
+  return n; }
+/* названия одного товара связаны с разными товарами склада — подсказка в карточке */
+function pgStockClash(id){ try{ const X=skIdx(); return [...new Set(pgMembers(id).map(p=>X.link[p.id]).filter(Boolean))].map(i=>X.item[i]).filter(Boolean); }catch(e){ return []; } }
