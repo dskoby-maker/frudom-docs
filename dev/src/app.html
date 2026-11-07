@@ -1343,7 +1343,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .bnpl{display:grid;gap:6px;max-height:46vh;overflow:auto;padding:2px}
 #fd-app .bnpr{display:grid;grid-template-columns:22px minmax(0,1fr) auto 120px;gap:10px;align-items:center;padding:9px 12px;border:1px solid var(--line);border-radius:12px;cursor:pointer;transition:background .15s,border-color .15s;margin:0}
 #fd-app .bnpr.on{background:rgba(47,107,69,.07);border-color:rgba(47,107,69,.4)}#fd-app .bnpr input[type=checkbox]{width:18px;height:18px;margin:0;accent-color:var(--ok)}
-#fd-app .bnpn small{color:var(--muted)}#fd-app .bnpd{font-size:12.5px;color:var(--muted);white-space:nowrap}#fd-app .bnps{text-align:right;font-weight:600}
+#fd-app .bnpn small{color:var(--muted)}#fd-app .bnpd{font-size:12.5px;color:var(--muted);white-space:nowrap}#fd-app .bnpd.paid{color:var(--ok,#2e7d32)}#fd-app .bnpnote{margin:2px 0 8px;font-size:12.5px}#fd-app .bnps{text-align:right;font-weight:600}
 #fd-app .bnpt{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 14px;border-radius:12px;background:var(--bg);transition:background .2s}#fd-app .bnpt.ok{background:rgba(47,107,69,.1)}
 #fd-app .bnpt em{font-style:normal;font-weight:600;color:var(--warn)}#fd-app .bnpt em.ok{color:var(--ok)}#fd-app .bnpt em.bad{color:var(--err)}
 #fd-app .bnhow{border:1px solid var(--line);border-radius:14px;margin:14px 0 4px;padding:0 14px}#fd-app .bnhow summary{cursor:pointer;padding:11px 0;font-weight:600;color:var(--accent)}#fd-app .bnhow ol{margin:0 0 12px;padding-left:20px;display:grid;gap:6px;font-size:13.5px}
@@ -6769,7 +6769,7 @@ applyRole(); applyTabOrder(); startTab();
 if(API_URL){ if(pass()){ let first=false; try{ first=!sessionStorage.getItem("fd-session"); sessionStorage.setItem("fd-session","1"); }catch(e){}
     if(first) logEv("Вход","Открыл систему (вход сохранён на устройстве, "+deviceName()+")"); pull(); } else { showLogin(); } } else setStatus("local");
 /*__UNDO__*/
-window.__fd = {D:()=>D, undo:(r)=>unApply(curTab,!!r), undoState:()=>UNDO, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, aiSrc, IMP:()=>IMP, patchNmic, docProfit, payOf};
+window.__fd = {D:()=>D, undo:(r)=>unApply(curTab,!!r), undoState:()=>UNDO, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, aiSrc, IMP:()=>IMP, patchNmic, docProfit, payOf, setPay};
 })();
 </script>
 <!-- ============ конец блока ============ -->
