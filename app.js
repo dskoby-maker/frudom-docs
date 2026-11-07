@@ -390,6 +390,11 @@ function applyServer(d){
   if(!isStaff() && Array.isArray(d.daytasks) && !lsGet("frudom-auto-bf2")){ const t=todayISO(); docTasks(D.journal.filter(j=>j.snap && !isArch(j) && j.date>=t).map(j=>j.date), true); lsSet("frudom-auto-bf2","1"); }
 }
 let lastPullAt=0;
+/* фоновое обновление не должно «мигать»: те же данные — экран не перерисовываем, новые — перерисовываем без анимации появления */
+let pullSig="", pullN=0;
+const fdSig = o => { try{ const s=JSON.stringify(o); let h=0; for(let i=0;i<s.length;i+=7) h=(h*31+s.charCodeAt(i))|0; return s.length+":"+h; }catch(e){ return String(Math.random()); } };
+function fdCalm(){ const m=document.getElementById("fd-main"); if(!m || !m.getAnimations) return;
+  try{ m.getAnimations({subtree:true}).forEach(a=>{ if(typeof CSSAnimation!=="undefined" && !(a instanceof CSSAnimation)) return; try{ a.finish(); }catch(e){} }); }catch(e){} }
 async function pull(force){
   if(syncBlocked){showConflicts(conflictList);return;}
   if(!online()) return;
@@ -409,7 +414,10 @@ async function pull(force){
       Object.keys(D.specs).forEach(c=>Object.keys(D.specs[c]).forEach(p=>dirtySpec(c,p)));
       await flush(); setStatus("ok","Таблица заполнена"); return;
     }
-    applyServer(j.data); srvVerCheck(j.ver); bkTick(); if(syncBlocked){rerender();return;} setStatus("ok"); skLoad(true); if(j.concurrency!==1)toast("warn","Нужно обновить Code.gs","Защита от одновременных правок заработает после установки нового скрипта таблицы."); if(serverOld) setStatus("err","Обновите скрипт таблицы (новая версия)"); rerender(); setTimeout(plAuto, 1500);
+    const sig=fdSig(j.data);   /* до applyServer — он дописывает поля в эти же объекты */
+    applyServer(j.data); srvVerCheck(j.ver); bkTick(); if(syncBlocked){rerender();return;} setStatus("ok"); skLoad(true); if(j.concurrency!==1)toast("warn","Нужно обновить Code.gs","Защита от одновременных правок заработает после установки нового скрипта таблицы."); if(serverOld) setStatus("err","Обновите скрипт таблицы (новая версия)");
+    const same=pullN>0 && sig===pullSig; pullSig=sig; pullN++;
+    if(!same){ rerender(); if(pullN>1) fdCalm(); } setTimeout(plAuto, 1500);
   }catch(e){ handleErr(e); }
 }
 function setStatus(s, text){
@@ -2699,6 +2707,7 @@ async function loadProfit(quiet){
   catch(e){ $("#pf-msg").textContent = /unknown action/.test(e.message) ? "Чтобы прибыль сохранялась в таблицу, обновите скрипт таблицы (новая версия). Пока данные хранятся только на этом устройстве." : "Не получилось загрузить: "+e.message; pfLoaded=true; }
   if(curTab==="profit") drawProfit();
   if(curTab==="purchase"){ drawPurchase(); drawHist(); zkpDraw(); }
+  if(quiet) fdCalm();
 }
 function renderProfit(){ if(!me().admin) return; pfMarkSeen(); if(!pfLoaded){ $("#pf-msg").textContent="Загружаю…"; loadProfit(true); } drawProfit(); }
 const taxOf = sid => { const x=pfArr("psettings").find(y=>y.id===sid); return x && x.tax!=="" && x.tax!=null && !isNaN(+x.tax) ? +x.tax : 8; };
@@ -3426,7 +3435,7 @@ async function bnSync(quiet){
     if(n){ drawProfit(); toast("ok","Оплаты разнесены автоматически", n+" "+plural(n,["поступление","поступления","поступлений"])+" из банка — смотрите «Прибыль» → «Поступления»."); }
     const w=B.ops.filter(o=>o.status==="wait").length, errs=Object.values(j.errs||{});
     if(!quiet && !n) toast(errs.length?"err":"ok", errs.length?"Банк: ошибка":"Поступления обновлены", errs.length?errs[0]:(j.added?"Новых: "+j.added+". ":"Новых нет. ")+(w?"Ждут подтверждения: "+w:""));
-    if(curTab==="profit") pvDraw();
+    if(curTab==="profit"){ pvDraw(); if(quiet) fdCalm(); }
   }catch(e){ if(!quiet) toast("err","Не получилось обновить поступления", e.message||String(e)); }
   finally{ bnBusy=false; }
 }
@@ -6884,11 +6893,13 @@ function skDocLines(j){ if(!j||!j.snap||!j.snap.dr) return []; const P=j.snap.pr
   return (j.snap.dr.lines||[]).filter(l=>l.productId && +l.qty>0).map(l=>Object.assign({l}, skLineInfo(j.id, l, (P[l.productId]||prod(l.productId)||{}).unit||""))); }
 const skDocHas = j => { const X=skIdx(); return skDocLines(j).some(x=>x.req>0 || x.shipped>0 || x.res>0) || X.S.res.some(r=>r.docId===j.id); };
 /* ---------- загрузка и отправка ---------- */
-function skApply(S){ if(!S) return; SK=S; SKC=null; skSrv=true; try{ lsSet(SKKEY(), JSON.stringify(S)); }catch(e){}
-  if(curTab==="stock") renderStock(); if(curTab==="doc") skDocHints(); if(curTab==="calendar") renderCalendar(); if(curTab==="journal" && !document.querySelector("#jr-body details[open]")) renderJournal(); skModalRefresh(); }
+let skRaw="";
+function skApply(S, quiet){ if(!S) return; let raw=""; try{ raw=JSON.stringify(Object.assign({}, S, {at:""})); }catch(e){}   /* at — время ответа, меняется всегда */
+  if(quiet && raw && raw===skRaw && SK){ SK.at=S.at; try{ lsSet(SKKEY(), JSON.stringify(SK)); }catch(e){} return; } skRaw=raw; SK=S; SKC=null; skSrv=true; try{ lsSet(SKKEY(), JSON.stringify(S)); }catch(e){}
+  if(curTab==="stock") renderStock(); if(curTab==="doc") skDocHints(); if(curTab==="calendar") renderCalendar(); if(curTab==="journal" && !document.querySelector("#jr-body details[open]")) renderJournal(); skModalRefresh(); if(quiet) fdCalm(); }
 async function skLoad(quiet){
   if(!skCan() || skLoading) return; skLoading=true; skSyncLine();
-  try{ const j=await api({action:"stock", op:"load"}); skApply(j.stock); skReport(); await skFlushQ(); setTimeout(()=>{ try{ pgStockAuto(); }catch(e){} }, 0); }
+  try{ const j=await api({action:"stock", op:"load"}); skApply(j.stock, quiet); skReport(); await skFlushQ(); setTimeout(()=>{ try{ pgStockAuto(); }catch(e){} }, 0); }
   catch(e){ if(/unknown action/.test(e.message)){ skSrv=false; if(curTab==="stock") renderStock(); } else if(!quiet) toast("err","Склад не загрузился", e.message); }
   finally{ skLoading=false; skSyncLine(); } }
 function skSoon(){ clearTimeout(skT); skT=setTimeout(()=>skLoad(true), 1800); }
@@ -9137,6 +9148,6 @@ document.addEventListener("keydown", e=>{ if(!UNDO || !(e.ctrlKey||e.metaKey) ||
 }, true);
 unDraw();
 
-window.__fd = {D:()=>D, undo:(r)=>unApply(curTab,!!r), undoState:()=>UNDO, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, aiSrc, IMP:()=>IMP, patchNmic, docProfit, payOf, setPay};
+window.__fd = {D:()=>D, undo:(r)=>unApply(curTab,!!r), undoState:()=>UNDO, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, aiSrc, IMP:()=>IMP, patchNmic, docProfit, payOf, setPay, calm:fdCalm};
 })();
 
