@@ -127,7 +127,7 @@ async function bnSync(quiet){
     if(n){ drawProfit(); toast("ok","Оплаты разнесены автоматически", n+" "+plural(n,["поступление","поступления","поступлений"])+" из банка — смотрите «Прибыль» → «Поступления»."); }
     const w=B.ops.filter(o=>o.status==="wait").length, errs=Object.values(j.errs||{});
     if(!quiet && !n) toast(errs.length?"err":"ok", errs.length?"Банк: ошибка":"Поступления обновлены", errs.length?errs[0]:(j.added?"Новых: "+j.added+". ":"Новых нет. ")+(w?"Ждут подтверждения: "+w:""));
-    if(curTab==="profit") pvDraw();
+    if(curTab==="profit"){ pvDraw(); if(quiet) fdCalm(); }
   }catch(e){ if(!quiet) toast("err","Не получилось обновить поступления", e.message||String(e)); }
   finally{ bnBusy=false; }
 }

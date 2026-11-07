@@ -73,11 +73,13 @@ function skDocLines(j){ if(!j||!j.snap||!j.snap.dr) return []; const P=j.snap.pr
   return (j.snap.dr.lines||[]).filter(l=>l.productId && +l.qty>0).map(l=>Object.assign({l}, skLineInfo(j.id, l, (P[l.productId]||prod(l.productId)||{}).unit||""))); }
 const skDocHas = j => { const X=skIdx(); return skDocLines(j).some(x=>x.req>0 || x.shipped>0 || x.res>0) || X.S.res.some(r=>r.docId===j.id); };
 /* ---------- загрузка и отправка ---------- */
-function skApply(S){ if(!S) return; SK=S; SKC=null; skSrv=true; try{ lsSet(SKKEY(), JSON.stringify(S)); }catch(e){}
-  if(curTab==="stock") renderStock(); if(curTab==="doc") skDocHints(); if(curTab==="calendar") renderCalendar(); if(curTab==="journal" && !document.querySelector("#jr-body details[open]")) renderJournal(); skModalRefresh(); }
+let skRaw="";
+function skApply(S, quiet){ if(!S) return; let raw=""; try{ raw=JSON.stringify(Object.assign({}, S, {at:""})); }catch(e){}   /* at — время ответа, меняется всегда */
+  if(quiet && raw && raw===skRaw && SK){ SK.at=S.at; try{ lsSet(SKKEY(), JSON.stringify(SK)); }catch(e){} return; } skRaw=raw; SK=S; SKC=null; skSrv=true; try{ lsSet(SKKEY(), JSON.stringify(S)); }catch(e){}
+  if(curTab==="stock") renderStock(); if(curTab==="doc") skDocHints(); if(curTab==="calendar") renderCalendar(); if(curTab==="journal" && !document.querySelector("#jr-body details[open]")) renderJournal(); skModalRefresh(); if(quiet) fdCalm(); }
 async function skLoad(quiet){
   if(!skCan() || skLoading) return; skLoading=true; skSyncLine();
-  try{ const j=await api({action:"stock", op:"load"}); skApply(j.stock); skReport(); await skFlushQ(); setTimeout(()=>{ try{ pgStockAuto(); }catch(e){} }, 0); }
+  try{ const j=await api({action:"stock", op:"load"}); skApply(j.stock, quiet); skReport(); await skFlushQ(); setTimeout(()=>{ try{ pgStockAuto(); }catch(e){} }, 0); }
   catch(e){ if(/unknown action/.test(e.message)){ skSrv=false; if(curTab==="stock") renderStock(); } else if(!quiet) toast("err","Склад не загрузился", e.message); }
   finally{ skLoading=false; skSyncLine(); } }
 function skSoon(){ clearTimeout(skT); skT=setTimeout(()=>skLoad(true), 1800); }
