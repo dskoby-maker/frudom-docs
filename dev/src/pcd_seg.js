@@ -89,7 +89,7 @@ function pcdHtml(){ const p=prod(PCD.id); if(!p) return `<div class="dc-head"><d
   const chB=lastB&&prevB&&prevB.p ? (lastB.p-prevB.p)/prevB.p*100 : null;
   const tile=(l,v,s,cls)=>`<div class="${cls||""}"><small>${l}</small><b>${v}</b>${s?`<span>${s}</span>`:""}</div>`;
   const cat=catOf(p), aliases=[...new Set(M.flatMap(x=>String(x.aliases||"").split(/[;\n]/).map(s=>s.trim()).filter(Boolean)))];
-  let h=`<div class="dc-head"><div><div class="dc-kicker">Карточка товара${M.length>1?" · "+M.length+" "+plural(M.length,["название","названия","названий"]):""}</div><h3>${esc((prod(root)||p).name||"Без названия")}</h3>
+  let h=`<div class="dc-head"><div><div class="dc-kicker">Карточка товара${pArt(p)?" · арт. "+esc(pArt(p)):""}${M.length>1?" · "+M.length+" "+plural(M.length,["название","названия","названий"]):""}</div><h3>${esc((prod(root)||p).name||"Без названия")}</h3>
     <p class="muted sk-sub">${[cat?esc(cat.name):"", esc(p.unit||""), p.country&&COUNTRIES[p.country]?esc(COUNTRIES[p.country]):"", +p.price>0?"базовая цена "+fm(p.price)+" ₽":""].filter(Boolean).join(" · ")}</p></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>`;
   /* связанные названия */
   h+=`<div class="skbox pcd-grp"><div class="skbh"><b>Названия этого товара</b><small class="muted">в документах печатается название из строки — как в контракте</small></div><div class="pcd-ms">`

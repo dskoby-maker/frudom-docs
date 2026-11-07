@@ -26,6 +26,7 @@ async def main():
         ok(await pg.is_visible('#srvOld'), 'старый скрипт — жёлтая плашка «обновите Code.gs»')
         await pg.evaluate(TAB+"('products')"); await pg.wait_for_timeout(400)
         ok(await pg.is_hidden('#pd-auto') and await pg.is_hidden('#pd-catm'), 'кнопки категорий скрыты')
+        await pg.click('#pd-body .nmh >> nth=0'); await pg.wait_for_timeout(200)
         ok(await pg.locator('#pd-body select[data-k=cat][disabled]').count()>0, 'колонка «Категория» недоступна')
         ok('после обновления Code.gs' in await pg.text_content('#pd-cats'), 'понятное объяснение, почему')
         # категории, расставленные на устройстве раньше, не пропадают при загрузке со старого скрипта

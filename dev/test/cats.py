@@ -34,12 +34,12 @@ async def main():
             ok(await pg.evaluate(f"__fd.D().products.find(p=>p.id==='b{W}').cat")=='c-green', f'{W}: применено')
             # фильтр «Зелень» во вкладке «Товары»
             await pg.click('#pd-cats [data-pdc="c-green"]'); await pg.wait_for_timeout(200)
-            names=await pg.evaluate("[...document.querySelectorAll('#pd-body input[data-k=name]')].map(i=>i.value)")
+            names=await pg.evaluate("[...document.querySelectorAll('#pd-body .nmn b')].map(i=>i.textContent)")
             ok(f'Укроп свежий тест{W}' in names and f'Огурцы свежие тест{W}' not in names, f'{W}: фильтр «Зелень» ({len(names)} строк)')
             await pg.fill('#pd-q', f'тест{W}'); await pg.wait_for_timeout(200)
-            ok(await pg.locator('#pd-body tr').count()==1, f'{W}: поиск + фильтр')
+            ok(await pg.locator('#pd-body .nmr').count()==1, f'{W}: поиск + фильтр')
             await pg.click('#pd-cats [data-pdc="all"]'); await pg.wait_for_timeout(200)
-            ok(await pg.locator('#pd-body tr').count()==6, f'{W}: «Все» — 6 тестовых')
+            ok(await pg.locator('#pd-body .nmr').count()==6, f'{W}: «Все» — 6 тестовых')
             # своя категория, назначить «Штуковине»
             await pg.click('#pd-catm'); await pg.wait_for_timeout(300)
             await pg.fill('#sk-dlg .catm-new', f'Молочка {W}'); await pg.press('#sk-dlg .catm-new','Enter'); await pg.wait_for_timeout(300)
@@ -47,12 +47,13 @@ async def main():
             ok(bool(cid), f'{W}: своя категория добавлена')
             await pg.screenshot(path=f'/tmp/claude-0/cats-man-{W}.png')
             await pg.click('#sk-dlg [data-sk="close"]'); await pg.wait_for_timeout(300)
-            await pg.select_option(f'#pd-body tr[data-id="f{W}"] select[data-k=cat]', cid); await pg.wait_for_timeout(200)
+            await pg.click(f'#pd-body .nmr[data-id="f{W}"] .nmh'); await pg.wait_for_timeout(200)
+            await pg.select_option(f'#pd-body .nmr[data-id="f{W}"] select[data-k=cat]', cid); await pg.wait_for_timeout(200)
             # новый товар — категория сама
             await pg.fill('#pd-q',''); await pg.click('#pd-add'); await pg.wait_for_timeout(200)
             nid=await pg.evaluate("__fd.D().products[__fd.D().products.length-1].id")
-            await pg.fill(f'#pd-body tr[data-id="{nid}"] input[data-k=name]', f'Петрушка новая {W}'); await pg.wait_for_timeout(200)
-            ok(await pg.input_value(f'#pd-body tr[data-id="{nid}"] select[data-k=cat]')=='c-green', f'{W}: новому товару категория поставилась сама')
+            await pg.fill(f'#pd-body .nmr[data-id="{nid}"] input[data-k=name]', f'Петрушка новая {W}'); await pg.wait_for_timeout(200)
+            ok(await pg.input_value(f'#pd-body .nmr[data-id="{nid}"] select[data-k=cat]')=='c-green', f'{W}: новому товару категория поставилась сама')
             await pg.wait_for_timeout(2500)
             P=[r for r in rows('Товары') if r.get('ID (не менять)') in (f'f{W}', nid)]
             ok(len(P)==2 and {r['Категория (заполняется с сайта)'] for r in P}=={f'Молочка {W}','Зелень'}, f'{W}: в таблице у товаров понятное название категории {[r.get("Категория (заполняется с сайта)") for r in P]}')
