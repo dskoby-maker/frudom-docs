@@ -25,6 +25,11 @@ function bnCustomers(op){ const inn=bnDigits(op.payerInn), map=bnInnMap();
   return D.customers.filter(c=>bnDigits(c.inn)===inn).map(c=>c.id); }
 function bnDue(cids, sid){ return D.journal.filter(j=>j.snap && !isArch(j) && cids.includes(j.customerId) && (!sid || j.supplierId===sid))
   .map(j=>({j, left:payOf(j).left})).filter(x=>x.left>0.004).sort((a,b)=>a.j.date<b.j.date?-1:a.j.date>b.j.date?1:jNumSort(a.j,b.j)); }
+/* накладные заказчика с номерами из назначения — любой ИП, в том числе уже оплаченные; left = полная сумма накладной */
+function bnRefDocs(cids, nums, sid, withArch){ if(!nums || !nums.size) return [];
+  return D.journal.filter(j=>j.snap && (withArch || !isArch(j)) && cids.includes(j.customerId) && nums.has(String(+j.number||j.number)))
+    .map(j=>{ const p=payOf(j); return {j, left:p.tot, paid:p.s>0.004, other:!!sid && j.supplierId!==sid}; }).filter(x=>x.left>0.004)
+    .sort((a,b)=>a.j.date<b.j.date?-1:a.j.date>b.j.date?1:jNumSort(a.j,b.j)); }
 const bnEq = (a,b) => Math.abs(a-b) < 0.005;
 const bnSum = L => r2(L.reduce((a,x)=>a+x.left,0));
 function bnSubset(L, target){   /* единственный набор накладных с суммой ровно как платёж (до 22 накладных) */
@@ -36,10 +41,17 @@ function bnMatch(op){
   if(!cids.length) return {exact:false, cid:"", docs:[], why: op.payerInn ? "Заказчика с ИНН "+op.payerInn+" нет в справочнике" : "В платеже нет ИНН плательщика"};
   const due=bnDue(cids, op.supplierId), all=due.length?due:bnDue(cids,"");
   const pack=(L,why,exact)=>({exact, cid:L[0]?L[0].j.customerId:cids[0], docs:L.map(x=>({id:x.j.id, s:String(r2(x.left))})), why});
-  if(!all.length) return {exact:false, cid:cids[0], docs:[], why:"У заказчика нет неоплаченных накладных"};
   /* 1. номера накладных в назначении */
   const byNum=all.filter(x=>nums.has(String(+x.j.number||x.j.number)));
   if(byNum.length && bnEq(bnSum(byNum),sum)) return pack(byNum,"Номера накладных в назначении платежа и сумма совпали",true);
+  /* 1б. те же номера, но накладные уже отмечены оплаченными или у другого ИП — только предложение */
+  const ref=bnRefDocs(cids, nums, op.supplierId);
+  if(ref.length){ const L=bnEq(bnSum(ref),sum) ? ref : bnSubset(ref,sum);
+    if(L && L.length && L.some(x=>x.paid || x.other)){ const pd=L.filter(x=>x.paid), ot=L.filter(x=>x.other);
+      return pack(L, "Номера из назначения: "+L.map(x=>"№ "+x.j.number).join(", ")+" — сумма совпала."
+        +(pd.length?" Уже отмечены оплаченными: "+pd.map(x=>"№ "+x.j.number).join(", ")+" — при подтверждении платёж просто свяжется с ними, второй раз сумма не добавится.":"")
+        +(ot.length?" Другой ИП: "+ot.map(x=>"№ "+x.j.number+" ("+bnSup(x.j.supplierId)+")").join(", ")+".":""), false); } }
+  if(!all.length) return {exact:false, cid:cids[0], docs:[], why:"У заказчика нет неоплаченных накладных"};
   /* 2. номер счёта на оплату → его накладные */
   const inv=(D.invoices||[]).filter(r=>cids.includes(r.customerId) && (!op.supplierId||r.supplierId===op.supplierId) && nums.has(String(+r.number||r.number)));
   for(const r of inv){ let d={}; try{ d=JSON.parse(r.data||"{}")||{}; }catch(e){} const ids=new Set(d.docs||[]), L=all.filter(x=>ids.has(x.j.id));
@@ -61,10 +73,13 @@ function bnMatch(op){
 /* ---------- применение ---------- */
 function bnApply(op, docs, status){
   const used=[];
-  docs.forEach(d=>{ const j=D.journal.find(x=>x.id===d.id); if(!j) return; const p=payOf(j), add=r2(Math.min(+d.s||0, p.left)); if(add<=0) return;
-    setPay(j, r2(p.s+add), op.date, true); used.push({id:j.id, s:String(add), n:String(j.number)}); });
+  docs.forEach(d=>{ const j=D.journal.find(x=>x.id===d.id); if(!j) return; const p=payOf(j), want=r2(+d.s||0), add=r2(Math.max(0,Math.min(want, p.left))),
+      pre=r2(Math.max(0,Math.min(want-add, p.s)));   /* pre — оплата уже стояла раньше, платёж только связывается с ней */
+    if(add<=0 && pre<=0) return;
+    if(add>0) setPay(j, r2(p.s+add), op.date, true);
+    const u={id:j.id, s:String(add), n:String(j.number)}; if(pre>0) u.pre=String(pre); used.push(u); });
   op.status=status; op.docs=JSON.stringify(used); op.statusName=BN_ST[status];
-  op.docsText=used.map(u=>"№ "+u.n+" — "+fm(+u.s)+" ₽").join("; ");
+  op.docsText=used.map(u=>"№ "+u.n+" — "+fm(r2(+u.s + +(u.pre||0)))+" ₽"+(+u.pre>0?" (оплата уже стояла)":"")).join("; ");
   if(used.length) logEv("Прибыль", (status==="auto"?"Банк: оплата разнесена автоматически":"Банк: оплата разнесена")+" — "+(op.payerName||"")+", "+fm(+op.sum)+" ₽ от "+fd(op.date)+" → "+op.docsText);
   bnQueue(op); return used.length;
 }
@@ -127,7 +142,7 @@ function pvBankDraw(){
 function bnCard(o, i){
   const st=o.status||"new", applied=st==="auto"||st==="done", wait=st==="wait"||st==="new", used=bnDocsOf(o), m=wait?bnMatch(o):null;
   const ico = applied ? pvIco("check") : st==="skip" ? pvIco("back") : pvIco("question"), cls = applied ? "ok" : st==="skip" ? "skip" : "wait";
-  const chip=(u,sug)=>{ const j=D.journal.find(x=>x.id===u.id); return `<button type="button" class="bndoc ${sug?"sug":""}" data-bndoc="${esc(u.id)}">№ ${esc(j?j.number:u.n||"?")}${j?` <small>${fd(j.date).slice(0,5)}</small>`:""} <b>${fm(+u.s||0)}</b></button>`; };
+  const chip=(u,sug)=>{ const j=D.journal.find(x=>x.id===u.id); return `<button type="button" class="bndoc ${sug?"sug":""}" data-bndoc="${esc(u.id)}">№ ${esc(j?j.number:u.n||"?")}${j?` <small>${fd(j.date).slice(0,5)}</small>`:""} <b>${fm(r2((+u.s||0)+(+u.pre||0)))}</b>${+u.pre>0?` <small>уже было оплачено</small>`:""}</button>`; };
   const cname = m&&m.cid ? pvCusName(m.cid) : applied&&used[0] ? (()=>{ const j=D.journal.find(x=>x.id===used[0].id); return j?pvCusName(j.customerId):""; })() : "";
   return `<div class="bnop ${cls}" style="--d:${Math.min(i,12)*30}ms" data-bnop="${esc(o.id)}">
     <span class="bnico">${ico}</span>
@@ -159,15 +174,16 @@ async function pvBankClick(e){
 let BNKP=null;
 function bnPick(op){
   const m=bnMatch(op), was=bnDocsOf(op), cid = m.cid || (was[0] && (D.journal.find(x=>x.id===was[0].id)||{}).customerId) || "";
-  BNKP={op, cid, sel:new Map((was.length?was:m.docs).map(u=>[u.id, String(u.s)])), allSup:false};
+  BNKP={op, cid, sel:new Map((was.length?was:m.docs).map(u=>[u.id, String(r2((+u.s||0)+(+u.pre||0)))])), allSup:false, paid:false};
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Поступление ${fd(op.date)} · ${esc(bnSup(op.supplierId))}</div><h3>+${fm(+op.sum||0)} ₽ — ${esc(op.payerName||"")}</h3><div class="dc-sub">${esc(op.purpose||"")}</div></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <div class="bnpk"><label class="f">Заказчик<select id="bnp-c"><option value="">— выберите —</option>${opts(D.customers, cid)}</select></label>
       ${op.payerInn?`<label class="chk"><input type="checkbox" id="bnp-rem" ${bnInnMap()[bnDigits(op.payerInn)]?"checked":""}> запомнить: ИНН ${esc(op.payerInn)} — это этот заказчик</label>`:""}
       <label class="chk"><input type="checkbox" id="bnp-all"> показать накладные всех ИП</label>
+      <label class="chk"><input type="checkbox" id="bnp-paid"> показать и уже оплаченные накладные</label>
       <div id="bnp-l"></div><div class="bnpt" id="bnp-t"></div>
       <div class="pvea"><button type="button" class="btn pri" data-bnp="save">Разнести</button><button type="button" class="btn ghost" data-dc="close">Отмена</button></div></div>`, true, ()=>{});
   const d=$("#fd-dcard"); d.classList.add("bnp-d");
-  d.addEventListener("change", e=>{ if(e.target.id==="bnp-c"){ BNKP.cid=e.target.value; BNKP.sel=new Map(); bnPickDraw(); } else if(e.target.id==="bnp-all"){ BNKP.allSup=e.target.checked; bnPickDraw(); }
+  d.addEventListener("change", e=>{ if(e.target.id==="bnp-c"){ BNKP.cid=e.target.value; BNKP.sel=new Map(); bnPickDraw(); } else if(e.target.id==="bnp-all"){ BNKP.allSup=e.target.checked; bnPickDraw(); } else if(e.target.id==="bnp-paid"){ BNKP.paid=e.target.checked; bnPickDraw(); }
     else if(e.target.matches(".bnpc")){ const id=e.target.dataset.id, row=e.target.closest(".bnpr"); if(e.target.checked){ BNKP.sel.set(id, row.querySelector(".bnps").value||row.dataset.left); } else BNKP.sel.delete(id); bnPickDraw(true); } });
   d.addEventListener("input", e=>{ if(e.target.matches(".bnps")){ const id=e.target.dataset.id; BNKP.sel.set(id, e.target.value); const c=e.target.closest(".bnpr").querySelector(".bnpc"); c.checked=true; bnPickTotal(); } });
   d.addEventListener("click", e=>{ const b=e.target.closest("[data-bnp]"); if(b) bnPickSave(); });
@@ -175,10 +191,20 @@ function bnPick(op){
 }
 function bnPickDraw(keepRows){
   const box=$("#bnp-l"); if(!box) return; const op=BNKP.op;
-  if(!keepRows){ const due=BNKP.cid ? bnDue([BNKP.cid], BNKP.allSup?"":op.supplierId) : [];
-    const extra=[...BNKP.sel.keys()].filter(id=>!due.some(x=>x.j.id===id)).map(id=>D.journal.find(x=>x.id===id)).filter(Boolean).map(j=>({j, left:payOf(j).left}));
-    const L=extra.concat(due);
-    box.innerHTML = !BNKP.cid ? `<p class="muted">Выберите заказчика — покажу его неоплаченные накладные.</p>` : L.length ? `<div class="bnpl">${L.map(x=>{ const on=BNKP.sel.has(x.j.id); return `<label class="bnpr ${on?"on":""}" data-left="${r2(x.left)}"><input type="checkbox" class="bnpc" data-id="${x.j.id}" ${on?"checked":""}><span class="bnpn"><b>№ ${esc(x.j.number)}</b> <small>${fd(x.j.date)} · ${esc(bnSup(x.j.supplierId))}</small></span><span class="bnpd">к оплате ${fm(x.left)}</span><input class="bnps" data-id="${x.j.id}" inputmode="decimal" value="${esc(String(on?BNKP.sel.get(x.j.id):r2(x.left)).replace(".",","))}"></label>`; }).join("")}</div>` : `<p class="muted">У заказчика нет неоплаченных накладных${BNKP.allSup?"":" у этого ИП — отметьте «показать накладные всех ИП»"}.</p>`;
+  if(!keepRows){ const cid=BNKP.cid, sid=BNKP.allSup?"":op.supplierId, seen=new Set(), L=[];
+    const add=(j,tag)=>{ if(!j || seen.has(j.id)) return; seen.add(j.id); const p=payOf(j); if(p.tot<=0.004) return; L.push({j, p, tag}); };
+    if(cid){
+      [...BNKP.sel.keys()].forEach(id=>add(D.journal.find(x=>x.id===id), ""));
+      bnRefDocs([cid], bnNums(op.purpose), "", true).forEach(x=>add(x.j, "из назначения"));   /* номера из назначения — всегда, любой ИП и статус */
+      bnDue([cid], sid).forEach(x=>add(x.j, ""));
+      if(BNKP.paid) D.journal.filter(j=>j.snap && !isArch(j) && j.customerId===cid && (!sid || j.supplierId===sid) && payOf(j).left<=0.004)
+        .sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0).slice(0,40).forEach(j=>add(j, ""));
+    }
+    const hasPaid=L.some(x=>x.p.s>0.004);
+    box.innerHTML = !cid ? `<p class="muted">Выберите заказчика — покажу его неоплаченные накладные.</p>` : L.length ? `${hasPaid?`<p class="muted bnpnote">Если отметить накладную, которая уже отмечена оплаченной, сайт просто свяжет с ней этот платёж — второй раз сумма не добавится.</p>`:""}<div class="bnpl">${L.map(x=>{ const on=BNKP.sel.has(x.j.id), p=x.p, def=p.left>0.004?p.left:p.tot;
+        const tags=[x.tag, isArch(x.j)?"в архиве":"", op.supplierId && x.j.supplierId!==op.supplierId?"другой ИП":""].filter(Boolean);
+        const due = p.left<=0.004 ? `<span class="bnpd paid">уже оплачена ${fm(p.tot)}</span>` : p.s>0.004 ? `<span class="bnpd">к оплате ${fm(p.left)} из ${fm(p.tot)}</span>` : `<span class="bnpd">к оплате ${fm(p.left)}</span>`;
+        return `<label class="bnpr ${on?"on":""}" data-left="${r2(def)}"><input type="checkbox" class="bnpc" data-id="${x.j.id}" ${on?"checked":""}><span class="bnpn"><b>№ ${esc(x.j.number)}</b> <small>${fd(x.j.date)} · ${esc(bnSup(x.j.supplierId))}${tags.length?" · "+esc(tags.join(", ")):""}</small></span>${due}<input class="bnps" data-id="${x.j.id}" inputmode="decimal" value="${esc(String(on?BNKP.sel.get(x.j.id):r2(def)).replace(".",","))}"></label>`; }).join("")}</div>` : `<p class="muted">У заказчика нет неоплаченных накладных${BNKP.allSup?"":" у этого ИП — отметьте «показать накладные всех ИП»"}. Уже оплаченные — отметьте «показать и уже оплаченные накладные».</p>`;
   } else box.querySelectorAll(".bnpr").forEach(r=>r.classList.toggle("on", r.querySelector(".bnpc").checked));
   bnPickTotal();
 }
