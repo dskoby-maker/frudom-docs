@@ -1334,7 +1334,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .bns{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted)}#fd-app .bns .bnc{color:var(--accent);font-weight:600}#fd-app .bns .bnst{margin-left:auto;font-weight:600}
 #fd-app .bnop.ok .bnst{color:var(--ok)}#fd-app .bnop.wait .bnst{color:var(--warn)}
 #fd-app .bnp{margin:0;font-size:13px;color:var(--ink);background:var(--bg);border-radius:10px;padding:7px 10px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}#fd-app .bnp:hover{-webkit-line-clamp:unset}
-#fd-app .bnwhy{font-size:13px;color:var(--warn)}
+#fd-app .bnwhy{font-size:13px;color:var(--warn)}#fd-app .bnmk{font-size:13px;color:var(--ink);margin-top:4px}#fd-app .bnmkp{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 14px;border-radius:12px;background:var(--accent-soft);margin:6px 0 10px}#fd-app .mulbn{display:contents}#fd-app .bnmb{font-size:13px;color:var(--warn)}#fd-app .bnmb.ok{color:var(--ok,#2f6b45)}#fd-app .mul .bnmb{margin:6px 0 2px}
 #fd-app .bndocs{display:flex;flex-wrap:wrap;gap:6px}
 #fd-app .bndoc{border:1px solid rgba(47,107,69,.3);background:rgba(47,107,69,.08);color:var(--ok);border-radius:99px;padding:4px 11px;font:500 13px var(--ui);cursor:pointer;display:inline-flex;gap:6px;align-items:baseline;transition:transform .12s,background .15s}#fd-app .bndoc small{color:var(--muted)}#fd-app .bndoc b{color:var(--ink)}
 #fd-app .bndoc:hover{transform:translateY(-1px);background:rgba(47,107,69,.14)}#fd-app .bndoc.sug{border-style:dashed;border-color:rgba(154,91,0,.45);background:var(--surface);color:var(--warn)}
@@ -1561,7 +1561,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
       <div id="imp-res"></div>
     </div>
     <div id="mul"></div>
-    <div class="mulbar" id="mulbar" hidden><button class="btn sm" type="button" id="mul-back">← Ко всем накладным заявки</button><span class="muted" id="mulbar-t"></span></div>
+    <div class="mulbar" id="mulbar" hidden><button class="btn sm" type="button" id="mul-back">← Ко всем накладным заявки</button><span class="muted" id="mulbar-t"></span><span class="mulbn" id="mulbar-bn"></span></div>
     <div class="card dform">
       <h2 class="dh">Стороны <small id="d-editing"></small><button class="btn ghost sm dclr" id="d-new2" type="button">Очистить</button></h2>
       <div class="grid">
@@ -2448,7 +2448,7 @@ function renderTotals(){
   document.querySelectorAll("#d-lines .line[data-i]").forEach(el=>{ const l=D.draft.lines[+el.dataset.i]; el.querySelector(".sum").textContent=fm(r2((+l.qty||0)*(+l.price||0))); });
   { const byU={}; k.lines.forEach(l=>{ byU[l.unit||"ед."]=(byU[l.unit||"ед."]||0)+l.qty; }); const n=k.lines.length;
     $("#d-lfoot").innerHTML = n ? `<span>Всего позиций: <b>${n}</b></span>`+Object.entries(byU).map(([u,q])=>`<span>${u==="кг"?"Общий вес":"Итого, "+esc(u)}: <b>${String(+q.toFixed(3)).replace(".",",")} ${esc(u)}</b></span>`).join("") : ""; }
-  renderCtrInfo(); ctrMark(); skDocHints();
+  renderCtrInfo(); ctrMark(); skDocHints(); if(typeof bnMulBar==="function") bnMulBar();
 }
 function pickCtr(){ const dr=D.draft, list=ctrs(dr.customerId); const m=list.find(x=>x.supplierId===dr.supplierId)||list.find(x=>!x.supplierId)||list[0]; return m?m.id:""; }
 function renderCtr(){
@@ -2648,7 +2648,7 @@ $("#d-pphone").addEventListener("input",e=>{ D.draft.bphone=e.target.value; save
 $("#d-save").onclick=async()=>{
   const b=$("#d-save"), msg=$("#d-saved"); if(!calc(D.draft).lines.length){ msg.textContent="Добавьте хотя бы один товар с количеством."; toast("err","Нет товаров в документе","Выберите товар и укажите количество больше нуля — затем нажмите кнопку снова."); return; }
   const edit=D.journal.some(j=>j.id===D.draft.id); b.disabled=true;
-  try{ const note=await commitDoc(); const dr=D.draft, n=dr.number;
+  try{ const note=await commitDoc(); if(typeof bnMulNext==="function" && bnMulNext(note)) return; const dr=D.draft, n=dr.number;
     const keep={supplierId:dr.supplierId, customerId:dr.customerId, branchId:dr.branchId, contractId:dr.contractId, basis:dr.basis, date:dr.date, ship:dr.ship};
     D.draft=Object.assign(newDraft(D), keep); D.draft.number=nextNum(keep.supplierId, keep.customerId); saveLocal(); renderDoc();
     $("#d-saved").textContent=(note||"")+"Документ № "+n+(edit?" обновлён":" сохранён")+" в журнале — распечатать можно оттуда в любой момент. Форма очищена для следующего документа (№ "+D.draft.number+")."; docToast("Распечатать — во вкладке «Журнал». Форма готова для № "+D.draft.number+"."); }
@@ -2753,7 +2753,7 @@ async function commitDoc(dr0, opt){
   const forceSave=async()=>{ const i=D.journal.findIndex(j=>j.id===entry.id); if(i>=0) D.journal[i]=entry; else D.journal.unshift(entry);
     logEv("Документ",(old?"Изменён":"Создан")+" документ № "+dr.number+" от "+fd(dr.date)+" — "+shortCus(calc(dr))+(dr.ship?", "+dr.ship:"")+", сумма "+fm(calc(dr).t.sum)+" ₽"+(liveDup()?" (номер повторяется)":""), dr.id);
     dirty("journal", entry.id); if(+dr.number>=(+s.next||1)){ s.next=(+dr.number)+1; dirty("suppliers", s.id); }
-    docTasks([old&&old.date, entry.date]); saveLocal(); if(online()){ try{ await flush(); }catch(e){ handleErr(e); } } skAfterSave(entry); };
+    docTasks([old&&old.date, entry.date]); saveLocal(); if(online()){ try{ await flush(); }catch(e){ handleErr(e); } } skAfterSave(entry); if(typeof bnMulCommitted==="function") bnMulCommitted(entry); };
   if(own && !(opt&&opt.force) && !dr.qtyOnly && liveDup()) opt=Object.assign({}, opt, {force:true});   /* номер уже есть у заказчика — предупредили красным, сохраняем как есть */
   if(opt&&opt.force){ await forceSave(); LC={n:dr.number, created:!old, warn:"Номер "+dr.number+" повторяется — сохранён по вашему решению."}; if(own) msg.textContent="Сохранено в журнал с повторяющимся номером "+dr.number+"."; return ""; }
   if(online()){
@@ -2779,7 +2779,7 @@ async function commitDoc(dr0, opt){
   const i=D.journal.findIndex(j=>j.id===entry.id); if(i>=0) D.journal[i]=entry; else D.journal.unshift(entry);
   docTasks([old&&old.date, entry.date]); saveLocal(); if(own) msg.textContent=note+"Сохранено в журнал. Следующий номер для этого заказчика: "+nextNum(dr.supplierId, dr.customerId);
   LC={n:dr.number, created:!old, warn:note.trim()};
-  skAfterSave(entry); if(old) skAfterEdit(entry);
+  skAfterSave(entry); if(old) skAfterEdit(entry); if(typeof bnMulCommitted==="function") bnMulCommitted(entry);
   return note;
 }
 /* ---------- общие функции XML ---------- */
@@ -6506,20 +6506,22 @@ function mulBlock(M,i){ const dr=M.dr, k=calc(dr), lbl=mulLabel(dr), g=IMP&&IMP.
   const rows = dr.lines.map((l,li)=>{ const p=prod(l.productId); if(!p) return ""; const q=+l.qty||0;
     return `<tr><td>${esc(p.name)}${l.auto?`<div class="an">⚠ ${esc(l.auto)}</div>`:""}</td><td class="n"><input data-mq="${li}" inputmode="decimal" value="${esc(String(l.qty||"").replace(".",","))}" placeholder="0" aria-label="Количество"> ${esc(p.unit||"")}</td><td class="n">${fm(+l.price||0)}</td><td class="n">${fm(r2(q*(+l.price||0)))}</td></tr>`; }).join("");
   return `<div class="card mul" data-m="${i}"><h2>Накладная ${i+1}${lbl?" · "+esc(lbl):""} <small>${esc(dr.ship?stLabel(dr.ship,cus(dr.customerId).address):"")}</small>${st}</h2>
-    <div class="mmeta"><label>№ <input data-mnum value="${esc(dr.number)}" inputmode="numeric"${inJ?" readonly title=\"Номер уже в журнале — менять в полной форме\"":""}></label><span>от ${fd(dr.date)}</span><span>${esc(supShort(sup(dr.supplierId).name||""))}</span></div>
+    <div class="mmeta"><label>№ <input data-mnum value="${esc(dr.number)}" inputmode="numeric"${inJ?" readonly title=\"Номер уже в журнале — менять в полной форме\"":""}></label><span>от ${fd(dr.date)}</span><span>${esc(supShort(sup(dr.supplierId).name||""))}</span></div>${typeof bnMulLine==="function"?bnMulLine(M):""}
     <table class="mt"><thead><tr><th>Товар</th><th class="n">Кол-во</th><th class="n">Цена</th><th class="n">Сумма</th></tr></thead><tbody>${rows||`<tr><td colspan="4" class="muted">Нет товаров</td></tr>`}</tbody>
       <tfoot><tr><td>Итого: ${k.lines.length} поз.</td><td></td><td></td><td class="n">${fm(k.t.sum)} ₽</td></tr></tfoot></table>
     ${g&&(g.miss||[]).length?g.miss.map((l,mi)=>`<div class="impmiss"><span class="e">Не найден товар «${esc(l.name)}»${l.qty!==""?" — "+esc(String(l.qty).replace(".",","))+" "+esc(l.unit||""):""}${l.amb?" — цена "+fm(+l.price)+" ₽ у "+l.amb.length+" товаров договора":""}. Это:</span><select data-impmiss="${i}:${mi}">${impMissOpts(dr.customerId,l)}</select></div>`).join(""):""}
     ${g&&g.warn.length?`<div class="impg"><ul>${g.warn.map(w=>`<li class="${w.t}">${esc(w.m)}</li>`).join("")}</ul></div>`:""}
     <div class="make"><button class="btn pri" data-mmake="invoice">Счёт<small>на оплату</small></button><button class="btn pri" data-mmake="torg12">ТОРГ‑12<small>товарная накладная</small></button><button class="btn pri" data-mmake="upd">УПД<small>универсальный</small></button></div>
     <div class="make2"><button class="btn" data-mcombo="invoice,torg12">Скачать счёт + ТОРГ‑12<small>одним PDF</small></button><button class="btn" data-mcombo="invoice,upd">Скачать счёт + УПД<small>одним PDF</small></button></div>
-    <div class="row"><button class="btn ghost sm" type="button" data-medit>Открыть в полной форме</button></div></div>`; }
+    <div class="row"><button class="btn ghost sm" type="button" data-medit>Открыть в полной форме</button>${D.multi.bank&&inJ&&me().admin?`<button class="btn ghost sm" type="button" data-mzk="${esc(dr.id)}">Закупка</button>`:""}</div></div>`; }
 function drawMulti(){ const box=$("#mul"), on=mulOn(), all=on && D.multi.view<0;
   document.querySelectorAll("#tab-doc .dform").forEach(x=>x.hidden=all);
   $("#mulbar").hidden = !(on && D.multi.view>=0); if(on && D.multi.view>=0) $("#mulbar-t").textContent="Накладная "+(D.multi.view+1)+" из "+D.multi.docs.length;
+  if(typeof bnMulBar==="function") bnMulBar();
   if(!all){ box.innerHTML=""; return; }
   const tot=r2(D.multi.docs.reduce((a,M)=>a+calc(M.dr).t.sum,0)), done=D.multi.docs.filter(M=>M.saved&&!M.ch).length;
-  box.innerHTML=`<div class="mulhead"><b>Заявка «${esc(D.multi.file||"")}» — ${D.multi.docs.length} ${plural(D.multi.docs.length,["накладная","накладные","накладных"])} · ${fm(tot)} ₽</b>${done?`<span class="muted">сохранено: ${done} из ${D.multi.docs.length}</span>`:""}<span style="flex:1"></span>
+  const bk=D.multi.bank, bop=bk&&typeof BNK==="function"?BNK().ops.find(o=>o.id===bk.op):null;
+  box.innerHTML=`<div class="mulhead"><b>${bk?"Из платежа «"+esc(bk.payer)+"» "+fm(bk.sum)+" ₽ от "+fd(bk.date):"Заявка «"+esc(D.multi.file||"")+"»"} — ${D.multi.docs.length} ${plural(D.multi.docs.length,["накладная","накладные","накладных"])} · ${fm(tot)} ₽</b>${done?`<span class="muted">сохранено: ${done} из ${D.multi.docs.length}</span>`:""}${bk&&bk.paid?`<span class="ok">✓ платёж разнесён</span>`:""}<span style="flex:1"></span>${bk&&bop&&done===D.multi.docs.length&&!bk.paid&&bnIsWait(bop)?`<button class="btn sm" type="button" id="mul-bnpay">Разнести платёж…</button>`:""}
     <button class="btn pri sm" type="button" id="mul-saveall">Сохранить все в журнал</button><button class="btn ghost sm" type="button" id="mul-close">Закончить</button></div>`
     + D.multi.docs.map(mulBlock).join(""); }
 async function mulCommit(i){ const M=D.multi.docs[i]; if(!calc(M.dr).lines.length){ toast("err","Нет товаров в накладной "+(i+1),"Укажите количество больше нуля."); return false; }
