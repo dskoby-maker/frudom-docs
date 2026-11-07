@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 18;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 19;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -20,7 +20,7 @@ const S = {
     ['contract','Основание'],['ikz','ИКЗ'],['acct','Тип счёта'],['bank','Банк'],['bik','БИК'],['rs','Р/с / казн. счёт'],['ks','К/с / ЕКС'],
     ['id','ID (не менять)'],['branches','Обособленные подразделения (заполняется с сайта)'],['edo','ID участника ЭДО (Диадок)'],['points','Контакты точек доставки (заполняется с сайта)'],['t12c','Страна в ТОРГ-12 (1 = да)'],['nums','Нумерация: продолжить с № (заполняется с сайта)'],['signs','Подписи поставщика: 3 = во всех графах'],['vat','НДС в документах (10+ = 10% сверху цены)'],['plist','Цены из моего прайса (1 = да)']]},
   products: { title: 'Товары', key: 'id', cols: [
-    ['name','Наименование'],['code','Код'],['unit','Ед.'],['country','Страна (код)'],['price','Базовая цена'],['id','ID (не менять)'],['packs','Вес упаковки (заполняется с сайта)'],['aliases','Другие названия в заявках (заполняется с сайта)'],['cat','ID категории (не менять)'],['catName','Категория (заполняется с сайта)'],['grp','Связан с товаром (ID основного, заполняется с сайта)']]},
+    ['name','Наименование'],['code','Код'],['unit','Ед.'],['country','Страна (код)'],['price','Базовая цена'],['id','ID (не менять)'],['packs','Вес упаковки (заполняется с сайта)'],['aliases','Другие названия в заявках (заполняется с сайта)'],['cat','ID категории (не менять)'],['catName','Категория (заполняется с сайта)'],['grp','Связан с товаром (ID основного, заполняется с сайта)'],['art','Артикул (присваивается сам)'],['artOwn','Свой номер артикула (служебный, не менять)']]},
   invoices: { title: 'Счета на оплату', key: 'id', cols: [
     ['date','Дата'],['number','№'],['supplierName','Поставщик'],['customerName','Заказчик'],['place','Подразделение / точка'],['period','Период'],['sum','Сумма'],
     ['id','ID (не менять)'],['supplierId','ID поставщика'],['customerId','ID заказчика'],['data','Данные счёта (не редактировать)'],['updated','Изменён']]},
@@ -467,6 +467,7 @@ function handle_(p) {
   lock.waitLock(25000);
   try {
     if (p.action === 'load' && me.admin) seedEis_();
+    if (p.action === 'load') artFix_();   /* артикулы новым товарам (и всем при первом запуске) */
     if (p.action === 'load') return { ok: true, ver: CODE_VER, concurrency: 1, eis: 1, akt: 1, cats: 1, me: me, prefs: (read_('uprefs').find(r => r.id === me.name) || {}).data || '', data: {
       suppliers: me.role === 'staff' ? read_('suppliers').map(s => { const x = Object.assign({}, s); delete x.stamp; delete x.sign; return x; }) : read_('suppliers'), customers: read_('customers'), products: read_('products'), cats: read_('cats'), invoices: me.role === 'staff' ? undefined : read_('invoices'),
       prices: read_('prices'), specs: read_('specs'), contracts: read_('contracts'), journal: read_('journal').slice(-2000),
@@ -639,6 +640,23 @@ function plist_(p, me) {
   return r;
 }
 
+/* Внутренние артикулы товаров: у каждого товара свой постоянный номер (artOwn: 0001, 0002 … 9999, дальше 10000),
+   номер не используется повторно даже после удаления товара (свойство ART_MAX). Артикул (art) — номер основного товара группы:
+   связанные названия одного товара («Помидоры», «Томаты») имеют один артикул; отвязали — у товара снова свой номер. */
+const artFmt_ = n => String(n).padStart(4, '0');
+function artFix_() {
+  const P = read_('products'); if (!P.length) return 0;
+  const pr = PropertiesService.getScriptProperties(); let max = +(pr.getProperty('ART_MAX') || 0) || 0, ch = 0;
+  P.forEach(p => { const n = /^\d+$/.test(String(p.artOwn || '')) ? +p.artOwn : 0; if (n > max) max = n; });
+  const seen = {};
+  P.forEach(p => { const v = String(p.artOwn || ''); if (!/^\d+$/.test(v) || seen[v]) { max++; p.artOwn = artFmt_(max); ch++; } seen[String(p.artOwn)] = 1; });
+  const byId = {}; P.forEach(p => byId[p.id] = p);
+  P.forEach(p => { const r = p.grp && p.grp !== p.id && byId[p.grp] ? byId[p.grp] : p; const a = String(r.artOwn); if (String(p.art || '') !== a) { p.art = a; ch++; } });
+  if (ch) write_('products', P);
+  if (String(max) !== String(pr.getProperty('ART_MAX') || '')) pr.setProperty('ART_MAX', String(max));
+  return ch;
+}
+
 function nameMap_(t) { const m = {}; read_(t).forEach(o => m[o.id] = o.name); return m; }
 
 function upsertList_(t, ch) {
@@ -670,7 +688,9 @@ function applySync_(ch, me) {
   };
   if (ch.cats) { const r = upsertList_('cats', ch.cats); r.added.concat(r.changed).forEach(o => ev.push({ action: 'Справочники', text: 'Категория товаров «' + (o.name || '') + '»' + (r.added.indexOf(o) >= 0 ? ' добавлена' : ' изменена') })); r.removed.forEach(o => ev.push({ action: 'Справочники', text: 'Категория товаров «' + (o.name || '') + '» удалена' })); }
   if (ch.products) { const cn = nameMap_('cats'); (ch.products.upsert || []).forEach(o => { o.catName = o.cat ? (cn[o.cat] || '') : ''; }); }
+  if (ch.products) (ch.products.upsert || []).forEach(o => { delete o.art; delete o.artOwn; });   /* артикулы присваивает только таблица */
   ['suppliers', 'customers', 'products'].forEach(t => say(t, upsertList_(t, ch[t])));
+  if (ch.products) artFix_();
   if (ch.invoices) {   /* счета на оплату за период: отдельный лист, на сумму контракта и журнал не влияют */
     const sn = nameMap_('suppliers'), cn = nameMap_('customers');
     (ch.invoices.upsert || []).forEach(o => { o.supplierName = sn[o.supplierId] || ''; o.customerName = cn[o.customerId] || ''; });
@@ -1334,7 +1354,7 @@ function guardChanges_(input, base, protocol, me) {
     if (!allowed.includes(t)) return { ok: false, error: 'forbidden' };
     const part = changes[t]; if (!part) continue;
     const current = {}; read_(t).forEach(r => current[rowKey_(t,r)] = r);
-    const cols = S[t].cols.map(c => c[0]).filter(k => !['customerName','supplierName','productName','catName'].includes(k));
+    const cols = S[t].cols.map(c => c[0]).filter(k => !['customerName','supplierName','productName','catName','art','artOwn'].includes(k));
     const bases = (base || {})[t] || {};
     const check = (o, deleting) => {
       const id = deleting && S[t].key ? String(o) : rowKey_(t,o), now = current[id] || null;

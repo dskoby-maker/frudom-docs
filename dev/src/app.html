@@ -1476,6 +1476,24 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 @media (max-width:480px){#fd-app .pcd-er{grid-template-columns:minmax(0,1fr) auto;gap:2px 10px}#fd-app .pcd-ed{grid-column:1/-1}#fd-app .pcd-m{flex-wrap:wrap}#fd-app .pcd-ma{width:100%;justify-content:flex-end}#fd-app .pcd-bl .skh-pr{grid-template-columns:minmax(0,1fr) auto 48px}}
 #fd-app .dcard .dzone{display:flex;align-items:center;gap:10px;margin:0 0 10px;padding:10px 12px;border-radius:12px;background:var(--accent-soft,rgba(106,44,78,.08));border:1px solid rgba(106,44,78,.15);font-size:13px}
 #fd-app .dcard .dzone>span{flex:1;min-width:0}#fd-app .dcard .dzone small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+#fd-app .nmbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:4px 0 10px}#fd-app .nmsort{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}#fd-app .nmsort select{width:auto;min-width:0;padding:7px 30px 7px 10px;font-size:13.5px}
+#fd-app .nml{display:grid;gap:6px}#fd-app .nmr{border-radius:14px;background:rgba(255,255,255,.72);border:1px solid rgba(28,34,32,.07);transition:box-shadow .2s,border-color .2s;min-width:0}
+#fd-app .nmr.open{border-color:rgba(106,44,78,.35);box-shadow:0 6px 22px rgba(28,34,32,.08);background:#fff}
+#fd-app .nmh{display:grid;grid-template-columns:auto minmax(0,1fr) auto 22px;align-items:center;gap:12px;width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;padding:10px 12px;cursor:pointer;border-radius:14px;min-height:56px}
+#fd-app .nmh:hover{background:rgba(106,44,78,.04)}#fd-app .nmh:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+#fd-app .nma{font:600 12px var(--ui);font-variant-numeric:tabular-nums;letter-spacing:.04em;color:var(--accent);background:var(--accent-soft,rgba(106,44,78,.08));border-radius:8px;padding:4px 7px;min-width:42px;text-align:center}#fd-app .nma.new{color:var(--muted);background:rgba(28,34,32,.06);font-weight:500;letter-spacing:0}
+#fd-app .nmn{display:flex;flex-direction:column;min-width:0}#fd-app .nmn b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fd-app .nmn b em{font-style:normal;color:var(--muted);font-weight:500}
+#fd-app .nmn small{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}#fd-app .nmcd{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--cc);margin-right:5px;vertical-align:1px}
+#fd-app .nmlk{display:inline-flex;align-items:center;gap:2px;color:var(--accent);font-weight:600}#fd-app .nmlk svg{width:12px;height:12px}
+#fd-app .nmp{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}#fd-app .nmp b{font-weight:600}#fd-app .nmp small{color:var(--muted);font-size:12px;margin-left:1px}#fd-app .nmp.no small{color:var(--warn,#b7791f);margin:0}
+#fd-app .nmv{display:grid;place-items:center;color:var(--muted)}#fd-app .nmv svg{width:18px;height:18px;transition:transform .25s var(--ease,ease)}#fd-app .nmr.open .nmv svg{transform:rotate(180deg);color:var(--accent)}
+#fd-app .nme{padding:2px 14px 14px;animation:fdin .22s ease}#fd-app .nmg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px}#fd-app .nmg label{display:flex;flex-direction:column;gap:4px;min-width:0;font-size:12.5px;color:var(--muted)}
+#fd-app .nmg label.w2{grid-column:1/-1}#fd-app .nmg label small{font-size:11.5px;opacity:.85}#fd-app .nmg input,#fd-app .nmg select{width:100%;min-width:0}
+#fd-app .nmart{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;margin:12px 0 0;padding:9px 11px;border-radius:10px;background:rgba(242,243,239,.8);font-size:12.5px}#fd-app .nmart b{font-variant-numeric:tabular-nums}#fd-app .nmart span{color:var(--muted)}
+#fd-app .nmacts{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}#fd-app .nmacts .btn svg{width:15px;height:15px;margin-right:6px;vertical-align:-2px}#fd-app .nmacts .armed{background:var(--err,#b42318);color:#fff;border-color:transparent}
+#fd-app .nmmore{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:10px}#fd-app .nmmore:empty{display:none}#fd-app .psart{font-style:normal;font-size:11.5px;color:var(--accent);font-weight:600}
+@media (min-width:900px){#fd-app .nmg{grid-template-columns:2fr 1fr 1fr 1fr}#fd-app .nmg label.w2{grid-column:span 2}}
+@media (max-width:480px){#fd-app .nmh{gap:9px;padding:9px 10px}#fd-app .nma{min-width:38px;padding:3px 5px;font-size:11.5px}#fd-app .nme{padding:2px 10px 12px}#fd-app .nmg{gap:9px 10px}#fd-app .nmsort span{display:none}#fd-app .nmsort select{max-width:190px}#fd-app .nml{gap:5px}#fd-app .nmn b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25}#fd-app .nmh{min-height:52px}}
 </style>
 <style id="fd-doc-css">
 /*__DOC_CSS__*/
@@ -1929,10 +1947,11 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
   <section class="tab" id="tab-products" hidden>
     <div class="card">
       <h2>Номенклатура <small>общая для всех поставщиков и заказчиков</small></h2>
-      <div class="pdtools"><input id="pd-q" type="search" placeholder="Поиск товара" aria-label="Поиск товара"><button class="btn sm" id="pd-auto" type="button" hidden>Разложить по категориям</button><button class="btn ghost sm" id="pd-catm" type="button">Категории…</button><button class="btn ghost sm" id="pd-same" type="button" title="Найти один и тот же товар под разными названиями и связать в одну карточку">Одинаковые товары…</button></div>
+      <div class="pdtools"><input id="pd-q" type="search" placeholder="Поиск: название, артикул или код" aria-label="Поиск товара"><button class="btn sm" id="pd-auto" type="button" hidden>Разложить по категориям</button><button class="btn ghost sm" id="pd-catm" type="button">Категории…</button><button class="btn ghost sm" id="pd-same" type="button" title="Найти один и тот же товар под разными названиями и связать в одну карточку">Одинаковые товары…</button></div>
       <div class="catrow" id="pd-cats"></div>
-      <div class="tbl"><table class="stack" data-full="0"><thead><tr><th>Наименование</th><th style="width:170px">Категория</th><th style="width:130px" title="Печатается в УПД в колонке «Код товара». У КИГМ — коды из их спецификации">Код в УПД</th><th style="width:90px">Ед.</th><th style="width:150px">Страна</th><th style="width:120px">Базовая цена</th><th style="width:150px" title="Сайт запоминает сам по заказам: «2 кор» → 6 кг значит 1 кор = 3 кг">Вес упаковки</th><th style="width:40px"></th></tr></thead><tbody id="pd-body"></tbody></table></div>
-      <div class="row"><button class="btn" id="pd-add">+ Новый товар</button></div>
+      <div class="nmbar"><button class="btn pri sm" id="pd-add" type="button">+ Новый товар</button><label class="nmsort"><span>Порядок</span><select id="pd-sort" aria-label="Порядок товаров"></select></label><span class="muted" id="pd-n"></span><span style="flex:1"></span><button class="btn ghost sm" id="pd-xls" type="button" title="Скачать каталог: артикул, название, другие названия, категория, цена для сайта">Каталог в Excel</button></div>
+      <div class="nml" id="pd-body" role="list"></div>
+      <div class="nmmore" id="pd-more"></div>
     </div>
   </section>
 
@@ -2132,7 +2151,7 @@ async function flush(){
   const b=buildChanges(); if(!b){ setStatus("ok"); return; }
   flushing=true; setStatus("saving","Сохраняю…");
   try{
-    const result=await api({action:"sync", changes:b.ch}); sentOk(b); acceptRows(result.accepted,b.ch);
+    const result=await api({action:"sync", changes:b.ch}); sentOk(b); acceptRows(result.accepted,b.ch); if(b.ch.products && curTab==="products") try{ pdAfterSync(); }catch(e){}
     setStatus(hasPending()?"wait":"ok", hasPending()?"Есть несохранённое":"");
     if(hasPending()){ clearTimeout(syncT); syncT=setTimeout(flush,500); }
   }catch(e){ if(e.resp&&e.resp.conflicts){showConflicts(e.resp.conflicts);return;} handleErr(e); clearTimeout(syncT); syncT=setTimeout(flush,15000); }
@@ -2185,7 +2204,7 @@ function handleErr(e){ if(e.message==="auth"){ showLogin("Неверный па�
   else if(e && !e.net){ setStatus("err","Ошибка таблицы, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Таблица ответила ошибкой","«"+String(e.message||e).slice(0,160)+"». Всё сохранено на этом устройстве, повторю сам. Если повторяется — пришлите этот текст Claude."); } }
   else { setStatus("err","Не сохранено — нет связи, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Нет связи с Google Таблицей",(e&&e.message?"Причина: "+e.message+". ":"")+"Всё сохранено на этом устройстве и отправится автоматически, когда связь появится. Ничего делать не нужно."); } } }
 
-const NEED_VER=18;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
+const NEED_VER=19;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
 function srvVerCheck(v){ const el=$("#srvOld"); if(!el) return; const old=(+v||0)<NEED_VER; el.hidden=!old || docLimited(); D.srvVer=+v||0; }
 document.addEventListener("click",e=>{ if(!e.target.closest || !e.target.closest("#srvOldHow")) return; openCard(`<div class="dc-head"><div><div class="dc-kicker">Code.gs</div><h3>Как обновить скрипт таблицы</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
   <ol class="srvsteps"><li>GitHub → файл <b>dev/Code.template.gs</b> → кнопка «Copy raw file» (два квадратика).</li><li>Таблица «Документы ФД» → «Расширения» → «Apps Script» → файл <b>Код.gs</b> → Ctrl+A → Ctrl+V → «Сохранить». Файл «Пароли.gs» не трогать.</li><li>«Начать развёртывание» → «Управление развёртываниями» → карандаш → «Версия: новая версия» → «Развернуть».</li><li>Обновите эту страницу — жёлтая плашка исчезнет.</li></ol>
@@ -2515,18 +2534,22 @@ $("#d-ctrwarn").addEventListener("click",e=>{ if(e.target.closest("[data-ctrfixa
 dl.addEventListener("click",e=>{ const s=e.target.closest("[data-ctrswap]"); if(s){ ctrSwap(+s.dataset.ctrswap); return; } const b=e.target.closest("[data-ctrfix]"); if(b) ctrFix(+b.dataset.ctrfix); });
 /* поиск товара по мере ввода: сначала прайс заказчика, потом остальные товары */
 let PS=null;
+/* набрали артикул: «12» или «0012» */
+const psArtQ = q => { const w=norm(q).split(" ").filter(Boolean); return w.length===1 && /^\d{1,6}$/.test(w[0]) ? w[0] : ""; };
+const psArtHit = (p, aq) => { if(!aq) return false; const a=pArt(p); return !!a && (+a===+aq || a.startsWith(aq)); };
 function psFind(q){ const dr=D.draft, cid=dr.customerId, inP=p=>custPrice(cid,p.id)!=null&&custPrice(cid,p.id)!=="";
   const words=norm(q).replace(/[«»"]/g,"").split(" ").filter(Boolean);
   const pool=docLimited()?D.products.filter(inP):D.products;
-  const hit=p=>{ const t=[p.name,...aliasesOf(p),...skNamesOf(p.id)].map(x=>norm(x).replace(/[«»"]/g,"")); return words.every(w=>t.some(x=>x.includes(w))); };
-  const L=(words.length?pool.filter(hit):pool.filter(inP)).map(p=>{ const n=norm(p.name); return {p, inP:inP(p), st:words.length&&n.startsWith(words[0])?0:words.length&&n.includes(" "+words[0])?1:2}; });
+  const artQ = psArtQ(q), artHit = p => psArtHit(p, artQ);
+  const hit=p=>{ if(artHit(p)) return true; const t=[p.name,...aliasesOf(p),...skNamesOf(p.id)].map(x=>norm(x).replace(/[«»"]/g,"")); return words.every(w=>t.some(x=>x.includes(w))); };
+  const L=(words.length?pool.filter(hit):pool.filter(inP)).map(p=>{ const n=norm(p.name); return {p, inP:inP(p), st:artQ&&+pArt(p)===+artQ?-1:words.length&&n.startsWith(words[0])?0:words.length&&n.includes(" "+words[0])?1:2}; });
   L.sort((a,b)=>(b.inP-a.inP)||(a.st-b.st)||a.p.name.localeCompare(b.p.name,"ru"));
   return L.slice(0,40); }
 const psMark = (name,q) => { const w=norm(q).split(" ").filter(Boolean)[0]; if(!w) return esc(name); const i=norm(name).indexOf(w); return i<0?esc(name):esc(name.slice(0,i))+"<b>"+esc(name.slice(i,i+w.length))+"</b>"+esc(name.slice(i+w.length)); };
 function psOpen(inp){ psClose(); const row=inp.closest(".line[data-i]"); if(!row) return; const q=inp.value, L=psFind(q), cid=D.draft.customerId;
   const m=document.createElement("div"); m.className="psm"; m.setAttribute("role","listbox");
   let h="", sec=null; L.forEach((x,k)=>{ const s=x.inP?"p":"o"; if(!docLimited() && s!==sec && L.some(y=>y.inP)){ sec=s; h+=`<div class="pst">${x.inP?"В прайсе заказчика":"Остальные товары"}</div>`; }
-    const pr=x.inP?custPrice(cid,x.p.id):x.p.price; h+=`<button type="button" data-psi="${k}"${k===0?' class="on"':""}><span>${psMark(x.p.name,q)}</span><small>${pr!=null&&pr!==""?fm(+pr)+" ₽/"+esc(x.p.unit||""):""}</small>${skPsTag(x.p.id)}</button>`; });
+    const pr=x.inP?custPrice(cid,x.p.id):x.p.price; h+=`<button type="button" data-psi="${k}"${k===0?' class="on"':""}><span>${psMark(x.p.name,q)}${psArtHit(x.p, psArtQ(q))?` <em class="psart">арт. ${esc(pArt(x.p))}</em>`:""}</span><small>${pr!=null&&pr!==""?fm(+pr)+" ₽/"+esc(x.p.unit||""):""}</small>${skPsTag(x.p.id)}</button>`; });
   const nq=q.replace(/\s+/g," ").trim(), canNew=!docLimited() && nq.length>=2 && !D.products.some(p=>norm(p.name)===norm(nq));
   if(canNew) h+=`<button type="button" data-psnew class="psnew${L.length?"":" on"}"><span>+ Создать новый товар «${esc(nq)}»</span><small>сохранится в «Товарах»</small></button>`;
   m.innerHTML = h || `<div class="psn">${nq?"Ничего не найдено. Проверьте название":"Начните вводить название"}</div>`;
@@ -5864,31 +5887,7 @@ function patchMguPoints2(){
 }
 function patchAll(){ patchPrivate(); patchKigm(); patchSuppliers(); if(!serverOld){ patchContracts(); patchKigmSpecs(); patchMgu(); patchMguSklad(); patchMguNames(); patchCircus(); patchKb1(); patchKb1Countries(); patchCircusSigns(); patchNiir(); patchNiirAliases(); patchNmic(); patchMguPoints(); patchMguPoints2(); } }
 
-/* ---------- товары ---------- */
-const IC_PCARD='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l5-5 4 4 8-8"/><path d="M15 8h5v5"/></svg>';
-document.addEventListener("click",e=>{ if(e.target.closest&&e.target.closest("#pd-same")) pgFind(); });
-function renderProducts(){
-  pdToolbar(); const L=pdFiltered();
-  $("#pd-body").innerHTML=(L.length?"":`<tr><td colspan="8" class="muted" style="padding:12px 6px">Ничего не найдено.</td></tr>`)+L.map(p=>`<tr data-id="${p.id}"><td><div class="pdnm"><input data-k="name" value="${esc(p.name)}" placeholder="Наименование"><button type="button" class="pdcard" data-pcard="${p.id}" title="Карточка товара: история цен, продажи, связанные названия" aria-label="Карточка товара">${IC_PCARD}${(n=>n>1?`<em>${n}</em>`:"")(pgCount(p.id))}</button></div></td>
-    <td><select data-k="cat" class="pdcat" style="--cc:${esc((catOf(p)||{}).color||"transparent")}"${D.catSrv?"":" disabled title=\"Сначала обновите Code.gs\""}>${catOptions(p.cat||"", true)}</select></td>
-    <td><input data-k="code" value="${esc(p.code)}" placeholder=""></td>
-    <td><select data-k="unit">${Object.keys(UNITS).map(u=>`<option${u===p.unit?" selected":""}>${u}</option>`).join("")}</select></td>
-    <td><select data-k="country">${Object.entries(COUNTRIES).map(([k,v])=>`<option value="${k}"${k===p.country?" selected":""}>${v}</option>`).join("")}</select></td>
-    <td><input data-k="price" inputmode="decimal" value="${esc(p.price)}"></td><td><input data-k="packs" value="${esc(Object.entries(packsOf(p)).map(([u,f])=>u+" = "+qtxt(f)).join("; "))}" placeholder="кор = 3"></td><td><button class="btn ghost danger sm" data-del title="Удалить товар">×</button></td></tr>`).join("");
-}
-const pb=$("#pd-body");
-const pdSet=e=>{ const k=e.target.dataset.k; if(!k) return; const p=prod(e.target.closest("tr").dataset.id);
-  if(k==="packs"){ const o={}; String(e.target.value).split(/[;\n]/).forEach(x=>{ const m=x.match(/([а-яёa-z.]+)\s*[=:≈-]?\s*(\d+(?:[.,]\d+)?)/i); if(!m) return; const pk=parsePack("1 "+m[1]); const u=pk?pk.u:m[1].toLowerCase(); o[u]=+m[2].replace(",","."); }); p.packs=Object.keys(o).length?JSON.stringify(o):""; dirty("products",p.id); return; }
-  if(k==="cat"){ delete p._ca; e.target.style.setProperty("--cc",(catById(e.target.value)||{}).color||"transparent"); }
-  p[k]=k==="price"?num(e.target.value):e.target.value; dirty("products",p.id);
-  if(k==="name" && p._ca){ const s=e.target.closest("tr").querySelector(".pdcat"); if(s && s.value!==p.cat){ s.value=p.cat; s.style.setProperty("--cc",(catOf(p)||{}).color||"transparent"); } }
-  if(k==="cat") pdToolbar(); };
-pb.addEventListener("input",pdSet); pb.addEventListener("change",e=>{ if(e.target.tagName==="SELECT") pdSet(e); });
-pb.addEventListener("click",e=>{ const pc=e.target.closest("[data-pcard]"); if(pc){ pdCard(pc.dataset.pcard); return; } const b=e.target.closest("[data-del]"); if(!b) return;
-  if(!b.dataset.armed){ b.dataset.armed=1; b.textContent="Удалить?"; return; }
-  const id=b.closest("tr").dataset.id; D.products=D.products.filter(p=>p.id!==id); Object.keys(D.prices).forEach(c=>{ if(id in D.prices[c]){ delete D.prices[c][id]; dirtyPrice(c,id); } });
-  dirty("products",id,true); renderProducts(); });
-$("#pd-add").onclick=()=>{ const c=PDV.cat!=="all"&&PDV.cat!=="none"?PDV.cat:""; PDV.q=""; $("#pd-q").value=""; if(!c) PDV.cat="all"; const p={id:uid(), name:"", code:"", unit:"кг", country:"", price:""}; if(c) p.cat=c; D.products.push(p); dirty("products",p.id); renderProducts(); const r=pb.lastElementChild; r&&r.querySelector("input").focus(); };
+/* ---------- товары: список — dev/src/pdl_seg.js (renderProducts) ---------- */
 
 /* ---------- данные ---------- */
 /* ---------- резервные копии таблицы (Google Диск): каждую ночь + при первом заходе за сутки ---------- */
@@ -6715,7 +6714,7 @@ const HELP={
   "Цены для заказчика":["Цены по договору для выбранного заказчика.","Пустая цена — товара нет в прайсе. Эти цены подставляются в документы."],
   "Сопоставить с Порталом поставщиков":["Нужно для XML на Портал поставщиков.","Загрузите выгрузку спецификации с Портала — сайт сам сопоставит позиции с товарами."],
   "Загрузить прайс из таблицы":["Быстро добавить товары и цены заказчику.","Скопируйте строки из Excel или Google Таблицы (товар, единица, цена) и вставьте сюда."],
-  "Номенклатура":["Список всех товаров.",["Название, код, единица, страна. Названия печатаются в документах — пишите их как в контракте.","«Вес упаковки» сайт заполняет сам: если в заявке «2 кор» и вы вписали 6 кг — запомнит «кор = 3». Можно поправить вручную, например «кор = 2,5; ящ = 10».","Кнопка со стрелкой рядом с названием — карточка товара: история закупочных и продажных цен, цены у заказчиков, остаток на складе.","Один и тот же товар под разными названиями («Помидоры», «Томаты», «Помидоры (томаты)») можно связать — в карточке («Связать с товаром») или кнопкой «Одинаковые товары…». Цифра на кнопке — сколько названий связано. В документах названия не меняются."]],
+  "Номенклатура":["Список всех товаров.",["Название, код, единица, страна. Названия печатаются в документах — пишите их как в контракте.","«Вес упаковки» сайт заполняет сам: если в заявке «2 кор» и вы вписали 6 кг — запомнит «кор = 3». Можно поправить вручную, например «кор = 2,5; ящ = 10».","Нажмите на строку товара — раскроются все поля. Порядок списка выбирается в «Порядок»: по алфавиту, новые, недавно продавали, чаще продают, по цене, по артикулу.","У каждого товара — внутренний артикул из 4 цифр, его ставит сайт сам и он не меняется. У связанных названий одного товара артикул общий. По артикулу можно искать здесь и при наборе товара в документе.","«Карточка товара» в раскрытой строке — история закупочных и продажных цен, цены у заказчиков, остаток на складе.","Один и тот же товар под разными названиями («Помидоры», «Томаты», «Помидоры (томаты)») можно связать — в карточке («Связать с товаром») или кнопкой «Одинаковые товары…». Цифра на кнопке — сколько названий связано. В документах названия не меняются."]],
   "Хранилище":["Где хранятся данные — в Google Таблице.","«Обновить» — подтянуть свежие изменения с других устройств."],
   "Резервная копия":["Скачайте все данные файлом на всякий случай.","Из этого файла можно всё восстановить."]
 };

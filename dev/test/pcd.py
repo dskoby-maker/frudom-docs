@@ -26,8 +26,8 @@ async def main():
             cn=await pg.evaluate(SEED+f"('{W}')")
             await pg.evaluate(TAB+"('products')"); await pg.wait_for_timeout(400)
             await pg.fill('#pd-q', f'т{W}'); await pg.wait_for_timeout(300)
-            ok(await pg.locator('#pd-body [data-pcard]').count()==5, f'{W}: у каждой строки кнопка карточки')
-            await pg.click(f'#pd-body [data-pcard="pa{W}"]'); await pg.wait_for_timeout(500)
+            ok(await pg.locator('#pd-body .nmr').count()==5, f'{W}: 5 строк товаров')
+            await pg.click(f'#pd-body .nmr[data-id="pa{W}"] .nmh'); await pg.wait_for_timeout(200); await pg.click(f'#pd-body [data-pcard="pa{W}"]'); await pg.wait_for_timeout(500)
             t=await pg.inner_text('#pcd')
             ok('Карточка товара' in t and f'Помидоры т{W}' in t, f'{W}: карточка открылась')
             ok('Средняя закупка' in t and '90,00' in t, f'{W}: закупочная цена из накладной видна')
@@ -62,7 +62,7 @@ async def main():
             R={r['ID (не менять)']:r.get('Связан с товаром (ID основного, заполняется с сайта)') for r in rows('Товары')}
             ok(R.get(f'pb{W}')=='' and (R.get(f'pa{W}') or R.get(f'pc{W}')), f'{W}: связь сохранилась в таблицу')
             await pg.click('#fd-dcard [data-dc="close"] >> nth=0'); await pg.wait_for_timeout(400)
-            ok(await pg.locator(f'#pd-body [data-pcard="pa{W}"] em').inner_text()=='2', f'{W}: в списке значок «2»')
+            ok(await pg.locator(f'#pd-body .nmr[data-id="pa{W}"] .nmlk').inner_text()=='2', f'{W}: в списке значок «2»')
             # «Одинаковые товары…»
             await pg.click('#pd-same'); await pg.wait_for_timeout(400)
             k=await pg.evaluate(f"(g=>g?g.dataset.pgk:'')([...document.querySelectorAll('#pgf [data-pgk]')].find(g=>g.textContent.includes('Томаты т{W}')))")
@@ -76,7 +76,7 @@ async def main():
         ctx=await b.new_context(viewport={'width':1300,'height':900}); pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
         await pg.goto('http://localhost:8787/page'); await pg.click('#fd-who [data-who="Наталья"]'); await pg.fill('#fd-pass','2222'); await pg.click('#fd-enter'); await pg.wait_for_timeout(3500)
         await pg.evaluate(TAB+"('products')"); await pg.wait_for_timeout(400)
-        pid=await pg.evaluate("__fd.D().products[0].id"); await pg.click(f'#pd-body [data-pcard="{pid}"]'); await pg.wait_for_timeout(400)
+        pid=await pg.evaluate("__fd.D().products[0].id"); await pg.fill('#pd-q', await pg.evaluate("__fd.D().products[0].name")); await pg.wait_for_timeout(300); await pg.click(f'#pd-body .nmr[data-id="{pid}"] .nmh'); await pg.wait_for_timeout(200); await pg.click(f'#pd-body [data-pcard="{pid}"]'); await pg.wait_for_timeout(400)
         t=await pg.inner_text('#pcd'); ok('Карточка товара' in t and 'Средняя закупка' not in t, 'Наталья: карточка без закупочных цен')
         ok(not errs, f'Наталья: ошибок нет {errs[:3]}')
         await b.close()

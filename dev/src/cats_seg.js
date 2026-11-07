@@ -84,8 +84,8 @@ document.addEventListener("click", e=>{ const b=e.target.closest && e.target.clo
 
 /* ---------- вкладка «Товары»: поиск, фильтр по категории, колонка «Категория» ---------- */
 const PDV={q:"", cat:"all"};
-function pdFiltered(){ const q=norm(PDV.q); return D.products.filter(p=>(!q||norm(p.name+" "+(p.code||"")).includes(q)) && (PDV.cat==="all" || (PDV.cat==="none"?!catOf(p):p.cat===PDV.cat))); }
-function pdToolbar(){ const box=$("#pd-cats"); if(!box) return; const q=norm(PDV.q), base=D.products.filter(p=>!q||norm(p.name+" "+(p.code||"")).includes(q)), none=base.filter(p=>!catOf(p)).length;
+function pdFiltered(){ const q=norm(PDV.q); return D.products.filter(p=>(!q||norm(p.name+" "+(p.code||"")+" "+pArt(p)).includes(q)||(/^\d+$/.test(q)&&+pArt(p)===+q)) && (PDV.cat==="all" || (PDV.cat==="none"?!catOf(p):p.cat===PDV.cat))); }
+function pdToolbar(){ const box=$("#pd-cats"); if(!box) return; const q=norm(PDV.q), base=D.products.filter(p=>!q||norm(p.name+" "+(p.code||"")+" "+pArt(p)).includes(q)||(/^\d+$/.test(q)&&+pArt(p)===+q)), none=base.filter(p=>!catOf(p)).length;
   if(PDV.cat!=="all" && PDV.cat!=="none" && !catById(PDV.cat)) PDV.cat="all";
   box.innerHTML=`<button type="button" data-pdc="all" class="catc all${PDV.cat==="all"?" on":""}">Все <em>${base.length}</em></button>`
     + catList().map(c=>{ const n=base.filter(p=>p.cat===c.id).length; return n||PDV.cat===c.id?catChip(c,n,PDV.cat===c.id,`data-pdc="${esc(c.id)}"`):""; }).join("")
