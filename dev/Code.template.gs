@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 19;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 20;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -442,6 +442,20 @@ function bank_(p, me) {
     }
     if (op === 'delKey') { const keys = tbKeys_(); delete keys[String(p.supplierId || '')]; tbKeysSet_(keys); return { ok: true, keys: bankKeysView_(), proxy: bankProxyView_() }; }
     if (op === 'sync') { const r = bankSync_(null); return { ok: true, keys: bankKeysView_(), proxy: bankProxyView_(), added: r.added, errs: r.errs, ops: read_('bankops') }; }
+    if (op === 'man') {   /* приходы вручную (ИП без подключённого банка): строки с ID «man-…»; del — удалить такие строки */
+      const L = (Array.isArray(p.rows) ? p.rows : []).filter(x => x && /^man-/.test(String(x.id || '')));
+      const del = (Array.isArray(p.del) ? p.del : []).map(String).filter(id => /^man-/.test(id));
+      if (L.length || del.length) {
+        const lock = LockService.getScriptLock(); lock.waitLock(25000);
+        try { const sn = nameMap_('suppliers'), now = new Date().toISOString();
+          const up = L.map(x => ({ id: String(x.id), opId: '', date: String(x.date || '').slice(0, 10), supplierId: String(x.supplierId || ''), supplierName: sn[x.supplierId] || '', account: 'вручную',
+            sum: String(Math.round((+x.sum || 0) * 100) / 100), payerName: String(x.payerName || ''), payerInn: String(x.payerInn || ''), purpose: String(x.purpose || '').slice(0, 1000),
+            status: String(x.status || 'wait'), statusName: String(x.statusName || ''), docs: String(x.docs || ''), docsText: String(x.docsText || '').slice(0, 1000), by: me.name, at: now }));
+          upsertList_('bankops', { upsert: up, del: del });
+        } finally { lock.releaseLock(); }
+      }
+      return { ok: true, man: true, ops: read_('bankops') };
+    }
     if (op === 'set') {   /* сайт разнёс / подтвердил / пропустил операции */
       const L = Array.isArray(p.rows) ? p.rows : []; if (!L.length) return { ok: true };
       const lock = LockService.getScriptLock(); lock.waitLock(25000);
