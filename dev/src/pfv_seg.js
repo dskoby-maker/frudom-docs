@@ -365,7 +365,10 @@ function pvItemOpen(it, kind, date, copy){
     if(e.target.classList.contains("pvxn")){ const r=e.target.closest(".pvxr"), sel=r.querySelector(".pvxc"), n=e.target.value.trim().toLowerCase(); if(sel && n){   /* как в прошлый раз с тем же текстом */
       const last=pfArr("pother").filter(x=>(x.note||"").trim().toLowerCase()===n && pvKind(x)===PVI.k && x.cat).sort((a,b)=>a.date<b.date?1:-1)[0];
       if(last && [...sel.options].some(o=>o.value===last.cat)){ sel.value=last.cat; const x=PVI.rows.find(y=>y.id===r.dataset.r); if(x) x.cat=last.cat; } } } if(e.target.closest(".pvxr")||e.target.id==="pvi-sum") pvRowsTot(); });
-  d.addEventListener("change", e=>{ const r=e.target.closest(".pvxr"); if(r && e.target.classList.contains("pvxc")){ const x=PVI.rows.find(y=>y.id===r.dataset.r); if(x) x.cat=e.target.value; } });
+  d.addEventListener("change", e=>{ const r=e.target.closest(".pvxr"), x=r&&PVI.rows.find(y=>y.id===r.dataset.r);
+    if(x && e.target.classList.contains("pvxc")) x.cat=e.target.value;
+    if(x && e.target.classList.contains("pvxd")){ x.date=e.target.value; x.dm=true; }
+    if(e.target.id==="pvi-date"){ d.querySelectorAll("#pvi-rows .pvxr").forEach(el=>{ const y=PVI.rows.find(z=>z.id===el.dataset.r); if(y && !y.dm){ y.date=e.target.value; el.querySelector(".pvxd").value=e.target.value; } }); } });
   setTimeout(()=>{ const s=$("#pvi-sum"); if(s){ s.focus(); s.select(); } }, 60);
 }
 const PV_KT = {exp:"Расход", inc:"Доход", per:"Личный расход"};
@@ -385,13 +388,13 @@ function pvItemNote(){ const n=($("#pvi-note").value||"").trim().toLowerCase(), 
 /* «Ещё строка»: несколько записей одним разом — дата, ИП и вид общие, у строки своя категория, «на что» и сумма */
 function pvRowOpts(sel){ if(PVI.k==="per") return ""; const L=pvCats().filter(c=>c.k===PVI.k||c.k==="both");
   return `<option value="">Без категории</option>`+L.map(c=>`<option value="${esc(c.id)}"${c.id===sel?" selected":""}>${esc(c.n)}</option>`).join(""); }
-function pvRowHtml(r){ return `<div class="pvxr" data-r="${r.id}">${PVI.k==="per"?"":`<select class="pvxc" aria-label="Категория" ${pvCatOk()?"":"disabled"}>${pvRowOpts(r.cat)}</select>`}<input class="pvxn" list="pvi-notes" maxlength="200" placeholder="${PVI.k==="inc"?"Откуда":"На что"}" aria-label="${PVI.k==="inc"?"Откуда":"На что"}"><label class="pvxsum"><input class="pvxs" inputmode="decimal" placeholder="0" aria-label="Сумма"><em>₽</em></label><button type="button" class="pvxdel" data-pvi="rdel" aria-label="Убрать строку">×</button></div>`; }
-function pvRowAdd(){ const box=$("#pvi-rows"); if(!box) return; const last=PVI.rows[PVI.rows.length-1], r={id:"r"+uid().slice(0,6), cat:last?last.cat:PVI.cat};
+function pvRowHtml(r){ return `<div class="pvxr" data-r="${r.id}">${PVI.k==="per"?"":`<select class="pvxc" aria-label="Категория" ${pvCatOk()?"":"disabled"}>${pvRowOpts(r.cat)}</select>`}<input class="pvxn" list="pvi-notes" maxlength="200" placeholder="${PVI.k==="inc"?"Откуда":"На что"}" aria-label="${PVI.k==="inc"?"Откуда":"На что"}"><input type="date" class="pvxd" aria-label="Дата" value="${esc(r.date||($("#pvi-date")||{}).value||todayISO())}"><label class="pvxsum"><input class="pvxs" inputmode="decimal" placeholder="0" aria-label="Сумма"><em>₽</em></label><button type="button" class="pvxdel" data-pvi="rdel" aria-label="Убрать строку">×</button></div>`; }
+function pvRowAdd(){ const box=$("#pvi-rows"); if(!box) return; const last=PVI.rows[PVI.rows.length-1], lastEl=box.querySelector(".pvxr:last-child .pvxd"), r={id:"r"+uid().slice(0,6), cat:last?last.cat:PVI.cat, date:(lastEl&&lastEl.value)||($("#pvi-date")||{}).value||todayISO(), dm:last?last.dm:false};
   PVI.rows.push(r); box.insertAdjacentHTML("beforeend", pvRowHtml(r)); const el=box.lastElementChild; el.querySelector(".pvxn").focus(); pvRowsTot(); }
-function pvRowsRedraw(){ const box=$("#pvi-rows"); if(!box) return; const vals=[...box.querySelectorAll(".pvxr")].map(r=>({n:r.querySelector(".pvxn").value, s:r.querySelector(".pvxs").value}));
+function pvRowsRedraw(){ const box=$("#pvi-rows"); if(!box) return; const vals=[...box.querySelectorAll(".pvxr")].map(r=>({n:r.querySelector(".pvxn").value, s:r.querySelector(".pvxs").value})); PVI.rows.forEach((x,i)=>{ const el=box.querySelectorAll(".pvxr .pvxd")[i]; if(el) x.date=el.value; });
   box.innerHTML=PVI.rows.map(pvRowHtml).join(""); [...box.querySelectorAll(".pvxr")].forEach((r,i)=>{ if(vals[i]){ r.querySelector(".pvxn").value=vals[i].n; r.querySelector(".pvxs").value=vals[i].s; } }); pvRowsTot(); }
 function pvRowsGet(){ return [...document.querySelectorAll("#pvi-rows .pvxr")].map(r=>{ const x=PVI.rows.find(y=>y.id===r.dataset.r)||{}; const c=r.querySelector(".pvxc");
-  return {el:r, cat:PVI.k==="per"?"":(c?c.value:x.cat||""), note:r.querySelector(".pvxn").value.trim(), v:+num(r.querySelector(".pvxs").value)||0}; }).filter(x=>x.v>0 || x.note); }
+  return {el:r, date:r.querySelector(".pvxd").value||($("#pvi-date")||{}).value||todayISO(), cat:PVI.k==="per"?"":(c?c.value:x.cat||""), note:r.querySelector(".pvxn").value.trim(), v:+num(r.querySelector(".pvxs").value)||0}; }).filter(x=>x.v>0 || x.note); }
 function pvRowsTot(){ const t=$("#pvi-tot"), b=document.querySelector('#fd-dcard [data-pvi="save"]'); if(!t || PVI.id) return; const R=pvRowsGet(), main=+num(($("#pvi-sum")||{}).value)||0, n=R.length+(main>0?1:0), s=r2(main+R.reduce((a,x)=>a+x.v,0));
   t.innerHTML = R.length ? `Итого <b>${fm(s)} ₽</b> · ${n} ${plural(n,["запись","записи","записей"])}` : ""; if(b) b.textContent = R.length ? "Добавить ("+n+")" : "Добавить"; }
 function pvItemKind(k){ PVI.k=k; PVI.inc=k==="inc"; const s=$("#pvi-kind"); s.style.setProperty("--i", ["exp","inc","per"].indexOf(k)); s.querySelectorAll("button").forEach(b=>b.classList.toggle("on", b.dataset.pvk===k));
@@ -419,11 +422,11 @@ function pvItemSave(){
   for(const r of R){ if(!(r.v>0)){ toast("err","Впишите сумму в строке «"+r.note+"»",""); r.el.querySelector(".pvxs").focus(); return; }
     if(!r.note && !r.cat){ toast("err", k==="inc"?"Откуда доход?":"На что расход?", "Строка на "+fm(r.v)+" ₽: выберите категорию или впишите пару слов."); r.el.querySelector(".pvxn").focus(); return; } }
   const old=PVI.id ? pfArr("pother").find(y=>y.id===PVI.id) : null, sup=per?"":($("#pvi-sup").value||""), kindV=k==="inc"?PO_INC:per?PO_PER:PO_EXP, made=[];
-  const put=(x, sum, nt, cat)=>{ const cc=per?PV_PERC:pvCat(cat); Object.assign(x, {date, kind:kindV, sum:String(r2(sum)), note:nt||cc.n, supplierId:sup});
+  const put=(x, sum, nt, cat, dt)=>{ const cc=per?PV_PERC:pvCat(cat), date=dt; Object.assign(x, {date, kind:kindV, sum:String(r2(sum)), note:nt||cc.n, supplierId:sup});
     if(pvCatOk()){ x.cat=per?"":cat; x.catName=per||!cat?"":cc.n; } if(!pfArr("pother").includes(x)) pfArr("pother").push(x); dirty("pother", x.id); made.push(x);
     logEv("Прибыль",(old?"Изменён ":"")+({inc:"прочий доход",exp:"прочий расход",per:"личный расход"})[k].replace(/^./,s=>old?s:s.toUpperCase())+": "+x.note+(!per&&cat?" ["+cc.n+"]":"")+" — "+fm(sum)+" ₽ от "+fd(date)); };
-  put(old || {id:uid(), by:curUser()}, v, note, PVI.cat);
-  R.forEach(r=>put({id:uid(), by:curUser()}, r.v, r.note, r.cat));
+  put(old || {id:uid(), by:curUser()}, v, note, PVI.cat, date);
+  R.forEach(r=>put({id:uid(), by:curUser()}, r.v, r.note, r.cat, r.date));
   saveLocal(); pvCloseCard();
   const m=pvMonth(); if(m!=="all" && date.slice(0,7)!==m){ PV().m=date.slice(0,7); saveLocal(); }
   const tot=r2(made.reduce((a,x)=>a+ +x.sum,0));

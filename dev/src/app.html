@@ -1313,10 +1313,10 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .pvform.k-per .pvperh{display:block;animation:fdin .25s ease both}#fd-app .pvform.k-per .pvcatl,#fd-app .pvform.k-per .pvsupw{display:none}
 #fd-app .pvform .pvcatl,#fd-app .pvform .pvsupw{animation:fdin .25s ease both}
 #fd-app .pvxs-w{display:grid;gap:8px}#fd-app .pvxs-w:empty{display:none}
-#fd-app .pvxr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr) 128px 30px;gap:8px;align-items:center;animation:pvrin .26s cubic-bezier(.3,.7,.2,1) both}
-#fd-app .pvform.k-per .pvxr{grid-template-columns:minmax(0,1fr) 128px 30px}
+#fd-app .pvxr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) 138px 118px 30px;gap:8px;align-items:center;animation:pvrin .26s cubic-bezier(.3,.7,.2,1) both}
+#fd-app .pvform.k-per .pvxr{grid-template-columns:minmax(0,1fr) 138px 118px 30px}
 #fd-app .pvxr.out{animation:pvrout .18s ease both}
-#fd-app .pvxr select,#fd-app .pvxr .pvxn{height:40px;border-radius:10px;font-size:14px;min-width:0}
+#fd-app .pvxr .pvxd{height:40px;border-radius:10px;font-size:14px;min-width:0;padding:0 8px}#fd-app .pvxr select,#fd-app .pvxr .pvxn{height:40px;border-radius:10px;font-size:14px;min-width:0}
 #fd-app .pvxsum{display:flex;align-items:center;gap:4px;background:var(--bg);border-radius:10px;padding:0 10px;height:40px;transition:box-shadow .2s}#fd-app .pvxsum:focus-within{box-shadow:0 0 0 2px var(--accent)}
 #fd-app .pvxsum input,#fd-app dialog.dcard .pvxsum input,#fd-app dialog.dcard .pvxsum input:focus{border:0;background:none;box-shadow:none;outline:0;text-align:right;font-weight:650;font-size:15px;width:100%;min-width:0;padding:0}#fd-app .pvxsum em{font-style:normal;color:var(--muted);font-size:13px}
 #fd-app .pvxdel{border:0;background:none;width:30px;height:30px;border-radius:50%;font-size:18px;color:var(--muted);cursor:pointer;transition:background .15s,color .15s}#fd-app .pvxdel:hover{background:rgba(179,38,30,.08);color:var(--err)}
@@ -1325,7 +1325,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .pvmore span{width:20px;height:20px;border-radius:6px;background:var(--accent-soft);display:grid;place-items:center;font-size:15px}#fd-app .pvmore:hover{background:var(--accent-soft);border-color:var(--accent)}#fd-app .pvmore:active{transform:scale(.97)}
 #fd-app .pvxtot{font-size:13px;color:var(--muted);margin-left:auto;animation:fdin .2s ease}#fd-app .pvxtot b{color:var(--ink)}
 @keyframes pvrin{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}@keyframes pvrout{to{opacity:0;transform:translateX(12px)}}
-@media (max-width:600px){#fd-app .pvxr{grid-template-columns:minmax(0,1fr) 30px;row-gap:6px;padding:10px;border-radius:12px;background:var(--bg)}#fd-app .pvxr select{grid-column:1/-1;order:1}#fd-app .pvxr .pvxn{order:2;grid-column:1/-1}#fd-app .pvxr .pvxsum{order:3;background:var(--surface)}#fd-app .pvxr .pvxdel{order:4}#fd-app .pvform.k-per .pvxr{grid-template-columns:minmax(0,1fr) 30px}#fd-app .pvxtot{margin-left:0;flex-basis:100%}}
+@media (max-width:600px){#fd-app .pvxr,#fd-app .pvform.k-per .pvxr{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 30px;row-gap:6px;padding:10px;border-radius:12px;background:var(--bg)}#fd-app .pvxr select{grid-column:1/-1;order:1}#fd-app .pvxr .pvxn{order:2;grid-column:1/-1}#fd-app .pvxr .pvxd{order:3}#fd-app .pvxr .pvxsum{order:4;background:var(--surface)}#fd-app .pvxr .pvxdel{order:5}#fd-app .pvxtot{margin-left:0;flex-basis:100%}}
 @media (prefers-reduced-motion:reduce){#fd-app .pvxr,#fd-app .pvxr.out{animation:none}}
 #fd-app .pvhint{margin:0;font-size:12.5px;color:var(--muted);animation:fdin .2s ease both}#fd-app .pvhint b{color:var(--ink)}
 @media (max-width:760px){#fd-app .pvsum2{grid-template-columns:1fr}#fd-app .pvres>b{font-size:30px}}
