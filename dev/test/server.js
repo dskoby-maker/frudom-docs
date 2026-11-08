@@ -2,7 +2,10 @@ const http=require('http'), fs=require('fs'), vm=require('vm');
 const sheets={}, props={}, files={}, backups=[]; let fileN=0;
 const bkFile=b=>({getId:()=>b.id,getName:()=>b.name,getDateCreated:()=>b.at,getSize:()=>12345,getUrl:()=>'https://drive/'+b.id,isTrashed:()=>!!b.trash,setTrashed:v=>{ b.trash=v; }});
 /* папка Диска: createFile и поиск по имени (склад: повтор загрузки декларации не создаёт второй файл) */
-const mkFolder=()=>({getId:()=>'fold1',isTrashed:()=>false,getUrl:()=>'https://drive/folder',getFiles:()=>{ const L=backups.slice(); let i=0; return {hasNext:()=>i<L.length, next:()=>bkFile(L[i++])}; },createFile:b=>{ const id='f'+(++fileN); files[id]=b; return {getId:()=>id}; },
+const FAKE_PDF=(()=>{ const o=['<< /Type /Catalog /Pages 2 0 R >>','<< /Type /Pages /Kids [3 0 R] /Count 1 >>','<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] >>'];
+  let t='%PDF-1.4\n'; const off=[]; o.forEach((x,i)=>{ off.push(t.length); t+=(i+1)+' 0 obj\n'+x+'\nendobj\n'; });
+  const xr=t.length; t+='xref\n0 '+(o.length+1)+'\n0000000000 65535 f \n'+off.map(n=>String(n).padStart(10,'0')+' 00000 n \n').join('')+'trailer\n<< /Size '+(o.length+1)+' /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF\n'; return Buffer.from(t,'latin1'); })();
+const mkFolder=()=>({getId:()=>'fold1',isTrashed:()=>false,getUrl:()=>'https://drive/folder',getFiles:()=>{ const L=backups.slice(); let i=0; return {hasNext:()=>i<L.length, next:()=>bkFile(L[i++])}; },createFile:b=>{ const id='f'+(++fileN); files[id]=b; return {getId:()=>id, setTrashed:()=>{ delete files[id]; }}; },
   getFilesByName:n=>{ const L=Object.keys(files).filter(k=>files[k]&&files[k].name===n); let i=0; return {hasNext:()=>i<L.length, next:()=>{ const id=L[i++]; return {getId:()=>id}; }}; }});
 function mkSheet(name){ const data=[]; const sh={name,data,
   getLastRow:()=>{ let n=data.length; while(n>0 && (!data[n-1]||data[n-1].every(v=>v===''||v==null))) n--; return n; },
@@ -16,7 +19,13 @@ function mkSheet(name){ const data=[]; const sh={name,data,
 const ss={ getId:()=>'SS1', getSheetByName:n=>sheets[n]||null, insertSheet:n=>(sheets[n]=mkSheet(n)) };
 const ctx={ SpreadsheetApp:{getActive:()=>ss}, LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){},tryLock(){return true}})},
   ContentService:{MimeType:{JSON:'json'}, createTextOutput:t=>({t, setMimeType(){return this}})}, JSON, String, Math, Object, parseInt, Date, isNaN, Array, Session:{getScriptTimeZone:()=>'Europe/Moscow'}, PropertiesService:{getScriptProperties:()=>({getProperty:k=>props[k]||null,setProperty:(k,v)=>{props[k]=v;},deleteProperty:k=>{delete props[k];}})},
-  UrlFetchApp:{ fetch:(url,o)=>{ const tbFake=(u,tok)=>{ const tb=ctx.__tb||{}, T=(tb.tokens||{})[tok]; globalThis.__tbCalls=(globalThis.__tbCalls||0)+1;   /* тестовый Т-Бизнес: ctx.__tb = {tokens:{токен:{accounts, ops}}, sslFail, proxy:{key}} */
+  ScriptApp:{ getOAuthToken:()=>'tok-test' },
+  UrlFetchApp:{ fetch:(url,o)=>{ if(/googleapis\.com\/drive\/v3\/files\//.test(url)){   /* тестовый Google Диск: копия в формат Google → PDF; ctx.__conv = {n, fail} */
+      const cv=ctx.__conv=ctx.__conv||{n:0}, m=url.match(/files\/([^/?]+)\/(copy|export)/)||[];
+      if(cv.fail) return {getResponseCode:()=>500, getContentText:()=>'{}'};
+      if(m[2]==='copy'){ if(!files[m[1]]) return {getResponseCode:()=>404, getContentText:()=>'{}'}; const nid='g'+(++fileN); files[nid]={getBytes:()=>Buffer.alloc(0)}; cv.last=JSON.parse(o.payload); return {getResponseCode:()=>200, getContentText:()=>JSON.stringify({id:nid})}; }
+      cv.n++; cv.exp=m[1]; return {getResponseCode:()=>200, getBlob:()=>({getBytes:()=>FAKE_PDF})}; }
+    const tbFake=(u,tok)=>{ const tb=ctx.__tb||{}, T=(tb.tokens||{})[tok]; globalThis.__tbCalls=(globalThis.__tbCalls||0)+1;   /* тестовый Т-Бизнес: ctx.__tb = {tokens:{токен:{accounts, ops}}, sslFail, proxy:{key}} */
       if(!T) return {code:401, text:'{"errorMessage":"unauthorized"}'};
       if(/bank-accounts/.test(u)) return {code:200, text:JSON.stringify(T.accounts.map(a=>({accountNumber:a,currency:'643',name:'Расчётный'})))};
       if(/statement/.test(u)){ const acc=new URL('https://x'+u.replace(/^https?:\/\/[^/]+/,'')).searchParams.get('accountNumber'); return {code:200, text:JSON.stringify({operations:(T.ops||[]).filter(x=>!x.acc||x.acc===acc)})}; }

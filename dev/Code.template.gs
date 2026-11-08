@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 21;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 22;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -86,6 +86,7 @@ const S = {
 function authorize() {
   DriveApp.getRootFolder().getName();
   UrlFetchApp.fetch('https://generativelanguage.googleapis.com/', { muteHttpExceptions: true });   // доступ в интернет — для чтения сканов заявок (Gemini)
+  ScriptApp.getOAuthToken();   // декларации Word/Excel → PDF через Google Диск
   const f = photoFolder_();
   Logger.log('Доступ к Диску есть. Папка для фото: ' + f.getName());
   return 'ok';
@@ -1028,8 +1029,38 @@ function stFolder_() {
   const f = DriveApp.createFolder('Документы ФД — склад, декларации'); pr.setProperty('stockFolder', f.getId()); return f;
 }
 const ST_MIME = { 'application/pdf': 1, 'image/jpeg': 1, 'image/png': 1, 'image/webp': 1, 'image/heic': 1, 'image/heif': 1, 'image/gif': 1,
-  'application/msword': 1, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 1, 'application/vnd.ms-excel': 1, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 1, 'text/plain': 1 };
+  'application/msword': 1, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 1, 'application/vnd.ms-excel': 1, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 1, 'text/plain': 1,
+  'application/rtf': 1, 'text/rtf': 1, 'application/vnd.oasis.opendocument.text': 1, 'application/vnd.oasis.opendocument.spreadsheet': 1, 'application/vnd.oasis.opendocument.presentation': 1,
+  'application/vnd.ms-powerpoint': 1, 'application/vnd.openxmlformats-officedocument.presentationml.presentation': 1, 'text/csv': 1, 'application/vnd.ms-excel.sheet.macroenabled.12': 1, 'application/vnd.ms-word.document.macroenabled.12': 1 };
 const ST_FILE_MAX = 20 * 1024 * 1024;
+
+/* Файл с Диска → PDF: копия в формат Google (Документ / Таблица / Презентация), выгрузка в PDF, копия — в корзину */
+const ST_GMIME = { doc: 'application/vnd.google-apps.document', sheet: 'application/vnd.google-apps.spreadsheet', slide: 'application/vnd.google-apps.presentation' };
+function stGKind_(name, mime) {
+  const m = String(mime || '').toLowerCase(), n = String(name || '').toLowerCase();
+  if (/^application\/vnd\.google-apps\.(document|spreadsheet|presentation)$/.test(m)) return m.indexOf('document') > 0 ? 'doc' : m.indexOf('spreadsheet') > 0 ? 'sheet' : 'slide';
+  if (/spreadsheet|excel|csv|opendocument\.spreadsheet/.test(m) || /\.(xlsx?|xlsm|ods|csv|tsv)$/.test(n)) return 'sheet';
+  if (/presentation|powerpoint|opendocument\.presentation/.test(m) || /\.(pptx?|odp)$/.test(n)) return 'slide';
+  if (/word|msword|rtf|opendocument\.text|^text\/|html/.test(m) || /\.(docx?|docm|dotx?|odt|rtf|txt|html?)$/.test(n)) return 'doc';
+  return '';
+}
+function stToPdf_(fileId, name, mime) {
+  const src = DriveApp.getFileById(fileId), m0 = mime || (src.getMimeType ? src.getMimeType() : ''), k = stGKind_(name, m0);
+  if (!k) throw new Error('этот формат Google не умеет превращать в PDF');
+  const H = { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }, API = 'https://www.googleapis.com/drive/v3/files/';
+  const native = /^application\/vnd\.google-apps\./.test(String(m0));
+  let id = fileId;
+  if (!native) {
+    const r = UrlFetchApp.fetch(API + fileId + '/copy?fields=id&supportsAllDrives=true', { method: 'post', contentType: 'application/json', headers: H, payload: JSON.stringify({ name: 'pdf-tmp ' + (name || ''), mimeType: ST_GMIME[k] }), muteHttpExceptions: true });
+    if (r.getResponseCode() !== 200) throw new Error('Google Диск не смог открыть файл (' + r.getResponseCode() + ')' + (r.getResponseCode() === 403 ? ' — в Apps Script выполните функцию authorize' : ''));
+    id = JSON.parse(r.getContentText()).id;
+  }
+  try {
+    const e = UrlFetchApp.fetch(API + id + '/export?mimeType=application%2Fpdf', { headers: H, muteHttpExceptions: true });
+    if (e.getResponseCode() !== 200) throw new Error('Google Диск не смог сделать PDF (' + e.getResponseCode() + ')');
+    return e.getBlob();
+  } finally { if (!native) { try { DriveApp.getFileById(id).setTrashed(true); } catch (x) {} } }
+}
 
 /* ---------- операции ---------- */
 function stock_(p, me) {
@@ -1040,6 +1071,21 @@ function stock_(p, me) {
     const f = read_('sfiles').find(x => x.id === String(d.id || '')); if (!f) return { ok: false, error: 'файл не найден' };
     const b = DriveApp.getFileById(f.file).getBlob();
     return { ok: true, name: f.name, mime: f.mime || b.getContentType(), data: Utilities.base64Encode(b.getBytes()) };
+  }
+  if (op === 'toPdf') {     // файл с устройства (Word, Excel…) → PDF, чтобы собрать несколько файлов декларации в один PDF; на Диске ничего не остаётся
+    const mime = String(d.mime || ''), name = stN_(d.name).slice(0, 150) || 'файл', data = String(d.data || '');
+    if (!data) return { ok: false, error: 'Пустой файл' }; if (data.length * 0.75 > ST_FILE_MAX) return { ok: false, error: 'Файл больше 20 МБ' };
+    if (!stGKind_(name, mime)) return { ok: false, error: 'этот формат Google не умеет превращать в PDF' };
+    let tmp = null;
+    try { tmp = stFolder_().createFile(Utilities.newBlob(Utilities.base64Decode(data), mime || 'application/octet-stream', 'pdf-src ' + name));
+      const b = stToPdf_(tmp.getId(), name, mime); return { ok: true, name: name.replace(/\.[^.]+$/, '') + '.pdf', mime: 'application/pdf', data: Utilities.base64Encode(b.getBytes()) }; }
+    catch (e) { return { ok: false, error: e.message || String(e) }; }
+    finally { if (tmp) { try { tmp.setTrashed(true); } catch (x) {} } }
+  }
+  if (op === 'filePdf') {   // декларация Word / Excel / текст → PDF (через Google Диск), для «Скачать одним PDF»
+    const f = read_('sfiles').find(x => x.id === String(d.id || '')); if (!f) return { ok: false, error: 'файл не найден' };
+    try { const b = stToPdf_(f.file, f.name, f.mime); return { ok: true, name: String(f.name || 'файл').replace(/\.[^.]+$/, '') + '.pdf', mime: 'application/pdf', data: Utilities.base64Encode(b.getBytes()) }; }
+    catch (e) { return { ok: false, error: e.message || String(e) }; }
   }
   const rid = String(p.rid || '');
   if (!/^[\w\-]{6,80}$/.test(rid)) return { ok: false, error: 'нет номера операции — обновите страницу' };
@@ -1321,7 +1367,7 @@ const ST_OPS = {
     const m0 = stDeclMeta_(d, c, null);
     if (d.batchId && !c.batch[d.batchId]) stErr_('Партия не найдена');
     const mime = String(d.mime || ''), name = stN_(d.name).replace(/[\\/:*?"<>|]+/g, ' ').slice(0, 150) || 'декларация';
-    if (!ST_MIME[mime]) stErr_('Такой тип файла не поддерживается. Можно PDF, фото (JPG, PNG, WEBP, HEIC), Word, Excel');
+    if (!ST_MIME[mime]) stErr_('Такой тип файла не поддерживается. Можно PDF, фото (JPG, PNG, WEBP, HEIC), Word, Excel, PowerPoint, RTF, ODT, TXT');
     const data = String(d.data || ''); if (!data) stErr_('Пустой файл');
     if (data.length * 0.75 > ST_FILE_MAX) stErr_('Файл больше 20 МБ');
     const folder = stFolder_(), fname = rid + '__' + name; let file = null;

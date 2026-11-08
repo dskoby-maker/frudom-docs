@@ -7618,7 +7618,7 @@ function skInHtml(){ const X=skIdx(), F=SKIN, init=F.kind==="init", sups=[...new
       <label class="f">Поставщик<input class="skf-sup" data-keep="1" list="sk-sups" value="${esc(F.supplier)}" placeholder="${init?"Начальный остаток":"Саид, рынок, ООО…"}"><datalist id="sk-sups">${sups.map(s=>`<option value="${esc(s)}">`).join("")}</datalist></label>
       <label class="f">Входящий документ (№ или ссылка)<input class="skf-doc" data-keep="1" value="${esc(F.docRef)}"></label>
       <label class="f">Годен до (необязательно)<input type="date" class="skf-exp" data-keep="1" value="${esc(F.exp)}"></label>
-      <label class="f wide">Декларация (необязательно)<input type="file" class="skf-file" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx"></label>
+      <label class="f wide">Декларация (необязательно)<input type="file" class="skf-file" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx,.rtf,.odt,.ods,.odp,.ppt,.pptx,.txt,.csv"></label>
     </div><div class="sksum" id="sk-insum">${skInSum()}</div>
     <div class="dc-acts"><button class="btn" data-sk="close">Отмена</button><button class="btn pri" data-sk="inSave">${init?"Провести остаток":"Провести приход"}</button></div>`; }
 function skInSug(){ const F=SKIN, q=skK(F.name), X=skIdx(); if(!q || !F.sugOpen) return "";
@@ -7680,15 +7680,16 @@ async function skInSave(force){ skInRead(); const F=SKIN, d=$("#sk-dlg"), file=(
       if(confirm(e.message+".\n\nЭто другой, отдельный приход? Нажмите «ОК», чтобы провести его отдельно.")) return skInSave(true); return; }
     if(e.queued){ skErr(e,"приход"); skClose(); return; } skErr(e,"приход"); btn.disabled=false; btn.textContent=F.kind==="init"?"Провести остаток":"Провести приход"; } }
 /* ---------- декларации ---------- */
-const SK_EXT=/\.(pdf|jpe?g|png|webp|heic|heif|gif|docx?|xlsx?|txt)$/i;
-function skFileOk(f){ if(!SK_EXT.test(f.name)){ toast("err","Такой файл не подходит","Можно PDF, фото (JPG, PNG, WEBP, HEIC), Word или Excel."); return false; } if(f.size>20*1024*1024){ toast("err","Файл больше 20 МБ","Сожмите или разделите файл."); return false; } return true; }
-const skMime = f => f.type || ({pdf:"application/pdf",jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",webp:"image/webp",heic:"image/heic",heif:"image/heif",gif:"image/gif",doc:"application/msword",docx:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",xls:"application/vnd.ms-excel",xlsx:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",txt:"text/plain"})[(f.name.split(".").pop()||"").toLowerCase()] || "";
+const SK_EXT=/\.(pdf|jpe?g|png|webp|heic|heif|gif|docx?|docm|xlsx?|xlsm|txt|rtf|odt|ods|odp|pptx?|csv)$/i;
+function skFileOk(f){ if(!SK_EXT.test(f.name)){ toast("err","Такой файл не подходит","Можно PDF, фото (JPG, PNG, WEBP, HEIC), Word, Excel, PowerPoint, RTF, ODT или TXT."); return false; } if(f.size>20*1024*1024){ toast("err","Файл больше 20 МБ","Сожмите или разделите файл."); return false; } return true; }
+const skMime = f => (SK_MIMEX[(f.name.split(".").pop()||"").toLowerCase()]) || f.type || "";
+const SK_MIMEX=({pdf:"application/pdf",jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",webp:"image/webp",heic:"image/heic",heif:"image/heif",gif:"image/gif",doc:"application/msword",docx:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",xls:"application/vnd.ms-excel",xlsx:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",txt:"text/plain",rtf:"application/rtf",odt:"application/vnd.oasis.opendocument.text",ods:"application/vnd.oasis.opendocument.spreadsheet",odp:"application/vnd.oasis.opendocument.presentation",ppt:"application/vnd.ms-powerpoint",pptx:"application/vnd.openxmlformats-officedocument.presentationml.presentation",csv:"text/csv",docm:"application/vnd.ms-word.document.macroenabled.12",xlsm:"application/vnd.ms-excel.sheet.macroenabled.12"});
 async function skAttach(f, itemId, batchId){ if(!skFileOk(f)) return;
   const data=await new Promise((ok,bad)=>{ const r=new FileReader(); r.onload=()=>ok(String(r.result).split(",")[1]||""); r.onerror=()=>bad(new Error("не получилось прочитать файл")); r.readAsDataURL(f); });
   const t=toast("info","Загружаю декларацию…", f.name, {sticky:true});
   try{ await skSend("file", {itemId, batchId:batchId||"", name:f.name, mime:skMime(f), size:f.size, data}, "Декларация: "+f.name); toast("ok","Декларация прикреплена", f.name); }
   catch(e){ if(e.queued){ toast("warn","Декларация не загрузилась — нет связи","Файл «"+f.name+"» ждёт отправки. Не перезагружайте страницу, отправлю сам."); } else skErr(e,"декларация"); } }
-function skPickFile(itemId, batchId){ const inp=document.createElement("input"); inp.type="file"; inp.accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx"; inp.onchange=()=>{ const f=inp.files[0]; if(f) skAttach(f, itemId, batchId); }; inp.click(); }
+function skPickFile(itemId, batchId){ const inp=document.createElement("input"); inp.type="file"; inp.accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx,.rtf,.odt,.ods,.odp,.ppt,.pptx,.txt,.csv"; inp.onchange=()=>{ const f=inp.files[0]; if(f) skAttach(f, itemId, batchId); }; inp.click(); }
 async function skFile(id, view){ const t0=toast("info","Открываю файл…","");
   try{ const j=await api({action:"stock", op:"fileGet", d:{id}}); const bin=atob(j.data), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
     const blob=new Blob([u8],{type:j.mime||"application/octet-stream"}), url=URL.createObjectURL(blob);
@@ -8446,8 +8447,8 @@ function dForm(pre, onDone){ const f=pre&&pre.id?skD().files.find(x=>x.id===pre.
   if(!SKDF.chips) SKDF.chips=[]; skModal(dFormHtml, true); }
 function dFormHtml(){ const F=SKDF, edit=!!F.id, f=edit?skD().files.find(x=>x.id===F.id):null;
   return skHead("Декларации", edit?"Изменить декларацию":"Новая декларация", edit?esc(f?f.name:""):"Файл, на какие товары, номер и срок — по ним потом найдёте и скачаете декларации к документу.", "Декларации")
-   + (edit?"":`<div class="dcf-file"><label class="dcf-drop${F.files.length?" has":""}"><input type="file" class="dcf-in" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx" hidden>
-       ${F.files.length?`<span class="dcf-fl">${F.files.map(x=>`<span><b>${esc(x.name)}</b><small>${(x.size/1024/1024).toFixed(x.size>1048576?1:2).replace(".",",")} МБ</small></span>`).join("")}</span><span class="dcf-ch">Заменить</span>`:`<span class="dcf-ic">📄</span><span><b>Выберите файл или сфотографируйте</b><small>PDF или фото; несколько фото страниц соберутся в один PDF</small></span>`}</label>
+   + (edit?"":`<div class="dcf-file"><label class="dcf-drop${F.files.length?" has":""}"><input type="file" class="dcf-in" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx,.rtf,.odt,.ods,.odp,.ppt,.pptx,.txt,.csv" hidden>
+       ${F.files.length?`<span class="dcf-fl">${F.files.map(x=>`<span><b>${esc(x.name)}</b><small>${(x.size/1024/1024).toFixed(x.size>1048576?1:2).replace(".",",")} МБ</small></span>`).join("")}</span><span class="dcf-ch">Заменить</span>`:`<span class="dcf-ic">📄</span><span><b>Выберите файл или сфотографируйте</b><small>PDF, фото, Word, Excel и другие; несколько файлов соберутся в один PDF</small></span>`}</label>
        ${F.files.length?`<button type="button" class="btn sm dcf-ai${F.ai&&F.ai.busy?" busy":""}" data-dl="ai"${F.ai&&F.ai.busy?" disabled":""}>${F.ai&&F.ai.busy?`<i class="spin"></i>ИИ читает…`:"✨ Заполнить по файлу (ИИ)"}</button>`:""}</div>
        ${F.ai&&F.ai.err?`<div class="mi-errs"><span>ИИ не прочитал: ${esc(F.ai.err)}</span></div>`:""}${F.ai&&F.ai.done?`<div class="mi-rest ok">${esc(F.ai.done)}</div>`:""}`)
    + `<div class="dcf-goods"><div class="dcf-lbl">На какие товары декларация${skHQ("Товары в декларации")}</div>
@@ -8485,6 +8486,15 @@ async function dAddToPdf(out, u8, mime, name){ const L=window.PDFLib;
   if(mime==="application/pdf" || /\.pdf$/i.test(name||"")){ const src=await L.PDFDocument.load(u8,{ignoreEncryption:true}); (await out.copyPages(src, src.getPageIndices())).forEach(p=>out.addPage(p)); return; }
   if(/^image\//.test(mime||"")){ const j=await dToJpeg(u8, mime), img=await out.embedJpg(j.u8), W=595.28, H=841.89, m=18, k=Math.min((W-2*m)/j.w,(H-2*m)/j.h), w=j.w*k, h=j.h*k; const pg=out.addPage([W,H]); pg.drawImage(img,{x:(W-w)/2, y:(H-h)/2, width:w, height:h}); return; }
   throw new Error("не PDF и не фото"); }
+/* Word, Excel, PowerPoint, RTF, TXT… → PDF через Google Диск (Code.gs ≥ 22): сохранённая декларация — по ID, файл с устройства — содержимым */
+const dDirect = (mime, name) => mime==="application/pdf" || /\.pdf$/i.test(name||"") || /^image\//.test(mime||"");
+const dB64u8 = b => { const bin=atob(b), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i); return u8; };
+const dU8b64 = u8 => { let bin=""; for(let i=0;i<u8.length;i+=0x8000) bin+=String.fromCharCode.apply(null, u8.subarray(i,i+0x8000)); return btoa(bin); };
+async function dPdfOf(src){ if((D.srvVer||0)<22) throw new Error("обновите Code.gs — старый скрипт таблицы не превращает Word и Excel в PDF");
+  const ck=src.id?"pdf:"+src.id:""; if(ck && DFC[ck]) return DFC[ck];
+  const j=await api(src.id?{action:"stock", op:"filePdf", d:{id:src.id}}:{action:"stock", op:"toPdf", d:{name:src.name, mime:src.mime, data:dU8b64(src.u8)}});
+  if(!j || !j.data) throw new Error((j&&j.error)||"не получилось сделать PDF");
+  const r={name:j.name, mime:"application/pdf", u8:dB64u8(j.data)}; if(ck) DFC[ck]=r; return r; }
 async function dSave(){ dFormRead(); const F=SKDF, edit=!!F.id; if(F.q.trim()) dAddText(F.q);
   if(!F.chips.length){ toast("err","Укажите, на какие товары декларация","Впишите название и нажмите Enter или выберите из подсказок."); dRedraw(".dcf-q"); return; }
   if(!edit && !F.files.length){ toast("err","Выберите файл декларации",""); return; }
@@ -8494,8 +8504,10 @@ async function dSave(){ dFormRead(); const F=SKDF, edit=!!F.id; if(F.q.trim()) d
   F.busy=true; dRedraw();
   try{ if(edit){ await skSend("fileEdit", Object.assign({id:F.id}, meta), "Декларация: "+meta.goods.join(", ")); toast("ok","Декларация сохранена",meta.goods.join(", ")); }
     else { let name=F.files[0].name, mime=skMime(F.files[0]), u8;
-      if(F.files.length>1){ for(const x of F.files) if(!/^image\//.test(skMime(x)) && skMime(x)!=="application/pdf") throw new Error("собрать в один PDF можно только фото и PDF — «"+x.name+"» не подходит");
-        const L=await dLib(), out=await L.PDFDocument.create(); for(const x of F.files) await dAddToPdf(out, await dU8(x), skMime(x), x.name);
+      if(F.files.length>1){ const L=await dLib(), out=await L.PDFDocument.create();
+        for(const x of F.files){ let u=await dU8(x), m=skMime(x);
+          if(!dDirect(m, x.name)){ try{ u=(await dPdfOf({name:x.name, mime:m, u8:u})).u8; m="application/pdf"; }catch(e){ throw new Error("«"+x.name+"»: "+e.message); } }
+          await dAddToPdf(out, u, m, x.name); }
         u8=await out.save(); mime="application/pdf"; name=(meta.goods.slice(0,3).join(", ")||"Декларация").replace(/[\\/:*?"<>|]+/g," ")+".pdf"; }
       else { if(!skFileOk(F.files[0])) throw new Error("файл не подходит"); u8=await dU8(F.files[0]); }
       if(u8.length>20*1024*1024) throw new Error("файл больше 20 МБ");
@@ -8573,10 +8585,12 @@ async function dBuild(kind){ const M=SKDD, ids=[]; M.pos.forEach(p=>M.sel[p.id].
       dDownload(await z.generateAsync({type:"blob", mimeType:"application/zip"}), dFileName(M,"zip")); toast("ok","Архив скачан", list.length+" "+plural(list.length,["файл","файла","файлов"])+"."); }
     else { M.busy="Собираю PDF"; dDocRedraw(); const L=await dLib(), out=await L.PDFDocument.create(), skipped=[];
       if(M.cover){ const img=await out.embedJpg(await dCover(M, list)), pg=out.addPage([595.28,841.89]); pg.drawImage(img,{x:0,y:0,width:595.28,height:841.89}); }
-      for(const g of got){ try{ await dAddToPdf(out, g.u8, g.mime, g.name); }catch(e){ skipped.push(g); } }
+      for(const g of got){ try{ let u=g.u8, m=g.mime;
+          if(!dDirect(m, g.name)){ M.busy="Превращаю в PDF: "+g.name; dDocRedraw(); const p=await dPdfOf({id:g.f.id}); u=p.u8; m="application/pdf"; }
+          await dAddToPdf(out, u, m, g.name); }catch(e){ skipped.push(Object.assign({why:e.message}, g)); } }
       if(out.getPageCount()===(M.cover?1:0)) throw new Error("ни один файл не удалось вставить в PDF — скачайте ZIP-архивом");
       dDownload(new Blob([await out.save()],{type:"application/pdf"}), dFileName(M,"pdf"));
-      toast(skipped.length?"warn":"ok", skipped.length?"PDF скачан, но не всё вошло":"PDF скачан", skipped.length?"Не вставились (не PDF и не фото): "+skipped.map(g=>g.name).join(", ")+". Их можно скачать ZIP-архивом.":list.length+" "+plural(list.length,["декларация","декларации","деклараций"])+" в одном файле.", skipped.length?{ms:14000}:{}); }
+      toast(skipped.length?"warn":"ok", skipped.length?"PDF скачан, но не всё вошло":"PDF скачан", skipped.length?"Не вставились: "+skipped.map(g=>"«"+g.name+"» — "+g.why).join("; ")+". Их можно скачать ZIP-архивом.":list.length+" "+plural(list.length,["декларация","декларации","деклараций"])+" в одном файле.", skipped.length?{ms:14000}:{}); }
     logEv("Склад","Скачаны декларации ("+list.length+") к "+(M.docs.length>1?"комплекту":"документу")+" № "+M.docs.map(j=>j.number).join(", "));
     M.busy=""; dDocRedraw(); dRemember();
   }catch(e){ M.busy=""; dDocRedraw(); toast("err","Не получилось собрать декларации", e.message); } }
