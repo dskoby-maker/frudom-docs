@@ -4,9 +4,9 @@
    Открыт только один редактор: у них общие id (#dc-zk/#bz-zk), поэтому перед открытием окна (openCard) он сворачивается. */
 const ZKP={per:"7", st:"need", q:"", n:30, open:"", list:[], view:(()=>{ try{ return localStorage.getItem("frudom-zkpv")==="cal"?"cal":"list"; }catch(e){ return "list"; } })(), ym:"", day:"", rng:null};
 /* переход из «Прибыли» по «без закупки: N»: свой период [от, до, подпись] и фильтр «Без закупки» — ровно те накладные, что посчитаны там */
-function zkpGoMiss(a, b, lbl){ ZKP.rng=[a, b, lbl]; ZKP.st="miss"; ZKP.q=""; ZKP.day=""; ZKP.n=30; ZKP.view="list"; zkpCollapse();
+function zkpGoMiss(a, b, lbl, st){ ZKP.rng=[a, b, lbl]; ZKP.st=st||"miss"; ZKP.q=""; ZKP.day=""; ZKP.n=30; ZKP.view="list"; zkpCollapse();
   const q=$("#zkp-q"); if(q) q.value=""; goTab("purchase"); zkpDraw(true); const k=$("#zkp"); if(k) setTimeout(()=>k.scrollIntoView({behavior:"smooth", block:"start"}), 60); }
-function zkpRngOff(){ if(!ZKP.rng) return; ZKP.rng=null; if(ZKP.st==="miss") ZKP.st="need"; }
+function zkpRngOff(){ if(!ZKP.rng) return; ZKP.rng=null; if(ZKP.st==="miss"||ZKP.st==="loss") ZKP.st="need"; }
 /* вид «Календарь»: месяц сеткой, у дня — накладные цветом закупки; нажатие на день — список за этот день */
 const zkpYm = () => ZKP.ym || (ZKP.ym=todayISO().slice(0,7));
 const zkpYmShift = (ym, d) => { const t=new Date(+ym.slice(0,4), +ym.slice(5,7)-1+d, 1); return t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0"); };
@@ -37,7 +37,7 @@ function zkpItemsIn(a, b){ const G={}, out=[];
   return out.filter(x=>!x.gone).sort((x,y)=>(y.date||"").localeCompare(x.date||"") || String(y.g[0].number).localeCompare(String(x.g[0].number),"ru",{numeric:true})); }
 const zkpTitle = it => it.g.length>1 ? gTitle(it.g) : jWho(it.g[0]).main;
 const zkpNums = it => { const n=it.g.map(j=>j.number); return "№ "+(n.length>2?n[0]+"–"+n[n.length-1]:n.join(", ")); };
-const zkpPass = (it, st) => st==="all" || st==="miss" ? st==="all" || it.miss>0 : (st==="need" ? it.st!=="ok" : it.st===st);
+const zkpPass = (it, st) => st==="loss" ? !!it.loss : st==="all" || st==="miss" ? st==="all" || it.miss>0 : (st==="need" ? it.st!=="ok" : it.st===st);
 function zkpRowIn(it){ const sub=zkpNums(it)+(it.g.length>1?" · "+it.g.length+" "+docsWord(it.g.length):(kLbl(it.g[0])?" · "+kLbl(it.g[0]):""));
   const note = it.notes.length ? `<small class="zkp-n">⚠ ${esc(it.notes[0])}${it.notes.length>1?` <span>и ещё ${it.notes.length-1}</span>`:""}</small>` : "";
   return `<span class="zkp-d">${fd(it.date).slice(0,5)}</span>
@@ -50,8 +50,8 @@ function zkpKpi(L){ const c=k=>L.filter(x=>x.st===k).length, rev=r2(L.reduce((a,
     <div class="${c("none")?"bad":""}"><small>Без закупки</small><b>${c("none")}</b><span>частично: ${c("part")}</span></div>
     <div><small>Выручка</small><b>${fm(rev)}</b><span>без НДС</span></div>
     <div class="hi"><small>Прибыль по заполненным</small><b class="${prof<0?"neg":""}">${fm(prof)}</b><span>закупка ${fm(cost)}</span></div>`;
-  const ch=[...(ZKP.rng?[["miss","Без закупки",L.filter(x=>x.miss>0).length]]:[]),["need","Нужно заполнить",L.filter(x=>x.st!=="ok").length],["none","Нет закупки",c("none")],["part","Частично",c("part")],["ok","Заполнено",c("ok")],["all","Все",L.length]];
-  const rb=$("#zkp-rng"); if(rb){ rb.hidden=!ZKP.rng; rb.innerHTML=ZKP.rng?`<span>Из «Прибыли»: накладные <b>${esc(ZKP.rng[2])}</b>, где не хватает закупки</span><button type="button" class="btn ghost sm" data-zkprng>Обычный список ×</button>`:""; }
+  const ch=[...(ZKP.rng?[ZKP.st==="loss"?["loss","В минус",L.filter(x=>x.loss).length]:["miss","Без закупки",L.filter(x=>x.miss>0).length]]:[]),["need","Нужно заполнить",L.filter(x=>x.st!=="ok").length],["none","Нет закупки",c("none")],["part","Частично",c("part")],["ok","Заполнено",c("ok")],["all","Все",L.length]];
+  const rb=$("#zkp-rng"); if(rb){ rb.hidden=!ZKP.rng; rb.innerHTML=ZKP.rng?`<span>Из «Прибыли»: накладные <b>${esc(ZKP.rng[2])}</b>, ${ZKP.st==="loss"?"которые ушли в минус":"где не хватает закупки"}</span><button type="button" class="btn ghost sm" data-zkprng>Обычный список ×</button>`:""; }
   $("#zkp-st").innerHTML=ch.map(([k,t,n])=>`<button type="button" class="${ZKP.st===k?"on":""} ${k}" data-zkpst="${k}">${t} <b>${n}</b></button>`).join(""); }
 /* полная перерисовка списка; если редактор открыт — только обновить строки, чтобы не потерять набранное */
 function zkpDraw(force){ const box=$("#zkp-list"); if(!box || !me().admin) return;

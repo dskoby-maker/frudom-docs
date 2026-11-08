@@ -990,6 +990,24 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .tk .tkb{flex:1;min-width:0}#fd-app .tk .tkb b{display:block;font-weight:600;font-size:14.5px;overflow-wrap:anywhere}#fd-app .tk .tkb small{display:block;color:var(--muted);font-size:13px;margin-top:2px;overflow-wrap:anywhere}
 #fd-app .tk .tka{display:flex;gap:4px;flex:none;align-items:center}
 #fd-app .tk .dot{width:9px;height:9px;border-radius:50%;margin-top:6px;flex:none;background:#9a9a9a}#fd-app .tk .dot.err{background:#c0392b}#fd-app .tk .dot.warn{background:#e08a1e}
+#fd-app .tklv{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px}#fd-app .tklv:empty{display:none}
+#fd-app .tklv button{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font:500 13px var(--ui);color:var(--ink);cursor:pointer}
+#fd-app .tklv button b{font-weight:600;color:var(--muted);font-variant-numeric:tabular-nums}#fd-app .tklv button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}#fd-app .tklv button.on b{color:var(--accent)}
+#fd-app .tklv .dot{display:inline-block;width:9px;height:9px;border-radius:50%;flex:none;background:#9a9a9a}#fd-app .tklv .dot.err{background:#c0392b}#fd-app .tklv .dot.warn{background:#e08a1e}
+#fd-app .tkc{border:1px solid var(--line);border-radius:14px;background:var(--surface);margin-top:10px;overflow:hidden}
+#fd-app .tkch{all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#fd-app .tkch:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:14px}
+#fd-app .tkci{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;flex:none;color:var(--tkc);background:color-mix(in srgb,var(--tkc) 13%,transparent)}#fd-app .tkci svg{width:20px;height:20px}
+#fd-app .tkct{flex:1;min-width:0;display:grid}#fd-app .tkct b{font-size:15px;font-weight:650}#fd-app .tkct small{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fd-app .tkcn{display:flex;gap:4px}#fd-app .tkcn em{font-style:normal;font:600 12px var(--ui);min-width:22px;height:22px;padding:0 6px;border-radius:999px;display:grid;place-items:center;color:#fff;background:#9a9a9a}#fd-app .tkcn em.err{background:#c0392b}#fd-app .tkcn em.warn{background:#e08a1e}
+#fd-app .tkca{font-style:normal;color:var(--muted);font-size:20px;line-height:1;transform:rotate(90deg);transition:transform .2s}#fd-app .tkc.cl .tkca{transform:none}
+#fd-app .tkcb{padding:0 10px 10px}#fd-app .tkc.cl .tkcb{display:none}#fd-app .tkcb .tklist{margin-top:0;gap:0}
+#fd-app .tkcb .tk{border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;padding:11px 4px;align-items:center}#fd-app .tkcb .tk:first-child{border-top:0}
+#fd-app .tkcb .tk .dot{align-self:flex-start;margin-top:6px}
+#fd-app .tkgo{display:inline-flex;gap:6px;align-items:center;white-space:nowrap}#fd-app .tkgo span{font-size:16px;line-height:1;opacity:.6}
+#fd-app .tkx{all:unset;cursor:pointer;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:var(--muted);font-size:18px}#fd-app .tkx:hover{background:rgba(28,34,32,.06);color:var(--ink)}
+#fd-app .tkmore{margin:4px 0 0 18px}
+#fd-app .tkok{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;padding:22px 14px;border-radius:14px;background:#eef7f0;color:#2f7d4f}#fd-app .tkok svg{width:28px;height:28px}#fd-app .tkok span{font-size:13px;color:#4d7a5e}
 #fd-app .tk.my input[type=checkbox]{width:20px;height:20px;margin:1px 0 0;flex:none;accent-color:var(--accent);cursor:pointer}
 #fd-app .tk.my.done .tkb b{text-decoration:line-through;color:var(--muted);font-weight:500}
 #fd-app .tk.hid{opacity:.6}
@@ -997,7 +1015,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .tkok{padding:14px;border-radius:10px;background:#eef7f0;color:#2f7d4f}
 #fd-app .tkflash{animation:tkflash 2s ease}
 @keyframes tkflash{0%,60%{box-shadow:0 0 0 3px rgba(224,138,30,.55)}100%{box-shadow:0 0 0 0 rgba(224,138,30,0)}}
-@media(max-width:700px){#fd-app .tk{flex-wrap:wrap}#fd-app .tk .tka{width:100%;justify-content:flex-end}#fd-app .tk.my .tka{width:auto}}
+@media(max-width:700px){#fd-app .tk{flex-wrap:wrap}#fd-app .tk .tka{width:100%;justify-content:flex-end}#fd-app .tk.my .tka{width:auto}#fd-app .tkcb .tk .tka{width:auto;margin-left:19px;flex:1;justify-content:space-between}#fd-app .tkcb .tk .tkb{flex-basis:calc(100% - 30px)}#fd-app .tkct small{white-space:normal}}
 
 
 /* ===== значки разделов, лист «Все разделы» (как на iPhone), мобильная версия ===== */
@@ -1938,7 +1956,8 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
     </div>
     <div class="card">
       <h2>Сайт нашёл сам <small id="tk-acount"></small></h2>
-      <p class="muted" style="margin-top:-4px">Проверяется каждый раз, когда вы открываете вкладку. Исправили — пункт исчезнет сам.</p>
+      <p class="muted" style="margin-top:-4px">Сайт сам проверяет данные при каждом открытии вкладки. Исправили — пункт исчезнет.</p>
+      <div class="tklv" id="tk-lv" role="group" aria-label="Важность"></div>
       <div id="tk-auto"></div>
       <div class="row"><button class="btn ghost sm" id="tk-showhid" hidden></button></div>
     </div>
@@ -6667,37 +6686,39 @@ function autoTasks(){
     const bad=reqTask([["name",need(s.name,"наименование"),"err"],["inn",lenChk(s.inn,[10,12],"ИНН"),"err"],["ogrn",lenChk(s.ogrn,ip?[15]:[13],ip?"ОГРНИП":"ОГРН"),"err"],
       ["address",need(s.address,"адрес"),"err"],["bank",need(s.bank,"банк"),"err"],["bik",lenChk(s.bik,[9],"БИК"),"err"],["rs",lenChk(s.rs,[20],"расчётный счёт"),"err"],["ks",lenChk(s.ks,[20],"корр. счёт"),"err"],
       ["ogrnDate",need(s.ogrnDate,"дата ОГРНИП (для УПД)"),"warn"],["fio",need(s.fio,"ФИО"),"warn"]]);
-    if(bad.length) add("Реквизиты поставщиков",{key:"sup-"+s.id+"-"+bad.map(b=>b.k).join(","), lvl:bad.some(b=>b.lvl==="err")?"err":"warn", title:(s.name||"Поставщик без названия")+" — неполные реквизиты", text:"Проверьте: "+bad.map(b=>b.msg).join(", ")+". Эти данные печатаются в счёте и накладных.",
+    if(bad.length) add("Реквизиты",{key:"sup-"+s.id+"-"+bad.map(b=>b.k).join(","), lvl:bad.some(b=>b.lvl==="err")?"err":"warn", title:(s.name||"Поставщик без названия")+" — неполные реквизиты", text:"Проверьте: "+bad.map(b=>b.msg).join(", ")+". Эти данные печатаются в счёте и накладных.",
       go:{tab:"suppliers", sel:["suppliers",s.id], q:`#sup-editor [data-k="${bad[0].k}"]`}});
 
   });
   /* заказчики и подразделения */
   const used=new Set(live.map(j=>j.customerId).concat((D.contracts||[]).map(x=>x.customerId)));
-  D.customers.filter(c=>used.has(c.id)).forEach(c=>{
+  D.customers.filter(c=>used.has(c.id) && !isPriv(c.id) && !c.priv).forEach(c=>{
     const org=dig(c.inn).length===10, tr=c.acct==="treasury", bl=branches(c);
     const bad=reqTask([["name",need(c.name,"наименование"),"err"],["inn",lenChk(c.inn,[10,12],"ИНН"),"err"],["kpp",org?lenChk(c.kpp,[9],"КПП"):"","err"],["address",need(c.address,"юридический адрес"),"err"],
       ["bank",bl.length?"":need(c.bank,tr?"банк / ТОФК":"банк"),"warn"],["bik",bl.length?"":lenChk(c.bik,[9],"БИК"),"warn"],["rs",bl.length?"":lenChk(c.rs,[20],tr?"казначейский счёт":"расчётный счёт"),"warn"],["ks",bl.length?"":lenChk(c.ks,[20],tr?"ЕКС":"корр. счёт"),"warn"]]);
-    if(bad.length) add("Реквизиты заказчиков",{key:"cus-"+c.id+"-"+bad.map(b=>b.k).join(","), lvl:bad.some(b=>b.lvl==="err")?"err":"warn", title:(c.name||"Заказчик без названия")+" — неполные реквизиты", text:"Проверьте: "+bad.map(b=>b.msg).join(", ")+".",
+    if(bad.length) add("Реквизиты",{key:"cus-"+c.id+"-"+bad.map(b=>b.k).join(","), lvl:bad.some(b=>b.lvl==="err")?"err":"warn", title:(c.name||"Заказчик без названия")+" — неполные реквизиты", text:"Проверьте: "+bad.map(b=>b.msg).join(", ")+".",
       go:{tab:"customers", sel:["customers",c.id], q:`#cus-editor [data-k="${bad[0].k}"]`}});
     bl.forEach(b=>{ const tb=b.acct==="treasury";
       const bb=reqTask([["fullName",need(b.fullName,"наименование в документах")],["kpp",lenChk(b.kpp,[9],"КПП")],["address",need(b.address,"адрес ОП")],["bank",need(b.bank,"банк, лицевой счёт")],["bik",lenChk(b.bik,[9],"БИК")],["rs",lenChk(b.rs,[20],tb?"казначейский счёт":"р/с")],["ks",lenChk(b.ks,[20],tb?"ЕКС":"к/с")]]);
-      if(bb.length) add("Реквизиты заказчиков",{key:"br-"+b.id+"-"+bb.map(x=>x.k).join(","), lvl:"warn", title:(b.label||b.fullName||"Подразделение")+" ("+cusShort(c.name)+") — неполные реквизиты", text:"Проверьте: "+bb.map(x=>x.msg).join(", ")+".",
+      if(bb.length) add("Реквизиты",{key:"br-"+b.id+"-"+bb.map(x=>x.k).join(","), lvl:"warn", title:(b.label||b.fullName||"Подразделение")+" ("+cusShort(c.name)+") — неполные реквизиты", text:"Проверьте: "+bb.map(x=>x.msg).join(", ")+".",
         go:{tab:"customers", sel:["customers",c.id], q:`#br-list [data-id="${b.id}"] [data-k="${bb[0].k}"]`}}); });
   });
   /* нумерация: договор есть, документов на сайте нет и не указано, с какого номера продолжать */
-  (D.contracts||[]).forEach(x=>{ const c=cus(x.customerId); if(!c||!c.id||!x.supplierId) return; if(x.dateTo && x.dateTo<today) return;
-    if(pairDocs(x.supplierId,c.id).length || numsOf(c)[x.supplierId]) return;
-    add("Нумерация",{key:"nm-"+c.id+"-"+x.supplierId, lvl:"warn", title:cusShort(c.name)+" · "+supShort(sup(x.supplierId).name)+": с какого номера продолжать?", text:"На сайте ещё нет документов этому заказчику. Если раньше их делали в 1С или Т‑Банке — впишите следующий номер, иначе первый документ получит № 1.",
-      go:{tab:"customers", sel:["customers",c.id], q:`#nm-list [data-nms="${x.supplierId}"]`}}); });
+  const NM=[]; (D.contracts||[]).forEach(x=>{ const c=cus(x.customerId); if(!c||!c.id||!x.supplierId) return; if(x.dateTo && x.dateTo<today) return;
+    if(pairDocs(x.supplierId,c.id).length || numsOf(c)[x.supplierId] || NM.some(y=>y.c.id===c.id && y.s===x.supplierId)) return; NM.push({c, s:x.supplierId}); });
+  const nmGo = y => ({tab:"customers", sel:["customers",y.c.id], q:`#nm-list [data-nms="${y.s}"]`});
+  if(NM.length===1) add("Документы",{key:"nm-"+NM[0].c.id+"-"+NM[0].s, lvl:"warn", title:cusShort(NM[0].c.name)+" · "+supShort(sup(NM[0].s).name)+": с какого номера продолжать?", text:"На сайте ещё нет документов этому заказчику. Если раньше их делали в 1С или Т‑Банке — впишите следующий номер, иначе первый документ получит № 1.", act:"Вписать номер", go:nmGo(NM[0])});
+  else if(NM.length) add("Документы",{key:"nm-"+NM.map(y=>y.c.id+y.s).join(","), lvl:"warn", title:"С какого номера продолжать: "+NM.length+" "+plural(NM.length,["договор","договора","договоров"]), text:"Документов этим заказчикам на сайте ещё нет — первый получит № 1. Если раньше делали в 1С или Т‑Банке, впишите следующий номер: "+NM.map(y=>cusShort(y.c.name)+" ("+supShort(sup(y.s).name)+")").join(", ")+".", act:"Вписать номер", go:nmGo(NM[0])});
   /* точки доставки, куда возили за 90 дней */
   const pts=new Map();
   live.filter(j=>daysTo(j.date)>=-90).forEach(j=>{ const dr=j.snap.dr, c=cus(j.customerId); if(!c||!c.id) return; const a=dr.ship||c.address||""; if(!a) return; const k=c.id+"|"+ptKey(a); if(!pts.has(k)) pts.set(k,{c,a,legal:(branches(c).find(b=>b.id===dr.branchId)||c).address}); });
-  [...pts.values()].sort((x,y)=>String(x.c.name).localeCompare(y.c.name)||stLabel(x.a,x.legal).localeCompare(stLabel(y.a,y.legal),"ru",{numeric:true})).forEach(({c,a,legal})=>{
+  const ptBy=new Map(); [...pts.values()].sort((x,y)=>stLabel(x.a,x.legal).localeCompare(stLabel(y.a,y.legal),"ru",{numeric:true})).forEach(({c,a,legal})=>{
     const pi=ptInfo(c.id,a), miss=[]; if(!String(pi.phone||"").trim()) miss.push("телефон"); if(!ptTime(pi)) miss.push("часы приёмки");
-    if(!miss.length) return;
-    add("Точки доставки — для водителя",{key:"pt-"+c.id+"-"+ptKey(a)+"-"+miss.join(","), lvl:miss.includes("телефон")?"warn":"info", title:ptName({addr:a,c:{address:legal}})+" · "+cusShort(c.name), text:"Не указано: "+miss.join(", ")+". "+a,
-      go:{tab:"customers", sel:["customers",c.id], pt:[a, miss.includes("телефон")?"phone":"from"]}});
-  });
+    if(!miss.length) return; if(!ptBy.has(c.id)) ptBy.set(c.id,{c, L:[]}); ptBy.get(c.id).L.push({a, legal, miss}); });
+  [...ptBy.values()].sort((x,y)=>String(x.c.name).localeCompare(y.c.name)).forEach(({c,L})=>{ const ph=L.filter(x=>x.miss.includes("телефон")).length, f=L.find(x=>x.miss.includes("телефон"))||L[0];
+    add("Точки доставки",{key:"pt-"+c.id+"-"+L.map(x=>ptKey(x.a)+x.miss.length).join(","), lvl:ph?"warn":"info", title:cusShort(c.name)+": "+(L.length===1?ptName({addr:L[0].a,c:{address:L[0].legal}}):L.length+" "+plural(L.length,["точка","точки","точек"])+" без данных для водителя"),
+      text:L.length===1?"Не указано: "+L[0].miss.join(", ")+". "+L[0].a:(ph?"Без телефона: "+ph+". ":"")+"Нет часов приёмки: "+L.filter(x=>x.miss.includes("часы приёмки")).length+". "+L.slice(0,3).map(x=>ptName({addr:x.a,c:{address:x.legal}})).join(", ")+(L.length>3?" и ещё "+(L.length-3):"")+".",
+      act:"Заполнить", go:{tab:"customers", sel:["customers",c.id], pt:[f.a, f.miss.includes("телефон")?"phone":"from"]}}); });
   /* договоры */
   (D.contracts||[]).forEach(x=>{ const c=cus(x.customerId); if(!c||!c.id) return; const nm=(x.basis||"Договор без номера")+" · "+cusShort(c.name), go=k=>({tab:"customers", sel:["customers",c.id], q:`#ct-body tr[data-id="${x.id}"] [data-k="${k}"]`});
     if(!String(x.basis||"").trim()) add("Договоры",{key:"ct-basis-"+x.id, lvl:"err", title:"Договор без номера и даты · "+cusShort(c.name), text:"Номер и дата договора печатаются в документах в строке «Основание».", go:go("basis")});
@@ -6708,18 +6729,32 @@ function autoTasks(){
       else if(n<=30) add("Договоры",{key:"ct-soon-"+x.id+"-"+x.dateTo, lvl:"warn", title:nm, text:"Договор заканчивается "+fd(x.dateTo)+" — через "+n+" "+(n%10===1&&n%100!==11?"день":n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?"дня":"дней")+".", go:go("dateTo")}); }
     if(!(+x.maxSum>0) && (!x.dateTo || x.dateTo>=today)) add("Договоры",{key:"ct-max-"+x.id, lvl:"info", title:nm, text:"Не указана цена контракта — сайт не сможет считать остаток и предупредить о превышении.", go:go("maxSum")});
     if(+x.maxSum>0){ const u=ctrUsed(x.id), left=r2(+x.maxSum-u);
-      if(left<0) add("Договоры",{key:"ct-over-"+x.id, lvl:"err", title:nm, text:"Отгружено больше цены договора на "+fm(-left)+" ₽ ("+fm(u)+" из "+fm(+x.maxSum)+").", go:go("maxSum")});
-      else if(left < +x.maxSum*0.1) add("Договоры",{key:"ct-left-"+x.id+"-"+Math.floor(left/1000), lvl:"warn", title:nm, text:"Осталось всего "+fm(left)+" ₽ из "+fm(+x.maxSum)+" — меньше 10%.", go:go("maxSum")}); }
+      if(left<0) add("Деньги",{key:"ct-over-"+x.id, lvl:"err", title:nm, text:"Отгружено больше цены договора на "+fm(-left)+" ₽ ("+fm(u)+" из "+fm(+x.maxSum)+").", go:go("maxSum")});
+      else if(left < +x.maxSum*0.1) add("Деньги",{key:"ct-left-"+x.id+"-"+Math.floor(left/1000), lvl:"warn", title:nm, text:"Осталось всего "+fm(left)+" ₽ из "+fm(+x.maxSum)+" — меньше 10%.", go:go("maxSum")}); }
   });
   /* товары из прайсов */
   const inPl=new Set(); Object.values(D.prices||{}).forEach(pl=>Object.keys(pl||{}).forEach(pid=>{ if(pl[pid]!==""&&pl[pid]!=null) inPl.add(pid); }));
   const P=D.products.filter(p=>inPl.has(p.id)), noC=P.filter(p=>!p.country);
   const lst = L => { const N=[...new Set(L.map(p=>String(p.name||"").trim()))]; return N.slice(0,5).map(n=>"«"+n+"»").join(", ")+(N.length>5?" и ещё "+(N.length-5):""); };
-  if(noC.length) add("Товары",{key:"pr-country-"+noC.map(p=>p.id).join(","), lvl:"info", title:"Не указана страна у "+noC.length+" "+(noC.length===1?"товара":"товаров"), text:"Для импортных товаров страна происхождения нужна в УПД и XML. "+lst(noC)+".", go:{tab:"products", q:`#pd-body tr[data-id="${noC[0].id}"] [data-k="country"]`}});
-  /* закупочные цены */
-  if(pfLoaded){ const miss=new Map(); live.filter(j=>daysTo(j.date)>=-30).forEach(j=>(j.snap.dr.lines||[]).forEach(l=>{ if(l.productId && +l.qty>0 && !costFor(l.productId,j.customerId,j.date) && !miss.has(l.productId)) miss.set(l.productId, prod(l.productId)); }));
-    const L=[...miss.values()].filter(Boolean);
-    if(L.length) add("Прибыль",{key:"cost-"+L.map(p=>p.id).join(","), lvl:"info", title:"Нет закупочной цены у "+L.length+" "+(L.length===1?"товара":"товаров"), text:"Без неё прибыль по этим товарам не считается. "+lst(L)+".", go:{tab:"profit", q:"#pf-paste"}}); }
+  if(noC.length) add("Товары",{key:"pr-country-"+noC.map(p=>p.id).join(","), lvl:"info", title:"Не указана страна у "+noC.length+" "+(noC.length===1?"товара":"товаров"), text:"Для импортных товаров страна происхождения нужна в УПД и XML. "+lst(noC)+".", go:{tab:"products", pre:()=>{ PDL.open=noC[0].id; PDL.lim=Math.max(PDL.lim,1e5); }, q:`#pd-body .nmr[data-id="${noC[0].id}"] [data-k="country"]`}});
+  /* единица измерения: пустая — в документах и УПД будет пробел */
+  const usedP=new Set(); live.filter(j=>daysTo(j.date)>=-90).forEach(j=>(j.snap.dr.lines||[]).forEach(l=>{ if(l.productId) usedP.add(l.productId); }));
+  const noU=D.products.filter(p=>usedP.has(p.id) && !String(p.unit||"").trim());
+  if(noU.length) add("Товары",{key:"pr-unit-"+noU.map(p=>p.id).join(","), lvl:"err", title:"Нет единицы измерения у "+noU.length+" "+(noU.length===1?"товара":"товаров"), text:"Единица печатается в счёте, ТОРГ‑12 и УПД. "+lst(noU)+".", go:{tab:"products", pre:()=>{ PDL.open=noU[0].id; PDL.lim=Math.max(PDL.lim,1e5); }, q:`#pd-body .nmr[data-id="${noU[0].id}"] [data-k="unit"]`}});
+  /* документы: накладная без договора, хотя у заказчика есть действующий договор этого ИП */
+  const noCt=new Map(); live.filter(j=>daysTo(j.date)>=-60 && !j.snap.dr.contractId && !isPriv(j.customerId)).forEach(j=>{ const x=ctrs(j.customerId).find(k=>k.supplierId===j.supplierId && (!k.dateTo||k.dateTo>=j.date)); if(!x) return; if(!noCt.has(j.customerId)) noCt.set(j.customerId,[]); noCt.get(j.customerId).push(j); });
+  noCt.forEach((L,cid)=>{ L.sort((a,b)=>a.date<b.date?1:-1); add("Документы",{key:"doc-noct-"+cid+"-"+L.map(j=>j.id).join(","), lvl:"warn", title:cusShort(cus(cid).name)+": "+L.length+" "+plural(L.length,["накладная","накладные","накладных"])+" без договора", text:"У заказчика есть действующий договор этого ИП, а в накладной основание не выбрано — договор не уменьшится, остаток будет неверным. "+L.slice(0,4).map(j=>"№ "+j.number+" от "+fd(j.date).slice(0,5)).join(", ")+(L.length>4?" и ещё "+(L.length-4):"")+".", act:"Открыть", go:{fn:()=>docCard(L[0], false)}}); });
+  if(pfLoaded){ const t=todayISO(), d30=jIso(new Date(Date.now()-29*864e5)), P30=live.filter(j=>j.date>=d30 && j.date<=t).map(j=>{ try{ return docProfit(j); }catch(e){ return null; } }).filter(Boolean);
+    /* закупка: накладные за 30 дней без закупки и в минус */
+    const miss=P30.filter(x=>x.miss), loss=P30.filter(x=>!x.miss && !x.src && x.profit<0 || x.src && x.profit<0);
+    if(miss.length) add("Закупка и прибыль",{key:"zk-miss", lvl:miss.length>=5?"warn":"info", title:"Без закупки: "+miss.length+" "+plural(miss.length,["накладная","накладные","накладных"])+" за 30 дней", text:"Пока закупка не вписана, прибыль по ним не считается. "+miss.slice(0,3).map(x=>"№ "+x.j.number+" ("+cusShort(jWho(x.j).main)+")").join(", ")+(miss.length>3?" и ещё "+(miss.length-3):"")+".", act:"Заполнить", go:{fn:()=>zkpGoMiss(d30, t, "за 30 дней")}});
+    if(loss.length) add("Закупка и прибыль",{key:"zk-loss-"+loss.map(x=>x.j.id).join(","), lvl:"warn", title:"В минус: "+loss.length+" "+plural(loss.length,["накладная","накладные","накладных"])+" за 30 дней", text:"Закупка с расходами и налогом больше выручки — проверьте цены закупки или продажи. Всего минус "+fm(-r2(loss.reduce((a,x)=>a+x.profit,0)))+" ₽.", act:"Показать", go:{fn:()=>zkpGoMiss(d30, t, "за 30 дней", "loss")}});
+    /* деньги: долги старше 30 дней (по накладным за последние 4 месяца), одной строкой на заказчика */
+    const d120=jIso(new Date(Date.now()-120*864e5)), debt=new Map();
+    live.filter(j=>j.date>=d120 && !isPriv(j.customerId)).forEach(j=>{ const p=payOf(j); if(p.st==="paid") return; const age=daysSince(j.date); if(age<=30) return; if(!debt.has(j.customerId)) debt.set(j.customerId,{s:0,n:0,age:0,L:[]}); const g=debt.get(j.customerId); g.s=r2(g.s+p.left); g.n++; g.age=Math.max(g.age,age); g.L.push(j); });
+    [...debt.entries()].sort((a,b)=>b[1].s-a[1].s).forEach(([cid,g])=>add("Деньги",{key:"debt-"+cid+"-"+g.n+"-"+Math.floor(g.s/1000)+"-"+(g.age>60?2:1), lvl:g.age>60?"err":"warn", title:cusShort(cus(cid).name)+" не оплатил "+fm(g.s)+" ₽", text:g.n+" "+plural(g.n,["накладная","накладные","накладных"])+" старше 30 дней, самой старой "+g.age+" "+plural(g.age,["день","дня","дней"])+". Если деньги пришли — отметьте оплату, иначе напомните заказчику.", act:"Открыть", go:{fn:()=>pvLedger(cid)}})); }
+  /* деньги: поступления из банка ждут решения */
+  try{ if(typeof bnIsWait==="function"){ const W=(BNK().ops||[]).filter(bnIsWait); if(W.length) add("Деньги",{key:"bank-wait-"+W.map(o=>o.id).join(",").slice(0,400), lvl:"warn", title:"Поступления ждут разнесения: "+W.length, text:"Сайт не смог сам понять, за какие накладные эти платежи. На "+fm(r2(W.reduce((a,o)=>a+(+o.sum||0),0)))+" ₽.", act:"Разнести", go:{tab:"profit", click:'#pv-seg [data-pv="bank"]'}}); } }catch(e){}
   skAutoTasks(add);
   return T;
 }
@@ -6734,18 +6769,35 @@ function drawTasks(){
   $("#tk-my").innerHTML = open.length||done.length ? open.map(myRow).join("")+done.map(myRow).join("") : `<p class="muted" style="margin:4px 0">Своих задач пока нет. Впишите выше всё, что нужно не забыть.</p>`;
   $("#tk-mcount").textContent = open.length ? open.length+" открыто" : "";
   $("#tk-donebar").hidden=!done.length; $("#tk-donecnt").textContent = done.length ? "Сделано: "+done.length : "";
-  const A=autoTasks(), hid=new Set(p.hide), vis=A.filter(x=>!hid.has(x.key)), hidA=A.filter(x=>hid.has(x.key)), show=tkShowHid?A:vis;
-  const groups=[]; show.forEach(x=>{ let g=groups.find(y=>y.g===x.g); if(!g) groups.push(g={g:x.g, L:[]}); g.L.push(x); });
-  const ord={err:0,warn:1,info:2}; groups.forEach(g=>g.L.sort((a,b)=>ord[a.lvl]-ord[b.lvl]));
+  const A=autoTasks(), hid=new Set(p.hide), vis=A.filter(x=>!hid.has(x.key)), hidA=A.filter(x=>hid.has(x.key)), show0=tkShowHid?A:vis;
+  const lv=k=>vis.filter(x=>x.lvl===k).length, show=show0.filter(x=>!TKV.f || x.lvl===TKV.f);
+  const ord={err:0,warn:1,info:2}, groups=[];
+  show.forEach(x=>{ let g=groups.find(y=>y.g===x.g); if(!g) groups.push(g={g:x.g, L:[]}); g.L.push(x); });
+  groups.forEach(g=>{ g.L.sort((a,b)=>ord[a.lvl]-ord[b.lvl]); g.w=Math.min(...g.L.map(x=>ord[x.lvl])); });
+  groups.sort((a,b)=>a.w-b.w || TK_ORD.indexOf(a.g)-TK_ORD.indexOf(b.g));
   window.__tkA=A;
-  $("#tk-auto").innerHTML = groups.length ? groups.map(g=>`<div class="tkg">${esc(g.g)} · ${g.L.length}</div><div class="tklist" style="margin-top:0">${g.L.map(x=>{ const h=hid.has(x.key); return `<div class="tk${h?" hid":""}" data-key="${esc(x.key)}"><span class="dot ${x.lvl}"></span><div class="tkb"><b>${esc(x.title)}</b><small>${esc(x.text)}</small></div><div class="tka">${x.go?`<button class="btn sm" data-go>Исправить</button>`:""}<button class="btn ghost sm" data-hide>${h?"Вернуть":"Скрыть"}</button></div></div>`; }).join("")}</div>`).join("")
-    : `<div class="tkok">Всё заполнено — сайт ничего не нашёл.</div>`;
+  $("#tk-lv").innerHTML = vis.length ? [["","Все",vis.length],["err","Важно",lv("err")],["warn","Желательно",lv("warn")],["info","Мелочи",lv("info")]].filter(([k,,n])=>!k||n).map(([k,t,n])=>`<button type="button" data-tkf="${k}" class="${TKV.f===k?"on":""}" aria-pressed="${TKV.f===k}">${k?`<i class="dot ${k}"></i>`:""}${t}<b>${n}</b></button>`).join("") : "";
+  const row=x=>{ const h=hid.has(x.key); return `<div class="tk${h?" hid":""} l-${x.lvl}" data-key="${esc(x.key)}"><span class="dot ${x.lvl}" title="${TK_LV[x.lvl]}"></span><div class="tkb"><b>${esc(x.title)}</b><small>${esc(x.text)}</small></div><div class="tka">${x.go?`<button class="btn sm tkgo" data-go>${esc(x.act||"Исправить")}<span aria-hidden="true">›</span></button>`:""}<button class="tkx" data-hide title="${h?"Вернуть в список":"Скрыть — не важно"}" aria-label="${h?"Вернуть":"Скрыть"}">${h?"↺":"×"}</button></div></div>`; };
+  $("#tk-auto").innerHTML = groups.length ? groups.map(g=>{ const m=TK_CAT[g.g]||TK_CAT["Система"], cl=!!TKV.c[g.g], more=!TKV.all[g.g] && g.L.length>4, L=more?g.L.slice(0,3):g.L;
+      const cnt={err:g.L.filter(x=>x.lvl==="err").length, warn:g.L.filter(x=>x.lvl==="warn").length, info:g.L.filter(x=>x.lvl==="info").length};
+      return `<section class="tkc${cl?" cl":""}" style="--tkc:${m.c}"><button type="button" class="tkch" data-tkc="${esc(g.g)}" aria-expanded="${!cl}"><span class="tkci">${pvIco(m.i)}</span><span class="tkct"><b>${esc(g.g)}</b><small>${esc(m.s)}</small></span><span class="tkcn">${["err","warn","info"].filter(k=>cnt[k]).map(k=>`<em class="${k}">${cnt[k]}</em>`).join("")}</span><i class="tkca" aria-hidden="true">›</i></button>
+        <div class="tkcb"><div class="tklist">${L.map(row).join("")}</div>${more?`<button type="button" class="btn ghost sm tkmore" data-tkall="${esc(g.g)}">Показать ещё ${g.L.length-3}</button>`:""}</div></section>`; }).join("")
+    : `<div class="tkok">${pvIco("check")}<b>${TKV.f?"В этом фильтре ничего нет":"Всё в порядке"}</b><span>${TKV.f?"Выберите «Все».":"Сайт проверил реквизиты, договоры, деньги, закупку, склад и точки доставки — замечаний нет."}</span></div>`;
   $("#tk-acount").textContent = vis.length ? vis.length+" "+(vis.length%10===1&&vis.length%100!==11?"пункт":vis.length%10>=2&&vis.length%10<=4&&(vis.length%100<10||vis.length%100>=20)?"пункта":"пунктов") : "";
   const sh=$("#tk-showhid"); sh.hidden=!hidA.length; sh.textContent = tkShowHid ? "Не показывать скрытые" : "Показать скрытые ("+hidA.length+")";
 }
+/* разделы «Сайт нашёл сам»: значок, цвет, подпись; порядок — по самому важному пункту, потом этот */
+const TK_ORD=["Система","Деньги","Документы","Закупка и прибыль","Склад","Договоры","Реквизиты","Точки доставки","Товары"];
+const TK_CAT={"Система":{i:"gear",c:"#7a6f86",s:"скрипт таблицы"},"Деньги":{i:"coins",c:"#2f7d4f",s:"долги, поступления, остаток договоров"},"Документы":{i:"doc",c:"#6a2c4e",s:"нумерация, основание в накладных"},
+  "Закупка и прибыль":{i:"cart",c:"#9a5b00",s:"накладные без закупки и в минус"},"Склад":{i:"box",c:"#8a6a3b",s:"отгрузка, нехватка, сроки годности"},"Договоры":{i:"deal",c:"#3d6a8a",s:"номер, дата, сроки, цена контракта"},
+  "Реквизиты":{i:"bank",c:"#5b6b7a",s:"печатаются в счёте и накладных"},"Точки доставки":{i:"truck",c:"#4f7a6a",s:"телефон и часы приёмки для водителя"},"Товары":{i:"tag",c:"#7a5b8a",s:"единицы и страна для УПД"}};
+const TK_LV={err:"Важно — без этого будут ошибки", warn:"Желательно", info:"Мелочь — по возможности"};
+const TKV=(()=>{ let c={}; try{ c=JSON.parse(localStorage.getItem("frudom-tkc")||"{}")||{}; }catch(e){} return {f:"", c, all:{}}; })();
 function tkGo(g){
-  if(g.sel) editorSel[g.sel[0]]=g.sel[1]; if(g.skdet) SKV.det=g.skdet;
+  if(g.fn){ g.fn(); return; }
+  if(g.sel) editorSel[g.sel[0]]=g.sel[1]; if(g.skdet) SKV.det=g.skdet; if(g.pre) g.pre();
   showTab(g.tab);
+  if(g.click){ setTimeout(()=>{ const b=document.querySelector(g.click); if(b) b.click(); }, 150); return; }
   setTimeout(()=>{ let el=null;
     if(g.pt){ const box=[...document.querySelectorAll("#pt-list .ptg")].find(b=>ptKey(b.dataset.addr)===ptKey(g.pt[0])); if(box){ const d=box.closest("details"); if(d) d.open=true; el=box.querySelector(`[data-pt="${g.pt[1]}"]`); } }
     else if(g.q){ el=document.querySelector(g.q); if(el){ const d=el.closest("details"); if(d) d.open=true; } }
@@ -6762,7 +6814,10 @@ $("#tk-my").addEventListener("click",e=>{ const b=e.target.closest("[data-del]")
   toast("info","Задача удалена",x.t,{action:{label:"Вернуть", fn:()=>{ const q=tkPrefs(); q.tasks.splice(Math.min(i,q.tasks.length),0,x); setPrefs(q,true); if(curTab==="tasks") drawTasks(); }}}); });
 $("#tk-clear").onclick=()=>{ const p=tkPrefs(), was=p.tasks.slice(); p.tasks=p.tasks.filter(x=>!x.done); setPrefs(p,true); drawTasks();
   toast("info","Сделанные убраны","",{action:{label:"Вернуть", fn:()=>{ const q=tkPrefs(); q.tasks=was; setPrefs(q,true); if(curTab==="tasks") drawTasks(); }}}); };
-$("#tk-auto").addEventListener("click",e=>{ const row=e.target.closest("[data-key]"); if(!row) return; const k=row.dataset.key, x=(window.__tkA||[]).find(y=>y.key===k);
+$("#tk-lv").addEventListener("click",e=>{ const b=e.target.closest("[data-tkf]"); if(!b) return; TKV.f=b.dataset.tkf; drawTasks(); });
+$("#tk-auto").addEventListener("click",e=>{ const c=e.target.closest("[data-tkc]"); if(c){ const g=c.dataset.tkc; if(TKV.c[g]) delete TKV.c[g]; else TKV.c[g]=1; try{ localStorage.setItem("frudom-tkc", JSON.stringify(TKV.c)); }catch(x){} const s=c.closest(".tkc"); s.classList.toggle("cl", !!TKV.c[g]); c.setAttribute("aria-expanded", !TKV.c[g]); return; }
+  const m=e.target.closest("[data-tkall]"); if(m){ TKV.all[m.dataset.tkall]=1; drawTasks(); return; }
+  const row=e.target.closest("[data-key]"); if(!row) return; const k=row.dataset.key, x=(window.__tkA||[]).find(y=>y.key===k);
   if(e.target.closest("[data-go]") && x && x.go) tkGo(x.go);
   if(e.target.closest("[data-hide]")){ const p=tkPrefs(), i=p.hide.indexOf(k); if(i>=0) p.hide.splice(i,1); else p.hide.push(k); p.hide=p.hide.slice(-300); setPrefs(p,true); drawTasks(); } });
 $("#tk-showhid").onclick=()=>{ tkShowHid=!tkShowHid; drawTasks(); };
@@ -6817,7 +6872,7 @@ const HELP={
   "Закупка Саида":["Закупка → себестоимость накладных.",["Вставьте сообщения Саида и проверьте дату закупки.","Сайт сам находит точку (Цирк, МГУ…) и её накладные на эту дату или на следующий день. Отметки у накладных можно поменять.","Каждую строку он сопоставляет с товаром накладной. Жёлтым — где нужно ваше решение: выберите товар, «Расход» или «Не учитывать». Сайт запомнит.","Если Саид считает коробками, а в накладной килограммы — впишите вес одной коробки в «Куплено». Тоже запомнится.","«Сохранить в прибыль» — цены встанут в накладные (как своя закупка этой поставки), телега и машины — в прочие расходы.","«Скопировать для Google Таблицы» — блок как в вашей таблице, вставьте Ctrl+V."]],
   "Налог":["Процент от выручки, который уходит в налог. АУСН «доходы» — 8%."],
   "Мои задачи":["Ваш список дел — видно только вам.",["Впишите задачу и нажмите «Добавить» (или Enter).","Сделали — поставьте галочку. Сделанные уходят вниз, их можно убрать кнопкой.","Список один на всех ваших устройствах."]],
-  "Сайт нашёл сам":["Сайт сам проверяет данные и показывает, чего не хватает.",["Красная точка — важно: без этого документы будут с ошибкой. Оранжевая — желательно. Серая — по возможности.","«Исправить» — откроет нужное поле.","«Скрыть» — если пункт не важен. Скрытые можно вернуть кнопкой внизу."]],
+  "Сайт нашёл сам":["Сайт сам проверяет данные и показывает, чего не хватает или что идёт не так.",["Красная точка — важно: без этого документы или деньги будут с ошибкой. Оранжевая — желательно. Серая — мелочь, по возможности.","Пункты разложены по разделам: деньги, документы, закупка, склад, договоры, реквизиты, точки доставки, товары. Сверху — разделы с самым важным. Раздел можно свернуть нажатием на заголовок.","Кнопка справа («Исправить», «Заполнить», «Открыть») ведёт прямо туда, где это исправляется.","× — скрыть пункт, если он не важен. Скрытые можно вернуть кнопкой внизу.","Что проверяется: реквизиты ИП и заказчиков, договоры (номер, дата, срок, остаток), накладные без договора, нумерация, долги старше 30 дней, поступления из банка без разнесения, накладные без закупки и в минус за 30 дней, склад, телефон и часы приёмки точек, единицы и страна товаров."]],
   "События":["Кто и что делал в системе — видно только вам.","Входы, документы, архив, скачивания, изменения цен и справочников. Хранятся последние 3000 событий."],
   "Поставщик (продавец)":["Реквизиты ваших ИП — они печатаются в документах.","Проверьте ИНН, ОГРНИП, расчётный счёт и банк. Нумерация документов ведётся отдельно по каждому заказчику — в «Заказчики и цены» → «Нумерация документов»."],
   "Нумерация документов":["У каждого заказчика свои номера документов.",["Новый документ получает «последний номер этого заказчика + 1».","Если раньше документы делали в 1С или Т‑Банке — впишите в «Продолжить с №» следующий номер (например, 80).","Документы в архиве не считаются — их номера снова свободны."]],
