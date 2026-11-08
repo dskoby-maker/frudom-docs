@@ -62,8 +62,8 @@ function dForm(pre, onDone){ const f=pre&&pre.id?skD().files.find(x=>x.id===pre.
   if(!SKDF.chips) SKDF.chips=[]; skModal(dFormHtml, true); }
 function dFormHtml(){ const F=SKDF, edit=!!F.id, f=edit?skD().files.find(x=>x.id===F.id):null;
   return skHead("Декларации", edit?"Изменить декларацию":"Новая декларация", edit?esc(f?f.name:""):"Файл, на какие товары, номер и срок — по ним потом найдёте и скачаете декларации к документу.", "Декларации")
-   + (edit?"":`<div class="dcf-file"><label class="dcf-drop${F.files.length?" has":""}"><input type="file" class="dcf-in" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx" hidden>
-       ${F.files.length?`<span class="dcf-fl">${F.files.map(x=>`<span><b>${esc(x.name)}</b><small>${(x.size/1024/1024).toFixed(x.size>1048576?1:2).replace(".",",")} МБ</small></span>`).join("")}</span><span class="dcf-ch">Заменить</span>`:`<span class="dcf-ic">📄</span><span><b>Выберите файл или сфотографируйте</b><small>PDF или фото; несколько фото страниц соберутся в один PDF</small></span>`}</label>
+   + (edit?"":`<div class="dcf-file"><label class="dcf-drop${F.files.length?" has":""}"><input type="file" class="dcf-in" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx,.rtf,.odt,.ods,.odp,.ppt,.pptx,.txt,.csv" hidden>
+       ${F.files.length?`<span class="dcf-fl">${F.files.map(x=>`<span><b>${esc(x.name)}</b><small>${(x.size/1024/1024).toFixed(x.size>1048576?1:2).replace(".",",")} МБ</small></span>`).join("")}</span><span class="dcf-ch">Заменить</span>`:`<span class="dcf-ic">📄</span><span><b>Выберите файл или сфотографируйте</b><small>PDF, фото, Word, Excel и другие; несколько файлов соберутся в один PDF</small></span>`}</label>
        ${F.files.length?`<button type="button" class="btn sm dcf-ai${F.ai&&F.ai.busy?" busy":""}" data-dl="ai"${F.ai&&F.ai.busy?" disabled":""}>${F.ai&&F.ai.busy?`<i class="spin"></i>ИИ читает…`:"✨ Заполнить по файлу (ИИ)"}</button>`:""}</div>
        ${F.ai&&F.ai.err?`<div class="mi-errs"><span>ИИ не прочитал: ${esc(F.ai.err)}</span></div>`:""}${F.ai&&F.ai.done?`<div class="mi-rest ok">${esc(F.ai.done)}</div>`:""}`)
    + `<div class="dcf-goods"><div class="dcf-lbl">На какие товары декларация${skHQ("Товары в декларации")}</div>
@@ -101,6 +101,15 @@ async function dAddToPdf(out, u8, mime, name){ const L=window.PDFLib;
   if(mime==="application/pdf" || /\.pdf$/i.test(name||"")){ const src=await L.PDFDocument.load(u8,{ignoreEncryption:true}); (await out.copyPages(src, src.getPageIndices())).forEach(p=>out.addPage(p)); return; }
   if(/^image\//.test(mime||"")){ const j=await dToJpeg(u8, mime), img=await out.embedJpg(j.u8), W=595.28, H=841.89, m=18, k=Math.min((W-2*m)/j.w,(H-2*m)/j.h), w=j.w*k, h=j.h*k; const pg=out.addPage([W,H]); pg.drawImage(img,{x:(W-w)/2, y:(H-h)/2, width:w, height:h}); return; }
   throw new Error("не PDF и не фото"); }
+/* Word, Excel, PowerPoint, RTF, TXT… → PDF через Google Диск (Code.gs ≥ 22): сохранённая декларация — по ID, файл с устройства — содержимым */
+const dDirect = (mime, name) => mime==="application/pdf" || /\.pdf$/i.test(name||"") || /^image\//.test(mime||"");
+const dB64u8 = b => { const bin=atob(b), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i); return u8; };
+const dU8b64 = u8 => { let bin=""; for(let i=0;i<u8.length;i+=0x8000) bin+=String.fromCharCode.apply(null, u8.subarray(i,i+0x8000)); return btoa(bin); };
+async function dPdfOf(src){ if((D.srvVer||0)<22) throw new Error("обновите Code.gs — старый скрипт таблицы не превращает Word и Excel в PDF");
+  const ck=src.id?"pdf:"+src.id:""; if(ck && DFC[ck]) return DFC[ck];
+  const j=await api(src.id?{action:"stock", op:"filePdf", d:{id:src.id}}:{action:"stock", op:"toPdf", d:{name:src.name, mime:src.mime, data:dU8b64(src.u8)}});
+  if(!j || !j.data) throw new Error((j&&j.error)||"не получилось сделать PDF");
+  const r={name:j.name, mime:"application/pdf", u8:dB64u8(j.data)}; if(ck) DFC[ck]=r; return r; }
 async function dSave(){ dFormRead(); const F=SKDF, edit=!!F.id; if(F.q.trim()) dAddText(F.q);
   if(!F.chips.length){ toast("err","Укажите, на какие товары декларация","Впишите название и нажмите Enter или выберите из подсказок."); dRedraw(".dcf-q"); return; }
   if(!edit && !F.files.length){ toast("err","Выберите файл декларации",""); return; }
@@ -110,8 +119,10 @@ async function dSave(){ dFormRead(); const F=SKDF, edit=!!F.id; if(F.q.trim()) d
   F.busy=true; dRedraw();
   try{ if(edit){ await skSend("fileEdit", Object.assign({id:F.id}, meta), "Декларация: "+meta.goods.join(", ")); toast("ok","Декларация сохранена",meta.goods.join(", ")); }
     else { let name=F.files[0].name, mime=skMime(F.files[0]), u8;
-      if(F.files.length>1){ for(const x of F.files) if(!/^image\//.test(skMime(x)) && skMime(x)!=="application/pdf") throw new Error("собрать в один PDF можно только фото и PDF — «"+x.name+"» не подходит");
-        const L=await dLib(), out=await L.PDFDocument.create(); for(const x of F.files) await dAddToPdf(out, await dU8(x), skMime(x), x.name);
+      if(F.files.length>1){ const L=await dLib(), out=await L.PDFDocument.create();
+        for(const x of F.files){ let u=await dU8(x), m=skMime(x);
+          if(!dDirect(m, x.name)){ try{ u=(await dPdfOf({name:x.name, mime:m, u8:u})).u8; m="application/pdf"; }catch(e){ throw new Error("«"+x.name+"»: "+e.message); } }
+          await dAddToPdf(out, u, m, x.name); }
         u8=await out.save(); mime="application/pdf"; name=(meta.goods.slice(0,3).join(", ")||"Декларация").replace(/[\\/:*?"<>|]+/g," ")+".pdf"; }
       else { if(!skFileOk(F.files[0])) throw new Error("файл не подходит"); u8=await dU8(F.files[0]); }
       if(u8.length>20*1024*1024) throw new Error("файл больше 20 МБ");
@@ -189,10 +200,12 @@ async function dBuild(kind){ const M=SKDD, ids=[]; M.pos.forEach(p=>M.sel[p.id].
       dDownload(await z.generateAsync({type:"blob", mimeType:"application/zip"}), dFileName(M,"zip")); toast("ok","Архив скачан", list.length+" "+plural(list.length,["файл","файла","файлов"])+"."); }
     else { M.busy="Собираю PDF"; dDocRedraw(); const L=await dLib(), out=await L.PDFDocument.create(), skipped=[];
       if(M.cover){ const img=await out.embedJpg(await dCover(M, list)), pg=out.addPage([595.28,841.89]); pg.drawImage(img,{x:0,y:0,width:595.28,height:841.89}); }
-      for(const g of got){ try{ await dAddToPdf(out, g.u8, g.mime, g.name); }catch(e){ skipped.push(g); } }
+      for(const g of got){ try{ let u=g.u8, m=g.mime;
+          if(!dDirect(m, g.name)){ M.busy="Превращаю в PDF: "+g.name; dDocRedraw(); const p=await dPdfOf({id:g.f.id}); u=p.u8; m="application/pdf"; }
+          await dAddToPdf(out, u, m, g.name); }catch(e){ skipped.push(Object.assign({why:e.message}, g)); } }
       if(out.getPageCount()===(M.cover?1:0)) throw new Error("ни один файл не удалось вставить в PDF — скачайте ZIP-архивом");
       dDownload(new Blob([await out.save()],{type:"application/pdf"}), dFileName(M,"pdf"));
-      toast(skipped.length?"warn":"ok", skipped.length?"PDF скачан, но не всё вошло":"PDF скачан", skipped.length?"Не вставились (не PDF и не фото): "+skipped.map(g=>g.name).join(", ")+". Их можно скачать ZIP-архивом.":list.length+" "+plural(list.length,["декларация","декларации","деклараций"])+" в одном файле.", skipped.length?{ms:14000}:{}); }
+      toast(skipped.length?"warn":"ok", skipped.length?"PDF скачан, но не всё вошло":"PDF скачан", skipped.length?"Не вставились: "+skipped.map(g=>"«"+g.name+"» — "+g.why).join("; ")+". Их можно скачать ZIP-архивом.":list.length+" "+plural(list.length,["декларация","декларации","деклараций"])+" в одном файле.", skipped.length?{ms:14000}:{}); }
     logEv("Склад","Скачаны декларации ("+list.length+") к "+(M.docs.length>1?"комплекту":"документу")+" № "+M.docs.map(j=>j.number).join(", "));
     M.busy=""; dDocRedraw(); dRemember();
   }catch(e){ M.busy=""; dDocRedraw(); toast("err","Не получилось собрать декларации", e.message); } }

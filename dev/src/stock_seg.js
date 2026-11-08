@@ -299,7 +299,7 @@ function skInHtml(){ const X=skIdx(), F=SKIN, init=F.kind==="init", sups=[...new
       <label class="f">Поставщик<input class="skf-sup" data-keep="1" list="sk-sups" value="${esc(F.supplier)}" placeholder="${init?"Начальный остаток":"Саид, рынок, ООО…"}"><datalist id="sk-sups">${sups.map(s=>`<option value="${esc(s)}">`).join("")}</datalist></label>
       <label class="f">Входящий документ (№ или ссылка)<input class="skf-doc" data-keep="1" value="${esc(F.docRef)}"></label>
       <label class="f">Годен до (необязательно)<input type="date" class="skf-exp" data-keep="1" value="${esc(F.exp)}"></label>
-      <label class="f wide">Декларация (необязательно)<input type="file" class="skf-file" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx"></label>
+      <label class="f wide">Декларация (необязательно)<input type="file" class="skf-file" accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx,.rtf,.odt,.ods,.odp,.ppt,.pptx,.txt,.csv"></label>
     </div><div class="sksum" id="sk-insum">${skInSum()}</div>
     <div class="dc-acts"><button class="btn" data-sk="close">Отмена</button><button class="btn pri" data-sk="inSave">${init?"Провести остаток":"Провести приход"}</button></div>`; }
 function skInSug(){ const F=SKIN, q=skK(F.name), X=skIdx(); if(!q || !F.sugOpen) return "";
@@ -361,15 +361,16 @@ async function skInSave(force){ skInRead(); const F=SKIN, d=$("#sk-dlg"), file=(
       if(confirm(e.message+".\n\nЭто другой, отдельный приход? Нажмите «ОК», чтобы провести его отдельно.")) return skInSave(true); return; }
     if(e.queued){ skErr(e,"приход"); skClose(); return; } skErr(e,"приход"); btn.disabled=false; btn.textContent=F.kind==="init"?"Провести остаток":"Провести приход"; } }
 /* ---------- декларации ---------- */
-const SK_EXT=/\.(pdf|jpe?g|png|webp|heic|heif|gif|docx?|xlsx?|txt)$/i;
-function skFileOk(f){ if(!SK_EXT.test(f.name)){ toast("err","Такой файл не подходит","Можно PDF, фото (JPG, PNG, WEBP, HEIC), Word или Excel."); return false; } if(f.size>20*1024*1024){ toast("err","Файл больше 20 МБ","Сожмите или разделите файл."); return false; } return true; }
-const skMime = f => f.type || ({pdf:"application/pdf",jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",webp:"image/webp",heic:"image/heic",heif:"image/heif",gif:"image/gif",doc:"application/msword",docx:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",xls:"application/vnd.ms-excel",xlsx:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",txt:"text/plain"})[(f.name.split(".").pop()||"").toLowerCase()] || "";
+const SK_EXT=/\.(pdf|jpe?g|png|webp|heic|heif|gif|docx?|docm|xlsx?|xlsm|txt|rtf|odt|ods|odp|pptx?|csv)$/i;
+function skFileOk(f){ if(!SK_EXT.test(f.name)){ toast("err","Такой файл не подходит","Можно PDF, фото (JPG, PNG, WEBP, HEIC), Word, Excel, PowerPoint, RTF, ODT или TXT."); return false; } if(f.size>20*1024*1024){ toast("err","Файл больше 20 МБ","Сожмите или разделите файл."); return false; } return true; }
+const skMime = f => (SK_MIMEX[(f.name.split(".").pop()||"").toLowerCase()]) || f.type || "";
+const SK_MIMEX=({pdf:"application/pdf",jpg:"image/jpeg",jpeg:"image/jpeg",png:"image/png",webp:"image/webp",heic:"image/heic",heif:"image/heif",gif:"image/gif",doc:"application/msword",docx:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",xls:"application/vnd.ms-excel",xlsx:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",txt:"text/plain",rtf:"application/rtf",odt:"application/vnd.oasis.opendocument.text",ods:"application/vnd.oasis.opendocument.spreadsheet",odp:"application/vnd.oasis.opendocument.presentation",ppt:"application/vnd.ms-powerpoint",pptx:"application/vnd.openxmlformats-officedocument.presentationml.presentation",csv:"text/csv",docm:"application/vnd.ms-word.document.macroenabled.12",xlsm:"application/vnd.ms-excel.sheet.macroenabled.12"});
 async function skAttach(f, itemId, batchId){ if(!skFileOk(f)) return;
   const data=await new Promise((ok,bad)=>{ const r=new FileReader(); r.onload=()=>ok(String(r.result).split(",")[1]||""); r.onerror=()=>bad(new Error("не получилось прочитать файл")); r.readAsDataURL(f); });
   const t=toast("info","Загружаю декларацию…", f.name, {sticky:true});
   try{ await skSend("file", {itemId, batchId:batchId||"", name:f.name, mime:skMime(f), size:f.size, data}, "Декларация: "+f.name); toast("ok","Декларация прикреплена", f.name); }
   catch(e){ if(e.queued){ toast("warn","Декларация не загрузилась — нет связи","Файл «"+f.name+"» ждёт отправки. Не перезагружайте страницу, отправлю сам."); } else skErr(e,"декларация"); } }
-function skPickFile(itemId, batchId){ const inp=document.createElement("input"); inp.type="file"; inp.accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx"; inp.onchange=()=>{ const f=inp.files[0]; if(f) skAttach(f, itemId, batchId); }; inp.click(); }
+function skPickFile(itemId, batchId){ const inp=document.createElement("input"); inp.type="file"; inp.accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx,.rtf,.odt,.ods,.odp,.ppt,.pptx,.txt,.csv"; inp.onchange=()=>{ const f=inp.files[0]; if(f) skAttach(f, itemId, batchId); }; inp.click(); }
 async function skFile(id, view){ const t0=toast("info","Открываю файл…","");
   try{ const j=await api({action:"stock", op:"fileGet", d:{id}}); const bin=atob(j.data), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
     const blob=new Blob([u8],{type:j.mime||"application/octet-stream"}), url=URL.createObjectURL(blob);
