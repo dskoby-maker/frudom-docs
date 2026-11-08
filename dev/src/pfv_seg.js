@@ -378,7 +378,7 @@ const pvGrp = v => { v=String(v==null?"":v).replace(/[^\d.,]/g,"").replace(".","
   return a.replace(/^0+(?=\d)/,"").replace(/\B(?=(\d{3})+(?!\d))/g," ")+b; };
 function pvGrpIn(el){ const v=el.value, pos=el.selectionStart==null?v.length:el.selectionStart, k=v.slice(0,pos).replace(/[^\d,.]/g,"").length, nv=pvGrp(v); if(nv===v) return;
   el.value=nv; let n=0, p=0; while(p<nv.length && n<k){ if(/[\d,]/.test(nv[p])) n++; p++; } try{ el.setSelectionRange(p,p); }catch(e){} }
-document.addEventListener("input", e=>{ const t=e.target; if(t && t.matches && t.matches("#pvi-sum, #pvl-sum, .pvxs")) pvGrpIn(t); }, true);
+/* разряды в #pvi-sum, #pvl-sum, .pvxs теперь ставит общий moneyGrp (fmt_seg.js, MONEY_SEL) */
 const PV_PH = {exp:"например, бензин Гриша", inc:"например, проценты по вкладу", per:"например, продукты домой"};
 /* выбрали запись, которая уже была, — подставим категорию и подскажем прошлую сумму */
 function pvItemNote(){ const n=($("#pvi-note").value||"").trim().toLowerCase(), h=$("#pvi-hint"); if(!h) return;
