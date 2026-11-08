@@ -216,8 +216,7 @@
 #fd-app .dl{font-size:12px;color:var(--ok);white-space:nowrap}
 #fd-app .make .btn small{display:block;font-weight:400;font-size:11px;opacity:.8}
 #fd-app .tbl{overflow-x:auto}
-#fd-tback{position:fixed;z-index:7950;left:20px;top:78px;display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(106,44,78,.18);background:#fff;color:#6A2C4E;border-radius:999px;padding:8px 16px 8px 12px;font:600 14px var(--ui,"Onest","Inter",system-ui,sans-serif);box-shadow:0 6px 20px rgba(28,34,32,.14);cursor:pointer;animation:fdpop .25s ease-out}#fd-tback span{font-size:20px;line-height:.8}#fd-tback:hover{background:#F2E7ED}@media (max-width:760px){#fd-tback{left:12px;top:calc(66px + env(safe-area-inset-top,0px))}}@media print{#fd-tback{display:none!important}}
-#fd-undo{position:fixed;z-index:7900;left:20px;bottom:20px;display:flex;gap:8px;max-width:calc(100vw - 40px);font-family:var(--ui,"Onest","Inter",system-ui,sans-serif);animation:fdpop .25s ease-out}
+#fd-tbrow{display:flex;padding:8px 0 10px;animation:fdpop .25s ease-out}#fd-tback{display:inline-flex;align-items:center;gap:6px;max-width:100%;min-height:34px;border:1px solid rgba(106,44,78,.2);background:#fff;color:#6A2C4E;border-radius:999px;padding:5px 14px 5px 10px;font:600 14px var(--ui,system-ui,sans-serif);box-shadow:0 2px 8px rgba(28,34,32,.08);cursor:pointer}#fd-tback b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fd-tback span{font-size:20px;line-height:.8;flex:none}#fd-tback:hover{background:#F2E7ED}#fd-tback:focus-visible{outline:2px solid #6A2C4E;outline-offset:2px}@media (max-width:760px){#fd-tbrow{padding:6px 0 0}#fd-tback{font-size:13.5px;min-height:32px}}@media print{#fd-tbrow{display:none!important}}#fd-undo{position:fixed;z-index:7900;left:20px;bottom:20px;display:flex;gap:8px;max-width:calc(100vw - 40px);font-family:var(--ui,"Onest","Inter",system-ui,sans-serif);animation:fdpop .25s ease-out}
 #fd-undo[hidden],#fd-undo button[hidden]{display:none}
 #fd-undo button{display:flex;align-items:center;gap:9px;min-width:0;max-width:340px;border:1px solid rgba(106,44,78,.22);background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);color:var(--accent,#6A2C4E);border-radius:999px;padding:8px 16px 8px 12px;font:600 14px/1.15 var(--ui,system-ui);cursor:pointer;box-shadow:0 12px 30px -14px rgba(28,20,30,.45);text-align:left;transition:background .15s,color .15s,transform .1s}
 #fd-undo button:hover{background:var(--accent,#6A2C4E);color:#fff}#fd-undo button:active{transform:scale(.97)}
@@ -2518,9 +2517,10 @@ function tabBackFrom(label, go){ const from=curTab, y=window.scrollY; TBACK=null
   if(curTab===from) return; TBACK={from, y, label, to:curTab}; try{ history.pushState({fdtb:1}, ""); }catch(e){} tbDraw(); }
 function tabBackGo(){ const b=TBACK; if(!b) return; TBACK=null; tbDraw(); showTab(b.from); setTimeout(()=>window.scrollTo(0, b.y), 60); }
 function tbDraw(){ let el=document.getElementById("fd-tback");
-  if(!TBACK){ if(el) el.remove(); return; }
-  if(!el){ el=document.createElement("button"); el.type="button"; el.id="fd-tback"; el.onclick=()=>{ if(history.state && history.state.fdtb) history.back(); else tabBackGo(); }; document.body.appendChild(el); }
-  el.innerHTML=`<span aria-hidden="true">‹</span>Назад: ${esc(TBACK.label)}`; }
+  if(!TBACK){ const r=document.getElementById("fd-tbrow"); if(r) r.remove(); else if(el) el.remove(); return; }
+  if(!el){ const row=document.createElement("div"); row.id="fd-tbrow"; el=document.createElement("button"); el.type="button"; el.id="fd-tback"; el.onclick=()=>{ if(history.state && history.state.fdtb) history.back(); else tabBackGo(); }; row.appendChild(el);
+    const w=document.querySelector("#fd-app header.top .wrap"); (w||document.body).appendChild(row); }
+  el.title="Вернуться: "+TBACK.label; el.innerHTML=`<span aria-hidden="true">‹</span><b>Назад: ${esc(TBACK.label)}</b>`; }
 window.addEventListener("popstate", ()=>{ if(TBACK) tabBackGo(); });
 function showTab(t){
   if(TBACK && !tbLock && t!==TBACK.to){ TBACK=null; tbDraw(); }

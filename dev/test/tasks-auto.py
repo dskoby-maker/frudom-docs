@@ -49,6 +49,12 @@ async def run(b, vw, tag):
     ok(await pg.is_visible('#tab-purchase') and await pg.locator('#zkp-st button.miss.on').count()==1 and await pg.locator('#zkp-list .zkp-it').count()==1, f'{tag}: «Заполнить» открывает закупку с этой накладной')
     ok('Задачи' in (await pg.text_content('#fd-tback') or ''), f'{tag}: сверху кнопка «‹ Назад: Задачи»')
     await pg.screenshot(path=f'/tmp/claude-0/tkback-{tag}.png')
+    geo=await pg.evaluate("""(()=>{const b=document.querySelector('#fd-tback').getBoundingClientRect(), h=document.querySelector('header.top').getBoundingClientRect(), m=document.querySelector('#tab-purchase,#fd-main');
+      const x=b.left+b.width/2, y=b.top+b.height/2, top=document.elementFromPoint(x,y); return {inHead:b.top>=h.top && b.bottom<=h.bottom+1, hit:!!(top&&top.closest('#fd-tback')), w:b.right<=innerWidth}})()""")
+    ok(geo['inHead'] and geo['hit'] and geo['w'], f'{tag}: «Назад» внутри шапки, ничего не закрывает {geo}')
+    await pg.screenshot(path=f'/tmp/claude-0/tb-{tag}.png')
+    await pg.mouse.wheel(0,600); await pg.wait_for_timeout(300)
+    ok(await pg.locator('#fd-tback').is_visible(), f'{tag}: при прокрутке кнопка остаётся видна (шапка прилипает)')
     await pg.click('#fd-tback'); await pg.wait_for_timeout(600)
     ok(await pg.is_visible('#tab-tasks') and await pg.locator('#fd-tback').count()==0, f'{tag}: «Назад» возвращает в задачи')
     await pg.locator('#tk-auto .tk', has_text='Без закупки').locator('[data-go]').click(); await pg.wait_for_timeout(800)
