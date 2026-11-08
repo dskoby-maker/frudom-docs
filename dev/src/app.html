@@ -906,6 +906,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .dtg-ch{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:hsl(var(--h) 60% 93%);transition:transform .3s cubic-bezier(.3,.9,.3,1),background .2s}
 #fd-app .dtg-ch::before{content:"";width:7px;height:7px;border-right:2px solid hsl(var(--h) 40% 35%);border-bottom:2px solid hsl(var(--h) 40% 35%);transform:translateY(-2px) rotate(45deg)}
 #fd-app .dtg.open .dtg-ch{transform:rotate(180deg)}
+#fd-app #dv-card{row-gap:0}#fd-app .dvfi{display:grid;gap:12px}#fd-app .dvfh{display:flex;align-items:center;flex-wrap:wrap;gap:0 4px;cursor:pointer;user-select:none;margin:0;border-radius:10px;outline-offset:4px}#fd-app .dvfh small{margin-left:2px}#fd-app .dvfx{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font:500 13px var(--ui);color:var(--muted);padding-left:10px}#fd-app .dvfh:hover .dvft{color:#6A2C4E}#fd-app .dvfc{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#F2E7ED;transition:transform .3s cubic-bezier(.3,.9,.3,1)}#fd-app .dvfc::before{content:"";width:7px;height:7px;border-right:2px solid #6A2C4E;border-bottom:2px solid #6A2C4E;transform:translateY(-2px) rotate(45deg)}#fd-app #dv-card.open .dvfc{transform:rotate(180deg)}#fd-app .dvfb{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s cubic-bezier(.3,.9,.3,1)}#fd-app #dv-card.open .dvfb{grid-template-rows:1fr}#fd-app .dvfi{overflow:hidden;min-height:0;visibility:hidden;transition:visibility 0s .32s}#fd-app #dv-card.open .dvfi{visibility:visible;transition:none;padding-top:12px}@media (max-width:480px){#fd-app .dvft{display:none}}@media (prefers-reduced-motion:reduce){#fd-app .dvfb,#fd-app .dvfc{transition:none}}
 #fd-app .dtg-b{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s cubic-bezier(.3,.9,.3,1)}
 #fd-app .dtg.open .dtg-b{grid-template-rows:1fr}
 #fd-app .dtg-i{overflow:hidden;min-height:0;display:grid;gap:6px;padding:0 8px;transition:padding .32s}
@@ -1834,13 +1835,15 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
       <div id="cal-load"></div>
     </div>
     <div class="card" id="dv-card">
-      <h2>Маршрут для водителя <small id="dv-date-lbl"></small></h2>
+      <h2 class="dvfh" id="dv-h" tabindex="0" role="button" aria-expanded="false" aria-controls="dv-body">Маршрут для водителя <small id="dv-date-lbl"></small><span class="dvfx"><span class="dvft">Развернуть</span><span class="dvfc" aria-hidden="true"></span></span></h2>
+      <div class="dvfb" id="dv-body"><div class="dvfi">
       <div class="jf">
         <label class="f">Поставщик<select id="dv-sup"></select></label>
       </div>
       <div class="row"><label class="chk"><input type="checkbox" id="dv-full">Подробно — для наёмного водителя (Яндекс Доставка, Достависта): телефоны, время приёмки, въезд, документы</label></div>
       <div class="row"><label class="chk"><input type="checkbox" id="dv-load" checked>Добавить «Загрузить всего» — сколько каждого товара взять со склада</label></div>
       <div id="dv-points"></div>
+      </div></div>
     </div>
     <div class="card">
       <h2>Текстом для копирования <small id="dv-count"></small></h2>
@@ -3395,6 +3398,7 @@ function renderDriver(){
   $("#dv-sup").innerHTML=`<option value="">Все</option>`+opts(D.suppliers,f.sup); $("#dv-full").checked=!!f.full; $("#dv-load").checked=f.load!==false;
   const P=dvPoints();
   $("#dv-count").textContent=P.length?P.length+" "+(P.length===1?"точка":P.length<5?"точки":"точек"):"";
+  if(P.length) $("#dv-date-lbl").textContent+=" · "+P.length+" "+plural(P.length,["точка","точки","точек"]); dvFold();
   const card=(p,i,ing)=>{ const pi=ptInfo(p.cid,p.addr), has=pi.phone||pi.contact||ptTime(pi)||pi.note||pi.phone2||pi.tag, hu=dtHue(p.cid), br=p.c.branchLabel?dvWho(p):"";
       return `<div class="dvp${hu!=null?" hc":""}"${hu!=null?` style="--h:${hu}"`:""}><h3><i>${i+1}</i>${ing?esc(ptName(p))+(br?`<span class="muted" style="font-weight:400">${esc(br)}</span>`:""):esc(dvWho(p))+`<span class="muted" style="font-weight:400">${esc(stLabel(p.addr,p.c.address))}</span>`}</h3>
         <div class="ad">${esc(pi.daddr||p.addr)} · накладн. № ${esc(p.docs.map(j=>j.number).join(", "))}</div>
@@ -3425,6 +3429,12 @@ function dvGroupHtml(g, day, card){ const c=cus(g.cid), hu=dtHue(g.cid), open=!!
     <div class="dtg-b"><div class="dtg-i">${g.L.map(x=>card(x.p,x.i,true)).join("")}</div></div></div>`; }
 $("#dv-points").addEventListener("click",e=>{ const t=e.target.closest("[data-dvgt]"); if(!t) return; const g=t.closest(".dvg"), on=!g.classList.contains("open");
   g.classList.toggle("open",on); t.setAttribute("aria-expanded",on); t.title=on?"Свернуть":"Показать все точки заказчика"; dvgStore(DV().date, g.dataset.dvg, on); });
+/* «Маршрут для водителя» свёрнут по умолчанию; раскрытие запоминается на устройстве */
+let dvFoldV=null; function dvFoldOn(){ if(dvFoldV==null){ try{ dvFoldV=localStorage.getItem("frudom-dvfold")==="1"; }catch(e){ dvFoldV=false; } } return dvFoldV; }
+function dvFold(){ const c=$("#dv-card"), on=dvFoldOn(), h=$("#dv-h"); c.classList.toggle("open",on); h.setAttribute("aria-expanded",on); h.title=on?"Свернуть маршрут":"Развернуть маршрут"; $("#dv-h .dvft").textContent=on?"Свернуть":"Развернуть"; $("#dv-body").inert=!on; }
+function dvFoldToggle(){ dvFoldV=!dvFoldOn(); try{ localStorage.setItem("frudom-dvfold", dvFoldV?"1":"0"); }catch(e){} dvFold(); }
+$("#dv-h").addEventListener("click",e=>{ if(e.target.closest(".hq")) return; dvFoldToggle(); });
+$("#dv-h").addEventListener("keydown",e=>{ if(e.target!==e.currentTarget||(e.key!=="Enter"&&e.key!==" ")) return; e.preventDefault(); dvFoldToggle(); });
 const dvSet=(k,v)=>{ DV()[k]=v; saveLocal(); renderDriver(); };
 $("#dv-points").addEventListener("click",e=>{ const b=e.target.closest("[data-dvmore]"); if(!b) return; const k=b.dataset.dvmore, op=!dvOpen.has(k);
   if(op) dvOpen.add(k); else dvOpen.delete(k);
