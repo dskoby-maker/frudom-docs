@@ -116,3 +116,62 @@ function zkpCalDraw(L){ const box=$("#zkp-cal"); if(!box) return; if(ZKP.view!==
       <span class="zkc-leg"><span><b class="none"></b>нет закупки ${cnt("none")}</span><span><b class="part"></b>частично ${cnt("part")}</span><span><b class="ok"></b>заполнено ${cnt("ok")}</span></span></div>
     <div class="zkc-w">${["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].map(x=>`<span>${x}</span>`).join("")}</div><div class="zkc-g">${cells.join("")}</div>
     ${ZKP.day?`<p class="zkc-f">Показаны накладные за <b>${fd(ZKP.day)}</b> · <button type="button" class="btn ghost sm" data-zkpd="${ZKP.day}">Весь месяц</button></p>`:`<p class="zkc-f muted">Нажмите на день — ниже останутся накладные этого дня.</p>`}`; }
+/* ---------- «Excel»: закупка за день или период одной таблицей ----------
+   Окно выбора периода (по умолчанию — как на экране), потом книга из трёх листов:
+   «Товары» — строка на товар накладной (продано, откуда, куплено, цена и сумма закупки, прибыль строки),
+   «Накладные» — итог по накладной (выручка, закупка, расходы, налог, прибыль, статус),
+   «Итого по товарам» — сколько всего куплено каждого товара и по какой средней цене. */
+const zkxIso = d => jIso(d);
+function zkxPresets(){ const n=new Date(), y=n.getFullYear(), m=n.getMonth(), d=n.getDate(), t=todayISO();
+  return [["today","Сегодня",t,t],["yest","Вчера",zkxIso(new Date(y,m,d-1)),zkxIso(new Date(y,m,d-1))],["7","7 дней",zkxIso(new Date(y,m,d-6)),t],
+    ["m","Этот месяц",zkxIso(new Date(y,m,1)),zkxIso(new Date(y,m+1,0))],["pm","Прошлый месяц",zkxIso(new Date(y,m-1,1)),zkxIso(new Date(y,m,0))]]; }
+function zkxNow(){ if(ZKP.view==="cal" && ZKP.day) return [ZKP.day, ZKP.day]; const [a,b]=zkpRange(); return [a==="0000"?"":a, b==="9999"?todayISO():b]; }
+function zkxDocs(a, b){ return D.journal.filter(j=>j.snap && !isArch(j) && j.date>=a && j.date<=b).sort((x,y)=>x.date<y.date?-1:x.date>y.date?1:String(x.number).localeCompare(String(y.number),"ru",{numeric:true})); }
+function zkxOpen(){ if(!pfLoaded){ toast("info","Подождите","Данные о закупке ещё загружаются."); return; }
+  const [a,b]=zkxNow(), P=zkxPresets();
+  openCard(`<div class="dc-head"><div><div class="dc-kicker">Закупка</div><h3>Скачать таблицу Excel</h3><div class="dc-sub">Выберите день или период — сайт соберёт все накладные: товары, откуда взяли, сколько купили и за сколько, прибыль.</div></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+    <div class="pvform zkx-f"><div class="ca-per zkx-p">${P.map(([k,t])=>`<button type="button" data-zkxp="${k}">${t}</button>`).join("")}</div>
+      <div class="zkx-d"><label><span>С</span><input type="date" id="zkx-a" value="${esc(a)}"></label><label><span>По</span><input type="date" id="zkx-b" value="${esc(b)}"></label></div>
+      <p class="muted zkx-n" id="zkx-n"></p>
+      <div class="pvea"><button type="button" class="btn pri" data-zkxgo>Скачать Excel</button><button type="button" class="btn ghost" data-dc="close">Отмена</button></div></div>`, false, ()=>{});
+  const d=$("#fd-dcard"); d.classList.add("pvi-d");
+  const cnt=()=>{ let x=$("#zkx-a").value, y=$("#zkx-b").value; if(x&&y&&x>y) [x,y]=[y,x]; const L=x&&y?zkxDocs(x,y):[];
+    $("#zkx-n").textContent = !x||!y ? "Укажите обе даты." : L.length ? `${L.length} ${plural(L.length,["накладная","накладные","накладных"])} · ${x===y?fd(x):fd(x)+" – "+fd(y)}` : "За эти даты накладных нет.";
+    d.querySelectorAll("[data-zkxp]").forEach(btn=>{ const p=P.find(q=>q[0]===btn.dataset.zkxp); btn.classList.toggle("on", p[2]===x && p[3]===y); }); };
+  d.addEventListener("click", e=>{ const p=e.target.closest("[data-zkxp]"); if(p){ const q=P.find(z=>z[0]===p.dataset.zkxp); $("#zkx-a").value=q[2]; $("#zkx-b").value=q[3]; cnt(); return; }
+    if(e.target.closest("[data-zkxgo]")){ let x=$("#zkx-a").value, y=$("#zkx-b").value; if(!x||!y){ toast("info","Укажите даты",""); return; } if(x>y) [x,y]=[y,x]; zkxSave(x,y); } });
+  d.addEventListener("input", cnt); cnt(); }
+async function zkxSave(a, b){
+  try{ const L=zkxDocs(a,b); if(!L.length){ toast("info","Нечего выгружать","За эти даты накладных нет."); return; }
+    const X=await loadXLSX(), per = a===b ? fd(a) : fd(a)+" – "+fd(b), R=[], N=[], G=new Map();
+    const stTxt = s => !s ? "нет закупки" : s.st==="ok" ? "заполнено" : s.st==="none" ? "нет закупки" : "частично";
+    L.forEach(j=>{ const x=docProfit(j), w=jWho(j), who=w.main+(kLbl(j)&&!w.main.includes(kLbl(j))?", "+kLbl(j):""), ip=supShort(sup(j.supplierId).name||""), st=zkJState(j);
+      x.lines.forEach(r=>{ const l=r.l, sk=r.sk;
+        let from="Закупка", bq=r.bq||l.qty, cu=r.c, cs=r.c!=null?r2(r.c*(r.bq||l.qty)):null;
+        if(sk){ from = sk.directQ>0 ? `Часть со склада (${fm(sk.stockQ)} ${l.unit})` : "Со склада"; bq=l.qty; cs=r.c!=null?r2(r.c*l.qty):null; cu=r.c; }
+        if(x.src){ from="Одной суммой"; cu=null; cs=null; bq=null; }
+        const prof = cs!=null ? r2(l.net-cs) : null;
+        R.push([fd(j.date), who, String(j.number||""), ip, l.name, l.unit, l.qty, l.priceNet, l.net, from, bq, cu, cs, prof]);
+        if(cs!=null && !x.src){ const k=l.name.trim().toLowerCase()+"|"+l.unit, g=G.get(k)||{n:l.name, u:l.unit, q:0, s:0, sold:0, rev:0, d:0}; g.q+=+bq||0; g.s+=cs; g.sold+=l.qty; g.rev+=l.net; g.d++; G.set(k,g); } });
+      N.push([fd(j.date), who, String(j.number||""), ip, x.rev, x.cost, x.exp, x.tax, x.profit, x.rev>0?r2(x.profit/x.rev*100)/100:null, stTxt(st), x.src?"одной суммой: "+x.src.map(s=>s.n+" "+fm(+s.s||0)).join(", "):x.miss?"не у всех товаров есть цена закупки":"по товарам"]); });
+    const sum=(A,i)=>r2(A.reduce((s,r)=>s+(+r[i]||0),0));
+    const head=t=>[["Закупка — "+t+" — "+per],[]];
+    const a1=[...head("по товарам"), ["Дата","Заказчик","№ накл.","ИП","Товар","Ед.","Продано","Цена продажи","Сумма продажи","Откуда","Куплено","Цена закупки за ед.","Сумма закупки","Прибыль строки (до налога)"], ...R,
+      [], ["Итого","","","","","","","",sum(R,8),"","","",sum(R,12),sum(R,13)]];
+    const a2=[...head("по накладным"), ["Дата","Заказчик","№ накл.","ИП","Выручка","Закупка товара","Прочие расходы","Налог","Прибыль","Наценка, %","Закупка","Как записана"], ...N,
+      [], ["Итого",L.length+" "+plural(L.length,["накладная","накладные","накладных"]),"","",sum(N,4),sum(N,5),sum(N,6),sum(N,7),sum(N,8)]];
+    const GL=[...G.values()].sort((p,q)=>q.s-p.s);
+    const a3=[...head("итого по товарам"), ["Товар","Ед.","Куплено всего","Сумма закупки","Средняя цена закупки","Продано","Сумма продажи","Средняя цена продажи","В накладных"],
+      ...GL.map(g=>[g.n, g.u, r3(g.q), r2(g.s), g.q?r2(g.s/g.q):null, r3(g.sold), r2(g.rev), g.sold?r2(g.rev/g.sold):null, g.d]),
+      [], ["Итого","","",r2(GL.reduce((s,g)=>s+g.s,0)),"","",r2(GL.reduce((s,g)=>s+g.rev,0))]];
+    const wb=X.utils.book_new(), add=(aoa, name, cols, money, pct)=>{ const ws=X.utils.aoa_to_sheet(aoa); ws["!cols"]=cols.map(w=>({wch:w}));
+      const rg=X.utils.decode_range(ws["!ref"]); for(let r=3;r<=rg.e.r;r++){ money.forEach(c=>{ const cl=ws[X.utils.encode_cell({r,c})]; if(cl&&cl.t==="n") cl.z="#,##0.00"; }); (pct||[]).forEach(c=>{ const cl=ws[X.utils.encode_cell({r,c})]; if(cl&&cl.t==="n") cl.z="0%"; }); }
+      ws["!autofilter"]={ref:X.utils.encode_range({s:{r:2,c:0},e:{r:Math.max(2,aoa.length-3),c:aoa[2].length-1}})};
+      X.utils.book_append_sheet(wb, ws, name); };
+    add(a1,"Товары",[11,30,8,16,34,6,9,12,13,24,9,13,13,14],[7,8,11,12,13]);
+    add(a2,"Накладные",[11,30,8,16,13,14,13,11,13,10,13,40],[4,5,6,7,8],[9]);
+    add(a3,"Итого по товарам",[34,6,13,14,14,10,14,14,11],[3,4,6,7]);
+    X.writeFile(wb, "Закупка "+(a===b?fd(a):fd(a)+"–"+fd(b))+".xlsx");
+    pvCloseCard(); toast("ok","Excel скачан", L.length+" "+plural(L.length,["накладная","накладные","накладных"])+" — ищите в «Загрузках».");
+  }catch(e){ toast("err","Не получилось выгрузить", e.message); } }
+document.addEventListener("click", e=>{ if(e.target.closest("#zkp [data-zkxls]")) zkxOpen(); });
