@@ -12,9 +12,10 @@ adb exec-out screencap -p > shot1.png
 adb shell input keyevent 4; sleep 2
 adb shell am start -W -n ru.frudom.docs/.MainActivity; sleep 5
 adb exec-out screencap -p > shot2.png
+adb shell pm grant ru.frudom.docs android.permission.POST_NOTIFICATIONS || true
 adb shell am start -W -n ru.frudom.docs/.NotifySettingsActivity; sleep 4
 adb exec-out screencap -p > shot3.png
-adb shell input swipe 500 1500 500 300 300; sleep 2
+adb shell input swipe 160 560 160 120 400; sleep 2; adb shell input swipe 160 560 160 120 400; sleep 2
 adb exec-out screencap -p > shot4.png
 adb shell input keyevent 4; sleep 1
 adb shell am start -W -n ru.frudom.docs/.MainActivity --es quick exp; sleep 6
