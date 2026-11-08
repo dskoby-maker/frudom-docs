@@ -1156,6 +1156,32 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app #pf-paysum{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:12px}
 #fd-app #pf-paysum>div{border-radius:14px;padding:11px 13px;background:rgba(255,255,255,.62);border:1px solid rgba(28,34,32,.07)}
 #fd-app #pf-paysum small{display:block;color:var(--muted);font-size:12px}#fd-app #pf-paysum b{display:block;font-size:20px;letter-spacing:-.01em}#fd-app #pf-paysum span{font-size:12px;color:var(--muted)}
+#fd-app #pf-paysum>div.go,#fd-app .pfk .pk.go{position:relative;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;-webkit-tap-highlight-color:transparent}
+#fd-app #pf-paysum>div.go:hover,#fd-app .pfk .pk.go:hover{border-color:rgba(106,44,78,.28);box-shadow:0 6px 18px rgba(28,34,32,.08)}#fd-app #pf-paysum>div.go:active,#fd-app .pfk .pk.go:active{transform:scale(.985)}
+#fd-app #pf-paysum>div.go:focus-visible,#fd-app .pfk .pk.go:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#fd-app .pkgo{position:absolute;right:10px;top:9px;font-style:normal;font-size:18px;line-height:1;color:var(--muted);opacity:.55}
+#fd-app .pfd-d .pfd-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:2px 0 12px}
+#fd-app .pfd-sum>div{border-radius:13px;padding:10px 12px;background:rgba(28,34,32,.035);border:1px solid rgba(28,34,32,.06);display:grid;gap:1px}
+#fd-app .pfd-sum small{color:var(--muted);font-size:12px}#fd-app .pfd-sum b{font-size:19px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}#fd-app .pfd-sum span{font-size:12px;color:var(--muted)}
+#fd-app .pfd-sum .warn{background:rgba(255,244,224,.8)}#fd-app .pfd-sum .warn b{color:var(--warn)}#fd-app .pfd-sum .bad b,#fd-app .pfd-sum b.neg{color:var(--err)}#fd-app .pfd-sum .ok b{color:var(--ok)}
+#fd-app .pfd-sum [role=button]{cursor:pointer}#fd-app .pfd-sum [role=button]:hover{border-color:rgba(106,44,78,.28)}#fd-app .pfd-go b{font-size:15px;color:var(--accent)}
+#fd-app .pfd-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px}#fd-app .pfd-bar .pfchips{margin:0}#fd-app .pfd-sort{flex:none}
+#fd-app .pfd-g{border:1px solid var(--line);border-radius:13px;background:var(--surface);margin-top:8px;overflow:hidden}
+#fd-app .pfd-gh{all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;gap:11px;padding:10px 12px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+#fd-app .pfd-gh:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:13px}#fd-app .pfd-gh:hover{background:rgba(28,34,32,.025)}
+#fd-app .pfd-gn{flex:1;min-width:0;display:grid;gap:2px}#fd-app .pfd-gn b{font-weight:600;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fd-app .pfd-gn small{font-size:12.5px;color:var(--muted)}
+#fd-app .pfd-gn em.warn{font-style:normal;color:var(--warn)}
+#fd-app .pfd-gb{display:block;height:4px;border-radius:9px;background:rgba(28,34,32,.06);margin-top:3px;overflow:hidden}#fd-app .pfd-gb>i{display:block;height:100%;width:var(--w);border-radius:9px;background:var(--accent);opacity:.55}#fd-app .pfd-gb.neg>i{background:var(--err)}
+#fd-app .pfd-gs{font-weight:650;font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap}#fd-app .pfd-gs.pos,#fd-app .pfd-s.pos b{color:var(--ok)}#fd-app .pfd-gs.neg,#fd-app .pfd-s.neg b{color:var(--err)}
+#fd-app .pfd-ga{font-style:normal;color:var(--muted);font-size:20px;line-height:1;transition:transform .2s}#fd-app .pfd-g.open .pfd-ga{transform:rotate(90deg)}
+#fd-app .pfd-gl{display:none;padding:0 12px 8px}#fd-app .pfd-g.open .pfd-gl{display:block;animation:fdin .2s ease}
+#fd-app .pfd-r{display:flex;align-items:center;gap:10px;padding:9px 2px;border-top:1px solid var(--line);cursor:pointer;transition:background .15s,opacity .25s}#fd-app .pfd-r:hover{background:rgba(28,34,32,.025)}
+#fd-app .pfd-r:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:8px}#fd-app .pfd-r.justpaid{opacity:.35}
+#fd-app .pfd-n{flex:1;min-width:0;display:grid}#fd-app .pfd-n b{font-weight:600;font-size:13.5px}#fd-app .pfd-n small{font-size:12px;color:var(--muted);overflow-wrap:anywhere}#fd-app .pfd-n em.warn{font-style:normal;color:var(--warn)}
+#fd-app .pfd-s{display:grid;justify-items:end;font-variant-numeric:tabular-nums;white-space:nowrap}#fd-app .pfd-s b{font-size:14px}#fd-app .pfd-s small{font-size:11.5px;color:var(--muted)}
+#fd-app .pfd-pay{flex:none}#fd-app .pfd-ga2{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;padding-top:8px;border-top:1px solid var(--line)}
+#fd-app .pfd-day{flex:none;width:44px;height:34px;border-radius:9px;display:grid;place-items:center;font:600 12.5px var(--ui);background:rgba(47,107,69,.1);color:var(--ok)}
+@media (max-width:520px){#fd-app .pfd-r{flex-wrap:wrap}#fd-app .pfd-r .pfage{order:3}#fd-app .pfd-r .pfd-pay{order:4;margin-left:auto}#fd-app .pfd-n{flex-basis:calc(100% - 110px)}#fd-app .pfd-sum b{font-size:17px}}
 #fd-app #pf-paysum .warn{background:rgba(255,244,224,.75)}#fd-app #pf-paysum .warn b{color:var(--warn)}#fd-app #pf-paysum .bad b{color:var(--err)}#fd-app #pf-paysum .ok b{color:var(--ok)}
 #fd-app .pfdebt{display:grid;gap:8px}
 #fd-app .pdc{border-radius:14px;background:rgba(255,255,255,.6);border:1px solid rgba(28,34,32,.07);overflow:hidden;transition:box-shadow .25s var(--ease,ease),background .2s;animation:fdglass .35s var(--ease,ease) backwards}
@@ -3828,7 +3854,7 @@ function drawProfit(){
   const OT=poFor(f,d1,d2); T.oexp=OT.filter(x=>x.kind!==PO_INC).reduce((a,x)=>a+(+x.sum||0),0); T.oinc=OT.filter(x=>x.kind===PO_INC).reduce((a,x)=>a+(+x.sum||0),0);
   Object.keys(T).forEach(k=>T[k]=r2(T[k])); T.gross=r2(T.rev-T.cost-T.tax); T.net=r2(T.gross-T.exp-T.oexp+T.oinc);
   const taxes=[...new Set(docs.map(x=>taxOf(x.j.supplierId)))], taxL = taxes.length===1 ? String(taxes[0]).replace(".",",")+"%" : taxes.length ? "по ставкам" : "8%";
-  const tile=(k,lbl,v,sub,cls)=>`<div class="pk ${cls||""}" data-k="${k}"><small>${lbl}</small><b class="${v<0?"neg":""}">${fm(v)}</b>${sub?`<span>${sub}</span>`:""}</div>`;
+  const tile=(k,lbl,v,sub,cls)=>`<div class="pk ${cls||""} go" data-k="${k}" data-pfd="${k}" role="button" tabindex="0" title="Подробнее"><i class="pkgo" aria-hidden="true">›</i><small>${lbl}</small><b class="${v<0?"neg":""}">${fm(v)}</b>${sub?`<span>${sub}</span>`:""}</div>`;
   const bar = T.rev>0 ? (()=>{ const seg=[["cost","Закупка",T.cost],["tax","Налог "+taxL,T.tax],["exp","Расходы",T.exp+T.oexp],["net","Прибыль",Math.max(0,T.net-T.oinc)]], tot=seg.reduce((a,s)=>a+Math.max(0,s[2]),0)||1;
       return `<div class="pfbar" role="img" aria-label="Из чего состоит выручка">${seg.map(s=>`<i class="b-${s[0]}" style="--w:${(Math.max(0,s[2])/tot*100).toFixed(2)}%" title="${s[1]}: ${fm(s[2])} ₽"></i>`).join("")}</div>
         <div class="pfleg">${seg.map(s=>`<span><i class="b-${s[0]}"></i>${s[1]} <b>${pct(Math.max(0,s[2]),tot)}</b></span>`).join("")}</div>`; })() : "";
@@ -3891,7 +3917,7 @@ function drawDebts(){
     c.ship+=p.tot; c.paid+=p.s; if(p.st!=="paid"){ c.due+=p.left; c.n++; c.old=Math.max(c.old, daysSince(j.date)); c.docs.push({j,p}); } if(p.s>0 && p.d>=d1 && p.d<=d2) c.per+=p.s; });
   const all=Object.values(by), show=$("#pf-showpaid").checked, L=all.filter(c=>show||c.due>0.004).sort((a,b)=>b.due-a.due||a.cid.localeCompare(b.cid));
   const due=r2(all.reduce((a,c)=>a+c.due,0)), n=all.reduce((a,c)=>a+c.n,0), old30=r2(all.reduce((a,c)=>a+c.docs.filter(x=>daysSince(x.j.date)>30).reduce((s,x)=>s+x.p.left,0),0)), per=r2(all.reduce((a,c)=>a+c.per,0));
-  $("#pf-paysum").innerHTML=`<div class="${due>0?"warn":"ok"}"><small>Всего должны</small><b>${fm(due)} ₽</b><span>${n} ${plural(n,["накладная","накладные","накладных"])} · ${L.filter(c=>c.due>0.004).length} ${plural(L.filter(c=>c.due>0.004).length,["заказчик","заказчика","заказчиков"])}</span></div><div class="${old30>0?"bad":""}"><small>Дольше 30 дней</small><b>${fm(old30)} ₽</b></div><div class="ok"><small>Оплатили за выбранный период</small><b>${fm(per)} ₽</b></div>`;
+  $("#pf-paysum").innerHTML=`<div class="${due>0?"warn":"ok"} go" data-pfd="debt" role="button" tabindex="0" title="Подробнее"><i class="pkgo" aria-hidden="true">›</i><small>Всего должны</small><b>${fm(due)} ₽</b><span>${n} ${plural(n,["накладная","накладные","накладных"])} · ${L.filter(c=>c.due>0.004).length} ${plural(L.filter(c=>c.due>0.004).length,["заказчик","заказчика","заказчиков"])}</span></div><div class="${old30>0?"bad":""} go" data-pfd="old30" role="button" tabindex="0" title="Подробнее"><i class="pkgo" aria-hidden="true">›</i><small>Дольше 30 дней</small><b>${fm(old30)} ₽</b></div><div class="ok go" data-pfd="perpaid" role="button" tabindex="0" title="Подробнее"><i class="pkgo" aria-hidden="true">›</i><small>Оплатили за выбранный период</small><b>${fm(per)} ₽</b></div>`;
   $("#pf-debt").innerHTML = L.length ? L.map(c=>{ const nm=cus(c.cid).name||"(заказчик удалён)", op=pfDebtOpen.has(c.cid), sh=c.ship>0?Math.min(100,c.paid/c.ship*100):100;
       return `<div class="pdc${op?" open":""}${c.due>0.004?"":" clear"}" data-cid="${esc(c.cid)}">
         <button type="button" class="pdh" data-dopen="${esc(c.cid)}" aria-expanded="${op}"><span class="pdn"><b>${esc(nm)}</b><small>${c.due>0.004?`${c.n} ${plural(c.n,["накладная не оплачена","накладные не оплачены","накладных не оплачено"])} · самая старая — <span class="pfage ${ageCls(c.old)}">${c.old?dnum(c.old):"сегодня или позже"}</span>`:"всё оплачено"}</small></span>
