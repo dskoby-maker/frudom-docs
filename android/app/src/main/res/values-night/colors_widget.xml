@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <color name="w_bg">#F21C1A1C</color>
+  <color name="w_panel">#FF272427</color>
+  <color name="w_fg">#FFF3EEF1</color>
+  <color name="w_muted">#FF9D9399</color>
+  <color name="w_line">#FF3A3539</color>
+  <color name="w_warn">#FFF09A8C</color>
+  <color name="w_exp_bg">#FF3B2523</color><color name="w_exp_fg">#FFF2A194</color>
+  <color name="w_inc_bg">#FF1F3328</color><color name="w_inc_fg">#FF8FD3A9</color>
+  <color name="w_per_bg">#FF34242F</color><color name="w_per_fg">#FFE3B1CE</color>
+</resources>

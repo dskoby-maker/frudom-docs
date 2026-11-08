@@ -20,6 +20,11 @@ adb exec-out screencap -p > shot4.png
 adb shell input keyevent 4; sleep 1
 adb shell am start -W -n ru.frudom.docs/.MainActivity --es quick exp; sleep 6
 adb exec-out screencap -p > shot5.png
+adb shell am force-stop ru.frudom.docs; adb shell am start -W -n ru.frudom.docs/.NotifySettingsActivity --ez wdemo true; sleep 4
+adb exec-out screencap -p > shot6.png
+adb shell cmd uimode night yes; sleep 2; adb shell am force-stop ru.frudom.docs; adb shell am start -W -n ru.frudom.docs/.NotifySettingsActivity --ez wdemo true; sleep 4
+adb exec-out screencap -p > shot7.png
+adb shell cmd uimode night no
 adb shell dumpsys appwidget | grep -i "frudom" | head -5 >> pid.txt
 adb shell pidof ru.frudom.docs > pid.txt || echo "НЕ ЗАПУЩЕНО" > pid.txt
 adb shell dumpsys package ru.frudom.docs | grep -E "versionName|versionCode" >> pid.txt

@@ -37,7 +37,7 @@ import java.util.Locale;
  *  Настройки — в SharedPreferences «notify» (экран NotifySettingsActivity). */
 public final class Notifier {
     static final String P = "notify";
-    static final int JOB = 7701;
+    static final int JOB = 7701, JOB_W = 7702;
     /* виды уведомлений: ключ, название, пояснение */
     static final String[][] KINDS = {
         {"bank",  "Деньги пришли из банка", "Каждое новое поступление на счёт ИП: сумма, плательщик, назначение"},
@@ -67,14 +67,15 @@ public final class Notifier {
             SharedPreferences.Editor e = s.edit().putString("url", url).putString("user", user).putString("key", key).putBoolean("admin", a.optBoolean("admin"));
             if (!user.equals(s.getString("user", ""))) e.putBoolean("init", false).remove("evAfter").remove("seen");   // другой человек — начать заново, без старых уведомлений
             e.apply();
-            if (user.isEmpty() || key.isEmpty()) cancel(c); else schedule(c, true);
+            if (user.isEmpty() || key.isEmpty()) { cancel(c); s.edit().remove("wSum").putString("wMsg", "").apply(); QuickWidget.renderAll(c); } else schedule(c, true);
+            widgetSoon(c);
         } catch (Exception ignored) {}
     }
 
     static void schedule(Context c, boolean replace) {
         JobScheduler js = (JobScheduler) c.getSystemService(Context.JOB_SCHEDULER_SERVICE);
         if (js == null) return;
-        if (!enabled(c) || !hasAccount(c)) { js.cancel(JOB); return; }
+        if ((!enabled(c) && !QuickWidget.has(c)) || !hasAccount(c)) { js.cancel(JOB); return; }   // виджету тоже нужна проверка раз в час
         long ms = periodMin(c) * 60_000L;
         JobInfo cur = js.getPendingJob(JOB);
         if (!replace && cur != null && cur.getIntervalMillis() == ms) return;
@@ -124,6 +125,7 @@ public final class Notifier {
         SharedPreferences s = prefs(c);
         String now = new SimpleDateFormat("dd.MM HH:mm", new Locale("ru")).format(new Date());
         if (!hasAccount(c)) return save(s, now, "Нет входа: откройте приложение и войдите на сайте");
+        if (QuickWidget.has(c)) widgetSync(c);
         if (!force && !enabled(c)) return "Уведомления выключены";
         if (!force && quietNow(c)) return save(s, now, "Тихие часы — проверю позже");
         StringBuilder kinds = new StringBuilder();
@@ -172,10 +174,10 @@ public final class Notifier {
             }
         }
         if (!staff.isEmpty()) {
-            if (staff.size() <= 3) for (JSONObject it : staff) { show(c, "staff", it.optString("id"), it.optString("title"), it.optString("text"), it.optString("go")); shown++; }
+            if (staff.size() <= 3) for (JSONObject it : staff) { String[] x = evShort(it); show(c, "staff", it.optString("id"), it.optString("title") + " · " + x[0], x[1], it.optString("go")); shown++; }
             else {
                 StringBuilder b = new StringBuilder();
-                for (JSONObject it : staff) b.append(b.length() > 0 ? "\n" : "").append(it.optString("title")).append(" — ").append(it.optString("text"));
+                for (JSONObject it : staff) { String[] x = evShort(it); b.append(b.length() > 0 ? "\n" : "").append(it.optString("title")).append(" · ").append(x[0].toLowerCase(new Locale("ru"))).append(" · ").append(x[1]); }
                 show(c, "staff", "staff-" + staff.get(staff.size() - 1).optString("id"), "Сотрудники: " + staff.size() + " действий", b.toString(), staff.get(0).optString("go")); shown++;
             }
         }
@@ -186,6 +188,37 @@ public final class Notifier {
         String res = shown == 0 ? "Всё в порядке, нового нет" : "Показано уведомлений: " + shown;
         if (!canNotify(c)) res += " (но уведомления запрещены в Android — нажмите «Разрешить уведомления»)";
         return save(s, now, res);
+    }
+
+    /** действие сотрудника коротко: {действие одним словом, «что № · заказчик»} */
+    static String[] evShort(JSONObject it) {
+        String act = it.optString("act"), raw = it.optString("raw");
+        if (raw.isEmpty()) { String t = it.optString("text"); int k = t.indexOf(": "); if (k > 0 && k < 30) { act = t.substring(0, k); raw = t.substring(k + 2); } else raw = t; }
+        return EvShort.of(act, raw);
+    }
+
+    /** виджет: попросить Android скоро (при первой связи) обновить цифры — одной разовой задачей */
+    static void widgetSoon(Context c) {
+        if (!QuickWidget.has(c)) return;
+        JobScheduler js = (JobScheduler) c.getSystemService(Context.JOB_SCHEDULER_SERVICE);
+        if (js == null) return;
+        try { js.schedule(new JobInfo.Builder(JOB_W, new ComponentName(c, NotifyJob.class)).setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+            .setOverrideDeadline(60_000L).build()); } catch (Exception ignored) {}
+    }
+
+    /** виджет: сводка из таблицы (action=notes, kinds=sum; Code.gs ≥ 23) → SharedPreferences → перерисовать виджеты */
+    static synchronized void widgetSync(Context c) {
+        SharedPreferences s = prefs(c);
+        String hm = new SimpleDateFormat("HH:mm", new Locale("ru")).format(new Date()), msg;
+        if (!hasAccount(c)) msg = "Войдите в приложении, чтобы видеть сводку";
+        else try {
+            JSONObject r = new JSONObject(get(s.getString("url", "") + "?action=notes&user=" + enc(s.getString("user", "")) + "&key=" + enc(s.getString("key", "")) + "&kinds=sum&device=" + enc("Android")));
+            if (!r.optBoolean("ok")) msg = "auth".equals(r.optString("error")) ? "Войдите в приложении заново" : r.optString("error").contains("unknown action") ? "Обновите Code.gs в таблице" : "Таблица ответила ошибкой · " + hm;
+            else if (r.optJSONObject("sum") == null) msg = "Для сводки обновите Code.gs в таблице";
+            else { s.edit().putString("wSum", r.optJSONObject("sum").toString()).apply(); msg = "Обновлено в " + hm; }
+        } catch (Exception e) { msg = (s.getString("wSum", "").isEmpty() ? "Нет связи" : "Нет связи · данные старые") + " · " + hm; }
+        s.edit().putString("wMsg", msg).apply();
+        QuickWidget.renderAll(c);
     }
 
     static String save(SharedPreferences s, String at, String msg) { s.edit().putString("lastAt", at).putString("lastMsg", msg).apply(); return msg; }
