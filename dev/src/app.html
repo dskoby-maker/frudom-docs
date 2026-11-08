@@ -2179,6 +2179,8 @@ let D = loadLocal(); D = D ? migrate(D) : seed(); D.journal = D.journal||[]; D.c
 const sup = id => D.suppliers.find(x=>x.id===id) || D.suppliers[0] || {};
 const cus = id => D.customers.find(x=>x.id===id) || {};
 const prod = id => D.products.find(x=>x.id===id);
+/* цена из таблицы: «315,95», «1 691,00» → «315.95», «1691.00» (иначе +"315,95" = NaN и в накладной пустая цена) */
+function prNorm(v){ if(v==null||typeof v!=="string") return v; const t=v.replace(/[\s\u00a0]/g,""); return /^-?\d+,\d+$/.test(t) ? t.replace(",",".") : /^-?\d+(\.\d+)?$/.test(t) ? t : v; }
 const custPrice = (c,p) => (D.prices[c]||{})[p];
 const getPrice = (c,p) => { const v=custPrice(c,p); return v!=null&&v!=="" ? +v : +(prod(p)||{}).price||0; };
 
@@ -2391,7 +2393,8 @@ function applyServer(d){
   serverOld = !Array.isArray(d.contracts) || !Array.isArray(d.specs) || (d.customers.length>0 && !("branches" in d.customers[0]));
   if(Array.isArray(d.contracts)) D.contracts = d.contracts;
   if(Array.isArray(d.specs)){ D.specs={}; d.specs.forEach(r=>{ (D.specs[r.customerId]=D.specs[r.customerId]||{})[r.productId]={spec:r.spec, ste:r.ste, art:r.art}; }); }
-  D.prices = {}; d.prices.forEach(r=>{ (D.prices[r.customerId]=D.prices[r.customerId]||{})[r.productId]=r.price; });
+  D.prices = {}; const prFix=[]; d.prices.forEach(r=>{ let v=r.price; const t=prNorm(v); if(t!==v){ v=t; prFix.push([r.customerId,r.productId]); } (D.prices[r.customerId]=D.prices[r.customerId]||{})[r.productId]=v; });
+  if(prFix.length && !isStaff()) prFix.forEach(([c,p])=>dirtyPrice(c,p));   /* цены, вписанные в таблицу руками с запятой («315,95»), — сайт читает как число и сам переписывает в таблицу с точкой */
   const wasDemo=!!D.demo, srv=new Set(d.journal.map(r=>r.id)), lost=wasDemo?[]:(D.journal||[]).filter(j=>j&&j.snap&&j.id&&!srv.has(j.id)&&(Date.now()-Date.parse(j.updated||0))<45*864e5);
   D.journal = d.journal.map(r=>{ let snap=null; try{ snap=JSON.parse(r.snap); }catch(e){} return {id:r.id, supplierId:r.supplierId, customerId:r.customerId, number:r.number, date:r.date, sum:+r.sum||0, updated:r.updated, snap}; })
     .filter(e=>e.snap).sort((a,b)=> (b.date+b.updated).localeCompare(a.date+a.updated));
@@ -6043,6 +6046,9 @@ function patchKb1(){
 /* ФГБНУ НИИР им. В.А. Насоновой — контракт № 142-2026 (44-ФЗ, ИКЗ 251772408504077240100100430210000244), спецификация 10 позиций; фасовка — из ТЗ контракта */
 const NIIR_SPEC=[["Консервы из морской капусты",219.00,{"уп":0.5,"шт":0.5}],["Ягоды сушеные",248.20,{"уп":1,"шт":1}],["Изделия макаронные (вермишель)",120.45,{"уп":0.4,"шт":0.4}],["Изделия макаронные (макароны фигурные)",120.45,{"уп":0.4,"шт":0.4}],
   ["Лист лавровый сушеный",876.00,{"уп":0.01,"шт":0.01}],["Дрожжи хлебопекарные сушеные",412.45,{"уп":0.011,"шт":0.011}],["Какао-порошок",693.50,{"уп":0.12,"шт":0.12}],["Цикорий растворимый",292.00,{"уп":0.1,"шт":0.1}],["Горох шлифованный",76.65,{"уп":1,"шт":1}],["Крахмалы, кроме модифицированных",120.45,null]];
+/* Цирк (Х-756/26): в прайс попал «Сельдерей (корень)» по цене КБ № 1 (382,50) — в договоре его нет, корень сельдерея там «Сельдерей свежий (корнеплод обрезной)» 254,30. Убираем только эту ошибочную цену. */
+function patchCircusCelery(){ const c=D.customers.find(x=>x.inn==="7736039722"); if(!c) return; const pl=D.prices[c.id]||{};
+  Object.keys(pl).forEach(pid=>{ const p=prod(pid); if(p && norm(p.name)==="сельдерей (корень)" && Math.abs(+prNorm(pl[pid])-382.5)<0.001){ delete pl[pid]; dirtyPrice(c.id,pid); } }); }
 function patchNiirAliases(){ const c=D.customers.find(x=>x.inn==="7724085040"); if(!c) return; const pl=D.prices[c.id]||{};
   const AL={"ягоды сушеные":["Шиповник","Шиповник сушеный","Шиповника плоды сушеные"],"крахмалы, кроме модифицированных":["Крахмал","Крахмал картофельный"],"изделия макаронные (вермишель)":["Вермишель"],"лист лавровый сушеный":["Лавровый лист"],"консервы из морской капусты":["Морская капуста"]};
   Object.keys(pl).forEach(pid=>{ const p=prod(pid); if(!p||!p.id||p.aliases) return; const a=AL[norm(p.name)]; if(a){ p.aliases=JSON.stringify(a); dirty("products",p.id); } }); }
@@ -6144,7 +6150,7 @@ function patchMguPoints2(){
   all.forEach(a=>{ const m=U.find(([re])=>re.test(a)); if(!m) return; const k=ptKey(a); o[k]=Object.assign(o[k]||{addr:a}, m[1]); });
   o.__v=2; c.points=JSON.stringify(o); dirty("customers",c.id);
 }
-function patchAll(){ patchPrivate(); patchKigm(); patchSuppliers(); if(!serverOld){ patchContracts(); patchKigmSpecs(); patchMgu(); patchMguSklad(); patchMguNames(); patchCircus(); patchKb1(); patchKb1Countries(); patchCircusSigns(); patchNiir(); patchNiirAliases(); patchNmic(); patchMguPoints(); patchMguPoints2(); } }
+function patchAll(){ patchPrivate(); patchKigm(); patchSuppliers(); if(!serverOld){ patchContracts(); patchKigmSpecs(); patchMgu(); patchMguSklad(); patchMguNames(); patchCircus(); patchKb1(); patchKb1Countries(); patchCircusSigns(); patchCircusCelery(); patchNiir(); patchNiirAliases(); patchNmic(); patchMguPoints(); patchMguPoints2(); } }
 
 /* ---------- товары: список — dev/src/pdl_seg.js (renderProducts) ---------- */
 
@@ -7068,7 +7074,7 @@ function appGo(t){ const nav=document.querySelector("#fd-app nav.tabs"); if(!nav
   if(A || /Android/i.test(navigator.userAgent||"")){ c.hidden=false; g.hidden=false;
     t.textContent = A ? "У вас старая версия приложения — в ней нет уведомлений и виджета. Скачайте новую и установите поверх старой (входить заново не нужно), потом откройте её и зайдите сюда снова."
       : "Уведомления на телефон и виджет «Расход · Доход · Личное» работают в приложении «Документы ФД». Скачайте его и установите."; } })();
-window.__fd = {shipSim:(a,b)=>shipSim(a,b), shipElsewhere:(c,b,a)=>shipElsewhere(c,b,a), acct:()=>({url:API_URL, user:curUser()||"", key:pass()||"", admin:!!me().admin}), quick:appQuick, go:appGo, D:()=>D, undo:(r)=>unApply(curTab,!!r), undoState:()=>UNDO, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, aiSrc, IMP:()=>IMP, patchNmic, docProfit, payOf, setPay, calm:fdCalm};
+window.__fd = {prNorm:v=>prNorm(v), getPrice:(c,p)=>getPrice(c,p), shipSim:(a,b)=>shipSim(a,b), shipElsewhere:(c,b,a)=>shipElsewhere(c,b,a), acct:()=>({url:API_URL, user:curUser()||"", key:pass()||"", admin:!!me().admin}), quick:appQuick, go:appGo, D:()=>D, undo:(r)=>unApply(curTab,!!r), undoState:()=>UNDO, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, aiSrc, IMP:()=>IMP, patchNmic, docProfit, payOf, setPay, calm:fdCalm};
 })();
 </script>
 <!-- ============ конец блока ============ -->

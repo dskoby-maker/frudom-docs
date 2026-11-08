@@ -323,7 +323,7 @@ function staffOk_(e) {
     return String(old.number) === String(e.number) && String(old.date) === String(e.date);
   }
   if (nm.arch) return false;
-  const pm = {}; read_('prices').forEach(r => pm[r.customerId + '|' + r.productId] = +r.price);
+  const pm = {}; read_('prices').forEach(r => pm[r.customerId + '|' + r.productId] = +String(r.price).replace(/[\s\u00a0]/g, '').replace(',', '.'));
   return (ns.dr.lines || []).filter(l => +l.qty > 0).every(l => { const v = pm[ns.dr.customerId + '|' + l.productId]; return v != null && Math.abs(v - (+l.price || 0)) < 0.006; });
 }
 
