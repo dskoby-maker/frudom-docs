@@ -32,3 +32,33 @@ const cap = s => s ? s[0].toUpperCase()+s.slice(1) : s;
 function moneyWords(x){ const c=Math.round(x*100), r=Math.floor(c/100), k=c%100;
   return cap(intWords(r,false)+" "+plural(r,["рубль","рубля","рублей"])+" "+String(k).padStart(2,"0")+" "+plural(k,["копейка","копейки","копеек"])); }
 
+/* ---------- Суммы в полях ввода — с пробелами по тысячам («60 000», «1 250 000,50») ----------
+   Правило сайта: любое поле денег показывает разряды пробелами прямо при вводе. Поле узнаётся по MONEY_SEL
+   (или атрибуту data-money). Пробелы только на экране: el.value отдаёт число без пробелов («60000,5»), поэтому
+   весь остальной код читает поля как раньше. Курсор при вводе не прыгает. Новое поле денег — добавить в MONEY_SEL
+   или поставить data-money. */
+const MONEY_SEL = [
+  "[data-money]",
+  /* документ, заявка, цены */ "#d-lines input.price", ".cur[data-cp]", "input[data-p]:not(.q)", "[data-k=maxSum]", "#pd-body [data-k=price]", ".pp",
+  /* прибыль, закупка, расходы */ "#po-sum", ".pfbs", ".pfc", ".pfe", ".pfps", ".pdsum", ".pvss", "#pvl-sum", "#pvi-sum", ".pvxs",
+  ".dzc", ".dzs", ".dze", ".bzc", ".bzs", ".bze", ".pcp",
+  /* банк, счета, акты */ "#bnp-sum", ".bnps", ".invli[data-k=price]", "[data-akt=prior]", "input[data-s=price]",
+  /* склад */ ".skbp", ".skf-price", ".skf-ppc", ".skmp", ".mi-price", ".mi-sum", ".mi-total"
+].join(",");
+const moneyGrp = v => { v=String(v==null?"":v); const s=v.replace(/[\s  ]/g,""), m=s.match(/^(-?)(\d+)([.,]\d*)?$/);
+  return m ? m[1]+m[2].replace(/\B(?=(\d{3})+(?!\d))/g," ")+(m[3]||"") : v; };
+if(typeof document!=="undefined" && typeof HTMLInputElement!=="undefined"){
+  const MND=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value");
+  const moneyOn = el => { if(!el || el._mny || el.type==="number" || el.type==="hidden" && false) return; el._mny=1;
+    Object.defineProperty(el,"value",{configurable:true, get(){ return MND.get.call(this).replace(/[\s  ]/g,""); }, set(v){ MND.set.call(this, moneyGrp(v)); }});
+    const raw=MND.get.call(el), g=moneyGrp(raw); if(g!==raw) MND.set.call(el,g); };
+  window.moneyOn=moneyOn;
+  const scan = root => { if(!root || root.nodeType!==1) return; if(root.matches(MONEY_SEL)) moneyOn(root); root.querySelectorAll && root.querySelectorAll(MONEY_SEL).forEach(moneyOn); };
+  document.addEventListener("input", e=>{ const el=e.target; if(!el || el.tagName!=="INPUT" || !el.matches(MONEY_SEL)) return; moneyOn(el);
+    const raw=MND.get.call(el), pos=el.selectionStart==null?raw.length:el.selectionStart, k=raw.slice(0,pos).replace(/[\s  ]/g,"").length, nv=moneyGrp(raw);
+    if(nv===raw) return; MND.set.call(el,nv); let n=0, p=0; while(p<nv.length && n<k){ if(!/\s/.test(nv[p])) n++; p++; } try{ el.setSelectionRange(p,p); }catch(x){} }, true);
+  document.addEventListener("focusin", e=>{ const el=e.target; if(el && el.tagName==="INPUT" && el.matches(MONEY_SEL)) moneyOn(el); }, true);
+  let mq=[], mt=0; new MutationObserver(L=>{ L.forEach(r=>r.addedNodes.forEach(n=>{ if(n.nodeType===1) mq.push(n); })); if(!mt) mt=requestAnimationFrame(()=>{ mt=0; const q=mq; mq=[]; q.forEach(scan); }); })
+    .observe(document.documentElement, {childList:true, subtree:true});
+  const st=()=>scan(document.body); if(document.readyState==="loading") document.addEventListener("DOMContentLoaded", st); else st();
+}
