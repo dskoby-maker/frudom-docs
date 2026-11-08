@@ -148,7 +148,7 @@
 #fd-app .oedit{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:var(--accent-soft);border:1px solid rgba(106,44,78,.2);border-radius:14px;padding:12px 14px;margin:6px 0 12px;animation:fdin .25s ease}
 #fd-app .oedit b{color:var(--accent);display:block}#fd-app .oedit span{font-size:13px;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){#fd-app .dcard .dc-doc,#fd-app .dcard .dc-hist ol,#fd-app .oedit{animation:none}#fd-app .dcard .dc-hist summary::after{transition:none}}
-#fd-app select.fdflash{animation:fdflash .6s ease}@keyframes fdflash{0%{box-shadow:0 0 0 0 rgba(106,44,78,.35)}40%{box-shadow:0 0 0 4px rgba(106,44,78,.18)}100%{box-shadow:0 0 0 0 rgba(106,44,78,0)}}
+#fd-app select.fdflash,#fd-app .shipw.fdflash{animation:fdflash .6s ease}@keyframes fdflash{0%{box-shadow:0 0 0 0 rgba(106,44,78,.35)}40%{box-shadow:0 0 0 4px rgba(106,44,78,.18)}100%{box-shadow:0 0 0 0 rgba(106,44,78,0)}}
 @media (prefers-reduced-motion:reduce){#fd-app section.tab:not([hidden]){animation:none}#fd-app nav.tabs button{transition:none}}
 #fd-app section.tab{display:grid;gap:16px;margin-top:20px}
 #fd-app .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:12px;min-width:0}
@@ -1536,6 +1536,10 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .evx{all:unset;cursor:pointer;font-size:13.5px;line-height:1.4;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}#fd-app .evx.full{-webkit-line-clamp:unset}
 #fd-app .evnone{text-align:center;padding:18px 6px;margin:0}
 @media (max-width:600px){#fd-app .evfl{grid-template-columns:1fr 1fr}#fd-app .evq{grid-column:1/-1}#fd-app .evd{display:none}}
+#fd-app .shipw{display:flex;gap:10px;align-items:flex-start;padding:11px 13px;border-radius:14px;border:1px solid rgba(154,91,0,.4);background:var(--warn-soft);animation:fdin .25s ease}
+#fd-app .shipw-i{flex:none;width:30px;height:30px;border-radius:10px;display:grid;place-items:center;background:var(--warn);color:#fff}#fd-app .shipw-i svg{width:17px;height:17px}
+#fd-app .shipw-t{flex:1;min-width:0;display:grid;gap:4px}#fd-app .shipw-t b{font-size:14px;color:var(--ink)}#fd-app .shipw-t small{font-size:12.5px;line-height:1.4;color:var(--muted);overflow-wrap:anywhere}
+#fd-app .shipw-a{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}@media (max-width:480px){#fd-app .shipw-a .btn{flex:1 1 100%;justify-content:center}}
 #fd-app .modal{position:fixed;inset:0;z-index:99990;background:rgba(10,12,11,.88);display:flex;flex-direction:column}
 #fd-app .modal .bar{background:var(--surface);display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));padding-top:calc(10px + env(safe-area-inset-top,0px))}
 #fd-app .modal .bar b{margin-right:auto}
@@ -1728,6 +1732,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
         <label class="f wide">Основание (договор, контракт)<input id="d-basis" placeholder="ЭЗК-26-91390881 от 30.09.2026"></label>
         <label class="f wide">Адрес доставки (грузополучатель)<select id="d-shipsel"></select></label>
         <label class="f wide" id="d-shipwrap">Другой адрес<input id="d-ship" placeholder="Впишите адрес доставки"></label>
+        <div class="f wide shipw" id="d-shipw" hidden role="alert"></div>
       </div>
     </div>
     <div class="card dform">
@@ -2812,16 +2817,47 @@ function renderShip(){
   $("#d-shipwrap").hidden = !(custom||!all.length); $("#d-ship").value = custom ? dr.ship : "";
   $("#d-shipsel").classList.toggle("unset", !dr.customerId); if(!dr.customerId && !dr.ship){ $("#d-shipsel").innerHTML='<option value="" selected>(не выбрано)</option><option value="__other">Другой адрес…</option>'; $("#d-shipwrap").hidden=true; return; }
   if(!dr.ship && all.length && !custom) dr.ship = $("#d-shipsel").value;
+  shipWarn();
 }
 $("#d-shipsel").onchange=e=>{ const v=e.target.value; if(v==="__other"){ D.draft.ship=""; $("#d-shipwrap").hidden=false; $("#d-ship").value=""; $("#d-ship").focus(); } else { D.draft.ship=v; $("#d-shipwrap").hidden=true; } saveLocal(); };
-$("#d-ship").addEventListener("input",e=>{ D.draft.ship=e.target.value; saveLocal(); });
+$("#d-ship").addEventListener("input",e=>{ D.draft.ship=e.target.value; saveLocal(); clearTimeout(shipWarn._t); shipWarn._t=setTimeout(shipWarn, 350); });
+/* ---------- страховка: адрес вписан вручную, а он (или очень похожий) есть у этого же заказчика в ДРУГОМ подразделении ----------
+   Пример: МГУ, выбран ОП «Комбинат питания», «Другой адрес…» — вписан адрес «Столовых диетического питания». */
+var SHIP_STOP=new Set("г город гор москва мо московская обл область р-н район россия рф ул улица д дом стр строение корп корпус к кор пр пр-т просп проспект пер переулок ш шоссе наб набережная пл площадь б-р бульвар пр-д проезд мкр микрорайон вл владение эт этаж пом помещение кв офис ком комн литер лит тер территория".split(" "));
+function shipToks(a){ const t=norm(a).replace(/(\d)([а-я]+)(\d)/g,"$1 $2$3").replace(/(\d)\s*([а-я])(?![а-я0-9.-])/g,"$1$2").replace(/[^a-zа-я0-9-]+/g," ").split(" ").filter(w=>w && !SHIP_STOP.has(w) && !/^\d{6}$/.test(w));
+  return {n:new Set(t.filter(w=>/\d/.test(w)).map(w=>w.replace(/^(д|стр|к|корп)/,""))), w:new Set(t.filter(w=>!/\d/.test(w) && w.length>=3).map(w=>w.slice(0,5)))}; }
+function shipSim(a, b){ if(!a||!b) return 0; if(ptKey(a)===ptKey(b)) return 1; const A=shipToks(a), B=shipToks(b);
+  const inter=(x,y)=>[...x].filter(v=>y.has(v)).length, wn=inter(A.w,B.w), nn=inter(A.n,B.n);
+  const numsSame = A.n.size && B.n.size && nn===Math.min(A.n.size,B.n.size);
+  if(wn>=1 && numsSame) return 0.9;
+  const all=new Set([...A.w,...A.n,...B.w,...B.n]); return all.size ? (wn+nn)/all.size : 0; }
+/* похожие адреса этого заказчика в других подразделениях (и в общей карточке, если выбрано ОП) */
+function shipElsewhere(customerId, branchId, addr){ const c=cus(customerId); if(!c||!addr||String(addr).trim().length<6) return [];
+  const bl=branches(c); if(!bl.length) return [];
+  const here=bl.find(b=>b.id===branchId), mine=[...addrs(here||c), (here||c).address||""].filter(Boolean);
+  if(mine.some(a=>shipSim(a,addr)>=0.9)) return [];   /* такой адрес есть в своём подразделении — всё в порядке */
+  const out=[]; bl.forEach(b=>{ if(b.id===branchId) return; [...addrs(b), b.address||""].filter(Boolean).forEach(a=>{ const k=shipSim(a,addr); if(k>=0.6) out.push({b, a, k, exact:k>=0.99}); }); });
+  return out.sort((x,y)=>y.k-x.k).filter((x,i,arr)=>arr.findIndex(z=>z.b.id===x.b.id)===i); }
+function brNm(b){ return b.label||b.fullName||"ОП"; }
+function shipWarn(){ const box=$("#d-shipw"); if(!box) return null; const dr=D.draft, wrapOn=!$("#d-shipwrap").hidden;
+  const L = wrapOn && dr.ship && dr.shipOk!==ptKey(dr.ship) ? shipElsewhere(dr.customerId, dr.branchId, dr.ship) : [];
+  box.hidden=!L.length; if(!L.length){ box.innerHTML=""; return null; }
+  const x=L[0], cur=branches(cus(dr.customerId)).find(b=>b.id===dr.branchId);
+  box.innerHTML=`<div class="shipw-i"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></div>
+    <div class="shipw-t"><b>${x.exact?"Этот адрес":"Похожий адрес"} — в другом подразделении: «${esc(brNm(x.b))}»</b>
+    <small>Сейчас выбрано «${esc(cur?brNm(cur):"—")}». В карточке «${esc(brNm(x.b))}» есть адрес: ${esc(x.a)}${L.length>1?` (и ещё в: ${L.slice(1).map(y=>"«"+esc(brNm(y.b))+"»").join(", ")})`:""}. Проверьте, не перепутано ли подразделение.</small>
+    <div class="shipw-a"><button type="button" class="btn sm pri" data-shipgo="${esc(x.b.id)}" data-shipa="${esc(x.a)}">Перейти в «${esc(brNm(x.b))}»</button><button type="button" class="btn sm ghost" data-shipok>Адрес верный, оставить</button></div></div>`;
+  return x; }
+$("#d-shipw").addEventListener("click",e=>{ const g=e.target.closest("[data-shipgo]"), ok=e.target.closest("[data-shipok]"), dr=D.draft;
+  if(g){ dr.branchId=g.dataset.shipgo; dr.ship=g.dataset.shipa; delete dr.shipOk; renderBranch(); renderShip(); saveLocal(); shipWarn(); toast("ok","Подразделение исправлено","Выбрано «"+brNm(branches(cus(dr.customerId)).find(b=>b.id===dr.branchId)||{})+"» и его адрес."); const el=$("#d-br"); if(el){ el.classList.remove("fdflash"); void el.offsetWidth; el.classList.add("fdflash"); } return; }
+  if(ok){ dr.shipOk=ptKey(dr.ship); saveLocal(); shipWarn(); toast("info","Хорошо, оставляю адрес","Документ сохранится с этим адресом."); } });
 $("#d-pbuyer").addEventListener("input",e=>{ D.draft.buyer=e.target.value; saveLocal(); });
 $("#d-pphone").addEventListener("input",e=>{ D.draft.bphone=e.target.value; saveLocal(); });
 $("#d-save").onclick=async()=>{
   const b=$("#d-save"), msg=$("#d-saved"); if(!calc(D.draft).lines.length){ msg.textContent="Добавьте хотя бы один товар с количеством."; toast("err","Нет товаров в документе","Выберите товар и укажите количество больше нуля — затем нажмите кнопку снова."); return; }
   const edit=D.journal.some(j=>j.id===D.draft.id); b.disabled=true;
   try{ const note=await commitDoc(); if(typeof bnMulNext==="function" && bnMulNext(note)) return; const dr=D.draft, n=dr.number;
-    const keep={supplierId:dr.supplierId, customerId:dr.customerId, branchId:dr.branchId, contractId:dr.contractId, basis:dr.basis, date:dr.date, ship:dr.ship};
+    const keep={supplierId:dr.supplierId, customerId:dr.customerId, branchId:dr.branchId, contractId:dr.contractId, basis:dr.basis, date:dr.date, ship:dr.ship, shipOk:dr.shipOk};
     D.draft=Object.assign(newDraft(D), keep); D.draft.number=nextNum(keep.supplierId, keep.customerId); saveLocal(); renderDoc();
     $("#d-saved").textContent=(note||"")+"Документ № "+n+(edit?" обновлён":" сохранён")+" в журнале — распечатать можно оттуда в любой момент. Форма очищена для следующего документа (№ "+D.draft.number+")."; docToast("Распечатать — во вкладке «Журнал». Форма готова для № "+D.draft.number+"."); }
   catch(e){ msg.textContent="Не получилось сохранить: "+e.message; toast("err","Не получилось сохранить документ", e.message+". Проверьте интернет и нажмите кнопку ещё раз."); }
@@ -2844,6 +2880,10 @@ $("#tab-doc").addEventListener("click",e=>{ const b=e.target.closest("#d-save,[d
   toast("err","Не выбран "+w.replace("поставщика","поставщик").replace("заказчика","заказчик"),"Выберите "+w+" в блоке «Стороны» — затем нажмите кнопку снова.");
   [!dr.supplierId&&"#d-sup", !dr.customerId&&"#d-cus"].filter(Boolean).forEach(sel=>{ const el=$(sel); el.classList.remove("fdflash"); void el.offsetWidth; el.classList.add("fdflash"); });
   ($(!dr.supplierId?"#d-sup":"#d-cus")).focus(); }, true);
+$("#tab-doc").addEventListener("click",e=>{ const b=e.target.closest("#d-save,[data-make],[data-combo]"); if(!b || b.closest("#mul")) return; const x=shipWarn(); if(!x) return;
+  e.preventDefault(); e.stopPropagation(); const box=$("#d-shipw");
+  toast("warn","Проверьте адрес доставки","Похожий адрес есть у подразделения «"+brNm(x.b)+"». Выберите: перейти туда или оставить адрес.");
+  box.scrollIntoView({behavior:"smooth", block:"center"}); box.classList.remove("fdflash"); void box.offsetWidth; box.classList.add("fdflash"); }, true);
 
 /* ---------- печатные формы ---------- */
 /*__DOCS__*/
@@ -3197,7 +3237,8 @@ $("#o-view").addEventListener("click",e=>{ const b=e.target.closest("button[data
 $("#o-tbl").addEventListener("keydown",e=>{ const el=e.target; if(!el.classList.contains("q") || !["Enter","ArrowDown","ArrowUp"].includes(e.key)) return;
   const col=[...document.querySelectorAll(oView(O())==="v"?`#o-body input.q[data-a="${el.dataset.a}"]`:`#o-body input.q[data-p="${el.dataset.p}"]`)], i=col.indexOf(el), nx=col[i+(e.key==="ArrowUp"?-1:1)];
   if(nx){ e.preventDefault(); nx.focus(); try{ nx.select(); }catch(_){} } });
-$("#o-addaddr").onclick=()=>{ const a=(prompt("Адрес доставки (как он должен быть в накладной):")||"").trim(); if(!a) return; const o=O(); if(!o.extra.includes(a)) o.extra.push(a); saveLocal(); renderOrderGrid(); };
+$("#o-addaddr").onclick=()=>{ const a=(prompt("Адрес доставки (как он должен быть в накладной):")||"").trim(); if(!a) return; const o=O();
+  { const L=shipElsewhere(o.customerId, o.branchId, a); if(L.length && !confirm((L[0].exact?"Этот адрес":"Похожий адрес")+" есть у другого подразделения этого заказчика — «"+brNm(L[0].b)+"»:\n"+L[0].a+"\n\nСейчас выбрано другое подразделение. Всё равно добавить адрес сюда?")) return; } if(!o.extra.includes(a)) o.extra.push(a); saveLocal(); renderOrderGrid(); };
 $("#o-editing").addEventListener("click",e=>{ if(e.target.closest("#o-edcancel")){ bundleEditEnd(true); $("#o-msg").textContent=""; toast("ok","Правка комплекта отменена","Документы в журнале не изменились."); } });
 $("#o-clear").onclick=()=>{ O().qty={}; O().num={}; saveLocal(); renderOrderGrid(); $("#o-done").innerHTML=""; $("#o-msg").textContent=""; };
 async function manyPdf(kinds, ks, name){
@@ -6414,7 +6455,7 @@ function impResolve({meta, lines}){
   G.forEach((g,gi)=>{ if(!g.num && G.length===1 && meta.num) g.num=String(meta.num).trim();
     const br=brOf(g.addr, g.br); if(g.br && bl.length && !brName(g.br)) g.warn.push({t:"w", m:"ОП «"+g.br+"» не найдено у заказчика."}); g.branchId=br?br.id:(bl.length?bl[0].id:""); if(bl.length && !br) g.warn.push({t:"w", m:"Подразделение не определено по адресу — выбрано «"+(bl[0].label||bl[0].fullName)+"». Проверьте."});
     const all=[...addrs(br||c)]; if((br||c).address) all.push((br||c).address);
-    if(g.addr){ const hit=all.find(a=>ptKey(a)===ptKey(g.addr))||all.find(a=>norm(a).includes(norm(g.addr))); g.ship=hit||g.addr; if(!hit) g.warn.push({t:"w", m:"Адреса «"+g.addr+"» нет в карточке заказчика — он будет вписан как «Другой адрес»."}); } else g.ship="";
+    if(g.addr){ const hit=all.find(a=>ptKey(a)===ptKey(g.addr))||all.find(a=>norm(a).includes(norm(g.addr))); g.ship=hit||g.addr; if(!hit){ const O2=shipElsewhere(c.id, g.branchId, g.addr); g.warn.push({t:"w", m: O2.length ? "Адрес «"+g.addr+"» похож на адрес подразделения «"+brNm(O2[0].b)+"» ("+O2[0].a+"), а выбрано «"+brNm(br||bl[0]||{})+"». Проверьте подразделение." : "Адреса «"+g.addr+"» нет в карточке заказчика — он будет вписан как «Другой адрес»."}); } } else g.ship="";
     g.items=[]; g.miss=[]; g.lines.forEach(l=>{ const p=impMatch(l.name, c.id, l.price);
       if(!p || p.__amb){ l.amb=p&&p.__amb||null; g.miss.push(l); return; }
       if(p.__pr===1) g.warn.push({t:"w", m:"«"+l.name+"» → «"+p.name+"»: по цене "+fm(+l.price)+" ₽ — в договоре только у этого товара такая цена. Проверьте."});
@@ -7027,7 +7068,7 @@ function appGo(t){ const nav=document.querySelector("#fd-app nav.tabs"); if(!nav
   if(A || /Android/i.test(navigator.userAgent||"")){ c.hidden=false; g.hidden=false;
     t.textContent = A ? "У вас старая версия приложения — в ней нет уведомлений и виджета. Скачайте новую и установите поверх старой (входить заново не нужно), потом откройте её и зайдите сюда снова."
       : "Уведомления на телефон и виджет «Расход · Доход · Личное» работают в приложении «Документы ФД». Скачайте его и установите."; } })();
-window.__fd = {acct:()=>({url:API_URL, user:curUser()||"", key:pass()||"", admin:!!me().admin}), quick:appQuick, go:appGo, D:()=>D, undo:(r)=>unApply(curTab,!!r), undoState:()=>UNDO, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, aiSrc, IMP:()=>IMP, patchNmic, docProfit, payOf, setPay, calm:fdCalm};
+window.__fd = {shipSim:(a,b)=>shipSim(a,b), shipElsewhere:(c,b,a)=>shipElsewhere(c,b,a), acct:()=>({url:API_URL, user:curUser()||"", key:pass()||"", admin:!!me().admin}), quick:appQuick, go:appGo, D:()=>D, undo:(r)=>unApply(curTab,!!r), undoState:()=>UNDO, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, aiSrc, IMP:()=>IMP, patchNmic, docProfit, payOf, setPay, calm:fdCalm};
 })();
 </script>
 <!-- ============ конец блока ============ -->
