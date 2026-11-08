@@ -29,7 +29,8 @@ function zkpCalc(it){ const g=it.g.map(j=>D.journal.find(x=>x.id===j.id)||j).fil
   it.loss=zkLossSum(S);
   let sum=0, rev=0, cost=0, prof=0, miss=0; g.forEach(j=>{ const x=docProfit(j); if(x.miss) miss++; sum+=x.k.t.sum; rev+=x.rev; cost+=x.cost+(x.exp||0); prof+=x.profit; });
   Object.assign(it, {miss, sum:r2(sum), rev:r2(rev), cost:r2(cost), prof:r2(prof), date:g[0].date}); return it; }
-function zkpItems(){ const [a,b]=zkpRange(), G={}, out=[];
+function zkpItems(){ const [a,b]=zkpRange(); return zkpItemsIn(a,b); }
+function zkpItemsIn(a, b){ const G={}, out=[];
   D.journal.filter(j=>j.snap && !isArch(j) && j.date>=a && j.date<=b).forEach(j=>{ const k=jKey(j); if(k) (G[k]=G[k]||[]).push(j); else out.push({key:"d:"+j.id, g:[j]}); });
   Object.keys(G).forEach(k=>{ const g=G[k].sort(jNumSort); out.push(g.length>1 ? {key:"g:"+k, gk:k, g} : {key:"d:"+g[0].id, g}); });
   out.forEach(zkpCalc);
@@ -127,20 +128,37 @@ function zkxPresets(){ const n=new Date(), y=n.getFullYear(), m=n.getMonth(), d=
     ["m","Этот месяц",zkxIso(new Date(y,m,1)),zkxIso(new Date(y,m+1,0))],["pm","Прошлый месяц",zkxIso(new Date(y,m-1,1)),zkxIso(new Date(y,m,0))]]; }
 function zkxNow(){ if(ZKP.view==="cal" && ZKP.day) return [ZKP.day, ZKP.day]; const [a,b]=zkpRange(); return [a==="0000"?"":a, b==="9999"?todayISO():b]; }
 function zkxDocs(a, b){ return D.journal.filter(j=>j.snap && !isArch(j) && j.date>=a && j.date<=b).sort((x,y)=>x.date<y.date?-1:x.date>y.date?1:String(x.number).localeCompare(String(y.number),"ru",{numeric:true})); }
+/* окно: маленький календарь с точками закупки (как во вкладке), выбор дня или диапазона нажатиями */
+const ZKX={a:"", b:"", ym:"", pick:false};
 function zkxOpen(){ if(!pfLoaded){ toast("info","Подождите","Данные о закупке ещё загружаются."); return; }
-  const [a,b]=zkxNow(), P=zkxPresets();
-  openCard(`<div class="dc-head"><div><div class="dc-kicker">Закупка</div><h3>Скачать таблицу Excel</h3><div class="dc-sub">Выберите день или период — сайт соберёт все накладные: товары, откуда взяли, сколько купили и за сколько, прибыль.</div></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
-    <div class="pvform zkx-f"><div class="ca-per zkx-p">${P.map(([k,t])=>`<button type="button" data-zkxp="${k}">${t}</button>`).join("")}</div>
-      <div class="zkx-d"><label><span>С</span><input type="date" id="zkx-a" value="${esc(a)}"></label><label><span>По</span><input type="date" id="zkx-b" value="${esc(b)}"></label></div>
-      <p class="muted zkx-n" id="zkx-n"></p>
+  const [a,b]=zkxNow(); Object.assign(ZKX, {a:a||todayISO(), b:b||todayISO(), pick:false}); ZKX.ym=ZKX.b.slice(0,7);
+  openCard(`<div class="dc-head"><div><div class="dc-kicker">Закупка</div><h3>Скачать таблицу Excel</h3><div class="dc-sub">Нажмите день — или первый и последний день периода. Сайт соберёт все накладные: товары, откуда взяли, сколько купили и за сколько, прибыль.</div></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+    <div class="pvform zkx-f"><div class="ca-per zkx-p" id="zkx-p"></div><div class="zkr" id="zkx-cal"></div><p class="zkx-n" id="zkx-n"></p>
       <div class="pvea"><button type="button" class="btn pri" data-zkxgo>Скачать Excel</button><button type="button" class="btn ghost" data-dc="close">Отмена</button></div></div>`, false, ()=>{});
   const d=$("#fd-dcard"); d.classList.add("pvi-d");
-  const cnt=()=>{ let x=$("#zkx-a").value, y=$("#zkx-b").value; if(x&&y&&x>y) [x,y]=[y,x]; const L=x&&y?zkxDocs(x,y):[];
-    $("#zkx-n").textContent = !x||!y ? "Укажите обе даты." : L.length ? `${L.length} ${plural(L.length,["накладная","накладные","накладных"])} · ${x===y?fd(x):fd(x)+" – "+fd(y)}` : "За эти даты накладных нет.";
-    d.querySelectorAll("[data-zkxp]").forEach(btn=>{ const p=P.find(q=>q[0]===btn.dataset.zkxp); btn.classList.toggle("on", p[2]===x && p[3]===y); }); };
-  d.addEventListener("click", e=>{ const p=e.target.closest("[data-zkxp]"); if(p){ const q=P.find(z=>z[0]===p.dataset.zkxp); $("#zkx-a").value=q[2]; $("#zkx-b").value=q[3]; cnt(); return; }
-    if(e.target.closest("[data-zkxgo]")){ let x=$("#zkx-a").value, y=$("#zkx-b").value; if(!x||!y){ toast("info","Укажите даты",""); return; } if(x>y) [x,y]=[y,x]; zkxSave(x,y); } });
-  d.addEventListener("input", cnt); cnt(); }
+  d.addEventListener("click", e=>{ const t=e.target.closest("[data-zkxp],[data-zkxd],[data-zkxm],[data-zkxgo]"); if(!t) return;
+    if(t.dataset.zkxp){ const q=zkxPresets().find(z=>z[0]===t.dataset.zkxp); Object.assign(ZKX,{a:q[2], b:q[3], pick:false, ym:q[3].slice(0,7)}); }
+    else if(t.dataset.zkxm) ZKX.ym = t.dataset.zkxm==="0" ? todayISO().slice(0,7) : zkpYmShift(ZKX.ym, +t.dataset.zkxm);
+    else if(t.dataset.zkxd){ const v=t.dataset.zkxd; if(ZKX.pick && v!==ZKX.a){ if(v<ZKX.a){ ZKX.b=ZKX.a; ZKX.a=v; } else ZKX.b=v; ZKX.pick=false; } else { ZKX.a=ZKX.b=v; ZKX.pick=true; } }
+    else if(t.dataset.zkxgo!=null){ zkxSave(ZKX.a, ZKX.b); return; }
+    zkxDraw(); });
+  zkxDraw(); }
+function zkxDraw(){ const box=$("#zkx-cal"); if(!box) return; const P=zkxPresets(), {a,b}=ZKX;
+  $("#zkx-p").innerHTML=P.map(([k,t,x,y])=>`<button type="button" data-zkxp="${k}" class="${!ZKX.pick&&x===a&&y===b?"on":""}">${t}</button>`).join("");
+  const ym=ZKX.ym, y=+ym.slice(0,4), m=+ym.slice(5,7), days=new Date(y,m,0).getDate(), first=(new Date(y,m-1,1).getDay()+6)%7, t=todayISO(), by={}, rank={none:0, part:1, ok:2}, cells=[];
+  zkpItemsIn(ym+"-01", ym+"-"+String(days).padStart(2,"0")).forEach(it=>{ (by[it.date]=by[it.date]||[]).push(it); });
+  for(let i=0;i<first;i++) cells.push(`<span aria-hidden="true"></span>`);
+  for(let dd=1; dd<=days; dd++){ const iso=ym+"-"+String(dd).padStart(2,"0"), I=by[iso]||[], wd=(first+dd-1)%7, n=I.reduce((s,x)=>s+x.g.length,0);
+    const worst=I.length?I.reduce((s,x)=>rank[x.st]<rank[s]?x.st:s,"ok"):"", inR=iso>=a&&iso<=b, edge=iso===a||iso===b;
+    const dots=I.slice(0,6).map(x=>`<b class="${x.st}"></b>`).join("")+(I.length>6?`<em>+${I.length-6}</em>`:"");
+    cells.push(`<button type="button" class="zkr-d ${worst||"empty"}${inR?" in":""}${edge?" edge":""}${iso===a?" a":""}${iso===b?" b":""}${iso===t?" today":""}${wd>4?" we":""}" data-zkxd="${iso}" aria-pressed="${inR}" title="${esc(fd(iso)+(n?": "+n+" "+plural(n,["накладная","накладные","накладных"]):": накладных нет"))}"><i>${dd}</i><span class="zkc-dots">${dots}</span></button>`); }
+  const L=zkxDocs(a,b), lbl=a===b?fd(a):fd(a)+" – "+fd(b), M=zkpItemsIn(a,b), c=k=>M.filter(x=>x.st===k).length;
+  box.innerHTML=`<div class="zkr-h"><button type="button" class="zkc-a" data-zkxm="-1" aria-label="Прошлый месяц">‹</button><b>${ZKP_MON[m-1]} ${y}</b><button type="button" class="zkc-a" data-zkxm="1" aria-label="Следующий месяц">›</button>${ym!==t.slice(0,7)?`<button type="button" class="btn ghost sm" data-zkxm="0">Сегодня</button>`:""}</div>
+    <div class="zkr-w">${["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].map(x=>`<span>${x}</span>`).join("")}</div><div class="zkr-g">${cells.join("")}</div>`;
+  $("#zkx-n").innerHTML = `<b>${lbl}</b> · ${L.length?`${L.length} ${plural(L.length,["накладная","накладные","накладных"])}`:"накладных нет"}`
+    + (M.length?`<span class="zkc-leg"><span><b class="none"></b>нет ${c("none")}</span><span><b class="part"></b>частично ${c("part")}</span><span><b class="ok"></b>заполнено ${c("ok")}</span></span>`:"")
+    + `<small class="muted">${ZKX.pick?"Нажмите последний день периода — или скачайте этот день.":"Нажмите день, чтобы выбрать другой; два нажатия — период."}</small>`;
+  const go=document.querySelector("#fd-dcard [data-zkxgo]"); if(go) go.disabled=!L.length; }
 async function zkxSave(a, b){
   try{ const L=zkxDocs(a,b); if(!L.length){ toast("info","Нечего выгружать","За эти даты накладных нет."); return; }
     const X=await loadXLSX(), per = a===b ? fd(a) : fd(a)+" – "+fd(b), R=[], N=[], G=new Map();
