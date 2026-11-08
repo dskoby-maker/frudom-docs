@@ -336,7 +336,7 @@ function pvFinClick(e){
   const fk=e.target.closest("[data-pvfk]"); if(fk){ const f=PV(); f.fk=fk.dataset.pvfk; if(f.fcat && f.fk && !f.fcat.startsWith(f.fk+":")) f.fcat=""; saveLocal(); pvFinDraw(); return; }
   const f=e.target.closest("[data-pvf]"); if(f){ const k=f.dataset.pvf; PV().fcat = PV().fcat===k ? "" : k; saveLocal(); pvFinDraw(); return; }
   const a=e.target.closest("[data-pva]"); if(a){ const k=a.dataset.pva; if(k==="cats") pvCatsOpen(); else if(k==="xls") pvFinXls(); else if(k==="lim") pvLimOpen(); else pvItemOpen(null, k); return; }
-  if(e.target.closest("[data-pvmiss]")){ const m=pvMonth(), [a,b]=pvRange(); zkpGoMiss(a, b, m==="all"?"за всё время":"за "+pvMon(m).toLowerCase()); return; }
+  if(e.target.closest("[data-pvmiss]")){ const m=pvMonth(), [a,b]=pvRange(); tabBackFrom("Прибыль", ()=>zkpGoMiss(a, b, m==="all"?"за всё время":"за "+pvMon(m).toLowerCase())); return; }
   const dj=e.target.closest("[data-pvdoc]"); if(dj){ const j=D.journal.find(y=>y.id===dj.dataset.pvdoc); if(j) docCard(j, false); return; }
   const x=e.target.closest("[data-pvx]"); if(x){ const it=pfArr("pother").find(y=>y.id===x.dataset.pvx); if(it) pvItemOpen(it); }
 }
