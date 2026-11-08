@@ -986,7 +986,18 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .mul .mmeta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:8px}#fd-app .mul .mmeta input{width:80px}
 #fd-app .mt{width:100%;border-collapse:collapse;font-size:14px}#fd-app .mt th{text-align:left;font-weight:600;color:var(--muted);font-size:12.5px;padding:4px 6px;border-bottom:1px solid var(--line)}
 #fd-app .mt td{padding:4px 6px;border-bottom:1px solid var(--line);vertical-align:middle}#fd-app .mt .n{text-align:right;white-space:nowrap}#fd-app .mt input{width:86px;text-align:right}
-#fd-app .mt tfoot td{border:0;font-weight:700}#fd-app .mt .an{font-size:12px;color:#a3620c}
+#fd-app .mt tfoot td{border:0;font-weight:700}
+#fd-app .pkh-l{all:unset;cursor:pointer;color:inherit;font-weight:700;text-decoration:underline dotted;text-underline-offset:3px}#fd-app .pkh-l:hover{text-decoration-style:solid}#fd-app .pkh-l:focus-visible{outline:2px solid currentColor;outline-offset:2px;border-radius:3px}
+#fd-app .pkh-list{display:flex;flex-direction:column;gap:6px;margin:6px 0 10px}
+#fd-app .pkh-r{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:92px minmax(0,1.3fr) minmax(0,1fr) auto 14px;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line,#e6e1dc);border-radius:12px;background:#fff;transition:background .15s,border-color .15s}
+#fd-app .pkh-r:hover{background:#faf7f4;border-color:#d8cfc7}#fd-app .pkh-r:focus-visible{outline:2px solid #6b2e4f;outline-offset:1px}
+#fd-app .pkh-r.src{border-color:#c9a24a;background:#fffaf0}
+#fd-app .pkh-r b{display:block;font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fd-app .pkh-r small{display:block;color:#857a72;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fd-app .pkh-t{display:flex;flex-direction:column;align-items:flex-end;gap:3px}#fd-app .pkh-t em{font-style:normal;font-size:11.5px;padding:2px 8px;border-radius:999px;white-space:nowrap}
+#fd-app .pkh-src{background:#c9a24a;color:#fff}#fd-app .pkh-h{background:#eef7f0;color:#2f7d4f}#fd-app .pkh-a{background:#fff6e5;color:#a3620c}
+#fd-app .pkh-go{color:#b3a79e;font-size:20px}
+#fd-app .pkh-warn{font-size:13px;color:#a3620c;background:#fff6e5;border-radius:8px;padding:8px 10px;margin:4px 0 6px}#fd-app .pkh-foot{font-size:12.5px}
+@media (max-width:560px){#fd-app .pkh-r{grid-template-columns:minmax(0,1fr) auto;gap:4px 10px}#fd-app .pkh-d{grid-column:1;display:flex;gap:8px;align-items:baseline}#fd-app .pkh-d small{display:inline}#fd-app .pkh-c{grid-column:1/-1}#fd-app .pkh-q{grid-column:1/-1}#fd-app .pkh-t{grid-column:1/-1;flex-direction:row;justify-content:flex-start;margin-top:2px}#fd-app .pkh-go{display:none}}#fd-app .mt .an{font-size:12px;color:#a3620c}
 #fd-app .mul .make,#fd-app .mul .make2{margin-top:10px}#fd-app .mulbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 12px}
 @media (max-width:640px){#fd-app .mt input{width:70px}#fd-app .mt th:nth-child(3),#fd-app .mt td:nth-child(3){display:none}}
 #fd-app .imphead{font-size:13px;color:var(--muted);margin-top:10px}
@@ -2611,7 +2622,7 @@ function renderLines(){
       return `<div class="line${named?" named":""}${dup?" dup":""}" data-i="${i}"><span class="ln">${i+1}</span><div class="pc"><input class="ps${p?"":" empty"}" value="${esc(p?p.name:"")}" placeholder="Начните вводить название товара" autocomplete="off" aria-label="Товар"${qo?" readonly":""}>${canEd?`<button type="button" class="ed${showN?" on":""}" title="Изменить название в этом документе" aria-label="Изменить название">✎</button>`:""}${skLineBtn(i)}</div>
         <input class="qty" inputmode="decimal" placeholder="0" value="${esc(l.qty)}" aria-label="Количество">${l.newP&&p&&!ro?`<select class="unit nu" aria-label="Единица">${skDocUnits(p.unit).map(u=>`<option${u===p.unit?" selected":""}>${esc(u)}</option>`).join("")}<option value="__new">+ своя…</option></select>`:`<span class="unit">${p?esc(p.unit):""}</span>`}
         <input class="price${custom?" custom":""}" inputmode="decimal" placeholder="0,00" value="${esc(l.price)}" aria-label="Цена"${ro?" readonly tabindex=\"-1\"":""}>
-        <span class="sum">${fm(r2((+l.qty||0)*(+l.price||0)))}</span><button class="x" aria-label="Удалить строку"${qo?" hidden":""}>×</button>${dup?`<div class="dupnote" role="note">Эта позиция уже есть в строке № ${dup.join(", ")} — проверьте, не задвоилась ли. Документ сохранить можно.</div>`:""}<div class="ctrnote" role="note" hidden></div>${showN&&p?`<div class="lname"><span>В документе:</span><input class="nmx" value="${esc(named?l.name:p.name)}" aria-label="Название в документе"${ro?" readonly":""}>${ro?"":`<button type="button" class="btn ghost sm" data-nmreset>Как в справочнике</button><button type="button" class="btn ghost sm" data-nmglob>Сохранить в справочник</button>`}</div>`:""}${l.auto?`<div class="lnote${l.autoEd?" ed":""}">${l.autoEd?"Исправлено вручную — сайт запомнит новый вес (в заявке «"+esc(l.pack&&l.pack.t||"")+"»)":"⚠ "+esc(l.auto)}</div>`:l.pack&&!(+l.qty>0)?`<div class="lnote">В заявке «${esc(l.pack.t)}» — впишите вес, сайт запомнит, сколько весит 1 ${esc(l.pack.u)}</div>`:""}${skLineNote(i)}</div>`; }).join("");
+        <span class="sum">${fm(r2((+l.qty||0)*(+l.price||0)))}</span><button class="x" aria-label="Удалить строку"${qo?" hidden":""}>×</button>${dup?`<div class="dupnote" role="note">Эта позиция уже есть в строке № ${dup.join(", ")} — проверьте, не задвоилась ли. Документ сохранить можно.</div>`:""}<div class="ctrnote" role="note" hidden></div>${showN&&p?`<div class="lname"><span>В документе:</span><input class="nmx" value="${esc(named?l.name:p.name)}" aria-label="Название в документе"${ro?" readonly":""}>${ro?"":`<button type="button" class="btn ghost sm" data-nmreset>Как в справочнике</button><button type="button" class="btn ghost sm" data-nmglob>Сохранить в справочник</button>`}</div>`:""}${l.auto?`<div class="lnote${l.autoEd?" ed":""}">${l.autoEd?"Исправлено вручную — сайт запомнит новый вес (в заявке «"+esc(l.pack&&l.pack.t||"")+"»)":"⚠ "+packAutoHtml(l,p)}</div>`:l.pack&&!(+l.qty>0)?`<div class="lnote">В заявке «${esc(l.pack.t)}» — впишите вес, сайт запомнит, сколько весит 1 ${esc(l.pack.u)}</div>`:""}${skLineNote(i)}</div>`; }).join("");
   $("#d-add").hidden=$("#d-addall").hidden=qo;
   const n=Object.values(D.prices[dr.customerId]||{}).filter(v=>v!=="").length;
   $("#d-pricehint").textContent = !dr.customerId ? "выберите заказчика — подставлю его цены" : n ? "цены из прайса заказчика ("+n+" поз.)" : "у заказчика нет своего прайса — базовые цены";
@@ -6347,6 +6358,35 @@ function learnPacks(dr){ const got=[];
     if(l.pack.u==="кг"||l.pack.u==="г"||l.pack.u===p.unit) return;
     const f=r3(+l.qty/l.pack.n), o=packsOf(p); if(o[l.pack.u]===f) return; o[l.pack.u]=f; p.packs=JSON.stringify(o); dirty("products",p.id); got.push(p.name.replace(/\s*\([^)]*\)/g,"")+": 1 "+l.pack.u+" ≈ "+qtxt(f)+" "+(p.unit||"кг")); });
   if(got.length){ saveLocal(); toast("info","Запомнил вес упаковки", got.join("; ")+". В следующих заказах подставлю сам."); } }
+/* «по прошлым данным» → окно: из каких накладных сайт знает вес упаковки (товар + та же упаковка «кор/ящ/пуч…» в заявке) */
+function packAutoHtml(l,p){ const t=esc(l.auto||""); if(!l.pack||!p) return t;
+  return t.replace("по прошлым данным",`по <button type="button" class="pkh-l" data-packh="${esc(p.id)}" data-pu="${esc(l.pack.u)}" data-pt="${esc(l.pack.t||"")}" title="Откуда взят вес — показать накладные">прошлым данным</button>`); }
+function packHist(pid,u){ const out=[];
+  (D.journal||[]).forEach(j=>{ if(!j.snap||!j.snap.dr||isArch(j)) return; (j.snap.dr.lines||[]).forEach(l=>{
+    if(l.productId!==pid||!l.pack||l.pack.u!==u||!(l.pack.n>0)||!(+l.qty>0)) return;
+    out.push({j, n:+l.pack.n, t:l.pack.t||"", q:+l.qty, f:r3(+l.qty/l.pack.n), hand:!l.auto||!!l.autoEd}); }); });
+  return out.sort((a,b)=>((b.j.date||"")+(b.j.updated||"")).localeCompare((a.j.date||"")+(a.j.updated||""))); }
+function packHistCard(pid,u,pt){ const p=prod(pid); if(!p) return; const un=p.unit||"кг", f=packsOf(p)[u], L=packHist(pid,u);
+  const src=L.find(x=>f>0&&Math.abs(x.f-f)<0.0005&&x.hand)||L.find(x=>f>0&&Math.abs(x.f-f)<0.0005);
+  const fs=[...new Set(L.map(x=>x.f))], cur=pt?parsePack(pt):null;
+  const sub = f>0 ? `Сайт запоминает вес 1 ${esc(u)} из последней сохранённой накладной, где «${esc(p.name)}» был в заявке в ${esc(u)}.`+(cur&&cur.n>0?` Сейчас в заявке «${esc(pt)}» → ${qtxt(cur.n*f)} ${esc(un)}.`:"")
+    : `Вес 1 ${esc(u)} у товара пока не запомнен.`;
+  const row=x=>{ const j=x.j, dr=j.snap.dr, c=j.snap.c||{}, pt2=dr.ship?stLabel(dr.ship,c.address||""):"";
+    return `<button type="button" class="pkh-r${x===src?" src":""}" data-pkhdoc="${esc(j.id)}">
+      <span class="pkh-d"><b>${esc(fd(j.date))}</b><small>№ ${esc(String(j.number||""))}</small></span>
+      <span class="pkh-c"><b>${esc(c.name||"")}</b>${pt2?`<small>${esc(String(pt2).split("\n")[0])}</small>`:""}</span>
+      <span class="pkh-q"><b>«${esc(x.t||(x.n+" "+u))}» → ${qtxt(x.q)} ${esc(un)}</b><small>1 ${esc(u)} = ${qtxt(x.f)} ${esc(un)}</small></span>
+      <span class="pkh-t">${x===src?`<em class="pkh-src">вес взят отсюда</em>`:""}<em class="${x.hand?"pkh-h":"pkh-a"}">${x.hand?"вписано вручную":"подставлено сайтом"}</em></span>
+      <span class="pkh-go" aria-hidden="true">›</span></button>`; };
+  CARD_RE=()=>packHistCard(pid,u,pt);
+  openCard(`<div class="dc-head"><div><div class="dc-kicker">Вес упаковки · по прошлым данным</div><h3>${esc(p.name)}: 1 ${esc(u)} ≈ ${f>0?qtxt(f):"?"} ${esc(un)}</h3><div class="dc-sub">${sub}</div></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+    ${fs.length>1?`<div class="pkh-warn">В накладных разный вес 1 ${esc(u)}: ${fs.map(v=>qtxt(v)+" "+esc(un)).join(", ")}. Берётся последний сохранённый.</div>`:""}
+    ${L.length?`<div class="pkh-list">${L.map(row).join("")}</div>`:`<p class="muted">Накладных с «${esc(p.name)}» в ${esc(u)} в журнале нет${f>0?" — вес запомнен по документу, которого уже нет в журнале (в архиве или старше последних 2000)":""}.</p>`}
+    <p class="muted pkh-foot">Если вес не тот — впишите в накладной правильное количество в кг: при сохранении сайт запомнит новый вес 1 ${esc(u)}.</p>
+    <div class="dc-acts"><button class="btn" data-dc="close">Закрыть</button></div>`, true);
+}
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-packh]"); if(b){ e.preventDefault(); e.stopPropagation(); packHistCard(b.dataset.packh,b.dataset.pu,b.dataset.pt); return; }
+  const r=e.target.closest("#fd-dcard [data-pkhdoc]"); if(r){ const j=D.journal.find(y=>y.id===r.dataset.pkhdoc); if(j) docCard(j,false); } }, true);
 /* после сохранения документа: запомнить, как товар назван в заявке, и цену для заказчика, если товара не было в его прайсе */
 function learnNames(dr){ if(!dr||docLimited()||dr.qtyOnly) return; const names=[], prices=[], cid=dr.customerId, pl=D.prices[cid]=D.prices[cid]||{};
   const gov=cid && isGovCus(cid), bad=new Set(gov?ctrIssues(dr).filter(x=>x.k==="none"||x.alt).map(x=>x.i):[]);
@@ -6742,7 +6782,7 @@ const mulLabel = dr => { const b=branches(cus(dr.customerId)).find(x=>x.id===dr.
 function mulBlock(M,i){ const dr=M.dr, k=calc(dr), lbl=mulLabel(dr), g=IMP&&IMP.r&&IMP.file===D.multi.file?IMP.r.groups[i]:null, inJ=D.journal.some(j=>j.id===dr.id);
   const st = M.saved && !M.ch ? `<span class="ok">✓ сохранена в журнал</span>` : M.saved && M.ch ? `<span class="ch">изменена — сформируйте заново</span>` : "";
   const rows = dr.lines.map((l,li)=>{ const p=prod(l.productId); if(!p) return ""; const q=+l.qty||0;
-    return `<tr><td>${esc(p.name)}${l.auto?`<div class="an">⚠ ${esc(l.auto)}</div>`:""}</td><td class="n"><input data-mq="${li}" inputmode="decimal" value="${esc(String(l.qty||"").replace(".",","))}" placeholder="0" aria-label="Количество"> ${esc(p.unit||"")}</td><td class="n">${fm(+l.price||0)}</td><td class="n">${fm(r2(q*(+l.price||0)))}</td></tr>`; }).join("");
+    return `<tr><td>${esc(p.name)}${l.auto?`<div class="an">⚠ ${packAutoHtml(l,p)}</div>`:""}</td><td class="n"><input data-mq="${li}" inputmode="decimal" value="${esc(String(l.qty||"").replace(".",","))}" placeholder="0" aria-label="Количество"> ${esc(p.unit||"")}</td><td class="n">${fm(+l.price||0)}</td><td class="n">${fm(r2(q*(+l.price||0)))}</td></tr>`; }).join("");
   return `<div class="card mul" data-m="${i}"><h2>Накладная ${i+1}${lbl?" · "+esc(lbl):""} <small>${esc(dr.ship?stLabel(dr.ship,cus(dr.customerId).address):"")}</small>${st}</h2>
     <div class="mmeta"><label>№ <input data-mnum value="${esc(dr.number)}" inputmode="numeric"${inJ?" readonly title=\"Номер уже в журнале — менять в полной форме\"":""}></label><span>от ${fd(dr.date)}</span><span>${esc(supShort(sup(dr.supplierId).name||""))}</span></div>${typeof bnMulLine==="function"?bnMulLine(M):""}
     <table class="mt"><thead><tr><th>Товар</th><th class="n">Кол-во</th><th class="n">Цена</th><th class="n">Сумма</th></tr></thead><tbody>${rows||`<tr><td colspan="4" class="muted">Нет товаров</td></tr>`}</tbody>
