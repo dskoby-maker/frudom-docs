@@ -33,6 +33,21 @@ async def run(b, vw, tag):
     back=pg.locator('#fd-dcard .dc-head [data-navback]').first; ok(await back.count()>=1, f'{tag}: в окне накладной есть «‹ Назад»')
     if await back.count(): await back.click(); await pg.wait_for_timeout(700)
     ok(await pg.locator('#pfd').count()==1, f'{tag}: «Назад» возвращает к долгам')
+    # глубже: заказчик → его накладные → накладная → назад → назад
+    await pg.locator('#pfd [data-pfled]').first.click(); await pg.wait_for_timeout(800)
+    ok(await pg.locator('#pvl').count()==1, f'{tag}: «Все накладные заказчика» открывает окно заказчика')
+    bk=pg.locator('#fd-dcard .dc-head [data-navback]').first; ok(await bk.count()==1, f'{tag}: у окна заказчика есть «‹ Назад»')
+    rows=pg.locator('#pvl [data-pvl], #pvl .pvrl'); 
+    if await rows.count(): await rows.first.click(); await pg.wait_for_timeout(500)
+    pr=pg.locator('#fd-dcard [data-pvs="prod"]')
+    if await pr.count():
+        await pr.first.click(); await pg.wait_for_timeout(900)
+        ok('Документ' in N(await pg.text_content('#fd-dcard .dc-kicker')), f'{tag}: из окна заказчика открывается накладная')
+        await pg.locator('#fd-dcard .dc-head [data-navback]').first.click(); await pg.wait_for_timeout(800)
+        ok(await pg.locator('#pvl').count()==1, f'{tag}: «Назад» из накладной — в окно заказчика')
+    await pg.locator('#fd-dcard .dc-head [data-navback]').first.click(); await pg.wait_for_timeout(800)
+    ok(await pg.locator('#pfd').count()==1, f'{tag}: «Назад» из окна заказчика — в список долгов')
+    await pg.screenshot(path=f'/tmp/claude-0/pfd2-{tag}.png')
     # оплатить
     await pg.click('#pfd [data-pfpay="pdd2"]'); await pg.wait_for_timeout(900)
     st=await pg.evaluate("__fd.payOf(__fd.D().journal.find(x=>x.id==='pdd2')).st"); ok(st=='paid' and await pg.locator('#pfd [data-pfdoc="pdd2"]').count()==0, f'{tag}: «Оплачено» отмечает и убирает из долгов ({st})')
