@@ -1519,8 +1519,23 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .userchip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink);padding:4px 10px;border-radius:99px;background:var(--surface);border:1px solid var(--line);cursor:pointer;margin-left:6px;font-family:var(--ui)}
 #fd-app .userchip b{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:11px}
 #fd-app .userchip.armed{border-color:var(--err);color:var(--err)}
-#fd-app table.ev td:first-child{white-space:nowrap;color:var(--muted);font-size:13px}#fd-app table.ev .act{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:#eee;white-space:nowrap}
-#fd-app table.ev .a-Вход,#fd-app table.ev .a-Выход{background:#e8eef7;color:#2b4a7a}#fd-app table.ev .a-Документ,#fd-app table.ev .a-Заявка{background:#e7f3ec;color:#2f7d4f}#fd-app table.ev .a-Архив{background:#fbeee2;color:#a0560e}#fd-app table.ev .a-Скачивание,#fd-app table.ev .a-XML{background:#f1eaf0;color:#5b2a48}#fd-app table.ev .a-Справочники{background:#f0f0ee;color:#555}#fd-app table.ev .a-Водителю{background:#e6f1f6;color:#205a73}
+#fd-app table.ev td:first-child{white-space:nowrap;color:var(--muted);font-size:13px}#fd-app .evfeed .act,#fd-app table.ev .act{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:#eee;white-space:nowrap}
+#fd-app .act.a-Вход,#fd-app .act.a-Выход{background:#e8eef7;color:#2b4a7a}#fd-app .act.a-Документ,#fd-app .act.a-Заявка{background:#e7f3ec;color:#2f7d4f}#fd-app .act.a-Архив{background:#fbeee2;color:#a0560e}#fd-app .act.a-Скачивание,#fd-app .act.a-XML{background:#f1eaf0;color:#5b2a48}#fd-app .act.a-Справочники{background:#f0f0ee;color:#555}#fd-app .act.a-Водителю{background:#e6f1f6;color:#205a73}
+#fd-app .evc{display:grid;gap:10px}#fd-app .evh{display:flex;align-items:center;justify-content:space-between;gap:10px}#fd-app .evh h2{margin:0}
+#fd-app .evrf{all:unset;cursor:pointer;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:var(--muted);border:1px solid var(--line);transition:background .2s,color .2s,transform .4s}#fd-app .evrf:hover{background:var(--bg);color:var(--accent)}#fd-app .evrf:active{transform:rotate(-120deg)}#fd-app .evrf svg{width:17px;height:17px}
+#fd-app .evd{margin:-6px 0 0;font-size:13px}
+#fd-app .evseg{display:flex;gap:4px;padding:3px;max-width:440px;border-radius:12px;background:var(--bg)}#fd-app .evseg button{all:unset;flex:1;text-align:center;cursor:pointer;padding:7px 4px;border-radius:9px;font-size:13px;font-weight:500;color:var(--muted);transition:background .2s,color .2s,box-shadow .2s}#fd-app .evseg button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 4px rgba(28,34,32,.12);font-weight:600}
+#fd-app .evfl{display:grid;grid-template-columns:1fr 1fr 2fr;gap:8px}#fd-app .evfl select{height:38px;padding:0 30px 0 12px;font-size:14px;border-radius:11px;min-width:0}
+#fd-app .evq{position:relative;display:block;min-width:0}#fd-app .evq svg{position:absolute;left:11px;top:50%;width:16px;height:16px;transform:translateY(-50%);color:var(--muted);pointer-events:none}#fd-app .evq input{width:100%;height:38px;padding:0 12px 0 34px;font-size:14px;border-radius:11px;box-sizing:border-box}
+#fd-app .evsum{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px}#fd-app .evhide{display:inline-flex;align-items:center;gap:6px;color:var(--muted);cursor:pointer;font-size:12.5px}#fd-app .evhide input{margin:0;width:15px;height:15px;accent-color:var(--accent)}
+#fd-app .evfeed{display:grid;gap:12px}#fd-app .evg{display:grid}#fd-app .evdh{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:6px 2px}
+#fd-app .evr{display:flex;gap:10px;align-items:flex-start;padding:8px 2px;border-top:1px solid var(--line)}#fd-app .evdh+.evr{border-top:0}#fd-app .evr.dim{opacity:.6}
+#fd-app .eva{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;color:hsl(var(--h) 45% 32%);background:hsl(var(--h) 55% 92%);margin-top:1px}
+#fd-app .evm{flex:1;min-width:0;display:grid;gap:2px}#fd-app .evt{display:flex;align-items:center;gap:8px;min-width:0}#fd-app .evt b{font-size:14px;font-weight:600}#fd-app .evt time{margin-left:auto;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+#fd-app .evfeed .act{display:inline-block;font-size:11px;font-weight:600;padding:1px 8px;border-radius:10px;background:#eee;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:45%}
+#fd-app .evx{all:unset;cursor:pointer;font-size:13.5px;line-height:1.4;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}#fd-app .evx.full{-webkit-line-clamp:unset}
+#fd-app .evnone{text-align:center;padding:18px 6px;margin:0}
+@media (max-width:600px){#fd-app .evfl{grid-template-columns:1fr 1fr}#fd-app .evq{grid-column:1/-1}#fd-app .evd{display:none}}
 #fd-app .modal{position:fixed;inset:0;z-index:99990;background:rgba(10,12,11,.88);display:flex;flex-direction:column}
 #fd-app .modal .bar{background:var(--surface);display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));padding-top:calc(10px + env(safe-area-inset-top,0px))}
 #fd-app .modal .bar b{margin-right:auto}
@@ -1999,17 +2014,18 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
   </section>
 
   <section class="tab" id="tab-events" hidden>
-    <div class="card">
-      <h2>События <small id="ev-count"></small></h2>
-      <p class="muted">Кто и что делал в системе. Видно только вам. Хранятся последние 3000 событий — более старые удаляются автоматически (лист «События» в Google Таблице).</p>
-      <div class="jf">
-        <label class="f">Кто<select id="ev-user"><option value="">Все</option></select></label>
-        <label class="f">Действие<select id="ev-type"><option value="">Все</option><option>Вход</option><option>Выход</option><option>Документ</option><option>Заявка</option><option>Скачивание</option><option>XML</option><option>Архив</option><option>Справочники</option><option>Водителю</option><option>Прибыль</option></select></label>
-        <label class="f">Период<select id="ev-per"><option value="1">Сегодня</option><option value="7" selected>7 дней</option><option value="30">30 дней</option><option value="">Всё</option></select></label>
-        <label class="f jq">Поиск<input id="ev-q" placeholder="номер, заказчик, товар…"></label>
+    <div class="card evc">
+      <div class="evh"><h2>События <small id="ev-count"></small></h2><button type="button" class="evrf" id="ev-refresh" title="Обновить" aria-label="Обновить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></div>
+      <p class="muted evd">Кто и что делал в системе. Видно только вам, хранятся последние 3000.</p>
+      <div class="evseg" id="ev-perseg" role="group" aria-label="Период"><button type="button" data-evp="1">Сегодня</button><button type="button" data-evp="7">7 дней</button><button type="button" data-evp="30">30 дней</button><button type="button" data-evp="">Всё</button></div>
+      <select id="ev-per" hidden><option value="1">Сегодня</option><option value="7" selected>7 дней</option><option value="30">30 дней</option><option value="">Всё</option></select>
+      <div class="evfl">
+        <select id="ev-user" aria-label="Кто"><option value="">Все люди</option></select>
+        <select id="ev-type" aria-label="Действие"><option value="">Все действия</option></select>
+        <label class="evq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="ev-q" type="search" placeholder="Поиск: номер, заказчик, товар"></label>
       </div>
-      <div class="row jsum"><span id="ev-sum" class="muted"></span><span style="flex:1"></span><button class="btn ghost sm" id="ev-refresh">Обновить</button></div>
-      <div class="tbl"><table class="stack jt ev" data-full="3"><thead><tr><th>Время</th><th>Кто</th><th>Действие</th><th>Что сделано</th></tr></thead><tbody id="ev-body"></tbody></table></div>
+      <div class="evsum"><span id="ev-sum" class="muted"></span><label class="evhide"><input type="checkbox" id="ev-nologin"> Скрыть входы</label></div>
+      <div class="evfeed" id="ev-body"></div>
       <div class="row evmore" id="ev-more" hidden><span class="muted" id="ev-shown"></span><span style="flex:1"></span><button class="btn sm" id="ev-next">Показать ещё 50</button><button class="btn ghost sm" id="ev-all">Показать все</button></div>
     </div>
   </section>
@@ -4554,22 +4570,41 @@ async function loadEvents(){
   catch(e){ evCache=evCache||[]; $("#ev-sum").textContent = /unknown action/.test(e.message) ? "Чтобы журнал заработал, обновите скрипт таблицы (новая версия)." : e.message==="forbidden" ? "Журнал событий доступен только администратору." : "Не получилось загрузить: "+e.message; evLoading=false; drawEvents(true); return; }
   evLoading=false; drawEvents();
 }
-function renderEvents(){ if(!me().admin) return; const us=$("#ev-user"); if(us.options.length<2) us.innerHTML=`<option value="">Все</option>`+USERS_LIST.map(n=>`<option>${esc(n)}</option>`).join(""); if(!evCache) loadEvents(); else drawEvents(); }
+function renderEvents(){ if(!me().admin) return; const us=$("#ev-user"); if(us.options.length<2) us.innerHTML=`<option value="">Все люди</option>`+USERS_LIST.map(n=>`<option>${esc(n)}</option>`).join("");
+  try{ $("#ev-nologin").checked = localStorage.getItem("frudom-evnl")==="1"; }catch(x){}
+  if(!evCache) loadEvents(); else drawEvents(); }
+/* лента событий: по дням, у человека свой цвет кружка, действие — цветной чип, время справа */
+const EV_ACT = ["Вход","Выход","Документ","Заявка","Скачивание","XML","Архив","Справочники","Водителю","Прибыль","Склад","Закупка","Счета","Банк","Отмена","Данные"];
+const evHue = n => { let h=0; for(const c of String(n)) h=(h*31+c.charCodeAt(0))%360; return ({"Даниил":330,"Наталья":200,"Гриша":140,"Склад":35})[n] ?? h; };
+function evDay(d){ if(!d) return "Без даты"; const t=new Date(); t.setHours(0,0,0,0); const x=new Date(d); x.setHours(0,0,0,0); const k=Math.round((t-x)/864e5);
+  const s=x.toLocaleDateString("ru-RU",{day:"numeric",month:"long"})+(x.getFullYear()!==t.getFullYear()?" "+x.getFullYear():"");
+  return k===0?"Сегодня · "+s:k===1?"Вчера · "+s:s[0].toUpperCase()+s.slice(1)+" · "+x.toLocaleDateString("ru-RU",{weekday:"short"}); }
+function evRow(e){ const d=evParse(e.at), tm=d?String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"):"";
+  return `<div class="evr${/^(Вход|Выход)$/.test(e.action)?" dim":""}" style="--h:${evHue(e.user)}"><span class="eva" aria-hidden="true">${esc(String(e.user||"?")[0])}</span>
+    <div class="evm"><div class="evt"><b>${esc(e.user)}</b><span class="act a-${esc(e.action)}">${esc(e.action)}</span><time title="${esc(e.at)}">${tm}</time></div>
+    <button type="button" class="evx">${esc(e.text)}</button></div></div>`; }
 let evShow=50;   /* сначала последние 50, дальше — по 50 или все сразу */
 function drawEvents(keepMsg){
   const L=evCache||[], u=$("#ev-user").value, ty=$("#ev-type").value, per=$("#ev-per").value, q=($("#ev-q").value||"").toLowerCase().trim();
   const since = per ? (()=>{ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-(+per-1)); return d; })() : null;
-  const rows=L.filter(e=>(!u||e.user===u) && (!ty||e.action===ty) && (!since||((evParse(e.at)||new Date())>=since)) && (!q||(e.text+" "+e.user+" "+e.action).toLowerCase().includes(q)));
+  const tySel=$("#ev-type"); if(tySel.options.length<2 || tySel._n!==L.length){ const have=[...new Set(L.map(e=>e.action).filter(Boolean))], all=EV_ACT.filter(a=>have.includes(a)).concat(have.filter(a=>!EV_ACT.includes(a)));
+    tySel.innerHTML=`<option value="">Все действия</option>`+all.map(a=>`<option${a===ty?" selected":""}>${esc(a)}</option>`).join(""); tySel._n=L.length; }
+  document.querySelectorAll("#ev-perseg [data-evp]").forEach(b=>b.classList.toggle("on", b.dataset.evp===per));
+  const nl=$("#ev-nologin").checked;
+  const rows=L.filter(e=>(!nl||!/^(Вход|Выход)$/.test(e.action)) && (!u||e.user===u) && (!ty||e.action===ty) && (!since||((evParse(e.at)||new Date())>=since)) && (!q||(e.text+" "+e.user+" "+e.action).toLowerCase().includes(q)));
   $("#ev-count").textContent=L.length?L.length+" шт.":"";
   const n=Math.min(evShow, rows.length), left=rows.length-n;
-  if(!keepMsg) $("#ev-sum").textContent = rows.length ? (rows.length===L.length ? "Всего событий: "+L.length : "Подходит под фильтры: "+rows.length+" из "+L.length) : "";
+  if(!keepMsg) $("#ev-sum").textContent = rows.length ? (rows.length===L.length ? "Всего "+L.length : "Найдено "+rows.length+" из "+L.length) : "";
   $("#ev-more").hidden = !rows.length || (!left && n<=50);
   $("#ev-shown").textContent = left ? "Показаны последние "+n+" из "+rows.length : "Показаны все "+rows.length;
   $("#ev-next").hidden = $("#ev-all").hidden = !left; $("#ev-next").textContent = "Показать ещё "+Math.min(50,left);
-  $("#ev-body").innerHTML = rows.length ? rows.slice(0,n).map(e=>`<tr><td>${esc(e.at)}</td><td><b>${esc(e.user)}</b></td><td><span class="act a-${esc(e.action)}">${esc(e.action)}</span></td><td>${esc(e.text)}</td></tr>`).join("")
-    : `<tr><td colspan="4" class="muted" style="padding:16px 6px">${L.length?"По этим фильтрам событий нет.":"Событий пока нет."}</td></tr>`;
+  let h="", last=null; rows.slice(0,n).forEach(e=>{ const d=evParse(e.at), k=d?d.toDateString():""; if(k!==last){ if(last!==null) h+=`</div>`; h+=`<div class="evg"><div class="evdh">${esc(evDay(d))}</div>`; last=k; } h+=evRow(e); });
+  $("#ev-body").innerHTML = rows.length ? h+`</div>` : `<p class="muted evnone">${L.length?"По этим фильтрам событий нет.":"Событий пока нет."}</p>`;
 }
-["#ev-user","#ev-type","#ev-per"].forEach(s=>$(s).onchange=()=>{ evShow=50; drawEvents(); }); $("#ev-q").addEventListener("input",()=>{ evShow=50; drawEvents(); });
+["#ev-user","#ev-type","#ev-per"].forEach(s=>$(s).onchange=()=>{ evShow=50; drawEvents(); });
+$("#ev-perseg").addEventListener("click",e=>{ const b=e.target.closest("[data-evp]"); if(!b) return; $("#ev-per").value=b.dataset.evp; evShow=50; drawEvents(); });
+$("#ev-nologin").onchange=e=>{ try{ localStorage.setItem("frudom-evnl", e.target.checked?"1":"0"); }catch(x){} evShow=50; drawEvents(); };
+$("#ev-body").addEventListener("click",e=>{ const x=e.target.closest(".evx"); if(x) x.classList.toggle("full"); }); $("#ev-q").addEventListener("input",()=>{ evShow=50; drawEvents(); });
 $("#ev-next").onclick=()=>{ evShow+=50; drawEvents(true); };
 $("#ev-all").onclick=()=>{ evShow=1e9; drawEvents(true); };
 $("#ev-refresh").onclick=()=>{ evShow=50; loadEvents(); };
