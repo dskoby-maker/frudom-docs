@@ -335,6 +335,12 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .zkp-edi{overflow:hidden;min-height:0;padding:0 10px}#fd-app .zkp-it.open .zkp-edi{padding-bottom:10px}
 #fd-app .zkp-edi.dcard .dc-zk.open{margin-top:0}#fd-app .zkp-edi.dcard .dzl{max-height:none;overflow:visible}
 #fd-app .zkp-lnk{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+#fd-app .zkp-mg{display:grid;gap:6px;padding:8px;border-radius:18px;border:1.5px dashed rgba(106,44,78,.28);background:rgba(106,44,78,.035);animation:fdglass .3s var(--ease,ease)}
+#fd-app .zkp-mgh{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:4px 6px 2px}
+#fd-app .zkp-mgh>span{display:grid;gap:2px;min-width:0}#fd-app .zkp-mgh b{font-size:14px}#fd-app .zkp-mgh small{color:var(--muted);font-size:12.5px}
+#fd-app .zkp-mgh .btn{display:inline-flex;align-items:center;gap:6px}#fd-app .zkp-mgh .btn svg{width:16px;height:16px}
+#fd-app .zkp-it.mgd{border-color:rgba(106,44,78,.22);box-shadow:inset 3px 0 0 rgba(106,44,78,.55)}
+@media (max-width:480px){#fd-app .zkp-mgh .btn{width:100%;justify-content:center}}
 #fd-app .zkp-more{justify-self:center}#fd-app .zkp-empty{text-align:center;padding:18px 8px;margin:0}
 #fd-app details.zkx .zkx-b{display:grid;gap:12px;margin-top:12px}
 #fd-app details.zkx .zkx-b>.card:first-child,#fd-app details.zkx #zk-histc{background:none;border:0;box-shadow:none;padding:0;backdrop-filter:none;-webkit-backdrop-filter:none}
@@ -5231,7 +5237,7 @@ function bzDraw(keep){ const box=$("#bz-zki"); if(!box||!BZ) return; const G=bzD
     return `<div class="dzr${st?" sk":""}"><span><b>${esc(o.name)}</b><small>${esc(qfmt(o.qty,o.unit))} · ${o.docs.length} ${plural(o.docs.length,["накладная","накладные","накладных"])}${o.mixed?` · <span class="miss">цены в накладных разные</span>`:""}</small></span>${pc.cell}${pc.sub}${bzSrcHtml(o)||old}</div>`; };
   const any=BZ.s&&BZ.rows.some(o=>{ const s=bzSt(o); return s && !s.lock && (s.m||s.m0); });
   if(BZ.ship==null) BZ.ship=G.every(j=>j.date<=todayISO());
-  box.innerHTML=`<div class="dzh"><b>Закупка на комплект</b><small class="muted">Одна цена за товар — сразу во все ${G.length} ${docsWord(G.length)}. Пустое поле — цена из «Закупочных цен».${dzOn()?" Если товар взяли со склада — нажмите «Со склада» под товаром.":""}</small></div>
+  box.innerHTML=`<div class="dzh"><b>${BZ.mg?"Одна закупка на весь день у заказчика":"Закупка на комплект"}</b><small class="muted">${BZ.mg?`Объединено ${BZ.mg} ${plural(BZ.mg,["строка","строки","строк"])}, ${G.length} ${docsWord(G.length)}. Впишите, сколько Саид потратил всего, и нажмите «Записать одной суммой» — сумма разделится по накладным пропорционально их сумме. Или укажите цену за товар — она пойдёт во все накладные. `:`Одна цена за товар — сразу во все ${G.length} ${docsWord(G.length)}. `} Пустое поле — цена из «Закупочных цен».${dzOn()?" Если товар взяли со склада — нажмите «Со склада» под товаром.":""}</small></div>
     <div class="dzbulk"><label>Вся закупка одной суммой<input class="bzs" inputmode="decimal" value="${esc(V._bulk||"")}" placeholder="0"> ₽</label><button type="button" class="btn sm pri" data-bzk="one" title="Записать закупку всего комплекта этой суммой — делится по накладным пропорционально сумме">Записать одной суммой</button><button type="button" class="btn sm" data-bzk="spread">Разнести по товарам</button></div>${oneInfo(G,"data-bzk")}
     <div class="dzl">${BZ.rows.map(row).join("")}</div>
     <label class="dzr dzx"><span><b>Прочие расходы</b><small>на весь комплект · делятся по накладным пропорционально сумме</small></span><input class="bze" inputmode="decimal" value="${esc(V._exp!=null?V._exp:(exp0?String(exp0).replace(".",","):""))}" placeholder="0"><em>₽</em></label>

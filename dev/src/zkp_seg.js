@@ -34,17 +34,39 @@ function zkpItemsIn(a, b){ const G={}, out=[];
   D.journal.filter(j=>j.snap && !isArch(j) && j.date>=a && j.date<=b).forEach(j=>{ const k=jKey(j); if(k) (G[k]=G[k]||[]).push(j); else out.push({key:"d:"+j.id, g:[j]}); });
   Object.keys(G).forEach(k=>{ const g=G[k].sort(jNumSort); out.push(g.length>1 ? {key:"g:"+k, gk:k, g} : {key:"d:"+g[0].id, g}); });
   out.forEach(zkpCalc);
-  return out.filter(x=>!x.gone).sort((x,y)=>(y.date||"").localeCompare(x.date||"") || String(y.g[0].number).localeCompare(String(x.g[0].number),"ru",{numeric:true})); }
+  return zkpMerge(out.filter(x=>!x.gone)); }
+/* «Один день — один заказчик»: несколько строк (комплектов/накладных) можно объединить в одну закупку.
+   Объединение помнится в личных настройках (prefs.zkpMg[дата|заказчик] = 1), «Разделить» — убирает. */
+const zkpMk = it => it.date+"|"+(it.g[0].customerId||"");
+const zkpMgOn = mk => !!((getPrefs().zkpMg||{})[mk]);
+function zkpMgSet(mk, on){ const p=getPrefs(); p.zkpMg=p.zkpMg||{}; if(on) p.zkpMg[mk]=1; else delete p.zkpMg[mk];
+  const old=new Date(Date.now()-200*864e5).toISOString().slice(0,10); Object.keys(p.zkpMg).forEach(k=>{ if(k.slice(0,10)<old) delete p.zkpMg[k]; }); setPrefs(p,true); }
+function zkpMerge(L){ const G={}; L.forEach(it=>{ const mk=zkpMk(it); (G[mk]=G[mk]||[]).push(it); });
+  const out=[]; Object.keys(G).forEach(mk=>{ const P=G[mk];
+    if(P.length<2){ out.push(P[0]); return; }
+    if(zkpMgOn(mk)){ const g=[].concat(...P.map(x=>x.g)).sort(jNumSort); out.push(zkpCalc({key:"m:"+mk, mk, g, parts:P.length})); return; }
+    P.forEach(it=>{ it.mk=mk; it.mgn=P.length; }); out.push(...P); });
+  const cn = it => zkpTitle(it).toLowerCase();
+  return out.sort((x,y)=>(y.date||"").localeCompare(x.date||"") || (x.mgn||y.mgn ? cn(x).localeCompare(cn(y),"ru") || (x.mk||"").localeCompare(y.mk||"") : 0) || String(y.g[0].number).localeCompare(String(x.g[0].number),"ru",{numeric:true})); }
+/* рамка вокруг строк одного дня и заказчика + кнопка «Объединить» */
+function zkpRows(sh){ let h="", i=0;
+  while(i<sh.length){ const it=sh[i];
+    if(it.mk && it.mgn>1 && !it.parts){ let k=i; while(k<sh.length && sh[k].mk===it.mk) k++; const P=sh.slice(i,k);
+      if(P.length>1){ const all=ZKP.list.filter(x=>x.mk===it.mk), n=all.reduce((a,x)=>a+x.g.length,0), s=r2(all.reduce((a,x)=>a+x.sum,0));
+        h+=`<div class="zkp-mg"><div class="zkp-mgh"><span><b>${fd(it.date).slice(0,5)} · ${esc(zkpTitle(it))}</b><small>${all.length} ${plural(all.length,["строка","строки","строк"])} · ${n} ${docsWord(n)} · ${fm(s)} ₽ — если Саид закупал на всех разом</small></span><button type="button" class="btn sm pri" data-zkpmg="${esc(it.mk)}">${IC_ZK}<span>Объединить в одну закупку</span></button></div>${P.map(zkpRow).join("")}</div>`;
+        i=k; continue; } }
+    h+=zkpRow(it); i++; }
+  return h; }
 const zkpTitle = it => it.g.length>1 ? gTitle(it.g) : jWho(it.g[0]).main;
 const zkpNums = it => { const n=it.g.map(j=>j.number); return "№ "+(n.length>2?n[0]+"–"+n[n.length-1]:n.join(", ")); };
 const zkpPass = (it, st) => st==="loss" ? !!it.loss : st==="all" || st==="miss" ? st==="all" || it.miss>0 : (st==="need" ? it.st!=="ok" : it.st===st);
-function zkpRowIn(it){ const sub=zkpNums(it)+(it.g.length>1?" · "+it.g.length+" "+docsWord(it.g.length):(kLbl(it.g[0])?" · "+kLbl(it.g[0]):""));
+function zkpRowIn(it){ const sub=zkpNums(it)+(it.g.length>1?" · "+it.g.length+" "+docsWord(it.g.length):(kLbl(it.g[0])?" · "+kLbl(it.g[0]):""))+(it.parts?" · объединено из "+it.parts:"");
   const note = it.notes.length ? `<small class="zkp-n">⚠ ${esc(it.notes[0])}${it.notes.length>1?` <span>и ещё ${it.notes.length-1}</span>`:""}</small>` : "";
   return `<span class="zkp-d">${fd(it.date).slice(0,5)}</span>
     <span class="zkp-t"><b>${esc(zkpTitle(it))}</b><small>${esc(sub)}</small>${note}</span>
     <span class="zkp-s"><b>${fm(it.sum)} ₽</b>${it.st!=="none"?`<small>прибыль <span class="${it.prof<0?"neg":""}">${fm(it.prof)}</span></small>`:`<small class="muted">закупки нет</small>`}</span>
     <span class="jzk ${it.st}${it.loss?" loss":""}" title="${esc(it.tip+(it.loss?"\n"+zkLossTip(it.loss.p, it.loss.neg):""))}">${IC_ZK}<span>${esc(it.lbl)}</span>${it.loss?`<i class="jzk-l" aria-hidden="true"></i>`:""}</span><span class="zkp-a" aria-hidden="true">▾</span>`; }
-function zkpRow(it){ const o=ZKP.open===it.key; return `<div class="zkp-it${o?" open":""}" data-key="${esc(it.key)}"><button type="button" class="zkp-row" data-zkpo="${esc(it.key)}" aria-expanded="${o}">${zkpRowIn(it)}</button><div class="zkp-ed"><div class="zkp-edi dcard"></div></div></div>`; }
+function zkpRow(it){ const o=ZKP.open===it.key; return `<div class="zkp-it${o?" open":""}${it.parts?" mgd":""}" data-key="${esc(it.key)}"><button type="button" class="zkp-row" data-zkpo="${esc(it.key)}" aria-expanded="${o}">${zkpRowIn(it)}</button><div class="zkp-ed"><div class="zkp-edi dcard"></div></div></div>`; }
 function zkpKpi(L){ const c=k=>L.filter(x=>x.st===k).length, rev=r2(L.reduce((a,x)=>a+x.rev,0)), cost=r2(L.reduce((a,x)=>a+(x.st!=="none"?x.cost:0),0)), prof=r2(L.filter(x=>x.st!=="none").reduce((a,x)=>a+x.prof,0)), docs=L.reduce((a,x)=>a+x.g.length,0);
   $("#zkp-kpi").innerHTML=`<div><small>Накладных</small><b>${docs}</b><span>${L.length} ${plural(L.length,["строка","строки","строк"])} в списке</span></div>
     <div class="${c("none")?"bad":""}"><small>Без закупки</small><b>${c("none")}</b><span>частично: ${c("part")}</span></div>
@@ -62,7 +84,7 @@ function zkpDraw(force){ const box=$("#zkp-list"); if(!box || !me().admin) retur
   const L=ZKP.list.filter(it=>!q || (zkpTitle(it)+" "+it.g.map(j=>j.number+" "+(kLbl(j)||"")).join(" ")).toLowerCase().includes(q));
   zkpView(); zkpCalDraw(L); const LD=ZKP.view==="cal"&&ZKP.day ? L.filter(it=>it.date===ZKP.day) : L;
   zkpKpi(LD); const V=LD.filter(it=>zkpPass(it, ZKP.st)), sh=V.slice(0, ZKP.n), keep=ZKP.open&&box.querySelector(".zkp-it.open");
-  box.innerHTML = sh.length ? sh.map(zkpRow).join("") + (V.length>sh.length?`<button type="button" class="btn ghost zkp-more" data-zkpmore>Показать ещё ${Math.min(30, V.length-sh.length)} из ${V.length-sh.length}</button>`:"")
+  box.innerHTML = sh.length ? zkpRows(sh) + (V.length>sh.length?`<button type="button" class="btn ghost zkp-more" data-zkpmore>Показать ещё ${Math.min(30, V.length-sh.length)} из ${V.length-sh.length}</button>`:"")
     : `<p class="muted zkp-empty">${!LD.length?(ZKP.view==="cal"&&ZKP.day?"В этот день накладных нет.":"За этот период накладных нет."):ZKP.st==="need"?"✓ Все накладные за период с закупкой — заполнять нечего.":"Ничего не найдено."}</p>`;
   /* открытый редактор переносим в новый список как есть (с набранным) */
   if(keep){ const n=box.querySelector(`.zkp-it[data-key="${CSS.escape(ZKP.open)}"]`); if(n) n.replaceWith(keep); else ZKP.open=""; } }
@@ -79,14 +101,17 @@ async function zkpOpen(key){ const it=ZKP.list.find(x=>x.key===key); if(!it) ret
   const one=it.g.length===1, j=it.g[0];
   h.innerHTML = (one ? `<div class="dc-zk open" id="dc-zk" data-doc="${j.id}"><div class="dc-zki" id="dc-zki"><p class="muted">Загружаю…</p></div></div>`
       : `<div class="dc-zk open" id="bz-zk" data-ids="${esc(it.g.map(x=>x.id).join(","))}"><div class="dc-zki" id="bz-zki"><p class="muted">Загружаю…</p></div></div>`)
-    + `<div class="zkp-lnk"><button type="button" class="btn ghost sm" data-zkpcard="${esc(key)}">${one?"Открыть накладную ›":"Открыть комплект ›"}</button>${one?"":`<small class="muted">Цена товара пишется сразу во все ${it.g.length} ${docsWord(it.g.length)}</small>`}</div>`;
+    + `<div class="zkp-lnk"><button type="button" class="btn ghost sm" data-zkpcard="${esc(key)}">${one?"Открыть накладную ›":it.parts?"Все накладные ›":"Открыть комплект ›"}</button>${it.parts?`<button type="button" class="btn ghost sm" data-zkpsplit="${esc(it.mk)}">Разделить обратно (${it.parts})</button>`:""}${one?"":`<small class="muted">Цена товара пишется сразу во все ${it.g.length} ${docsWord(it.g.length)}</small>`}</div>`;
   if(!pfLoaded) await loadProfit(true);
   if(SK_READY && skCan() && skSrv!==false && (!SK || !SK.at || Date.now()-new Date(SK.at).getTime()>120000)){ const b=$(one?"#dc-zki":"#bz-zki"); if(b) b.innerHTML=`<p class="muted">Сверяю склад…</p>`; await skLoad(true); }
   if(ZKP.open!==key) return;
-  if(one) dcZkDraw(D.journal.find(x=>x.id===j.id)||j); else { BZ={ids:it.g.map(x=>x.id), touched:{}, expT:false, rows:[], s:null, ship:null}; bzDraw(); }
+  if(one) dcZkDraw(D.journal.find(x=>x.id===j.id)||j); else { BZ={ids:it.g.map(x=>x.id), touched:{}, expT:false, rows:[], s:null, ship:null, mg:it.parts||0}; bzDraw(); }
   setTimeout(()=>{ if(ZKP.open!==key) return; const r=el.getBoundingClientRect(); if(r.top<70 || r.top>innerHeight*0.6) el.scrollIntoView({behavior:"smooth", block:"start"});
-    const f=el.querySelector(one?".dzs":".bzs"); if(f && matchMedia("(hover:hover)").matches) f.focus({preventScroll:true}); }, 300); }
-document.addEventListener("click", e=>{ const t=e.target.closest&&e.target.closest("#zkp [data-zkpo],#zkp [data-zkpp],#zkp [data-zkpst],#zkp [data-zkpmore],#zkp [data-zkpcard],#zkp [data-zkpv],#zkp [data-zkpm],#zkp [data-zkpd],#zkp [data-zkprng]"); if(!t) return;
+    const f=el.querySelector(one?".dzs":".bzs"); if(f && (matchMedia("(hover:hover)").matches || ZKP.fone===key)) f.focus({preventScroll:true}); ZKP.fone=""; }, 300); }
+document.addEventListener("click", e=>{ const t=e.target.closest&&e.target.closest("#zkp [data-zkpo],#zkp [data-zkpp],#zkp [data-zkpst],#zkp [data-zkpmore],#zkp [data-zkpcard],#zkp [data-zkpv],#zkp [data-zkpm],#zkp [data-zkpd],#zkp [data-zkprng],#zkp [data-zkpmg],#zkp [data-zkpsplit]"); if(!t) return;
+  if(t.dataset.zkpmg){ const mk=t.dataset.zkpmg; zkpCollapse(); zkpMgSet(mk, true); zkpDraw(true); ZKP.fone="m:"+mk; zkpOpen("m:"+mk); return; }
+  if(t.dataset.zkpsplit){ const mk=t.dataset.zkpsplit; zkpCollapse(); zkpMgSet(mk, false); zkpDraw(true);
+    const f=document.querySelector(`#zkp-list .zkp-mg [data-zkpmg="${CSS.escape(mk)}"]`); if(f) f.closest(".zkp-mg").scrollIntoView({behavior:"smooth", block:"nearest"}); toast("ok","Разделено","Строки снова отдельно. Уже записанная закупка осталась в накладных."); return; }
   if(t.dataset.zkprng!=null){ zkpRngOff(); ZKP.view=(()=>{ try{ return localStorage.getItem("frudom-zkpv")==="cal"?"cal":"list"; }catch(x){ return "list"; } })(); ZKP.n=30; zkpCollapse(); zkpDraw(true); return; }
   if(t.dataset.zkpv){ if(ZKP.view===t.dataset.zkpv && !ZKP.rng) return; zkpRngOff(); ZKP.view=t.dataset.zkpv; ZKP.day=""; ZKP.n=30; try{ localStorage.setItem("frudom-zkpv", ZKP.view); }catch(x){} zkpCollapse(); zkpDraw(true); return; }
   if(t.dataset.zkpm){ zkpRngOff(); ZKP.ym = t.dataset.zkpm==="0" ? todayISO().slice(0,7) : zkpYmShift(zkpYm(), +t.dataset.zkpm); ZKP.day=""; ZKP.n=30; zkpCollapse(); zkpDraw(true); return; }
