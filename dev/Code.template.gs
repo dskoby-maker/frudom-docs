@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 22;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 23;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -484,8 +484,9 @@ function notes_(p, me) {
     read_('bankops').filter(r => notesIso_(r.date) >= f && +r.sum > 0).slice(-40).forEach(r =>
       items.push({ t: 'bank', id: 'bank-' + r.id, title: 'Пришли деньги: ' + money(r.sum), text: (r.payerName || 'плательщик не указан') + (r.supplierName ? ' → ' + r.supplierName : '') + (r.purpose ? '. ' + String(r.purpose).slice(0, 140) : ''), go: 'profit' }));
   }
+  const payMap = () => { const pay = {}; read_('doccosts').forEach(r => { try { const l = JSON.parse(r.lines || '{}'); if (l && l._pay) pay[r.id] = +l._pay.s || 0; } catch (x) {} }); return pay; };
   if (want.debt && me.admin) {
-    const pay = {}; read_('doccosts').forEach(r => { try { const l = JSON.parse(r.lines || '{}'); if (l && l._pay) pay[r.id] = +l._pay.s || 0; } catch (x) {} });
+    const pay = payMap();
     const lim = new Date(); lim.setDate(lim.getDate() - 30); const ls = Utilities.formatDate(lim, tz, 'yyyy-MM-dd'), by = {}; let tot = 0, n = 0;
     read_('journal').forEach(j => { if (/"arch"\s*:\s*(true|1|"[^"]+")/.test(String(j.snap || ''))) return;
       const d = notesIso_(j.date), sum = Math.round((+j.sum || 0) * 100) / 100, left = Math.round((sum - Math.min(pay[j.id] || 0, sum)) * 100) / 100;
@@ -497,11 +498,34 @@ function notes_(p, me) {
     const after = String(p.evAfter || ''), L = readEvents_(300);
     out.evLast = L.length ? notesEvKey_(L[0].at) : '';
     if (after) L.filter(e => notesEvKey_(e.at) > after && e.user !== me.name && !/^Вход/.test(e.action)).slice(0, 30).reverse()
-      .forEach(e => items.push({ t: 'staff', id: 'ev-' + notesEvKey_(e.at) + '-' + e.user + '-' + String(e.text).slice(0, 30), title: e.user, text: (e.action ? e.action + ': ' : '') + String(e.text || '').slice(0, 300), go: me.admin ? 'events' : 'journal' }));
+      .forEach(e => items.push({ t: 'staff', id: 'ev-' + notesEvKey_(e.at) + '-' + e.user + '-' + String(e.text).slice(0, 30), title: e.user, text: (e.action ? e.action + ': ' : '') + String(e.text || '').slice(0, 300), act: e.action || '', raw: String(e.text || '').slice(0, 300), go: me.admin ? 'events' : 'journal' }));
   }
   if (want.tasks) {
     const L = read_('daytasks').filter(r => notesIso_(r.date) === today && !/^(1|true|да|TRUE)$/i.test(String(r.done || '').trim()));
     if (L.length) items.push({ t: 'tasks', id: 'tasks-' + today, title: 'Задачи на сегодня: ' + L.length, text: L.slice(0, 6).map(r => (r.customerName ? r.customerName + ' — ' : '') + String(r.text || '').slice(0, 80)).join('\n') + (L.length > 6 ? '\n…и ещё ' + (L.length - 6) : ''), go: 'calendar' });
+  }
+  /* сводка для виджета на рабочем столе (Code.gs ≥ 23): три цифры; Даниилу — деньги, остальным — работа на сегодня */
+  if (want.sum) {
+    const short = v => { v = Math.round(+v || 0); const a = Math.abs(v), f = (x, d) => x.toLocaleString('ru-RU', { maximumFractionDigits: d });
+      return a >= 1e6 ? f(v / 1e6, a >= 1e7 ? 1 : 2) + ' млн ₽' : a >= 1e4 ? f(Math.round(v / 1000), 0) + ' тыс ₽' : a >= 1000 ? f(v / 1000, 1) + ' тыс ₽' : f(v, 0) + ' ₽'; };
+    const J = read_('journal').filter(j => !/"arch"\s*:\s*(true|1|"[^"]+")/.test(String(j.snap || '')));
+    const tm = new Date(); tm.setDate(tm.getDate() + 1); const tomorrow = Utilities.formatDate(tm, tz, 'yyyy-MM-dd');
+    const day = d => J.filter(j => notesIso_(j.date) === d), sumOf = L => L.reduce((a, j) => a + (+j.sum || 0), 0);
+    const T = day(today), cells = [];
+    if (me.admin) {
+      const pay = payMap(), lim = new Date(); lim.setDate(lim.getDate() - 30); const ls = Utilities.formatDate(lim, tz, 'yyyy-MM-dd');
+      let due = 0, dn = 0, old = 0, on = 0;
+      J.forEach(j => { const s = Math.round((+j.sum || 0) * 100) / 100, left = s - Math.min(pay[j.id] || 0, s); if (left <= 0.004) return;
+        due += left; dn++; const d = notesIso_(j.date); if (d && d < ls) { old += left; on++; } });
+      cells.push({ l: 'Ждём оплату', v: short(due), s: dn + ' накл.' }, { l: 'Долг > 30 дн', v: on ? short(old) : '0 ₽', s: on ? on + ' накл.' : 'нет', w: on ? 1 : 0 },
+        { l: 'Сегодня', v: T.length + ' накл.', s: T.length ? short(sumOf(T)) : 'нет поставок' });
+    } else {
+      const M = day(tomorrow), tasks = read_('daytasks').filter(r => notesIso_(r.date) === today && !/^(1|true|да|TRUE)$/i.test(String(r.done || '').trim())).length;
+      const pts = L => { const u = {}; L.forEach(j => { const m = /"ship"\s*:\s*"((?:[^"\\]|\\.)*)"/.exec(String(j.snap || '')); u[String(j.customerId || j.customerName || '') + '|' + (m ? m[1] : j.id)] = 1; }); return Object.keys(u).length; };
+      cells.push({ l: 'Сегодня', v: T.length + ' накл.', s: T.length ? pts(T) + ' точ.' : 'нет поставок' }, { l: 'Завтра', v: M.length + ' накл.', s: M.length ? pts(M) + ' точ.' : 'пока нет' },
+        { l: 'Задачи', v: String(tasks), s: tasks ? 'не сделано' : 'всё сделано' });
+    }
+    out.sum = { at: Utilities.formatDate(new Date(), tz, 'HH:mm'), cells: cells, go: me.admin ? 'profit' : 'calendar' };
   }
   return out;
 }

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- виджет: светлая тема (тёмная — values-night) -->
+<resources>
+  <color name="w_bg">#F2F7F4F2</color>
+  <color name="w_panel">#FFFFFFFF</color>
+  <color name="w_fg">#FF201A1E</color>
+  <color name="w_muted">#FF8C8187</color>
+  <color name="w_line">#FFECE6E9</color>
+  <color name="w_warn">#FFB23A2B</color>
+  <color name="w_exp_bg">#FFFBE9E6</color><color name="w_exp_fg">#FFB23A2B</color>
+  <color name="w_inc_bg">#FFE6F3EB</color><color name="w_inc_fg">#FF2C7A4B</color>
+  <color name="w_per_bg">#FFF2E7F0</color><color name="w_per_fg">#FF6A2C4E</color>
+</resources>

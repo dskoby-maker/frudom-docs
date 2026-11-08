@@ -56,6 +56,21 @@ public class NotifySettingsActivity extends Activity {
         status = text(statusText(), 14, INK, false);
         LinearLayout st = card(); st.addView(status); root.addView(st);
 
+        /* виджет: как выглядит и как растянуть на 2 ряда */
+        if (getIntent() != null && getIntent().getBooleanExtra("wdemo", false) && s.getString("wSum", "").isEmpty())
+            s.edit().putString("wSum", "{\"cells\":[{\"l\":\"Ждём оплату\",\"v\":\"412 тыс ₽\",\"s\":\"23 накл.\"},{\"l\":\"Долг > 30 дн\",\"v\":\"86 тыс ₽\",\"s\":\"4 накл.\",\"w\":1},{\"l\":\"Сегодня\",\"v\":\"6 накл.\",\"s\":\"58 тыс ₽\"}],\"go\":\"profit\"}")
+                .putString("wMsg", "Обновлено в 21:58").apply();
+        root.addView(section("Виджет на рабочем столе"));
+        LinearLayout wc = card();
+        wc.addView(text("Сверху — быстрые кнопки, снизу — сводка. Чтобы видеть сводку, растяните виджет на 2 ряда: долгое нажатие на виджет → потяните за нижний край. Цифры обновляются раз в час и по «↻».", 13, MUTED, false));
+        try {
+            View pv = QuickWidget.preview(this).apply(this, wc);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(168)); lp.topMargin = dp(10);
+            wc.addView(pv, lp);
+        } catch (Exception ignored) {}
+        if (QuickWidget.has(this)) wc.addView(button("Обновить цифры сейчас", false, v -> new Thread(() -> { Notifier.widgetSync(this); runOnUiThread(this::build); }).start()));
+        root.addView(wc);
+
         if (!Notifier.canNotify(this)) {
             LinearLayout w = card(); w.addView(text("Android сейчас не разрешает приложению показывать уведомления.", 15, 0xFFB3473C, true));
             w.addView(button("Разрешить уведомления", true, v -> {
