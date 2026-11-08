@@ -16,41 +16,50 @@
   </LinearLayout>
   <LinearLayout android:id="@+id/w_info" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1.35"
       android:layout_marginTop="6dp" android:orientation="vertical" android:gravity="center_vertical"
-      android:paddingStart="14dp" android:paddingEnd="8dp" android:paddingTop="6dp" android:paddingBottom="6dp" android:background="@drawable/w_panel">
+      android:paddingStart="12dp" android:paddingEnd="12dp" android:paddingTop="6dp" android:paddingBottom="6dp" android:background="@drawable/w_panel">
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center_vertical">
       <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical">
-        <TextView android:id="@+id/w_l1" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="—"
-            android:textColor="@color/w_muted" android:textSize="11sp" android:maxLines="1" android:ellipsize="end"/>
-        <TextView android:id="@+id/w_v1" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="—"
-            android:textColor="@color/w_fg" android:textSize="17sp" android:fontFamily="sans-serif-medium" android:maxLines="1" android:ellipsize="end"
+        <TextView android:id="@+id/w_l1" android:layout_width="match_parent" android:layout_height="15dp" android:text="—"
+            android:textColor="@color/w_muted" android:textSize="11sp" android:maxLines="1"
+            android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="11sp" android:autoSizeStepGranularity="1sp"/>
+        <TextView android:id="@+id/w_v1" android:layout_width="match_parent" android:layout_height="24dp" android:text="—"
+            android:textColor="@color/w_fg" android:textSize="17sp" android:fontFamily="sans-serif-medium" android:maxLines="1"
+            android:autoSizeTextType="uniform" android:autoSizeMinTextSize="11sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp"
             android:layout_marginTop="1dp"/>
         <TextView android:id="@+id/w_s1" android:layout_width="match_parent" android:layout_height="wrap_content" android:text=""
             android:textColor="@color/w_muted" android:textSize="11sp" android:maxLines="1" android:ellipsize="end"/>
       </LinearLayout>
-      <ImageView android:layout_width="1dp" android:layout_height="match_parent" android:layout_marginStart="10dp" android:layout_marginEnd="10dp" android:background="@drawable/w_line" android:importantForAccessibility="no"/>
+      <ImageView android:layout_width="1dp" android:layout_height="match_parent" android:layout_marginStart="8dp" android:layout_marginEnd="8dp" android:background="@drawable/w_line" android:importantForAccessibility="no"/>
       <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical">
-        <TextView android:id="@+id/w_l2" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="—"
-            android:textColor="@color/w_muted" android:textSize="11sp" android:maxLines="1" android:ellipsize="end"/>
-        <TextView android:id="@+id/w_v2" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="—"
-            android:textColor="@color/w_fg" android:textSize="17sp" android:fontFamily="sans-serif-medium" android:maxLines="1" android:ellipsize="end"
+        <TextView android:id="@+id/w_l2" android:layout_width="match_parent" android:layout_height="15dp" android:text="—"
+            android:textColor="@color/w_muted" android:textSize="11sp" android:maxLines="1"
+            android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="11sp" android:autoSizeStepGranularity="1sp"/>
+        <TextView android:id="@+id/w_v2" android:layout_width="match_parent" android:layout_height="24dp" android:text="—"
+            android:textColor="@color/w_fg" android:textSize="17sp" android:fontFamily="sans-serif-medium" android:maxLines="1"
+            android:autoSizeTextType="uniform" android:autoSizeMinTextSize="11sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp"
             android:layout_marginTop="1dp"/>
         <TextView android:id="@+id/w_s2" android:layout_width="match_parent" android:layout_height="wrap_content" android:text=""
             android:textColor="@color/w_muted" android:textSize="11sp" android:maxLines="1" android:ellipsize="end"/>
       </LinearLayout>
-      <ImageView android:layout_width="1dp" android:layout_height="match_parent" android:layout_marginStart="10dp" android:layout_marginEnd="10dp" android:background="@drawable/w_line" android:importantForAccessibility="no"/>
+      <ImageView android:layout_width="1dp" android:layout_height="match_parent" android:layout_marginStart="8dp" android:layout_marginEnd="8dp" android:background="@drawable/w_line" android:importantForAccessibility="no"/>
       <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:orientation="vertical">
-        <TextView android:id="@+id/w_l3" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="—"
-            android:textColor="@color/w_muted" android:textSize="11sp" android:maxLines="1" android:ellipsize="end"/>
-        <TextView android:id="@+id/w_v3" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="—"
-            android:textColor="@color/w_fg" android:textSize="17sp" android:fontFamily="sans-serif-medium" android:maxLines="1" android:ellipsize="end"
+        <TextView android:id="@+id/w_l3" android:layout_width="match_parent" android:layout_height="15dp" android:text="—"
+            android:textColor="@color/w_muted" android:textSize="11sp" android:maxLines="1"
+            android:autoSizeTextType="uniform" android:autoSizeMinTextSize="9sp" android:autoSizeMaxTextSize="11sp" android:autoSizeStepGranularity="1sp"/>
+        <TextView android:id="@+id/w_v3" android:layout_width="match_parent" android:layout_height="24dp" android:text="—"
+            android:textColor="@color/w_fg" android:textSize="17sp" android:fontFamily="sans-serif-medium" android:maxLines="1"
+            android:autoSizeTextType="uniform" android:autoSizeMinTextSize="11sp" android:autoSizeMaxTextSize="17sp" android:autoSizeStepGranularity="1sp"
             android:layout_marginTop="1dp"/>
         <TextView android:id="@+id/w_s3" android:layout_width="match_parent" android:layout_height="wrap_content" android:text=""
             android:textColor="@color/w_muted" android:textSize="11sp" android:maxLines="1" android:ellipsize="end"/>
       </LinearLayout>
-      <TextView android:id="@+id/w_ref" android:layout_width="34dp" android:layout_height="match_parent" android:gravity="center"
-          android:text="↻" android:textColor="@color/w_muted" android:textSize="17sp" android:contentDescription="Обновить"/>
     </LinearLayout>
-    <TextView android:id="@+id/w_upd" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="3dp"
-        android:text="Загружаю…" android:textColor="@color/w_muted" android:textSize="10sp" android:maxLines="1" android:ellipsize="end" android:alpha="0.8"/>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:orientation="horizontal" android:gravity="center_vertical">
+      <TextView android:id="@+id/w_upd" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content"
+          android:text="Загружаю…" android:textColor="@color/w_muted" android:textSize="10sp" android:maxLines="1" android:ellipsize="end"/>
+      <TextView android:id="@+id/w_ref" android:layout_width="wrap_content" android:layout_height="wrap_content" android:paddingStart="10dp" android:paddingEnd="4dp"
+          android:paddingTop="2dp" android:paddingBottom="2dp" android:text="↻  Обновить" android:textColor="@color/w_muted" android:textSize="10sp"
+          android:contentDescription="Обновить сводку"/>
+    </LinearLayout>
   </LinearLayout>
 </LinearLayout>

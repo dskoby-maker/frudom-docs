@@ -517,7 +517,7 @@ function notes_(p, me) {
       let due = 0, dn = 0, old = 0, on = 0;
       J.forEach(j => { const s = Math.round((+j.sum || 0) * 100) / 100, left = s - Math.min(pay[j.id] || 0, s); if (left <= 0.004) return;
         due += left; dn++; const d = notesIso_(j.date); if (d && d < ls) { old += left; on++; } });
-      cells.push({ l: 'Ждём оплату', v: short(due), s: dn + ' накл.' }, { l: 'Долг > 30 дн', v: on ? short(old) : '0 ₽', s: on ? on + ' накл.' : 'нет', w: on ? 1 : 0 },
+      cells.push({ l: 'Ждём оплату', v: short(due), s: dn + ' накл.' }, { l: 'Долги 30+ дн', v: on ? short(old) : '0 ₽', s: on ? on + ' накл.' : 'нет', w: on ? 1 : 0 },
         { l: 'Сегодня', v: T.length + ' накл.', s: T.length ? short(sumOf(T)) : 'нет поставок' });
     } else {
       const M = day(tomorrow), tasks = read_('daytasks').filter(r => notesIso_(r.date) === today && !/^(1|true|да|TRUE)$/i.test(String(r.done || '').trim())).length;

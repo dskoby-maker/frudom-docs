@@ -58,7 +58,7 @@ public class NotifySettingsActivity extends Activity {
 
         /* виджет: как выглядит и как растянуть на 2 ряда */
         if (getIntent() != null && getIntent().getBooleanExtra("wdemo", false) && s.getString("wSum", "").isEmpty())
-            s.edit().putString("wSum", "{\"cells\":[{\"l\":\"Ждём оплату\",\"v\":\"412 тыс ₽\",\"s\":\"23 накл.\"},{\"l\":\"Долг > 30 дн\",\"v\":\"86 тыс ₽\",\"s\":\"4 накл.\",\"w\":1},{\"l\":\"Сегодня\",\"v\":\"6 накл.\",\"s\":\"58 тыс ₽\"}],\"go\":\"profit\"}")
+            s.edit().putString("wSum", "{\"cells\":[{\"l\":\"Ждём оплату\",\"v\":\"412 тыс ₽\",\"s\":\"23 накл.\"},{\"l\":\"Долги 30+ дн\",\"v\":\"86 тыс ₽\",\"s\":\"4 накл.\",\"w\":1},{\"l\":\"Сегодня\",\"v\":\"6 накл.\",\"s\":\"58 тыс ₽\"}],\"go\":\"profit\"}")
                 .putString("wMsg", "Обновлено в 21:58").apply();
         root.addView(section("Виджет на рабочем столе"));
         LinearLayout wc = card();
