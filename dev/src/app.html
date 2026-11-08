@@ -2098,6 +2098,11 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
       <h2>ИИ <small>чтение сканов и фото (Google Gemini и Claude)</small></h2>
       <div id="ai-box"><p class="muted">Загружаю…</p></div>
     </div>
+    <div class="card" id="app-ntf" hidden>
+      <h2>Уведомления и виджет <small>приложение на телефоне</small></h2>
+      <p class="muted">Что присылать (деньги из банка, долги, действия сотрудников, задачи на сегодня), как часто и в какие часы не беспокоить — в настройках уведомлений. Виджет «Расход · Доход · Личное»: долгое нажатие на пустое место рабочего стола → «Виджеты» → «Документы ФД».</p>
+      <div class="row"><button class="btn" id="app-ntf-open">Настроить уведомления</button></div>
+    </div>
     <div class="card" id="bk-card" hidden>
       <h2>Резервные копии таблицы <small>на вашем Google Диске</small></h2>
       <div id="bk-box"><p class="muted">Загружаю…</p></div>
@@ -6959,7 +6964,20 @@ applyRole(); applyTabOrder(); startTab();
 if(API_URL){ if(pass()){ let first=false; try{ first=!sessionStorage.getItem("fd-session"); sessionStorage.setItem("fd-session","1"); }catch(e){}
     if(first) logEv("Вход","Открыл систему (вход сохранён на устройстве, "+deviceName()+")"); pull(); } else { showLogin(); } } else setStatus("local");
 /*__UNDO__*/
-window.__fd = {D:()=>D, undo:(r)=>unApply(curTab,!!r), undoState:()=>UNDO, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, aiSrc, IMP:()=>IMP, patchNmic, docProfit, payOf, setPay, calm:fdCalm};
+/* приложение Android: вход для уведомлений, быстрая запись из виджета, переход из уведомления */
+async function appQuick(k){
+  const nav=document.querySelector("#fd-app nav.tabs");
+  if(API_URL && (!curUser() || !pass())) return "login";
+  if(!nav || nav.hidden) return "wait";
+  if(!me().admin){ toast("err","Расходы и доходы ведёт только Даниил",""); return "denied"; }
+  if(tabOk("profit")) showTab("profit");
+  if(!pfLoaded){ try{ await loadProfit(true); }catch(e){} }
+  pvItemOpen(null, k==="inc"||k==="per" ? k : "exp"); return "ok";
+}
+function appGo(t){ const nav=document.querySelector("#fd-app nav.tabs"); if(!nav || nav.hidden) return "wait"; if(tabOk(t)){ showTab(t); return "ok"; } return "no"; }
+(function(){ const A=window.FrudomApp, c=document.getElementById("app-ntf"); if(!A || !c || typeof A.openNotify!=="function") return;
+  c.hidden=false; document.getElementById("app-ntf-open").addEventListener("click", ()=>{ try{ A.openNotify(); }catch(e){} }); })();
+window.__fd = {acct:()=>({url:API_URL, user:curUser()||"", key:pass()||"", admin:!!me().admin}), quick:appQuick, go:appGo, D:()=>D, undo:(r)=>unApply(curTab,!!r), undoState:()=>UNDO, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, aiSrc, IMP:()=>IMP, patchNmic, docProfit, payOf, setPay, calm:fdCalm};
 })();
 </script>
 <!-- ============ конец блока ============ -->

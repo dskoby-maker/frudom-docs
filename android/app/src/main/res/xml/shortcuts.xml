@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- долгое нажатие на значок приложения -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+  <shortcut android:shortcutId="exp" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/sc_exp">
+    <intent android:action="ru.frudom.docs.QUICK_exp" android:targetPackage="ru.frudom.docs" android:targetClass="ru.frudom.docs.MainActivity">
+      <extra android:name="quick" android:value="exp"/></intent>
+  </shortcut>
+  <shortcut android:shortcutId="inc" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/sc_inc">
+    <intent android:action="ru.frudom.docs.QUICK_inc" android:targetPackage="ru.frudom.docs" android:targetClass="ru.frudom.docs.MainActivity">
+      <extra android:name="quick" android:value="inc"/></intent>
+  </shortcut>
+  <shortcut android:shortcutId="per" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/sc_per">
+    <intent android:action="ru.frudom.docs.QUICK_per" android:targetPackage="ru.frudom.docs" android:targetClass="ru.frudom.docs.MainActivity">
+      <extra android:name="quick" android:value="per"/></intent>
+  </shortcut>
+  <shortcut android:shortcutId="ntf" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/sc_ntf">
+    <intent android:action="android.intent.action.VIEW" android:targetPackage="ru.frudom.docs" android:targetClass="ru.frudom.docs.NotifySettingsActivity"/>
+  </shortcut>
+</shortcuts>
