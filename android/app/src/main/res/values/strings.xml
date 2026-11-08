@@ -1,2 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources><string name="app_name">Документы ФД</string></resources>
+<resources>
+  <string name="app_name">Документы ФД</string>
+  <string name="widget_desc">Быстрая запись: расход, доход, личное</string>
+  <string name="sc_exp">Расход</string>
+  <string name="sc_inc">Доход</string>
+  <string name="sc_per">Личное</string>
+  <string name="sc_ntf">Уведомления</string>
+</resources>

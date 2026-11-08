@@ -51,7 +51,7 @@ public class MainActivity extends Activity {
     static final String START = "https://" + HOST + PATH + "/?source=apk";
     static final String AUTH = "ru.frudom.docs.files";
     static final String FOLDER = "Документы ФД";
-    static final int REQ_FILE = 1, REQ_PERM = 2;
+    static final int REQ_FILE = 1, REQ_PERM = 2, REQ_NTF = 3;
 
     WebView web, printWeb;
     ValueCallback<Uri[]> fileCb;
@@ -100,6 +100,36 @@ public class MainActivity extends Activity {
             if (url.startsWith("http")) download(url, android.webkit.URLUtil.guessFileName(url, cd, mime));
         });
         web.loadUrl(START);
+        takeIntent(getIntent());
+        Notifier.schedule(this, false);
+    }
+
+    /* ---------- виджет / ярлыки («Расход», «Доход», «Личное») и нажатие на уведомление ---------- */
+    String wantQuick, wantGo; int tries;
+    @Override protected void onNewIntent(Intent i) { super.onNewIntent(i); setIntent(i); takeIntent(i); if (!offline) runWanted(); }
+    void takeIntent(Intent i) {
+        if (i == null) return;
+        String q = i.getStringExtra("quick"), g = i.getStringExtra("go");
+        if (q != null && !q.isEmpty()) { wantQuick = q; wantGo = null; tries = 0; }
+        else if (g != null && !g.isEmpty()) { wantGo = g; wantQuick = null; tries = 0; }
+        i.removeExtra("quick"); i.removeExtra("go");
+    }
+    /* сайт загружается не сразу: пробуем раз в 0,7 с, пока он не будет готов (до ~40 с) */
+    void runWanted() {
+        if (wantQuick == null && wantGo == null) return;
+        if (++tries > 60) { wantQuick = wantGo = null; return; }
+        final String q = wantQuick, g = wantGo;
+        String js = q != null
+            ? "(function(){if(!window.__fd||!__fd.quick)return 'wait';var r=window.__fdQ;if(r==='run')return 'run';window.__fdQ=null;if(r&&r!=='wait')return r;"
+              + "window.__fdQ='run';__fd.quick('" + q.replaceAll("[^a-z]", "") + "').then(function(x){window.__fdQ=x},function(){window.__fdQ='err'});return 'run';})()"
+            : "(function(){return (window.__fd&&__fd.go)?__fd.go('" + g.replaceAll("[^a-z]", "") + "'):'wait'})()";
+        web.evaluateJavascript(js, r -> {
+            String v = r == null ? "" : r.replace("\"", "");
+            if (v.equals("wait") || v.equals("run")) { web.postDelayed(this::runWanted, 700); return; }
+            if (q != null && q.equals(wantQuick)) wantQuick = null;
+            if (g != null && g.equals(wantGo)) wantGo = null;
+            if (v.equals("login")) toast("Сначала войдите на сайте, потом нажмите кнопку ещё раз");
+        });
     }
 
     /* свои страницы — внутри приложения, всё остальное (телефон, почта, карты, другие сайты) — в своих приложениях */
@@ -111,7 +141,7 @@ public class MainActivity extends Activity {
         return true;
     }
 
-    void inject() { if (!offline && bridgeJs.length() > 0) web.evaluateJavascript(bridgeJs, null); }
+    void inject() { if (!offline && bridgeJs.length() > 0) web.evaluateJavascript(bridgeJs, null); if (!offline) { tries = 0; runWanted(); } }
 
     void showOffline() {
         offline = true;
@@ -296,7 +326,22 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void printHtml(String html, String title) { runOnUiThread(() -> MainActivity.this.printHtml(html, title)); }
         @JavascriptInterface public void toast(String t) { MainActivity.this.toast(t); }
         @JavascriptInterface public void reload() { runOnUiThread(() -> { offline = false; web.loadUrl(START); }); }
+        /* кто вошёл на сайте — чтобы приложение могло само спрашивать таблицу о новом (уведомления) */
+        @JavascriptInterface public void setAccount(String json) {
+            Notifier.setAccount(getApplicationContext(), json);
+            if (json != null && json.contains("\"user\":\"") && !json.contains("\"user\":\"\"")) runOnUiThread(MainActivity.this::askNotify);
+        }
+        @JavascriptInterface public void openNotify() { runOnUiThread(() -> startActivity(new Intent(MainActivity.this, NotifySettingsActivity.class))); }
         @JavascriptInterface public String version() { try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception e) { return ""; } }
+    }
+
+    /* Android 13+: один раз спросить разрешение на уведомления (после входа) */
+    void askNotify() {
+        if (Build.VERSION.SDK_INT < 33) return;
+        android.content.SharedPreferences p = Notifier.prefs(this);
+        if (p.getBoolean("askedPerm", false) || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return;
+        p.edit().putBoolean("askedPerm", true).apply();
+        requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_NTF);
     }
 
     void toast(String t) { runOnUiThread(() -> Toast.makeText(this, t, Toast.LENGTH_LONG).show()); }

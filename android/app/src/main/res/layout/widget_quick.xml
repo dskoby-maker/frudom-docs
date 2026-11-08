@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="horizontal" android:padding="4dp" android:gravity="center"
+    android:background="@drawable/w_bg">
+  <TextView android:id="@+id/w_exp" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent"
+      android:layout_margin="3dp" android:gravity="center" android:text="− Расход" android:textColor="#FFFFFF" android:textSize="15sp"
+      android:textStyle="bold" android:maxLines="1" android:background="@drawable/w_exp"/>
+  <TextView android:id="@+id/w_inc" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent"
+      android:layout_margin="3dp" android:gravity="center" android:text="+ Доход" android:textColor="#FFFFFF" android:textSize="15sp"
+      android:textStyle="bold" android:maxLines="1" android:background="@drawable/w_inc"/>
+  <TextView android:id="@+id/w_per" android:layout_width="0dp" android:layout_weight="1" android:layout_height="match_parent"
+      android:layout_margin="3dp" android:gravity="center" android:text="Личное" android:textColor="#FFFFFF" android:textSize="15sp"
+      android:textStyle="bold" android:maxLines="1" android:background="@drawable/w_per"/>
+</LinearLayout>

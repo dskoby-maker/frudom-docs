@@ -51,4 +51,10 @@
     }
     return false;
   };
+
+  /* вход для уведомлений: приложение запоминает, кто вошёл, и само спрашивает таблицу о новом (раз в час) */
+  var lastAcct = null;
+  function acct(){ try{ if (!window.__fd || !__fd.acct || !A.setAccount) return; var a = JSON.stringify(__fd.acct());
+      if (a !== lastAcct){ lastAcct = a; A.setAccount(a); } }catch(e){} }
+  acct(); setInterval(acct, 4000);
 })();
