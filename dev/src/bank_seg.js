@@ -181,6 +181,11 @@ function bnCalHtml(ops, ym){
     <div class="zkc-w">${["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].map(x=>`<span>${x}</span>`).join("")}</div><div class="zkc-g">${cells.join("")}</div>
     ${V.day?`<p class="zkc-f">Показаны поступления за <b>${fd(V.day)}</b> · <button type="button" class="btn ghost sm" data-bnday="${V.day}">Весь месяц</button></p>`:`<p class="zkc-f muted">Нажмите на день — ниже останутся поступления этого дня.</p>`}</div>`;
 }
+/* имя плательщика покороче: «ОБЩЕСТВО С ОГРАНИЧЕННОЙ ОТВЕТСТВЕННОСТЬЮ "АВРОРА"» → «ООО "АВРОРА"», ФИО заглавными — обычными буквами */
+const BN_FORMS=[["федеральное государственное бюджетное учреждение","ФГБУ"],["федеральное государственное бюджетное образовательное учреждение","ФГБОУ"],["государственное бюджетное профессиональное образовательное учреждение","ГБПОУ"],["государственное автономное профессиональное образовательное учреждение","ГАПОУ"],["государственное бюджетное учреждение","ГБУ"],["государственное унитарное предприятие","ГУП"],["общество с ограниченной ответственностью","ООО"],["публичное акционерное общество","ПАО"],["непубличное акционерное общество","АО"],["акционерное общество","АО"],["индивидуальный предприниматель","ИП"]];
+function bnName(s){ s=String(s||"").replace(/\s+/g," ").trim(); if(!s) return "";
+  BN_FORMS.forEach(([l,a])=>{ s=s.replace(new RegExp(l.replace(/ /g,"\\s+"),"i"), a); });
+  return s.split(/("[^"]*"|«[^»]*»)/).map((p,i)=>i%2 ? p : p.replace(/[А-ЯЁ]{4,}/g, w=>w[0]+w.slice(1).toLowerCase())).join("").trim(); }
 function bnCard(o, i){
   const st=o.status||"new", applied=bnIsOk(o), wait=bnIsWait(o), used=bnDocsOf(o), man=bnIsMan(o), m=wait&&!man?bnMatch(o):null;
   const ico = applied ? pvIco("check") : st==="skip" ? pvIco("back") : pvIco("question"), cls = applied ? "ok" : st==="skip" ? "skip" : "wait";
@@ -192,12 +197,12 @@ function bnCard(o, i){
   const mk = wait && m ? bnMissing(o, m.cid) : [];
   return `<div class="bnop ${cls}" style="--d:${Math.min(i,12)*30}ms" data-bnop="${esc(o.id)}">
     <span class="bnico">${ico}</span>
-    <div class="bnm"><div class="bnt"><b>${esc(o.payerName||"Плательщик не указан")}</b><span class="bnsum">+${fm(+o.sum||0)} ₽</span></div>
+    <div class="bnm"><div class="bnt"><b title="${esc(o.payerName||"")}">${esc(bnName(o.payerName)||"Плательщик не указан")}</b><span class="bnsum">+${fm(+o.sum||0)} ₽</span></div>
       <div class="bns"><span>${fd(o.date)}</span><span>${esc(bnSup(o.supplierId))}</span>${man?`<span class="bnman">вручную</span>`:""}${o.payerInn&&!man?`<span>ИНН ${esc(o.payerInn)}</span>`:""}${cname&&!man?`<span class="bnc">→ ${esc(cname)}</span>`:""}<span class="bnst">${esc(BN_ST[st]||st)}</span></div>
-      ${o.purpose?`<p class="bnp" title="${man?"Комментарий":"Назначение платежа"}">${esc(o.purpose)}</p>`:man?"":`<p class="bnp">(без назначения)</p>`}
+      ${o.purpose?`<button type="button" class="bnp" data-bnpf title="${man?"Комментарий":"Назначение платежа — нажмите, чтобы прочитать целиком"}"><span>${esc(o.purpose)}</span></button>`:man?"":`<p class="bnp"><span>(без назначения)</span></p>`}
       ${applied ? `<div class="bndocs">${used.map(u=>chip(u)).join("")}</div>${rest>0.004?`<div class="bnwhy">Не разнесено ${fm(rest)} ₽</div>`:""}` : ""}
-      ${wait && m ? `<div class="bnwhy">${esc(m.why)}</div>${m.docs.length?`<div class="bndocs">${m.docs.map(u=>chip(u,true)).join("")}</div>`:""}` : wait ? `<div class="bnwhy">Накладные не выбраны</div>` : ""}
-      ${mk.length ? `<div class="bnmk">На сайте нет ${mk.length>1?"накладных":"накладной"} из платежа: ${esc(bnMissText(mk))}</div>` : ""}
+      ${wait && m ? `${mk.length&&!m.docs.length?"":`<div class="bnwhy">${esc(m.why)}</div>`}${m.docs.length?`<div class="bndocs">${m.docs.map(u=>chip(u,true)).join("")}</div>`:""}` : wait ? `<div class="bnwhy">Накладные не выбраны</div>` : ""}
+      ${mk.length ? `<div class="bnmk"><b>На сайте нет ${mk.length>1?mk.length+" "+plural(mk.length,["накладной","накладных","накладных"]):"накладной"} из этого платежа</b><div class="bnmc">${mk.map(r=>`<span>№ ${esc(r.num)}${r.date?` <small>от ${fd(r.date)}</small>`:""}${r.sum?` <b>${fm(r.sum)} ₽</b>`:""}</span>`).join("")}</div><small>Если их просто не заводили — «Создать ${mk.length>1?"накладные":"накладную"}» заполнит всё из платежа само.</small></div>` : ""}
       ${skipWhy ? `<div class="bnwhy bnmem">${esc(skipWhy)}</div>` : ""}
       <div class="bna">${man ? `<button type="button" class="btn ${wait?"pri":"ghost"} sm" data-bn="edit">${wait?"Выбрать накладные…":"Изменить…"}</button><button type="button" class="btn ghost sm danger" data-bn="del">Удалить приход</button>`
         : wait ? `${m.docs.length?`<button type="button" class="btn pri sm" data-bn="ok">${pvIco("check")}Подтвердить</button>`:""}${mk.length?`<button type="button" class="btn ${m.docs.length?"":"pri "}sm" data-bn="mk">Создать ${mk.length>1?"накладные ("+mk.length+")":"накладную"}…</button>`:""}<button type="button" class="btn sm" data-bn="pick">Выбрать накладные…</button><button type="button" class="btn ghost sm" data-bn="skip">Это не оплата накладных</button>`
@@ -210,6 +215,7 @@ async function pvBankClick(e){
   const vw=e.target.closest("[data-bnv]"); if(vw){ const V=BNV(); V.view=vw.dataset.bnv; V.day=""; if(V.view==="cal" && pvMonth()==="all"){ PV().m=todayISO().slice(0,7); } saveLocal(); pvDraw(); return; }
   const sp=e.target.closest("[data-bnsup]"); if(sp){ BNV().sup=sp.dataset.bnsup; saveLocal(); pvBankDraw(); return; }
   const dy=e.target.closest("[data-bnday]"); if(dy){ const V=BNV(); V.day = V.day===dy.dataset.bnday ? "" : dy.dataset.bnday; BNK().f="all"; saveLocal(); pvBankDraw(); return; }
+  const pf=e.target.closest("[data-bnpf]"); if(pf){ pf.classList.toggle("full"); return; }
   const dj=e.target.closest("[data-bndoc]"); if(dj){ const j=D.journal.find(x=>x.id===dj.dataset.bndoc); if(j) docCard(j); return; }
   const b=e.target.closest("[data-bn]"); if(!b) return; const a=b.dataset.bn;
   if(a==="sync"){ b.disabled=true; b.textContent="Обновляю…"; await bnSync(false); pvBankDraw(); return; }
