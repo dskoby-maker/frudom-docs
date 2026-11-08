@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- значок уведомления: лист документа с загнутым углом (одним цветом, как требует Android) -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
-  <path android:fillColor="#FFFFFFFF" android:pathData="M6,2h8l6,6v12a2,2 0,0 1,-2 2H6a2,2 0,0 1,-2 -2V4a2,2 0,0 1,2 -2zM13,3.5V9h5.5zM8,12v1.8h8V12zM8,15.5v1.8h8v-1.8z"/>
+<!-- значок уведомления: жёлудь из логотипа (одним цветом, как требует Android) -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="108" android:viewportHeight="108">
+  <group android:translateX="-8" android:translateY="-4" android:scaleX="1.15" android:scaleY="1.15">
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="7" android:strokeLineJoin="round" android:fillColor="#00000000"
+        android:pathData="M54,34.5C66.5,34.5 76.5,42.5 76.5,53.5C76.5,66 67,75.5 54,82C41,75.5 31.5,66 31.5,53.5C31.5,42.5 41.5,34.5 54,34.5Z"/>
+    <path android:fillColor="#FFFFFFFF" android:pathData="M54,35C51.6,31.2 52.2,25.8 58.6,22.4C60.2,27.6 58.6,32 54,35Z"/>
+    <path android:fillColor="#FFFFFFFF" android:pathData="M32.5,54.5C39,48 47,45.6 54,45.6C61,45.6 69,48 75.5,54.5L75.5,61C69,55.4 61,53 54,53C47,53 39,55.4 32.5,61Z"/>
+  </group>
 </vector>
