@@ -103,6 +103,15 @@
 @media (max-width:700px){#fd-app td.num .jzk{margin-left:0}}
 #fd-app .who .jcm{margin-left:6px}#fd-app .kd-w .jcm{margin-left:8px}
 @keyframes jcmIn{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:none}}
+#fd-app .dc-cmf{margin-top:14px}#fd-app .dc-cmf .dc-cm{margin-top:0}
+#fd-app .dc-cmo{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:9px;padding:10px 16px;border:1px dashed rgba(106,44,78,.28);border-radius:999px;color:var(--accent);font-size:14px;font-weight:500;background:rgba(106,44,78,.03);transition:background .2s,border-color .2s,transform .15s}
+#fd-app .dc-cmo svg{width:17px;height:17px;flex:none;transition:transform .25s}#fd-app .dc-cmo:hover{background:rgba(106,44,78,.07);border-color:rgba(106,44,78,.45)}#fd-app .dc-cmo:hover svg{transform:rotate(-8deg) scale(1.08)}#fd-app .dc-cmo:active{transform:scale(.98)}
+#fd-app .dc-cmo:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#fd-app .dc-cmc{display:grid;grid-template-rows:0fr;transition:grid-template-rows .34s cubic-bezier(.2,.8,.2,1)}#fd-app .dc-cmf.open .dc-cmc{grid-template-rows:1fr}
+#fd-app .dc-cmi{min-height:0;overflow:hidden;padding:0 5px;margin:0 -5px;opacity:0;transform:translateY(-6px) scale(.985);transform-origin:top center;transition:opacity .24s ease,transform .34s cubic-bezier(.2,.8,.2,1),padding .34s}
+#fd-app .dc-cmf.open .dc-cmi{opacity:1;transform:none;padding:5px;margin:-5px}
+@media (prefers-reduced-motion: reduce){#fd-app .dc-cmc,#fd-app .dc-cmi{transition:none}}
+@media (max-width:480px){#fd-app .dc-cmo{display:flex;width:100%;justify-content:center}}
 #fd-app .dcard .dc-cm{margin-top:14px;border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:linear-gradient(180deg,rgba(106,44,78,.035),transparent 70%);transition:border-color .2s,box-shadow .2s}
 #fd-app .dcard .dc-cm:focus-within{border-color:rgba(106,44,78,.45);box-shadow:0 0 0 4px rgba(106,44,78,.08)}
 #fd-app .dcard .dc-cm.flash{animation:cmFlash 1.1s ease}
@@ -5042,11 +5051,18 @@ function jCmGroup(g){ const n=g.filter(j=>cmOf(j).t).length; if(!n) return ""; c
   return `<span class="jcm" title="${esc(L)}" aria-label="Комментарии: ${n}">${IC_CM}${n>1?n:""}</span>`; }
 function cmHtml(j, arch){ const c=cmOf(j), who=c.t?`${esc(c.by||"")}${c.at?" · "+esc(dtShort(c.at)):""}`:"";
   if(arch) return c.t ? `<div class="dc-cm"><div class="cmh">${IC_CM}Комментарий<small>${who}</small></div><div class="cmt">${esc(c.t)}</div></div>` : "";
-  return `<div class="dc-cm" id="dc-cm" data-doc="${j.id}"><div class="cmh">${IC_CM}Комментарий<small id="dc-cmw">${who||"виден всем, в документы не печатается"}</small></div>
+  /* свёрнут, пока комментария нет: кнопка «Оставить комментарий…» плавно раскрывает поле; есть комментарий — виден сразу */
+  const op=!!c.t;
+  return `<div class="dc-cmf${op?" open":""}" id="dc-cmf"><button type="button" class="dc-cmo" data-cmopen aria-expanded="${op}" aria-controls="dc-cm"${op?" hidden":""}>${IC_CM}<span>Оставить комментарий к этой накладной</span></button>
+    <div class="dc-cmc"><div class="dc-cmi"${op?"":" inert"}><div class="dc-cm" id="dc-cm" data-doc="${j.id}"><div class="cmh">${IC_CM}Комментарий<small id="dc-cmw">${who||"виден всем, в документы не печатается"}</small></div>
     <textarea id="dc-cmt" rows="2" maxlength="2000" placeholder="Например: заказчик попросил привезти до 10:00, звонить Ольге" aria-label="Комментарий к документу">${esc(c.t||"")}</textarea>
-    <div class="cma"><button type="button" class="btn pri sm" data-cm="save">Сохранить</button><button type="button" class="btn ghost sm" data-cm="cancel">Отмена</button><span>Ctrl+Enter — сохранить</span></div></div>`; }
+    <div class="cma"><button type="button" class="btn pri sm" data-cm="save">Сохранить</button><button type="button" class="btn ghost sm" data-cm="cancel">Отмена</button><span>Ctrl+Enter — сохранить</span></div></div></div></div></div>`; }
+function cmOpen(on, focus){ const f=$("#dc-cmf"); if(!f) return; const b=f.querySelector(".dc-cmo"), inn=f.querySelector(".dc-cmi"), rm=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if(on){ b.hidden=true; b.setAttribute("aria-expanded","true"); inn.inert=false; requestAnimationFrame(()=>f.classList.add("open"));
+    if(focus){ const t=$("#dc-cmt"); setTimeout(()=>{ if(t){ cmGrow(t); t.focus({preventScroll:true}); t.setSelectionRange(t.value.length,t.value.length); } f.scrollIntoView({behavior:rm?"auto":"smooth", block:"nearest"}); }, rm?0:180); } }
+  else { f.classList.remove("open"); inn.inert=true; b.setAttribute("aria-expanded","false"); setTimeout(()=>{ if(!f.classList.contains("open")) b.hidden=false; }, rm?0:260); } }
 function cmGrow(t){ t.style.height="auto"; t.style.height=Math.min(260, t.scrollHeight+2)+"px"; }
-function cmFocus(){ setTimeout(()=>{ const t=$("#dc-cmt"), box=$("#dc-cm"); if(!box) return; box.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth", block:"center"}); box.classList.remove("flash"); void box.offsetWidth; box.classList.add("flash"); if(t){ t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }, 120); }
+function cmFocus(){ cmOpen(true); setTimeout(()=>{ const t=$("#dc-cmt"), box=$("#dc-cm"); if(!box) return; box.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth", block:"center"}); box.classList.remove("flash"); void box.offsetWidth; box.classList.add("flash"); if(t){ t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }, 120); }
 function cmSave(){ const box=$("#dc-cm"), t=$("#dc-cmt"); if(!box||!t) return; const j=D.journal.find(x=>x.id===box.dataset.doc); if(!j||!j.snap) return;
   const v=t.value.replace(/\s+$/,"").replace(/^\s+/,""), old=cmOf(j).t||""; if(v===old){ box.classList.remove("dirty"); return; }
   const m=j.snap.meta=j.snap.meta||{}; if(v) m.cm={t:v, by:curUser()||"", at:new Date().toISOString()}; else delete m.cm;
@@ -5056,8 +5072,9 @@ function cmSave(){ const box=$("#dc-cm"), t=$("#dc-cmt"); if(!box||!t) return; c
   toast("ok", v?"Комментарий сохранён":"Комментарий удалён", "№ "+j.number+" от "+fd(j.date)+".");
   if(curTab==="journal") renderJournal(); }
 document.addEventListener("input", e=>{ if(e.target.id!=="dc-cmt") return; const box=$("#dc-cm"), j=box&&D.journal.find(x=>x.id===box.dataset.doc); cmGrow(e.target); box.classList.toggle("dirty", e.target.value.trim()!==(cmOf(j).t||"")); });
-document.addEventListener("click", e=>{ const b=e.target.closest("#fd-dcard [data-cm]"); if(!b) return; if(b.dataset.cm==="save"){ cmSave(); return; }
-  const box=$("#dc-cm"), t=$("#dc-cmt"), j=box&&D.journal.find(x=>x.id===box.dataset.doc); if(t){ t.value=cmOf(j).t||""; cmGrow(t); } box&&box.classList.remove("dirty"); });
+document.addEventListener("click", e=>{ if(e.target.closest("#fd-dcard [data-cmopen]")){ cmOpen(true, true); return; }
+  const b=e.target.closest("#fd-dcard [data-cm]"); if(!b) return; if(b.dataset.cm==="save"){ cmSave(); if(!($("#dc-cmt")||{}).value) cmOpen(false); return; }
+  const box=$("#dc-cm"), t=$("#dc-cmt"), j=box&&D.journal.find(x=>x.id===box.dataset.doc); if(t){ t.value=cmOf(j).t||""; cmGrow(t); } box&&box.classList.remove("dirty"); if(!cmOf(j).t) cmOpen(false); });
 document.addEventListener("keydown", e=>{ if(e.target.id!=="dc-cmt") return; if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); cmSave(); } else if(e.key==="Escape" && $("#dc-cm").classList.contains("dirty")){ e.preventDefault(); e.stopPropagation(); $('#fd-dcard [data-cm="cancel"]').click(); } }, true);
 /* ---------- закупка за штуку (накладная и комплект): цена за 1 шт + вес 1 шт → цена за кг ----------
    Только для товаров в кг. В «Себестоимости накладных» как и раньше хранится цена за кг (lines[pid]), а как ввели —
