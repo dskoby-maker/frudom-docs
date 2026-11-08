@@ -103,9 +103,9 @@ public class NotifySettingsActivity extends Activity {
         when.addView(text("Утренняя сводка (долги и задачи на сегодня) — не раньше " + Notifier.hm(mo), 15, INK, false));
         when.addView(button("Изменить время сводки: " + Notifier.hm(mo), false, v -> time(mo, m -> s.edit().putInt("morning", m).apply())));
         when.addView(text("Сводка по долгам:", 15, INK, false));
-        RadioGroup dg = new RadioGroup(this); dg.setOrientation(RadioGroup.HORIZONTAL);
-        RadioButton d1 = new RadioButton(this); d1.setText("каждый день"); d1.setId(2001); dg.addView(d1);
-        RadioButton d2 = new RadioButton(this); d2.setText("по понедельникам"); d2.setId(2002); dg.addView(d2);
+        RadioGroup dg = new RadioGroup(this);
+        RadioButton d1 = new RadioButton(this); d1.setText("каждый день"); d1.setTextSize(16); d1.setId(2001); dg.addView(d1);
+        RadioButton d2 = new RadioButton(this); d2.setText("только по понедельникам"); d2.setTextSize(16); d2.setId(2002); dg.addView(d2);
         (("mon".equals(s.getString("debtWhen", "day"))) ? d2 : d1).setChecked(true);
         dg.setOnCheckedChangeListener((g, id) -> s.edit().putString("debtWhen", id == 2002 ? "mon" : "day").apply());
         when.addView(dg);
