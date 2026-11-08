@@ -51,7 +51,7 @@ function zkpKpi(L){ const c=k=>L.filter(x=>x.st===k).length, rev=r2(L.reduce((a,
     <div><small>Выручка</small><b>${fm(rev)}</b><span>без НДС</span></div>
     <div class="hi"><small>Прибыль по заполненным</small><b class="${prof<0?"neg":""}">${fm(prof)}</b><span>закупка ${fm(cost)}</span></div>`;
   const ch=[...(ZKP.rng?[ZKP.st==="loss"?["loss","В минус",L.filter(x=>x.loss).length]:["miss","Без закупки",L.filter(x=>x.miss>0).length]]:[]),["need","Нужно заполнить",L.filter(x=>x.st!=="ok").length],["none","Нет закупки",c("none")],["part","Частично",c("part")],["ok","Заполнено",c("ok")],["all","Все",L.length]];
-  const rb=$("#zkp-rng"); if(rb){ rb.hidden=!ZKP.rng; rb.innerHTML=ZKP.rng?`<span>Из «Прибыли»: накладные <b>${esc(ZKP.rng[2])}</b>, ${ZKP.st==="loss"?"которые ушли в минус":"где не хватает закупки"}</span><button type="button" class="btn ghost sm" data-zkprng>Обычный список ×</button>`:""; }
+  const rb=$("#zkp-rng"); if(rb){ rb.hidden=!ZKP.rng; rb.innerHTML=ZKP.rng?`<span>Показаны накладные <b>${esc(ZKP.rng[2])}</b>, ${ZKP.st==="loss"?"которые ушли в минус":"где не хватает закупки"}</span><button type="button" class="btn ghost sm" data-zkprng>Обычный список ×</button>`:""; }
   $("#zkp-st").innerHTML=ch.map(([k,t,n])=>`<button type="button" class="${ZKP.st===k?"on":""} ${k}" data-zkpst="${k}">${t} <b>${n}</b></button>`).join(""); }
 /* полная перерисовка списка; если редактор открыт — только обновить строки, чтобы не потерять набранное */
 function zkpDraw(force){ const box=$("#zkp-list"); if(!box || !me().admin) return;

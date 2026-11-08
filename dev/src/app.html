@@ -216,6 +216,7 @@
 #fd-app .dl{font-size:12px;color:var(--ok);white-space:nowrap}
 #fd-app .make .btn small{display:block;font-weight:400;font-size:11px;opacity:.8}
 #fd-app .tbl{overflow-x:auto}
+#fd-tback{position:fixed;z-index:7950;left:20px;top:78px;display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(106,44,78,.18);background:#fff;color:#6A2C4E;border-radius:999px;padding:8px 16px 8px 12px;font:600 14px var(--ui,"Onest","Inter",system-ui,sans-serif);box-shadow:0 6px 20px rgba(28,34,32,.14);cursor:pointer;animation:fdpop .25s ease-out}#fd-tback span{font-size:20px;line-height:.8}#fd-tback:hover{background:#F2E7ED}@media (max-width:760px){#fd-tback{left:12px;top:calc(66px + env(safe-area-inset-top,0px))}}@media print{#fd-tback{display:none!important}}
 #fd-undo{position:fixed;z-index:7900;left:20px;bottom:20px;display:flex;gap:8px;max-width:calc(100vw - 40px);font-family:var(--ui,"Onest","Inter",system-ui,sans-serif);animation:fdpop .25s ease-out}
 #fd-undo[hidden],#fd-undo button[hidden]{display:none}
 #fd-undo button{display:flex;align-items:center;gap:9px;min-width:0;max-width:340px;border:1px solid rgba(106,44,78,.22);background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);color:var(--accent,#6A2C4E);border-radius:999px;padding:8px 16px 8px 12px;font:600 14px/1.15 var(--ui,system-ui);cursor:pointer;box-shadow:0 12px 30px -14px rgba(28,20,30,.45);text-align:left;transition:background .15s,color .15s,transform .1s}
@@ -2480,7 +2481,18 @@ const PDF_URL="https://frudom.ru/pdf";
 /* вкладка «Редактор PDF»: по нажатию открываем frudom.ru/pdf в новой вкладке (и показываем страницу с кнопкой — если браузер не дал открыть) */
 function goTab(t){ if(t==="pdf"){ let w=null; try{ w=window.open(PDF_URL,"_blank","noopener"); }catch(e){} logEv("Вход","Открыт редактор PDF"); if(curTab!=="pdf") showTab("pdf"); return; } showTab(t); }
 document.querySelectorAll("#fd-app nav.tabs button[data-tab]").forEach(b=>b.onclick=()=>{ if($("#fd-app nav.tabs").classList.contains("editing")) return; goTab(b.dataset.tab); });
+/* «‹ Назад»: переход в другую вкладку из задач/прибыли запоминает, откуда пришли (кнопка сверху, «Назад» браузера/телефона) */
+let TBACK=null, tbLock=false;
+function tabBackFrom(label, go){ const from=curTab, y=window.scrollY; TBACK=null; tbLock=true; try{ go(); } finally { tbLock=false; }
+  if(curTab===from) return; TBACK={from, y, label, to:curTab}; try{ history.pushState({fdtb:1}, ""); }catch(e){} tbDraw(); }
+function tabBackGo(){ const b=TBACK; if(!b) return; TBACK=null; tbDraw(); showTab(b.from); setTimeout(()=>window.scrollTo(0, b.y), 60); }
+function tbDraw(){ let el=document.getElementById("fd-tback");
+  if(!TBACK){ if(el) el.remove(); return; }
+  if(!el){ el=document.createElement("button"); el.type="button"; el.id="fd-tback"; el.onclick=()=>{ if(history.state && history.state.fdtb) history.back(); else tabBackGo(); }; document.body.appendChild(el); }
+  el.innerHTML=`<span aria-hidden="true">‹</span>Назад: ${esc(TBACK.label)}`; }
+window.addEventListener("popstate", ()=>{ if(TBACK) tabBackGo(); });
 function showTab(t){
+  if(TBACK && !tbLock && t!==TBACK.to){ TBACK=null; tbDraw(); }
   curTab=t; tabRemember(t);
   document.querySelectorAll("#fd-app nav.tabs button[data-tab]").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t));
   const ab=document.querySelector(`#fd-app nav.tabs button[data-tab="${t}"]`); if(ab && ab.parentElement.scrollWidth>ab.parentElement.clientWidth){ try{ ab.scrollIntoView({inline:"nearest", block:"nearest"}); }catch(e){} }
@@ -2902,7 +2914,7 @@ const fioXml = f => `<ФИО Фамилия="${xa(f.F)}" Имя="${xa(f.I)}"${f.
 const adrXml = a => a ? `<Адрес><АдрИнф КодСтр="643" НаимСтран="Россия" АдрТекст="${xa(String(a).replace(/\s+/g," ").trim().slice(0,1000))}"/></Адрес>` : "";
 const digits = v => String(v||"").replace(/\D/g,"");
 function parseBasis(b){
-  const m=String(b||"").match(/^\s*(.*?)\s*(?:№\s*)?([^\s№]+)\s+от\s+(\d{1,2})\.(\d{1,2})\.(\d{4})/i);
+  const m=basisNorm(b).match(/^\s*(.*?)\s*(?:№\s*)?([^\s№]+)\s+от\s+(\d{1,2})\.(\d{1,2})\.(\d{4})/i);
   if(!m) return null; const w=(m[1]||"").replace(/№/g,"").trim();
   return {name: w || "Контракт", num: m[2], date: m[3].padStart(2,"0")+"."+m[4].padStart(2,"0")+"."+m[5]};
 }
@@ -6723,7 +6735,7 @@ function autoTasks(){
   (D.contracts||[]).forEach(x=>{ const c=cus(x.customerId); if(!c||!c.id) return; const nm=(x.basis||"Договор без номера")+" · "+cusShort(c.name), go=k=>({tab:"customers", sel:["customers",c.id], q:`#ct-body tr[data-id="${x.id}"] [data-k="${k}"]`});
     if(!String(x.basis||"").trim()) add("Договоры",{key:"ct-basis-"+x.id, lvl:"err", title:"Договор без номера и даты · "+cusShort(c.name), text:"Номер и дата договора печатаются в документах в строке «Основание».", go:go("basis")});
     if(!x.supplierId) add("Договоры",{key:"ct-sup-"+x.id, lvl:"warn", title:nm, text:"Не выбран поставщик — при выборе договора ИП не подставится сам.", go:go("supplierId")});
-    if(String(x.basis||"").trim() && !/\d{1,2}\.\d{1,2}\.\d{2,4}/.test(x.basis)) add("Договоры",{key:"ct-date-"+x.id+"-"+x.basis, lvl:"err", title:nm, text:"В основании нет даты договора — в счёте и накладной будет «Договор № … » без даты. Допишите «от ДД.ММ.ГГГГ».", go:go("basis")});
+    if(String(x.basis||"").trim() && !/\d{1,2}\.\d{1,2}\.\d{2,4}/.test(basisNorm(x.basis))) add("Договоры",{key:"ct-date-"+x.id+"-"+x.basis, lvl:"err", title:nm, text:"Сайт не нашёл в основании дату договора — в ТОРГ‑12 и УПД графа «дата» останется пустой. Допишите «от ДД.ММ.ГГГГ» (или «от 18 января 2024 г.»).", go:go("basis")});
     if(x.dateTo){ const n=daysTo(x.dateTo);
       if(n<0) add("Договоры",{key:"ct-exp-"+x.id+"-"+x.dateTo, lvl:"warn", title:nm, text:"Срок договора закончился "+fd(x.dateTo)+". Если продлили — поменяйте дату.", go:go("dateTo")});
       else if(n<=30) add("Договоры",{key:"ct-soon-"+x.id+"-"+x.dateTo, lvl:"warn", title:nm, text:"Договор заканчивается "+fd(x.dateTo)+" — через "+n+" "+(n%10===1&&n%100!==11?"день":n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?"дня":"дней")+".", go:go("dateTo")}); }
@@ -6793,7 +6805,8 @@ const TK_CAT={"Система":{i:"gear",c:"#7a6f86",s:"скрипт табли�
   "Реквизиты":{i:"bank",c:"#5b6b7a",s:"печатаются в счёте и накладных"},"Точки доставки":{i:"truck",c:"#4f7a6a",s:"телефон и часы приёмки для водителя"},"Товары":{i:"tag",c:"#7a5b8a",s:"единицы и страна для УПД"}};
 const TK_LV={err:"Важно — без этого будут ошибки", warn:"Желательно", info:"Мелочь — по возможности"};
 const TKV=(()=>{ let c={}; try{ c=JSON.parse(localStorage.getItem("frudom-tkc")||"{}")||{}; }catch(e){} return {f:"", c, all:{}}; })();
-function tkGo(g){
+function tkGo(g){ tabBackFrom("Задачи", ()=>tkGo0(g)); }
+function tkGo0(g){
   if(g.fn){ g.fn(); return; }
   if(g.sel) editorSel[g.sel[0]]=g.sel[1]; if(g.skdet) SKV.det=g.skdet; if(g.pre) g.pre();
   showTab(g.tab);

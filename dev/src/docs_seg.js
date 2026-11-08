@@ -67,7 +67,11 @@ function paginate(lines, chars, first, other, footer){
   pages.push(cur);
   return pages;
 }
-function basisParts(b){ b=b||""; const m=b.match(/^(.*?)\s+от\s+(\d{2}\.\d{2}\.\d{4})/); if(!m) return {no:"",date:""};
+/* дата словами в основании («от 18 января 2024г», «от "18" января 2024 г.») → «от 18.01.2024» — для ТОРГ‑12, УПД и XML */
+const BASIS_MON=["январ","феврал","март","апрел","ма","июн","июл","август","сентябр","октябр","ноябр","декабр"];
+function basisNorm(b){ return String(b||"").replace(/от\s*[«"']?\s*(\d{1,2})\s*[»"']?\s+(январ[яь]|феврал[яь]|марта?|апрел[яь]|ма[яй]|июн[яь]|июл[яь]|августа?|сентябр[яь]|октябр[яь]|ноябр[яь]|декабр[яь])\s+(\d{4})(?:\s*(?:года|г\.?))?/gi,
+  (all,d,mn,y)=>{ const w=mn.toLowerCase(), i=w.startsWith("ма")&&!w.startsWith("мар") ? 4 : BASIS_MON.findIndex(k=>k!=="ма" && w.startsWith(k)); return i<0 ? all : "от "+String(d).padStart(2,"0")+"."+String(i+1).padStart(2,"0")+"."+y; }); }
+function basisParts(b){ b=basisNorm(b); const m=b.match(/^(.*?)\s+от\s+(\d{2}\.\d{2}\.\d{4})/); if(!m) return {no:"",date:""};
   const no=m[1].includes("№") ? m[1].split("№").pop().trim() : m[1].trim(); return {no, date:m[2]}; }
 function datePlain(iso){ if(!iso) return ""; const [y,m,d]=iso.split("-"); return `"${d}" ${MON[+m-1]} ${y} года`; }
 function bankReq(o){ if(!o.rs) return "";
