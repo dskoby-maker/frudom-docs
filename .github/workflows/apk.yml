@@ -57,4 +57,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="apk-build-$(echo "$GITHUB_REF_NAME" | tr '/' '-')"
-          for f in shot1.png shot2.png pid.txt errors.txt logcat.txt; do if [ -s "$f" ]; then gh release upload "$TAG" "$f" --clobber || true; fi; done
+          for f in shot1.png shot2.png shot3.png shot4.png shot5.png pid.txt errors.txt logcat.txt; do if [ -s "$f" ]; then gh release upload "$TAG" "$f" --clobber || true; fi; done

@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 20;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 21;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -467,6 +467,44 @@ function bank_(p, me) {
     return { ok: true, keys: bankKeysView_(), proxy: bankProxyView_(), ops: read_('bankops') };
   } catch (e) { return { ok: false, error: String(e.message || e) }; }
 }
+/* ---- Уведомления для приложения Android (действие notes, Code.gs ≥ 21) ----
+   Приложение раз в час спрашивает: что нового. Только чтение (кроме подкачки банка), без общей блокировки.
+   p.kinds — «bank,debt,staff,tasks»; p.evAfter — время последнего уже показанного события (yyyyMMddHHmmss). */
+function notesIso_(s) { s = String(s || '').trim(); const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})/); return m ? m[3] + '-' + m[2] + '-' + m[1] : s.slice(0, 10); }
+function notesEvKey_(at) { const m = String(at || '').match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2}):?(\d{2})?/); return m ? m[3] + m[2] + m[1] + m[4] + m[5] + (m[6] || '00') : ''; }
+function notes_(p, me) {
+  const want = {}; String(p.kinds || 'bank,debt,staff,tasks').split(',').forEach(k => want[k.trim()] = 1);
+  const tz = Session.getScriptTimeZone() || 'Europe/Moscow', today = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
+  const money = v => (Math.round((+v || 0) * 100) / 100).toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ₽';
+  const items = [], out = { ok: true, ver: CODE_VER, today: today, items: items, evLast: '' };
+  if (want.bank && me.admin) {
+    try { if (p.sync) bankSync_(null); } catch (e) {}
+    const from = new Date(); from.setDate(from.getDate() - 4); const f = Utilities.formatDate(from, tz, 'yyyy-MM-dd');
+    read_('bankops').filter(r => notesIso_(r.date) >= f && +r.sum > 0).slice(-40).forEach(r =>
+      items.push({ t: 'bank', id: 'bank-' + r.id, title: 'Пришли деньги: ' + money(r.sum), text: (r.payerName || 'плательщик не указан') + (r.supplierName ? ' → ' + r.supplierName : '') + (r.purpose ? '. ' + String(r.purpose).slice(0, 140) : ''), go: 'profit' }));
+  }
+  if (want.debt && me.admin) {
+    const pay = {}; read_('doccosts').forEach(r => { try { const l = JSON.parse(r.lines || '{}'); if (l && l._pay) pay[r.id] = +l._pay.s || 0; } catch (x) {} });
+    const lim = new Date(); lim.setDate(lim.getDate() - 30); const ls = Utilities.formatDate(lim, tz, 'yyyy-MM-dd'), by = {}; let tot = 0, n = 0;
+    read_('journal').forEach(j => { if (/"arch"\s*:\s*(true|1|"[^"]+")/.test(String(j.snap || ''))) return;
+      const d = notesIso_(j.date), sum = Math.round((+j.sum || 0) * 100) / 100, left = Math.round((sum - Math.min(pay[j.id] || 0, sum)) * 100) / 100;
+      if (!d || d >= ls || left <= 0.004) return; tot += left; n++; const c = by[j.customerName || 'без названия'] = by[j.customerName || 'без названия'] || { s: 0, n: 0 }; c.s += left; c.n++; });
+    if (n) { const top = Object.keys(by).sort((a, b) => by[b].s - by[a].s);
+      items.push({ t: 'debt', id: 'debt-' + today, title: 'Не оплачено больше 30 дней: ' + money(tot), text: n + ' накл. · ' + top.slice(0, 4).map(k => k + ' — ' + money(by[k].s)).join('; ') + (top.length > 4 ? ' и ещё ' + (top.length - 4) : ''), go: 'profit' }); }
+  }
+  if (want.staff) {
+    const after = String(p.evAfter || ''), L = readEvents_(300);
+    out.evLast = L.length ? notesEvKey_(L[0].at) : '';
+    if (after) L.filter(e => notesEvKey_(e.at) > after && e.user !== me.name && !/^Вход/.test(e.action)).slice(0, 30).reverse()
+      .forEach(e => items.push({ t: 'staff', id: 'ev-' + notesEvKey_(e.at) + '-' + e.user + '-' + String(e.text).slice(0, 30), title: e.user, text: (e.action ? e.action + ': ' : '') + String(e.text || '').slice(0, 300), go: me.admin ? 'events' : 'journal' }));
+  }
+  if (want.tasks) {
+    const L = read_('daytasks').filter(r => notesIso_(r.date) === today && !/^(1|true|да|TRUE)$/i.test(String(r.done || '').trim()));
+    if (L.length) items.push({ t: 'tasks', id: 'tasks-' + today, title: 'Задачи на сегодня: ' + L.length, text: L.slice(0, 6).map(r => (r.customerName ? r.customerName + ' — ' : '') + String(r.text || '').slice(0, 80)).join('\n') + (L.length > 6 ? '\n…и ещё ' + (L.length - 6) : ''), go: 'calendar' });
+  }
+  return out;
+}
+
 function handle_(p) {
   if (typeof USERS === 'undefined') return { ok: false, error: 'в Apps Script нет файла «Пароли» — создайте его по инструкции (dev/Passwords.template.gs)' };
   const me = auth_(p);
@@ -474,6 +512,7 @@ function handle_(p) {
   if (/^backup(Tick|List|Now)$/.test(p.action || '')) return backup_(p, me);   // без общей блокировки: копия таблицы делается несколько секунд
   if (p.action === 'aiRead') return aiRead_(p, me);        // без блокировки: ИИ думает до минуты, остальные в это время работают
   if (p.action === 'aiCfg') return aiCfg_(p, me);
+  if (p.action === 'notes') return notes_(p, me);    // уведомления для приложения Android (раз в час), только чтение, без общей блокировки
   if (p.action === 'bank') return bank_(p, me);         // Т-Бизнес: поступления на счёт (только Даниил), блокировка — только на запись в лист      // настройки ИИ («Данные» → «ИИ»), только Даниил, без общей блокировки
   if (p.action === 'aiKey') { if (!me.admin) return { ok: false, error: 'forbidden' }; const k = String(p.gkey || '').trim();
     if (!/^[\w.\-]{20,}$/.test(k)) return { ok: false, error: 'это не похоже на ключ Gemini' }; PropertiesService.getScriptProperties().setProperty('GEMINI_KEY', k); return { ok: true }; }
