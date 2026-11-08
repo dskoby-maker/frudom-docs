@@ -16,7 +16,7 @@ async def run(b, vw, tag):
     await pg.evaluate(TAB+"('profit')"); await pg.wait_for_timeout(2000)
     await pg.evaluate("(()=>{ const s=document.querySelector('#pf-per'); s.value='all'; s.dispatchEvent(new Event('change',{bubbles:true})); })()"); await pg.wait_for_timeout(600)
     ok(await pg.locator('#pf-cards .pk[data-pfd]').count()>=8, f'{tag}: плитки обзора кликабельные')
-    ok(await pg.locator('#pf-paysum [data-pfd]').count()==3, f'{tag}: плитки «Кто сколько должен» кликабельные')
+    ok(await pg.locator('#pf-paysum [data-pfd]').count()==4 and 'Прибыль в долгах' in N(await pg.text_content('#pf-paysum')), f'{tag}: плитки «Кто сколько должен» кликабельные, есть «Прибыль в долгах»')
     # Дольше 30 дней
     await pg.click('#pf-paysum [data-pfd="old30"]'); await pg.wait_for_timeout(600)
     txt=N(await pg.text_content('#pfd')); ok('1 000,00' in txt and await pg.locator('#pfd [data-pfdoc="pdd0"]').count()==1 and await pg.locator('#pfd [data-pfdoc="pdd1"]').count()==0, f'{tag}: «Дольше 30 дней» — только старая накладная на 1000')
@@ -25,6 +25,9 @@ async def run(b, vw, tag):
     # Всего должны
     await pg.click('#pf-paysum [data-pfd="debt"]'); await pg.wait_for_timeout(600)
     ok(await pg.locator('#pfd [data-pfdoc="pdd1"]').count()==1 and await pg.locator('#pfd [data-pfage="30"]').count()==1, f'{tag}: «Всего должны» — все накладные и фильтр по давности')
+    st=N(await pg.text_content('#pfd .pfd-sum')); ok('Ваша прибыль в этих деньгах' in st and 'без закупки' in st, f'{tag}: плитка «прибыль в этих деньгах» с пометкой без закупки')
+    pp=await pg.evaluate("(()=>{ let s=0; __fd.D().journal.filter(j=>['pdd0','pdd1','pdd2'].includes(j.id)).forEach(j=>{ const p=__fd.payOf(j), x=__fd.docProfit(j); s+=x.profit*(p.left/p.tot); }); return Math.round(s*100)/100; })()")
+    ok(f"{pp:,.2f}".replace(',',' ').replace('.',',') in st, f'{tag}: сумма прибыли в долгах верная ({pp})')
     await pg.click('#pfd [data-pfage="30"]'); await pg.wait_for_timeout(300); ok(await pg.locator('#pfd [data-pfdoc="pdd1"]').count()==0, f'{tag}: фильтр «больше 30» работает')
     await pg.click('#pfd [data-pfage=""]'); await pg.wait_for_timeout(300)
     # открыть накладную и вернуться
