@@ -131,7 +131,7 @@ function pvCusDraw(keepInput){
     : `<div class="pvempty">${pvIco("folder","big")}<b>${all.length?"Никого не нашлось":"За этот месяц накладных нет"}</b><small>${all.length?"Попробуйте другое название.":"Выберите другой месяц стрелками сверху."}</small></div>`;
   const head = `<div class="pvhead"><div><h2>По заказчикам</h2><small class="muted">Нажмите на заказчика — накладные, «на р/с», закупка и прибыль, как в вашей таблице</small></div>${pvMonBar()}</div>
     <div class="pvkpi"><div><small>Сумма накладных</small><b>${fm(r2(T.rev))}</b><span>${T.n} ${plural(T.n,["накладная","накладные","накладных"])}</span></div>
-      <div><small>На р/с (после налога)</small><b>${fm(r2(T.rs))}</b></div><div><small>Закупка</small><b>${fm(r2(T.cost))}</b>${T.miss?`<span class="warn">без закупки: ${T.miss}</span>`:""}</div>
+      <div><small>На р/с (после налога)</small><b>${fm(r2(T.rs))}</b></div><div><small>Закупка</small><b>${fm(r2(T.cost))}</b>${T.miss?`<button type="button" class="pvmiss" data-pvmiss title="Открыть эти накладные во вкладке «Закупка» и заполнить">без закупки: ${T.miss} ›</button>`:""}</div>
       <div class="pos"><small>Прибыль</small><b class="${T.profit<0?"neg":""}">${fm(r2(T.profit))}</b><span>маржа ${pct(T.profit,T.rev)}</span></div></div>
     <div class="pvsearch">${pvIco("search")}<input id="pv-q" placeholder="Найти заказчика" value="${esc(f.q||"")}" autocomplete="off"></div>`;
   if(keepInput && $("#pv-q")){ box.querySelector(".pvgrid").innerHTML=tiles; return; }
@@ -277,7 +277,7 @@ function pvFinDraw(){
     ${cal ? pvFinCal(all.filter(x=>!f.fk || pvKind(x)===f.fk), mon, !f.fk || f.fk==="inc" ? T.DL : []) : (f.fv==="cal" ? `<p class="muted bncalno">Календарь — по месяцам: выберите месяц стрелками сверху.</p>` : "")}
     <div class="pvsum2">
       <div class="pvflow">
-        ${row("Прибыль с накладных", T.dp, T.docs+" "+plural(T.docs,["накладная","накладные","накладных"])+" · после закупки и налога"+(T.miss?` · <em class="warn">без закупки: ${T.miss}</em>`:"")+(T.docs?`<span class="pvpd"><span class="paid"><i></i>оплачено ${fm(T.dpPaid)}</span><span class="due"><i></i>ждём оплату ${fm(T.dpDue)}</span></span>`:""), T.dp<0?"neg":"pos", Math.abs(T.dp)/mx*100)}
+        ${row("Прибыль с накладных", T.dp, T.docs+" "+plural(T.docs,["накладная","накладные","накладных"])+" · после закупки и налога"+(T.miss?` · <button type="button" class="pvmiss" data-pvmiss title="Открыть эти накладные во вкладке «Закупка» и заполнить">без закупки: ${T.miss} ›</button>`:"")+(T.docs?`<span class="pvpd"><span class="paid"><i></i>оплачено ${fm(T.dpPaid)}</span><span class="due"><i></i>ждём оплату ${fm(T.dpDue)}</span></span>`:""), T.dp<0?"neg":"pos", Math.abs(T.dp)/mx*100)}
         ${row("Прочие доходы", T.I, "", "pos", T.I/mx*100)}
         ${row("Расходы", -T.E, "", "neg", T.E/mx*100)}
         <div class="pvfr tot"><span class="pvfl">Бизнес заработал${W?pvCmp(T.B,W.B,"up"):""}</span><b class="${T.B<0?"neg":""}">${pvMoney(T.B,true)}</b></div>
@@ -336,6 +336,7 @@ function pvFinClick(e){
   const fk=e.target.closest("[data-pvfk]"); if(fk){ const f=PV(); f.fk=fk.dataset.pvfk; if(f.fcat && f.fk && !f.fcat.startsWith(f.fk+":")) f.fcat=""; saveLocal(); pvFinDraw(); return; }
   const f=e.target.closest("[data-pvf]"); if(f){ const k=f.dataset.pvf; PV().fcat = PV().fcat===k ? "" : k; saveLocal(); pvFinDraw(); return; }
   const a=e.target.closest("[data-pva]"); if(a){ const k=a.dataset.pva; if(k==="cats") pvCatsOpen(); else if(k==="xls") pvFinXls(); else if(k==="lim") pvLimOpen(); else pvItemOpen(null, k); return; }
+  if(e.target.closest("[data-pvmiss]")){ const m=pvMonth(), [a,b]=pvRange(); zkpGoMiss(a, b, m==="all"?"за всё время":"за "+pvMon(m).toLowerCase()); return; }
   const dj=e.target.closest("[data-pvdoc]"); if(dj){ const j=D.journal.find(y=>y.id===dj.dataset.pvdoc); if(j) docCard(j, false); return; }
   const x=e.target.closest("[data-pvx]"); if(x){ const it=pfArr("pother").find(y=>y.id===x.dataset.pvx); if(it) pvItemOpen(it); }
 }

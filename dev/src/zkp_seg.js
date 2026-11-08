@@ -2,12 +2,17 @@
    Сверху — список накладных и комплектов за период со статусом закупки (как значок в журнале), плитки итогов, фильтры.
    Нажатие на строку раскрывает под ней тот же редактор, что в окне документа (dcZkDraw) или комплекта (bzDraw).
    Открыт только один редактор: у них общие id (#dc-zk/#bz-zk), поэтому перед открытием окна (openCard) он сворачивается. */
-const ZKP={per:"7", st:"need", q:"", n:30, open:"", list:[], view:(()=>{ try{ return localStorage.getItem("frudom-zkpv")==="cal"?"cal":"list"; }catch(e){ return "list"; } })(), ym:"", day:""};
+const ZKP={per:"7", st:"need", q:"", n:30, open:"", list:[], view:(()=>{ try{ return localStorage.getItem("frudom-zkpv")==="cal"?"cal":"list"; }catch(e){ return "list"; } })(), ym:"", day:"", rng:null};
+/* переход из «Прибыли» по «без закупки: N»: свой период [от, до, подпись] и фильтр «Без закупки» — ровно те накладные, что посчитаны там */
+function zkpGoMiss(a, b, lbl){ ZKP.rng=[a, b, lbl]; ZKP.st="miss"; ZKP.q=""; ZKP.day=""; ZKP.n=30; ZKP.view="list"; zkpCollapse();
+  const q=$("#zkp-q"); if(q) q.value=""; goTab("purchase"); zkpDraw(true); const k=$("#zkp"); if(k) setTimeout(()=>k.scrollIntoView({behavior:"smooth", block:"start"}), 60); }
+function zkpRngOff(){ if(!ZKP.rng) return; ZKP.rng=null; if(ZKP.st==="miss") ZKP.st="need"; }
 /* вид «Календарь»: месяц сеткой, у дня — накладные цветом закупки; нажатие на день — список за этот день */
 const zkpYm = () => ZKP.ym || (ZKP.ym=todayISO().slice(0,7));
 const zkpYmShift = (ym, d) => { const t=new Date(+ym.slice(0,4), +ym.slice(5,7)-1+d, 1); return t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0"); };
 const ZKP_MON=["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
 function zkpRange(){ const n=new Date(), iso=jIso;
+  if(ZKP.rng) return [ZKP.rng[0], ZKP.rng[1]];
   if(ZKP.view==="cal"){ const ym=zkpYm(), y=+ym.slice(0,4), m=+ym.slice(5,7); return [ym+"-01", iso(new Date(y,m,0))]; }
   if(ZKP.per==="7") return [iso(new Date(n.getFullYear(),n.getMonth(),n.getDate()-6)), "9999"];
   if(ZKP.per==="30") return [iso(new Date(n.getFullYear(),n.getMonth(),n.getDate()-29)), "9999"];
@@ -22,8 +27,8 @@ function zkpCalc(it){ const g=it.g.map(j=>D.journal.find(x=>x.id===j.id)||j).fil
   if(g.length>1){ it.lbl = it.st==="ok"?"✓":it.st==="none"?"нет":done+"/"+S.length; it.tip=it.st==="ok"?"Закупка заполнена во всех накладных":it.st==="none"?"Закупка не заполнена":"Закупка заполнена в "+done+" из "+S.length+" накладных"; }
   else { const s=S[0]; it.lbl = s?zkJLbl(s):"нет"; it.tip = s?s.tip.split("\n")[0]:"Закупка не заполнена"; }
   it.loss=zkLossSum(S);
-  let sum=0, rev=0, cost=0, prof=0; g.forEach(j=>{ const x=docProfit(j); sum+=x.k.t.sum; rev+=x.rev; cost+=x.cost+(x.exp||0); prof+=x.profit; });
-  Object.assign(it, {sum:r2(sum), rev:r2(rev), cost:r2(cost), prof:r2(prof), date:g[0].date}); return it; }
+  let sum=0, rev=0, cost=0, prof=0, miss=0; g.forEach(j=>{ const x=docProfit(j); if(x.miss) miss++; sum+=x.k.t.sum; rev+=x.rev; cost+=x.cost+(x.exp||0); prof+=x.profit; });
+  Object.assign(it, {miss, sum:r2(sum), rev:r2(rev), cost:r2(cost), prof:r2(prof), date:g[0].date}); return it; }
 function zkpItems(){ const [a,b]=zkpRange(), G={}, out=[];
   D.journal.filter(j=>j.snap && !isArch(j) && j.date>=a && j.date<=b).forEach(j=>{ const k=jKey(j); if(k) (G[k]=G[k]||[]).push(j); else out.push({key:"d:"+j.id, g:[j]}); });
   Object.keys(G).forEach(k=>{ const g=G[k].sort(jNumSort); out.push(g.length>1 ? {key:"g:"+k, gk:k, g} : {key:"d:"+g[0].id, g}); });
@@ -31,7 +36,7 @@ function zkpItems(){ const [a,b]=zkpRange(), G={}, out=[];
   return out.filter(x=>!x.gone).sort((x,y)=>(y.date||"").localeCompare(x.date||"") || String(y.g[0].number).localeCompare(String(x.g[0].number),"ru",{numeric:true})); }
 const zkpTitle = it => it.g.length>1 ? gTitle(it.g) : jWho(it.g[0]).main;
 const zkpNums = it => { const n=it.g.map(j=>j.number); return "№ "+(n.length>2?n[0]+"–"+n[n.length-1]:n.join(", ")); };
-const zkpPass = (it, st) => st==="all" || (st==="need" ? it.st!=="ok" : it.st===st);
+const zkpPass = (it, st) => st==="all" || st==="miss" ? st==="all" || it.miss>0 : (st==="need" ? it.st!=="ok" : it.st===st);
 function zkpRowIn(it){ const sub=zkpNums(it)+(it.g.length>1?" · "+it.g.length+" "+docsWord(it.g.length):(kLbl(it.g[0])?" · "+kLbl(it.g[0]):""));
   const note = it.notes.length ? `<small class="zkp-n">⚠ ${esc(it.notes[0])}${it.notes.length>1?` <span>и ещё ${it.notes.length-1}</span>`:""}</small>` : "";
   return `<span class="zkp-d">${fd(it.date).slice(0,5)}</span>
@@ -44,11 +49,12 @@ function zkpKpi(L){ const c=k=>L.filter(x=>x.st===k).length, rev=r2(L.reduce((a,
     <div class="${c("none")?"bad":""}"><small>Без закупки</small><b>${c("none")}</b><span>частично: ${c("part")}</span></div>
     <div><small>Выручка</small><b>${fm(rev)}</b><span>без НДС</span></div>
     <div class="hi"><small>Прибыль по заполненным</small><b class="${prof<0?"neg":""}">${fm(prof)}</b><span>закупка ${fm(cost)}</span></div>`;
-  const ch=[["need","Нужно заполнить",L.filter(x=>x.st!=="ok").length],["none","Нет закупки",c("none")],["part","Частично",c("part")],["ok","Заполнено",c("ok")],["all","Все",L.length]];
+  const ch=[...(ZKP.rng?[["miss","Без закупки",L.filter(x=>x.miss>0).length]]:[]),["need","Нужно заполнить",L.filter(x=>x.st!=="ok").length],["none","Нет закупки",c("none")],["part","Частично",c("part")],["ok","Заполнено",c("ok")],["all","Все",L.length]];
+  const rb=$("#zkp-rng"); if(rb){ rb.hidden=!ZKP.rng; rb.innerHTML=ZKP.rng?`<span>Из «Прибыли»: накладные <b>${esc(ZKP.rng[2])}</b>, где не хватает закупки</span><button type="button" class="btn ghost sm" data-zkprng>Обычный список ×</button>`:""; }
   $("#zkp-st").innerHTML=ch.map(([k,t,n])=>`<button type="button" class="${ZKP.st===k?"on":""} ${k}" data-zkpst="${k}">${t} <b>${n}</b></button>`).join(""); }
 /* полная перерисовка списка; если редактор открыт — только обновить строки, чтобы не потерять набранное */
 function zkpDraw(force){ const box=$("#zkp-list"); if(!box || !me().admin) return;
-  document.querySelectorAll("#zkp-per [data-zkpp]").forEach(b=>b.classList.toggle("on", b.dataset.zkpp===ZKP.per));
+  document.querySelectorAll("#zkp-per [data-zkpp]").forEach(b=>b.classList.toggle("on", !ZKP.rng && b.dataset.zkpp===ZKP.per));
   if(ZKP.open && !force){ zkpRefresh(); return; }
   if(!pfLoaded){ box.innerHTML=`<p class="muted zkp-empty">Загружаю данные о закупке…</p>`; return; }
   ZKP.list=zkpItems(); const q=ZKP.q.trim().toLowerCase();
@@ -79,12 +85,13 @@ async function zkpOpen(key){ const it=ZKP.list.find(x=>x.key===key); if(!it) ret
   if(one) dcZkDraw(D.journal.find(x=>x.id===j.id)||j); else { BZ={ids:it.g.map(x=>x.id), touched:{}, expT:false, rows:[], s:null, ship:null}; bzDraw(); }
   setTimeout(()=>{ if(ZKP.open!==key) return; const r=el.getBoundingClientRect(); if(r.top<70 || r.top>innerHeight*0.6) el.scrollIntoView({behavior:"smooth", block:"start"});
     const f=el.querySelector(one?".dzs":".bzs"); if(f && matchMedia("(hover:hover)").matches) f.focus({preventScroll:true}); }, 300); }
-document.addEventListener("click", e=>{ const t=e.target.closest&&e.target.closest("#zkp [data-zkpo],#zkp [data-zkpp],#zkp [data-zkpst],#zkp [data-zkpmore],#zkp [data-zkpcard],#zkp [data-zkpv],#zkp [data-zkpm],#zkp [data-zkpd]"); if(!t) return;
-  if(t.dataset.zkpv){ if(ZKP.view===t.dataset.zkpv) return; ZKP.view=t.dataset.zkpv; ZKP.day=""; ZKP.n=30; try{ localStorage.setItem("frudom-zkpv", ZKP.view); }catch(x){} zkpCollapse(); zkpDraw(true); return; }
-  if(t.dataset.zkpm){ ZKP.ym = t.dataset.zkpm==="0" ? todayISO().slice(0,7) : zkpYmShift(zkpYm(), +t.dataset.zkpm); ZKP.day=""; ZKP.n=30; zkpCollapse(); zkpDraw(true); return; }
+document.addEventListener("click", e=>{ const t=e.target.closest&&e.target.closest("#zkp [data-zkpo],#zkp [data-zkpp],#zkp [data-zkpst],#zkp [data-zkpmore],#zkp [data-zkpcard],#zkp [data-zkpv],#zkp [data-zkpm],#zkp [data-zkpd],#zkp [data-zkprng]"); if(!t) return;
+  if(t.dataset.zkprng!=null){ zkpRngOff(); ZKP.view=(()=>{ try{ return localStorage.getItem("frudom-zkpv")==="cal"?"cal":"list"; }catch(x){ return "list"; } })(); ZKP.n=30; zkpCollapse(); zkpDraw(true); return; }
+  if(t.dataset.zkpv){ if(ZKP.view===t.dataset.zkpv && !ZKP.rng) return; zkpRngOff(); ZKP.view=t.dataset.zkpv; ZKP.day=""; ZKP.n=30; try{ localStorage.setItem("frudom-zkpv", ZKP.view); }catch(x){} zkpCollapse(); zkpDraw(true); return; }
+  if(t.dataset.zkpm){ zkpRngOff(); ZKP.ym = t.dataset.zkpm==="0" ? todayISO().slice(0,7) : zkpYmShift(zkpYm(), +t.dataset.zkpm); ZKP.day=""; ZKP.n=30; zkpCollapse(); zkpDraw(true); return; }
   if(t.dataset.zkpd!=null){ ZKP.day = ZKP.day===t.dataset.zkpd ? "" : t.dataset.zkpd; if(ZKP.day) ZKP.st="all"; ZKP.n=30; zkpCollapse(); zkpDraw(true); if(ZKP.day){ const l=$("#zkp-list"); setTimeout(()=>l&&l.scrollIntoView({behavior:"smooth", block:"nearest"}), 60); } return; }
   if(t.dataset.zkpo!=null){ if(ZKP.open===t.dataset.zkpo) zkpCollapse(); else zkpOpen(t.dataset.zkpo); return; }
-  if(t.dataset.zkpp){ ZKP.per=t.dataset.zkpp; ZKP.n=30; zkpCollapse(); zkpDraw(true); return; }
+  if(t.dataset.zkpp){ zkpRngOff(); ZKP.per=t.dataset.zkpp; ZKP.n=30; zkpCollapse(); zkpDraw(true); return; }
   if(t.dataset.zkpst){ ZKP.st=t.dataset.zkpst; ZKP.n=30; zkpCollapse(); zkpDraw(true); return; }
   if(t.dataset.zkpmore!=null){ ZKP.n+=30; zkpDraw(true); return; }
   if(t.dataset.zkpcard){ const it=ZKP.list.find(x=>x.key===t.dataset.zkpcard); if(!it) return; zkpCollapse(); if(it.g.length===1) docCard(it.g[0], false); else bundleCard(it.g, false); } });
