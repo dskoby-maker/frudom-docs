@@ -2855,7 +2855,16 @@ $("#d-ship").addEventListener("input",e=>{ D.draft.ship=e.target.value; saveLoca
 var SHIP_STOP=new Set("г город гор москва мо московская обл область р-н район россия рф ул улица д дом стр строение корп корпус к кор пр пр-т просп проспект пер переулок ш шоссе наб набережная пл площадь б-р бульвар пр-д проезд мкр микрорайон вл владение эт этаж пом помещение кв офис ком комн литер лит тер территория".split(" "));
 function shipToks(a){ const t=norm(a).replace(/(\d)([а-я]+)(\d)/g,"$1 $2$3").replace(/(\d)\s*([а-я])(?![а-я0-9.-])/g,"$1$2").replace(/[^a-zа-я0-9-]+/g," ").split(" ").filter(w=>w && !SHIP_STOP.has(w) && !/^\d{6}$/.test(w));
   return {n:new Set(t.filter(w=>/\d/.test(w)).map(w=>w.replace(/^(д|стр|к|корп)/,""))), w:new Set(t.filter(w=>!/\d/.test(w) && w.length>=3).map(w=>w.slice(0,5)))}; }
-function shipSim(a, b){ if(!a||!b) return 0; if(ptKey(a)===ptKey(b)) return 1; const A=shipToks(a), B=shipToks(b);
+/* «суть» адреса: слова улицы + номера дом/корпус/строение по порядку. «г. Москва, вн.тер.г. муниципальный округ Богородское, пр-д Погонный, д. 5 стр. 1» = «Город Москва, проезд Погонный, дом 5, строение 1» */
+function shipCanon(a){ const s=norm(a).replace(/вн\.?\s*тер\.?\s*г\.?/g," ").replace(/(муниципальн\S*|внутригородск\S*)\s+(округ|образовани\S*|район)\S*\s+[а-я-]+/g," ").replace(/(поселени\S*|округ)\s+[а-я-]+/g," ");
+  const t=s.replace(/(\d)([а-я]+)(\d)/g,"$1 $2$3").replace(/[^a-zа-я0-9-]+/g," ").split(" ").filter(w=>w && !SHIP_STOP.has(w) && !/^\d{6}$/.test(w));
+  const w=t.filter(x=>!/\d/.test(x) && x.length>=3).map(x=>x.slice(0,5)).sort(), n=t.filter(x=>/\d/.test(x)).map(x=>x.replace(/^(д|стр|с|к|корп)/,""));
+  return n.length && w.length ? w.join(" ")+"|"+n.join("/") : ""; }
+/* найти адрес в списке: точное совпадение, потом по сути (только если он один такой), потом по вхождению */
+function shipFind(list, addr){ if(!addr) return null; const L=(list||[]).filter(Boolean), k=ptKey(addr); let h=L.find(a=>ptKey(a)===k); if(h) return h;
+  const c=shipCanon(addr); if(c){ const H=L.filter(a=>shipCanon(a)===c); if(H.length) return H[0]; }
+  const n=norm(addr); return n.length>=6 ? L.find(a=>norm(a).includes(n))||null : null; }
+function shipSim(a, b){ if(!a||!b) return 0; if(ptKey(a)===ptKey(b) || (shipCanon(a) && shipCanon(a)===shipCanon(b))) return 1; const A=shipToks(a), B=shipToks(b);
   const inter=(x,y)=>[...x].filter(v=>y.has(v)).length, wn=inter(A.w,B.w), nn=inter(A.n,B.n);
   const numsSame = A.n.size && B.n.size && nn===Math.min(A.n.size,B.n.size);
   if(wn>=1 && numsSame) return 0.9;
@@ -6527,13 +6536,13 @@ function impResolve({meta, lines}){
   if(!s || !s.id) s=sup(D.draft.supplierId)||D.suppliers[0];
   const date=impDate(meta.date)||isoToday(); if(!impDate(meta.date)) warn.push({t:"w", m:"В файле нет даты поставки — стоит сегодняшняя."});
   const bl=branches(c), brName=v=>{ if(!v) return null; const n=norm(v); return bl.find(x=>norm(x.label)===n)||bl.find(x=>dig(v)&&dig(x.kpp)===dig(v))||bl.find(x=>n.length>1&&norm(x.label).includes(n))||null; },
-    brOf=(a,lb)=>{ const b0=brName(lb)||brName(meta.branch); if(b0) return b0; return a?bl.find(b=>addrs(b).some(z=>ptKey(z)===ptKey(a)))||null:null; };
+    brOf=(a,lb)=>{ const b0=brName(lb)||brName(meta.branch); if(b0) return b0; return a?bl.find(b=>addrs(b).some(z=>ptKey(z)===ptKey(a)))||bl.find(b=>shipFind([...addrs(b), b.address||""], a))||null:null; };
   const G=[], byKey={};
   lines.forEach(l=>{ const addr=l.addr||String(meta.ship||""), key=(l.num||"")+"|"+norm(l.br)+"|"+ptKey(addr); let g=byKey[key]; if(!g){ g=byKey[key]={num:l.num||"", addr, br:l.br||"", lines:[], warn:[]}; G.push(g); } g.lines.push(l); });
   G.forEach((g,gi)=>{ if(!g.num && G.length===1 && meta.num) g.num=String(meta.num).trim();
     const br=brOf(g.addr, g.br); if(g.br && bl.length && !brName(g.br)) g.warn.push({t:"w", m:"ОП «"+g.br+"» не найдено у заказчика."}); g.branchId=br?br.id:(bl.length?bl[0].id:""); if(bl.length && !br) g.warn.push({t:"w", m:"Подразделение не определено по адресу — выбрано «"+(bl[0].label||bl[0].fullName)+"». Проверьте."});
     const all=[...addrs(br||c)]; if((br||c).address) all.push((br||c).address);
-    if(g.addr){ const hit=all.find(a=>ptKey(a)===ptKey(g.addr))||all.find(a=>norm(a).includes(norm(g.addr))); g.ship=hit||g.addr; if(!hit){ const O2=shipElsewhere(c.id, g.branchId, g.addr); g.warn.push({t:"w", m: O2.length ? "Адрес «"+g.addr+"» похож на адрес подразделения «"+brNm(O2[0].b)+"» ("+O2[0].a+"), а выбрано «"+brNm(br||bl[0]||{})+"». Проверьте подразделение." : "Адреса «"+g.addr+"» нет в карточке заказчика — он будет вписан как «Другой адрес»."}); } } else g.ship="";
+    if(g.addr){ const hit=shipFind(all, g.addr); g.ship=hit||g.addr; if(!hit){ const O2=shipElsewhere(c.id, g.branchId, g.addr); g.warn.push({t:"w", m: O2.length ? "Адрес «"+g.addr+"» похож на адрес подразделения «"+brNm(O2[0].b)+"» ("+O2[0].a+"), а выбрано «"+brNm(br||bl[0]||{})+"». Проверьте подразделение." : "Адреса «"+g.addr+"» нет в карточке заказчика — он будет вписан как «Другой адрес»."}); } } else g.ship="";
     g.items=[]; g.miss=[]; g.lines.forEach(l=>{ const p=impMatch(l.name, c.id, l.price);
       if(!p || p.__amb){ l.amb=p&&p.__amb||null; g.miss.push(l); return; }
       if(p.__pr===1) g.warn.push({t:"w", m:"«"+l.name+"» → «"+p.name+"»: по цене "+fm(+l.price)+" ₽ — в договоре только у этого товара такая цена. Проверьте."});
