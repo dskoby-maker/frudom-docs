@@ -200,6 +200,9 @@
 /* выбор заказчика: кнопка вместо <select> (cpkAttach) */
 .cpkw{position:relative;display:block;min-width:0;width:100%}.cpkw.pick{width:auto}
 .cpkw>select.cpk-hid{position:absolute!important;inset:0;opacity:0!important;pointer-events:none!important;z-index:0}
+.cpkw.ov{display:block}.cpkw.ov>select{pointer-events:none;width:100%}
+#fd-app .cpkw.ov>.cpk,.cpkw.ov>.cpk{position:absolute;inset:0;width:100%;height:100%;padding:0;border:0;background:transparent!important;box-shadow:none;opacity:1;z-index:1}
+.cpkw.ov>.cpk>*{display:none}#fd-app .cpkw.ov>.cpk:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-radius:10px}
 #fd-app .cpk,.cpk{position:relative;z-index:1;display:flex;align-items:center;gap:8px;width:100%;min-width:0;text-align:left;cursor:pointer;font:15px var(--ui);color:var(--ink);background:rgba(255,255,255,.62);border:1px solid rgba(28,34,32,.12);border-radius:10px;padding:9px 10px;margin:0;line-height:1.3;transition:border-color .2s,box-shadow .25s}
 #fd-app .cpk:hover{border-color:rgba(28,34,32,.24)}#fd-app .cpk[disabled]{opacity:.6;cursor:default}
 #fd-app .cpk.bad{border-color:var(--err)!important;background:#fdf0ee!important;box-shadow:0 0 0 3px rgba(192,64,47,.15)}#fd-app .cpk.fdflash{animation:fdflash .6s ease}
@@ -2680,14 +2683,22 @@ function cusOpts0(supId, sel, CL){
    рядом встаёт кнопка .cpk и своё окошко выбора; сам <select> остаётся (прозрачный, под кнопкой) — код и проверки работают с ним как раньше. */
 const CPK=new WeakMap(), CPK_CHEV='<svg class="cpk-ch" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const cpkTxt = o => !o ? `<span class="cpk-s cpk-ph">—</span>` : `<span class="cpk-s">${esc(o.textContent)}</span>${o.dataset.full?` <span class="cpk-f">(${esc(o.dataset.full)})</span>`:""}`;
+/* на телефоне — так же для всех обычных списков: <select> виден как был, поверх прозрачная кнопка (.cpkw.ov), выбор — тем же окошком снизу */
+const cpkPhone = () => matchMedia("(max-width:560px)").matches;
+const cpkOk = s => s && s.tagName==="SELECT" && !s.multiple && !(s.size>1) && !s.hasAttribute("data-native") && !s.closest(".cpk-pop") && s.isConnected;
 function cpkSync(sel){ const b=CPK.get(sel); if(!b) return; const o=sel.options[sel.selectedIndex];
+  const full=!!sel.querySelector("option[data-full]"), w=b.parentNode; if(w) w.classList.toggle("ov", !full); sel.classList.toggle("cpk-hid", full);
   b.innerHTML=`<span class="cpk-t">${cpkTxt(o)}</span>${CPK_CHEV}`; b.disabled=sel.disabled; b.title=o&&o.dataset.full||"";
   b.classList.toggle("bad", sel.classList.contains("bad")); if(sel.classList.contains("fdflash")){ b.classList.remove("fdflash"); void b.offsetWidth; b.classList.add("fdflash"); } }
 function cpkAttach(sel){
   if(CPK.has(sel)){ cpkSync(sel); return; }
+  if(!cpkOk(sel)) return;
   const w=document.createElement("span"); w.className="cpkw"+(sel.classList.contains("pick")?" pick":""); if(sel.getAttribute("style")) w.setAttribute("style", sel.getAttribute("style"));
+  if(!sel.querySelector("option[data-full]")){ /* обычный список: обёртка по ширине самого списка */
+    const pw=sel.parentNode&&sel.parentNode.clientWidth||0, sw=sel.offsetWidth, cw=getComputedStyle(sel).width;
+    w.style.width = sw ? (pw && sw>=pw-4 ? "100%" : sw+"px") : (/%$/.test(cw) ? cw : ""); if(w.style.width && w.style.width!=="100%") w.style.display="inline-block"; }
   const b=document.createElement("button"); b.type="button"; b.className="cpk"; b.setAttribute("aria-haspopup","listbox");
-  sel.parentNode.insertBefore(w, sel); w.appendChild(sel); w.appendChild(b); sel.classList.add("cpk-hid"); sel.tabIndex=-1; CPK.set(sel,b);
+  sel.parentNode.insertBefore(w, sel); w.appendChild(sel); w.appendChild(b); sel.tabIndex=-1; CPK.set(sel,b);
   const P=HTMLSelectElement.prototype, dv=Object.getOwnPropertyDescriptor(P,"value"), di=Object.getOwnPropertyDescriptor(P,"selectedIndex");
   Object.defineProperty(sel,"value",{configurable:true, get(){ return dv.get.call(this); }, set(v){ dv.set.call(this,v); cpkSync(this); }});
   Object.defineProperty(sel,"selectedIndex",{configurable:true, get(){ return di.get.call(this); }, set(v){ di.set.call(this,v); cpkSync(this); }});
@@ -2704,12 +2715,15 @@ function cpkKey(e){ if(!CPKP) return; const L=[...CPKP.pop.querySelectorAll(".cp
 function cpkOpen(sel,b){
   if(sel.disabled) return; cpkClose(false);
   const row=o=>`<button type="button" class="cpk-o${o.selected?" on":""}" role="option" aria-selected="${o.selected}" data-v="${esc(o.value)}"${o.disabled?" disabled":""}><span class="cpk-t"><span class="cpk-s">${esc(o.textContent)}</span>${o.dataset.full?`<span class="cpk-f"><span class="cpk-pb">(</span>${esc(o.dataset.full)}<span class="cpk-pb">)</span></span>`:""}</span>${o.selected?'<svg class="cpk-ok" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>':""}</button>`;
-  const body=[...sel.children].map(n=>n.tagName==="OPTGROUP" ? `<div class="cpk-g">${esc(n.label)}</div>`+[...n.children].map(row).join("") : row(n)).join("");
+  const vis=o=>!o.hidden && o.style.display!=="none";
+  const body=[...sel.children].map(n=>n.tagName==="OPTGROUP" ? (()=>{ const L=[...n.children].filter(vis); return L.length?`<div class="cpk-g">${esc(n.label)}</div>`+L.map(row).join(""):""; })() : n.tagName==="OPTION"&&vis(n) ? row(n) : "").join("");
   const many=sel.options.length>8, bd=document.createElement("div"), pop=document.createElement("div");
   bd.className="cpk-bd"; pop.className="cpk-pop"; pop.setAttribute("role","listbox");
-  const lab=sel.closest("label"), ttl=lab ? [...lab.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join(" ").trim() : "";
+  const lab=sel.closest("label"), ttl=(lab ? [...lab.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join(" ").trim() : "")
+    || sel.getAttribute("aria-label") || sel.title || (sel.id && (document.querySelector(`label[for="${CSS.escape(sel.id)}"]`)||{}).textContent) || "";
+  const isCus=!!sel.querySelector("option[data-full]") || /заказчик/i.test(ttl);
   pop.innerHTML=`<div class="cpk-hd"><span class="cpk-ttl">${esc(ttl||"Выберите")}</span><button type="button" class="cpk-x" aria-label="Закрыть"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>`
-    +(many?`<div class="cpk-qw"><svg class="cpk-qi" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="cpk-q" type="search" placeholder="Найти заказчика…" aria-label="Найти заказчика" autocomplete="off"></div>`:"")+`<div class="cpk-l">${body}</div>`;
+    +(many?`<div class="cpk-qw"><svg class="cpk-qi" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="cpk-q" type="search" placeholder="${isCus?"Найти заказчика…":"Найти…"}" aria-label="Найти" autocomplete="off"></div>`:"")+`<div class="cpk-l">${body}</div>`;
   pop.querySelector(".cpk-x").addEventListener("click", e=>{ e.stopPropagation(); cpkClose(); });
   const host=document.querySelector("dialog[open]")||$("#fd-app")||document.body; host.appendChild(bd); host.appendChild(pop);
   const phone=innerWidth<=560, r=b.getBoundingClientRect();
@@ -2718,17 +2732,22 @@ function cpkOpen(sel,b){
     Object.assign(pop.style,{left:Math.max(12,Math.min(r.left, innerWidth-w-12))+"px", width:w+"px", maxHeight:Math.max(200, (up?r.top:below)-8)+"px"}, up?{bottom:(innerHeight-r.top+4)+"px"}:{top:(r.bottom+4)+"px"}); }
   CPKP={pop,bd,b,sel}; document.addEventListener("keydown", cpkKey, true);
   bd.addEventListener("click", ()=>cpkClose()); 
-  pop.addEventListener("click", e=>{ const o=e.target.closest(".cpk-o"); if(!o||o.disabled) return; const v=o.dataset.v, ch=sel.value!==v; sel.value=v; cpkClose(); if(ch) sel.dispatchEvent(new Event("change",{bubbles:true})); });
+  pop.addEventListener("click", e=>{ const o=e.target.closest(".cpk-o"); if(!o||o.disabled) return; const v=o.dataset.v, ch=sel.value!==v; sel.value=v; cpkClose(); if(ch){ sel.dispatchEvent(new Event("input",{bubbles:true})); sel.dispatchEvent(new Event("change",{bubbles:true})); } });
   const q=pop.querySelector(".cpk-q");
   if(q){ q.addEventListener("input", ()=>{ const t=norm(q.value); pop.querySelectorAll(".cpk-o").forEach(o=>o.hidden=!!t && !norm(o.textContent).includes(t));
     pop.querySelectorAll(".cpk-g").forEach(g=>{ let n=g.nextElementSibling, any=false; while(n && !n.classList.contains("cpk-g")){ if(!n.hidden) any=true; n=n.nextElementSibling; } g.hidden=!any; }); }); }
   const cur=pop.querySelector(".cpk-o.on"); if(cur) cur.scrollIntoView({block:"center"});
   (phone||!q ? (cur||pop.querySelector(".cpk-o")) : q)?.focus({preventScroll:true});
 }
-new MutationObserver(M=>{ const seen=new Set(); M.forEach(m=>m.addedNodes.forEach(n=>{ if(n.nodeType!==1) return;
+new MutationObserver(M=>{ const seen=new Set(), ph=cpkPhone(), add=s=>{ if(s && !seen.has(s)){ seen.add(s); cpkAttach(s); } };
+  M.forEach(m=>m.addedNodes.forEach(n=>{ if(n.nodeType!==1 || n.closest&&n.closest(".cpk-pop")) return;
     const os=n.matches&&n.matches("option[data-full]") ? [n] : n.querySelectorAll ? n.querySelectorAll("option[data-full]") : [];
-    os.forEach(o=>{ const s=o.closest("select"); if(s && !seen.has(s)){ seen.add(s); cpkAttach(s); } }); })); })
+    os.forEach(o=>add(o.closest("select")));
+    if(ph){ if(n.tagName==="SELECT") add(n); else if(n.tagName!=="OPTION" && n.querySelectorAll) n.querySelectorAll("#fd-app select, dialog select").forEach(add); } })); })
   .observe(document.documentElement,{childList:true,subtree:true});
+/* телефон: списки, что уже есть на странице, и после поворота экрана */
+const cpkScan = () => { if(cpkPhone()) document.querySelectorAll("#fd-app select, dialog select").forEach(s=>{ if(!CPK.has(s)) cpkAttach(s); }); };
+setTimeout(cpkScan, 0); addEventListener("resize", ()=>{ clearTimeout(cpkScan.t); cpkScan.t=setTimeout(cpkScan, 300); });
 function opts(list, sel){ return list.map(x=>{ const sh=String(x.short||"").trim(); return `<option value="${x.id}"${x.id===sel?" selected":""}${sh?` title="${esc(x.name||"")}" data-full="${esc(x.name||"")}"`:""}>${esc(sh||x.name||"(без названия)")}</option>`; }).join(""); }
 function renderDoc(){
   if(typeof invDocCard==="function") invDocCard();
