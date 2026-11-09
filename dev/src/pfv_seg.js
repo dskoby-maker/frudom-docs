@@ -90,6 +90,8 @@ function pvInit(){
   $("#pv-seg").addEventListener("click", e=>{ const b=e.target.closest("[data-pv]"); if(!b) return; PV().v=b.dataset.pv; saveLocal(); pvDraw(); window.scrollTo({top:0, behavior:"smooth"}); });
   $("#pv-cus").addEventListener("click", pvCusClick); $("#pv-cus").addEventListener("input", e=>{ if(e.target.id==="pv-q"){ PV().q=e.target.value; pvCusDraw(true); } });
   $("#pv-fin").addEventListener("click", pvFinClick);
+  $("#pv-fin").addEventListener("input", e=>{ if(e.target.id!=="pv-fsq") return; PVFS.q=e.target.value; PVFS.m=""; PVFS.c=""; clearTimeout(PVFS.t); PVFS.t=setTimeout(pvFsDraw, 120); });
+  $("#pv-fin").addEventListener("keydown", e=>{ if(e.target.id==="pv-fsq" && e.key==="Escape" && PVFS.q){ e.preventDefault(); e.stopPropagation(); PVFS={q:"", sc:"all", m:"", c:""}; e.target.value=""; pvFsDraw(); } });
   $("#pv-bank").addEventListener("click", pvBankClick);
 }
 function pvDraw(){
@@ -273,6 +275,9 @@ function pvFinDraw(){
   const mx=Math.max(1, Math.abs(T.dp), T.I, T.E, T.P, Math.abs(T.B));
   box.innerHTML = `<div class="pvhead"><div><h2>Расходы и доходы</h2><small class="muted">Всё, что не закупка товара, и отдельно — личные траты</small></div>${pvMonBar()}</div>
     <div class="pvacts"><button type="button" class="pvadd exp" data-pva="exp"><span>−</span>Расход</button><button type="button" class="pvadd inc" data-pva="inc"><span>+</span>Доход</button><button type="button" class="pvadd per" data-pva="per"><span>${pvIco("user")}</span>Личное</button><span style="flex:1"></span>${seg}<button type="button" class="btn ghost sm" data-pva="xls" title="Скачать записи месяца в Excel">${pvIco("doc")}Excel</button><button type="button" class="btn ghost sm" data-pva="cats">${pvIco("gear")}Категории</button></div>
+    <div class="pvfsb"><label class="pvsearch pvfsq">${pvIco("search")}<input id="pv-fsq" type="search" placeholder="Найти: бензин, такси, аренда, категория…" value="${esc(PVFS.q)}" autocomplete="off" aria-label="Поиск по расходам и доходам"><button type="button" class="pvfsx" data-pvfs="clear" aria-label="Очистить поиск"${PVFS.q?"":" hidden"}>×</button></label></div>
+    <div id="pv-fsr"></div>
+    <div id="pv-fmain">
     ${D.poSrv?"":`<p class="note">Пока скрипт таблицы старый, записи хранятся только на этом устройстве. <button type="button" class="btn sm" id="srvOldHow">Как обновить</button></p>`}
     ${pvCatOk()?"":`<p class="note">Категории начнут сохраняться после обновления скрипта таблицы (Code.gs, версия 15). <button type="button" class="btn sm" id="srvOldHow">Как обновить</button></p>`}
     ${cal ? pvFinCal(all.filter(x=>!f.fk || pvKind(x)===f.fk), mon, !f.fk || f.fk==="inc" ? T.DL : []) : (f.fv==="cal" ? `<p class="muted bncalno">Календарь — по месяцам: выберите месяц стрелками сверху.</p>` : "")}
@@ -294,8 +299,59 @@ function pvFinDraw(){
     <div class="pvlist">${days.size ? dayKeys.map((d,di)=>{ const xs=days.get(d), ds=dd.get(d)||[], t=r2(xs.reduce((a,x)=>a+(pvKind(x)==="inc"?1:-1)*(+x.sum||0),0)+ds.reduce((a,x)=>a+x.p,0));
       return `<div class="pvday" style="--d:${Math.min(di,10)*35}ms"><div class="pvdh"><b>${pvDay(d)}</b><span class="${t<0?"neg":ds.some(x=>x.st!=="paid")?"due":"pos"}">${pvMoney(t,true)} ₽</span></div>${ds.map(pvDocRow).join("")}${xs.map(x=>{ const k=pvKind(x), c=pvCatOf(x), s=+x.sum||0;
         return `<button type="button" class="pvit k-${k}" data-pvx="${esc(x.id)}">${pvBubble(c)}<span class="pvitn"><b>${esc(x.note||c.n)}</b><small>${k==="per"?`<span class="pvtag">личное</span>`:esc(c.n)}${x.supplierId?" · "+esc(supShort(sup(x.supplierId).name||"")):""}${x.by?" · "+esc(x.by):""}</small></span><span class="pvits ${k==="inc"?"pos":k==="per"?"per":"neg"}">${pvMoney(k==="inc"?s:-s,true)} ₽</span></button>`; }).join("")}</div>`; }).join("")
-      : `<div class="pvempty">${pvIco("receipt","big")}<b>${all.length?"Здесь записей нет":"За этот месяц записей нет"}</b><small>${all.length?"Выберите другой фильтр или день.":"Нажмите «− Расход», «+ Доход» или «Личное», чтобы добавить."}</small></div>`}</div>`;
+      : `<div class="pvempty">${pvIco("receipt","big")}<b>${all.length?"Здесь записей нет":"За этот месяц записей нет"}</b><small>${all.length?"Выберите другой фильтр или день.":"Нажмите «− Расход», «+ Доход» или «Личное», чтобы добавить."}</small></div>`}</div></div>`;
+  pvFsDraw();
 }
+/* ---------- поиск по расходам и доходам: «бензин» — когда и сколько. Ищет в «на что», категории, виде (расход/доход/личное), сумме и авторе.
+   Слова — по началу и без окончаний («бензина» найдёт «Бензин АИ-95»), ё = е. По умолчанию — за всё время, можно сузить до выбранного месяца. ---------- */
+let PVFS={q:"", sc:"all", m:"", c:""};
+const pvFsN = v => String(v||"").toLowerCase().replace(/ё/g,"е");
+const pvFsStem = t => /^\d/.test(t) ? t : t.length>=7 ? t.slice(0,-2) : t.length>=5 ? t.slice(0,-1) : t;
+const pvFsToks = q => pvFsN(q).split(/[\s,.;:!?«»"()]+/).filter(Boolean).map(pvFsStem);
+function pvFsHay(x){ const k=pvKind(x), c=pvCatOf(x); return pvFsN([x.note||"", k==="per"?"личное личные":c.n, k==="inc"?"доход доходы":k==="per"?"":"расход расходы", x.by||"", String(Math.round(+x.sum||0)), String(+x.sum||0).replace(".",",")].join(" ")); }
+function pvFsHit(hay, T){ const W=hay.split(/[\s\-–—,.;:()«»"\/]+/).filter(Boolean); return T.every(t=>W.some(w=>w.startsWith(t)) || (t.length>=3 && hay.includes(t))); }
+function pvFsFind(q, sc){ const T=pvFsToks(q); if(!T.length) return []; const [d1,d2]=sc==="mon"&&pvMonth()!=="all"?pvRange():["0000","9999"];
+  return pfArr("pother").filter(x=>x.date>=d1 && x.date<=d2 && pvFsHit(pvFsHay(x), T)).sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0); }
+function pvFsMark(text, q){ let h=esc(text); const T=pvFsToks(q).filter(t=>t.length>=2); if(!T.length) return h;
+  const re=new RegExp("("+T.map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&").replace(/е/g,"[её]")).join("|")+")","gi"); return h.replace(re,"<mark>$1</mark>"); }
+function pvFsDraw(){ const out=$("#pv-fsr"), main=$("#pv-fmain"); if(!out||!main) return; const q=PVFS.q.trim(), x=$("#pv-fin [data-pvfs=clear]"); if(x) x.hidden=!PVFS.q;
+  if(!q){ out.innerHTML=""; main.hidden=false; return; } main.hidden=true;
+  const mon=pvMonth(), canMon=mon!=="all"; if(!canMon) PVFS.sc="all";
+  const all=pvFsFind(q, PVFS.sc), allT=PVFS.sc==="mon"?pvFsFind(q,"all"):all;
+  /* по месяцам и категориям — из всех найденных; ниже список с учётом выбранного месяца/категории */
+  const bm=new Map(), bc=new Map(); all.forEach(x=>{ const m=x.date.slice(0,7), k=pvKind(x), c=pvCatOf(x), ck=k+":"+(k==="per"?"__per":c.id), v=(k==="inc"?1:-1)*(+x.sum||0);
+    if(!bm.has(m)) bm.set(m,{m, s:0, out:0, inc:0, n:0}); const g=bm.get(m); g.s+=v; g.n++; if(k!=="inc") g.out+=+x.sum||0; else g.inc+=+x.sum||0;
+    if(!bc.has(ck)) bc.set(ck,{k:ck, c, kind:k, s:0, n:0}); const h=bc.get(ck); h.s+=+x.sum||0; h.n++; });
+  if(PVFS.m && !bm.has(PVFS.m)) PVFS.m=""; if(PVFS.c && !bc.has(PVFS.c)) PVFS.c="";
+  const L=all.filter(x=>(!PVFS.m || x.date.slice(0,7)===PVFS.m) && (!PVFS.c || (pvKind(x)+":"+(pvKind(x)==="per"?"__per":pvCatOf(x).id))===PVFS.c));
+  const sOut=r2(L.filter(x=>pvKind(x)!=="inc").reduce((a,x)=>a+(+x.sum||0),0)), sExp=r2(L.filter(x=>pvKind(x)==="exp").reduce((a,x)=>a+(+x.sum||0),0)), sPer=r2(sOut-sExp), sIn=r2(L.filter(x=>pvKind(x)==="inc").reduce((a,x)=>a+(+x.sum||0),0));
+  const nOut=L.filter(x=>pvKind(x)!=="inc").length, last=L[0], first=L[L.length-1];
+  const scope=canMon?`<div class="fdseg pvfssc" role="group" aria-label="Где искать"><i style="--x:${PVFS.sc==="mon"?"100%":"0%"}"></i><button type="button" data-pvfs="sc:all" class="${PVFS.sc==="all"?"on":""}" aria-pressed="${PVFS.sc==="all"}">За всё время</button><button type="button" data-pvfs="sc:mon" class="${PVFS.sc==="mon"?"on":""}" aria-pressed="${PVFS.sc==="mon"}">${esc(pvMon(mon))}</button></div>`:"";
+  if(!all.length){ out.innerHTML=`<div class="pvfs"><div class="pvfsh"><div><h3>«${esc(q)}»</h3><small class="muted">ничего не нашлось${PVFS.sc==="mon"?" в "+esc(pvMon(mon).toLowerCase()):""}</small></div>${scope}</div>
+    <div class="pvempty">${pvIco("search","big")}<b>Ничего не нашлось</b><small>${PVFS.sc==="mon"&&allT.length?`За всё время — ${allT.length} ${plural(allT.length,["запись","записи","записей"])}. <button type="button" class="pvlink" data-pvfs="sc:all">Показать</button>`:"Попробуйте короче: «бенз» вместо «бензин на трассе», или название категории."}</small></div></div>`; return; }
+  const anyOut=[...bm.values()].some(g=>g.out>0), mv=g=>anyOut?g.out:g.inc, mx=Math.max(1,...[...bm.values()].map(mv)), months=[...bm.values()].sort((a,b)=>a.m<b.m?1:-1);
+  const days=new Map(); L.forEach(x=>{ if(!days.has(x.date)) days.set(x.date,[]); days.get(x.date).push(x); });
+  const tile=(lbl,v,sub,cls,attr)=>`<${attr?"button type=\"button\" "+attr:"div"} class="pvfst ${cls||""}"><small>${lbl}</small><b>${v}</b>${sub?`<span>${sub}</span>`:""}</${attr?"button":"div"}>`;
+  out.innerHTML=`<div class="pvfs">
+    <div class="pvfsh"><div><h3>«${esc(q)}»</h3><small class="muted">${L.length} ${plural(L.length,["запись","записи","записей"])}${first?` · ${first===last?fd(last.date):fd(first.date)+" — "+fd(last.date)}`:""}${PVFS.m||PVFS.c?` · <button type="button" class="pvlink" data-pvfs="reset">все найденные (${all.length})</button>`:""}</small></div>${scope}</div>
+    <div class="pvfsts">
+      ${nOut?tile("Потрачено", `−${fm(sOut)} ₽`, sExp&&sPer?`расходы ${fm(sExp)} · личные ${fm(sPer)}`:nOut+" "+plural(nOut,["раз","раза","раз"]), "neg"):""}
+      ${sIn?tile("Получено", `+${fm(sIn)} ₽`, L.length-nOut+" "+plural(L.length-nOut,["раз","раза","раз"]), "pos"):""}
+      ${nOut>1?tile("В среднем за раз", `${fm(r2(sOut/nOut))} ₽`, months.length>1&&!PVFS.m?`≈ ${fm(r2(sOut/months.length))} ₽ в месяц`:""):""}
+      ${last?tile("Последний раз", fd(last.date), `${pvMoney(pvKind(last)==="inc"?+last.sum:-last.sum,true)} ₽ · ${esc(last.note||pvCatOf(last).n)} ›`, "lnk", `data-pvx="${esc(last.id)}"`):""}
+    </div>
+    ${months.length>1?`<div class="pvfsm"><h4>По месяцам <small class="muted">нажмите — останется только этот месяц</small></h4>${months.map((g,i)=>`<button type="button" class="pvfsmr${PVFS.m===g.m?" on":""}" data-pvfs="m:${g.m}" aria-pressed="${PVFS.m===g.m}" style="--d:${Math.min(i,10)*30}ms"><span>${esc(pvMon(g.m))}</span><small>${g.n} ${plural(g.n,["запись","записи","записей"])}</small><i class="pvfsbar"><i class="${anyOut?"neg":"pos"}" style="--w:${mv(g)>0?Math.max(3,mv(g)/mx*100):0}%"></i></i><b class="${anyOut?"neg":"pos"}">${anyOut?(g.out?"−"+fm(r2(g.out)):"—"):"+"+fm(r2(g.inc))}${anyOut&&g.inc?`<em>+${fm(r2(g.inc))}</em>`:""}</b></button>`).join("")}</div>`:""}
+    ${bc.size>1?`<div class="pvfsc">${[...bc.values()].sort((a,b)=>b.s-a.s).map(g=>`<button type="button" class="pvfscb${PVFS.c===g.k?" on":""}" data-pvfs="c:${esc(g.k)}" aria-pressed="${PVFS.c===g.k}">${pvBubble(g.c)}<span>${esc(g.c.n)}</span><b>${fm(r2(g.s))}</b><small>${g.n}</small></button>`).join("")}</div>`:""}
+    <div class="pvlist">${[...days.keys()].map((d,di)=>{ const xs=days.get(d), t=r2(xs.reduce((a,x)=>a+(pvKind(x)==="inc"?1:-1)*(+x.sum||0),0));
+      return `<div class="pvday" style="--d:${Math.min(di,10)*30}ms"><div class="pvdh"><b>${pvDay(d)} ${d.slice(0,4)!==todayISO().slice(0,4)?d.slice(0,4):""}</b><span class="${t<0?"neg":"pos"}">${pvMoney(t,true)} ₽</span></div>${xs.map(x=>{ const k=pvKind(x), c=pvCatOf(x), sm=+x.sum||0;
+        return `<button type="button" class="pvit k-${k}" data-pvx="${esc(x.id)}">${pvBubble(c)}<span class="pvitn"><b>${pvFsMark(x.note||c.n, q)}</b><small>${k==="per"?`<span class="pvtag">личное</span>`:pvFsMark(c.n, q)}${x.by?" · "+esc(x.by):""}</small></span><span class="pvits ${k==="inc"?"pos":k==="per"?"per":"neg"}">${pvMoney(k==="inc"?sm:-sm,true)} ₽</span></button>`; }).join("")}</div>`; }).join("")}</div>
+    <div class="pvfsf"><button type="button" class="btn ghost sm" data-pvfs="xls">${pvIco("doc")}Найденное в Excel</button></div></div>`; }
+async function pvFsXls(){ const q=PVFS.q.trim(); const L=pvFsFind(q, PVFS.sc).filter(x=>(!PVFS.m || x.date.slice(0,7)===PVFS.m) && (!PVFS.c || (pvKind(x)+":"+(pvKind(x)==="per"?"__per":pvCatOf(x).id))===PVFS.c)).reverse(); if(!L.length) return;
+  try{ const X=await loadXLSX(), tot=r2(L.reduce((a,x)=>a+(pvKind(x)==="inc"?1:-1)*(+x.sum||0),0));
+    const aoa=[["Поиск «"+q+"» — расходы и доходы"],[],["Дата","Вид","Категория","На что / откуда","Сумма, ₽","Кто добавил"], ...L.map(x=>{ const k=pvKind(x); return [fd(x.date), k==="inc"?"Доход":k==="per"?"Личное":"Расход", k==="per"?"":pvCat(x.cat).n, x.note||"", (k==="inc"?1:-1)*(+x.sum||0), x.by||""]; }), [], ["","","","Итого","",""].map((v,i)=>i===4?tot:v)];
+    const ws=X.utils.aoa_to_sheet(aoa); ws["!cols"]=[{wch:11},{wch:9},{wch:18},{wch:40},{wch:13},{wch:12}]; const wb=X.utils.book_new(); X.utils.book_append_sheet(wb,ws,"Найдено");
+    X.writeFile(wb,"Поиск «"+q.replace(/[\\/:*?"<>|]/g,"")+"».xlsx"); toast("ok","Excel скачан", L.length+" "+plural(L.length,["запись","записи","записей"])+".");
+  }catch(e){ toast("err","Не получилось выгрузить", e.message); } }
 function pvFinCal(list, ym, dl){
   const f=PV(), y=+ym.slice(0,4), m=+ym.slice(5,7), days=new Date(y,m,0).getDate(), first=(new Date(y,m-1,1).getDay()+6)%7, t=todayISO(), by={}, bd={}, cells=[];
   list.forEach(x=>{ (by[x.date]=by[x.date]||[]).push(x); }); (dl||[]).forEach(x=>{ (bd[x.date]=bd[x.date]||[]).push(x); });
@@ -331,6 +387,11 @@ function pvLimOpen(){ const lim=+(getPrefs().perLim||0);
   d.addEventListener("keydown", e=>{ if(e.key==="Enter" && e.target.id==="pvl-sum"){ e.preventDefault(); go(false); } });
   setTimeout(()=>{ const s=$("#pvl-sum"); if(s){ s.focus(); s.select(); } }, 60); }
 function pvFinClick(e){
+  const fs=e.target.closest("[data-pvfs]"); if(fs){ const a=fs.dataset.pvfs;
+    if(a==="clear"){ PVFS={q:"", sc:"all", m:"", c:""}; const i=$("#pv-fsq"); if(i){ i.value=""; i.focus(); } pvFsDraw(); return; }
+    if(a==="xls"){ pvFsXls(); return; } if(a==="reset"){ PVFS.m=""; PVFS.c=""; pvFsDraw(); return; }
+    if(a.startsWith("sc:")){ PVFS.sc=a.slice(3); PVFS.m=""; PVFS.c=""; } else if(a.startsWith("m:")){ PVFS.m = PVFS.m===a.slice(2) ? "" : a.slice(2); } else if(a.startsWith("c:")){ PVFS.c = PVFS.c===a.slice(2) ? "" : a.slice(2); }
+    pvFsDraw(); return; }
   const m=e.target.closest("[data-pvm]"); if(m){ pvMonClick(m); return; }
   const v=e.target.closest("[data-pvv]"); if(v){ const f=PV(); f.fv=v.dataset.pvv; f.fday=""; if(f.fv==="cal" && pvMonth()==="all") f.m=todayISO().slice(0,7); saveLocal(); pvFinDraw(); return; }
   const dy=e.target.closest("[data-pvday]"); if(dy){ const f=PV(), iso=dy.dataset.pvday; if(dy.dataset.pvnew){ pvItemOpen(null, f.fk||"exp", iso); return; } f.fday = f.fday===iso ? "" : iso; saveLocal(); pvFinDraw(); return; }
