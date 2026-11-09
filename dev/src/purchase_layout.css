@@ -1,0 +1,12 @@
+@supports selector(:has(*)){
+  #fd-app .dcard .dzr:has(>.dztr){grid-template-columns:minmax(0,1fr) 110px 96px 190px;align-items:start}
+  #fd-app .dcard .dzr:has(>.dztr)>span:first-child b{white-space:normal;overflow-wrap:anywhere}
+  #fd-app .dcard .dzr>.dztr{grid-column:auto;grid-template-columns:110px minmax(0,1fr);align-items:start;margin:0;cursor:text}
+  #fd-app .dcard .dzr:has(>.dztr)>em,#fd-app .dcard .dztr em{padding-top:7px;white-space:normal;overflow-wrap:anywhere}
+  @media (max-width:680px){
+    #fd-app .dcard .dzr:has(>.dztr){grid-template-columns:minmax(0,1fr) fit-content(88px) minmax(0,1fr)}
+    #fd-app .dcard .dzr:has(>.dztr)>span:first-child{grid-column:1/-1}
+    #fd-app .dcard .dzr>.dztr{grid-template-columns:minmax(0,1fr);gap:2px}
+    #fd-app .dcard .dztr em{padding:0;text-align:right}
+  }
+}
