@@ -9,10 +9,11 @@ def rows(sheet):
 TAB="(t=>{document.querySelector('nav.tabs button[data-tab=\"journal\"]').click(); document.querySelector('nav.tabs button[data-tab=\"'+t+'\"]').click()})"
 SEED="""(W=>{ const D=__fd.D(), s=D.suppliers[0], c=D.customers.find(x=>x.inn)||D.customers[0];
   [['pa'+W,'Помидоры т'+W,'кг'],['pb'+W,'Томаты т'+W,'кг'],['pc'+W,'Помидоры (томаты) т'+W,'кг'],['pd'+W,'Помидоры черри т'+W,'кг'],['pe'+W,'Огурцы т'+W,'кг']].forEach(([id,name,unit])=>D.products.push({id,name,unit,code:'',country:'',price:'100',cat:''}));
-  const mk=(id,date,num,pid,qty,price)=>D.journal.unshift({id, supplierId:s.id, customerId:c.id, number:num, date, sum:qty*price, updated:new Date().toISOString(),
-    snap:{dr:{supplierId:s.id, customerId:c.id, lines:[{productId:pid, qty:String(qty), price:String(price)}]}, s:JSON.parse(JSON.stringify(s)), c:JSON.parse(JSON.stringify(c)), prods:{}, meta:{}}});
+  const mk=(id,date,num,pid,qty,price,buyer=c)=>D.journal.unshift({id, supplierId:s.id, customerId:buyer.id, number:num, date, sum:qty*price, updated:new Date().toISOString(),
+    snap:{dr:{supplierId:s.id, customerId:buyer.id, lines:[{productId:pid, qty:String(qty), price:String(price)}]}, s:JSON.parse(JSON.stringify(s)), c:JSON.parse(JSON.stringify(buyer)), prods:{}, meta:{}}});
   mk('ja'+W,'2026-10-01','9001','pa'+W,10,150); mk('jb'+W,'2026-10-15','9002','pb'+W,20,160); mk('jc'+W,'2026-11-01','9003','pc'+W,5,170);
-  D.doccosts=(D.doccosts||[]).concat([{id:'ja'+W, lines:JSON.stringify({['pa'+W]:'90'})},{id:'jb'+W, lines:JSON.stringify({['pb'+W]:'100'})},{id:'jc'+W, lines:JSON.stringify({['pc'+W]:'120'})}]);
+  mk('jd'+W,'2026-10-15','9004','pb'+W,2,160,{...c,id:'test-buyer'+W,name:'Второй покупатель',priv:true});
+  D.doccosts=(D.doccosts||[]).concat([{id:'ja'+W, lines:JSON.stringify({['pa'+W]:'90'})},{id:'jb'+W, lines:JSON.stringify({['pb'+W]:'100',_zk:{d:'2026-10-14',p:['pb'+W]}})},{id:'jc'+W, lines:JSON.stringify({['pc'+W]:'120'})}]);
   D.prices[c.id]=D.prices[c.id]||{}; D.prices[c.id]['pa'+W]='155';
   return c.name; })"""
 async def main():
@@ -33,8 +34,14 @@ async def main():
             ok('Средняя закупка' in t and '90,00' in t, f'{W}: закупочная цена из накладной видна')
             ok('Цены у заказчиков' in t and '155,00' in t, f'{W}: цена заказчика видна')
             chart=pg.locator('#pcd .pcd-chart')
+            details=chart.locator('.pcd-details')
             assert await chart.locator('time').get_attribute('datetime')=='2026-10-01'
             assert await chart.get_by_role('slider').count()==0, 'Для одной даты достаточно показаний на графике'
+            await chart.locator('.pcd-plot').click()
+            assert '01.10.2026' in await details.inner_text()
+            assert 'Кто закупал: не указано' in await details.inner_text()
+            await chart.get_by_role('button',name='Операции за день').click()
+            assert await details.is_hidden()
             sim=await pg.evaluate("[...document.querySelectorAll('#pcd [data-pglink]')].map(b=>b.dataset.pglink)")
             ok(f'pb{W}' in sim and f'pc{W}' in sim and f'pd{W}' not in sim and f'pe{W}' not in sim, f'{W}: «похоже» — томаты и помидоры (томаты), без черри и огурцов {sim}')
             await pg.click(f'#pcd [data-pglink="pb{W}"]'); await pg.wait_for_timeout(300)
@@ -49,8 +56,10 @@ async def main():
             assert await date.get_attribute('datetime')=='2026-11-01'
             if W<500:
                 await plot.tap(position={'x':4,'y':35})
+                assert await details.is_visible()
             else:
                 await plot.hover(position={'x':4,'y':35})
+                assert await details.is_hidden()
             assert await date.get_attribute('datetime')=='2026-10-01'
             await plot.press('ArrowRight')
             assert await date.get_attribute('datetime')=='2026-10-15'
@@ -60,7 +69,13 @@ async def main():
             assert await date.get_attribute('datetime')=='2026-11-01'
             await plot.press('Home')
             assert await date.get_attribute('datetime')=='2026-10-01'
-            print(f'OK   {W}: график реагирует на указатель и клавиатуру')
+            await plot.press('ArrowRight')
+            await plot.press('Enter')
+            assert await details.is_visible()
+            assert await details.locator('.pcd-er.s').count()==2
+            text=await details.inner_text()
+            assert all(value in text for value in ('15.10.2026','9002','9004','Второй покупатель','Закупка Саида','14.10.2026','100,00 ₽/кг')), text
+            print(f'OK   {W}: график раскрывает все операции даты и показывает источник закупки')
             ok(await pg.evaluate(f"__fd.D().products.filter(p=>p.grp==='pa{W}').length")==2, f'{W}: связь записана (grp)')
             await pg.screenshot(path=f'/tmp/claude-0/pcd-{W}.png', full_page=False)
             if W<500:
@@ -68,10 +83,11 @@ async def main():
                 ok(sw[0]==sw[1] and sw[2]<=2, f'{W}: телефон без горизонтальной прокрутки {sw}')
                 await pg.evaluate("(document.getElementById('fd-toasts')||{}).innerHTML='';document.getElementById('fd-dcard').scrollTop=600"); await pg.wait_for_timeout(200); await pg.screenshot(path=f'/tmp/claude-0/pcd-{W}-2.png')
             # продажи → накладная → назад
-            await pg.click('#pcd .pcd-er.s >> nth=0'); await pg.wait_for_timeout(600)
+            await details.locator(f'.pcd-er.s[data-id="jb{W}"]').click(); await pg.wait_for_timeout(600)
             ok(await pg.locator('#fd-dcard .dc-back').count()>=1, f'{W}: из карточки открылась накладная с «‹ назад»')
             await pg.click('#fd-dcard .dc-back'); await pg.wait_for_timeout(600)
             ok(await pg.locator('#pcd').count()==1, f'{W}: вернулись в карточку')
+            assert await details.is_visible() and '15.10.2026' in await details.inner_text()
             # основное и отвязать
             await pg.click(f'#pcd [data-pgmain="pb{W}"]'); await pg.wait_for_timeout(200)
             ok(await pg.evaluate(f"[__fd.D().products.find(p=>p.id==='pb{W}').grp, __fd.D().products.find(p=>p.id==='pa{W}').grp]")==['',f'pb{W}'], f'{W}: «Основное» переключено')
