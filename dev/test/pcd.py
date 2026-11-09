@@ -19,7 +19,7 @@ async def main():
     async with async_playwright() as p:
         b=await p.chromium.launch(executable_path=os.environ.get("BROWSER_EXECUTABLE_PATH") or "/usr/bin/google-chrome")
         for vw in [(1300,900),(390,844)]:
-            W=vw[0]; ctx=await b.new_context(viewport={'width':vw[0],'height':vw[1]}); pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
+            W=vw[0]; ctx=await b.new_context(viewport={'width':vw[0],'height':vw[1]}, has_touch=W<500); pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
             await pg.goto('http://localhost:8787/page'); await pg.click('#fd-who [data-who="Даниил"]'); await pg.fill('#fd-pass','1111'); await pg.click('#fd-enter'); await pg.wait_for_timeout(3500)
             await pg.reload(); await pg.wait_for_timeout(3000)
             await pg.evaluate(TAB+"('profit')"); await pg.wait_for_timeout(1500)   # данные прибыли загружены — дальше подкладываем закупку
@@ -32,6 +32,9 @@ async def main():
             ok('Карточка товара' in t and f'Помидоры т{W}' in t, f'{W}: карточка открылась')
             ok('Средняя закупка' in t and '90,00' in t, f'{W}: закупочная цена из накладной видна')
             ok('Цены у заказчиков' in t and '155,00' in t, f'{W}: цена заказчика видна')
+            chart=pg.locator('#pcd .pcd-chart')
+            assert await chart.locator('time').get_attribute('datetime')=='2026-10-01'
+            assert await chart.get_by_role('slider').count()==0, 'Для одной даты достаточно показаний на графике'
             sim=await pg.evaluate("[...document.querySelectorAll('#pcd [data-pglink]')].map(b=>b.dataset.pglink)")
             ok(f'pb{W}' in sim and f'pc{W}' in sim and f'pd{W}' not in sim and f'pe{W}' not in sim, f'{W}: «похоже» — томаты и помидоры (томаты), без черри и огурцов {sim}')
             await pg.click(f'#pcd [data-pglink="pb{W}"]'); await pg.wait_for_timeout(300)
@@ -41,6 +44,23 @@ async def main():
             t=await pg.inner_text('#pcd')
             ok('3 названия' in t and '9003' in t and '9002' in t and '9001' in t, f'{W}: в карточке 3 названия и продажи всех трёх')
             ok('120,00' in t and '100,00' in t, f'{W}: закупка по всем связанным')
+            plot=chart.get_by_role('slider')
+            date=chart.locator('time')
+            assert await date.get_attribute('datetime')=='2026-11-01'
+            if W<500:
+                await plot.tap(position={'x':4,'y':35})
+            else:
+                await plot.hover(position={'x':4,'y':35})
+            assert await date.get_attribute('datetime')=='2026-10-01'
+            await plot.press('ArrowRight')
+            assert await date.get_attribute('datetime')=='2026-10-15'
+            assert await chart.locator('[data-pcd-value="b"]').inner_text()=='100,00 ₽'
+            assert '160,00 ₽' in (await plot.get_attribute('aria-valuetext'))
+            await plot.press('End')
+            assert await date.get_attribute('datetime')=='2026-11-01'
+            await plot.press('Home')
+            assert await date.get_attribute('datetime')=='2026-10-01'
+            print(f'OK   {W}: график реагирует на указатель и клавиатуру')
             ok(await pg.evaluate(f"__fd.D().products.filter(p=>p.grp==='pa{W}').length")==2, f'{W}: связь записана (grp)')
             await pg.screenshot(path=f'/tmp/claude-0/pcd-{W}.png', full_page=False)
             if W<500:

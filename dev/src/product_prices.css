@@ -1,0 +1,69 @@
+#fd-app #pcd .pcd-chart {
+  --pcd-sale: #456d5c;
+  margin: 4px 0 12px;
+  padding: 10px 12px 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255,255,255,.66);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+#fd-app #pcd .pcd-readout,
+#fd-app #pcd .pcd-chart .pcd-lg {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+}
+#fd-app #pcd .pcd-readout time { font-weight: 600; color: var(--ink); }
+#fd-app #pcd .pcd-chart .pcd-lg { margin-left: 0; }
+#fd-app #pcd .pcd-lg span { display: inline-flex; align-items: center; gap: 5px; }
+#fd-app #pcd .pcd-lg b { color: var(--ink); white-space: nowrap; }
+#fd-app #pcd .pcd-lg i { width: 13px; flex: none; }
+#fd-app #pcd .pcd-lg i.s { border-color: var(--pcd-sale); margin: 0; }
+#fd-app #pcd .pcd-graph {
+  display: grid;
+  grid-template-columns: auto minmax(0,1fr);
+  gap: 6px 10px;
+  margin-top: 15px;
+}
+#fd-app #pcd .pcd-scale {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: end;
+  margin-block: -7px;
+  line-height: 14px;
+  color: var(--muted);
+  font-size: 11px;
+}
+#fd-app #pcd .pcd-plot { position: relative; min-width: 0; height: 112px; }
+#fd-app #pcd .pcd-plot[role="slider"] { cursor: crosshair; touch-action: pan-y pinch-zoom; }
+#fd-app #pcd .pcd-plot:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 3px; }
+#fd-app #pcd .pcd-chart .pcd-ch { display: block; width: 100%; height: 100%; overflow: visible; margin: 0; }
+#fd-app #pcd .pcd-ch .s { stroke: var(--pcd-sale); stroke-dasharray: 4 4; }
+#fd-app #pcd .pcd-ch .pcd-grid { fill: none; stroke: var(--line); stroke-width: 1; }
+#fd-app #pcd .pcd-ch .pcd-point { fill: none; stroke-width: 5; stroke-linecap: round; stroke-dasharray: none; }
+#fd-app #pcd .pcd-guide,
+#fd-app #pcd .pcd-marker { position: absolute; left: var(--pcd-x); pointer-events: none; }
+#fd-app #pcd .pcd-guide { inset-block: 0; border-left: 1px solid var(--muted); opacity: .45; }
+#fd-app #pcd .pcd-marker {
+  width: 9px; height: 9px; border: 2px solid var(--accent); border-radius: 50%;
+  background: var(--surface); transform: translate(-50%,-50%);
+}
+#fd-app #pcd .pcd-marker.s { width: 7px; height: 7px; border-color: var(--pcd-sale); }
+#fd-app #pcd .pcd-dates {
+  grid-column: 2;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 11px;
+}
+#fd-app #pcd .pcd-dates.single { justify-content: center; }
+@media (max-width: 480px) {
+  #fd-app #pcd .pcd-chart { padding-inline: 8px; }
+  #fd-app #pcd .pcd-readout { column-gap: 8px; }
+  #fd-app #pcd .pcd-chart .pcd-lg { column-gap: 8px; }
+  #fd-app #pcd .pcd-plot { height: 96px; }
+}
