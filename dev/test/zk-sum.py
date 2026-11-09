@@ -1,4 +1,4 @@
-"""Сумма под ценой в закупке: вписали сумму — цена за кг считается сама (шиповник 20 кг, 4700 → 235 ₽/кг); вписали цену — сумма сама;
+"""Сумма рядом с ценой в закупке: вписали сумму — цена за кг считается сама (шиповник 20 кг, 4700 → 235 ₽/кг); вписали цену — сумма сама;
 «Куплено фактически» при сумме пересчитывает цену, при цене — сумму; «Разнести по товарам» обновляет суммы; ₽/шт; сохранение и
 повторное открытие; комплект; телефон."""
 import asyncio, os, json, urllib.request
@@ -22,9 +22,13 @@ async def open_doc(pg, jid):
     await pg.evaluate(TAB+"('journal')"); await pg.wait_for_timeout(400)
     await pg.evaluate(f"document.querySelector('#jr-body [data-card=\"{jid}\"]').click()"); await pg.wait_for_timeout(500)
     await pg.click('#fd-dcard [data-zkc="toggle"]'); await pg.wait_for_timeout(900)
+async def amount_beside_price(pg, row, price):
+    p = await pg.locator(f'{row} {price}').bounding_box()
+    t = await pg.locator(f'{row} .dzt').bounding_box()
+    return p is not None and t is not None and abs(p['y'] - t['y']) < 1 and p['x'] + p['width'] <= t['x']
 async def main():
     async with async_playwright() as p:
-        b=await p.chromium.launch()
+        b=await p.chromium.launch(executable_path=os.environ.get("BROWSER_EXECUTABLE_PATH"))
         for W,H in ((1300,900),(390,844)):
             pg=await b.new_page(viewport={'width':W,'height':H}); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
             await pg.goto('http://localhost:8787/page'); await pg.click('#fd-who [data-who="Даниил"]'); await pg.fill('#fd-pass','1111'); await pg.click('#fd-enter'); await pg.wait_for_timeout(2500)
@@ -33,7 +37,8 @@ async def main():
             jid=f'zs{W}'
             await mkdoc(pg, jid, [('p-sh','20'),('p-ka','5.4'),('p-mk','9')])
             await open_doc(pg, jid)
-            ok(await pg.locator(f'{R} .dzt').count()==3, f'{W}: у каждого товара под ценой поле «сумма»')
+            ok(await pg.locator(f'{R} .dzt').count()==3, f'{W}: у каждого товара есть поле «сумма»')
+            ok(await amount_beside_price(pg, f'{R}:nth-child(1)', '.dzc'), f'{W}: сумма и цена за кг в одном ряду')
             # шиповник: сумма 4700 → 235
             await pg.fill(f'{R}:nth-child(1) .dzt','4700'); await pg.wait_for_timeout(150)
             ok(await pg.evaluate(V(f'{R}:nth-child(1) .dzc'))=='235', f'{W}: 20 кг, сумма 4700 → цена 235 ₽/кг ({await pg.evaluate(V(R+":nth-child(1) .dzc"))})')
@@ -56,6 +61,7 @@ async def main():
             ok('5 700,00' in zks, f'{W}: итог закупки 4700 + 1000 = 5 700 (без копеечных хвостов): {zks[:80]}')
             # ₽/шт: сумма → цена за кг и за 1 шт
             await pg.click(f'{R}:nth-child(3) [data-pcu="pc"]'); await pg.wait_for_timeout(200)
+            ok(await amount_beside_price(pg, f'{R}:nth-child(3)', '.pcp'), f'{W}: сумма и цена за шт в одном ряду')
             await pg.fill(f'{R}:nth-child(3) .dzt','900'); await pg.wait_for_timeout(150)
             pp=await pg.input_value(f'{R}:nth-child(3) .pcp'); kg=await pg.evaluate(V(f'{R}:nth-child(3) .dzc'))
             ok(kg=='100' and pp.replace(' ','') in ('45','45,00'), f'{W}: ₽/шт: 900 за 9 кг → 100 ₽/кг, 45 ₽ за 1 шт (450 г): {kg} / {pp}')

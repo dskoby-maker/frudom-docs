@@ -3,7 +3,7 @@
 import re, os, json
 H=os.path.dirname(os.path.abspath(__file__)); S=H+'/src/'; O=H+'/out/'; os.makedirs(O, exist_ok=True)
 rd=lambda f: open(S+f, encoding='utf-8').read()
-app=rd('app.html')
+app=rd('app.html').replace('</style>', rd('purchase_layout.css')+'</style>', 1)
 fmt=re.sub(r'function todayISO\(\)\{[^\n]*\n','',rd('fmt_seg.js'))
 app=app.replace('/*__SYNC_GUARD__*/',rd('sync_guard.js'))
 app=app.replace('/*__EIS__*/',rd('vendor/jszip.js')+'\n'+rd('vendor/streebog.js')+'\n'+rd('eis.js')+'\n'+rd('eis_ui.js'))
