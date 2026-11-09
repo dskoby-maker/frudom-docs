@@ -44,7 +44,7 @@ function pcdData(id){ const M=pgMembers(id), ids=new Set(M.map(x=>x.id)), adm=!!
       sales.push({d:j.date, j, pid:l.pid, name:l.name||(prod(l.pid)||{}).name||"", unit:un, qty:l.qty, price:l.priceNet, sum:l.net, cus:who, cid:j.customerId, c: x&&!x.src ? r.c : null});
       if(x && !x.src && r.own && !r.sk && r.c!=null) buys.push({d:j.date, p:+r.c, u:un, q:r.bq||l.qty, src:"накл. № "+j.number+" · "+who, jid:j.id, pid:l.pid}); }); });
   if(adm){ pfArr("costs").forEach(e=>{ if(!ids.has(e.productId) || !(+e.price>0)) return; const p=prod(e.productId)||{};
-      buys.push({d:e.from||"", p:+e.price, u:p.unit||"", q:0, src:"«Закупочные цены»"+(e.customerId?" · для "+(cus(e.customerId).name||""):""), pid:e.productId}); }); }
+      buys.push({d:e.from||"", p:+e.price, u:p.unit||"", q:0, src:"«Закупочные цены»"+(e.customerId?" · для "+(cus(e.customerId).name||""):""), pid:e.productId, said:e.note==="Закупка Саида"}); }); }
   const items=[]; try{ M.forEach(p=>{ const it=skItemOf(p.id); if(it && !items.some(x=>x.id===it.id)) items.push(it); }); }catch(e){}
   if(adm) items.forEach(it=>{ try{ skhPrices(skIdx().byItem[it.id]||[]).forEach(b=>buys.push({d:b.d, p:b.p, u:b.u, q:b.q, src:"приход на склад"+(b.sup?" от "+b.sup:""), bid:b.id, item:it.id})); }catch(e){} });
   sales.sort((a,b)=>String(b.d).localeCompare(String(a.d))); buys.sort((a,b)=>String(b.d).localeCompare(String(a.d)));
@@ -65,6 +65,50 @@ const pcdChart = (() => {
     return dayCache.get(plot);
   };
   const yAt = (p, low, high) => Math.max(0, Math.min(100, 100 * (high - p) / (high - low)));
+  function detailRows(date) {
+    const {buys, sales, group} = PCD.priceRows;
+    const B = buys.filter(b => b.d === date && Number.isFinite(b.p));
+    const S = sales.filter(s => s.d === date && Number.isFinite(s.price));
+    const stock = B.some(b => b.bid) ? skIdx() : null;
+    const received = new Map();
+    for (const m of stock?.S.moves || []) {
+      if ((m.type === "in" || m.type === "init") && m.by && !received.has(m.batchId)) received.set(m.batchId, m.by);
+    }
+    const row = (kind, title, note, price, sub, action, id) => {
+      const tag = id ? "button" : "div";
+      const attrs = id ? ` type="button" data-dc="${action}" data-id="${esc(id)}"` : "";
+      return `<${tag} class="pcd-er ${kind}"${attrs}><span class="pcd-et"><b>${esc(title)}</b><small>${esc(note)}</small></span><span class="pcd-eq"><b>${esc(price)}</b>${sub ? `<small>${esc(sub)}</small>` : ""}</span></${tag}>`;
+    };
+    const section = (name, rows) => rows.length ? `<section><h4>${name}</h4><div class="pcd-ev">${rows.join("")}</div></section>` : "";
+    const saleRows = S.map(s => row("s", s.cus || "Заказчик не указан",
+      ["Накладная № " + s.j.number, group.length > 1 && s.name].filter(Boolean).join(" · "),
+      skQf(s.qty, s.unit) + " × " + amount(s.price), amount(s.sum) + " без НДС", "doc", s.j.id));
+    const buyRows = B.map(b => {
+      const name = group.length > 1 ? group.find(p => p.id === b.pid)?.name : "";
+      const meta = b.jid ? dcLines(docCost(b.jid))._zk : null;
+      const said = Array.isArray(meta?.p) && meta.p.includes(b.pid);
+      const batch = stock?.batch[b.bid];
+      const dateLabel = said && meta.d ? "Закупка от " + fd(meta.d) : "Дата закупки не указана";
+      const title = batch ? (batch.supplier ? "От " + batch.supplier : "Приход на склад") :
+        b.jid ? (said ? "Закупка Саида" : "Закупка по накладной") : b.said ? "Закупочная цена Саида" : "Закупочная цена";
+      const info = batch ? [batch.docRef && "Накладная " + batch.docRef,
+        received.has(b.bid) && "Приход оформил: " + received.get(b.bid)] :
+        b.jid ? [b.src, dateLabel, !said && "Кто закупал: не указано"] : [b.src, "Цена действует с " + fd(date)];
+      return row("b", title, [...info, name].filter(Boolean).join(" · "),
+        amount(b.p) + "/" + b.u, b.q > 0 ? skQf(b.q, b.u) : "", b.jid ? "doc" : "skh", b.jid || b.item);
+    });
+    return `<b class="pcd-detail-title">Операции за ${fd(date)}</b>` + section("Продажи", saleRows) + section("Закупки", buyRows);
+  }
+  function showDetails(plot, open, reveal = false) {
+    const chart = plot.closest(".pcd-chart"), panel = chart.querySelector(".pcd-details");
+    PCD.priceDay = open ? chart.querySelector("time").dateTime : "";
+    chart.querySelector("[data-pcd-details]").setAttribute("aria-expanded", String(open));
+    panel.hidden = !open;
+    if (open) {
+      panel.innerHTML = detailRows(PCD.priceDay);
+      if (reveal) panel.querySelector(".pcd-detail-title").scrollIntoView({block:"nearest"});
+    }
+  }
   function select(plot, index) {
     const days = daysOf(plot);
     index = Math.max(0, Math.min(days.length - 1, index));
@@ -82,9 +126,10 @@ const pcdChart = (() => {
       if (p != null) marker.style.top = yAt(p, +plot.dataset.low, +plot.dataset.high) + "%";
     }
   }
-  function pick(event) {
+  function pick(event, open) {
     const plot = event.target.closest?.("[data-pcd-days]");
     if (!plot) return;
+    if (!open && !plot.closest(".pcd-chart").querySelector(".pcd-details").hidden) return;
     const bounds = plot.getBoundingClientRect();
     if (!bounds.width) return;
     const x = 100 * (event.clientX - bounds.left) / bounds.width, days = daysOf(plot);
@@ -94,22 +139,37 @@ const pcdChart = (() => {
       if (x > (days[mid].x + days[mid + 1].x) / 2) left = mid + 1;
       else right = mid;
     }
-    select(plot, left);
+    if (days.length > 1) select(plot, left);
+    if (open) showDetails(plot, true, true);
   }
-  document.addEventListener("pointermove", event => { if (event.pointerType === "mouse") pick(event); });
-  document.addEventListener("click", pick);
+  document.addEventListener("pointermove", event => { if (event.pointerType === "mouse") pick(event, false); });
+  document.addEventListener("click", event => {
+    const toggle = event.target.closest?.("[data-pcd-details]");
+    if (toggle) {
+      showDetails(toggle.closest(".pcd-chart").querySelector(".pcd-plot"), toggle.getAttribute("aria-expanded") !== "true", true);
+      return;
+    }
+    pick(event, true);
+  });
   document.addEventListener("keydown", event => {
     const plot = event.target;
-    if (!plot.matches?.("[data-pcd-days]")) return;
+    if (!plot.matches?.(".pcd-plot[role=slider]") || event.altKey || event.ctrlKey || event.metaKey) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      showDetails(plot, true, true);
+      return;
+    }
     const index = +plot.getAttribute("aria-valuenow");
     const positions = {ArrowLeft: index - 1, ArrowDown: index - 1, ArrowRight: index + 1, ArrowUp: index + 1, Home: 0, End: daysOf(plot).length - 1};
     if (!Object.hasOwn(positions, event.key)) return;
     event.preventDefault();
     select(plot, positions[event.key]);
+    if (!plot.closest(".pcd-chart").querySelector(".pcd-details").hidden) showDetails(plot, true);
   });
-  return (B, S, unit) => {
+  return (buys, sales, unit, group) => {
+    PCD.priceRows = {buys, sales, group};
     const byDate = new Map();
-    for (const [points, key] of [[B, "b"], [S, "s"]]) {
+    for (const [points, key] of [[pcdDay(buys), "b"], [pcdDay(sales.map(s => ({d:s.d, p:s.price, q:s.qty}))), "s"]]) {
       for (const {d, p} of points) {
         const t = Date.parse(d + "T00:00:00Z");
         if (!Number.isFinite(t) || !Number.isFinite(p)) continue;
@@ -118,8 +178,11 @@ const pcdChart = (() => {
       }
     }
     const days = [...byDate.values()].sort((a, b) => a.t - b.t);
+    const opened = days.findIndex(day => day.d === PCD.priceDay);
+    if (opened < 0) PCD.priceDay = "";
     if (!days.length) return "";
     const first = days[0], last = days[days.length - 1], span = last.t - first.t;
+    const selectedIndex = opened < 0 ? days.length - 1 : opened, selected = days[selectedIndex];
     const values = days.flatMap(day => [day.b, day.s].filter(p => p != null));
     const min = Math.min(...values), max = Math.max(...values);
     const pad = max > min ? (max - min) * .1 : Math.max(Math.abs(max) * .04, 1);
@@ -127,25 +190,28 @@ const pcdChart = (() => {
     days.forEach(day => { day.x = span ? 2 + 96 * (day.t - first.t) / span : 50; });
     const shape = key => {
       const points = days.filter(day => day[key] != null).map(day => [day.x, yAt(day[key], low, high)]);
-      if (points.length > 1) return `<polyline class="${key}" vector-effect="non-scaling-stroke" points="${points.map(p => p.join(",")).join(" ")}"/>`;
-      if (points.length) return `<path class="${key} pcd-point" vector-effect="non-scaling-stroke" d="M${points[0].join(",")}h.01"/>`;
-      return "";
+      const line = points.length > 1 ? `<polyline class="${key}" vector-effect="non-scaling-stroke" points="${points.map(p => p.join(",")).join(" ")}"/>` : "";
+      const dots = (points.length && days.length <= 24) || points.length === 1
+        ? `<path class="${key} pcd-point" vector-effect="non-scaling-stroke" d="${points.map(p => "M" + p.join(",") + "h.01").join(" ")}"/>` : "";
+      return line + dots;
     };
-    const slider = days.length > 1 ? ` role="slider" tabindex="0" aria-label="Дата на графике, цены за ${esc(unit)}" aria-valuemin="0" aria-valuemax="${days.length - 1}" aria-valuenow="${days.length - 1}" aria-valuetext="${esc(spoken(last))}" data-pcd-days="${esc(JSON.stringify(days))}" data-low="${low}" data-high="${high}"` : "";
+    const slider = days.length > 1 ? ` role="slider" tabindex="0" aria-label="Дата на графике, цены за ${esc(unit)}" aria-valuemin="0" aria-valuemax="${days.length - 1}" aria-valuenow="${selectedIndex}" aria-valuetext="${esc(spoken(selected))}"` : "";
     return `<div class="pcd-chart">
-      <div class="pcd-readout"><time datetime="${last.d}">${fd(last.d)}</time><span class="pcd-lg">${series.map(([key, label]) => `<span><i class="${key}"></i>${label} <b data-pcd-value="${key}">${amount(last[key])}</b></span>`).join("")}</span></div>
+      <div class="pcd-readout"><time datetime="${selected.d}">${fd(selected.d)}</time><span class="pcd-lg">${series.map(([key, label]) => `<span><i class="${key}"></i>${label} <b data-pcd-value="${key}">${amount(selected[key])}</b></span>`).join("")}</span>
+        <button type="button" class="pcd-detail-toggle" data-pcd-details aria-controls="pcd-price-details" aria-expanded="${opened >= 0}">Операции за день</button></div>
       <div class="pcd-graph">
         <div class="pcd-scale" aria-hidden="true">${[high, low + (high - low) / 2, low].map(p => `<span>${fm(p)}</span>`).join("")}</div>
-        <div class="pcd-plot"${slider} style="--pcd-x:${last.x}%">
+        <div class="pcd-plot"${slider} data-pcd-days="${esc(JSON.stringify(days))}" data-low="${low}" data-high="${high}" style="--pcd-x:${selected.x}%">
           <svg class="pcd-ch" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
             <path class="pcd-grid" vector-effect="non-scaling-stroke" d="M0,0H100 M0,50H100 M0,100H100"/>
             ${shape("s")}${shape("b")}
           </svg>
           <span class="pcd-guide" aria-hidden="true"></span>
-          ${series.map(([key]) => `<span class="pcd-marker ${key}" data-pcd-marker="${key}" aria-hidden="true"${last[key] == null ? " hidden" : ` style="top:${yAt(last[key], low, high)}%"`}></span>`).join("")}
+          ${series.map(([key]) => `<span class="pcd-marker ${key}" data-pcd-marker="${key}" aria-hidden="true"${selected[key] == null ? " hidden" : ` style="top:${yAt(selected[key], low, high)}%"`}></span>`).join("")}
         </div>
         <div class="pcd-dates${span ? "" : " single"}" aria-hidden="true"><span>${fd(first.d)}</span>${span ? `<span>${fd(last.d)}</span>` : ""}</div>
       </div>
+      <div class="pcd-details" id="pcd-price-details"${opened < 0 ? " hidden" : ""}>${opened < 0 ? "" : detailRows(selected.d)}</div>
     </div>`;
   };
 })();
@@ -155,7 +221,7 @@ const pcdDay = L => { const by={}; L.forEach(x=>{ const o=by[x.d]||(by[x.d]={d:x
 let PCD=null;
 const PCD_PER=[["all","Всё время"],["90","3 месяца"],["30","Месяц"]];
 function pdCard(id){ const p=prod(id); if(!p){ toast("info","Товара уже нет"); return; }
-  PCD={id, per:(PCD&&PCD.id===id&&PCD.per)||"all", f:(PCD&&PCD.id===id&&PCD.f)||"", n:15, q:"", sug:false};
+  PCD={id, per:(PCD&&PCD.id===id&&PCD.per)||"all", f:(PCD&&PCD.id===id&&PCD.f)||"", priceDay:(PCD&&PCD.id===id&&PCD.priceDay)||"", n:15, q:"", sug:false};
   if(me().admin && typeof pfLoaded!=="undefined" && !pfLoaded){ loadProfit(true).then(()=>pcdRedraw()).catch(()=>{}); }
   try{ if(typeof SK!=="undefined" && !SK && skCan()) skLoad(true).then(()=>pcdRedraw()).catch(()=>{}); }catch(e){}
   CARD_RE=()=>pdCard(id);
@@ -201,7 +267,7 @@ function pcdHtml(){ const p=prod(PCD.id); if(!p) return `<div class="dc-head"><d
       + tile("Наценка", avgS!=null&&avgB?pcdPct((avgS/avgB-1)*100):"—", krev?"прибыль до налога "+fm(r2(krev-cost))+" ₽":"", avgS!=null&&avgB&&avgS<avgB?"bad":"") : "")
     + `</div>`;
   /* закупочные цены */
-  if(X.adm){ const ch=pcdChart(pcdDay(BU), pcdDay(SU.map(s=>({d:s.d, p:s.price, q:s.qty}))), U);
+  if(X.adm){ const ch=pcdChart(BU, SU, U, M);
     h+=`<div class="skbox"><div class="skbh"><b>Движение цен <small class="muted">за ${esc(U)}</small></b></div>`
       + (ch||(!B.length?`<p class="muted">Закупочных цен ещё нет. Они появятся, когда вы заполните закупку в окне накладной или на вкладке «Закупка», впишете «Закупочные цены» или оформите приход на склад.</p>`:""))
       + (BL.length?`<div class="pcd-bl">${BL.slice(0,8).map((x,i)=>{ const nx=BL.slice(i+1).find(y=>y.d<x.d), d=nx&&nx.p?(x.p-nx.p)/nx.p*100:null;
