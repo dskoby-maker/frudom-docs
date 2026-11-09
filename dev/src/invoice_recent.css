@@ -1,0 +1,29 @@
+#fd-app #inv-recent > .invmini-toggle {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  text-align: left;
+  list-style: none;
+  box-shadow: none;
+}
+#fd-app #inv-recent > .invmini-toggle::-webkit-details-marker { display: none; }
+#fd-app #inv-recent > .invmini-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#fd-app #inv-recent > .invmini-toggle::after {
+  content: "";
+  flex: none;
+  width: 7px;
+  height: 7px;
+  margin-right: 3px;
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  color: var(--accent);
+  transform: rotate(45deg);
+}
+#fd-app #inv-recent[open] > .invmini-toggle {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+#fd-app #inv-recent[open] > .invmini-toggle::after { transform: rotate(225deg); }
+#fd-app #inv-recent > .invl { margin-top: 8px; }
