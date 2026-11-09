@@ -197,6 +197,31 @@
 #fd-app textarea{resize:vertical;font-size:14px}
 #fd-app input,#fd-app select,#fd-app textarea{font:15px var(--ui);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:9px 10px;width:100%;min-width:0;height:auto;margin:0;box-shadow:none}
 #fd-app input:focus,#fd-app select:focus,#fd-app button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+/* выбор заказчика: кнопка вместо <select> (cpkAttach) */
+.cpkw{position:relative;display:block;min-width:0;width:100%}.cpkw.pick{width:auto}
+.cpkw>select.cpk-hid{position:absolute!important;inset:0;opacity:0!important;pointer-events:none!important;z-index:0}
+#fd-app .cpk,.cpk{position:relative;z-index:1;display:flex;align-items:center;gap:8px;width:100%;min-width:0;text-align:left;cursor:pointer;font:15px var(--ui);color:var(--ink);background:rgba(255,255,255,.62);border:1px solid rgba(28,34,32,.12);border-radius:10px;padding:9px 10px;margin:0;line-height:1.3;transition:border-color .2s,box-shadow .25s}
+#fd-app .cpk:hover{border-color:rgba(28,34,32,.24)}#fd-app .cpk[disabled]{opacity:.6;cursor:default}
+#fd-app .cpk.bad{border-color:var(--err)!important;background:#fdf0ee!important;box-shadow:0 0 0 3px rgba(192,64,47,.15)}#fd-app .cpk.fdflash{animation:fdflash .6s ease}
+.cpk .cpk-t,.cpk-o .cpk-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cpk-s{color:var(--ink,#1c2220)}.cpk-f{color:var(--muted,#8a8f8c);font-size:.8em;font-weight:400}.cpk-ph{color:var(--muted,#8a8f8c)}
+.cpk-ch{width:16px;height:16px;flex:none;color:var(--muted,#8a8f8c)}
+.cpk-bd{position:fixed;inset:0;z-index:2147483000;background:transparent}
+.cpk-pop{position:fixed;z-index:2147483001;display:flex;flex-direction:column;background:var(--surface,#fff);border:1px solid rgba(28,34,32,.1);border-radius:14px;box-shadow:0 18px 44px -12px rgba(28,20,26,.28),0 2px 6px rgba(28,20,26,.06);overflow:hidden;font:15px var(--ui,system-ui);color:var(--ink,#1c2220);animation:cpkIn .16s cubic-bezier(.2,.8,.2,1)}
+@keyframes cpkIn{from{opacity:0;transform:translateY(-4px) scale(.985)}to{opacity:1;transform:none}}
+.cpk-qw{padding:8px;border-bottom:1px solid rgba(28,34,32,.07)}.cpk-q{width:100%;box-sizing:border-box;font:15px var(--ui,system-ui);border:1px solid rgba(28,34,32,.12);border-radius:9px;padding:8px 10px;background:rgba(28,34,32,.03);color:inherit}
+.cpk-l{overflow:auto;overscroll-behavior:contain;padding:4px 0 6px}
+.cpk-g{padding:10px 14px 4px;font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted,#8a8f8c)}
+.cpk-o{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;width:100%;padding:9px 14px;cursor:pointer;line-height:1.3}
+.cpk-o .cpk-t{white-space:normal}#fd-app .cpk-o:focus-visible,#fd-app .cpk-o:focus{outline:none}.cpk-o:hover,.cpk-o:focus-visible{background:rgba(106,44,78,.06);outline:none}.cpk-o.on{background:rgba(106,44,78,.08)}.cpk-o.on .cpk-s{font-weight:600;color:var(--accent,#6a2c4e)}
+.cpk-ok{width:16px;height:16px;flex:none;color:var(--accent,#6a2c4e)}.cpk-o[disabled]{opacity:.45;cursor:default}
+.cpk-pop.sheet{left:0;right:0;bottom:0;max-height:78vh;border-radius:18px 18px 0 0;padding-bottom:env(safe-area-inset-bottom);animation:cpkUp .22s cubic-bezier(.2,.8,.2,1)}
+.cpk-pop.sheet .cpk-o{padding:13px 18px;font-size:16px}.cpk-pop.sheet .cpk-g{padding:14px 18px 6px}
+.cpk-pop.sheet::before{content:"";display:block;width:38px;height:4px;border-radius:2px;background:rgba(28,34,32,.18);margin:8px auto 2px}
+@keyframes cpkUp{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
+.cpk-bd:has(+.cpk-pop.sheet){background:rgba(20,14,18,.32);animation:cpkFade .2s}@keyframes cpkFade{from{opacity:0}to{opacity:1}}
+@media (max-width:480px){#fd-app .cpk{font-size:16px;padding:11px 12px}}
+@media (prefers-reduced-motion: reduce){.cpk-pop,.cpk-pop.sheet{animation:none}}
 #fd-app .btn{font:500 14px var(--ui);border-radius:8px;padding:9px 14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;line-height:1.2}
 #fd-app .btn:hover{border-color:var(--muted)}
 #fd-app .btn.pri{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
@@ -2635,7 +2660,58 @@ function cusOpts0(supId, sel, CL){
   const rest=CL.filter(c=>!mine.includes(c)), nm=supShort((sup(supId)||{}).name);
   return `<optgroup label="Заказчики ${esc(nm)}">${opts(mine, sel)}</optgroup><optgroup label="Остальные заказчики">${opts(rest, sel)}</optgroup>`;
 }
-function opts(list, sel){ return list.map(x=>{ const sh=String(x.short||"").trim(); return `<option value="${x.id}"${x.id===sel?" selected":""}${sh?` title="${esc(x.name||"")}"`:""}>${esc(sh||x.name||"(без названия)")}</option>`; }).join(""); }
+/* ---------- выбор заказчика: короткое название + полное серым мелко «(…)» — только в списке выбора ----------
+   Обычный <select> так не умеет (особенно на телефоне), поэтому у списков, где есть option[data-full] (opts() с коротким названием),
+   рядом встаёт кнопка .cpk и своё окошко выбора; сам <select> остаётся (прозрачный, под кнопкой) — код и проверки работают с ним как раньше. */
+const CPK=new WeakMap(), CPK_CHEV='<svg class="cpk-ch" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const cpkTxt = o => !o ? `<span class="cpk-s cpk-ph">—</span>` : `<span class="cpk-s">${esc(o.textContent)}</span>${o.dataset.full?` <span class="cpk-f">(${esc(o.dataset.full)})</span>`:""}`;
+function cpkSync(sel){ const b=CPK.get(sel); if(!b) return; const o=sel.options[sel.selectedIndex];
+  b.innerHTML=`<span class="cpk-t">${cpkTxt(o)}</span>${CPK_CHEV}`; b.disabled=sel.disabled; b.title=o&&o.dataset.full||"";
+  b.classList.toggle("bad", sel.classList.contains("bad")); if(sel.classList.contains("fdflash")){ b.classList.remove("fdflash"); void b.offsetWidth; b.classList.add("fdflash"); } }
+function cpkAttach(sel){
+  if(CPK.has(sel)){ cpkSync(sel); return; }
+  const w=document.createElement("span"); w.className="cpkw"+(sel.classList.contains("pick")?" pick":""); if(sel.getAttribute("style")) w.setAttribute("style", sel.getAttribute("style"));
+  const b=document.createElement("button"); b.type="button"; b.className="cpk"; b.setAttribute("aria-haspopup","listbox");
+  sel.parentNode.insertBefore(w, sel); w.appendChild(sel); w.appendChild(b); sel.classList.add("cpk-hid"); sel.tabIndex=-1; CPK.set(sel,b);
+  const P=HTMLSelectElement.prototype, dv=Object.getOwnPropertyDescriptor(P,"value"), di=Object.getOwnPropertyDescriptor(P,"selectedIndex");
+  Object.defineProperty(sel,"value",{configurable:true, get(){ return dv.get.call(this); }, set(v){ dv.set.call(this,v); cpkSync(this); }});
+  Object.defineProperty(sel,"selectedIndex",{configurable:true, get(){ return di.get.call(this); }, set(v){ di.set.call(this,v); cpkSync(this); }});
+  sel.addEventListener("change", ()=>cpkSync(sel)); new MutationObserver(()=>cpkSync(sel)).observe(sel,{childList:true,subtree:true,attributes:true,attributeFilter:["disabled","class"]});
+  b.addEventListener("click", ()=>cpkOpen(sel,b)); b.addEventListener("keydown", e=>{ if(["ArrowDown","ArrowUp"," ","Enter"].includes(e.key)){ e.preventDefault(); cpkOpen(sel,b); } });
+  cpkSync(sel);
+}
+let CPKP=null;
+function cpkClose(back){ if(!CPKP) return; const {pop,bd,b}=CPKP; CPKP=null; pop.remove(); bd.remove(); document.removeEventListener("keydown", cpkKey, true); if(back!==false) b.focus({preventScroll:true}); }
+function cpkKey(e){ if(!CPKP) return; const L=[...CPKP.pop.querySelectorAll(".cpk-o:not([hidden])")], i=L.indexOf(document.activeElement);
+  if(e.key==="Escape"){ e.preventDefault(); e.stopPropagation(); cpkClose(); }
+  else if(e.key==="ArrowDown"||e.key==="ArrowUp"){ e.preventDefault(); const n=L[Math.max(0,Math.min(L.length-1,(i<0?(e.key==="ArrowDown"?-1:L.length):i)+(e.key==="ArrowDown"?1:-1)))]; n&&n.focus(); }
+  else if(e.key==="Enter" && document.activeElement && document.activeElement.classList.contains("cpk-q")){ e.preventDefault(); L[0]&&L[0].click(); } }
+function cpkOpen(sel,b){
+  if(sel.disabled) return; cpkClose(false);
+  const row=o=>`<button type="button" class="cpk-o${o.selected?" on":""}" role="option" aria-selected="${o.selected}" data-v="${esc(o.value)}"${o.disabled?" disabled":""}><span class="cpk-t">${cpkTxt(o)}</span>${o.selected?'<svg class="cpk-ok" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>':""}</button>`;
+  const body=[...sel.children].map(n=>n.tagName==="OPTGROUP" ? `<div class="cpk-g">${esc(n.label)}</div>`+[...n.children].map(row).join("") : row(n)).join("");
+  const many=sel.options.length>8, bd=document.createElement("div"), pop=document.createElement("div");
+  bd.className="cpk-bd"; pop.className="cpk-pop"; pop.setAttribute("role","listbox");
+  pop.innerHTML=(many?`<div class="cpk-qw"><input class="cpk-q" type="search" placeholder="Найти заказчика…" aria-label="Найти заказчика" autocomplete="off"></div>`:"")+`<div class="cpk-l">${body}</div>`;
+  const host=document.querySelector("dialog[open]")||$("#fd-app")||document.body; host.appendChild(bd); host.appendChild(pop);
+  const phone=innerWidth<=560, r=b.getBoundingClientRect();
+  if(phone) pop.classList.add("sheet");
+  else { const w=Math.max(r.width, Math.min(560, innerWidth-24)), below=innerHeight-r.bottom-12, up=below<260 && r.top>below;
+    Object.assign(pop.style,{left:Math.max(12,Math.min(r.left, innerWidth-w-12))+"px", width:w+"px", maxHeight:Math.max(200, (up?r.top:below)-8)+"px"}, up?{bottom:(innerHeight-r.top+4)+"px"}:{top:(r.bottom+4)+"px"}); }
+  CPKP={pop,bd,b,sel}; document.addEventListener("keydown", cpkKey, true);
+  bd.addEventListener("click", ()=>cpkClose()); 
+  pop.addEventListener("click", e=>{ const o=e.target.closest(".cpk-o"); if(!o||o.disabled) return; const v=o.dataset.v, ch=sel.value!==v; sel.value=v; cpkClose(); if(ch) sel.dispatchEvent(new Event("change",{bubbles:true})); });
+  const q=pop.querySelector(".cpk-q");
+  if(q){ q.addEventListener("input", ()=>{ const t=norm(q.value); pop.querySelectorAll(".cpk-o").forEach(o=>o.hidden=!!t && !norm(o.textContent).includes(t));
+    pop.querySelectorAll(".cpk-g").forEach(g=>{ let n=g.nextElementSibling, any=false; while(n && !n.classList.contains("cpk-g")){ if(!n.hidden) any=true; n=n.nextElementSibling; } g.hidden=!any; }); }); }
+  const cur=pop.querySelector(".cpk-o.on"); if(cur) cur.scrollIntoView({block:"center"});
+  (phone||!q ? (cur||pop.querySelector(".cpk-o")) : q)?.focus({preventScroll:true});
+}
+new MutationObserver(M=>{ const seen=new Set(); M.forEach(m=>m.addedNodes.forEach(n=>{ if(n.nodeType!==1) return;
+    const os=n.matches&&n.matches("option[data-full]") ? [n] : n.querySelectorAll ? n.querySelectorAll("option[data-full]") : [];
+    os.forEach(o=>{ const s=o.closest("select"); if(s && !seen.has(s)){ seen.add(s); cpkAttach(s); } }); })); })
+  .observe(document.documentElement,{childList:true,subtree:true});
+function opts(list, sel){ return list.map(x=>{ const sh=String(x.short||"").trim(); return `<option value="${x.id}"${x.id===sel?" selected":""}${sh?` title="${esc(x.name||"")}" data-full="${esc(x.name||"")}"`:""}>${esc(sh||x.name||"(без названия)")}</option>`; }).join(""); }
 function renderDoc(){
   if(typeof invDocCard==="function") invDocCard();
   drawMulti();
