@@ -501,6 +501,13 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .invs{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}#fd-app .inva{display:flex;gap:6px;justify-content:flex-end}
 #fd-app .invdocs{margin:12px 0}#fd-app .invdocs>b{display:block;font-size:13px;margin-bottom:6px}#fd-app .invdocs>div{display:flex;flex-wrap:wrap;gap:6px}
 #fd-app .invdc{border:1px solid rgba(106,44,78,.16);background:#fff;border-radius:99px;padding:5px 11px;font:inherit;font-size:12.5px;color:var(--accent);cursor:pointer;transition:background .15s}#fd-app .invdc:hover{background:var(--accent-soft)}
+#fd-app .invps{display:inline-block;font-style:normal;font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:99px;margin-left:4px;vertical-align:1px;white-space:nowrap}#fd-app .invps.paid{background:#e3f1e6;color:#2f6b3d}#fd-app .invps.part{background:#fbf0d6;color:#8a6212}#fd-app .invps.due{background:#f6e6ea;color:#9a3550}
+#fd-app .invpay{margin:12px 0;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.7);border:1px solid rgba(28,34,32,.08);display:grid;gap:8px}#fd-app .invpay.paid{background:#f2f8f3;border-color:#cfe5d4}
+#fd-app .invpay-h{display:flex;align-items:center;justify-content:space-between;gap:8px}#fd-app .invpay-h b{font-size:14px}#fd-app .invpay-bar{height:6px;border-radius:99px;background:rgba(28,34,32,.08);overflow:hidden}#fd-app .invpay-bar span{display:block;height:100%;background:#4f9a62;border-radius:99px;transition:width .4s}
+#fd-app .invpay-t{font-size:13px;font-variant-numeric:tabular-nums}#fd-app .invpay-n{font-size:12.5px;color:#8a6212;background:#fbf4e2;border-radius:10px;padding:6px 10px}
+#fd-app .invpay-f{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}#fd-app .invpay-f label{display:grid;gap:3px;font-size:12px;color:var(--muted)}#fd-app .invpay-f input{width:150px}#fd-app .invpay-x{justify-self:start}
+#fd-app .invdc.paid{border-color:#cfe5d4;color:#2f6b3d;background:#f2f8f3}#fd-app .invdc.part{border-color:#efdcae}
+@media (max-width:480px){#fd-app .invpay-f label{flex:1 1 40%}#fd-app .invpay-f input{width:100%}#fd-app .invpay-f .btn{flex:1 1 100%}}
 #fd-app .invdlg{width:min(860px,96vw)}#fd-app .invsub{margin:4px 0 0;font-size:12.5px}
 #fd-app .invg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px;margin:6px 0 12px}#fd-app .invg .f{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted)}#fd-app .invg .f.wide{grid-column:1/-1}#fd-app .invg .f small{font-size:11.5px}
 #fd-app .invg.inv3{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#fd-app .invi.bad{border-color:var(--err);box-shadow:0 0 0 3px rgba(192,57,43,.12)}
