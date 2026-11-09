@@ -114,7 +114,7 @@ function pvCusData(d1, d2){
     g.docs.push(x); g.rev+=x.rev; g.rs+=x.rev-x.tax; g.cost+=x.cost; g.exp+=x.exp; g.profit+=x.profit; if(x.miss) g.miss++; if(j.date>g.last) g.last=j.date; });
   return [...G.values()].map(g=>{ ["rev","rs","cost","exp","profit"].forEach(k=>g[k]=r2(g[k])); return g; }).sort((a,b)=>b.rev-a.rev);
 }
-const pvCusName = cid => cid==="-" ? "Без заказчика" : (cus(cid).name || "Заказчик");
+const pvCusName = cid => cid==="-" ? "Без заказчика" : (cusNm(cid) || "Заказчик");
 const pvAva = cid => { const h=dtHue(cid), n=pvCusName(cid).replace(/[«»"']/g,"").replace(/^(ФГБУ|ФГБНУ|ГБПОУ|ГАПОУ|ГУП|АО|ООО|ИП|ФГУП|МБОУ|ГБУ)\s+/i,"").trim();
   return `<span class="pvava" style="--h:${h==null?200:h}">${esc((n[0]||"?").toUpperCase())}</span>`; };
 function pvCusDraw(keepInput){

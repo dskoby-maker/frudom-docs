@@ -2200,6 +2200,9 @@ function saveLocal(){ try{ localStorage.setItem(KEY, JSON.stringify(D)); }catch(
 let D = loadLocal(); D = D ? migrate(D) : seed(); D.journal = D.journal||[]; D.contracts = D.contracts||[]; D.specs = D.specs||{};
 
 const sup = id => D.suppliers.find(x=>x.id===id) || D.suppliers[0] || {};
+/* короткое название заказчика — только на сайте (списки, журнал, календарь, прибыль); в счёт/ТОРГ/УПД/XML идёт полное name */
+const cusNm = id => { const c=D.customers.find(x=>x.id===id)||{}; return String(c.short||"").trim() || c.name || ""; };
+const shortSrv = () => (D.srvVer||0)>=24 || D.customers.some(c=>"short" in c);
 const cus = id => D.customers.find(x=>x.id===id) || {};
 const prod = id => D.products.find(x=>x.id===id);
 /* цена из таблицы: «315,95», «1 691,00» → «315.95», «1691.00» (иначе +"315,95" = NaN и в накладной пустая цена) */
@@ -2394,7 +2397,7 @@ function handleErr(e){ if(e.message==="auth"){ showLogin("Неверный па�
   else if(e && !e.net){ setStatus("err","Ошибка таблицы, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Таблица ответила ошибкой","«"+String(e.message||e).slice(0,160)+"». Всё сохранено на этом устройстве, повторю сам. Если повторяется — пришлите этот текст Claude."); } }
   else { setStatus("err","Не сохранено — нет связи, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Нет связи с Google Таблицей",(e&&e.message?"Причина: "+e.message+". ":"")+"Всё сохранено на этом устройстве и отправится автоматически, когда связь появится. Ничего делать не нужно."); } } }
 
-const NEED_VER=20;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
+const NEED_VER=24;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
 function srvVerCheck(v){ const el=$("#srvOld"); if(!el) return; const old=(+v||0)<NEED_VER; el.hidden=!old || docLimited(); D.srvVer=+v||0; }
 document.addEventListener("click",e=>{ if(!e.target.closest || !e.target.closest("#srvOldHow")) return; openCard(`<div class="dc-head"><div><div class="dc-kicker">Code.gs</div><h3>Как обновить скрипт таблицы</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
   <ol class="srvsteps"><li>GitHub → файл <b>dev/Code.template.gs</b> → кнопка «Copy raw file» (два квадратика).</li><li>Таблица «Документы ФД» → «Расширения» → «Apps Script» → файл <b>Код.gs</b> → Ctrl+A → Ctrl+V → «Сохранить». Файл «Пароли.gs» не трогать.</li><li>«Начать развёртывание» → «Управление развёртываниями» → карандаш → «Версия: новая версия» → «Развернуть».</li><li>Обновите эту страницу — жёлтая плашка исчезнет.</li></ol>
@@ -2603,7 +2606,7 @@ function cusOpts0(supId, sel, CL){
   const rest=CL.filter(c=>!mine.includes(c)), nm=supShort((sup(supId)||{}).name);
   return `<optgroup label="Заказчики ${esc(nm)}">${opts(mine, sel)}</optgroup><optgroup label="Остальные заказчики">${opts(rest, sel)}</optgroup>`;
 }
-function opts(list, sel){ return list.map(x=>`<option value="${x.id}"${x.id===sel?" selected":""}>${esc(x.name||"(без названия)")}</option>`).join(""); }
+function opts(list, sel){ return list.map(x=>{ const sh=String(x.short||"").trim(); return `<option value="${x.id}"${x.id===sel?" selected":""}${sh?` title="${esc(x.name||"")}"`:""}>${esc(sh||x.name||"(без названия)")}</option>`; }).join(""); }
 function renderDoc(){
   if(typeof invDocCard==="function") invDocCard();
   drawMulti();
@@ -3368,19 +3371,19 @@ function dvPoints(){
     p.docs.push(j); calc(dr, j.snap).lines.forEach(l=>{ const it=p.items[l.name]=p.items[l.name]||{name:l.name, unit:l.unit, qty:0, st:0}; it.qty+=l.qty; it.st=r3((it.st||0)+skStockQ(j,l)); });
   });
   const n0 = p => Math.min(...p.docs.map(j=>parseInt(j.number,10)||1e9));
-  return Object.values(map).sort((a,b)=> cusShort(cus(a.cid).name||"").localeCompare(cusShort(cus(b.cid).name||""),"ru") || n0(a)-n0(b));
+  return Object.values(map).sort((a,b)=> cusShort(cusNm(a.cid)||"").localeCompare(cusShort(cusNm(b.cid)||""),"ru") || n0(a)-n0(b));
 }
-const dvWho = p => { const b=p.c.branchLabel||""; return b ? b.replace(/^ОП\s*/,"").replace(/[«»"]/g,"") : (cus(p.cid).name||p.c.name||""); };
+const dvWho = p => { const b=p.c.branchLabel||""; return b ? b.replace(/^ОП\s*/,"").replace(/[«»"]/g,"") : (cusNm(p.cid)||p.c.name||""); };
 const qfmt = (q,u) => String(+q.toFixed(3)).replace(".",",")+" "+(u||"");
 const kindsOf = j => { const k=(j.snap.meta&&j.snap.meta.kinds)||[]; return k.length ? k.map(x=>KSHORT[x]).join(" и ") : "Счёт и ТОРГ‑12"; };
-const cusShort = n => { n=String(n||""); const q=n.match(/«([^»]+)»/); if(q) return q[1]; return n.replace(/\s+имени\s+.*$/i,"").trim(); };
+const cusShort = n => { n=String(n||""); const sc=n&&D.customers.find(x=>x.name===n&&String(x.short||"").trim()); if(sc) return String(sc.short).trim(); const q=n.match(/«([^»]+)»/); if(q) return q[1]; return n.replace(/\s+имени\s+.*$/i,"").trim(); };
 const ptName = (p) => { const l=stLabel(p.addr,p.c.address), m=l.match(/^ст ([\d, ]+)$/); const s = m ? "Столовая №"+m[1] : l; return s.charAt(0).toUpperCase()+s.slice(1); };
 const itemShort = n => String(n||"").replace(/\s*\([^)]*\)/g,"").replace(/\s+(свеж\S*|продовольственн\S*|столов\S*)(?=\s|$)/gi,"").replace(/\s+/g," ").trim();
 function dvText(P){
   const f=DV(), TK=DTS().filter(x=>x.date===f.date && !isAuto(x)); if(!P.length && !TK.length) return "";
   const tkLines = TK.length ? ["Задачи на день:", ...TK.map(x=>"• "+(x.customerId?cusShort(cus(x.customerId).name)+(x.addr?" ("+x.addr+")":"")+": ":"")+String(x.text).replace(/\n/g,"\n   ")+(x.photos&&x.photos.length?" (фото на сайте: "+x.photos.length+")":"")), ""] : [];
   const short=a=>a.replace(/^\d{6},\s*/,"").replace(/^г\.\s*Москва,\s*/i,"").replace(/\s*\([^)]*\)\s*$/,"");
-  const L=[], groups=[]; P.forEach(p=>{ const g=cusShort(cus(p.cid).name||p.c.name); let G=groups.find(x=>x.g===g); if(!G){ G={g, P:[]}; groups.push(G); } G.P.push(p); });
+  const L=[], groups=[]; P.forEach(p=>{ const g=cusShort(cusNm(p.cid)||p.c.name); let G=groups.find(x=>x.g===g); if(!G){ G={g, P:[]}; groups.push(G); } G.P.push(p); });
   if(f.full){ const d=new Date(f.date+"T12:00:00"); L.push("Доставка "+fd(f.date)+" ("+wdays[d.getDay()]+")"); L.push(""); }
   L.push(...tkLines); if(!P.length) return L.join("\n").trim();
   groups.forEach((G,gi)=>{ if(gi) L.push(""); L.push(G.g+":");
@@ -3615,8 +3618,8 @@ function docTasks(dates, quiet){ const now=new Date().toISOString(); let ch=0;
       const id=AUTO_T+hsh(isB ? date+"|"+j.customerId+"|"+k : date+"|"+j.customerId+"||"+ship);
       const w=want[id]=want[id]||{id, cid:j.customerId, addr:ship, who:"", lbl:c.branchLabel||"", kg:0, other:{}, parts:isB?[]:null, addrs:new Set()};
       w.addrs.add(ship);
-      if(w.who && w.lbl!==(c.branchLabel||"")) w.who=cusShort(cus(j.customerId).name||c.name);
-      if(!w.who){ const b=(c.branchLabel||"").replace(/^ОП\s*/,"").replace(/[«»"]/g,""), n=cusShort(cus(j.customerId).name||c.name); w.who = b ? n+", "+b : n; }
+      if(w.who && w.lbl!==(c.branchLabel||"")) w.who=cusShort(cusNm(j.customerId)||c.name);
+      if(!w.who){ const b=(c.branchLabel||"").replace(/^ОП\s*/,"").replace(/[«»"]/g,""), n=cusShort(cusNm(j.customerId)||c.name); w.who = b ? n+", "+b : n; }
       const part=w.parts?{j, c, ship, items:[]}:null; if(part) w.parts.push(part);
       calc(dr, j.snap).lines.forEach(l=>{ const u=String(l.unit||"").trim().toLowerCase().replace(/\.$/,""), q=+l.qty||0;
         if(part) part.items.push(String(l.name||"").replace(/\s+(свеж\S*|продовольственн\S*)(?=[\s,)]|$)/gi,"").replace(/\s+/g," ").trim()+" "+qfmt(q,l.unit||""));
@@ -3968,7 +3971,7 @@ function drawProfit(){
   const byC={}; docs.forEach(x=>{ const id=x.j.snap.dr.contractId||""; (byC[id]=byC[id]||[]).push(x); });
   $("#pf-ctr").innerHTML = Object.keys(byC).length ? Object.keys(byC).map(id=>{ const L=byC[id], c=ctr(id), s=L.reduce((a,x)=>({rev:a.rev+x.rev,cost:a.cost+x.cost,te:a.te+x.tax+x.exp,p:a.p+x.profit}),{rev:0,cost:0,te:0,p:0});
       const all=c&&+c.maxSum ? ctrUsed(c.id) : 0;
-      return `<tr><td><div class="who">${esc(c?(c.basis||"(без номера)"):"Без контракта")}</div><small>${esc(c?(cus(c.customerId).name||""):"")}${c&&c.supplierId?" · "+esc(supShort(sup(c.supplierId).name)):""} · ${L.length} нак.</small></td><td class="num">${fm(r2(s.rev))}</td><td class="num">${fm(r2(s.cost))}</td><td class="num">${fm(r2(s.te))}</td><td class="num"><b>${sgn(r2(s.p))}</b></td><td class="num">${pct(s.p,s.rev)}</td><td class="num">${c&&+c.maxSum?pct(all,+c.maxSum)+`<small>${fm(all)} из ${fm(+c.maxSum)}</small>`:"—"}</td></tr>`; }).join("")
+      return `<tr><td><div class="who">${esc(c?(c.basis||"(без номера)"):"Без контракта")}</div><small>${esc(c?(cusNm(c.customerId)||""):"")}${c&&c.supplierId?" · "+esc(supShort(sup(c.supplierId).name)):""} · ${L.length} нак.</small></td><td class="num">${fm(r2(s.rev))}</td><td class="num">${fm(r2(s.cost))}</td><td class="num">${fm(r2(s.te))}</td><td class="num"><b>${sgn(r2(s.p))}</b></td><td class="num">${pct(s.p,s.rev)}</td><td class="num">${c&&+c.maxSum?pct(all,+c.maxSum)+`<small>${fm(all)} из ${fm(+c.maxSum)}</small>`:"—"}</td></tr>`; }).join("")
     : `<tr><td colspan="7" class="muted" style="padding:14px 6px">За этот период накладных нет.</td></tr>`;
   drawPfDocs(docs); drawLoss(docs); drawDebts(); drawOther(f,d1,d2,OT); drawCosts(); drawTax(); pvDraw();
 }
@@ -4022,7 +4025,7 @@ function drawDebts(){
   const all=Object.values(by), show=$("#pf-showpaid").checked, L=all.filter(c=>show||c.due>0.004).sort((a,b)=>b.due-a.due||a.cid.localeCompare(b.cid));
   const due=r2(all.reduce((a,c)=>a+c.due,0)), n=all.reduce((a,c)=>a+c.n,0), old30=r2(all.reduce((a,c)=>a+c.docs.filter(x=>daysSince(x.j.date)>30).reduce((s,x)=>s+x.p.left,0),0)), per=r2(all.reduce((a,c)=>a+c.per,0));
   $("#pf-paysum").innerHTML=`<div class="${due>0?"warn":"ok"} go" data-pfd="debt" role="button" tabindex="0" title="Подробнее"><i class="pkgo" aria-hidden="true">›</i><small>Всего должны</small><b>${fm(due)} ₽</b><span>${n} ${plural(n,["накладная","накладные","накладных"])} · ${L.filter(c=>c.due>0.004).length} ${plural(L.filter(c=>c.due>0.004).length,["заказчик","заказчика","заказчиков"])}</span></div><div class="${old30>0?"bad":""} go" data-pfd="old30" role="button" tabindex="0" title="Подробнее"><i class="pkgo" aria-hidden="true">›</i><small>Дольше 30 дней</small><b>${fm(old30)} ₽</b></div>${(()=>{ let pp=0, ms=0; all.forEach(c=>c.docs.forEach(x=>{ const d=pfdDue(x.j); pp+=d.pp; if(d.miss) ms++; })); pp=r2(pp); return n?`<div class="${pp<0?"bad":"ok"} go" data-pfd="debt" role="button" tabindex="0" title="Подробнее"><i class="pkgo" aria-hidden="true">›</i><small>Прибыль в долгах</small><b>${fm(pp)} ₽</b><span>получите, когда заплатят${ms?" · без закупки "+ms:""}</span></div>`:""; })()}<div class="ok go" data-pfd="perpaid" role="button" tabindex="0" title="Подробнее"><i class="pkgo" aria-hidden="true">›</i><small>Оплатили за выбранный период</small><b>${fm(per)} ₽</b></div>`;
-  $("#pf-debt").innerHTML = L.length ? L.map(c=>{ const nm=cus(c.cid).name||"(заказчик удалён)", op=pfDebtOpen.has(c.cid), sh=c.ship>0?Math.min(100,c.paid/c.ship*100):100;
+  $("#pf-debt").innerHTML = L.length ? L.map(c=>{ const nm=cusNm(c.cid)||"(заказчик удалён)", op=pfDebtOpen.has(c.cid), sh=c.ship>0?Math.min(100,c.paid/c.ship*100):100;
       return `<div class="pdc${op?" open":""}${c.due>0.004?"":" clear"}" data-cid="${esc(c.cid)}">
         <button type="button" class="pdh" data-dopen="${esc(c.cid)}" aria-expanded="${op}"><span class="pdn"><b>${esc(nm)}</b><small>${c.due>0.004?`${c.n} ${plural(c.n,["накладная не оплачена","накладные не оплачены","накладных не оплачено"])} · самая старая — <span class="pfage ${ageCls(c.old)}">${c.old?dnum(c.old):"сегодня или позже"}</span>`:"всё оплачено"}</small></span>
           <span class="pdp"><span class="pdbar"><i style="--w:${sh.toFixed(1)}%"></i></span><small>оплачено ${fm(c.paid)} из ${fm(c.ship)}</small></span>
@@ -4702,12 +4705,12 @@ function jSorter(s){ const num=j=>parseInt(j.number,10)||0, who=j=>norm(jWho(j).
     nm_d:(a,b)=>num(b)-num(a)||tie(a,b), nm_a:(a,b)=>num(a)-num(b)||tie(a,b), sm_d:(a,b)=>(+b.sum||0)-(+a.sum||0), sm_a:(a,b)=>(+a.sum||0)-(+b.sum||0),
     cu_a:(a,b)=>who(a).localeCompare(who(b),"ru",{numeric:true})||tie(a,b) })[s] || ((a,b)=>jCreated(b).localeCompare(jCreated(a))); }
 const jOpen = new Set();
-const jWho = j => { const c=j.snap.c||{}, base=(c.priv?c.name:"")||(cus(j.customerId).name)||c.name||"", b=c.branchLabel||""; return {main: base+(b?", "+b.replace(/[«»"]/g,""):""), pt: j.snap.dr.ship ? stLabel(j.snap.dr.ship, c.address) : ""}; };
+const jWho = j => { const c=j.snap.c||{}, base=(c.priv?c.name:"")||cusNm(j.customerId)||c.name||"", b=c.branchLabel||""; return {main: base+(b?", "+b.replace(/[«»"]/g,""):""), pt: j.snap.dr.ship ? stLabel(j.snap.dr.ship, c.address) : ""}; };
 /* подпись документа внутри комплекта: подразделение (если есть) или точка доставки */
 /* подпись накладной внутри комплекта — как точка в «Заявке»: «ст 1», «ДАС»…; ОП — только у заказчиков, где ОП на одном адресе (НМИЦ) */
 const kLbl = j => { const b=((j.snap.c||{}).branchLabel||"").replace(/[«»"]/g,""), pt=jWho(j).pt; return (b && (!pt || oBrMode({customerId:j.customerId}))) ? b : (pt||b); };
 /* название комплекта: если документы разных подразделений — только заказчик */
-const gTitle = g => { const w=jWho(g[0]); return new Set(g.map(j=>jWho(j).main)).size>1 ? ((cus(g[0].customerId).name)||g[0].snap.c.name||w.main) : w.main; };
+const gTitle = g => { const w=jWho(g[0]); return new Set(g.map(j=>jWho(j).main)).size>1 ? (cusNm(g[0].customerId)||g[0].snap.c.name||w.main) : w.main; };
 const supShort = n => String(n||"").replace(/^ИП\s+/,"").replace(/^(\S+)\s+(\S)\S*\s+(\S)\S*$/,"$1 $2. $3.");
 /* ключ комплекта: явный (создан одной заявкой) или старый — по времени скачивания */
 function jKey(j){ const m=(j.snap&&j.snap.meta)||{}; if(m.batch) return "B"+m.batch; if(!m.dl) return "";
@@ -5580,7 +5583,7 @@ function cardEditor({root, type, title, fields, make, onSelect, onChange}){
     const it=list.find(x=>x.id===sel);
     root.innerHTML=`<h2>${title}</h2><div class="row"><select class="pick" style="flex:1;min-width:200px">${opts(list,sel)}</select><button class="btn add">+ Новый</button>${list.length>1?'<button class="btn ghost danger del">Удалить</button>':""}</div>
       ${it?`<div class="grid">${fields.map(f=>`<label class="f${f.wide?" wide":""}">${f.l}${f.opts?`<select data-k="${f.k}">${Object.entries(f.opts).map(([v,t])=>`<option value="${v}"${String(it[f.k])===v?" selected":""}>${t}</option>`).join("")}</select>`
-        :f.area?`<textarea data-k="${f.k}" rows="5" placeholder="${esc(f.ph||"")}">${esc(it[f.k])}</textarea>`:`<input data-k="${f.k}"${f.type?` type="${f.type}"`:""} value="${esc(it[f.k])}" placeholder="${esc(f.ph||"")}"${f.num?' inputmode="numeric"':""}>`}</label>`).join("")}</div>`:""}`;
+        :f.area?`<textarea data-k="${f.k}" rows="5" placeholder="${esc(f.ph||"")}">${esc(it[f.k])}</textarea>`:`<input data-k="${f.k}"${f.type?` type="${f.type}"`:""} value="${esc(it[f.k])}" placeholder="${esc(f.ph||"")}"${f.num?' inputmode="numeric"':""}${f.dis?" disabled":""}>`}</label>`).join("")}</div>`:""}`;
     root.querySelector(".pick").onchange=e=>{ sel=editorSel[type]=e.target.value; draw(); onSelect&&onSelect(sel); };
     root.querySelector(".add").onclick=()=>{ const n=make(); list.push(n); sel=editorSel[type]=n.id; dirty(type,n.id); draw(); onSelect&&onSelect(sel); root.querySelector('[data-k="name"]').focus(); };
     const del=root.querySelector(".del");
@@ -5636,7 +5639,7 @@ $("#sup-sign").addEventListener("click",e=>{ const b=e.target.closest("[data-sgd
 let analyticsCustomer, analyticsRequest = 0;
 function customerAnalytics(cid){
   analyticsCustomer = cid;
-  $("#ca-name").textContent = cid ? (cus(cid).name || "") : "";
+  $("#ca-name").textContent = cid ? (cusNm(cid) || "") : "";
   caPeek(cid);
   if($("#cus-analytics").open) return renderCustomerAnalytics();
 }
@@ -5743,7 +5746,9 @@ $("#ca-result").addEventListener("click",e=>{ const so=e.target.closest("[data-c
 function renderCustomers(){
   cardEditor({root:$("#cus-editor"), type:"customers", title:"Заказчик (покупатель)",
     make:()=>({id:uid(), name:"", inn:"", kpp:"", address:"", ship:"", contract:"", ikz:"", acct:"bank", bank:"", bik:"", rs:"", ks:""}),
-    fields:[{k:"name",l:"Наименование",wide:true,ph:"ООО «Ромашка»"},{k:"inn",l:"ИНН",num:1},{k:"kpp",l:"КПП",num:1},
+    fields:[{k:"name",l:"Наименование (как в документах)",wide:true,ph:"ООО «Ромашка»"},
+      {k:"short",l:"Короткое название — только на сайте, в документы не попадает",wide:true,ph:shortSrv()?"Например: КБ № 1, Цирк, МГУ":"Сначала обновите Code.gs в таблице",dis:!shortSrv()},
+      {k:"inn",l:"ИНН",num:1},{k:"kpp",l:"КПП",num:1},
       {k:"address",l:"Юридический адрес",wide:true},{k:"ship",l:"Адреса доставки — каждый с новой строки",wide:true,area:1,ph:"Если совпадает с юр. адресом — оставьте пустым"},
       {k:"acct",l:"Тип счёта",opts:{bank:"Расчётный счёт в банке",treasury:"Казначейский счёт (бюджетник)"}},{k:"bank",l:"Банк",wide:true},
       {k:"bik",l:"БИК / БИК ТОФК",num:1},{k:"rs",l:"Р/с или казначейский счёт",num:1},{k:"ks",l:"К/с или ЕКС",num:1},
@@ -6944,7 +6949,7 @@ function autoTasks(){
   if(noU.length) add("Товары",{key:"pr-unit-"+noU.map(p=>p.id).join(","), lvl:"err", title:"Нет единицы измерения у "+noU.length+" "+(noU.length===1?"товара":"товаров"), text:"Единица печатается в счёте, ТОРГ‑12 и УПД. "+lst(noU)+".", go:{tab:"products", pre:()=>{ PDL.open=noU[0].id; PDL.lim=Math.max(PDL.lim,1e5); }, q:`#pd-body .nmr[data-id="${noU[0].id}"] [data-k="unit"]`}});
   /* документы: накладная без договора, хотя у заказчика есть действующий договор этого ИП */
   const noCt=new Map(); live.filter(j=>daysTo(j.date)>=-60 && !j.snap.dr.contractId && !isPriv(j.customerId)).forEach(j=>{ const x=ctrs(j.customerId).find(k=>k.supplierId===j.supplierId && (!k.dateTo||k.dateTo>=j.date)); if(!x) return; if(!noCt.has(j.customerId)) noCt.set(j.customerId,[]); noCt.get(j.customerId).push(j); });
-  noCt.forEach((L,cid)=>{ L.sort((a,b)=>a.date<b.date?1:-1); add("Документы",{key:"doc-noct-"+cid+"-"+L.map(j=>j.id).join(","), lvl:"warn", title:cusShort(cus(cid).name)+": "+L.length+" "+plural(L.length,["накладная","накладные","накладных"])+" без договора", text:"У заказчика есть действующий договор этого ИП, а в накладной основание не выбрано — договор не уменьшится, остаток будет неверным. "+L.slice(0,4).map(j=>"№ "+j.number+" от "+fd(j.date).slice(0,5)).join(", ")+(L.length>4?" и ещё "+(L.length-4):"")+".", act:"Открыть", go:{fn:()=>docCard(L[0], false)}}); });
+  noCt.forEach((L,cid)=>{ L.sort((a,b)=>a.date<b.date?1:-1); add("Документы",{key:"doc-noct-"+cid+"-"+L.map(j=>j.id).join(","), lvl:"warn", title:cusShortcusNm(cid)+": "+L.length+" "+plural(L.length,["накладная","накладные","накладных"])+" без договора", text:"У заказчика есть действующий договор этого ИП, а в накладной основание не выбрано — договор не уменьшится, остаток будет неверным. "+L.slice(0,4).map(j=>"№ "+j.number+" от "+fd(j.date).slice(0,5)).join(", ")+(L.length>4?" и ещё "+(L.length-4):"")+".", act:"Открыть", go:{fn:()=>docCard(L[0], false)}}); });
   if(pfLoaded){ const t=todayISO(), d30=jIso(new Date(Date.now()-29*864e5)), P30=live.filter(j=>j.date>=d30 && j.date<=t).map(j=>{ try{ return docProfit(j); }catch(e){ return null; } }).filter(Boolean);
     /* закупка: накладные за 30 дней без закупки и в минус */
     const miss=P30.filter(x=>x.miss), loss=P30.filter(x=>!x.miss && !x.src && x.profit<0 || x.src && x.profit<0);
@@ -6953,7 +6958,7 @@ function autoTasks(){
     /* деньги: долги старше 30 дней (по накладным за последние 4 месяца), одной строкой на заказчика */
     const d120=jIso(new Date(Date.now()-120*864e5)), debt=new Map();
     live.filter(j=>j.date>=d120 && !isPriv(j.customerId)).forEach(j=>{ const p=payOf(j); if(p.st==="paid") return; const age=daysSince(j.date); if(age<=30) return; if(!debt.has(j.customerId)) debt.set(j.customerId,{s:0,n:0,age:0,L:[]}); const g=debt.get(j.customerId); g.s=r2(g.s+p.left); g.n++; g.age=Math.max(g.age,age); g.L.push(j); });
-    [...debt.entries()].sort((a,b)=>b[1].s-a[1].s).forEach(([cid,g])=>add("Деньги",{key:"debt-"+cid+"-"+g.n+"-"+Math.floor(g.s/1000)+"-"+(g.age>60?2:1), lvl:g.age>60?"err":"warn", title:cusShort(cus(cid).name)+" не оплатил "+fm(g.s)+" ₽", text:g.n+" "+plural(g.n,["накладная","накладные","накладных"])+" старше 30 дней, самой старой "+g.age+" "+plural(g.age,["день","дня","дней"])+". Если деньги пришли — отметьте оплату, иначе напомните заказчику.", act:"Открыть", go:{fn:()=>pvLedger(cid)}})); }
+    [...debt.entries()].sort((a,b)=>b[1].s-a[1].s).forEach(([cid,g])=>add("Деньги",{key:"debt-"+cid+"-"+g.n+"-"+Math.floor(g.s/1000)+"-"+(g.age>60?2:1), lvl:g.age>60?"err":"warn", title:cusShortcusNm(cid)+" не оплатил "+fm(g.s)+" ₽", text:g.n+" "+plural(g.n,["накладная","накладные","накладных"])+" старше 30 дней, самой старой "+g.age+" "+plural(g.age,["день","дня","дней"])+". Если деньги пришли — отметьте оплату, иначе напомните заказчику.", act:"Открыть", go:{fn:()=>pvLedger(cid)}})); }
   /* деньги: поступления из банка ждут решения */
   try{ if(typeof bnIsWait==="function"){ const W=(BNK().ops||[]).filter(bnIsWait); if(W.length) add("Деньги",{key:"bank-wait-"+W.map(o=>o.id).join(",").slice(0,400), lvl:"warn", title:"Поступления ждут разнесения: "+W.length, text:"Сайт не смог сам понять, за какие накладные эти платежи. На "+fm(r2(W.reduce((a,o)=>a+(+o.sum||0),0)))+" ₽.", act:"Разнести", go:{tab:"profit", click:'#pv-seg [data-pv="bank"]'}}); } }catch(e){}
   skAutoTasks(add);
