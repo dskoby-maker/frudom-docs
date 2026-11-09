@@ -166,6 +166,34 @@
 #fd-app .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 14px}
 #fd-app label.f{display:grid;gap:4px;font-size:12px;color:var(--muted);letter-spacing:.02em;min-width:0;margin:0}
 #fd-app label.f.wide{grid-column:1/-1}
+#fd-app .grid>label.f,#fd-app .grid>.f{align-content:start;align-self:start}
+#fd-app #d-num,#fd-app #d-date{height:42px;line-height:20px}
+@media (max-width:760px){#fd-app #d-num,#fd-app #d-date{height:46px}#fd-app .ldbtn{height:46px;min-height:46px}}
+#fd-app .ldw{display:grid;gap:4px;font-size:12px;min-width:0}
+#fd-app .ldbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:max-content;white-space:nowrap;justify-self:start;padding-inline:14px 12px;height:42px;min-height:42px;padding-block:0;color:var(--accent);font-weight:600}
+#fd-app .ldbtn svg{width:17px;height:17px;flex:none}
+#fd-app .ldbtn b{font:600 12px var(--ui);background:var(--accent-soft);color:var(--accent);border-radius:99px;padding:2px 8px;min-width:22px}
+#fd-app .ldbtn:hover{border-color:var(--accent);background:var(--accent-soft)}
+@media (max-width:760px){#fd-app .ldbtn{height:46px;min-height:46px}}
+@media (max-width:520px){#fd-app .ldsp{display:none}#fd-app .ldbtn{width:100%}}
+#fd-app .ld-chips{display:flex;flex-wrap:wrap;gap:6px;margin:2px 0 12px}
+#fd-app .ld-chips button{font:500 13px var(--ui);border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:99px;padding:6px 12px;cursor:pointer;min-height:34px}
+#fd-app .ld-chips button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+#fd-app .ld-list{display:grid;gap:6px}
+#fd-app .ld-mon{font:600 12px var(--ui);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin:10px 2px 2px}
+#fd-app .ld-mon:first-child{margin-top:0}
+#fd-app .ld-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:4px 14px;width:100%;text-align:left;font:14px/1.35 var(--ui);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;cursor:pointer;transition:border-color .15s,background .15s,transform .15s}
+#fd-app .ld-row:hover{border-color:var(--accent);background:var(--accent-soft)}
+#fd-app .ld-row:active{transform:scale(.99)}
+#fd-app .ld-n{display:grid;justify-items:center;min-width:58px;padding:4px 6px;border-radius:9px;background:var(--accent-soft);color:var(--accent)}
+#fd-app .ld-n b{font:700 15px var(--ui)}#fd-app .ld-n small{font-size:11px;color:var(--muted)}
+#fd-app .ld-m{min-width:0}#fd-app .ld-m div{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fd-app .ld-m small{color:var(--muted);font-size:12px}
+#fd-app .ld-s{text-align:right;white-space:nowrap;font-weight:600}#fd-app .ld-s small{display:block;font-weight:400;color:var(--muted);font-size:12px}
+#fd-app .ld-row.cur{box-shadow:inset 3px 0 0 var(--accent)}
+#fd-app .ld-more{margin-top:10px;width:100%}
+#fd-app .ld-empty{color:var(--muted);padding:18px 4px;text-align:center}
+@media (max-width:600px){#fd-app .ld-row{grid-template-columns:auto 1fr;}#fd-app .ld-s{grid-column:2;text-align:left}#fd-app .ld-s small{display:inline;margin-left:6px}}
 #fd-app textarea{resize:vertical;font-size:14px}
 #fd-app input,#fd-app select,#fd-app textarea{font:15px var(--ui);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:9px 10px;width:100%;min-width:0;height:auto;margin:0;box-shadow:none}
 #fd-app input:focus,#fd-app select:focus,#fd-app button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
@@ -1750,6 +1778,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
         <label class="f wide">Контракт / договор<select id="d-ctr"></select><span id="d-ctrinfo" class="ctrinfo"></span></label>
         <label class="f">Номер документа<input id="d-num" inputmode="numeric"><span id="d-numinfo" class="ctrinfo"></span></label>
         <label class="f">Дата<input id="d-date" type="date"></label>
+        <div class="f ldw" id="d-ldw" hidden><span class="ldsp" aria-hidden="true">&nbsp;</span><button type="button" class="btn ldbtn" id="d-lastdocs" title="Все документы этого заказчика: открыть любую накладную и вернуться назад"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg><span>Последние документы</span><b id="d-ldn"></b></button></div>
         <label class="f wide">Основание (договор, контракт)<input id="d-basis" placeholder="ЭЗК-26-91390881 от 30.09.2026"></label>
         <label class="f wide">Адрес доставки (грузополучатель)<select id="d-shipsel"></select></label>
         <label class="f wide" id="d-shipwrap">Другой адрес<input id="d-ship" placeholder="Впишите адрес доставки"></label>
@@ -2675,7 +2704,7 @@ function renderCtrInfo(){
   const mis = !!(x && x.supplierId && x.supplierId!==dr.supplierId), sw=$("#d-supwarn");
   $("#d-sup").classList.toggle("bad", mis); sw.hidden=!mis; sw.textContent = mis ? "По этому договору поставщик — "+sup(x.supplierId).name+". Документ сформировать можно, но проверьте." : "";
 }
-function syncNum(){ const dr=D.draft; if(!dr || dr.qtyOnly) return; const inJ=D.journal.some(j=>j.id===dr.id);
+function syncNum(){ const dr=D.draft; ldSync(); if(!dr || dr.qtyOnly) return; const inJ=D.journal.some(j=>j.id===dr.id);
   if(!inJ && !dr.numManual && (!dr.supplierId || !dr.customerId)){ dr.number=""; const el=$("#d-num"); if(el) el.value=""; const info=$("#d-numinfo"); if(info){ info.textContent=""; info.classList.remove("warn"); } numMark(); return; }
   if(!inJ && !dr.numManual){ dr.number=nextNum(dr.supplierId, dr.customerId, null, dr.id); const el=$("#d-num"); if(el) el.value=dr.number; }
   const info=$("#d-numinfo"); if(!info) return; const last=pairLast(dr.supplierId, dr.customerId, dr.id), st=parseInt(numsOf(cus(dr.customerId))[dr.supplierId],10)||0;
@@ -4983,6 +5012,32 @@ function navBack(){ const t=NAV.st.pop(); if(!t) return false;
 document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("[data-navback]"); if(b){ e.preventDefault(); e.stopPropagation(); navBack(); } }, true);
 document.addEventListener("keydown",e=>{ if(e.altKey&&e.key==="ArrowLeft"&&NAV.st.length&&navDlg()){ e.preventDefault(); navBack(); } });
 document.addEventListener("mouseup",e=>{ if(e.button===3&&NAV.st.length&&navDlg()){ e.preventDefault(); navBack(); } });   /* боковая кнопка «назад» мыши */
+/* ---------- «Последние документы» в форме: все накладные заказчика → клик открывает накладную, «‹ Назад» возвращает к списку ---------- */
+const ldDocs = cid => D.journal.filter(j=>j.snap && !isArch(j) && j.customerId===cid).sort((a,b)=>(b.date||"").localeCompare(a.date||"") || (parseInt(b.number,10)||0)-(parseInt(a.number,10)||0));
+function ldSync(){ const w=$("#d-ldw"); if(!w) return; const dr=D.draft, n=dr&&dr.customerId ? ldDocs(dr.customerId).length : 0; w.hidden=!n; const b=$("#d-ldn"); if(b) b.textContent=n||""; }
+const LD={sup:null, more:0};
+function lastDocsCard(cid, keep){ const c=cus(cid); if(!c) return; const all=ldDocs(cid); if(!keep){ const s=D.draft&&D.draft.supplierId; LD.sup = s && all.some(j=>j.supplierId===s) && new Set(all.map(j=>j.supplierId)).size>1 ? s : ""; LD.more=0; }
+  const sups=[...new Set(all.map(j=>j.supplierId))].filter(Boolean), L=LD.sup ? all.filter(j=>j.supplierId===LD.sup) : all, lim=30+LD.more, show=L.slice(0,lim);
+  const mon=d=>{ const x=new Date((d||"")+"T00:00:00"); return isNaN(x) ? "" : x.toLocaleDateString("ru-RU",{month:"long",year:"numeric"}); };
+  let lastM="", rows="";
+  show.forEach((j,i)=>{ let k; try{ k=calc(j.snap.dr, j.snap); }catch(e){ k=null; } const m=mon(j.date); if(m!==lastM){ rows+=`<div class="ld-mon">${esc(m)}</div>`; lastM=m; }
+    const pt=jWho(j).pt||kLbl(j)||"", n=k?k.lines.length:0;
+    rows+=`<button type="button" class="ld-row${D.draft&&D.draft.id===j.id?" cur":""}" data-dc="doc" data-id="${j.id}" style="animation-delay:${Math.min(i,10)*0.03}s"><span class="ld-n"><b>№ ${esc(j.number)}</b><small>${fd(j.date)}</small></span>
+      <span class="ld-m"><div>${esc(pt||"Адрес не указан")}</div><small>${sups.length>1?esc(supShort(sup(j.supplierId).name))+" · ":""}${n} ${posWord(n)}${k&&k.t.kg?" · "+nq3(k.t.kg)+" кг":""}</small></span>
+      <span class="ld-s">${k?fm(k.t.sum)+" ₽":""}<small>открыть ›</small></span></button>`; });
+  const tot=r2(L.reduce((a,j)=>{ try{ return a+calc(j.snap.dr,j.snap).t.sum; }catch(e){ return a; } },0));
+  const chips = sups.length>1 ? `<div class="ld-chips" role="group" aria-label="Поставщик"><button type="button" data-dc="ldsup" data-s="" class="${LD.sup?"":"on"}">Все · ${all.length}</button>${sups.map(s=>`<button type="button" data-dc="ldsup" data-s="${esc(s)}" class="${LD.sup===s?"on":""}">${esc(supShort(sup(s).name))} · ${all.filter(j=>j.supplierId===s).length}</button>`).join("")}</div>` : "";
+  CARD_RE=()=>lastDocsCard(cid, true);
+  openCard(`<div class="dc-head"><div><div class="dc-kicker">Документы заказчика</div><h3>${esc(cusNm(cid)||c.name||"")}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+    ${chips}
+    <div class="ld-list">${rows||`<div class="ld-empty">Документов пока нет</div>`}</div>
+    ${L.length>lim?`<button type="button" class="btn ld-more" data-dc="ldmore">Показать ещё (${L.length-lim})</button>`:""}
+    <div class="dc-total"><span>Всего ${L.length} ${docsWord(L.length)}</span><b>${fm(tot)} ₽</b></div>`, false, (a,b)=>{
+      if(a==="doc"){ const j=D.journal.find(x=>x.id===b.dataset.id); if(j) docCard(j, false); return; }
+      if(a==="ldsup"){ LD.sup=b.dataset.s; LD.more=0; lastDocsCard(cid, true); return; }
+      if(a==="ldmore"){ const sc=(document.getElementById("fd-dcard")||{}).scrollTop||0; LD.more+=30; lastDocsCard(cid, true); const d=document.getElementById("fd-dcard"); if(d) d.scrollTop=sc; return; } });
+}
+document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("#d-lastdocs"); if(!b) return; e.preventDefault(); const cid=D.draft&&D.draft.customerId; if(cid) lastDocsCard(cid); });
 function openCard(html, wide, onAct){
   if(typeof zkpCollapse==="function" && ZKP.open) zkpCollapse();   /* редактор закупки на вкладке «Закупка» — у него те же id, что в окне */
   const re=CARD_RE; CARD_RE=null; const prev=navPrev();
