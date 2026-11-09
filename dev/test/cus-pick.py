@@ -31,6 +31,10 @@ async def main():
             await pg.keyboard.press('Escape')
             sw=await pg.evaluate("[document.documentElement.scrollWidth, innerWidth]"); ok(sw[0]==sw[1], f'{W}: без прокрутки вбок {sw}')
             await btn.click(); await pg.wait_for_timeout(300); await pg.screenshot(path=f'/tmp/claude-0/cpk{W}.png'); await pg.keyboard.press('Escape'); await pg.wait_for_timeout(200)
+            if W<500:
+                await btn.click(); await pg.wait_for_timeout(300)
+                ok(await pg.locator('.cpk-pop .cpk-x').is_visible(), f'{W}: есть крестик'); await pg.click('.cpk-pop .cpk-x'); await pg.wait_for_timeout(250)
+                ok(await pop.count()==0, f'{W}: крестик закрывает')
             ok(await pop.count()==0, f'{W}: Esc закрывает')
             # в журнале/календаре — без полного
             await pg.evaluate("document.querySelector('nav.tabs button[data-tab=\"calendar\"]').click()"); await pg.wait_for_timeout(500)
