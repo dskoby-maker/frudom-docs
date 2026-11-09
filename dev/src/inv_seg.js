@@ -42,7 +42,7 @@ const invLineSum = x => r2((+num(x.qty)||0)*(+num(x.price)||0));
 function invRowHtml(r,i){ const d=invData(r), c=cus(r.customerId)||{}, n=(d.docs||[]).length;
     return `<div class="invr" role="button" tabindex="0" data-inv="${r.id}" style="--d:${Math.min(i,12)*22}ms">
       <span class="invd"><b>№ ${esc(r.number)}</b><small>${fd(r.date)}</small></span>
-      <span class="invw"><b>${esc(c.name||"заказчик удалён")}${r.place?` <em>${esc(r.place)}</em>`:""}</b><small>${[r.period, n?`${n} ${plural(n,["накладная","накладные","накладных"])}`:"без накладных", esc(sup(r.supplierId).name||"")].filter(Boolean).join(" · ")}</small></span>
+      <span class="invw"><b>${esc(c.name||"заказчик удалён")}${r.place?` <em>${esc(r.place)}</em>`:""}</b><small>${[r.period, n?`${n} ${plural(n,["накладная","накладные","накладных"])}`:"без накладных", esc(sup(r.supplierId).name||"")].filter(Boolean).join(" · ")}${invPayChip(r)}</small></span>
       <span class="invs">${fm(+r.sum||0)} ₽</span>
       <span class="inva"><button type="button" class="btn sm" data-invp="${r.id}">Открыть счёт</button><button type="button" class="btn ghost sm" data-inve="${r.id}">Изменить</button></span></div>`; }
 let INVF={q:"", cus:"", per:"", arch:false};
@@ -83,14 +83,49 @@ function invCard(id){ const r=invRows().find(x=>x.id===id); if(!r) return; const
     <dl class="dc-info">${info.map(([a,b])=>`<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>
     <div class="dc-tw"><table class="dc-t"><thead><tr><th>Товар</th><th class="num">Кол-во</th><th class="num">Цена, ₽</th><th class="num">Сумма, ₽</th></tr></thead><tbody>${(d.lines||[]).map(x=>`<tr><td><b>${esc(x.name)}</b></td><td class="num">${esc(nq3(+num(x.qty)||0))}&nbsp;${esc(x.unit||"")}</td><td class="num">${fm(+num(x.price)||0)}</td><td class="num"><b>${fm(invLineSum(x))}</b></td></tr>`).join("")}</tbody></table></div>
     <div class="dc-total"><span>${(d.lines||[]).length} ${posWord((d.lines||[]).length)}</span><b>${fm(+r.sum||0)} ₽</b></div>
-    ${docs.length?`<div class="invdocs"><b>Накладные в счёте</b><div>${docs.map(j=>`<button type="button" class="invdc" data-dc="doc" data-id="${j.id}">№ ${esc(j.number)} · ${fd(j.date)} · ${fm(j.sum)} ₽</button>`).join("")}</div></div>`:""}
+    ${invPayHtml(r, docs)}
+    ${docs.length?`<div class="invdocs"><b>Накладные в счёте</b><div>${docs.map(j=>{ const p=invPayOk()?payOf(j):null; return `<button type="button" class="invdc${p?" "+p.st:""}" data-dc="doc" data-id="${j.id}"${p&&p.st!=="due"?` title="${p.st==="paid"?"Оплачена":"Оплачено "+fm(p.s)+" из "+fm(p.tot)+" ₽"}${p.d?" · "+fd(p.d):""}"`:""}>${p&&p.st==="paid"?"✓ ":""}№ ${esc(j.number)} · ${fd(j.date)} · ${fm(j.sum)} ₽</button>`; }).join("")}</div></div>`:""}
     ${histHtml((d.hist||[]).map(x=>Object.assign({},x)))}
     <div class="dc-acts">${ar?`<button class="btn" data-dc="unarch">Вернуть из архива</button>`:`<button class="btn ghost danger" data-dc="arch">В архив</button><button class="btn" data-dc="copy">Сделать копию</button><button class="btn" data-dc="edit">Изменить</button>`}<button class="btn pri" data-dc="open">Открыть счёт</button></div>`, true, (a,b)=>{
     if(a==="open"){ invPreview(id); return; }
     if(a==="edit"){ invEdit(id); return; }
     if(a==="copy"){ invEdit(id, true); return; }
     if(a==="doc"){ const j=D.journal.find(x=>x.id===b.dataset.id); if(j) docCard(j, isArch(j)); return; }
+    if(a==="pay"){ const s=+num($("#invpay-sum").value)||0, dt=$("#invpay-date").value||todayISO(); if(s<=0){ toast("warn","Впишите сумму оплаты",""); return; } invPay(id, s, dt); return; }
+    if(a==="unpay"){ invUnpay(id); return; }
     if(a==="arch"||a==="unarch"){ invSetArch(id, a==="arch"); if(NAV.st.length) navBack(); } }); }   /* из списка — вернуться в список */
+/* ---------- оплата по счёту: отметка «оплачено» ложится на все накладные счёта (с самой старой) ----------
+   Оплата хранится у накладных (lines._pay в «Себестоимости накладных», как в «Прибыли»); статус счёта считается из них.
+   Только admin: данные оплат приходят вместе с «Прибылью» (loadProfit). */
+const invPayOk = () => !!(me()&&me().admin) && pfLoaded;
+const invDocsOf = r => (invData(r).docs||[]).map(x=>D.journal.find(j=>j.id===x)).filter(j=>j && j.snap && !isArch(j)).sort((a,b)=>String(a.date).localeCompare(String(b.date))||jNumSort(a,b));
+function invPayState(r, docs){ docs=docs||invDocsOf(r); let tot=0, s=0, k=0, last="";
+  docs.forEach(j=>{ const p=payOf(j); tot+=p.tot; s+=p.s; if(p.st==="paid") k++; if(p.d>last) last=p.d; });
+  tot=r2(tot); s=r2(s); return {n:docs.length, k, tot, s, left:r2(tot-s), last, st: !docs.length ? "" : s>=tot-0.005 ? "paid" : s>0 ? "part" : "due"}; }
+function invPayChip(r){ if(!invPayOk() || invArch(r)) return ""; const p=invPayState(r); if(!p.st) return "";
+  return ` <i class="invps ${p.st}">${p.st==="paid"?"оплачен"+(p.last?" "+fd(p.last).slice(0,5):""):p.st==="part"?"оплачен частично":"не оплачен"}</i>`; }
+function invPayHtml(r, docs){ if(!(me()&&me().admin)) return "";
+  if(!pfLoaded){ loadProfit(true).then(()=>{ const c=$("#fd-dcard"); if(pfLoaded && c && c.open && c.querySelector(`[data-invcard="${r.id}"]`)) invCard(r.id); }); return `<div class="invpay" data-invcard="${r.id}"><span class="muted">Загружаю оплаты…</span></div>`; }
+  const L=invDocsOf(r); if(!L.length) return `<div class="invpay" data-invcard="${r.id}"><span class="muted">В счёте нет накладных — отмечайте оплату у самих накладных в «Прибыли».</span></div>`;
+  const p=invPayState(r, L), pc=p.tot>0?Math.round(p.s/p.tot*100):100, diff=Math.abs(r2((+r.sum||0)-p.tot))>0.005;
+  return `<div class="invpay ${p.st}" data-invcard="${r.id}">
+    <div class="invpay-h"><b>Оплата по счёту</b><i class="invps ${p.st}">${p.st==="paid"?"Оплачен":p.st==="part"?"Частично":"Не оплачен"}</i></div>
+    <div class="invpay-bar"><span style="width:${pc}%"></span></div>
+    <div class="invpay-t">Оплачено <b>${p.k} из ${p.n}</b> ${plural(p.n,["накладной","накладных","накладных"])} · <b>${fm(p.s)}</b> из ${fm(p.tot)} ₽${p.left>0.005?` · осталось <b>${fm(p.left)} ₽</b>`:""}</div>
+    ${diff?`<div class="invpay-n">Сумма счёта ${fm(+r.sum||0)} ₽ не равна сумме накладных ${fm(p.tot)} ₽ (строки счёта правили вручную) — оплата ложится на накладные.</div>`:""}
+    ${p.left>0.005&&!invArch(r)?`<div class="invpay-f"><label>Пришло, ₽<input id="invpay-sum" type="text" inputmode="decimal" data-money value="${p.left}" aria-label="Сумма оплаты"></label><label>Дата оплаты<input id="invpay-date" type="date" value="${todayISO()}"></label><button type="button" class="btn pri" data-dc="pay">Отметить оплату</button></div>
+    <small class="muted">Отметится оплата у всех накладных счёта. Сумма меньше — закроет накладные по порядку, с самой старой, остаток ляжет частичной оплатой.</small>`:""}
+    ${p.s>0&&!invArch(r)?`<button type="button" class="btn ghost sm invpay-x" data-dc="unpay">Снять оплату со всех накладных счёта</button>`:""}</div>`; }
+function invPayDone(r, w, ev, t){ const d=Object.assign({}, invData(r)); invHist(d, [w]); r.data=JSON.stringify(d); r.updated=new Date().toISOString(); dirty("invoices", r.id);
+  logEv("Счета", ev+": счёт № "+r.number+" от "+fd(r.date)+" — "+(cus(r.customerId).name||"")); saveLocal(); invCard(r.id); invViews(); if(curTab==="profit") drawProfit(); toast("ok", t[0], t[1]+" Отменить — кнопка «Отменить» внизу."); }
+function invPay(id, sum, date){ const r=invRows().find(x=>x.id===id); if(!r||!invPayOk()) return; let left=r2(sum), n=0;
+  for(const j of invDocsOf(r)){ if(left<=0.004) break; const p=payOf(j); if(p.st==="paid") continue; const put=Math.min(p.left,left); setPay(j, r2(p.s+put), date, true); left=r2(left-put); n++; }
+  const put=r2(sum-left); if(!n){ toast("info","Все накладные счёта уже оплачены",""); return; }
+  invPayDone(r, "оплата "+fm(put)+" ₽ от "+fd(date)+" ("+n+" накл.)", "Оплата "+fm(put)+" ₽ от "+fd(date)+" разнесена на "+n+" накл.",
+    ["Оплата по счёту отмечена", n+" "+plural(n,["накладная","накладные","накладных"])+" · "+fm(put)+" ₽"+(left>0.004?". Лишние "+fm(left)+" ₽ — некуда: все накладные счёта оплачены.":".")]); }
+function invUnpay(id){ const r=invRows().find(x=>x.id===id); if(!r||!invPayOk()) return; let n=0;
+  invDocsOf(r).forEach(j=>{ if(payOf(j).s>0){ setPay(j, 0, "", true); n++; } }); if(!n) return;
+  invPayDone(r, "оплата снята ("+n+" накл.)", "Снята оплата с "+n+" накл.", ["Оплата снята", n+" "+plural(n,["накладная","накладные","накладных"])+" снова ждут оплату."]); }
 function invHist(d, w){ const h=Array.isArray(d.hist)?d.hist.slice(-29):[]; h.push({at:new Date().toISOString(), by:curUser()||"", w}); d.hist=h; }
 function invSetArch(id, on){ const r=invRows().find(x=>x.id===id); if(!r) return; const d=Object.assign({}, invData(r));
   if(on) d.arch=new Date().toISOString(); else delete d.arch; invHist(d, [on?"в архив":"возвращён из архива"]);
@@ -105,7 +140,7 @@ function invEdit(id, copy){ if(!invCan()) return; if(D.invSrv===false){ toast("w
   if(r){ const d=invData(r); INV={id:copy?"":r.id, supplierId:r.supplierId, customerId:r.customerId, branchId:d.branchId||"", contractId:d.contractId||"", from:d.from||"", to:d.to||"", docs:new Set(copy?[]:(d.docs||[])), mode:d.mode||"goods",
       lines:copy?[]:(d.lines||[]).map(x=>Object.assign({},x)), touched:!copy, number:copy?"":String(r.number), date:copy?todayISO():r.date, basis:d.basis||"", note:copy?"":(d.note||""), numAuto:!!copy, dirty:false};
     if(copy){ INV.docs=new Set(invDocs(INV).filter(j=>!invUsed(j.id).length).map(j=>j.id)); INV.lines=invBuild(invDocs(INV).filter(j=>INV.docs.has(j.id)), INV.mode); INV.number=invNext(INV.supplierId, INV.date); } }
-  else { const [a,b]=invMonth(new Date().getDate()<=10?1:0); INV={id:"", supplierId:"", customerId:"", branchId:"", contractId:"", from:a, to:b, docs:new Set(), mode:"goods", lines:[], touched:false, number:"", date:b<todayISO()?b:todayISO(), basis:"", note:"", numAuto:true, dateAuto:true, dirty:false}; }
+  else { const [a,b]=invMonth(new Date().getDate()<=20?1:0); INV={id:"", supplierId:"", customerId:"", branchId:"", contractId:"", from:a, to:b, docs:new Set(), mode:"goods", lines:[], touched:false, number:"", date:todayISO(), basis:"", note:"", numAuto:true, dateAuto:true, dirty:false}; }
   invOpen(); }
 /* заказчик выбран: поставщик и договор — как в последней накладной */
 function invPickCus(cid){ INV.customerId=cid; INV.branchId=""; const last=(D.journal||[]).filter(j=>j.snap && !isArch(j) && j.customerId===cid).sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
@@ -215,4 +250,5 @@ function invAll(){ if(!invCan()) return; CARD_RE=()=>invAll();
     <div class="invf"><input id="inv-q" type="search" placeholder="Поиск: номер, заказчик, подразделение, товар" aria-label="Поиск счетов"><select id="inv-cus" aria-label="Заказчик"></select><select id="inv-per" aria-label="Период"><option value="">Всё время</option><option value="m0">Этот месяц</option><option value="m1">Прошлый месяц</option><option value="y">Этот год</option></select><label class="invarch"><input type="checkbox" id="inv-arch"> Архив</label></div>
     <div id="inv-sum" class="muted"></div>
     <div id="inv-list"></div>`, true, ()=>{});
-  const d=$("#fd-dcard"); if(d) d.classList.add("xwide"); renderInvoices(); }
+  const d=$("#fd-dcard"); if(d) d.classList.add("xwide"); renderInvoices();
+  if(me().admin && !pfLoaded) loadProfit(true).then(()=>{ if(pfLoaded){ if($("#inv-list")) invDrawList(); invDocCard(); } }); }
