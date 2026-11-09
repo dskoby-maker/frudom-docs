@@ -8,6 +8,8 @@ async def main():
         for vw in [(1300,900),(390,844)]:
             pg=await b.new_page(viewport={'width':vw[0],'height':vw[1]}); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
             await pg.goto('http://localhost:8787/page'); await pg.click('#fd-who [data-who="Даниил"]'); await pg.fill('#fd-pass','1111'); await pg.click('#fd-enter'); await pg.wait_for_timeout(2500)
+            assert await pg.locator('#inv-dc').evaluate("(card) => getComputedStyle(card).cursor !== 'pointer'")
+            assert await pg.locator('#inv-all').evaluate("(button) => getComputedStyle(button).webkitTapHighlightColor === 'rgba(0, 0, 0, 0)'")
             for t in TABS:
                 await pg.evaluate(f"(document.querySelector('nav.tabs button[data-tab=\"{t}\"]')||{{click(){{}}}}).click()"); await pg.wait_for_timeout(250)
             print(vw, 'ошибок:', len(errs), errs[:3]); await pg.close()
