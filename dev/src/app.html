@@ -71,7 +71,7 @@
 #fd-app dialog.dcard ::-webkit-scrollbar-thumb{background:rgba(106,44,78,.22);border:3px solid transparent;background-clip:padding-box;border-radius:99px}
 #fd-app dialog.dcard ::-webkit-scrollbar-thumb:hover{background-color:rgba(106,44,78,.45)}
 @supports not selector(::-webkit-scrollbar){#fd-app dialog.dcard *{scrollbar-width:thin;scrollbar-color:rgba(106,44,78,.3) transparent}}
-#fd-app .dcard .dc-kicker{font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--accent);background:var(--accent-soft);display:inline-block;padding:3px 10px;border-radius:99px}
+#fd-app .dcard .dc-kicker,#fd-app .invform .dc-kicker{font-size:12px;font-weight:600;letter-spacing:.02em;color:var(--accent);background:var(--accent-soft);display:inline-block;padding:3px 10px;border-radius:99px}
 #fd-app .dcard h3{margin:8px 0 2px;font-size:20px;line-height:1.25;letter-spacing:-.01em}
 #fd-app .dcard .dc-sub{color:var(--muted);font-size:13px}
 #fd-app dialog.dcard>.dc-head>div:first-child{min-width:0}
@@ -81,8 +81,8 @@
 #fd-app dialog.dcard>.dc-head>.dc-mini .dc-back{margin:0;flex:none}#fd-app dialog.dcard>.dc-head>.dc-mini .dc-back span{max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #fd-app dialog.dcard>.dc-head>.dc-mini .dc-x{flex:none;width:32px;height:32px}
 @media (max-width:600px){#fd-app .dcard h3{font-size:18px}#fd-app dialog.dcard>.dc-head h3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}}
-#fd-app .dcard .dc-x{border:0;background:var(--bg);width:34px;height:34px;border-radius:50%;font-size:22px;line-height:1;color:var(--muted);cursor:pointer;flex:none;transition:background .15s,color .15s,transform .15s}
-#fd-app .dcard .dc-x:hover{background:var(--accent-soft);color:var(--accent);transform:rotate(90deg)}
+#fd-app .dcard .dc-x,#fd-app .invform .dc-x{border:0;background:var(--bg);width:34px;height:34px;border-radius:50%;font-size:22px;line-height:1;color:var(--muted);cursor:pointer;flex:none;transition:background .15s,color .15s,transform .15s}
+#fd-app .dcard .dc-x:hover,#fd-app .invform .dc-x:hover{background:var(--accent-soft);color:var(--accent);transform:rotate(90deg)}
 #fd-app .dcard .dc-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px 18px;margin:16px 0 14px}
 #fd-app .dcard .dc-info div{min-width:0}#fd-app .dcard dt{font-size:12px;color:var(--muted)}#fd-app .dcard dd{margin:1px 0 0;overflow-wrap:anywhere}
 #fd-app .dcard .dc-tw{border:1px solid var(--line);border-radius:14px;overflow:auto}
@@ -508,6 +508,14 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .invpay-f{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}#fd-app .invpay-f label{display:grid;gap:3px;font-size:12px;color:var(--muted)}#fd-app .invpay-f input{width:150px}#fd-app .invpay-x{justify-self:start}
 #fd-app .invdc.paid{border-color:#cfe5d4;color:#2f6b3d;background:#f2f8f3}#fd-app .invdc.part{border-color:#efdcae}
 @media (max-width:480px){#fd-app .invpay-f label{flex:1 1 40%}#fd-app .invpay-f input{width:100%}#fd-app .invpay-f .btn{flex:1 1 100%}}
+#fd-app .invwrap{display:grid;grid-template-rows:0fr;opacity:0;transform:translateY(-6px);transition:grid-template-rows .38s cubic-bezier(.2,.7,.2,1),opacity .28s ease,transform .38s cubic-bezier(.2,.7,.2,1)}#fd-app .invwrap.open{grid-template-rows:1fr;opacity:1;transform:none}
+#fd-app .invwi{min-height:0;overflow:hidden}#fd-app .invwrap.ivx .invwi{overflow:visible}#fd-app .invwrap.ivx{transform:none}
+#fd-app .invform{display:block;scroll-margin-top:96px;margin-top:2px;border-color:rgba(106,44,78,.14);box-shadow:0 18px 40px -30px rgba(48,32,44,.45)}
+#fd-app .invfh{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;margin-bottom:10px}#fd-app .invfh h2{display:block;margin:8px 0 0;font-size:22px;line-height:1.2}#fd-app .invfh .invsub{display:block}#fd-app .invform .invg select,#fd-app .invform .invg input{width:100%;min-width:0}#fd-app .invfh .dc-x{flex:none}
+#fd-app .invform .invfoot{bottom:var(--mbh,0px);margin:0 -14px -14px;padding:12px 14px;border-radius:0 0 14px 14px;background:rgba(255,255,255,.92);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--line);z-index:3}
+#fd-app #inv-new2.on{box-shadow:inset 0 0 0 2px rgba(255,255,255,.35)}
+@media (prefers-reduced-motion:reduce){#fd-app .invwrap{transition:none}}
+@media (max-width:480px){#fd-app .invform .invfoot{gap:8px;padding:10px 14px}#fd-app .invform .invfoot>div:first-child{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}#fd-app .invform .invfoot>div:first-child b{font-size:18px}#fd-app .invform .invfoot .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}#fd-app .invform .invfoot .row .btn.pri{grid-column:1/-1;order:-1}}
 #fd-app .invdlg{width:min(860px,96vw)}#fd-app .invsub{margin:4px 0 0;font-size:12.5px}
 #fd-app .invg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px;margin:6px 0 12px}#fd-app .invg .f{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted)}#fd-app .invg .f.wide{grid-column:1/-1}#fd-app .invg .f small{font-size:11.5px}
 #fd-app .invg.inv3{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#fd-app .invi.bad{border-color:var(--err);box-shadow:0 0 0 3px rgba(192,57,43,.12)}

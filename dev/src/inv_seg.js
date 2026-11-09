@@ -68,7 +68,7 @@ document.addEventListener("click", e=>{ const t=e.target; if(!t.closest) return;
   if(t.closest("#inv-new")){ invEdit(null); return; }
   const p=t.closest("[data-invp]"); if(p){ e.stopPropagation(); invPreview(p.dataset.invp); return; }
   const ed=t.closest("[data-inve]"); if(ed){ e.stopPropagation(); invEdit(ed.dataset.inve); return; }
-  if(t.closest("#inv-new2")){ invEdit(null); return; }
+  if(t.closest("#inv-new2")){ if(INV && !INV.id && document.getElementById("inv-wrap")){ invOpen(true); return; } invEdit(null); return; }
   if(t.closest("#inv-all")){ invAll(); return; }
   const r=t.closest("#inv-list [data-inv], #inv-dc [data-inv]"); if(r){ invCard(r.dataset.inv); return; } });
 document.addEventListener("keydown", e=>{ const r=e.target; if(r.classList && r.classList.contains("invr") && (e.key==="Enter"||e.key===" ")){ e.preventDefault(); invCard(r.dataset.inv); } });
@@ -136,12 +136,16 @@ function invSetArch(id, on){ const r=invRows().find(x=>x.id===id); if(!r) return
 /* ---------- создание и правка ---------- */
 let INV=null;
 function invEdit(id, copy){ if(!invCan()) return; if(D.invSrv===false){ toast("warn","Сначала обновите Code.gs","Без нового скрипта таблица не сохранит счёт."); return; }
+  if(INV && INV.dirty && document.getElementById("inv-dlg") && !confirm("Сейчас открыт другой счёт с несохранёнными изменениями. Закрыть его и открыть этот?")){ invOpen(true); return; }
   const r=id?invRows().find(x=>x.id===id):null;
   if(r){ const d=invData(r); INV={id:copy?"":r.id, supplierId:r.supplierId, customerId:r.customerId, branchId:d.branchId||"", contractId:d.contractId||"", from:d.from||"", to:d.to||"", docs:new Set(copy?[]:(d.docs||[])), mode:d.mode||"goods",
       lines:copy?[]:(d.lines||[]).map(x=>Object.assign({},x)), touched:!copy, number:copy?"":String(r.number), date:copy?todayISO():r.date, basis:d.basis||"", note:copy?"":(d.note||""), numAuto:!!copy, dirty:false};
     if(copy){ INV.docs=new Set(invDocs(INV).filter(j=>!invUsed(j.id).length).map(j=>j.id)); INV.lines=invBuild(invDocs(INV).filter(j=>INV.docs.has(j.id)), INV.mode); INV.number=invNext(INV.supplierId, INV.date); } }
   else { const [a,b]=invMonth(new Date().getDate()<=20?1:0); INV={id:"", supplierId:"", customerId:"", branchId:"", contractId:"", from:a, to:b, docs:new Set(), mode:"goods", lines:[], touched:false, number:"", date:todayISO(), basis:"", note:"", numAuto:true, dateAuto:true, dirty:false}; }
+  /* откуда пришли: из окна «Все счета» или карточки счёта — после «Сохранить»/«Отмена» вернём туда */
+  const dc=document.getElementById("fd-dcard"); INV.back = dc && !dc._bye && dc.querySelector("#inv-list") ? "all" : dc && r && !copy ? "card:"+r.id : "";
   invOpen(); }
+function invGoBack(b, id){ if(b==="all") setTimeout(()=>invAll(), 0); else if(b && b.startsWith("card:")){ const x=id||b.slice(5); if(invRows().some(r=>r.id===x)) setTimeout(()=>invCard(x), 0); } }
 /* заказчик выбран: поставщик и договор — как в последней накладной */
 function invPickCus(cid){ INV.customerId=cid; INV.branchId=""; const last=(D.journal||[]).filter(j=>j.snap && !isArch(j) && j.customerId===cid).sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
   INV.supplierId = last ? last.supplierId : (INV.supplierId || (D.suppliers[0]||{}).id || "");
@@ -151,20 +155,37 @@ function invRefresh(){ /* пересобрать список накладных
   const L=invDocs(INV); INV.docs=new Set(L.filter(j=>!invUsed(j.id, INV.id).length).map(j=>j.id));
   if(!INV.touched) INV.lines=invBuild(L.filter(j=>INV.docs.has(j.id)), INV.mode);
   if(INV.numAuto && INV.supplierId) INV.number=invNext(INV.supplierId, INV.date); }
-function invOpen(){ let d=document.getElementById("inv-dlg"); if(d) d.remove();
-  d=document.createElement("dialog"); d.id="inv-dlg"; d.className="dcard wide invdlg"; document.getElementById("fd-app").appendChild(d);
-  d.addEventListener("cancel", e=>{ e.preventDefault(); invClose(); });
-  d.addEventListener("click", e=>{ if(e.target===d){ const r=d.getBoundingClientRect(); if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom) invClose(); } });
-  invDraw(); d.showModal(); requestAnimationFrame(()=>d.classList.add("in")); }
-function invClose(force){ const d=document.getElementById("inv-dlg"); if(!d) return;
+/* форма счёта — не окно, а блок на вкладке «Новый документ» под «Отдельным счётом»: раскрывается плавно */
+const invRM = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+function invOpen(keep){
+  const dc=document.getElementById("fd-dcard"); if(dc){ navReset(); dc._bye=1; dc.classList.add("out"); setTimeout(()=>{ try{ dc.close(); }catch(x){} dc.remove(); }, invRM()?0:200); }   /* открыли из окна «Все счета» / карточки счёта */
+  if(typeof curTab!=="undefined" && curTab!=="doc") showTab("doc");
+  let w=document.getElementById("inv-wrap"), fresh=!w;
+  if(!w){ const host=$("#inv-dc"); if(!host) return; w=document.createElement("div"); w.id="inv-wrap"; w.className="invwrap"; w.innerHTML=`<div class="invwi"><section class="card invform" id="inv-dlg" aria-label="Отдельный счёт"></section></div>`; host.after(w); }
+  clearTimeout(w._t); w.classList.remove("closing");
+  if(!keep) invDraw();
+  if(fresh){ void w.offsetHeight; w.classList.add("open"); w._t=setTimeout(()=>w.classList.add("ivx"), invRM()?0:420); }
+  else { w.classList.add("open","ivx"); const f=$("#inv-dlg"); if(f && f.animate && !invRM()) f.animate([{opacity:.4},{opacity:1}],{duration:220,easing:"ease-out"}); }
+  invMb(); invBtn(); setTimeout(()=>invGoTo($("#inv-dlg")), fresh&&!invRM()?400:0); }
+/* прокрутить к блоку так, чтобы его шапку не закрывала прилипшая шапка сайта */
+function invGoTo(el){ if(!el) return; const hd=document.querySelector("#fd-app header.top"), hh=hd && getComputedStyle(hd).position!=="static" ? hd.getBoundingClientRect().bottom : 0;
+  scrollTo({top:Math.max(0, scrollY+el.getBoundingClientRect().top-Math.max(0,hh)-12), behavior:invRM()?"auto":"smooth"}); }
+/* нижняя панель вкладок на телефоне: итог с кнопками прилипает над ней */
+function invMb(){ const w=document.getElementById("inv-wrap"), mb=document.getElementById("mbar"); if(!w) return; const h=mb && getComputedStyle(mb).display!=="none" && getComputedStyle(mb).position==="fixed" ? mb.getBoundingClientRect().height : 0; w.style.setProperty("--mbh", Math.round(h)+"px"); }
+addEventListener("resize", ()=>{ clearTimeout(invMb.t); invMb.t=setTimeout(invMb, 150); });
+function invClose(force){ const w=document.getElementById("inv-wrap"); if(!w){ INV=null; return; }
   if(!force && INV && INV.dirty && !confirm("Закрыть без сохранения? Изменения в счёте пропадут.")) return;
-  d.classList.add("out"); setTimeout(()=>{ try{ d.close(); }catch(x){} d.remove(); }, matchMedia("(prefers-reduced-motion: reduce)").matches?0:200); }
+  const back=!force && INV ? INV.back : ""; INV=null; clearTimeout(w._t); w.classList.remove("ivx"); if(back) invGoBack(back); void w.offsetHeight; w.classList.remove("open"); w.classList.add("closing");
+  const host=$("#inv-dc"); if(host && host.getBoundingClientRect().top<0) invGoTo(host);
+  w._t=setTimeout(()=>{ w.remove(); invBtn(); }, invRM()?0:380); invBtn(); }
+/* кнопка «+ Отдельный счёт», пока форма открыта, показывает это */
+function invBtn(){ const b=$("#inv-new2"); if(!b) return; const on=!!INV && !!document.getElementById("inv-wrap"); b.classList.toggle("on", on); b.setAttribute("aria-expanded", on); }
 function invTotal(){ return r2(INV.lines.reduce((a,x)=>a+invLineSum(x),0)); }
-function invDraw(keepFocus){ const d=document.getElementById("inv-dlg"); if(!d||!INV) return; const F=INV, st=d.scrollTop;
+function invDraw(keepFocus){ const d=document.getElementById("inv-dlg"); if(!d||!INV) return; const F=INV, sy=scrollY;
   const c=cus(F.customerId), br=c?branches(c):[], ctrs=(D.contracts||[]).filter(x=>x.customerId===F.customerId && (!x.supplierId || x.supplierId===F.supplierId));
   const L=F.customerId&&F.supplierId?invDocs(F):[], selSum=r2(L.filter(j=>F.docs.has(j.id)).reduce((a,j)=>a+(+j.sum||0),0)), tot=invTotal(), dup=F.number&&F.supplierId&&invDup(F.supplierId, F.date, F.number, F.id);
   const mon=[invMonth(1), invMonth(0)], chip=(m,t)=>`<button type="button" class="${F.from===m[0]&&F.to===m[1]?"on":""}" data-invm="${m[0]}|${m[1]}">${t}</button>`;
-  d.innerHTML=`<div class="dc-head"><div><div class="dc-kicker">Счёт на оплату</div><h3>${F.id?"Изменить счёт № "+esc(F.number):"Новый счёт"}</h3><p class="muted invsub">На сумму контракта и журнал не влияет — это только счёт.</p></div><button class="dc-x" data-invx aria-label="Закрыть">×</button></div>
+  d.innerHTML=`<div class="invfh"><div><div class="dc-kicker">Счёт на оплату</div><h2>${F.id?"Изменить счёт № "+esc(F.number):"Новый счёт"}</h2><p class="muted invsub">На сумму контракта и журнал не влияет — это только счёт.</p></div><button type="button" class="dc-x" data-invx aria-label="Закрыть" title="Закрыть">×</button></div>
     <div class="invg">
       <label class="f">Заказчик<select class="invi" data-f="customerId"><option value="">— выберите —</option>${opts(D.customers.filter(x=>!isPriv(x.id)), F.customerId)}</select></label>
       <label class="f">Подразделение / ОП<select class="invi" data-f="branchId"${br.length?"":" disabled"}><option value="">${br.length?"Все подразделения":"— у заказчика нет подразделений —"}</option>${br.map(b=>`<option value="${b.id}"${b.id===F.branchId?" selected":""}>${esc(b.label||b.fullName||"")}${b.kpp?" · КПП "+esc(b.kpp):""}</option>`).join("")}</select></label>
@@ -188,9 +209,9 @@ function invDraw(keepFocus){ const d=document.getElementById("inv-dlg"); if(!d||
       <label class="f wide">Основание<input class="invi" data-f="basis" value="${esc(F.basis)}" placeholder="Договор № … от …"></label>
       <label class="f wide">Комментарий <small class="muted">(в счёт не печатается)</small><input class="invi" data-f="note" value="${esc(F.note)}" placeholder="например: отправлено бухгалтеру ОП 01.12"></label>
     </div>
-    <div class="invfoot"><div><small class="muted">Итого к оплате</small><b id="inv-tot">${fm(tot)} ₽</b>${L.length&&!F.touched&&Math.abs(tot-selSum)>0.004?`<small class="miss">не равно сумме накладных (${fm(selSum)} ₽)</small>`:""}</div>
+    <div class="invfoot"><div><small class="muted">Итого к оплате</small><b id="inv-tot">${fm(tot)} ₽</b>${L.length&&F.docs.size&&Math.abs(tot-selSum)>0.004?`<small class="miss">не равно сумме выбранных накладных (${fm(selSum)} ₽)${F.touched?" — строки счёта правили или накладные изменились; «Пересобрать из накладных» выровняет":""}</small>`:""}</div>
       <div class="row"><button type="button" class="btn" data-invx>Отмена</button><button type="button" class="btn" data-invsave="0">Сохранить</button><button type="button" class="btn pri" data-invsave="1">Сохранить и открыть счёт</button></div></div>`;
-  d.scrollTop=st; if(keepFocus){ const f=d.querySelector(keepFocus); if(f){ f.focus(); try{ const n=f.value.length; f.setSelectionRange&&f.setSelectionRange(n,n); }catch(x){} } } }
+  if(Math.abs(scrollY-sy)>1) scrollTo(0, sy); if(keepFocus){ const f=d.querySelector(keepFocus); if(f){ f.focus(); try{ const n=f.value.length; f.setSelectionRange&&f.setSelectionRange(n,n); }catch(x){} } } }
 document.addEventListener("change", e=>{ const el=e.target; if(!INV || !el.closest || !el.closest("#inv-dlg")) return;
   if(el.classList.contains("invi")){ const f=el.dataset.f, v=el.value; INV.dirty=true;
     if(f==="customerId"){ invPickCus(v); invRefresh(); invDraw(); return; }
@@ -232,7 +253,7 @@ function invSave(open){ const F=INV, lines=F.lines.map(x=>({name:String(x.name||
   D.invoices=D.invoices||[]; const i=D.invoices.findIndex(x=>x.id===row.id); if(i>=0) D.invoices[i]=Object.assign(D.invoices[i], row); else D.invoices.push(row);
   dirty("invoices", row.id); saveLocal(); INV.dirty=false; invClose(true);
   toast("ok", old?"Счёт изменён":"Счёт сохранён", "№ "+row.number+" от "+fd(row.date)+" · "+fm(+row.sum)+" ₽"+(row.place?" · "+row.place:"")+".");
-  invViews(); if(open) setTimeout(()=>invPreview(row.id), 220); }
+  invViews(); if(open) setTimeout(()=>invPreview(row.id), 220); else if(F.back) invGoBack(F.back==="all"?"all":"card:"+row.id, row.id); }
 window.__inv = { rows:()=>invRows(), edit:invEdit, st:()=>INV };
 
 /* ---------- счета живут во вкладке «Новый документ»: блок внизу + окно «Все счета» (вкладки «Счета» больше нет) ---------- */
@@ -242,7 +263,7 @@ function invDocCard(){ const box=$("#inv-dc"); if(!box) return; box.hidden=!invC
   box.innerHTML=`<div class="invh"><div><h2>Отдельный счёт на оплату</h2><p class="muted">За месяц или период, по подразделению — сайт сам соберёт накладные. Это не новая накладная: на контракт, журнал и прибыль не влияет.</p></div>
     <div class="invbtn"><button class="btn" type="button" id="inv-all">Все счета${n?` <span class="invn">${n}</span>`:""}</button><button class="btn pri" type="button" id="inv-new2"${D.invSrv===false?" disabled":""}>+ Отдельный счёт</button></div></div>
     ${D.invSrv===false?`<div class="sknoteb" style="margin-top:10px">Чтобы счета сохранялись в таблице и были видны всем — обновите Code.gs (версия 14). <button type="button" class="btn sm" id="srvOldHow">Как обновить</button></div>`:""}
-    ${n?`<div class="invmini"><div class="invmh">Последние счета</div><div class="invl">${live.slice(0,3).map(invRowHtml).join("")}</div></div>`:""}`; }
+    ${n?`<div class="invmini"><div class="invmh">Последние счета</div><div class="invl">${live.slice(0,3).map(invRowHtml).join("")}</div></div>`:""}`; invBtn(); }
 function invAll(){ if(!invCan()) return; CARD_RE=()=>invAll();
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Счета на оплату</div><h3>Все отдельные счета</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <div class="invh invh2"><p class="muted">Например, за месяц по каждому подразделению. На сумму контракта, журнал и прибыль не влияют.</p><button class="btn pri" type="button" id="inv-new">+ Новый счёт</button></div>
