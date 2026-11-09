@@ -138,9 +138,9 @@ async function aktImport(file, ctr){
 function renderAkt(cid){ const box=$("#akt-box"); if(!box) return; const L=ctrs(cid), gen=aktGen(cid);
   if(AKT.cid!==cid) aktFilesLoad(cid);
   $("#akt-desc").textContent = gen ? "Акт приёмки-передачи за месяц собирается сам из накладных по договору — выберите месяц и скачайте. Подписанные акты загружайте ниже." : "Загрузите сюда акты этого заказчика (Word, PDF, скан) — они сохранятся за ним и будут доступны с любого устройства.";
-  if(!gen){ if(AKT.cid!==cid) AKT={cid, ctr:"", ym:aktDefYm(), date:"", off:{}, edit:false, all:false, cfg:null, dirty:false}; $("#akt-name").textContent=cus(cid).name?"— "+cus(cid).name:""; box.innerHTML=""; aktFilesDraw(); return; }
+  if(!gen){ if(AKT.cid!==cid) AKT={cid, ctr:"", ym:aktDefYm(), date:"", off:{}, edit:false, all:false, cfg:null, dirty:false}; $("#akt-name").textContent=cusNm(cid)?"— "+cusNm(cid):""; box.innerHTML=""; aktFilesDraw(); return; }
   if(AKT.cid!==cid){ AKT={cid, ctr:(L.find(x=>!x.dateTo||x.dateTo>=todayISO())||L[0]||{}).id||"", ym:aktDefYm(), date:"", off:{}, edit:false, all:false, cfg:null, dirty:false}; }
-  $("#akt-name").textContent=cus(cid).name?"— "+cus(cid).name:"";
+  $("#akt-name").textContent=cusNm(cid)?"— "+cusNm(cid):"";
   aktFilesDraw();
   if(!L.length){ box.innerHTML=`<p class="muted">У заказчика нет договоров — добавьте договор выше, и здесь можно будет собрать акт за месяц.</p>`; return; }
   const ctr=L.find(x=>x.id===AKT.ctr)||L[0]; AKT.ctr=ctr.id; if(!AKT.cfg || AKT.cfg.__id!==ctr.id){ AKT.cfg=Object.assign(aktCfg(ctr),{__id:ctr.id}); AKT.dirty=false; }
