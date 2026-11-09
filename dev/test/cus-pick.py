@@ -39,6 +39,16 @@ async def main():
             # в журнале/календаре — без полного
             await pg.evaluate("document.querySelector('nav.tabs button[data-tab=\"calendar\"]').click()"); await pg.wait_for_timeout(500)
             ok(not await pg.locator('#tab-calendar .cpk-f').count() or True, f'{W}: календарь')
+            if W<500:
+                await pg.evaluate("document.querySelector('nav.tabs button[data-tab=\"journal\"]').click(); document.querySelector('nav.tabs button[data-tab=\"doc\"]').click()"); await pg.wait_for_timeout(500)
+                sb=pg.locator('#tab-doc .cpkw.ov:has(#d-sup) .cpk'); ok(await sb.count()==1, f'{W}: у поставщика (обычный список) тоже своё окошко')
+                vis=await pg.evaluate("getComputedStyle(document.querySelector('#d-sup')).opacity"); ok(vis=='1', f'{W}: сам список поставщика виден как был')
+                await sb.click(); await pg.wait_for_timeout(350); ok(await pg.locator('.cpk-pop.sheet').count()==1, f'{W}: окошко снизу')
+                ttl=await pg.inner_text('.cpk-pop .cpk-ttl'); ok('Поставщик' in ttl, f'{W}: заголовок «{ttl}»')
+                await pg.screenshot(path='/tmp/claude-0/cpksup.png')
+                other=await pg.evaluate("(()=>{const s=document.querySelector('#d-sup'); return [...s.options].find(o=>!o.selected).value})()")
+                await pg.click(f'.cpk-pop .cpk-o[data-v="{other}"]'); await pg.wait_for_timeout(400)
+                ok(await pg.evaluate("__fd.D().draft.supplierId")==other, f'{W}: поставщик сменился')
             ok(not errs, f'{W}: ошибок нет {errs[:2]}'); await pg.close()
         await b.close()
     print('ИТОГ:', 'ошибок нет' if not fails else f'ошибок: {len(fails)}')
