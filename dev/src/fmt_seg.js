@@ -41,7 +41,7 @@ const MONEY_SEL = [
   "[data-money]",
   /* документ, заявка, цены */ "#d-lines input.price", ".cur[data-cp]", "input[data-p]:not(.q)", "[data-k=maxSum]", "#pd-body [data-k=price]", ".pp",
   /* прибыль, закупка, расходы */ "#po-sum", ".pfbs", ".pfc", ".pfe", ".pfps", ".pdsum", ".pvss", "#pvl-sum", "#pvi-sum", ".pvxs",
-  ".dzc", ".dzs", ".dze", ".bzc", ".bzs", ".bze", ".pcp",
+  ".dzc", ".dzs", ".dze", ".bzc", ".bzs", ".bze", ".pcp", ".dzt", ".bzt",
   /* банк, счета, акты */ "#bnp-sum", ".bnps", ".invli[data-k=price]", "[data-akt=prior]", "input[data-s=price]",
   /* склад */ ".skbp", ".skf-price", ".skf-ppc", ".skmp", ".mi-price", ".mi-sum", ".mi-total"
 ].join(",");
