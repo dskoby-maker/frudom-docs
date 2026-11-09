@@ -27,3 +27,22 @@
 }
 #fd-app #inv-recent[open] > .invmini-toggle::after { transform: rotate(225deg); }
 #fd-app #inv-recent > .invl { margin-top: 8px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  #fd-app #inv-recent > .invmini-toggle::after { transition: transform .24s var(--ease, ease); }
+
+  @supports selector(::details-content) and (transition-behavior: allow-discrete) {
+    #fd-app #inv-recent::details-content {
+      display: grid;
+      grid-template-rows: minmax(0, 0fr);
+      overflow: clip;
+      overflow-clip-margin: 3px;
+      opacity: 0;
+      transition: grid-template-rows .28s var(--ease, ease), opacity .20s ease, content-visibility .28s allow-discrete;
+    }
+    #fd-app #inv-recent[open]::details-content {
+      grid-template-rows: minmax(0, 1fr);
+      opacity: 1;
+    }
+  }
+}
