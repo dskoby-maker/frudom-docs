@@ -42,7 +42,7 @@ const invLineSum = x => r2((+num(x.qty)||0)*(+num(x.price)||0));
 function invRowHtml(r,i){ const d=invData(r), c=cus(r.customerId)||{}, n=(d.docs||[]).length;
     return `<div class="invr" role="button" tabindex="0" data-inv="${r.id}" style="--d:${Math.min(i,12)*22}ms">
       <span class="invd"><b>№ ${esc(r.number)}</b><small>${fd(r.date)}</small></span>
-      <span class="invw"><b>${esc(c.name||"заказчик удалён")}${r.place?` <em>${esc(r.place)}</em>`:""}</b><small>${[r.period, n?`${n} ${plural(n,["накладная","накладные","накладных"])}`:"без накладных", esc(sup(r.supplierId).name||"")].filter(Boolean).join(" · ")}${invPayChip(r)}</small></span>
+      <span class="invw"><b>${esc(cusNm(r.customerId)||"заказчик удалён")}${r.place?` <em>${esc(r.place)}</em>`:""}</b><small>${[r.period, n?`${n} ${plural(n,["накладная","накладные","накладных"])}`:"без накладных", esc(sup(r.supplierId).name||"")].filter(Boolean).join(" · ")}${invPayChip(r)}</small></span>
       <span class="invs">${fm(+r.sum||0)} ₽</span>
       <span class="inva"><button type="button" class="btn sm" data-invp="${r.id}">Открыть счёт</button><button type="button" class="btn ghost sm" data-inve="${r.id}">Изменить</button></span></div>`; }
 let INVF={q:"", cus:"", per:"", arch:false};
@@ -50,7 +50,7 @@ function renderInvoices(){ if(!invCan() || !$("#inv-list")) return;
   const old=$("#inv-old"); old.innerHTML = D.invSrv===false ? `<div class="sknoteb">Чтобы счета сохранялись в таблице и были видны всем — обновите Code.gs (версия 14). До этого создать счёт нельзя: таблица его не сохранит. <button type="button" class="btn sm" id="srvOldHow">Как обновить</button></div>` : "";
   $("#inv-new").disabled = D.invSrv===false;
   const cs=$("#inv-cus"), used=[...new Set(invRows().map(r=>r.customerId))];
-  cs.innerHTML=`<option value="">Все заказчики</option>`+D.customers.filter(c=>used.includes(c.id)).map(c=>`<option value="${c.id}"${INVF.cus===c.id?" selected":""}>${esc(c.name)}</option>`).join("");
+  cs.innerHTML=`<option value="">Все заказчики</option>`+opts(D.customers.filter(c=>used.includes(c.id)), INVF.cus);
   $("#inv-q").value=INVF.q; $("#inv-per").value=INVF.per; $("#inv-arch").checked=INVF.arch;
   invDrawList(); }
 function invFiltered(){ const q=String(INVF.q||"").toLowerCase().replace(/ё/g,"е").trim(), w=q.split(/\s+/).filter(Boolean);
@@ -77,7 +77,7 @@ function invPreview(id){ const r=invRows().find(x=>x.id===id); if(!r) return; sh
 /* карточка счёта */
 function invCard(id){ const r=invRows().find(x=>x.id===id); if(!r) return; const d=invData(r), c=cus(r.customerId)||{}, ar=!!d.arch;
   const docs=(d.docs||[]).map(x=>D.journal.find(j=>j.id===x)).filter(Boolean);
-  const info=[["Поставщик",sup(r.supplierId).name||""],["Заказчик",(c.name||"")+(r.place?", "+r.place:"")],["Период",r.period||""],["Основание",d.basis||""],["Комментарий",d.note||""],["Создал",(d.by||"")+(d.at?" · "+dtShort(d.at):"")]].filter(x=>x[1]);
+  const info=[["Поставщик",sup(r.supplierId).name||""],["Заказчик",(cusNm(r.customerId)||"")+(r.place?", "+r.place:"")],["Период",r.period||""],["Основание",d.basis||""],["Комментарий",d.note||""],["Создал",(d.by||"")+(d.at?" · "+dtShort(d.at):"")]].filter(x=>x[1]);
   CARD_RE=()=>{ if(invRows().some(x=>x.id===id)) invCard(id); };
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Счёт на оплату${ar?" · в архиве":""}</div><h3>№ ${esc(r.number)} от ${fd(r.date)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <dl class="dc-info">${info.map(([a,b])=>`<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>
@@ -166,7 +166,7 @@ function invDraw(keepFocus){ const d=document.getElementById("inv-dlg"); if(!d||
   const mon=[invMonth(1), invMonth(0)], chip=(m,t)=>`<button type="button" class="${F.from===m[0]&&F.to===m[1]?"on":""}" data-invm="${m[0]}|${m[1]}">${t}</button>`;
   d.innerHTML=`<div class="dc-head"><div><div class="dc-kicker">Счёт на оплату</div><h3>${F.id?"Изменить счёт № "+esc(F.number):"Новый счёт"}</h3><p class="muted invsub">На сумму контракта и журнал не влияет — это только счёт.</p></div><button class="dc-x" data-invx aria-label="Закрыть">×</button></div>
     <div class="invg">
-      <label class="f">Заказчик<select class="invi" data-f="customerId"><option value="">— выберите —</option>${D.customers.filter(x=>!isPriv(x.id)).map(x=>`<option value="${x.id}"${x.id===F.customerId?" selected":""}>${esc(x.name)}</option>`).join("")}</select></label>
+      <label class="f">Заказчик<select class="invi" data-f="customerId"><option value="">— выберите —</option>${opts(D.customers.filter(x=>!isPriv(x.id)), F.customerId)}</select></label>
       <label class="f">Подразделение / ОП<select class="invi" data-f="branchId"${br.length?"":" disabled"}><option value="">${br.length?"Все подразделения":"— у заказчика нет подразделений —"}</option>${br.map(b=>`<option value="${b.id}"${b.id===F.branchId?" selected":""}>${esc(b.label||b.fullName||"")}${b.kpp?" · КПП "+esc(b.kpp):""}</option>`).join("")}</select></label>
       <label class="f">Поставщик<select class="invi" data-f="supplierId">${D.suppliers.map(x=>`<option value="${x.id}"${x.id===F.supplierId?" selected":""}>${esc(x.name)}</option>`).join("")}</select></label>
       <label class="f">Договор<select class="invi" data-f="contractId"><option value="">— без договора —</option>${ctrs.map(x=>`<option value="${x.id}"${x.id===F.contractId?" selected":""}>${esc(x.basis||"")}</option>`).join("")}</select></label>
