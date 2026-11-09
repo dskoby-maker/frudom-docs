@@ -197,10 +197,13 @@ function invDraw(keepFocus){ const d=document.getElementById("inv-dlg"); if(!d||
       ${!F.customerId?`<p class="muted">Выберите заказчика — сайт покажет его накладные за период.</p>`:!L.length?`<p class="muted">Накладных за этот период нет${F.branchId?" по этому подразделению":""}. Можно добавить строки счёта вручную ниже.</p>`:
       `<div class="invdl">${L.map(j=>{ const u=invUsed(j.id, F.id); return `<label class="invdr${F.docs.has(j.id)?" on":""}"><input type="checkbox" data-invd="${j.id}"${F.docs.has(j.id)?" checked":""}><span><b>№ ${esc(j.number)} · ${fd(j.date)}</b><small>${esc(kLbl(j)||jWho(j).main)}${u.length?` · <em class="miss">уже в счёте № ${esc(u.map(x=>x.number).join(", "))}</em>`:""}</small></span><i>${fm(j.sum)} ₽</i></label>`; }).join("")}</div>`}
     </div>
-    <div class="invbox"><div class="invbh"><b>Строки счёта</b><div class="pfchips invmode"><button type="button" class="${F.mode==="goods"?"on":""}" data-invmode="goods">По товарам</button><button type="button" class="${F.mode==="docs"?"on":""}" data-invmode="docs">По накладным</button></div>${F.touched?`<button type="button" class="btn ghost sm" data-invrb>Пересобрать из накладных</button>`:""}</div>
+    <div class="invbox invlines"><div class="invbh"><b>Строки счёта</b><div class="pfchips invmode"><button type="button" class="${F.mode==="goods"?"on":""}" data-invmode="goods">По товарам</button><button type="button" class="${F.mode==="docs"?"on":""}" data-invmode="docs">По накладным</button></div>${F.touched?`<button type="button" class="btn ghost sm" data-invrb>Пересобрать из накладных</button>`:""}<span class="invbh-sp"></span><button type="button" class="btn sm invfb" data-invfile title="Excel, PDF, Word, текст или фото — сайт распознает строки и впишет их, как в файле"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10.5V2.5M4.8 5.6L8 2.4l3.2 3.2M2.5 10.5v2a1 1 0 001 1h9a1 1 0 001-1v-2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="invfw">Загрузить по шаблону</span><span class="invfm">Файл-шаблон</span></button><button type="button" class="btn ghost sm" data-invpaste aria-expanded="${!!F.paste}">Вставить текст</button><input type="file" id="inv-fin" hidden accept=".xlsx,.xls,.csv,.pdf,.docx,.txt,image/*"></div>
+      ${F.busy?`<div class="invfn busy"><span class="invspin" aria-hidden="true"></span>${esc(F.busy)}</div>`:""}
+      ${F.paste&&!F.busy?`<div class="invpaste"><textarea id="inv-pta" rows="5" placeholder="Вставьте строки счёта или заявки: «Яблоки 12 кг 150», таблицу из Excel или письма…"></textarea><div class="row"><button type="button" class="btn ghost sm" data-invpaste>Отмена</button><button type="button" class="btn pri sm" data-invptgo>Распознать</button></div></div>`:""}
+      ${F.fnote&&!F.busy?invFileNote(F.fnote):""}
       ${F.touched?`<p class="muted invnote">Строки изменены вручную — выбор накладных их больше не меняет. «Пересобрать» вернёт строки из выбранных накладных.</p>`:""}
-      <div class="invlh"><span>Наименование</span><span>Кол-во</span><span>Ед.</span><span>Цена, ₽</span><span>Сумма, ₽</span><span></span></div>
-      <div class="invls">${F.lines.map((x,i)=>`<div class="invln" data-i="${i}"><input class="invli" data-k="name" value="${esc(x.name)}" placeholder="Наименование" aria-label="Наименование"><input class="invli num" data-k="qty" inputmode="decimal" value="${esc(String(x.qty).replace(".",","))}" aria-label="Количество"><input class="invli" data-k="unit" value="${esc(x.unit||"")}" aria-label="Единица"><input class="invli num" data-k="price" inputmode="decimal" value="${esc(String(x.price).replace(".",","))}" aria-label="Цена"><b class="invlsum">${fm(invLineSum(x))}</b><button type="button" class="invdel" data-invdel="${i}" aria-label="Удалить строку">×</button></div>`).join("")||`<p class="muted">Строк нет.</p>`}</div>
+      <div class="invlh"><span></span><span>Наименование</span><span>Кол-во</span><span>Ед.</span><span>Цена, ₽</span><span>Сумма, ₽</span><span></span></div>
+      <div class="invls${F.calm?" calm":""}">${F.lines.map((x,i)=>`<div class="invln" data-i="${i}"><button type="button" class="invgrip" data-invgrip aria-label="Переместить строку ${i+1} (перетащите или стрелки ↑↓)" title="Потяните, чтобы переставить"><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="3.5" cy="3" r="1.4"/><circle cx="8.5" cy="3" r="1.4"/><circle cx="3.5" cy="8" r="1.4"/><circle cx="8.5" cy="8" r="1.4"/><circle cx="3.5" cy="13" r="1.4"/><circle cx="8.5" cy="13" r="1.4"/></svg></button><input class="invli" data-k="name" value="${esc(x.name)}" placeholder="Наименование" aria-label="Наименование"><input class="invli num" data-k="qty" inputmode="decimal" value="${esc(String(x.qty).replace(".",","))}" aria-label="Количество"><input class="invli" data-k="unit" value="${esc(x.unit||"")}" aria-label="Единица"><input class="invli num" data-k="price" inputmode="decimal" value="${esc(String(x.price).replace(".",","))}" aria-label="Цена"><b class="invlsum">${fm(invLineSum(x))}</b><button type="button" class="invdel" data-invdel="${i}" aria-label="Удалить строку">×</button></div>`).join("")||`<p class="muted">Строк нет.</p>`}</div>
       <button type="button" class="btn ghost sm" data-invadd>+ Строка вручную</button>
     </div>
     <div class="invg inv3">
@@ -211,8 +214,9 @@ function invDraw(keepFocus){ const d=document.getElementById("inv-dlg"); if(!d||
     </div>
     <div class="invfoot"><div><small class="muted">Итого к оплате</small><b id="inv-tot">${fm(tot)} ₽</b>${L.length&&F.docs.size&&Math.abs(tot-selSum)>0.004?`<small class="miss">не равно сумме выбранных накладных (${fm(selSum)} ₽)${F.touched?" — строки счёта правили или накладные изменились; «Пересобрать из накладных» выровняет":""}</small>`:""}</div>
       <div class="row"><button type="button" class="btn" data-invx>Отмена</button><button type="button" class="btn" data-invsave="0">Сохранить</button><button type="button" class="btn pri" data-invsave="1">Сохранить и открыть счёт</button></div></div>`;
-  if(Math.abs(scrollY-sy)>1) scrollTo(0, sy); if(keepFocus){ const f=d.querySelector(keepFocus); if(f){ f.focus(); try{ const n=f.value.length; f.setSelectionRange&&f.setSelectionRange(n,n); }catch(x){} } } }
+  F.calm=false; if(Math.abs(scrollY-sy)>1) scrollTo(0, sy); if(keepFocus){ const f=d.querySelector(keepFocus); if(f){ f.focus(); try{ const n=f.value.length; f.setSelectionRange&&f.setSelectionRange(n,n); }catch(x){} } } }
 document.addEventListener("change", e=>{ const el=e.target; if(!INV || !el.closest || !el.closest("#inv-dlg")) return;
+  if(el.id==="inv-fin"){ const f=el.files&&el.files[0]; el.value=""; if(f) invFile(f); return; }
   if(el.classList.contains("invi")){ const f=el.dataset.f, v=el.value; INV.dirty=true;
     if(f==="customerId"){ invPickCus(v); invRefresh(); invDraw(); return; }
     if(f==="supplierId"){ INV.supplierId=v; if(INV.contractId && ctr(INV.contractId) && ctr(INV.contractId).supplierId && ctr(INV.contractId).supplierId!==v) invPickCtr(""); invRefresh(); invDraw(); return; }
@@ -228,6 +232,10 @@ document.addEventListener("input", e=>{ const el=e.target; if(!INV || !el.closes
     if(!document.querySelector("#inv-dlg [data-invrb]")){ const h=document.querySelector("#inv-dlg .invmode"); if(h) h.insertAdjacentHTML("afterend",`<button type="button" class="btn ghost sm" data-invrb>Пересобрать из накладных</button>`); } } });
 document.addEventListener("click", async e=>{ const t=e.target; if(!INV || !t.closest || !t.closest("#inv-dlg")) return;
   if(t.closest("[data-invx]")){ invClose(); return; }
+  if(t.closest("[data-invfile]")){ const i=$("#inv-fin"); if(i) i.click(); return; }
+  if(t.closest("[data-invpaste]")){ INV.paste=!INV.paste; invDraw(INV.paste?"#inv-pta":""); return; }
+  if(t.closest("[data-invptgo]")){ const v=($("#inv-pta")||{}).value||""; if(!v.trim()){ toast("warn","Вставьте текст",""); return; } INV.paste=false; invFile({name:"вставленный текст", txt:1, text:async()=>v}); return; }
+  if(t.closest("[data-invfnx]")){ INV.fnote=null; invDraw(); return; }
   const m=t.closest("[data-invm]"); if(m){ const [a,b]=m.dataset.invm.split("|"); INV.from=a; INV.to=b; INV.dirty=true; if(INV.dateAuto) INV.date=b<todayISO()?b:todayISO(); invRefresh(); invDraw(); return; }
   const all=t.closest("[data-invall]"); if(all){ const L=invDocs(INV); L.forEach(j=>{ if(all.dataset.invall==="1") INV.docs.add(j.id); else INV.docs.delete(j.id); }); INV.dirty=true; if(!INV.touched) INV.lines=invBuild(L.filter(j=>INV.docs.has(j.id)), INV.mode); invDraw(); return; }
   const md=t.closest("[data-invmode]"); if(md){ if(INV.mode===md.dataset.invmode) return; if(INV.touched && !confirm("Строки изменены вручную. Пересобрать их из накладных по-новому?")) return; INV.mode=md.dataset.invmode; INV.touched=false; INV.dirty=true; INV.lines=invBuild(invDocs(INV).filter(j=>INV.docs.has(j.id)), INV.mode); invDraw(); return; }
@@ -273,3 +281,81 @@ function invAll(){ if(!invCan()) return; CARD_RE=()=>invAll();
     <div id="inv-list"></div>`, true, ()=>{});
   const d=$("#fd-dcard"); if(d) d.classList.add("xwide"); renderInvoices();
   if(me().admin && !pfLoaded) loadProfit(true).then(()=>{ if(pfLoaded){ if($("#inv-list")) invDrawList(); invDocCard(); } }); }
+
+/* ---------- строки счёта: перетаскивание за «ручку» слева (мышь и палец), стрелки ↑↓ на ручке ---------- */
+const invRows3 = () => [...document.querySelectorAll("#inv-dlg .invls > .invln")];
+function invMoveLine(from, to, focus){ if(!INV || from===to || to<0 || to>=INV.lines.length) return; const x=INV.lines.splice(from,1)[0]; INV.lines.splice(to,0,x); INV.touched=true; INV.dirty=true; INV.calm=true;
+  invDraw(focus?`.invln[data-i="${to}"] [data-invgrip]`:""); }
+let INVDG=null;
+document.addEventListener("pointerdown", e=>{ const g=e.target.closest&&e.target.closest("#inv-dlg [data-invgrip]"); if(!g || !INV || e.button>0) return;
+  e.preventDefault(); const row=g.closest(".invln"), rows=invRows3(), from=rows.indexOf(row); if(from<0 || rows.length<2) return;
+  const R=rows.map(r=>r.getBoundingClientRect()), top0=R[0].top+scrollY, gap=rows.length>1?Math.max(0,R[1].top-R[0].bottom):4;
+  INVDG={g, row, rows, from, to:from, R:R.map(r=>({top:r.top+scrollY, h:r.height})), y0:e.clientY+scrollY, cy:e.clientY, id:e.pointerId, gap, top0};
+  try{ g.setPointerCapture(e.pointerId); }catch(x){}
+  row.classList.add("dragging"); row.closest(".invls").classList.add("sorting"); document.body.classList.add("invdrag");
+  rows.forEach(r=>{ if(r!==row) r.style.transition="transform .22s cubic-bezier(.2,.7,.2,1)"; });
+  invDgLoop(); });
+function invDgPlace(){ const G=INVDG; if(!G) return; const dy=G.cy+scrollY-G.y0, me=G.R[G.from], mid=me.top+dy+me.h/2, sh=me.h+G.gap;
+  let to=G.from; G.R.forEach((r,i)=>{ if(i<G.from && mid<r.top+r.h/2) to=Math.min(to,i); if(i>G.from && mid>r.top+r.h/2) to=Math.max(to,i); });
+  G.to=to; G.row.style.transform=`translateY(${dy}px) scale(1.01)`;
+  G.rows.forEach((r,i)=>{ if(i===G.from) return; const s2=(G.from<to && i>G.from && i<=to) ? -sh : (G.from>to && i>=to && i<G.from) ? sh : 0; r.style.transform=s2?`translateY(${s2}px)`:""; }); }
+function invDgLoop(){ const G=INVDG; if(!G) return; if(Math.abs(G.cy+scrollY-G.y0)>6) G.mv=1; const edge=G.mv?70:-1e4, vh=innerHeight, foot=document.querySelector("#inv-dlg .invfoot"), fb=foot?foot.getBoundingClientRect().top:vh;
+  let v=0; if(G.cy<edge) v=-Math.ceil((edge-G.cy)/6); else if(G.cy>Math.min(vh,fb)-edge) v=Math.ceil((G.cy-(Math.min(vh,fb)-edge))/6); if(v) scrollBy(0, Math.max(-18,Math.min(18,v)));
+  invDgPlace(); G.raf=requestAnimationFrame(invDgLoop); }
+document.addEventListener("pointermove", e=>{ if(!INVDG || e.pointerId!==INVDG.id) return; e.preventDefault(); INVDG.cy=e.clientY; }, {passive:false});
+function invDgEnd(e, cancel){ const G=INVDG; if(!G || (e && e.pointerId!==G.id)) return; INVDG=null; cancelAnimationFrame(G.raf); document.body.classList.remove("invdrag");
+  const to=cancel?G.from:G.to, fin=()=>{ G.rows.forEach(r=>{ r.style.transition=""; r.style.transform=""; }); G.row.classList.remove("dragging","drop"); const ls=G.row.closest(".invls"); if(ls) ls.classList.remove("sorting"); if(to!==G.from) invMoveLine(G.from, to); };
+  if(to===G.from){ G.row.classList.add("drop"); G.row.style.transform=""; G.rows.forEach(r=>{ r.style.transform=""; }); setTimeout(fin, invRM()?0:200); return; }
+  /* плавно поставить строку на новое место, потом пересобрать список без мигания */
+  let off=0; if(to>G.from){ for(let i=G.from+1;i<=to;i++) off+=G.R[i].h+G.gap; } else { for(let i=to;i<G.from;i++) off-=G.R[i].h+G.gap; }
+  G.row.classList.add("drop"); G.row.style.transform=`translateY(${off}px)`; setTimeout(fin, invRM()?0:200); }
+document.addEventListener("pointerup", e=>invDgEnd(e)); document.addEventListener("pointercancel", e=>invDgEnd(e, true));
+document.addEventListener("keydown", e=>{ if(INVDG && e.key==="Escape"){ e.preventDefault(); invDgEnd(null, true); return; }
+  const g=e.target.closest&&e.target.closest("#inv-dlg [data-invgrip]"); if(!g || !INV || !["ArrowUp","ArrowDown"].includes(e.key)) return; e.preventDefault();
+  const i=+g.closest(".invln").dataset.i; invMoveLine(i, i+(e.key==="ArrowUp"?-1:1), true); });
+
+/* ---------- «Загрузить по шаблону»: файл или текст → строки счёта как в файле (по аналогии с «Заказом из файла») ---------- */
+async function invSrcOf(f){ const n=f.name||"";
+  if(/\.(xlsx|xls|csv)$/i.test(n)){ const X=await loadXLSX(), wb=X.read(await f.arrayBuffer(),{type:"array", cellDates:true}), T=wb.SheetNames.map(s=>X.utils.sheet_to_json(wb.Sheets[s],{header:1, raw:true, defval:""}));
+    return {how:"Прочитано из Excel — без ИИ.", tables:T, lines:T.flat().map(r=>r.map(x=>x instanceof Date?fd(impDate(x)):String(x==null?"":x)).join("\t"))}; }
+  try{ return await ftRead(f); }
+  catch(e){ if(!e.scan) throw e;
+    INV.busy="Читаю фото через ИИ…"; invDraw();
+    const d=await aiPrep(f); if(d.data.length>18e6) throw new Error("файл больше 13 МБ — для ИИ слишком большой");
+    let j; try{ j=await apiFetch(API_URL,{method:"POST", tmo:150000, body:JSON.stringify({key:pass(), user:curUser(), action:"aiRead", mime:d.mime, data:d.data})}); }
+    catch(x){ const m=x.message||""; if(m==="nokey"||m==="badkey") throw new Error("для фото нужен ключ ИИ — «Данные» → «ИИ»"); if(m==="unknown action") throw new Error("скрипт таблицы старый — обновите Code.gs"); throw x; }
+    let o; try{ o=JSON.parse(String(j.text).replace(/^```(json)?|```$/g,"").trim()); }catch(x){ throw new Error("ИИ ответил не по форме — попробуйте ещё раз"); }
+    const src=aiSrc(o); src.how="Фото прочитано ИИ"+(j.model?" ("+j.model+")":"")+" — сверьте строки с оригиналом."; return src; } }
+async function invFile(f){ if(!INV) return; const F=INV, name=f.name||"файл";
+  F.busy="Читаю «"+name+"»…"; F.fnote=null; invDraw();
+  try{ const src=await invSrcOf(f); if(INV!==F) return;
+    const P=ftParse(src, F.customerId), cid=P.meta.cid, c=cus(cid)||{}, warn=(P.meta.warn||[]).filter(w=>!/дата поставки/i.test(w.m));
+    if(cid && cid!==F.customerId){ invPickCus(cid); if(P.meta.kid && ctr(P.meta.kid)) invPickCtr(P.meta.kid); invRefresh(); }
+    if(P.meta.branch){ const b=branches(c).find(x=>norm(x.label)===norm(P.meta.branch)); if(b && b.id!==F.branchId){ F.branchId=b.id; invRefresh(); } }
+    /* строки — как в файле: название, количество, единица, цена из файла; нет цены — цена заказчика по найденному товару */
+    const out=[], by={}, miss=[], nopr=[], diff=[];
+    P.lines.forEach(l=>{ const p=impMatch(l.name, cid, l.price), pid=p&&!p.__amb?p.id:"";
+      let qty=l.qty, unit=String(l.unit||"").trim(); const pk=l.orig?parsePack(l.orig):null;
+      if((qty===""||!(+qty>0)) && pk){ qty=pk.n; unit=unit||pk.u; }
+      unit=/^кг|^килогр/i.test(unit)?"кг":/^шт/i.test(unit)?"шт":unit||(p&&p.unit)||"";
+      const cp=pid?custPrice(cid,pid):null; let price=l.price!==""&&l.price!=null?+l.price:(cp!=null&&cp!==""?+cp:"");
+      if(price==="" ) nopr.push(l.name); else if(l.price!=="" && cp!=null && cp!=="" && Math.abs(+cp-price)>0.005) diff.push("«"+l.name+"»: в файле "+fm(price)+" ₽, у заказчика "+fm(+cp)+" ₽");
+      if(!pid) miss.push(l.name);
+      const k=norm(l.name)+"|"+unit+"|"+price; let o=by[k];
+      if(!o){ o=by[k]={name:String(l.name).trim(), unit, qty:0, price:price===""?"":String(price)}; if(pid) o.pid=pid; out.push(o); }
+      o.qty=r3((+o.qty||0)+(+qty||0)); });
+    if(!out.length) throw new Error("в файле не нашёл ни одной строки с товаром");
+    if(F.lines.some(x=>x.name||+num(x.qty)) && !confirm("Заменить строки счёта ("+F.lines.length+") строками из файла ("+out.length+")?")){ F.busy=""; invDraw(); return; }
+    F.lines=out.map(o=>Object.assign(o,{qty:String(o.qty)})); F.mode="goods"; F.touched=true; F.dirty=true;
+    const tot=invTotal(); F.busy=""; F.fnote={file:name, n:out.length, tot, how:warn.filter(w=>w.t!=="w").map(w=>w.m).concat(warn.filter(w=>w.t==="w"&&/заказчик/i.test(w.m)).map(w=>w.m)),
+      w:[].concat(miss.length?["Не нашёл на сайте (вписано как в файле): "+miss.slice(0,6).join("; ")+(miss.length>6?" и ещё "+(miss.length-6):"")]:[], nopr.length?["Без цены — впишите: "+nopr.slice(0,6).join("; ")+(nopr.length>6?" и ещё "+(nopr.length-6):"")]:[], diff.slice(0,4))};
+    invDraw(); toast(nopr.length?"warn":"ok","Строки из файла вписаны", out.length+" "+posWord(out.length)+" · "+fm(tot)+" ₽"+(cid?" · "+cusNm(cid):""));
+    logEv("Счета","Строки счёта из файла «"+name+"»: "+out.length+" поз., "+fm(tot)+" ₽");
+  }catch(e){ if(INV!==F) return; F.busy=""; F.fnote={err:e.message||String(e), file:name}; invDraw(); toast("err","Не получилось прочитать файл", (e.message||String(e))+"."); } }
+function invFileNote(N){ if(N.err) return `<div class="invfn err"><div><b>«${esc(N.file)}» не прочитан</b><span>${esc(N.err)}.</span></div><button type="button" class="invfnx" data-invfnx aria-label="Скрыть">×</button></div>`;
+  return `<div class="invfn${N.w.length?" warn":""}"><div><b>Из «${esc(N.file)}»: ${N.n} ${posWord(N.n)} · ${fm(N.tot)} ₽</b>${N.how.map(x=>`<span>${esc(x)}</span>`).join("")}${N.w.map(x=>`<span class="w">${esc(x)}</span>`).join("")}<span>Порядок строк — как в файле; можно переставить, потянув за ручку слева.</span></div><button type="button" class="invfnx" data-invfnx aria-label="Скрыть">×</button></div>`; }
+/* файл можно просто перетащить на «Строки счёта» */
+["dragenter","dragover"].forEach(ev=>document.addEventListener(ev, e=>{ const b=e.target.closest&&e.target.closest("#inv-dlg .invlines"); if(!b || !e.dataTransfer || ![...(e.dataTransfer.types||[])].includes("Files")) return; e.preventDefault(); b.classList.add("over"); }));
+["dragleave","drop"].forEach(ev=>document.addEventListener(ev, e=>{ const b=e.target.closest&&e.target.closest("#inv-dlg .invlines"); if(!b) return; if(ev==="dragleave" && b.contains(e.relatedTarget)) return; b.classList.remove("over");
+  if(ev==="drop" && e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]){ e.preventDefault(); invFile(e.dataTransfer.files[0]); } }));
+window.__inv.file = f => invFile(f);
