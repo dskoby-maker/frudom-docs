@@ -1,1 +1,1 @@
-/* full 57254 character content from /tmp/inv_seg.js is used here */
+/* full modified content from /tmp/inv_seg.js is used here */
