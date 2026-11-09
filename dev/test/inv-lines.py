@@ -1,5 +1,5 @@
 """Строки отдельного счёта: перестановка перетаскиванием за ручку (мышь) и стрелками; «Загрузить по шаблону» (текстовый файл
-и «Вставить текст») — строки как в файле, заказчик по ИНН, цена из файла или цена заказчика; телефон."""
+и «Скачать шаблон» → заполненный шаблон обратно) — строки как в файле, заказчик по ИНН, цена из файла или цена заказчика; телефон."""
 import asyncio, os, tempfile
 from playwright.async_api import async_playwright
 fails=[]
@@ -49,11 +49,24 @@ async def main():
             note=(await pg.text_content('#inv-dlg .invfn')).replace(' ',' ')
             ok('4 позиции' in note and 'Абрикосы' in note and 'у заказчика' in note, f'{W}: под строками — что прочитано и замечания: {note[150:400]!r}')
             ok(await pg.evaluate("__inv.st().customerId")==cid, f'{W}: заказчик тот же (по ИНН)')
-            # «Вставить текст»
-            await pg.click('#inv-dlg .invbh [data-invpaste]'); await pg.wait_for_timeout(300)
-            await pg.fill('#inv-pta', 'Питахайя 7 кг\nКумкват 1 кг 150'); await pg.click('#inv-dlg [data-invptgo]'); await pg.wait_for_timeout(700)
+            # «Скачать шаблон» вместо «Вставить текст»: в шаблоне прайс заказчика; заполнили количество у двух — загрузили обратно
+            ok(await pg.locator('#inv-dlg [data-invpaste]').count()==0 and await pg.locator('#inv-dlg .invbh [data-invtpl]').is_visible(), f'{W}: вместо «Вставить текст» — «Скачать шаблон»')
+            await pg.evaluate("""window.__aoa=null; window.XLSX={utils:{aoa_to_sheet:a=>{window.__aoa=a; return {}}, book_new:()=>({}), book_append_sheet:()=>{}}, writeFile:(w,n)=>{window.__xn=n}}""")
+            await pg.click('#inv-dlg .invbh [data-invtpl]'); await pg.wait_for_timeout(500)
+            A=await pg.evaluate("window.__aoa"); fn=await pg.evaluate("window.__xn")
+            hi=[k for k,r in enumerate(A) if r and r[0]=='Наименование'][0]; rows=A[hi+1:]
+            ok(fn and fn.startswith('Шаблон счёта') and A[hi][:4]==['Наименование','Количество','Ед.','Цена, ₽'], f'{W}: шаблон скачан: {fn}, шапка {A[hi][:5]}')
+            ok({r[0] for r in rows}>={'Фейхоа','Кумкват','Питахайя','Личи'} and all(r[1]=='' for r in rows) and any(r[0]=='Питахайя' and r[3]==200 for r in rows), f'{W}: в шаблоне прайс заказчика с ценами, количество пустое')
+            ok(any(len(r)>1 and str(r[1])==inn for r in A[:hi]), f'{W}: в шапке шаблона ИНН заказчика')
+            for r in rows:
+                if r[0]=='Питахайя': r[1]='7'
+                if r[0]=='Кумкват': r[1]='1,5'
+            fp=os.path.join(tempfile.gettempdir(), f'invtpl2{W}.txt')
+            open(fp,'w').write("\n".join("\t".join('' if isinstance(x,dict) else str(x) for x in r) for r in A))
+            await pg.set_input_files('#inv-fin', fp); await pg.wait_for_timeout(900)
             L=await pg.evaluate("__inv.st().lines.map(x=>[x.name,x.qty,x.price])")
-            ok(L==[['Питахайя','7','200'],['Кумкват','1','150']], f'{W}: «Вставить текст» — строки заменены (с вопросом): {L}')
+            ok(sorted(L)==sorted([['Питахайя','7','200'],['Кумкват','1.5','150']]), f'{W}: из заполненного шаблона — только строки с количеством: {L}')
+            await pg.evaluate("delete window.XLSX")
             ok(await pg.evaluate("document.documentElement.scrollWidth")==W, f'{W}: без прокрутки вбок')
             await pg.screenshot(path=f'/tmp/claude-0/inv-lines-{W}.png')
             ok(not errs, f'{W}: ошибок нет {errs[:2]}'); await pg.close()

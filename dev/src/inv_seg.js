@@ -197,7 +197,7 @@ function invDraw(keepFocus){ const d=document.getElementById("inv-dlg"); if(!d||
       ${!F.customerId?`<p class="muted">Выберите заказчика — сайт покажет его накладные за период.</p>`:!L.length?`<p class="muted">Накладных за этот период нет${F.branchId?" по этому подразделению":""}. Можно добавить строки счёта вручную ниже.</p>`:
       `<div class="invdl">${L.map(j=>{ const u=invUsed(j.id, F.id); return `<label class="invdr${F.docs.has(j.id)?" on":""}"><input type="checkbox" data-invd="${j.id}"${F.docs.has(j.id)?" checked":""}><span><b>№ ${esc(j.number)} · ${fd(j.date)}</b><small>${esc(kLbl(j)||jWho(j).main)}${u.length?` · <em class="miss">уже в счёте № ${esc(u.map(x=>x.number).join(", "))}</em>`:""}</small></span><i>${fm(j.sum)} ₽</i></label>`; }).join("")}</div>`}
     </div>
-    <div class="invbox invlines"><div class="invbh"><b>Строки счёта</b><div class="pfchips invmode"><button type="button" class="${F.mode==="goods"?"on":""}" data-invmode="goods">По товарам</button><button type="button" class="${F.mode==="docs"?"on":""}" data-invmode="docs">По накладным</button></div>${F.touched?`<button type="button" class="btn ghost sm" data-invrb>Пересобрать из накладных</button>`:""}<span class="invbh-sp"></span><button type="button" class="btn sm invfb" data-invfile title="Excel, PDF, Word, текст или фото — сайт распознает строки и впишет их, как в файле"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10.5V2.5M4.8 5.6L8 2.4l3.2 3.2M2.5 10.5v2a1 1 0 001 1h9a1 1 0 001-1v-2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="invfw">Загрузить по шаблону</span><span class="invfm">Файл-шаблон</span></button><button type="button" class="btn ghost sm" data-invpaste aria-expanded="${!!F.paste}">Вставить текст</button><input type="file" id="inv-fin" hidden accept=".xlsx,.xls,.csv,.pdf,.docx,.txt,image/*"></div>
+    <div class="invbox invlines"><div class="invbh"><b>Строки счёта</b><div class="pfchips invmode"><button type="button" class="${F.mode==="goods"?"on":""}" data-invmode="goods">По товарам</button><button type="button" class="${F.mode==="docs"?"on":""}" data-invmode="docs">По накладным</button></div>${F.touched?`<button type="button" class="btn ghost sm" data-invrb>Пересобрать из накладных</button>`:""}<span class="invbh-sp"></span><button type="button" class="btn sm invfb" data-invfile title="Excel, PDF, Word, текст или фото — сайт распознает строки и впишет их, как в файле"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 10.5V2.5M4.8 5.6L8 2.4l3.2 3.2M2.5 10.5v2a1 1 0 001 1h9a1 1 0 001-1v-2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="invfw">Загрузить по шаблону</span><span class="invfm">Файл-шаблон</span></button><button type="button" class="btn ghost sm invfb invtpl" data-invtpl title="Excel с прайсом заказчика: впишите количество и загрузите обратно кнопкой «Загрузить по шаблону»"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2.5v8M4.8 7.4L8 10.6l3.2-3.2M2.5 10.5v2a1 1 0 001 1h9a1 1 0 001-1v-2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="invfw">Скачать шаблон</span><span class="invfm">Шаблон</span></button><input type="file" id="inv-fin" hidden accept=".xlsx,.xls,.csv,.pdf,.docx,.txt,image/*"></div>
       ${F.busy?`<div class="invfn busy"><span class="invspin" aria-hidden="true"></span>${esc(F.busy)}</div>`:""}
       ${F.paste&&!F.busy?`<div class="invpaste"><textarea id="inv-pta" rows="5" placeholder="Вставьте строки счёта или заявки: «Яблоки 12 кг 150», таблицу из Excel или письма…"></textarea><div class="row"><button type="button" class="btn ghost sm" data-invpaste>Отмена</button><button type="button" class="btn pri sm" data-invptgo>Распознать</button></div></div>`:""}
       ${F.fnote&&!F.busy?invFileNote(F.fnote):""}
@@ -233,6 +233,7 @@ document.addEventListener("input", e=>{ const el=e.target; if(!INV || !el.closes
 document.addEventListener("click", async e=>{ const t=e.target; if(!INV || !t.closest || !t.closest("#inv-dlg")) return;
   if(t.closest("[data-invx]")){ invClose(); return; }
   if(t.closest("[data-invfile]")){ const i=$("#inv-fin"); if(i) i.click(); return; }
+  if(t.closest("[data-invtpl]")){ invTpl(); return; }
   if(t.closest("[data-invpaste]")){ INV.paste=!INV.paste; invDraw(INV.paste?"#inv-pta":""); return; }
   if(t.closest("[data-invptgo]")){ const v=($("#inv-pta")||{}).value||""; if(!v.trim()){ toast("warn","Вставьте текст",""); return; } INV.paste=false; invFile({name:"вставленный текст", txt:1, text:async()=>v}); return; }
   if(t.closest("[data-invfnx]")){ INV.fnote=null; invDraw(); return; }
@@ -314,11 +315,28 @@ document.addEventListener("keydown", e=>{ if(INVDG && e.key==="Escape"){ e.preve
   const g=e.target.closest&&e.target.closest("#inv-dlg [data-invgrip]"); if(!g || !INV || !["ArrowUp","ArrowDown"].includes(e.key)) return; e.preventDefault();
   const i=+g.closest(".invln").dataset.i; invMoveLine(i, i+(e.key==="ArrowUp"?-1:1), true); });
 
+/* ---------- «Скачать шаблон»: Excel с прайсом заказчика — вписать количество и загрузить обратно ---------- */
+async function invTpl(){ if(!INV) return; const F=INV;
+  try{ const X=await loadXLSX(), c=cus(F.customerId)||{}, s=sup(F.supplierId)||{}, k=F.contractId?ctr(F.contractId):null, b=F.branchId?branches(c).find(x=>x.id===F.branchId):null;
+    const P=c.id?D.products.filter(p=>{ const v=custPrice(c.id,p.id); return v!=null&&v!==""; }).sort((a,b)=>a.name.localeCompare(b.name,"ru")):[];
+    const aoa=[["Счёт на оплату — шаблон для сайта «Фруктовый Дом · документы»"],["Впишите количество в столбец «Количество». Строки без количества сайт пропустит. Цену можно поправить, строки — удалить или добавить."],[],
+      ["Заказчик",c.name||""],["ИНН заказчика",c.inn||""],["Подразделение",b?(b.label||""):""],["Договор",k?(k.basis||""):""],["Поставщик",s.name||""],["ИНН поставщика",s.inn||""],[],
+      ["Наименование","Количество","Ед.","Цена, ₽","Сумма, ₽"]];
+    const h=aoa.length; P.forEach((p,i)=>{ const r=h+i+1; aoa.push([p.name,"",p.unit||"кг",r2(+custPrice(c.id,p.id)),{f:`IF(B${r}="","",B${r}*D${r})`}]); });
+    if(!P.length) for(let i=0;i<10;i++){ const r=h+i+1; aoa.push(["","","кг","",{f:`IF(B${r}="","",B${r}*D${r})`}]); }
+    const ws=X.utils.aoa_to_sheet(aoa); ws["!cols"]=[{wch:50},{wch:12},{wch:6},{wch:11},{wch:12}];
+    const wb=X.utils.book_new(); X.utils.book_append_sheet(wb,ws,"Счёт");
+    X.writeFile(wb,"Шаблон счёта"+(c.id?" — "+cusNm(c.id):"")+".xlsx");
+    toast("ok","Шаблон скачан", P.length?"В нём прайс заказчика ("+P.length+" "+posWord(P.length)+"). Впишите количество и загрузите файл кнопкой «Загрузить по шаблону».":"Заказчик не выбран — в шаблоне пустые строки. Лучше сначала выберите заказчика: тогда в шаблоне будет его прайс.");
+  }catch(e){ toast("err","Не получилось сделать шаблон", e.message||String(e)); } }
+
 /* ---------- «Загрузить по шаблону»: файл или текст → строки счёта как в файле (по аналогии с «Заказом из файла») ---------- */
 async function invSrcOf(f){ const n=f.name||"";
   if(/\.(xlsx|xls|csv)$/i.test(n)){ const X=await loadXLSX(), wb=X.read(await f.arrayBuffer(),{type:"array", cellDates:true}), T=wb.SheetNames.map(s=>X.utils.sheet_to_json(wb.Sheets[s],{header:1, raw:true, defval:""}));
     return {how:"Прочитано из Excel — без ИИ.", tables:T, lines:T.flat().map(r=>r.map(x=>x instanceof Date?fd(impDate(x)):String(x==null?"":x)).join("\t"))}; }
-  try{ return await ftRead(f); }
+  try{ const r=await ftRead(f);   /* текст со столбцами через Tab (скопировано из Excel / шаблона) — читаем как таблицу */
+    if(r && !(r.tables&&r.tables.length) && (r.lines||[]).filter(l=>String(l).includes("\t")).length>=2) r.tables=[r.lines.map(l=>String(l).split("\t"))];
+    return r; }
   catch(e){ if(!e.scan) throw e;
     INV.busy="Читаю фото через ИИ…"; invDraw();
     const d=await aiPrep(f); if(d.data.length>18e6) throw new Error("файл больше 13 МБ — для ИИ слишком большой");
@@ -335,8 +353,10 @@ async function invFile(f){ if(!INV) return; const F=INV, name=f.name||"файл"
     /* строки — как в файле: название, количество, единица, цена из файла; нет цены — цена заказчика по найденному товару */
     const out=[], by={}, miss=[], nopr=[], diff=[];
     P.lines.forEach(l=>{ const p=impMatch(l.name, cid, l.price), pid=p&&!p.__amb?p.id:"";
+      if((l.qty===""||l.qty==null) && l.price!=="" && l.price!=null) return;   /* строка шаблона: цена есть, количество не вписали — не брать вес из названия («ж/б 400») */
       let qty=l.qty, unit=String(l.unit||"").trim(); const pk=l.orig?parsePack(l.orig):null;
       if((qty===""||!(+qty>0)) && pk){ qty=pk.n; unit=unit||pk.u; }
+      if(!(+qty>0)) return;   /* пустое количество (строка шаблона, которую не заполнили) — пропускаем */
       unit=/^кг|^килогр/i.test(unit)?"кг":/^шт/i.test(unit)?"шт":unit||(p&&p.unit)||"";
       const cp=pid?custPrice(cid,pid):null; let price=l.price!==""&&l.price!=null?+l.price:(cp!=null&&cp!==""?+cp:"");
       if(price==="" ) nopr.push(l.name); else if(l.price!=="" && cp!=null && cp!=="" && Math.abs(+cp-price)>0.005) diff.push("«"+l.name+"»: в файле "+fm(price)+" ₽, у заказчика "+fm(+cp)+" ₽");
