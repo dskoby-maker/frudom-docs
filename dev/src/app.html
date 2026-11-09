@@ -207,7 +207,7 @@
 #fd-app .cpk:hover{border-color:rgba(28,34,32,.24)}#fd-app .cpk[disabled]{opacity:.6;cursor:default}
 #fd-app .cpk.bad{border-color:var(--err)!important;background:#fdf0ee!important;box-shadow:0 0 0 3px rgba(192,64,47,.15)}#fd-app .cpk.fdflash{animation:fdflash .6s ease}
 .cpk .cpk-t,.cpk-o .cpk-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cpk-s{color:var(--ink,#1c2220)}.cpk-f{color:var(--muted,#8a8f8c);font-size:.8em;font-weight:400}.cpk-ph{color:var(--muted,#8a8f8c)}
+.cpk-s{color:var(--ink,#1c2220)}.cpk-f{color:var(--muted,#8a8f8c);font-size:.8em;font-weight:400}.cpk-pop:not(.sheet) .cpk-o .cpk-f{margin-left:6px}.cpk-ph{color:var(--muted,#8a8f8c)}
 .cpk-ch{width:16px;height:16px;flex:none;color:var(--muted,#8a8f8c)}
 .cpk-bd{position:fixed;inset:0;z-index:2147483000;background:transparent}
 .cpk-pop{position:fixed;z-index:2147483001;display:flex;flex-direction:column;background:var(--surface,#fff);border:1px solid rgba(28,34,32,.1);border-radius:14px;box-shadow:0 18px 44px -12px rgba(28,20,26,.28),0 2px 6px rgba(28,20,26,.06);overflow:hidden;font:15px var(--ui,system-ui);color:var(--ink,#1c2220);animation:cpkIn .16s cubic-bezier(.2,.8,.2,1)}
@@ -2746,8 +2746,14 @@ function cpkOpen(sel,b){
   const cur=pop.querySelector(".cpk-o.on"); if(cur) cur.scrollIntoView({block:"center"});
   (phone||!q ? (cur||pop.querySelector(".cpk-o")) : q)?.focus({preventScroll:true});
 }
-new MutationObserver(M=>{ const seen=new Set(), ph=cpkPhone(), add=s=>{ if(s && !seen.has(s)){ seen.add(s); cpkAttach(s); } };
+/* стандарт: любой список заказчиков (даже собранный вручную, не через opts) сам показывает короткое название, полное — серым в выборе */
+function cpkCusFix(n, map){ if(!map.size) return; const L=n.tagName==="OPTION" ? [n] : n.querySelectorAll ? n.querySelectorAll("option:not([data-full])") : [];
+  L.forEach(o=>{ if(o.dataset.full || o.hasAttribute("data-native")) return; const c=map.get(o.value); if(!c) return; const t=o.textContent.trim();
+    if(t!==c.name && t!==String(c.name||"").trim()) return; o.textContent=c.sh; o.dataset.full=c.name; o.title=c.name; }); }
+const cpkCusMap = () => { const m=new Map(); ((typeof D!=="undefined"&&D&&D.customers)||[]).forEach(c=>{ const sh=String(c.short||"").trim(); if(sh && c.name) m.set(c.id,{name:c.name, sh}); }); return m; };
+new MutationObserver(M=>{ const seen=new Set(), ph=cpkPhone(), add=s=>{ if(s && !seen.has(s)){ seen.add(s); cpkAttach(s); } }; let cm=null;
   M.forEach(m=>m.addedNodes.forEach(n=>{ if(n.nodeType!==1 || n.closest&&n.closest(".cpk-pop")) return;
+    if(n.tagName==="OPTION" || n.querySelector&&n.querySelector("option")) cpkCusFix(n, cm||(cm=cpkCusMap()));
     const os=n.matches&&n.matches("option[data-full]") ? [n] : n.querySelectorAll ? n.querySelectorAll("option[data-full]") : [];
     os.forEach(o=>add(o.closest("select")));
     if(ph){ if(n.tagName==="SELECT") add(n); else if(n.tagName!=="OPTION" && n.querySelectorAll) n.querySelectorAll("#fd-app select, dialog select").forEach(add); } })); })
@@ -4598,7 +4604,7 @@ const zkSaved = B => !!(B.st.saved && B.st.saved.sig===zkSig(B));
 const zkChanged = B => !!(B.st.saved && B.st.saved.sig!==zkSig(B));
 function zkCard(B){
   const date=B.date, k=B.b.key, rub=v=>fm(v).replace(/,00$/,"");
-  const cusSel=`<select class="zc" data-b="${k}" aria-label="Заказчик"><option value="">— выберите заказчика —</option>${D.customers.slice().sort((a,c)=>(a.name||"").localeCompare(c.name||"","ru")).map(c=>`<option value="${c.id}"${c.id===B.cid?" selected":""}>${esc(c.name)}</option>`).join("")}</select>`;
+  const cusSel=`<select class="zc" data-b="${k}" aria-label="Заказчик"><option value="">— выберите заказчика —</option>${opts(D.customers.slice().sort((a,c)=>cusNm(a.id).localeCompare(cusNm(c.id),"ru")), B.cid)}</select>`;
   let docsH="";
   if(!B.cid) docsH=`<p class="note">Не понял, какой это заказчик. Выберите его — сайт запомнит, что «${esc(B.b.place)}» это он.</p>`;
   else { const all=D.journal.filter(j=>j.snap && !isArch(j) && j.customerId===B.cid && !B.list.includes(j)).sort((a,c)=>a.date<c.date?1:a.date>c.date?-1:jNumSort(c,a)).slice(0,60);
