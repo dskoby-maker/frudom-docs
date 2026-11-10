@@ -120,7 +120,11 @@ function pvCusData(d1, d2){
   D.journal.filter(j=>j.snap && !isArch(j) && j.date>=d1 && j.date<=d2).forEach(j=>{ const x=docProfit(j), k=j.customerId||"-";
     if(!G.has(k)) G.set(k, {cid:k, docs:[], rev:0, rs:0, cost:0, exp:0, profit:0, miss:0, last:""}); const g=G.get(k);
     g.docs.push(x); g.rev+=x.rev; g.rs+=x.rev-x.tax; g.cost+=x.cost; g.exp+=x.exp; g.profit+=x.profit; if(x.miss) g.miss++; if(j.date>g.last) g.last=j.date; });
-  return [...G.values()].map(g=>{ ["rev","rs","cost","exp","profit"].forEach(k=>g[k]=r2(g[k])); return g; }).sort((a,b)=>b.rev-a.rev);
+  const had=new Set();
+  D.journal.forEach(j=>{ if(j.snap && !isArch(j) && j.customerId) had.add(j.customerId); });
+  (D.customers||[]).forEach(c=>{ if(!c.id || isPriv(c.id) || had.has(c.id) || G.has(c.id)) return;
+    G.set(c.id, {cid:c.id, docs:[], rev:0, rs:0, cost:0, exp:0, profit:0, miss:0, last:"", fresh:1}); });
+  return [...G.values()].map(g=>{ ["rev","rs","cost","exp","profit"].forEach(k=>g[k]=r2(g[k])); return g; }).sort((a,b)=>(b.rev-a.rev) || ((a.fresh?1:0)-(b.fresh?1:0)) || pvCusName(a.cid).localeCompare(pvCusName(b.cid),"ru"));
 }
 const pvCusName = cid => cid==="-" ? "Без заказчика" : (cusNm(cid) || "Заказчик");
 const pvAva = cid => { const h=dtHue(cid), n=pvCusName(cid).replace(/[«»"']/g,"").replace(/^(ФГБУ|ФГБНУ|ГБПОУ|ГАПОУ|ГУП|АО|ООО|ИП|ФГУП|МБОУ|ГБУ)\s+/i,"").trim();
@@ -131,7 +135,7 @@ function pvCusDraw(keepInput){
   const T=all.reduce((a,g)=>({rev:a.rev+g.rev, rs:a.rs+g.rs, cost:a.cost+g.cost+g.exp, profit:a.profit+g.profit, n:a.n+g.docs.length, miss:a.miss+g.miss}),{rev:0,rs:0,cost:0,profit:0,n:0,miss:0});
   const tiles = L.length ? L.map((g,i)=>{ const mg=g.rev>0?Math.max(0,Math.min(100,g.profit/g.rev*100)):0;
     return `<button type="button" class="pvcus" data-pvc="${esc(g.cid)}" style="--d:${Math.min(i,12)*30}ms">
-      <div class="pvch">${pvAva(g.cid)}<div class="pvcn"><b>${esc(pvCusName(g.cid))}</b><small>${g.docs.length} ${plural(g.docs.length,["накладная","накладные","накладных"])} · последняя ${fd(g.last).slice(0,5)}</small></div>${g.miss?`<span class="pvwarn" title="Нет закупки у ${g.miss} ${plural(g.miss,["накладной","накладных","накладных"])}"><i></i>${g.miss}</span>`:""}</div>
+      <div class="pvch">${pvAva(g.cid)}<div class="pvcn"><b>${esc(pvCusName(g.cid))}</b><small>${g.fresh?"накладных пока нет":`${g.docs.length} ${plural(g.docs.length,["накладная","накладные","накладных"])} · последняя ${fd(g.last).slice(0,5)}`}</small></div>${g.miss?`<span class="pvwarn" title="Нет закупки у ${g.miss} ${plural(g.miss,["накладной","накладных","накладных"])}"><i></i>${g.miss}</span>`:""}</div>
       <div class="pvcp"><small>Прибыль</small><b class="${g.profit<0?"neg":""}">${fm(g.profit)} ₽</b><span>${pct(g.profit,g.rev)}</span></div>
       <div class="pvbar"><i style="width:${mg}%"></i></div>
       <dl class="pvcs"><div><dt>Сумма</dt><dd>${fm(g.rev)}</dd></div><div><dt>На р/с</dt><dd>${fm(g.rs)}</dd></div><div><dt>Закупка</dt><dd>${fm(r2(g.cost+g.exp))}</dd></div></dl>
@@ -155,7 +159,7 @@ let PVL={cid:"", open:new Set(), ed:""};
 function pvLedger(cid){
   PVL={cid, open:new Set([pvMonth()==="all" ? "" : pvMonth()]), ed:""};
   const c=cus(cid), docs=D.journal.filter(j=>j.snap && !isArch(j) && (j.customerId||"-")===cid);
-  if(!docs.length){ toast("info","Накладных нет",""); return; }
+  if(!docs.length){ openCard(`<div class="dc-head"><div><div class="dc-kicker">Заказчик · прибыль</div><h3>${esc(pvCusName(cid))}</h3>${c.inn?`<div class="dc-sub">ИНН ${esc(c.inn)}</div>`:""}</div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div><p class="muted">Накладных пока нет. Когда появится первая, здесь будут сумма, закупка и прибыль.</p>`, true, ()=>{}); return; }
   if(!PVL.open.has(pvMonth())||pvMonth()==="all"){ const lm=docs.map(j=>j.date.slice(0,7)).sort().pop(); PVL.open=new Set([lm]); }
   CARD_RE=()=>pvLedger(cid);
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Заказчик · прибыль</div><h3>${esc(pvCusName(cid))}</h3>${c.inn?`<div class="dc-sub">ИНН ${esc(c.inn)}</div>`:""}</div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div><div id="pvl"></div>
