@@ -97,7 +97,7 @@ function pvInit(){
   const debt=$("#pv-debt");
   debt.addEventListener("click", dbClick);
   debt.addEventListener("input", dbInput);
-  debt.addEventListener("keydown", e=>{ if(e.key==="Enter" && e.target.closest(".dbadd")){ e.preventDefault(); dbAdd(); } });
+  debt.addEventListener("keydown", e=>{ if(e.key==="Enter" && e.target.matches(".dbkpi [data-dbf]")){ e.preventDefault(); e.target.click(); return; } if(e.key==="Enter" && e.target.closest(".dbadd")){ e.preventDefault(); dbAdd(); } });
 }
 function pvDraw(){
   pvInit(); const f=PV(), tab=$("#tab-profit"); if(!tab) return; tab.dataset.v=f.v;
@@ -650,7 +650,7 @@ function dbAdd(){
   if(!name){ toast("err","Напишите, кто", DBUI.side===DB_IN?"Кто вам должен.":"Кому должны вы."); const el=$("#db-name"); if(el) el.focus(); return; }
   if(!(v>0)){ toast("err","Напишите сумму",""); const el=$("#db-sum"); if(el) el.focus(); return; }
   const x={id:uid(), date:DBUI.date||todayISO(), side:DBUI.side===DB_OUT?DB_OUT:DB_IN, name, sum:String(r2(v)), paid:"0", due:DBUI.due||"", note:(DBUI.note||"").trim(), closed:"", pays:"[]", by:curUser()||""};
-  DBUI.sum=""; DBUI.note=""; DBUI.due=""; dbOpen=x.id;
+  DBUI.name=""; DBUI.sum=""; DBUI.note=""; DBUI.due=""; dbOpen=x.id;
   dbPut(x, x.side+": "+name+" — "+fm(v)+" ₽");
   toast("ok","Долг записан", name+" · "+fm(v)+" ₽");
 }
@@ -691,7 +691,7 @@ function dbEdit(id){
   if(!(sum>0)){ toast("err","Напишите сумму",""); return; }
   if(sum<(+x.paid||0)-0.004){ toast("err","Сумма меньше уже погашенного", "Уже возвращено "+fm(+x.paid)+" ₽."); return; }
   x.name=name; x.sum=String(r2(sum)); x.due=box.querySelector(".db-due").value||""; x.note=box.querySelector(".db-note").value.trim();
-  x.side=box.querySelector(".db-side").value===DB_OUT?DB_OUT:DB_IN; x.closed=""; dbTouch(x);
+  x.side=box.querySelector(".db-side").value===DB_OUT?DB_OUT:DB_IN; const wasF=String(x.closed)==="1" && (+x.paid||0)<(+x.sum||0)-0.004; x.closed=wasF?"1":""; dbTouch(x);
   dbPut(x, "Изменён долг «"+name+"»: "+x.side+" "+fm(+x.sum)+" ₽");
   toast("ok","Долг изменён", name);
 }
@@ -699,7 +699,6 @@ function dbDel(id){
   const x=pfArr("debts").find(y=>y.id===id); if(!x) return;
   D.debts=pfArr("debts").filter(y=>y.id!==id); if(dbOpen===id) dbOpen="";
   dirty("debts", id, true); logEv("Прибыль","Удалён долг «"+x.name+"»: "+x.side+" "+fm(+x.sum||0)+" ₽"); saveLocal(); if(curTab==="profit") drawProfit();
-  toast("info","Долг удалён", x.name+". Можно вернуть кнопкой «Отменить».");
 }
 function dbCard(x, i){
   const left=dbLeft(x), op=dbOpen===x.id, inn=x.side!==DB_OUT, late=dbLate(x), paid=+x.paid||0, sum=+x.sum||0;
@@ -728,9 +727,9 @@ function dbDraw(){
   const lateN=all.filter(dbLate).length;
   box.innerHTML=`<div class="dbhead"><div><h2>Долги</h2><small>Отдельная книжка: кто должен вам и кому должны вы. Оплаты накладных остаются в «Обзоре».</small></div></div>
     <p class="note" ${pfLoaded && !D.dbSrv?"":"hidden"}>Чтобы долги были видны на всех устройствах, обновите скрипт таблицы. Пока они хранятся только здесь.</p>
-    <div class="pvkpi"><div class="pos"><small>Мне должны</small><b>${fm(inn)} ₽</b><span>${all.filter(x=>x.side!==DB_OUT && dbLeft(x)>0.004).length} открытых</span></div>
-      <div class="due"><small>Я должен</small><b>${fm(out)} ₽</b><span>${all.filter(x=>x.side===DB_OUT && dbLeft(x)>0.004).length} открытых</span></div>
-      <div class="${net<0?"neg":"pos"}"><small>Разница</small><b>${net<0?"−":""}${fm(Math.abs(net))} ₽</b><span>${net<0?"вы должны больше":"вам должны больше"}${lateN?" · просрочено "+lateN:""}</span></div></div>
+    <div class="pvkpi dbkpi"><div class="pos go" data-dbf="in" role="button" tabindex="0" title="Показать, кто должен мне"><small>Мне должны</small><b>${fm(inn)} ₽</b><span>${all.filter(x=>x.side!==DB_OUT && dbLeft(x)>0.004).length} открытых</span></div>
+      <div class="due go" data-dbf="out" role="button" tabindex="0" title="Показать, кому должен я"><small>Я должен</small><b>${fm(out)} ₽</b><span>${all.filter(x=>x.side===DB_OUT && dbLeft(x)>0.004).length} открытых</span></div>
+      <div class="${net<0?"neg":"pos"} go" data-dbf="${lateN?"late":"open"}" role="button" tabindex="0" title="${lateN?"Показать просроченные":"Показать все открытые"}"><small>Разница</small><b>${net<0?"−":""}${fm(Math.abs(net))} ₽</b><span>${Math.abs(net)<0.005?"всё ровно":net<0?"вы должны больше":"вам должны больше"}${lateN?" · просрочено "+lateN:""}</span></div></div>
     <div class="dbadd"><label class="f dbkind"><span>Сторона</span><div class="fdseg" id="db-side" style="--x:${DBUI.side===DB_OUT?"100%":"0"}"><i></i><button type="button" data-dbk="${DB_IN}" class="${DBUI.side===DB_OUT?"":"on"}" aria-pressed="${DBUI.side!==DB_OUT}">Мне должны</button><button type="button" data-dbk="${DB_OUT}" class="${DBUI.side===DB_OUT?"on":""}" aria-pressed="${DBUI.side===DB_OUT}">Я должен</button></div></label>
       <label class="f dbwho"><span>Кто</span><input id="db-name" list="db-names" maxlength="160" placeholder="имя или компания" value="${esc(DBUI.name||"")}"><datalist id="db-names">${dbNames().map(n=>`<option value="${esc(n)}">`).join("")}</datalist></label>
       <label class="f dbsum"><span>Сумма, ₽</span><input id="db-sum" inputmode="decimal" placeholder="0" value="${esc(DBUI.sum||"")}"></label>
@@ -750,7 +749,7 @@ function dbInput(e){ const t=e.target;
 }
 function dbClick(e){ const b=e.target.closest("[data-dbk],[data-dbf],[data-dbopen],[data-dbadd],[data-dbpay],[data-dball],[data-dbundo],[data-dbclose],[data-dbre],[data-dbedit],[data-dbdel]"); if(!b) return;
   if(b.dataset.dbk){ DBUI.side=b.dataset.dbk; dbDraw(); return; }
-  if(b.dataset.dbf){ DBUI.flt=b.dataset.dbf; dbPaintList(); return; }
+  if(b.dataset.dbf){ DBUI.flt=b.dataset.dbf; dbPaintList(); if(b.closest(".dbkpi")){ const t=$("#db-tools"); if(t) t.scrollIntoView({behavior:"smooth", block:"start"}); } return; }
   if(b.dataset.dbopen!=null){ dbOpen=dbOpen===b.dataset.dbopen?"":b.dataset.dbopen; dbPaintList(); return; }
   if(b.dataset.dbadd!=null){ dbAdd(); return; }
   if(b.dataset.dbpay){ dbPay(b.dataset.dbpay, false); return; }
