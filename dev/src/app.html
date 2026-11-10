@@ -1755,6 +1755,21 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .btn{background:rgba(255,255,255,.72);border-color:rgba(28,34,32,.11);box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 1px 2px rgba(28,34,32,.05);transition:transform .16s var(--ease),box-shadow .22s var(--ease),background .2s,border-color .2s,color .2s}
 #fd-app .btn:hover{background:#fff;border-color:rgba(28,34,32,.18);box-shadow:inset 0 1px 0 #fff,0 6px 14px -8px rgba(28,34,32,.28)}
 #fd-app .btn:active{transform:scale(.97)}
+#fd-app .ctspb{margin-top:6px;white-space:nowrap}#fd-app .ctspb.has{color:var(--accent);border-color:rgba(106,44,78,.25)}
+#fd-app .cts-top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 0 14px}
+#fd-app .cts-list{display:grid;gap:10px}
+#fd-app .cts-it{border:1px solid var(--line);border-radius:14px;padding:12px 14px;background:rgba(255,255,255,.7);display:grid;gap:8px;min-width:0}
+#fd-app .cts-h{display:flex;gap:10px;align-items:flex-start}#fd-app .cts-h b{font-size:15px;line-height:1.35;overflow-wrap:anywhere}
+#fd-app .cts-n{flex:none;display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700}
+#fd-app .cts-m{display:flex;flex-wrap:wrap;gap:6px 18px;padding-left:34px;font-variant-numeric:tabular-nums}#fd-app .cts-m span{display:grid;font-size:13.5px;font-weight:600}#fd-app .cts-m small{font-size:11px;font-weight:400;color:var(--muted)}
+#fd-app .cts-c{margin-left:34px;padding:9px 11px;border-radius:10px;background:var(--bg)}#fd-app .cts-c small{font-size:11px;color:var(--muted)}#fd-app .cts-c p{margin:3px 0 0;font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+#fd-app .cts-p{all:unset;box-sizing:border-box;margin-left:34px;cursor:pointer;font-size:12.5px;color:var(--accent);font-weight:600}#fd-app .cts-p:hover{text-decoration:underline}#fd-app .cts-p:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+#fd-app .cts-empty{display:grid;gap:4px;text-align:center;padding:22px;border:1px dashed var(--line);border-radius:14px;color:var(--muted)}#fd-app .cts-empty b{color:var(--ink)}
+#fd-app .cts-e{border:1px solid var(--line);border-radius:14px;padding:12px;display:grid;gap:8px;background:rgba(255,255,255,.75)}
+#fd-app .cts-eh{display:flex;gap:8px;align-items:center}#fd-app .cts-eh input{flex:1;min-width:0}
+#fd-app .cts-eg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}#fd-app .cts-eg label,#fd-app .cts-ec{display:grid;gap:3px;font-size:12px;color:var(--muted)}#fd-app .cts-eg label.w{grid-column:1/-1}#fd-app .cts-eg input,#fd-app .cts-eg select,#fd-app .cts-ec textarea{width:100%;min-width:0}
+#fd-app .cts-foot{display:flex;gap:8px;align-items:center;margin-top:12px;position:sticky;bottom:-1px;background:inherit;padding:10px 0 2px}
+@media (max-width:560px){#fd-app .cts-eg{grid-template-columns:1fr 1fr}#fd-app .cts-m,#fd-app .cts-c,#fd-app .cts-p{margin-left:0;padding-left:0}}
 /* без синей подсветки нажатия Android/Chrome: у кнопок своё нажатие (scale/фон) */
 html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-highlight-color:transparent}
 #fd-app .btn.pri{background:linear-gradient(180deg,#7B3A5E 0%,#622749 100%);border-color:rgba(70,20,48,.55);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 8px 18px -10px rgba(106,44,78,.65)}
@@ -2563,7 +2578,7 @@ function handleErr(e){ if(e.message==="auth"){ showLogin("Неверный па�
   else if(e && !e.net){ setStatus("err","Ошибка таблицы, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Таблица ответила ошибкой","«"+String(e.message||e).slice(0,160)+"». Всё сохранено на этом устройстве, повторю сам. Если повторяется — пришлите этот текст Claude."); } }
   else { setStatus("err","Не сохранено — нет связи, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Нет связи с Google Таблицей",(e&&e.message?"Причина: "+e.message+". ":"")+"Всё сохранено на этом устройстве и отправится автоматически, когда связь появится. Ничего делать не нужно."); } } }
 
-const NEED_VER=24;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
+const NEED_VER=25;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
 function srvVerCheck(v){ const el=$("#srvOld"); if(!el) return; const old=(+v||0)<NEED_VER; el.hidden=!old || docLimited(); D.srvVer=+v||0; }
 document.addEventListener("click",e=>{ if(!e.target.closest || !e.target.closest("#srvOldHow")) return; openCard(`<div class="dc-head"><div><div class="dc-kicker">Code.gs</div><h3>Как обновить скрипт таблицы</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
   <ol class="srvsteps"><li>GitHub → файл <b>dev/Code.template.gs</b> → кнопка «Copy raw file» (два квадратика).</li><li>Таблица «Документы ФД» → «Расширения» → «Apps Script» → файл <b>Код.gs</b> → Ctrl+A → Ctrl+V → «Сохранить». Файл «Пароли.gs» не трогать.</li><li>«Начать развёртывание» → «Управление развёртываниями» → карандаш → «Версия: новая версия» → «Развернуть».</li><li>Обновите эту страницу — жёлтая плашка исчезнет.</li></ol>
@@ -6136,7 +6151,7 @@ function renderContracts(cid){ if(typeof renderAkt==="function" && AKT.cid===cid
   $("#ct-body").innerHTML = ctrs(cid).map(x=>`<tr data-id="${x.id}"><td><select data-k="supplierId">${supOpts(x.supplierId)}</select></td>
     <td><input data-k="basis" value="${esc(x.basis)}" placeholder="ЭЗК-26-91390881 от 30.09.2026"></td><td><input data-k="ikz" value="${esc(x.ikz)}" inputmode="numeric"></td>
     <td><input data-k="maxSum" value="${esc(x.maxSum)}" inputmode="decimal" placeholder="—"></td><td><input data-k="dateTo" type="date" value="${esc(x.dateTo)}"></td>
-    <td><div class="cturl"><input data-k="url" value="${esc(x.url||"")}" placeholder="вставьте ссылку на договор" inputmode="url"${(D.srvVer||0)>=10?"":` disabled title="Сначала обновите Code.gs — иначе ссылка не сохранится"`}>${ctUrl(x.url)?`<a class="btn sm pri" href="${esc(ctUrl(x.url))}" target="_blank" rel="noopener" title="Открыть договор">Открыть ↗</a>`:""}</div></td>
+    <td><div class="cturl"><input data-k="url" value="${esc(x.url||"")}" placeholder="вставьте ссылку на договор" inputmode="url"${(D.srvVer||0)>=10?"":` disabled title="Сначала обновите Code.gs — иначе ссылка не сохранится"`}>${ctUrl(x.url)?`<a class="btn sm pri" href="${esc(ctUrl(x.url))}" target="_blank" rel="noopener" title="Открыть договор">Открыть ↗</a>`:""}</div>${ctSpecBtn(x)}</td>
     <td class="num">${fm(ctrUsed(x.id))}</td><td><button class="btn ghost danger sm" data-del title="Удалить контракт">×</button></td></tr>`).join("")
     || `<tr><td colspan="8" class="muted" style="padding:12px 6px">Контрактов пока нет.</td></tr>`;
   $("#ct-add").onclick=()=>{ if(!cid) return; const x={id:uid(), customerId:cid, supplierId:"", basis:"", ikz:"", maxSum:"", dateTo:""}; D.contracts.push(x); dirty("contracts",x.id); renderContracts(cid); };
@@ -6150,6 +6165,47 @@ ctb.addEventListener("input",ctSet); ctb.addEventListener("change",e=>{ if(e.tar
 ctb.addEventListener("click",e=>{ const b=e.target.closest("[data-del]"); if(!b) return;
   if(!b.dataset.armed){ b.dataset.armed=1; b.textContent="Удалить?"; return; }
   const id=b.closest("tr").dataset.id, x=ctr(id); D.contracts=D.contracts.filter(c=>c.id!==id); dirty("contracts",id,true); if(D.draft.contractId===id) D.draft.contractId=""; renderContracts(x.customerId); });
+/* ---------- товары по договору: полные характеристики, как в договоре (поле контракта spec — JSON, Code.gs ≥ 25) ----------
+   позиция: {name, chars, unit, price, qty, per (срок/период), pid (товар на сайте)} */
+const ctSpec = x => { try{ const a=JSON.parse(x&&x.spec||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; } };
+const ctSpecSrv = () => (D.srvVer||0)>=25 || (D.contracts||[]).some(x=>x.spec!=null);
+const ctSpecBtn = x => { const n=ctSpec(x).length; return `<button type="button" class="btn ghost sm ctspb${n?" has":""}" data-ctspec="${x.id}" title="Товары и характеристики, как в договоре">${n?`Товары по договору · ${n}`:"+ Товары по договору"}</button>`; };
+let CTS=null;
+function ctSpecCard(id, edit){ const x=ctr(id); if(!x){ toast("info","Договора уже нет"); return; }
+  const L=ctSpec(x), s=sup(x.supplierId), u=ctUrl(x.url), c=cus(x.customerId); CTS={id, edit:!!edit, L:edit?L.map(o=>Object.assign({},o)):null};
+  const prods=(D.products||[]).filter(p=>custPrice(x.customerId,p.id)!=null).sort((a,b)=>String(a.name).localeCompare(String(b.name),"ru"));
+  const pOpt=sel=>`<option value="">— не выбран —</option>`+prods.map(p=>`<option value="${p.id}"${p.id===sel?" selected":""}>${esc(p.name)}</option>`).join("");
+  const sub=[s&&s.name?supShort(s.name):"", x.dateTo?"до "+fd(x.dateTo):"", +x.maxSum?"цена договора "+fm(+x.maxSum)+" ₽":""].filter(Boolean).join(" · ");
+  const view = L.length ? L.map((o,i)=>{ const p=o.pid?prod(o.pid):null;
+      return `<article class="cts-it"><div class="cts-h"><span class="cts-n">${i+1}</span><b>${esc(o.name||"Без названия")}</b></div>
+        <div class="cts-m">${o.price!==""&&o.price!=null?`<span><small>Цена</small>${fm(+o.price)} ₽${o.unit?" / "+esc(o.unit):""}</span>`:""}${o.qty?`<span><small>Количество</small>${esc(o.qty)}${o.unit&&/^[\d\s.,]+$/.test(o.qty)?" "+esc(o.unit):""}</span>`:""}${o.per?`<span><small>Срок поставки</small>${esc(o.per)}</span>`:""}</div>
+        ${o.chars?`<div class="cts-c"><small>Характеристики по договору</small><p>${esc(o.chars).replace(/\n/g,"<br>")}</p></div>`:""}
+        ${p?`<button type="button" class="cts-p" data-ctsp="${p.id}">Товар на сайте: ${esc(p.name)} <span aria-hidden="true">›</span></button>`:o.pid?`<span class="muted">Товар на сайте удалён</span>`:""}</article>`; }).join("")
+    : `<div class="cts-empty"><b>Товары не внесены</b><span>${ctSpecSrv()?"Нажмите «Изменить», чтобы внести товары и характеристики из договора.":"Чтобы вносить товары по договору, обновите скрипт таблицы (Code.gs, версия 25)."}</span></div>`;
+  const ed = () => CTS.L.map((o,i)=>`<div class="cts-e" data-i="${i}"><div class="cts-eh"><span class="cts-n">${i+1}</span><input data-k="name" value="${esc(o.name||"")}" placeholder="Наименование, как в договоре" aria-label="Наименование"><button type="button" class="btn ghost danger sm" data-ctsdel="${i}" aria-label="Удалить позицию">×</button></div>
+      <div class="cts-eg"><label>Цена, ₽<input data-k="price" data-money type="text" inputmode="decimal" value="${esc(o.price??"")}"></label><label>Ед.<input data-k="unit" value="${esc(o.unit||"")}"></label><label>Количество<input data-k="qty" value="${esc(o.qty||"")}"></label><label>Срок поставки<input data-k="per" value="${esc(o.per||"")}" placeholder="с 01.01.2026 по 31.12.2026"></label><label class="w">Товар на сайте<select data-k="pid">${pOpt(o.pid)}</select></label></div>
+      <label class="cts-ec">Характеристики (как в договоре)<textarea data-k="chars" rows="4">${esc(o.chars||"")}</textarea></label></div>`).join("");
+  CARD_RE = edit ? null : ()=>ctSpecCard(id, false);
+  openCard(`<div class="dc-head"><div><div class="dc-kicker">Товары по договору · ${esc(cusNm(x.customerId)||c.name||"")}</div><h3>${esc(x.basis||"Договор без номера")}</h3>${sub?`<div class="dc-sub">${esc(sub)}</div>`:""}</div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+    <div class="cts-top">${u?`<a class="btn pri" href="${esc(u)}" target="_blank" rel="noopener">Открыть договор ↗</a>`:`<span class="muted">Ссылки на договор нет — её можно вставить в таблице договоров.</span>`}${!edit&&ctSpecSrv()?`<button type="button" class="btn ghost" data-ctsed>${L.length?"Изменить":"+ Внести товары"}</button>`:""}</div>
+    <div class="cts-list" id="cts-list">${edit?ed():view}</div>
+    ${edit?`<div class="cts-foot"><button type="button" class="btn ghost" data-ctsadd>+ Позиция</button><span style="flex:1"></span><button type="button" class="btn ghost" data-ctscancel>Отмена</button><button type="button" class="btn pri" data-ctssave>Сохранить</button></div>`:""}`, true, ()=>{});
+  const d=$("#fd-dcard"); d.classList.add("cts-d");
+  d.addEventListener("input", e=>{ const r=e.target.closest(".cts-e"), k=e.target.dataset.k; if(!CTS||!CTS.edit||!r||!k) return; CTS.L[+r.dataset.i][k]=e.target.value; });
+  d.addEventListener("change", e=>{ const r=e.target.closest(".cts-e"), k=e.target.dataset.k; if(!CTS||!CTS.edit||!r||k!=="pid") return; const o=CTS.L[+r.dataset.i], p=prod(e.target.value); o.pid=e.target.value;
+    if(p){ if(!o.name) o.name=p.name; if(!o.unit) o.unit=p.unit; if(o.price===""||o.price==null){ const cp=custPrice(x.customerId,p.id); if(cp!=null) o.price=String(cp); } ctSpecRedraw(x.customerId, pOpt, ed); } });
+  d.addEventListener("click", e=>{ const t=e.target;
+    if(t.closest("[data-ctsed]")){ ctSpecCard(id, true); return; }
+    if(t.closest("[data-ctscancel]")){ ctSpecCard(id, false); return; }
+    if(t.closest("[data-ctsadd]")){ CTS.L.push({name:"", chars:"", unit:"", price:"", qty:"", per:"", pid:""}); ctSpecRedraw(x.customerId, pOpt, ed); const n=d.querySelectorAll(".cts-e"); n[n.length-1].querySelector("input").focus(); return; }
+    const dl=t.closest("[data-ctsdel]"); if(dl){ CTS.L.splice(+dl.dataset.ctsdel,1); ctSpecRedraw(x.customerId, pOpt, ed); return; }
+    if(t.closest("[data-ctssave]")){ if(!ctSpecSrv()){ toast("warn","Сначала обновите Code.gs","Без нового скрипта таблица не сохранит товары по договору."); return; }
+      const out=CTS.L.map(o=>({name:String(o.name||"").trim(), chars:String(o.chars||"").trim(), unit:String(o.unit||"").trim(), price:o.price===""||o.price==null?"":String(r2(+num(o.price))), qty:String(o.qty||"").trim(), per:String(o.per||"").trim(), pid:o.pid||""})).filter(o=>o.name||o.chars);
+      x.spec=out.length?JSON.stringify(out):""; dirty("contracts", x.id); saveLocal(); logEv("Контракты","Товары по договору «"+(x.basis||"")+"»: "+out.length+" поз."); toast("ok","Сохранено", out.length+" "+posWord(out.length)+" по договору"); ctSpecCard(id, false); renderContracts(x.customerId); return; }
+    const pp=t.closest("[data-ctsp]"); if(pp && typeof pdCard==="function"){ const dd=$("#fd-dcard"); if(dd){ navStash(dd); dd._bye=1; dd.classList.add("out"); setTimeout(()=>{ try{ dd.close(); }catch(z){} dd.remove(); NAV.pend&&(NAV.pend.at=Date.now()); pdCard(pp.dataset.ctsp); }, 200); } } });
+}
+function ctSpecRedraw(cid, pOpt, ed){ const box=$("#cts-list"); if(box) box.innerHTML=ed(); }
+document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-ctspec]"); if(!b) return; e.preventDefault(); ctSpecCard(b.dataset.ctspec, false); });
 /* список цен заказчика: по страницам (10 / 20 / 50 / все), поиск и фильтр */
 const PRV={cid:null, page:0, q:"", f:"all"};
 const prSize = () => { const v=getPrefs().prSize; return v===0 ? 1e9 : [10,20,50].includes(v) ? v : 10; };
