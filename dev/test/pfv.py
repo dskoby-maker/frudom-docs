@@ -15,7 +15,7 @@ async def run(b, vw, tag):
       Object.assign(D.draft,{id:'pv'+t, customerId:c.id, number:'', lines:[{productId:'pp'+t,qty:'13.5',price:'178.6'}]}); }""", tag)
     await pg.evaluate(TAB+"('doc')"); await pg.wait_for_timeout(300); await pg.click('#d-save'); await pg.wait_for_timeout(1500)
     await pg.evaluate(TAB+"('profit')"); await pg.wait_for_timeout(2500)
-    ok(await pg.locator('#pv-seg button').count()==4, f'{tag}: переключатель из четырёх разделов')
+    ok(await pg.locator('#pv-seg button').count()==5, f'{tag}: переключатель из пяти разделов (с «Долгами»)')
     await pg.click('#pv-seg [data-pv="cus"]'); await pg.wait_for_timeout(500)
     ok(await pg.locator('#pv-cus .pvcus').count()>=1, f'{tag}: плитки заказчиков')
     ok(await pg.locator('#pf-cards').is_hidden(), f'{tag}: «Обзор» скрыт в разделе заказчиков')

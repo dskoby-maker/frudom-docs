@@ -43,7 +43,7 @@ const MONEY_SEL = [
   /* прибыль, закупка, расходы */ "#po-sum", ".pfbs", ".pfc", ".pfe", ".pfps", ".pdsum", ".pvss", "#pvl-sum", "#pvi-sum", ".pvxs",
   ".dzc", ".dzs", ".dze", ".bzc", ".bzs", ".bze", ".pcp", ".dzt", ".bzt",
   /* банк, счета, акты */ "#bnp-sum", ".bnps", ".invli[data-k=price]", "[data-akt=prior]", "input[data-s=price]",
-  /* склад */ ".skbp", ".skf-price", ".skf-ppc", ".skmp", ".mi-price", ".mi-sum", ".mi-total"
+  /* склад */ "#db-sum", "#db-pay", ".db-sum", ".skbp", ".skf-price", ".skf-ppc", ".skmp", ".mi-price", ".mi-sum", ".mi-total"
 ].join(",");
 const moneyGrp = v => { v=String(v==null?"":v); const s=v.replace(/[\s  ]/g,""), m=s.match(/^(-?)(\d+)([.,]\d*)?$/);
   return m ? m[1]+m[2].replace(/\B(?=(\d{3})+(?!\d))/g," ")+(m[3]||"") : v; };
