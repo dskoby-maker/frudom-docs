@@ -260,7 +260,7 @@
 #fd-app .psm{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,.14);max-height:320px;overflow:auto;padding:4px 0}
 #fd-app .psm button{display:flex;gap:10px;align-items:baseline;width:100%;text-align:left;background:none;border:0;padding:10px 14px;font:inherit;font-size:15px;color:var(--ink);cursor:pointer}
 #fd-app .psm button.on,#fd-app .psm button:hover{background:var(--accent-soft)}#fd-app .psm button span{flex:1;min-width:0}#fd-app .psm button small{color:var(--muted);white-space:nowrap;font-size:12.5px}
-#fd-app .psm b{font-weight:700}#fd-app .psm .psnew{color:var(--accent);font-weight:600;border-top:1px solid var(--line)}#fd-app .psm .psnew:first-child{border-top:0}#fd-app .line select.nu{padding:6px 4px;min-width:0}#fd-app .psm .pst{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:8px 14px 2px}#fd-app .psm .psn{padding:10px 14px;color:var(--muted);font-size:14px}
+#fd-app .psm .pst.psc{color:var(--accent)}#fd-app .psm .psx>span{opacity:.62}#fd-app .psm b{font-weight:700}#fd-app .psm .psnew{color:var(--accent);font-weight:600;border-top:1px solid var(--line)}#fd-app .psm .psnew:first-child{border-top:0}#fd-app .line select.nu{padding:6px 4px;min-width:0}#fd-app .psm .pst{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:8px 14px 2px}#fd-app .psm .psn{padding:10px 14px;color:var(--muted);font-size:14px}
 #fd-app .line .ed{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:8px;width:34px;height:34px;flex:none;cursor:pointer;font-size:14px;transition:color .15s,border-color .15s}
 #fd-app .line .ed:hover,#fd-app .line .ed.on{color:var(--accent);border-color:var(--accent)}
 #fd-app .line.dup{background:#FDECEA;box-shadow:0 0 0 5px #FDECEA;border-radius:8px}
@@ -3015,19 +3015,26 @@ let PS=null;
 /* набрали артикул: «12» или «0012» */
 const psArtQ = q => { const w=norm(q).split(" ").filter(Boolean); return w.length===1 && /^\d{1,6}$/.test(w[0]) ? w[0] : ""; };
 const psArtHit = (p, aq) => { if(!aq) return false; const a=pArt(p); return !!a && (+a===+aq || a.startsWith(aq)); };
+/* товары выбранного договора (окно «Товары по договору»): по привязке pid, иначе по названию; порядок — как в договоре */
+function psCtrIdx(){ const x=ctr(D.draft.contractId); if(!x) return null; const L=ctSpec(x); if(!L.length) return null; const m=new Map();
+  L.forEach((o,i)=>{ let id=o.pid && prod(o.pid) && prod(o.pid).id ? o.pid : ""; if(!id){ const n=norm(o.name||""); const p=n && D.products.find(p=>norm(p.name)===n); if(p) id=p.id; } if(id && !m.has(id)) m.set(id,i); });
+  return m.size ? {m, nm:String(x.short||"").trim()||x.basis||"договору"} : null; }
 function psFind(q){ const dr=D.draft, cid=dr.customerId, inP=p=>custPrice(cid,p.id)!=null&&custPrice(cid,p.id)!=="";
+  const C=psCtrIdx(), inC=p=>!!(C && C.m.has(p.id));
   const words=norm(q).replace(/[«»"]/g,"").split(" ").filter(Boolean);
   const pool=docLimited()?D.products.filter(inP):D.products;
   const artQ = psArtQ(q), artHit = p => psArtHit(p, artQ);
   const hit=p=>{ if(artHit(p)) return true; const t=[p.name,...aliasesOf(p),...skNamesOf(p.id)].map(x=>norm(x).replace(/[«»"]/g,"")); return words.every(w=>t.some(x=>x.includes(w))); };
-  const L=(words.length?pool.filter(hit):pool.filter(inP)).map(p=>{ const n=norm(p.name); return {p, inP:inP(p), st:artQ&&+pArt(p)===+artQ?-1:words.length&&n.startsWith(words[0])?0:words.length&&n.includes(" "+words[0])?1:2}; });
-  L.sort((a,b)=>(b.inP-a.inP)||(a.st-b.st)||a.p.name.localeCompare(b.p.name,"ru"));
-  return L.slice(0,40); }
+  const L=(words.length?pool.filter(hit):pool.filter(p=>inP(p)||inC(p))).map(p=>{ const n=norm(p.name); return {p, inP:inP(p), inC:inC(p), ci:inC(p)?C.m.get(p.id):1e9, st:artQ&&+pArt(p)===+artQ?-1:words.length&&n.startsWith(words[0])?0:words.length&&n.includes(" "+words[0])?1:2}; });
+  L.sort((a,b)=>(b.inC-a.inC)||(b.inP-a.inP)||(a.st-b.st)||(a.ci-b.ci)||a.p.name.localeCompare(b.p.name,"ru"));
+  return Object.assign(L.slice(0,40),{ctr:C}); }
 const psMark = (name,q) => { const w=norm(q).split(" ").filter(Boolean)[0]; if(!w) return esc(name); const i=norm(name).indexOf(w); return i<0?esc(name):esc(name.slice(0,i))+"<b>"+esc(name.slice(i,i+w.length))+"</b>"+esc(name.slice(i+w.length)); };
 function psOpen(inp){ psClose(); const row=inp.closest(".line[data-i]"); if(!row) return; const q=inp.value, L=psFind(q), cid=D.draft.customerId; const psCl=pdClarify(L.map(x=>x.p), x=>x.name);
   const m=document.createElement("div"); m.className="psm"; m.setAttribute("role","listbox");
-  let h="", sec=null; L.forEach((x,k)=>{ const s=x.inP?"p":"o"; if(!docLimited() && s!==sec && L.some(y=>y.inP)){ sec=s; h+=`<div class="pst">${x.inP?"В прайсе заказчика":"Остальные товары"}</div>`; }
-    const pr=x.inP?custPrice(cid,x.p.id):x.p.price; h+=`<button type="button" data-psi="${k}"${k===0?' class="on"':""}><span>${psMark(x.p.name,q)}${psCl[x.p.id]?` <em class="pdcl">(${esc(psCl[x.p.id])})</em>`:""}${psArtHit(x.p, psArtQ(q))?` <em class="psart">арт. ${esc(pArt(x.p))}</em>`:""}</span><small>${pr!=null&&pr!==""?fm(+pr)+" ₽/"+esc(x.p.unit||""):""}</small>${skPsTag(x.p.id)}</button>`; });
+  const C=L.ctr, many=L.some(y=>y.inP)||!!C; let h="", sec=null; L.forEach((x,k)=>{ const s=x.inC?"c":x.inP?"p":"o";
+    if(s!==sec && (C ? true : !docLimited() && many)){ sec=s; h+=`<div class="pst${s==="c"?" psc":""}">${s==="c"?"По договору «"+esc(C.nm)+"»":s==="p"?(C?"Другие товары заказчика — не по этому договору":"В прайсе заказчика"):"Остальные товары"}</div>`; }
+    const sp=x.inC?ctSpec(ctr(D.draft.contractId))[C.m.get(x.p.id)]:null;
+    const pr=x.inP?custPrice(cid,x.p.id):sp&&sp.price!==""&&sp.price!=null?sp.price:x.p.price; h+=`<button type="button" data-psi="${k}" class="${k===0?"on":""}${C&&!x.inC?" psx":""}"><span>${psMark(x.p.name,q)}${psCl[x.p.id]?` <em class="pdcl">(${esc(psCl[x.p.id])})</em>`:""}${psArtHit(x.p, psArtQ(q))?` <em class="psart">арт. ${esc(pArt(x.p))}</em>`:""}</span><small>${pr!=null&&pr!==""?fm(+pr)+" ₽/"+esc(x.p.unit||""):""}</small>${skPsTag(x.p.id)}</button>`; });
   const nq=q.replace(/\s+/g," ").trim(), canNew=!docLimited() && nq.length>=2 && !D.products.some(p=>norm(p.name)===norm(nq));
   if(canNew) h+=`<button type="button" data-psnew class="psnew${L.length?"":" on"}"><span>+ Создать новый товар «${esc(nq)}»</span><small>сохранится в «Товарах»</small></button>`;
   m.innerHTML = h || `<div class="psn">${nq?"Ничего не найдено. Проверьте название":"Начните вводить название"}</div>`;
