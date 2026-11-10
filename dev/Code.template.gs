@@ -47,6 +47,9 @@ const S = {
     ['name','Поставщик'],['tax','Налог, % от выручки'],['id','ID поставщика']]},
   pother: { title: 'Прочие доходы и расходы', key: 'id', cols: [
     ['date','Дата'],['kind','Тип'],['sum','Сумма'],['note','На что / откуда'],['supplierName','Поставщик'],['id','ID (не менять)'],['supplierId','ID поставщика'],['by','Кто добавил'],['cat','ID категории'],['catName','Категория']]},
+  debts: { title: 'Долги', key: 'id', cols: [
+    ['date','Дата'],['side','Сторона'],['name','Кто'],['sum','Сумма'],['paid','Погашено'],['due','Вернуть до'],['note','Заметка'],
+    ['closed','Закрыт'],['id','ID (не менять)'],['pays','Погашения (не редактировать)'],['by','Кто добавил']]},
   purchases: { title: 'Закупки', key: 'id', cols: [
     ['date','Дата закупки'],['points','Точки'],['total','Потрачено'],['status','Статус'],['text','Сообщения закупщика'],['updated','Изменено'],['id','ID (не менять)'],['state','Выбор накладных (не редактировать)']]},
   daytasks: { title: 'Задачи на день', key: 'id', cols: [
@@ -574,7 +577,7 @@ function handle_(p) {
       return { ok: true, documents };
     }
     if (p.action === 'login')   { log_(me, [{ action: 'Вход', text: 'Вход в систему' + (p.device ? ' (' + String(p.device).slice(0, 60) + ')' : '') }]); return { ok: true, me: me }; }
-    if (p.action === 'profit')  { if (!me.admin) return { ok: false, error: 'forbidden' }; return { ok: true, costs: read_('costs'), doccosts: read_('doccosts'), psettings: read_('psettings'), purchases: read_('purchases'), pother: read_('pother') }; }
+    if (p.action === 'profit')  { if (!me.admin) return { ok: false, error: 'forbidden' }; return { ok: true, costs: read_('costs'), doccosts: read_('doccosts'), psettings: read_('psettings'), purchases: read_('purchases'), pother: read_('pother'), debts: read_('debts') }; }
     if (p.action === 'setPrefs') { upsertList_('uprefs', { upsert: [{ id: me.name, data: String(p.data || '').slice(0, 20000), updated: new Date().toISOString() }] }); return { ok: true }; }
     if (p.action === 'events')  { if (!me.admin) return { ok: false, error: 'forbidden' }; return { ok: true, events: readEvents_(+p.limit || 1000) }; }
     if (p.action === 'sync') { const g = guardChanges_(p.changes, p.base, p.protocol, me); if (g.error) return g; syncIn_(g.changes, me); return { ok: true, concurrency: 1, accepted: syncState_(g.changes, me) }; }
@@ -831,6 +834,7 @@ function applySync_(ch, me) {
     if (ch.doccosts) upsertList_('doccosts', ch.doccosts);
     if (ch.purchases) upsertList_('purchases', ch.purchases);
     if (ch.pother) { const sn = nameMap_('suppliers'); (ch.pother.upsert || []).forEach(o => o.supplierName = o.supplierId ? (sn[o.supplierId] || '') : 'Общие'); upsertList_('pother', ch.pother); }
+    if (ch.debts) upsertList_('debts', ch.debts);
     if (ch.psettings) { const sn = nameMap_('suppliers'); (ch.psettings.upsert || []).forEach(o => o.name = sn[o.id] || ''); upsertList_('psettings', ch.psettings); }
   }
   if (me && ev.length) log_(me, ev);
@@ -1471,7 +1475,7 @@ function sameValue_(a,b) { return String(a == null ? '' : a) === String(b == nul
 function guardChanges_(input, base, protocol, me) {
   const changes = JSON.parse(JSON.stringify(input || {})), conflicts = [];
   if (protocol !== 1) return { ok: false, error: 'Обновите страницу: для сохранения нужна новая версия сайта.' };
-  const allowed = lim_(me) ? ['journal','daytasks'] : me.role === 'staff' ? ['suppliers','products','cats','prices','journal','daytasks'] : ['suppliers','customers','products','cats','prices','specs','contracts','journal','daytasks','invoices'].concat(me.admin ? ['costs','doccosts','psettings','purchases','pother'] : []);
+  const allowed = lim_(me) ? ['journal','daytasks'] : me.role === 'staff' ? ['suppliers','products','cats','prices','journal','daytasks'] : ['suppliers','customers','products','cats','prices','specs','contracts','journal','daytasks','invoices'].concat(me.admin ? ['costs','doccosts','psettings','purchases','pother','debts'] : []);
   for (const t of Object.keys(changes)) {
     if (t === 'events') continue;
     if (!allowed.includes(t)) return { ok: false, error: 'forbidden' };

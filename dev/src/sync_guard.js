@@ -1,5 +1,5 @@
 /* Server baselines survive reloads; pending edits are never used as an authoritative baseline. */
-const SYNC_TABLES=['suppliers','customers','products','contracts','journal','costs','doccosts','psettings','daytasks','prices','specs','purchases','pother','cats','invoices'];
+const SYNC_TABLES=['suppliers','customers','products','contracts','journal','costs','doccosts','psettings','daytasks','prices','specs','purchases','pother','debts','cats','invoices'];
 const BASE = D.syncBase = D.syncBase || {};
 let conflictList = D.syncConflicts || [], syncBlocked = conflictList.length > 0, docSaving = false;
 const syncKey=(t,r)=>t==='prices'||t==='specs'?r.customerId+'|'+r.productId:r.id;
