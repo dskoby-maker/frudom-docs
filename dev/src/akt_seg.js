@@ -146,7 +146,7 @@ function renderAkt(cid){ const box=$("#akt-box"); if(!box) return; const L=ctrs(
   const ctr=L.find(x=>x.id===AKT.ctr)||L[0]; AKT.ctr=ctr.id; if(!AKT.cfg || AKT.cfg.__id!==ctr.id){ AKT.cfg=Object.assign(aktCfg(ctr),{__id:ctr.id}); AKT.dirty=false; }
   const M=aktModel(), sh=AKT.all?M.F:M.F.slice(0,8);
   box.innerHTML=`<h4 class="akth first">Собрать акт за месяц${skHQ("Месячный акт")}</h4><div class="aktbar">
-      <label class="f">Договор<select id="akt-ctr">${L.map(x=>`<option value="${x.id}"${x.id===ctr.id?" selected":""}>${esc(ctrLabel(x))}</option>`).join("")}</select></label>
+      <label class="f">Договор<select id="akt-ctr">${L.map(x=>ctrOpt(x, ctr.id)).join("")}</select></label>
       <label class="f">Месяц<input type="month" id="akt-ym" value="${esc(AKT.ym)}"></label>
       <label class="f">Дата акта<input type="date" id="akt-date" value="${esc(M.date)}"></label></div>
     <div class="akttiles"><div><small>Документов</small><b>${M.docs.length}${M.inM.length!==M.docs.length?` <em>из ${M.inM.length}</em>`:""}</b></div><div class="hi"><small>Поставлено за месяц</small><b>${aktM(M.total)} ₽</b></div><div><small>Позиций в акте</small><b>${M.F.length}</b></div><div><small>С начала договора</small><b>${aktM(M.cum)} ₽</b>${+ctr.maxSum>0?`<span>из ${aktM(+ctr.maxSum)}</span>`:""}</div><div><small>Фактический срок</small><b class="sm">${M.df?fd(M.df).slice(0,5)+" – "+fd(M.dl).slice(0,5):"—"}</b></div></div>

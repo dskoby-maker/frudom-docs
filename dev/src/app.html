@@ -162,7 +162,7 @@
 #fd-app section.tab{display:grid;gap:16px;margin-top:20px}
 #fd-app .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:12px;min-width:0}
 #fd-app .card h2{margin:0;font:600 15px var(--ui);color:var(--ink)}
-#fd-app .card h2 small{font-weight:400;color:var(--muted);margin-left:6px}#fd-app .impcard h2.ih{display:flex;align-items:center;gap:6px;flex-wrap:wrap}#fd-app .impcard .iclr{margin-left:auto;flex:none;width:auto}@media (max-width:640px){#fd-app .impcard h2.ih small{order:3;flex-basis:100%;margin-left:0}#fd-app .impcard h2.ih .iclr{order:2}}#fd-app .impcard .btn.armed,#fd-app .impcard .btn.armed:hover{color:#fff;background:#c0392b;border-color:#c0392b}#fd-app .dform select.unset{color:var(--muted)}#fd-app .dform h2.dh{display:flex;align-items:center;gap:6px}#fd-app .dform .dclr{order:9;margin-left:auto;width:auto;flex:none}#fd-app .dform .btn.armed,#fd-app .dform .btn.armed:hover{color:#fff;background:#c0392b;border-color:#c0392b}
+#fd-app input.ctsh{margin-top:6px;font-size:13px;min-height:34px;padding:6px 10px}#fd-app .card h2 small{font-weight:400;color:var(--muted);margin-left:6px}#fd-app .impcard h2.ih{display:flex;align-items:center;gap:6px;flex-wrap:wrap}#fd-app .impcard .iclr{margin-left:auto;flex:none;width:auto}@media (max-width:640px){#fd-app .impcard h2.ih small{order:3;flex-basis:100%;margin-left:0}#fd-app .impcard h2.ih .iclr{order:2}}#fd-app .impcard .btn.armed,#fd-app .impcard .btn.armed:hover{color:#fff;background:#c0392b;border-color:#c0392b}#fd-app .dform select.unset{color:var(--muted)}#fd-app .dform h2.dh{display:flex;align-items:center;gap:6px}#fd-app .dform .dclr{order:9;margin-left:auto;width:auto;flex:none}#fd-app .dform .btn.armed,#fd-app .dform .btn.armed:hover{color:#fff;background:#c0392b;border-color:#c0392b}
 #fd-app .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px 14px}
 #fd-app label.f{display:grid;gap:4px;font-size:12px;color:var(--muted);letter-spacing:.02em;min-width:0;margin:0}
 #fd-app label.f.wide{grid-column:1/-1}
@@ -2399,6 +2399,13 @@ const firstAddr = c => addrs(c)[0] || "";
 const ctrs = cid => (D.contracts||[]).filter(x=>x.customerId===cid);
 const ctr = id => id ? (D.contracts||[]).find(x=>x.id===id) : null;
 const ctrLabel = x => (x.basis||"(без номера)")+" — "+(x.supplierId ? (sup(x.supplierId).name||"исполнитель удалён") : "любой исполнитель");
+/* короткое название договора — только на сайте (поле short, Code.gs ≥ 26): «Краги · Байдаров», полное — серым в окне выбора */
+const ctShortSrv = () => (D.srvVer||0)>=26 || (D.contracts||[]).some(x=>"short" in x);
+const supSurname = id => { const n=String((sup(id)||{}).name||"").replace(/^\s*ИП\s+/i,"").trim(); return n.split(/\s+/)[0]||""; };
+const ctrNm = x => x ? (String(x.short||"").trim() || x.basis || "Договор без номера") : "";
+function ctrOpt(x, sel){ const sh=String(x.short||"").trim(), full=ctrLabel(x);
+  const t = sh ? sh+(x.supplierId?" · "+supSurname(x.supplierId):"") : full;
+  return `<option value="${x.id}"${x.id===sel?" selected":""}${sh?` title="${esc(full)}" data-full="${esc(full)}"`:""}>${esc(t)}</option>`; }
 const isArch = j => !!(j && j.snap && j.snap.meta && j.snap.meta.arch);
 /* нумерация: своя у каждой пары «поставщик + заказчик» */
 const numsOf = c => { try{ const o=JSON.parse((c&&c.nums)||"{}"); return o&&typeof o==="object"?o:{}; }catch(e){ return {}; } };
@@ -2578,7 +2585,7 @@ function handleErr(e){ if(e.message==="auth"){ showLogin("Неверный па�
   else if(e && !e.net){ setStatus("err","Ошибка таблицы, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Таблица ответила ошибкой","«"+String(e.message||e).slice(0,160)+"». Всё сохранено на этом устройстве, повторю сам. Если повторяется — пришлите этот текст Claude."); } }
   else { setStatus("err","Не сохранено — нет связи, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Нет связи с Google Таблицей",(e&&e.message?"Причина: "+e.message+". ":"")+"Всё сохранено на этом устройстве и отправится автоматически, когда связь появится. Ничего делать не нужно."); } } }
 
-const NEED_VER=25;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
+const NEED_VER=26;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
 function srvVerCheck(v){ const el=$("#srvOld"); if(!el) return; const old=(+v||0)<NEED_VER; el.hidden=!old || docLimited(); D.srvVer=+v||0; }
 document.addEventListener("click",e=>{ if(!e.target.closest || !e.target.closest("#srvOldHow")) return; openCard(`<div class="dc-head"><div><div class="dc-kicker">Code.gs</div><h3>Как обновить скрипт таблицы</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
   <ol class="srvsteps"><li>GitHub → файл <b>dev/Code.template.gs</b> → кнопка «Copy raw file» (два квадратика).</li><li>Таблица «Документы ФД» → «Расширения» → «Apps Script» → файл <b>Код.gs</b> → Ctrl+A → Ctrl+V → «Сохранить». Файл «Пароли.gs» не трогать.</li><li>«Начать развёртывание» → «Управление развёртываниями» → карандаш → «Версия: новая версия» → «Развернуть».</li><li>Обновите эту страницу — жёлтая плашка исчезнет.</li></ol>
@@ -2830,7 +2837,7 @@ function cpkOpen(sel,b){
   bd.className="cpk-bd"; pop.className="cpk-pop"; pop.setAttribute("role","listbox");
   const lab=sel.closest("label"), ttl=(lab ? [...lab.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join(" ").trim() : "")
     || sel.getAttribute("aria-label") || sel.title || (sel.id && (document.querySelector(`label[for="${CSS.escape(sel.id)}"]`)||{}).textContent) || "";
-  const isCus=!!sel.querySelector("option[data-full]") || /заказчик/i.test(ttl);
+  const isCus=/заказчик/i.test(ttl) || (!!sel.querySelector("option[data-full]") && !/договор|контракт/i.test(ttl));
   pop.innerHTML=`<div class="cpk-hd"><span class="cpk-ttl">${esc(ttl||"Выберите")}</span><button type="button" class="cpk-x" aria-label="Закрыть"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>`
     +(many?`<div class="cpk-qw"><svg class="cpk-qi" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="cpk-q" type="search" placeholder="${isCus?"Найти заказчика…":"Найти…"}" aria-label="Найти" autocomplete="off"></div>`:"")+`<div class="cpk-l">${body}</div>`;
   pop.querySelector(".cpk-x").addEventListener("click", e=>{ e.stopPropagation(); cpkClose(); });
@@ -2916,7 +2923,7 @@ function renderTotals(){
 function pickCtr(){ const dr=D.draft, list=ctrs(dr.customerId); const m=list.find(x=>x.supplierId===dr.supplierId)||list.find(x=>!x.supplierId)||list[0]; return m?m.id:""; }
 function renderCtr(){
   const dr=D.draft, list=ctrs(dr.customerId);
-  $("#d-ctr").innerHTML = list.map(x=>`<option value="${x.id}"${x.id===dr.contractId?" selected":""}>${esc(ctrLabel(x))}</option>`).join("")
+  $("#d-ctr").innerHTML = list.map(x=>ctrOpt(x, dr.contractId)).join("")
     + `<option value=""${!dr.contractId?" selected":""}>Без контракта — основание впишу сам</option>`;
   if(!dr.customerId) $("#d-ctr").innerHTML='<option value="" selected>(не выбрано)</option>'; $("#d-ctr").classList.toggle("unset", !dr.customerId);
   renderCtrInfo();
@@ -6149,7 +6156,7 @@ function renderContracts(cid){ if(typeof renderAkt==="function" && AKT.cid===cid
   const c=cus(cid); $("#ct-name").textContent=c.name?"— "+c.name:"";
   const supOpts = sel => `<option value=""${!sel?" selected":""}>любой</option>`+D.suppliers.map(x=>`<option value="${x.id}"${x.id===sel?" selected":""}>${esc(x.name)}</option>`).join("");
   $("#ct-body").innerHTML = ctrs(cid).map(x=>`<tr data-id="${x.id}"><td><select data-k="supplierId">${supOpts(x.supplierId)}</select></td>
-    <td><input data-k="basis" value="${esc(x.basis)}" placeholder="ЭЗК-26-91390881 от 30.09.2026"></td><td><input data-k="ikz" value="${esc(x.ikz)}" inputmode="numeric"></td>
+    <td><input data-k="basis" value="${esc(x.basis)}" placeholder="ЭЗК-26-91390881 от 30.09.2026"><input class="ctsh" data-k="short" value="${esc(x.short||"")}" placeholder="${ctShortSrv()?"Коротко для сайта: краги, молоко…":"Короткое название — сначала обновите Code.gs"}" title="Короткое название — только на сайте, в документы не попадает"${ctShortSrv()?"":" disabled"}></td><td><input data-k="ikz" value="${esc(x.ikz)}" inputmode="numeric"></td>
     <td><input data-k="maxSum" value="${esc(x.maxSum)}" inputmode="decimal" placeholder="—"></td><td><input data-k="dateTo" type="date" value="${esc(x.dateTo)}"></td>
     <td><div class="cturl"><input data-k="url" value="${esc(x.url||"")}" placeholder="вставьте ссылку на договор" inputmode="url"${(D.srvVer||0)>=10?"":` disabled title="Сначала обновите Code.gs — иначе ссылка не сохранится"`}>${ctUrl(x.url)?`<a class="btn sm pri" href="${esc(ctUrl(x.url))}" target="_blank" rel="noopener" title="Открыть договор">Открыть ↗</a>`:""}</div>${ctSpecBtn(x)}</td>
     <td class="num">${fm(ctrUsed(x.id))}</td><td><button class="btn ghost danger sm" data-del title="Удалить контракт">×</button></td></tr>`).join("")
@@ -6186,7 +6193,7 @@ function ctSpecCard(id, edit){ const x=ctr(id); if(!x){ toast("info","Догов
       <div class="cts-eg"><label>Цена, ₽<input data-k="price" data-money type="text" inputmode="decimal" value="${esc(o.price??"")}"></label><label>Ед.<input data-k="unit" value="${esc(o.unit||"")}"></label><label>Количество<input data-k="qty" value="${esc(o.qty||"")}"></label><label>Срок поставки<input data-k="per" value="${esc(o.per||"")}" placeholder="с 01.01.2026 по 31.12.2026"></label><label class="w">Товар на сайте<select data-k="pid">${pOpt(o.pid)}</select></label></div>
       <label class="cts-ec">Характеристики (как в договоре)<textarea data-k="chars" rows="4">${esc(o.chars||"")}</textarea></label></div>`).join("");
   CARD_RE = edit ? null : ()=>ctSpecCard(id, false);
-  openCard(`<div class="dc-head"><div><div class="dc-kicker">Товары по договору · ${esc(cusNm(x.customerId)||c.name||"")}</div><h3>${esc(x.basis||"Договор без номера")}</h3>${sub?`<div class="dc-sub">${esc(sub)}</div>`:""}</div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+  openCard(`<div class="dc-head"><div><div class="dc-kicker">Товары по договору · ${esc(cusNm(x.customerId)||c.name||"")}${String(x.short||"").trim()?" · "+esc(x.short.trim()):""}</div><h3>${esc(x.basis||"Договор без номера")}</h3>${sub?`<div class="dc-sub">${esc(sub)}</div>`:""}</div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <div class="cts-top">${u?`<a class="btn pri" href="${esc(u)}" target="_blank" rel="noopener">Открыть договор ↗</a>`:`<span class="muted">Ссылки на договор нет — её можно вставить в таблице договоров.</span>`}${!edit&&ctSpecSrv()?`<button type="button" class="btn ghost" data-ctsed>${L.length?"Изменить":"+ Внести товары"}</button>`:""}</div>
     <div class="cts-list" id="cts-list">${edit?ed():view}</div>
     ${edit?`<div class="cts-foot"><button type="button" class="btn ghost" data-ctsadd>+ Позиция</button><span style="flex:1"></span><button type="button" class="btn ghost" data-ctscancel>Отмена</button><button type="button" class="btn pri" data-ctssave>Сохранить</button></div>`:""}`, true, ()=>{});
