@@ -1653,13 +1653,15 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 @media (prefers-reduced-motion:reduce){#fd-app .pvseg>i,#fd-app .pvkind>i,#fd-app .pvmb,#fd-app .pvrx,#fd-app .dbc .pdbar i{transition:none}#fd-app .pvcus,#fd-app .pvday,#fd-app .pvcb,#fd-app .pvbar i,#fd-app .pvcbb>i,#fd-app .pvkpi>div,#fd-app .dbc{animation:none}}
 #fd-app .dbhead{display:flex;justify-content:space-between;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:4px}
 #fd-app .dbhead h2{margin:0 0 2px}#fd-app .dbhead small{color:var(--muted)}
-#fd-app .dbadd{display:grid;grid-template-columns:minmax(196px,1.15fr) minmax(180px,1.7fr) minmax(112px,.7fr) minmax(156px,.95fr) minmax(156px,.95fr) minmax(150px,1.2fr) auto;gap:12px;align-items:end;margin:4px 0 2px}
+#fd-app .dbadd{display:grid;width:100%;min-width:0;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.15fr) max-content;column-gap:12px;row-gap:12px;align-items:end;margin:4px 0 2px}
+#fd-app .dbadd .dbnote{grid-column:3 / -1}
 #fd-app .dbadd .f{display:flex;flex-direction:column;justify-content:flex-end;gap:6px;margin:0;min-width:0;font-size:12px;line-height:16px;color:var(--muted)}
-#fd-app .dbadd .f>span{min-height:16px;white-space:nowrap}
-#fd-app .dbadd input,#fd-app .dbadd .fdseg,#fd-app .dbadd .btn{height:42px;min-height:42px}
+#fd-app .dbadd .f>span{min-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fd-app .dbadd input,#fd-app .dbadd .fdseg,#fd-app .dbadd .btn{height:42px;min-height:42px;box-sizing:border-box}
 #fd-app .dbadd input{width:100%;min-width:0;max-width:100%}
-#fd-app .dbadd .fdseg{width:100%;align-items:stretch}
-#fd-app .dbadd .fdseg button{min-width:0;padding:0 10px}
+#fd-app .dbadd input[type=date]{min-width:0}
+#fd-app .dbadd .fdseg{width:100%;min-width:0;align-items:stretch}
+#fd-app .dbadd .fdseg button{min-width:0;padding:0 8px}
 #fd-app .dbadd .btn{padding:0 18px;white-space:nowrap}
 #fd-app .dbadd .dbph{visibility:hidden}
 #fd-app .dbtools{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:center;margin:14px 0 4px}
@@ -1678,8 +1680,7 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .dbhist{display:grid;gap:4px;margin-top:8px}
 #fd-app .dbhist div{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:4px 0;border-top:1px solid var(--line)}
 #fd-app .dbempty{text-align:center;padding:28px 10px;animation:fdin .3s ease}#fd-app .dbempty b{display:block;font-size:16px;margin:4px 0}
-@media (max-width:1100px){#fd-app .dbadd{grid-template-columns:1fr 1fr 1fr}#fd-app .dbadd .dbkind,#fd-app .dbadd .dbwho,#fd-app .dbadd .dbnote,#fd-app .dbadd .dbgo{grid-column:1/-1}}
-@media (max-width:640px){#fd-app .dbadd{grid-template-columns:1fr}#fd-app .dbadd .btn{width:100%}#fd-app .dbtools .pvsearch{max-width:none;flex-basis:100%}}
+@media (max-width:720px){#fd-app .dbadd{grid-template-columns:1fr 1fr}#fd-app .dbadd .dbkind,#fd-app .dbadd .dbwho,#fd-app .dbadd .dbnote,#fd-app .dbadd .dbgo{grid-column:1 / -1}#fd-app .dbadd .btn{width:100%}#fd-app .dbtools .pvsearch{max-width:none;flex-basis:100%}}
 @media (max-width:560px){#fd-app .dbc .pdh{grid-template-columns:minmax(0,1fr) auto 16px}#fd-app .dbc .pdp{display:none}}
 #fd-app .pfoadd #po-sup{width:auto;max-width:240px}
 @media(max-width:560px){#fd-app #pf-paysum{grid-template-columns:repeat(2,minmax(0,1fr))}#fd-app #pf-paysum>div:first-child{grid-column:span 2}#fd-app #pf-paysum b{font-size:17px}#fd-app .pfoadd #po-sup{max-width:none;width:100%}}
