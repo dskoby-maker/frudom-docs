@@ -731,13 +731,13 @@ function dbDraw(){
     <div class="pvkpi"><div class="pos"><small>Мне должны</small><b>${fm(inn)} ₽</b><span>${all.filter(x=>x.side!==DB_OUT && dbLeft(x)>0.004).length} открытых</span></div>
       <div class="due"><small>Я должен</small><b>${fm(out)} ₽</b><span>${all.filter(x=>x.side===DB_OUT && dbLeft(x)>0.004).length} открытых</span></div>
       <div class="${net<0?"neg":"pos"}"><small>Разница</small><b>${net<0?"−":""}${fm(Math.abs(net))} ₽</b><span>${net<0?"вы должны больше":"вам должны больше"}${lateN?" · просрочено "+lateN:""}</span></div></div>
-    <div class="dbadd"><div class="fdseg" id="db-side" style="--x:${DBUI.side===DB_OUT?"100%":"0"}"><i></i><button type="button" data-dbk="${DB_IN}" class="${DBUI.side===DB_OUT?"":"on"}" aria-pressed="${DBUI.side!==DB_OUT}">Мне должны</button><button type="button" data-dbk="${DB_OUT}" class="${DBUI.side===DB_OUT?"on":""}" aria-pressed="${DBUI.side===DB_OUT}">Я должен</button></div>
-      <label class="f">Кто<input id="db-name" list="db-names" maxlength="160" placeholder="имя или компания" value="${esc(DBUI.name||"")}"><datalist id="db-names">${dbNames().map(n=>`<option value="${esc(n)}">`).join("")}</datalist></label>
-      <label class="f">Сумма, ₽<input id="db-sum" inputmode="decimal" placeholder="0" value="${esc(DBUI.sum||"")}"></label>
-      <label class="f">Когда возник<input type="date" id="db-date" value="${esc(DBUI.date)}"></label>
-      <label class="f">Вернуть до<input type="date" id="db-due" value="${esc(DBUI.due||"")}"></label>
-      <label class="f">Заметка<input id="db-note" maxlength="200" placeholder="за что" value="${esc(DBUI.note||"")}"></label>
-      <button type="button" class="btn pri" data-dbadd>Добавить</button></div>
+    <div class="dbadd"><label class="f dbkind"><span>Сторона</span><div class="fdseg" id="db-side" style="--x:${DBUI.side===DB_OUT?"100%":"0"}"><i></i><button type="button" data-dbk="${DB_IN}" class="${DBUI.side===DB_OUT?"":"on"}" aria-pressed="${DBUI.side!==DB_OUT}">Мне должны</button><button type="button" data-dbk="${DB_OUT}" class="${DBUI.side===DB_OUT?"on":""}" aria-pressed="${DBUI.side===DB_OUT}">Я должен</button></div></label>
+      <label class="f dbwho"><span>Кто</span><input id="db-name" list="db-names" maxlength="160" placeholder="имя или компания" value="${esc(DBUI.name||"")}"><datalist id="db-names">${dbNames().map(n=>`<option value="${esc(n)}">`).join("")}</datalist></label>
+      <label class="f dbsum"><span>Сумма, ₽</span><input id="db-sum" inputmode="decimal" placeholder="0" value="${esc(DBUI.sum||"")}"></label>
+      <label class="f"><span>Когда возник</span><input type="date" id="db-date" value="${esc(DBUI.date)}"></label>
+      <label class="f"><span>Вернуть до</span><input type="date" id="db-due" value="${esc(DBUI.due||"")}"></label>
+      <label class="f dbnote"><span>Заметка</span><input id="db-note" maxlength="200" placeholder="за что" value="${esc(DBUI.note||"")}"></label>
+      <label class="f dbgo"><span class="dbph">.</span><button type="button" class="btn pri" data-dbadd>Добавить</button></label></div>
     <div class="dbtools" id="db-tools"><div class="pfchips" role="group" aria-label="Какие долги показать"><button type="button" data-dbf="open">Открытые</button><button type="button" data-dbf="in">Мне должны</button><button type="button" data-dbf="out">Я должен</button><button type="button" data-dbf="late">Просрочены</button><button type="button" data-dbf="all">Все</button></div>
       <label class="pvsearch">${pvIco("search")}<input id="db-q" type="search" placeholder="Поиск по имени или заметке" value="${esc(DBUI.q||"")}" aria-label="Поиск долга"></label></div>
     <div id="db-list"></div>`;
