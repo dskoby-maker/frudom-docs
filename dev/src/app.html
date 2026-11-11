@@ -1036,9 +1036,16 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .dmk-opt .signopt{margin:0;display:inline-flex;gap:14px;flex-wrap:wrap}
 #fd-app .dmk-pdf{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}#fd-app .dmk-pdf[hidden]{display:none!important}
 #fd-app .dmk-l{font-size:13px;color:var(--muted)}
+#fd-app .pdfk{display:inline-flex;align-items:center;gap:5px;font:500 13px var(--ui);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:5px 12px 5px 9px;min-height:32px;cursor:pointer;transition:background .15s,border-color .15s,color .15s,transform .1s;user-select:none;-webkit-user-select:none}
+#fd-app .pdfk::before{content:"";width:14px;height:14px;flex:none;border-radius:4px;border:1.5px solid #b9c1bc;background:#fff center/10px no-repeat;transition:background-color .15s,border-color .15s}
+#fd-app .pdfk:hover{border-color:var(--accent)}#fd-app .pdfk:active{transform:scale(.97)}
+#fd-app .pdfk[aria-pressed="true"]{background:var(--accent-soft);border-color:rgba(106,44,78,.45);color:var(--accent)}
+#fd-app .pdfk[aria-pressed="true"]::before{background-color:var(--accent);border-color:var(--accent);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 6.2l2.3 2.3 4.7-5' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+#fd-app .pdfk:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#fd-app .dmk-go{min-height:32px;padding:5px 14px;white-space:nowrap}#fd-app .dmk-go:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 #fd-app .dmk-new{margin-left:auto;width:auto}
 @media (max-width:640px){#fd-app .dmk-row{flex-direction:column}#fd-app .dmk-save{flex:none;min-height:54px}#fd-app .dmk-pr{flex:none}#fd-app .dmk-pr .btn{min-height:50px}#fd-app .dmk .btn small{font-size:10.5px}}
-@media (max-width:640px){#fd-app .dmk-new{min-height:36px;border:0}#fd-app .dmk-pdf{display:grid;grid-template-columns:auto 1fr 1fr;width:100%}#fd-app .dmk-pdf .btn{padding:5px 4px;white-space:nowrap}#fd-app .dmk-l{font-size:12px;line-height:1.15;width:42px}}
+@media (max-width:640px){#fd-app .dmk-new{min-height:36px;border:0}#fd-app .dmk-pdf{display:grid;grid-template-columns:repeat(3,1fr);width:100%;gap:6px}#fd-app .dmk-l{grid-column:1/-1}#fd-app .pdfk{justify-content:center;min-height:40px;padding:5px 6px}#fd-app .dmk-go{grid-column:1/-1;min-height:44px}}
 #fd-app .dtbox{margin:12px 0 14px;border:1px solid #f0dcb0;background:#fffaf0;border-radius:12px;padding:10px 12px}
 #fd-app .dt-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}#fd-app .dt-head b{font-size:15px}#fd-app .dt-head small{color:var(--muted);font-size:12.5px}
 #fd-app .dt-count{font-size:12.5px;color:#a3620c;font-weight:600}
@@ -2060,7 +2067,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
       </div>
       <div class="dmk-msg muted" id="d-saved"></div>
       <div class="dmk-opt">
-        <span class="dmk-pdf" data-npriv><span class="dmk-l">Одним PDF:</span><button class="btn sm" data-combo="invoice,torg12">Счёт + ТОРГ‑12</button><button class="btn sm" data-combo="invoice,upd">Счёт + УПД</button></span>
+        <span class="dmk-pdf" data-npriv role="group" aria-label="Что войдёт в один PDF"><span class="dmk-l">Одним PDF:</span><button class="pdfk" type="button" data-pdfk="invoice" aria-pressed="false">Счёт</button><button class="pdfk" type="button" data-pdfk="torg12" aria-pressed="false">ТОРГ‑12</button><button class="pdfk" type="button" data-pdfk="upd" aria-pressed="false">УПД</button><button class="btn sm pri dmk-go" id="d-pdfgo" type="button" data-combo="invoice,torg12">Скачать PDF</button></span>
         <span class="signopt"><label class="chk" id="d-signw" hidden><input type="checkbox" id="d-sign"> С печатью и подписью</label><label class="chk" id="d-scanw" hidden title="Только в скачанном PDF"><input type="checkbox" id="d-scan"> Вид скана в PDF</label></span>
         <button class="btn ghost sm dmk-new" id="d-new" type="button">Очистить форму</button>
       </div>
@@ -3542,12 +3549,24 @@ async function comboPdf(kinds, k){
   st.pdf.save(fileSafe(name)+".pdf"); markDownloaded(k.dr.id, kinds);
 }
 document.querySelectorAll("#fd-app [data-combo]").forEach(b=>b.onclick=async()=>{
+  if(!b.dataset.combo){ toast("warn","Отметьте документы","Выберите, что положить в PDF: Счёт, ТОРГ‑12 или УПД."); return; }
   const k0=calc(D.draft); if(!k0.lines.length){ $("#d-saved").textContent="Добавьте хотя бы один товар с количеством."; toast("err","Нет товаров в документе","Выберите товар и укажите количество больше нуля — затем нажмите кнопку снова."); return; }
   const html=b.innerHTML; b.disabled=true; b.textContent="Готовлю PDF…";
   try{ await commitDoc(); await comboPdf(b.dataset.combo.split(","), calc(D.draft)); $("#d-saved").textContent+=" Файл скачан."; docToast("PDF скачан — ищите его в папке «Загрузки»."); }
   catch(e){ $("#d-saved").textContent="Не получилось сделать PDF: "+e.message; toast("err","Не получилось сделать PDF", e.message+". Документ сохранён в журнал — попробуйте скачать ещё раз оттуда или откройте его и нажмите «Печать» → «Сохранить как PDF»."); }
-  finally{ b.disabled=false; b.innerHTML=html; }
+  finally{ b.disabled=false; b.innerHTML=html; if(b.id==="d-pdfgo") pdfKSync(); }
 });
+/* конструктор «Одним PDF»: отмечаешь Счёт / ТОРГ‑12 / УПД — кнопка скачивает их одним файлом (порядок всегда счёт → ТОРГ → УПД) */
+const PDFK_ALL=["invoice","torg12","upd"];
+function pdfKGet(){ let a=null; try{ a=JSON.parse(localStorage.getItem("frudom-pdfk")||"null"); }catch(e){} if(!Array.isArray(a)) a=["invoice","torg12"]; return PDFK_ALL.filter(x=>a.includes(x)); }
+function pdfKSync(){ const a=pdfKGet(), go=$("#d-pdfgo"); if(!go) return;
+  document.querySelectorAll("#fd-app [data-pdfk]").forEach(b=>b.setAttribute("aria-pressed", a.includes(b.dataset.pdfk)?"true":"false"));
+  go.dataset.combo=a.join(","); go.disabled=!a.length || go.textContent==="Готовлю PDF…";
+  if(go.textContent!=="Готовлю PDF…") go.textContent=!a.length?"Отметьте документы":a.length===1?"Скачать PDF":"Скачать PDF ("+a.length+")";
+  go.title=a.length?"В файле: "+a.map(x=>KSHORT[x]).join(" + "):"Отметьте хотя бы один документ"; }
+document.querySelectorAll("#fd-app [data-pdfk]").forEach(b=>b.onclick=()=>{ const k=b.dataset.pdfk, a=pdfKGet(), on=a.includes(k);
+  const nx=on?a.filter(x=>x!==k):a.concat(k); try{ localStorage.setItem("frudom-pdfk", JSON.stringify(PDFK_ALL.filter(x=>nx.includes(x)))); }catch(e){} pdfKSync(); });
+pdfKSync();
 $("#pv-close").onclick=()=>{ $("#pv").hidden=true; document.body.style.overflow=""; };
 $("#pv-print").onclick=()=>{
   const css=$("#fd-doc-css").textContent;
@@ -7872,7 +7891,7 @@ const HELP={
   "Заказ из файла":["Загрузите заявку заказчика как есть — PDF, Word (.docx), Excel — или вставьте текст из письма кнопкой «Вставить текст».",["Сайт сам найдёт заказчика (по номеру договора, ИНН или названию), дату поставки, адрес и товары, цены — по договору. Сканы и фото не читаются — для них вставьте текст.","Всё, в чём сайт не уверен, помечено: жёлтое — проверьте, красное — товар не найден, выберите его из списка (сайт запомнит название).","Проверьте замечания (красные — товар не найден, добавьте вручную), поправьте номер и сформируйте документы.","Если в файле несколько адресов — будет несколько документов, заполняйте по очереди.","«Скачать шаблон» — пустой файл с прайсом выбранного заказчика, можно заполнить и самому."]],
   "Стороны":["Кто продаёт, кому и по какому договору.",["Выберите заказчика и договор — поставщик (ИП) подставится сам.","Номер документа ставится следующий по порядку, дата — день поставки.","Если у заказчика несколько подразделений (как у МГУ), выберите нужное — в документах будут его реквизиты.","Адрес доставки — куда везём, он попадёт в накладную."]],
   "Товары":["Что везём и сколько.",["Выберите товар и впишите количество — цена подставится из прайса заказчика по договору.","«Добавить весь прайс» — сразу все позиции заказчика; лишние оставьте с пустым количеством.","× удаляет строку."]],
-  "Сформировать":["Создать документы.",["«Сохранить в журнал» — сохранить без печати, распечатаете позже из «Журнала».","Счёт / ТОРГ‑12 / УПД — откроется документ, вверху «Скачать PDF» или «Печать».","«Одним PDF: Счёт + ТОРГ‑12» — два документа одним файлом.","Каждый документ сохраняется в «Журнал»."]],
+  "Сформировать":["Создать документы.",["«Сохранить в журнал» — сохранить без печати, распечатаете позже из «Журнала».","Счёт / ТОРГ‑12 / УПД — откроется документ, вверху «Скачать PDF» или «Печать».","«Одним PDF» — отметьте Счёт, ТОРГ‑12 и/или УПД и нажмите «Скачать PDF»: всё выбранное одним файлом. Выбор запоминается.","Каждый документ сохраняется в «Журнал»."]],
   "Заявка → документы":["Для заявок, где у одного заказчика много точек (столовые МГУ).",["Выберите заказчика, подразделение и день поставки.","Ниже впишите количество по каждой точке — на каждую будет своя накладная."]],
   "Количество по адресам":["Перепишите цифры из заявки.",["«Вид таблицы» — как удобнее: адреса в строках или товары в строках (адреса и ОП тогда в столбцах). Выбор запоминается для каждого заказчика.","Enter и стрелки ↑↓ переходят к соседней клетке.","Пустые строки пропускаются.","Серый номер в «№ док.» подставлен автоматически. Нажмите на него, чтобы исправить. Если сотрёте — номер снова подставится сам."]],
   "Что скачать":["Отметьте документы и нажмите кнопку.","Все накладные создадутся сразу, скачаются одним PDF и сохранятся в «Журнал» одним комплектом."],
