@@ -1011,7 +1011,7 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .impg.cur{border-color:var(--accent);box-shadow:0 0 0 2px rgba(106,44,78,.12)}
 #fd-app .impg .ih{display:flex;align-items:center;gap:10px;flex-wrap:wrap}#fd-app .impg .ih b{font-size:14.5px}#fd-app .impg .ih small{color:var(--muted)}
 #fd-app .impg ul{margin:6px 0 0;padding-left:18px;font-size:13px}#fd-app .impg li{margin:2px 0}#fd-app .impg li.e{color:var(--err,#c0392b)}#fd-app .impg li.w{color:#a3620c}#fd-app .impg li.i{color:#2f7d4f}
-#fd-app .impmiss{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;font-size:13px}#fd-app .impmiss .e{color:var(--err,#c0392b)}#fd-app .impmiss select{flex:1;min-width:220px}
+#fd-app .impmiss{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:6px;font-size:13px}#fd-app .impmiss .e{color:var(--err,#c0392b)}#fd-app .impmiss select{flex:1;min-width:220px}#fd-app .impmiss .ims{position:relative;flex:1;min-width:220px}#fd-app .impmiss .ims-q{width:100%}#fd-app .imsm{max-height:300px}
 #fd-app #jr-head th[data-js]{cursor:pointer;user-select:none;white-space:nowrap}#fd-app #jr-head th[data-js]:hover{color:var(--accent)}#fd-app #jr-head th.sorted{color:var(--accent)}#fd-app #jr-head th[data-js]::after{content:attr(data-dir);margin-left:3px;font-size:9px}
 #fd-app .calload{margin-top:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);overflow:hidden}
 #fd-app .calload summary{list-style:none;display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;user-select:none}#fd-app .calload summary::-webkit-details-marker{display:none}
@@ -1924,7 +1924,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
 #fd-app .pcd-sim{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}#fd-app .pcd-chip{font:500 13px var(--ui);padding:5px 11px;border-radius:99px;border:1px dashed var(--accent);background:rgba(255,255,255,.6);color:var(--accent);cursor:pointer}#fd-app .pcd-chip em{font-style:normal;color:var(--muted);font-size:11.5px}
 #fd-app .pcd-add{margin-top:10px;position:relative}#fd-app .pcd-add input{width:100%}#fd-app .pcd-sug{display:grid;gap:2px;margin-top:4px}#fd-app .pcd-sug:empty{display:none}
 #fd-app .pcd-sug button{display:flex;justify-content:space-between;gap:8px;text-align:left;font:inherit;color:inherit;border:0;background:rgba(255,255,255,.7);padding:8px 10px;border-radius:8px;cursor:pointer}#fd-app .pcd-sug button:hover{background:#fff;color:var(--accent)}#fd-app .pcd-sug small{color:var(--muted);font-size:12px;flex:none}
-#fd-app .pcd-al{margin:10px 0 0;font-size:12.5px}#fd-app .pcd-per{margin-top:14px}
+#fd-app .pcd-al{margin:10px 0 0;font-size:12.5px;line-height:2}#fd-app .pcd-alc{display:inline-flex;align-items:center;gap:2px;background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:1px 4px 1px 10px;margin-right:4px;color:var(--ink)}#fd-app .pcd-alc button{border:0;background:none;color:var(--muted);font-size:15px;line-height:1;cursor:pointer;padding:2px 6px;border-radius:99px}#fd-app .pcd-alc button:hover{background:#f6dede;color:#b3261e}#fd-app .pcd-per{margin-top:14px}
 #fd-app .pcd-kpi{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}#fd-app .pcd-kpi span{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}#fd-app .pcd-kpi span i{font-style:normal;font-weight:600}#fd-app .pcd-kpi .bad b{color:var(--err)}
 #fd-app .pcd-ch{width:100%;height:auto;margin:2px 0 8px}#fd-app .pcd-ch polyline{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}#fd-app .pcd-ch .b{stroke:var(--accent)}#fd-app .pcd-ch .s{stroke:#8a9a92;stroke-dasharray:4 3}
 #fd-app .pcd-ch circle{fill:#fff;stroke-width:2;stroke-dasharray:none}#fd-app .pcd-ch text{font:10px var(--ui);fill:var(--muted)}
@@ -7327,6 +7327,38 @@ function impByPrice(cid, price){
   return D.products.filter(p=>{ const pr=custPrice(cid,p.id); if(pr==null || pr==="" || !(+pr>0)) return false; const x=+pr*100; return Math.round(x)===k || Math.floor(x+1e-9)===k; });
 }
 /* выпадающий список для ненайденной строки: сначала товары с той же ценой */
+/* «Это:» — поле с подсказками по мере ввода (как в строке документа); скрытый список — для выбора и проверок */
+const impMissField = (gi,mi,l,cid) => `<div class="ims"><input class="ims-q" data-impq="${gi}:${mi}" data-cid="${esc(cid)}" placeholder="Начните писать название товара…" autocomplete="off" aria-label="Какой товар на сайте — «${esc(l.name)}»"><select hidden data-impmiss="${gi}:${mi}">${impMissOpts(cid,l)}</select></div>`;
+let IMS=null;
+function imsLine(inp){ const [gi,mi]=String(inp.dataset.impq).split(":").map(Number), g=IMP&&IMP.r&&IMP.r.groups[gi]; return g&&g.miss[mi]; }
+function imsFind(q, cid, l){ const inP=p=>custPrice(cid,p.id)!=null&&custPrice(cid,p.id)!=="";
+  let words=norm(q).replace(/[«»"]/g,"").split(" ").filter(Boolean);
+  if(!words.length && l) words=[(norm(l.name).split(" ")[0]||"").slice(0,4)].filter(w=>w.length>=3);   /* пусто — похожие по первому слову из файла */
+  const hit=p=>{ const t=[p.name,...aliasesOf(p)].map(x=>norm(x).replace(/[«»"]/g,"")); return words.every(w=>t.some(x=>x.includes(w))); };
+  const L=(words.length?D.products.filter(hit):D.products.filter(inP)).filter(p=>!(l&&l.sug&&p.id===l.sug.id)).map(p=>{ const n=norm(p.name); return {p, inP:inP(p), st:words.length&&n.startsWith(words[0])?0:words.length&&n.includes(" "+words[0])?1:2}; });
+  L.sort((a,b)=>(b.inP-a.inP)||(a.st-b.st)||a.p.name.localeCompare(b.p.name,"ru")); return L.slice(0,30); }
+function imsClose(){ if(IMS){ IMS.m.remove(); IMS=null; } }
+function imsOpen(inp){ imsClose(); const l=imsLine(inp); if(!l) return; const cid=inp.dataset.cid, q=inp.value, L=imsFind(q, cid, l);
+  const nq=(q.replace(/\s+/g," ").trim()||l.name), qw=norm(q).split(" ").filter(Boolean), sug=l.sug&&prod(l.sug.id)&&qw.every(w=>norm(l.sug.name).includes(w))?l.sug:null, items=[];
+  if(sug) items.push({p:sug, sug:1, inP:custPrice(cid,sug.id)!=null&&custPrice(cid,sug.id)!==""}); L.forEach(x=>items.push(x));
+  let h="", sec=null; items.forEach((x,k)=>{ const sc=x.sug?"s":x.inP?"p":"o"; if(sc!==sec){ sec=sc; h+=`<div class="pst">${sc==="s"?"Похоже по названию":sc==="p"?"В прайсе заказчика":"Остальные товары"}</div>`; }
+    const pr=x.inP?custPrice(cid,x.p.id):null; h+=`<button type="button" data-imsi="${k}" class="${k===0?"on":""}"><span>${psMark(x.p.name,q)}</span><small>${pr!=null?fm(+pr)+" ₽/"+esc(x.p.unit||""):esc(x.p.unit||"")}</small></button>`; });
+  const exist=D.products.some(p=>norm(p.name)===norm(nq));
+  if(!exist) h+=`<button type="button" data-imsnew class="psnew${items.length?"":" on"}"><span>+ Создать новый товар «${esc(nq.charAt(0).toUpperCase()+nq.slice(1))}»</span><small>сохранится в «Товарах»</small></button>`;
+  const m=document.createElement("div"); m.className="psm imsm"; m.setAttribute("role","listbox"); m.innerHTML=h||`<div class="psn">Ничего не найдено</div>`;
+  inp.parentNode.appendChild(m); IMS={inp, m, items, nq, k:items.length?0:(exist?-1:-2)}; }
+function imsMove(d){ if(!IMS) return; const B=[...IMS.m.querySelectorAll("button")]; if(!B.length) return; let i=B.findIndex(b=>b.classList.contains("on")); i=(i+d+B.length)%B.length; B.forEach((b,j)=>b.classList.toggle("on", j===i)); B[i].scrollIntoView({block:"nearest"}); }
+function imsPick(b){ if(!IMS||!b) return; const inp=IMS.inp, l=imsLine(inp), sel=inp.parentNode.querySelector("select[data-impmiss]"), nq=IMS.nq, items=IMS.items; imsClose(); if(!l||!sel) return;
+  if(b.hasAttribute("data-imsnew")){ l.newName=nq; sel.value="__new"; } else { const x=items[+b.dataset.imsi]; if(!x) return; sel.value=x.p.id; }
+  impMissPick({target:sel}); }
+document.addEventListener("focusin",e=>{ const t=e.target; if(t.classList&&t.classList.contains("ims-q")){ imsOpen(t); } });
+document.addEventListener("input",e=>{ const t=e.target; if(t.classList&&t.classList.contains("ims-q")){ imsOpen(t); } });
+document.addEventListener("focusout",e=>{ if(e.target.classList&&e.target.classList.contains("ims-q")) setTimeout(()=>{ if(IMS && IMS.inp===e.target && document.activeElement!==e.target) imsClose(); },150); });
+document.addEventListener("keydown",e=>{ if(!IMS || e.target!==IMS.inp) return;
+  if(e.key==="ArrowDown"||e.key==="ArrowUp"){ e.preventDefault(); imsMove(e.key==="ArrowDown"?1:-1); }
+  else if(e.key==="Enter"){ e.preventDefault(); imsPick(IMS.m.querySelector("button.on")); }
+  else if(e.key==="Escape"){ e.preventDefault(); e.stopPropagation(); imsClose(); } }, true);
+document.addEventListener("mousedown",e=>{ const b=e.target.closest(".imsm button"); if(b){ e.preventDefault(); imsPick(b); } else if(e.target.closest(".imsm")) e.preventDefault(); });
 function impMissOpts(cid, l){
   const inPl=D.products.filter(p=>custPrice(cid,p.id)!=null&&custPrice(cid,p.id)!==""), amb=(l.amb||[]).map(p=>p.id);
   const o=p=>`<option value="${p.id}">${esc(p.name)} — ${fm(+custPrice(cid,p.id))} ₽</option>`;
@@ -7450,7 +7482,7 @@ function drawImp(){
    + (R.warn.length?`<div class="impg"><ul>${R.warn.map(w=>`<li class="${w.t}">${esc(w.m)}</li>`).join("")}</ul></div>`:"")
    + R.groups.map((g,i)=>`<div class="impg${IMP.cur===i?" cur":""}"><div class="ih"><b>${many?"Документ "+(i+1)+(g.num?" · № "+esc(g.num):""):"Позиций: "+g.items.length}${(()=>{ const b=branches(R.c).find(x=>x.id===g.branchId); return b&&(g.br||many)?" · "+esc(b.label||b.fullName):""; })()}</b><small>${esc(g.ship?(()=>{ const l=stLabel(g.ship,R.c.address); return /юр\. адрес/.test(l)?g.ship:l; })()+" · ":"")}${many?g.items.length+" поз. · ":""}${fm(g.sum)} ₽</small><span style="flex:1"></span>
       ${many||IMP.cur!==i?`<button class="btn sm${IMP.cur===i?"":" pri"}" data-impfill="${i}" type="button">${g.filled?"Заполнить заново":"Заполнить форму"}</button>`:`<button class="btn ghost sm" data-impfill="${i}" type="button">Заполнить заново</button>`}</div>
-      ${(g.miss||[]).map((l,mi)=>`<div class="impmiss"><span class="e">Не найден товар «${esc(l.name)}»${l.qty!==""?" — "+esc(String(l.qty).replace(".",","))+" "+esc(l.unit||""):""}${l.orig?" (в заявке «"+esc(l.orig)+"»)":""}${l.amb?" — цена "+fm(+l.price)+" ₽ у "+l.amb.length+" товаров договора":""}${l.sug?" — похоже на «"+esc(l.sug.name)+"», выберите, если это он":""}. Это:</span>${l.sug?`<button class="btn sm pri" type="button" data-impsug="${i}:${mi}">Да, «${esc(l.sug.name)}»</button>`:""}<select data-impmiss="${i}:${mi}">${impMissOpts((g.c||R.c).id,l)}</select></div>`).join("")}
+      ${(g.miss||[]).map((l,mi)=>`<div class="impmiss"><span class="e">Не найден товар «${esc(l.name)}»${l.qty!==""?" — "+esc(String(l.qty).replace(".",","))+" "+esc(l.unit||""):""}${l.orig?" (в заявке «"+esc(l.orig)+"»)":""}${l.amb?" — цена "+fm(+l.price)+" ₽ у "+l.amb.length+" товаров договора":""}${l.sug?" — похоже на «"+esc(l.sug.name)+"», выберите, если это он":""}. Это:</span>${l.sug?`<button class="btn sm pri" type="button" data-impsug="${i}:${mi}">Да, «${esc(l.sug.name)}»</button>`:""}${impMissField(i,mi,l,(g.c||R.c).id)}</div>`).join("")}
       ${g.warn.length?`<ul>${g.warn.map(w=>`<li class="${w.t}">${esc(w.m)}</li>`).join("")}</ul>`:(g.miss||[]).length?"":`<ul><li style="color:#2f7d4f">Все позиции найдены, цены по договору.</li></ul>`}</div>`).join("")
    + `<div class="row" style="margin-top:8px"><button class="btn ghost sm" id="imp-close" type="button">Скрыть результат</button></div>`;
 }
@@ -7713,7 +7745,7 @@ $("#imp-go").onclick=async()=>{ const t=$("#imp-ta").value.trim(); if(!t){ toast
   z.addEventListener("drop",e=>{ const fs=[...((e.dataTransfer&&e.dataTransfer.files)||[])]; if(fs.length) impLoad(fs.length>1?fs:fs[0]); }); })();
 function impMissPick(e){ const s=e.target.closest("[data-impmiss]"); if(!s||!s.value||!IMP||!IMP.r) return;
   const [gi,mi]=s.dataset.impmiss.split(":").map(Number), R=IMP.r, g=R.groups[gi], l=g&&g.miss[mi]; if(!l) return; let p=prod(s.value), made=false;
-  if(s.value==="__new"){ const name=l.name.charAt(0).toUpperCase()+l.name.slice(1); p=D.products.find(x=>norm(x.name)===norm(name));
+  if(s.value==="__new"){ const nn=String(l.newName||l.name).replace(/\s+/g," ").trim(), name=nn.charAt(0).toUpperCase()+nn.slice(1); delete l.newName; p=D.products.find(x=>norm(x.name)===norm(name));
     if(!p){ const u=/^шт/i.test(l.unit||"")?"шт":/^л/i.test(l.unit||"")?"л":/^уп/i.test(l.unit||"")?"уп":"кг"; p={id:uid(), name, code:"", unit:u, country:"", price:""}; D.products.push(p); dirty("products",p.id); made=true; logEv("Справочники","Новый товар из файла «"+(IMP.file||"")+"»: «"+name+"»"); } }
   if(!p) return;
   const al=aliasesOf(p); if(!made && !al.some(a=>norm(a)===norm(l.name))){ al.push(l.name); p.aliases=JSON.stringify(al.slice(-20)); dirty("products",p.id); saveLocal(); }
@@ -7749,7 +7781,7 @@ function mulBlock(M,i){ const dr=M.dr, k=calc(dr), lbl=mulLabel(dr), g=IMP&&IMP.
     <div class="mmeta"><label>№ <input data-mnum value="${esc(dr.number)}" inputmode="numeric"${inJ?" readonly title=\"Номер уже в журнале — менять в полной форме\"":""}></label><span>от ${fd(dr.date)}</span><span>${esc(supShort(sup(dr.supplierId).name||""))}</span></div>${typeof bnMulLine==="function"?bnMulLine(M):""}
     <table class="mt"><thead><tr><th>Товар</th><th class="n">Кол-во</th><th class="n">Цена</th><th class="n">Сумма</th></tr></thead><tbody>${rows||`<tr><td colspan="4" class="muted">Нет товаров</td></tr>`}</tbody>
       <tfoot><tr><td>Итого: ${k.lines.length} поз.</td><td></td><td></td><td class="n">${fm(k.t.sum)} ₽</td></tr></tfoot></table>
-    ${g&&(g.miss||[]).length?g.miss.map((l,mi)=>`<div class="impmiss"><span class="e">Не найден товар «${esc(l.name)}»${l.qty!==""?" — "+esc(String(l.qty).replace(".",","))+" "+esc(l.unit||""):""}${l.amb?" — цена "+fm(+l.price)+" ₽ у "+l.amb.length+" товаров договора":""}${l.sug?" — похоже на «"+esc(l.sug.name)+"», выберите, если это он":""}. Это:</span>${l.sug?`<button class="btn sm pri" type="button" data-impsug="${i}:${mi}">Да, «${esc(l.sug.name)}»</button>`:""}<select data-impmiss="${i}:${mi}">${impMissOpts(dr.customerId,l)}</select></div>`).join(""):""}
+    ${g&&(g.miss||[]).length?g.miss.map((l,mi)=>`<div class="impmiss"><span class="e">Не найден товар «${esc(l.name)}»${l.qty!==""?" — "+esc(String(l.qty).replace(".",","))+" "+esc(l.unit||""):""}${l.amb?" — цена "+fm(+l.price)+" ₽ у "+l.amb.length+" товаров договора":""}${l.sug?" — похоже на «"+esc(l.sug.name)+"», выберите, если это он":""}. Это:</span>${l.sug?`<button class="btn sm pri" type="button" data-impsug="${i}:${mi}">Да, «${esc(l.sug.name)}»</button>`:""}${impMissField(i,mi,l,dr.customerId)}</div>`).join(""):""}
     ${g&&g.warn.length?`<div class="impg"><ul>${g.warn.map(w=>`<li class="${w.t}">${esc(w.m)}</li>`).join("")}</ul></div>`:""}
     <div class="make"><button class="btn pri" data-mmake="invoice">Счёт<small>на оплату</small></button><button class="btn pri" data-mmake="torg12">ТОРГ‑12<small>товарная накладная</small></button><button class="btn pri" data-mmake="upd">УПД<small>универсальный</small></button></div>
     <div class="make2"><button class="btn" data-mcombo="invoice,torg12">Скачать счёт + ТОРГ‑12<small>одним PDF</small></button><button class="btn" data-mcombo="invoice,upd">Скачать счёт + УПД<small>одним PDF</small></button></div>
