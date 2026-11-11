@@ -2017,7 +2017,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
     <div class="card impcard" id="imp-card">
       <h2 class="ih">Заказ из файла <small>заполнит форму сам — останется проверить и напечатать</small><button class="btn ghost sm iclr" id="d-clrall" type="button" title="Очистить заявку, стороны, номер и товары">Очистить всё</button></h2>
       <div class="impdrop" id="imp-drop">
-        <label class="btn pri">Загрузить заявку<input type="file" id="imp-file" accept=".xlsx,.xls,.csv,.json,.pdf,.docx,.doc,.txt,image/*" hidden></label>
+        <label class="btn pri">Загрузить заявку<input type="file" id="imp-file" accept=".xlsx,.xls,.csv,.json,.pdf,.docx,.doc,.txt,image/*" multiple hidden></label>
         <button class="btn sm" id="imp-txt" type="button">Вставить текст</button>
         <span class="muted">или перетащите файл сюда · PDF, Word, Excel</span>
         <span style="flex:1"></span><button class="btn ghost sm" id="imp-tpl" type="button">Скачать шаблон</button>
@@ -7330,13 +7330,19 @@ function impByPrice(cid, price){
 function impMissOpts(cid, l){
   const inPl=D.products.filter(p=>custPrice(cid,p.id)!=null&&custPrice(cid,p.id)!==""), amb=(l.amb||[]).map(p=>p.id);
   const o=p=>`<option value="${p.id}">${esc(p.name)} — ${fm(+custPrice(cid,p.id))} ₽</option>`;
-  return `<option value="">— выберите товар из прайса —</option>` + (amb.length
+  const nw=l&&l.name?`<option value="__new">+ Создать новый товар «${esc(l.name)}»${l.unit?" ("+esc(l.unit)+")":""}</option>`:"";
+  const sug=l&&l.sug&&prod(l.sug.id)?`<optgroup label="Похоже по названию"><option value="${l.sug.id}">${esc(l.sug.name)}${custPrice(cid,l.sug.id)!=null&&custPrice(cid,l.sug.id)!==""?" — "+fm(+custPrice(cid,l.sug.id))+" ₽":""}</option></optgroup>`:"";
+  const rest=D.products.filter(p=>!inPl.includes(p)).sort((a,b)=>String(a.name).localeCompare(String(b.name),"ru"));
+  const oth=rest.length?`<optgroup label="Другие товары (нет в прайсе заказчика)">${rest.map(p=>`<option value="${p.id}">${esc(p.name)}${p.unit?" ("+esc(p.unit)+")":""}</option>`).join("")}</optgroup>`:"";
+  return `<option value="">— выберите товар —</option>` + sug + nw + (amb.length
     ? `<optgroup label="Цена ${fm(+l.price)} ₽ — как в заявке">${inPl.filter(p=>amb.includes(p.id)).map(o).join("")}</optgroup><optgroup label="Остальные товары договора">${inPl.filter(p=>!amb.includes(p.id)).map(o).join("")}</optgroup>`
-    : inPl.map(o).join(""));
+    : inPl.length?`<optgroup label="Прайс заказчика">${inPl.map(o).join("")}</optgroup>`:"") + oth;
 }
 function impItem(g,l,c,p){
-      const pr=custPrice(c.id,p.id); const price=(pr!=null&&pr!=="")?+pr:(l.price!==""?+l.price:getPrice(c.id,p.id));
-      if(pr==null||pr==="") g.warn.push({t:"w", m:"«"+p.name+"» нет в прайсе заказчика — цена "+(l.price!==""?"из файла":"базовая")+" "+fm(price)+" ₽."});
+      const pr=custPrice(c.id,p.id); if(g.issued && l.price!=="" && +l.price>0){   /* готовый документ: цена — как в нём */
+        if(pr!=null && pr!=="" && Math.abs(+pr - +l.price)>0.005) (g.pdiff=g.pdiff||[]).push(p.name+": "+fm(+l.price)+" (сейчас "+fm(+pr)+")"); }
+      const price=g.issued && l.price!=="" && +l.price>0 ? +l.price : (pr!=null&&pr!=="")?+pr:(l.price!==""?+l.price:getPrice(c.id,p.id));
+      if(g.issued){} else if(pr==null||pr==="") g.warn.push({t:"w", m:"«"+p.name+"» нет в прайсе заказчика — цена "+(l.price!==""?"из файла":"базовая")+" "+fm(price)+" ₽."});
       else if(l.price!=="" && Math.abs(+l.price-price)>0.005) g.warn.push({t:"w", m:"«"+p.name+"»: в файле цена "+fm(+l.price)+" ₽, по договору "+fm(price)+" ₽ — взята цена по договору."});
       const pk=l.orig?parsePack(l.orig):null, it={productId:p.id, qty:l.qty===""?"":String(l.qty), price:String(price)}; if(p.__fz) it.src=l.name;
       if(pk && pk.u!=="кг" && pk.u!=="г" && pk.u!==p.unit) it.pack=pk;
@@ -7391,26 +7397,35 @@ function impResolve({meta, lines}){
     brOf=(a,lb)=>{ const b0=brName(lb)||brName(meta.branch); if(b0) return b0; return a?bl.find(b=>addrs(b).some(z=>ptKey(z)===ptKey(a)))||bl.find(b=>shipFind([...addrs(b), b.address||""], a))||null:null; };
   const G=[], byKey={};
   lines.forEach(l=>{ const addr=l.addr||String(meta.ship||""), key=(l.num||"")+"|"+norm(l.br)+"|"+ptKey(addr); let g=byKey[key]; if(!g){ g=byKey[key]={num:l.num||"", addr, br:l.br||"", lines:[], warn:[]}; G.push(g); } g.lines.push(l); });
-  G.forEach((g,gi)=>{ if(!g.num && G.length===1 && meta.num) g.num=String(meta.num).trim();
+  G.forEach((g,gi)=>{ if(!g.num && G.length===1 && meta.num) g.num=String(meta.num).trim(); if(meta.issued && G.length===1){ g.issued=meta.issued; g.total=meta.total; }
     const br=brOf(g.addr, g.br); if(g.br && bl.length && !brName(g.br)) g.warn.push({t:"w", m:"ОП «"+g.br+"» не найдено у заказчика."}); g.branchId=br?br.id:(bl.length?bl[0].id:""); if(bl.length && !br) g.warn.push({t:"w", m:"Подразделение не определено по адресу — выбрано «"+(bl[0].label||bl[0].fullName)+"». Проверьте."});
     const all=[...addrs(br||c)]; if((br||c).address) all.push((br||c).address);
     if(g.addr){ const hit=shipFind(all, g.addr); g.ship=hit||g.addr; if(!hit){ const O2=shipElsewhere(c.id, g.branchId, g.addr); g.warn.push({t:"w", m: O2.length ? "Адрес «"+g.addr+"» похож на адрес подразделения «"+brNm(O2[0].b)+"» ("+O2[0].a+"), а выбрано «"+brNm(br||bl[0]||{})+"». Проверьте подразделение." : "Адреса «"+g.addr+"» нет в карточке заказчика — он будет вписан как «Другой адрес»."}); } } else g.ship="";
     g.items=[]; g.miss=[]; g.lines.forEach(l=>{ const p=impMatch(l.name, c.id, l.price);
+      if(p && g.issued && p.__fz && !p.__amb){ l.sug=p; g.miss.push(l); return; }   /* готовый документ: похожее название не подставляем само — только предлагаем */
       if(!p || p.__amb){ l.amb=p&&p.__amb||null; g.miss.push(l); return; }
       if(p.__pr===1) g.warn.push({t:"w", m:"«"+l.name+"» → «"+p.name+"»: по цене "+fm(+l.price)+" ₽ — в договоре только у этого товара такая цена. Проверьте."});
       else if(p.__pr>1) g.warn.push({t:"w", m:"«"+l.name+"» → «"+p.name+"»: цена "+fm(+l.price)+" ₽ есть у "+p.__pr+" товаров договора, выбран по названию. Проверьте."});
       else if(p.__fz) g.warn.push({t:"w", m:"«"+l.name+"» → сопоставлено с «"+p.name+"» по похожему названию. Проверьте."});
       impItem(g,l,c,p); });
-    g.sum=r2(g.items.reduce((a,x)=>a+(+x.qty||0)*(+x.price||0),0)); });
+    g.sum=r2(g.items.reduce((a,x)=>a+(+x.qty||0)*(+x.price||0),0)); impIssuedNote(g); });
   return {c, k, s, date, warn, groups:G};
 }
 
+/* готовый документ: сверка суммы с «Итого к оплате» и одна строка про цены */
+function impIssuedNote(g){ if(!g.issued) return; g.warn=g.warn.filter(w=>!w.iss);
+  if(g.pdiff&&g.pdiff.length) g.warn.push({t:"i", iss:1, m:"Цены — как в документе. Сейчас в прайсе другие у "+g.pdiff.length+": "+g.pdiff.slice(0,3).join("; ")+(g.pdiff.length>3?" и ещё "+(g.pdiff.length-3):"")+"."});
+  if(g.total!=null){ const d=r2(g.total-g.sum);
+    if((g.miss||[]).length) g.warn.push({t:"w", iss:1, m:"Сумма документа "+fm(g.total)+" ₽ — сойдётся, когда выберете не найденные товары (сейчас "+fm(g.sum)+" ₽)."});
+    else if(Math.abs(d)>0.01) g.warn.push({t:"e", iss:1, m:"Сумма не сходится с документом: в файле "+fm(g.total)+" ₽, у сайта "+fm(g.sum)+" ₽ (разница "+fm(d)+" ₽). Проверьте строки."});
+    else g.warn.push({t:"i", iss:1, m:"Сумма сходится с документом: "+fm(g.total)+" ₽ ✓"}); } }
 function impFill(i){
   const R=IMP.r, g=R.groups[i]; if(!g) return;
   const dr=newDraft(D);
   const taken=R.groups.filter((x,j)=>j!==i && x.filled).map(x=>x.filled);
-  Object.assign(dr,{supplierId:R.s.id, customerId:R.c.id, branchId:g.branchId||"", contractId:R.k?R.k.id:"", noCtr:!R.k, basis:R.k?(R.k.basis||""):"", date:R.date, ship:g.ship||"",
-    number:g.num||nextNum(R.s.id, R.c.id, taken), numManual:!!g.num, lines:g.items.length?g.items.map(x=>Object.assign({},x)):[{productId:"",qty:"",price:""}]});
+  const gs=g.s||R.s, gc=g.c||R.c, gk=g.c?g.k:R.k;
+  Object.assign(dr,{supplierId:gs.id, customerId:gc.id, branchId:g.branchId||"", contractId:gk?gk.id:"", noCtr:!gk, basis:gk?(gk.basis||""):"", date:g.date||R.date, ship:g.ship||"",
+    number:g.num||nextNum(gs.id, gc.id, taken), numManual:!!g.num, lines:g.items.length?g.items.map(x=>Object.assign({},x)):[{productId:"",qty:"",price:""}]});
   D.draft=dr; g.filled=dr.number; IMP.cur=i; saveLocal(); if(curTab!=="doc") showTab("doc"); else renderDoc(); drawImp();
   $("#d-saved").textContent="Форма заполнена из файла «"+IMP.file+"». Проверьте количество и номер документа, затем сформируйте документы.";
   toast((g.miss||[]).length?"warn":"ok","Форма заполнена из файла", R.c.name+" · "+g.items.length+" поз. · "+fm(g.sum)+" ₽"+(g.warn.length?" · есть замечания — см. выше":""));
@@ -7423,15 +7438,19 @@ function drawImp(){
       : IMP.key?(me().admin?`<p>${IMP.key==="badkey"?"Ключ Gemini не подошёл. ":"ИИ ещё не подключён. "}Вставьте ключ Gemini (aistudio.google.com → Get API key; потом его можно сменить в «Данные» → «ИИ»):</p><div class="row"><input id="imp-gkey" type="password" autocomplete="off" placeholder="ключ Gemini" style="flex:1;min-width:0"><button class="btn pri sm" type="button" data-aikey>Сохранить и прочитать</button></div>`:`<p>ИИ для сканов ещё не подключён — попросите Даниила. Пока можно вставить текст заявки («Вставить текст»).</p>`)
       : `<p class="muted">Сайт может прочитать его через ИИ (Gemini от Google). Файл уйдёт в Google через вашу таблицу. Или вставьте текст заявки кнопкой «Вставить текст».</p><div class="row"><button class="btn pri sm" type="button" data-aigo>Прочитать через ИИ</button><button class="btn ghost sm" id="imp-close" type="button">Отмена</button></div>`)
       + `</div>`; return; }
-  if(IMP.err){ box.innerHTML=`<div class="impg"><ul><li class="e">Файл «${esc(IMP.file)}» не прочитан: ${esc(IMP.err)}.</li></ul></div>`; return; }
+  if(IMP.busy && !IMP.r){ box.innerHTML=`<p class="muted">Читаю ${esc(IMP.file)}…</p>`; return; }
+  if(IMP.err){ box.innerHTML=`<div class="impg"><ul><li class="e">${IMP.many||/файл(а|ов)?$/.test(IMP.file)&&/^\d/.test(IMP.file)?esc(IMP.file)+": ":"Файл «"+esc(IMP.file)+"» не прочитан: "}${esc(IMP.err)}.</li></ul></div>`; return; }
   const R=IMP.r, many=R.groups.length>1;
+  if(IMP.many && mulOn()){ const G=R.groups, cn=[...new Set(G.map(g=>cusNm(g.c.id)))].join(", ");
+    box.innerHTML=`<div class="imphead">Загружено ${esc(IMP.file)} · ${esc(cn)} · документов: ${G.length} · с ${fd(G[0].date)} по ${fd(G[G.length-1].date)} · ${fm(r2(G.reduce((a,g)=>a+g.sum,0)))} ₽ — каждый отдельным блоком ниже</div>`
+      + (R.warn.length?`<div class="impg"><ul>${R.warn.map(w=>`<li class="${w.t}">${esc(w.m)}</li>`).join("")}</ul></div>`:""); return; }
   if(many && mulOn()){ box.innerHTML=`<div class="imphead">Файл «${esc(IMP.file)}» · ${esc(R.c.name)} · ${esc(R.k?R.k.basis||"договор":"без договора")} · поставка ${fd(R.date)} · ${esc(supShort(R.s.name))} · накладных: ${R.groups.length} — каждая отдельным блоком ниже</div>`
     + (R.warn.length?`<div class="impg"><ul>${R.warn.map(w=>`<li class="${w.t}">${esc(w.m)}</li>`).join("")}</ul></div>`:""); return; }
   box.innerHTML = `<div class="imphead">Файл «${esc(IMP.file)}» · ${esc(R.c.name)} · ${esc(R.k?R.k.basis||"договор":"без договора")} · поставка ${fd(R.date)} · ${esc(supShort(R.s.name))}${many?" · документов: "+R.groups.length:""}</div>`
    + (R.warn.length?`<div class="impg"><ul>${R.warn.map(w=>`<li class="${w.t}">${esc(w.m)}</li>`).join("")}</ul></div>`:"")
    + R.groups.map((g,i)=>`<div class="impg${IMP.cur===i?" cur":""}"><div class="ih"><b>${many?"Документ "+(i+1)+(g.num?" · № "+esc(g.num):""):"Позиций: "+g.items.length}${(()=>{ const b=branches(R.c).find(x=>x.id===g.branchId); return b&&(g.br||many)?" · "+esc(b.label||b.fullName):""; })()}</b><small>${esc(g.ship?(()=>{ const l=stLabel(g.ship,R.c.address); return /юр\. адрес/.test(l)?g.ship:l; })()+" · ":"")}${many?g.items.length+" поз. · ":""}${fm(g.sum)} ₽</small><span style="flex:1"></span>
       ${many||IMP.cur!==i?`<button class="btn sm${IMP.cur===i?"":" pri"}" data-impfill="${i}" type="button">${g.filled?"Заполнить заново":"Заполнить форму"}</button>`:`<button class="btn ghost sm" data-impfill="${i}" type="button">Заполнить заново</button>`}</div>
-      ${(g.miss||[]).map((l,mi)=>`<div class="impmiss"><span class="e">Не найден товар «${esc(l.name)}»${l.qty!==""?" — "+esc(String(l.qty).replace(".",","))+" "+esc(l.unit||""):""}${l.orig?" (в заявке «"+esc(l.orig)+"»)":""}${l.amb?" — цена "+fm(+l.price)+" ₽ у "+l.amb.length+" товаров договора":""}. Это:</span><select data-impmiss="${i}:${mi}">${impMissOpts(R.c.id,l)}</select></div>`).join("")}
+      ${(g.miss||[]).map((l,mi)=>`<div class="impmiss"><span class="e">Не найден товар «${esc(l.name)}»${l.qty!==""?" — "+esc(String(l.qty).replace(".",","))+" "+esc(l.unit||""):""}${l.orig?" (в заявке «"+esc(l.orig)+"»)":""}${l.amb?" — цена "+fm(+l.price)+" ₽ у "+l.amb.length+" товаров договора":""}${l.sug?" — похоже на «"+esc(l.sug.name)+"», выберите, если это он":""}. Это:</span>${l.sug?`<button class="btn sm pri" type="button" data-impsug="${i}:${mi}">Да, «${esc(l.sug.name)}»</button>`:""}<select data-impmiss="${i}:${mi}">${impMissOpts((g.c||R.c).id,l)}</select></div>`).join("")}
       ${g.warn.length?`<ul>${g.warn.map(w=>`<li class="${w.t}">${esc(w.m)}</li>`).join("")}</ul>`:(g.miss||[]).length?"":`<ul><li style="color:#2f7d4f">Все позиции найдены, цены по договору.</li></ul>`}</div>`).join("")
    + `<div class="row" style="margin-top:8px"><button class="btn ghost sm" id="imp-close" type="button">Скрыть результат</button></div>`;
 }
@@ -7470,7 +7489,10 @@ async function ftPdf(buf){
   if(hi>=0){ let anc=rows[hi].map(c=>({x:c.x, x1:c.x1, x2:c.x2, s:c.s})); const sub=rows[hi+1]||[];
     if(sub.length && sub.every(c=>!/\d/.test(c.s))){ anc=anc.filter(a=>!sub.some(c=>Math.abs(c.x-a.x)<30)); sub.forEach(c=>anc.push({x:c.x, x1:c.x1, x2:c.x2, s:c.s, sub:1})); }
     anc.sort((a,b)=>a.x-b.x); const head=anc.map(a=>a.s), T=[head];
-    rows.slice(hi+1).forEach(r=>{ const row=anc.map(()=>""); r.forEach(c=>{ let bi=0, bd=1e9; anc.forEach((a,i)=>{ const ov=Math.min(a.x2,c.x2)-Math.max(a.x1,c.x1), d=ov>0?-ov:Math.min(Math.abs(a.x1-c.x2),Math.abs(c.x1-a.x2)); if(d<bd){ bd=d; bi=i; } }); row[bi]=(row[bi]?row[bi]+" ":"")+c.s; }); T.push(row); });
+    rows.slice(hi+1).forEach(r=>{ const row=anc.map(()=>""); r.forEach(c=>{ let bi=0, bd=1e9; anc.forEach((a,i)=>{ const ov=Math.min(a.x2,c.x2)-Math.max(a.x1,c.x1), d=ov>0?-ov:Math.min(Math.abs(a.x1-c.x2),Math.abs(c.x1-a.x2)); if(d<bd){ bd=d; bi=i; } });
+      /* короткое название («Лайм», «Тыква») левее заголовка «Товары» попадало в колонку «№» и терялось */
+      if(/[а-яёa-z]{2}/i.test(c.s) && /^(№|n|#)(\s*п\/п)?$/i.test(norm(anc[bi].s))){ const ni=anc.findIndex(a=>FT_NAME.test(norm(a.s))||/товар/.test(norm(a.s))); if(ni>=0) bi=ni; }
+      row[bi]=(row[bi]?row[bi]+" ":"")+c.s; }); T.push(row); });
     tables.push(T); }
   return {lines, tables};
 }
@@ -7581,6 +7603,15 @@ function ftLines(lines){
     out.push(line); });
   return out;
 }
+/* готовый документ (счёт из банка, накладная, УПД): «Счет на оплату № 5 от 03 октября 2026 г.» → вид, номер, дата, «Итого к оплате» */
+function ftDocHead(text){
+  const t=String(text||"").replace(/\u00a0/g," "), MON="(янв|фев|мар|апр|ма[яй]|июн|июл|авг|сен|окт|ноя|дек)[а-я]*\\.?";
+  const re=new RegExp("(сч[её]т(?:\\s+на\\s+оплату)?|товарная\\s+накладная|накладная|универсальный\\s+передаточный\\s+документ|упд)\\s*№\\s*([\\wа-яё\\-\\/]+)\\s+от\\s+(?:(\\d{1,2})\\.(\\d{1,2})\\.(\\d{4})|[«\"]?(\\d{1,2})[»\"]?\\s+"+MON+"\\s+(\\d{4}))","i");
+  const m=t.match(re); if(!m) return null; if(/фактур/i.test(t.slice(Math.max(0,m.index-3), m.index+m[1].length+12))) return null;
+  const d=m[3]||m[6], mo=m[4]||FT_MON[norm(m[7]).slice(0,3)]||FT_MON[norm(m[7])], y=m[5]||m[8]; if(!d||!mo||!y) return null;
+  const iso=y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0"), k=norm(m[1]);
+  const tm=t.match(/итого\s*к\s*оплате:?\s*([\d\s]+(?:[.,]\d{1,2})?)/i)||t.match(/всего\s+наименований[^\n]*?на\s+сумму\s*([\d\s]+(?:[.,]\d{1,2})?)/i);
+  return {kind:/^сч/.test(k)?"Счёт":/упд|универс/.test(k)?"УПД":"Накладная", num:m[2], iso, total:tm?+tm[1].replace(/\s/g,"").replace(",","."):null}; }
 function ftParse(src, cid0){
   const text=src.lines.join("\n"), warn=[], meta={warn}; if(src.how) warn.push({t:src.ai?"w":"i", m:src.how});
   let C=ftCustomer(text); const fc=cid0||(D.draft&&D.draft.customerId);
@@ -7590,8 +7621,10 @@ function ftParse(src, cid0){
   const sure=/договора|ИНН/.test(C.how); warn.push({t:sure?"i":"w", m:C.form?"Заказчика в тексте не нашёл — взят выбранный в форме: «"+C.c.name+"». Проверьте.":"Заказчик «"+C.c.name+"» определён "+C.how+"."+(sure?"":" Проверьте.")});
   if(!C.k){ const list=ctrs(C.c.id); const hit=list.find(x=>{ const m=String(x.basis||"").match(/№\s*([^\s,]+)/); return m && norm(text).replace(/[\s_\-–—]/g,"").includes(norm(m[1]).replace(/[\s_\-–—]/g,"")); }); if(hit) meta.kid=hit.id; }
   if(!meta.kid){ const ss=D.suppliers.find(x=>{ const sur=norm(String(x.name||"").replace(/^(ип|индивидуальный предприниматель)\s+/i,"").split(/\s+/)[0]).slice(0,6); return sur.length>=5 && norm(text).includes(sur); }); if(ss) meta.sid=ss.id; }
+  const dh=ftDocHead(text); if(dh){ meta.num=dh.num; meta.date=dh.iso; meta.issued=dh.kind; if(dh.total!=null) meta.total=dh.total;
+    warn.push({t:"i", m:"Это готовый документ: «"+dh.kind+" № "+dh.num+" от "+fd(dh.iso)+"» — номер, дата и цены взяты из него."}); }
   const ds=ftDates(text).sort((a,b)=>b.sc-a.sc||(b.iso>a.iso?1:-1)); const today=isoToday();
-  let dt=ds.find(d=>d.sc>=2)||ds.filter(d=>d.sc>=0&&d.iso>=today).sort((a,b)=>a.iso>b.iso?1:-1)[0]||null;
+  let dt=dh?null:ds.find(d=>d.sc>=2)||ds.filter(d=>d.sc>=0&&d.iso>=today).sort((a,b)=>a.iso>b.iso?1:-1)[0]||null;
   if(dt){ meta.date=dt.iso; if(dt.sc<2) warn.push({t:"w", m:"Дата поставки "+fd(dt.iso)+" взята из текста"+(dt.sc<2?" наугад (рядом нет слова «поставка»)":"")+". Проверьте."}); }
   const A=ftAddr(text, C.c); if(A){ meta.ship=A.a; if(A.b!==C.c && A.b.label) meta.branch=A.b.label; }
   else { const m=text.match(/адрес[а-я]*\s*(?:поставки|доставки)?[^:\n]{0,30}:\s*([^\n]{6,140})/i); if(m) meta.ship=m[1].replace(/\s+/g," ").trim(); }
@@ -7603,7 +7636,32 @@ function ftParse(src, cid0){
   return {meta, lines};
 }
 
+/* несколько файлов сразу (например, 9 счетов из банка): каждый — своя накладная со своим номером, датой и ценами */
+async function impLoadMany(files){
+  const F=[...files]; IMP={file:F.length+" "+plural(F.length,["файл","файла","файлов"]), busy:1}; drawImp(); const G=[], warn=[]; let R0=null;
+  for(const f of F){ try{ let P;
+      if(/\.(xlsx|xls|csv)$/i.test(f.name)){ const X=await loadXLSX(); const wb=X.read(await f.arrayBuffer(),{type:"array", cellDates:true}); const T=wb.SheetNames.map(n=>X.utils.sheet_to_json(wb.Sheets[n],{header:1, raw:true, defval:""}));
+        P=ftParse({how:"", tables:T, lines:T.flat().map(r=>r.map(x=>x instanceof Date?fd(impDate(x)):String(x==null?"":x)).join("\t"))}); }
+      else P=ftParse(Object.assign(await ftRead(f),{how:""}));
+      const R=impResolve(P); R0=R0||R;
+      R.warn.forEach(w=>{ if(w.t==="i" || /готовый документ/.test(w.m)) return; if(!warn.some(x=>x.m===w.m)) warn.push(w); });   /* общие замечания — один раз сверху */
+      R.groups.forEach(g=>{ Object.assign(g,{c:R.c, s:R.s, k:R.k, date:R.date, file:f.name}); g.warn=R.warn.filter(w=>/готовый документ/.test(w.m)).concat(g.warn); G.push(g); }); }
+    catch(e){ warn.push({t:"e", m:"«"+f.name+"» не прочитан: "+(e.scan?"это скан или фото — загрузите его отдельно, тогда сайт предложит прочитать через ИИ":(e.message||String(e)))+"."}); } }
+  if(!G.length){ IMP={file:IMP.file, err:warn.map(w=>w.m).join(" ")||"ни один файл не прочитан"}; drawImp(); toast("err","Файлы не прочитаны", IMP.err); return; }
+  /* уже есть в журнале (тот же поставщик, заказчик и номер) — пропускаем; повтор среди файлов — тоже */
+  const keep=[], seen=new Set();
+  G.sort((a,b)=>(a.date>b.date?1:a.date<b.date?-1:(+a.num||0)-(+b.num||0))).forEach(g=>{ const key=g.s.id+"|"+g.c.id+"|"+String(g.num||"");
+    const j=g.num?D.journal.find(x=>!isArch(x) && x.supplierId===g.s.id && x.customerId===g.c.id && String(x.number)===String(g.num)):null;
+    if(j){ warn.push({t:"w", m:"№ "+g.num+" от "+fd(g.date)+" ("+g.file+") уже есть в журнале — "+(j.date===g.date?"пропущен":"там № "+j.number+" от "+fd(j.date)+", пропущен; если это другой документ — загрузите его отдельно")+"."}); return; }
+    if(g.num && seen.has(key)){ warn.push({t:"w", m:"№ "+g.num+" ("+g.file+") повторяется в файлах — взят один раз."}); return; } seen.add(key); keep.push(g); });
+  if(!keep.length){ IMP={file:IMP.file, err:"все документы из этих файлов уже есть в журнале"}; drawImp(); toast("warn","Ничего нового", "Все документы из файлов уже есть в журнале."); return; }
+  const cs=[...new Set(keep.map(g=>g.c.id))];
+  IMP={file:IMP.file, many:1, r:{c:R0.c, s:R0.s, k:R0.k, date:keep[0].date, warn:warn.concat(cs.length>1?[{t:"w", m:"В файлах разные заказчики ("+cs.length+") — проверьте каждую накладную."}]:[]), groups:keep}};
+  logEv("Документ","Загружено файлов: "+F.length+", накладных: "+keep.length+" ("+[...new Set(keep.map(g=>g.c.name))].join(", ")+")");
+  if(keep.length>1){ mulStart(); drawImp(); renderDoc(); toast("info","Документов из файлов: "+keep.length,"Каждый — отдельным блоком ниже, уже заполнен (номер, дата, цены как в файле). Проверьте и нажмите «Сохранить все в журнал»."); }
+  else { D.multi=null; IMP.cur=-1; drawImp(); impFill(0); } }
 async function impLoad(f){
+  if(f && f.length!=null && !f.name){ if(f.length>1) return impLoadMany(f); f=f[0]; }
   if(!f) return; IMP={file:f.name};
   try{ let rows;
     if(/\.json$/i.test(f.name)){ const x=JSON.parse(await f.text()); rows=[]; Object.entries(x.meta||{}).forEach(([k,v])=>rows.push([k,v])); rows.push(["№ док.","Адрес доставки","Товар","Кол-во","Ед.","Цена, ₽","Примечание","В заявке"]); (x.lines||[]).forEach(l=>rows.push([l.num||"",l.addr||"",l.name||"",l.qty??"",l.unit||"",l.price??"",l.note||"",l.orig||""])); }
@@ -7646,29 +7704,40 @@ async function aiGo(){ if(!IMP||!IMP.scan) return; const f=IMP.scan; IMP.busy=1;
 async function aiKeySave(){ const k=($("#imp-gkey")||{}).value||""; if(!k.trim()){ toast("warn","Вставьте ключ"); return; }
   try{ await api({action:"aiKey", gkey:k.trim()}); toast("ok","Ключ Gemini сохранён","Он хранится только в скрипте вашей таблицы."); IMP.key=0; aiGo(); }
   catch(e){ toast("err","Ключ не сохранён", e.message==="unknown action"?"Сначала обновите Code.gs в таблице.":e.message); } }
-$("#imp-file").addEventListener("change",e=>{ const f=e.target.files[0]; e.target.value=""; impLoad(f); });
+$("#imp-file").addEventListener("change",e=>{ const fs=[...e.target.files]; e.target.value=""; impLoad(fs.length>1?fs:fs[0]); });
 $("#imp-txt").onclick=()=>{ const b=$("#imp-paste"); b.hidden=!b.hidden; if(!b.hidden) $("#imp-ta").focus(); };
 $("#imp-tx").onclick=()=>{ $("#imp-paste").hidden=true; };
 $("#imp-go").onclick=async()=>{ const t=$("#imp-ta").value.trim(); if(!t){ toast("warn","Вставьте текст заявки"); return; } await impLoad({name:"текст заявки", text:async()=>t, txt:1}); if(IMP&&!IMP.err) $("#imp-paste").hidden=true; };
 (function(){ const z=$("#imp-drop"); ["dragenter","dragover"].forEach(ev=>z.addEventListener(ev,e=>{ e.preventDefault(); z.classList.add("over"); }));
   ["dragleave","drop"].forEach(ev=>z.addEventListener(ev,e=>{ e.preventDefault(); z.classList.remove("over"); }));
-  z.addEventListener("drop",e=>{ const f=e.dataTransfer&&e.dataTransfer.files[0]; if(f) impLoad(f); }); })();
+  z.addEventListener("drop",e=>{ const fs=[...((e.dataTransfer&&e.dataTransfer.files)||[])]; if(fs.length) impLoad(fs.length>1?fs:fs[0]); }); })();
 function impMissPick(e){ const s=e.target.closest("[data-impmiss]"); if(!s||!s.value||!IMP||!IMP.r) return;
-  const [gi,mi]=s.dataset.impmiss.split(":").map(Number), R=IMP.r, g=R.groups[gi], l=g&&g.miss[mi], p=prod(s.value); if(!l||!p) return;
-  const al=aliasesOf(p); if(!al.some(a=>norm(a)===norm(l.name))){ al.push(l.name); p.aliases=JSON.stringify(al.slice(-20)); dirty("products",p.id); saveLocal(); }
-  g.miss.splice(mi,1); const it=impItem(g,l,R.c,p);
+  const [gi,mi]=s.dataset.impmiss.split(":").map(Number), R=IMP.r, g=R.groups[gi], l=g&&g.miss[mi]; if(!l) return; let p=prod(s.value), made=false;
+  if(s.value==="__new"){ const name=l.name.charAt(0).toUpperCase()+l.name.slice(1); p=D.products.find(x=>norm(x.name)===norm(name));
+    if(!p){ const u=/^шт/i.test(l.unit||"")?"шт":/^л/i.test(l.unit||"")?"л":/^уп/i.test(l.unit||"")?"уп":"кг"; p={id:uid(), name, code:"", unit:u, country:"", price:""}; D.products.push(p); dirty("products",p.id); made=true; logEv("Справочники","Новый товар из файла «"+(IMP.file||"")+"»: «"+name+"»"); } }
+  if(!p) return;
+  const al=aliasesOf(p); if(!made && !al.some(a=>norm(a)===norm(l.name))){ al.push(l.name); p.aliases=JSON.stringify(al.slice(-20)); dirty("products",p.id); saveLocal(); }
+  /* тот же товар не найден и в других документах из этих файлов — подставить везде сразу */
+  const same=[]; R.groups.forEach((g2,gj)=>{ (g2.miss||[]).forEach((l2,mj)=>{ if((gj!==gi||mj!==mi) && norm(l2.name)===norm(l.name)) same.push([gj,l2]); }); });
+  same.forEach(([gj,l2])=>{ const g2=R.groups[gj]; g2.miss.splice(g2.miss.indexOf(l2),1); const it2=impItem(g2,l2,g2.c||R.c,p); impIssuedNote(g2); const M2=mulOn()?D.multi.docs[gj]:null; if(M2){ M2.dr.lines=M2.dr.lines.filter(x=>x.productId); M2.dr.lines.push(Object.assign({},it2)); M2.ch=1; } });
+  g.miss.splice(mi,1); const it=impItem(g,l,g.c||R.c,p); impIssuedNote(g);
   const M=mulOn()?D.multi.docs[gi]:null;
   if(M){ M.dr.lines=M.dr.lines.filter(x=>x.productId); M.dr.lines.push(Object.assign({},it)); M.ch=1; saveLocal(); drawMulti(); }
   else if(IMP.cur===gi && D.draft && D.draft.customerId===R.c.id){ D.draft.lines=D.draft.lines.filter(x=>x.productId); D.draft.lines.push(Object.assign({},it)); saveLocal(); renderLines(); }
-  drawImp(); toast("ok","Запомнил название", "«"+l.name+"» = «"+p.name+"». В следующих заказах подставлю сам."); }
+  if(same.length) saveLocal(); if(same.length && mulOn()) drawMulti();
+  drawImp(); toast("ok", made?"Товар «"+p.name+"» добавлен в справочник":"Запомнил название", made?"Цена — как в документе."+(same.length?" Подставлен ещё в "+same.length+" "+plural(same.length,["документ","документа","документов"])+".":""):"«"+l.name+"» = «"+p.name+"». В следующих заказах подставлю сам."+(same.length?" Подставлен ещё в "+same.length+" "+plural(same.length,["документ","документа","документов"])+".":"")); }
 $("#imp-res").addEventListener("change",impMissPick);
+/* «Да, «Ананасы»» — подтвердить похожий товар одним нажатием (и во всех документах из этих файлов) */
+function impSugPick(e){ const b=e.target.closest("[data-impsug]"); if(!b||!IMP||!IMP.r) return false; const [gi,mi]=b.dataset.impsug.split(":").map(Number), g=IMP.r.groups[gi], l=g&&g.miss[mi]; if(!l||!l.sug) return true;
+  const sel=b.parentElement.querySelector("select[data-impmiss]"); if(!sel) return true; sel.value=l.sug.id; impMissPick({target:sel}); return true; }
+document.addEventListener("click",e=>{ if(e.target.closest("#imp-res [data-impsug], #mul [data-impsug]")) impSugPick(e); });
 $("#imp-res").addEventListener("click",e=>{ if(e.target.closest("[data-aigo]")){ aiGo(); return; } if(e.target.closest("[data-aikey]")){ aiKeySave(); return; } const b=e.target.closest("[data-impfill]"); if(b){ impFill(+b.dataset.impfill); return; } if(e.target.closest("#imp-close")){ IMP=null; drawImp(); } });
 /* ---------- несколько накладных из одной заявки: на «Новом документе» блок на каждую, уже заполненный ---------- */
 const mulOn = () => !!(D.multi && Array.isArray(D.multi.docs) && D.multi.docs.length);
 function mulStart(){ const R=IMP.r, taken=[];
-  D.multi={file:IMP.file, view:-1, docs:R.groups.map(g=>{ const dr=newDraft(D);
-    Object.assign(dr,{supplierId:R.s.id, customerId:R.c.id, branchId:g.branchId||"", contractId:R.k?R.k.id:"", noCtr:!R.k, basis:R.k?(R.k.basis||""):"", date:R.date, ship:g.ship||"",
-      number:g.num||nextNum(R.s.id, R.c.id, taken), numManual:!!g.num, lines:g.items.map(x=>Object.assign({},x))});
+  D.multi={file:IMP.file, view:-1, docs:R.groups.map(g=>{ const dr=newDraft(D), gs=g.s||R.s, gc=g.c||R.c, gk=g.c?g.k:R.k;
+    Object.assign(dr,{supplierId:gs.id, customerId:gc.id, branchId:g.branchId||"", contractId:gk?gk.id:"", noCtr:!gk, basis:gk?(gk.basis||""):"", date:g.date||R.date, ship:g.ship||"",
+      number:g.num||nextNum(gs.id, gc.id, taken), numManual:!!g.num, lines:g.items.map(x=>Object.assign({},x))});
     taken.push(dr.number); g.filled=dr.number; return {dr, saved:"", ch:0}; })};
   saveLocal(); logEv("Документ","Заказ из файла «"+IMP.file+"»: "+(R.c.name||"")+", накладных: "+R.groups.length); }
 const mulLabel = dr => { const b=branches(cus(dr.customerId)).find(x=>x.id===dr.branchId); return b ? (b.label||b.fullName||"") : ""; };
@@ -7680,7 +7749,7 @@ function mulBlock(M,i){ const dr=M.dr, k=calc(dr), lbl=mulLabel(dr), g=IMP&&IMP.
     <div class="mmeta"><label>№ <input data-mnum value="${esc(dr.number)}" inputmode="numeric"${inJ?" readonly title=\"Номер уже в журнале — менять в полной форме\"":""}></label><span>от ${fd(dr.date)}</span><span>${esc(supShort(sup(dr.supplierId).name||""))}</span></div>${typeof bnMulLine==="function"?bnMulLine(M):""}
     <table class="mt"><thead><tr><th>Товар</th><th class="n">Кол-во</th><th class="n">Цена</th><th class="n">Сумма</th></tr></thead><tbody>${rows||`<tr><td colspan="4" class="muted">Нет товаров</td></tr>`}</tbody>
       <tfoot><tr><td>Итого: ${k.lines.length} поз.</td><td></td><td></td><td class="n">${fm(k.t.sum)} ₽</td></tr></tfoot></table>
-    ${g&&(g.miss||[]).length?g.miss.map((l,mi)=>`<div class="impmiss"><span class="e">Не найден товар «${esc(l.name)}»${l.qty!==""?" — "+esc(String(l.qty).replace(".",","))+" "+esc(l.unit||""):""}${l.amb?" — цена "+fm(+l.price)+" ₽ у "+l.amb.length+" товаров договора":""}. Это:</span><select data-impmiss="${i}:${mi}">${impMissOpts(dr.customerId,l)}</select></div>`).join(""):""}
+    ${g&&(g.miss||[]).length?g.miss.map((l,mi)=>`<div class="impmiss"><span class="e">Не найден товар «${esc(l.name)}»${l.qty!==""?" — "+esc(String(l.qty).replace(".",","))+" "+esc(l.unit||""):""}${l.amb?" — цена "+fm(+l.price)+" ₽ у "+l.amb.length+" товаров договора":""}${l.sug?" — похоже на «"+esc(l.sug.name)+"», выберите, если это он":""}. Это:</span>${l.sug?`<button class="btn sm pri" type="button" data-impsug="${i}:${mi}">Да, «${esc(l.sug.name)}»</button>`:""}<select data-impmiss="${i}:${mi}">${impMissOpts(dr.customerId,l)}</select></div>`).join(""):""}
     ${g&&g.warn.length?`<div class="impg"><ul>${g.warn.map(w=>`<li class="${w.t}">${esc(w.m)}</li>`).join("")}</ul></div>`:""}
     <div class="make"><button class="btn pri" data-mmake="invoice">Счёт<small>на оплату</small></button><button class="btn pri" data-mmake="torg12">ТОРГ‑12<small>товарная накладная</small></button><button class="btn pri" data-mmake="upd">УПД<small>универсальный</small></button></div>
     <div class="make2"><button class="btn" data-mcombo="invoice,torg12">Скачать счёт + ТОРГ‑12<small>одним PDF</small></button><button class="btn" data-mcombo="invoice,upd">Скачать счёт + УПД<small>одним PDF</small></button></div>
@@ -8010,7 +8079,7 @@ function appGo(t){ const nav=document.querySelector("#fd-app nav.tabs"); if(!nav
   if(A || /Android/i.test(navigator.userAgent||"")){ c.hidden=false; g.hidden=false;
     t.textContent = A ? "У вас старая версия приложения — в ней нет уведомлений и виджета. Скачайте новую и установите поверх старой (входить заново не нужно), потом откройте её и зайдите сюда снова."
       : "Уведомления на телефон и виджет «Расход · Доход · Личное» работают в приложении «Документы ФД». Скачайте его и установите."; } })();
-window.__fd = {prNorm:v=>prNorm(v), getPrice:(c,p)=>getPrice(c,p), shipSim:(a,b)=>shipSim(a,b), shipElsewhere:(c,b,a)=>shipElsewhere(c,b,a), acct:()=>({url:API_URL, user:curUser()||"", key:pass()||"", admin:!!me().admin}), quick:appQuick, go:appGo, D:()=>D, undo:(r)=>unApply(curTab,!!r), undoState:()=>UNDO, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, aiSrc, IMP:()=>IMP, patchNmic, docProfit, payOf, setPay, calm:fdCalm, zkJState:j=>zkJState(j), pcdData:id=>pcdData(id)};
+window.__fd = {prNorm:v=>prNorm(v), getPrice:(c,p)=>getPrice(c,p), shipSim:(a,b)=>shipSim(a,b), shipElsewhere:(c,b,a)=>shipElsewhere(c,b,a), acct:()=>({url:API_URL, user:curUser()||"", key:pass()||"", admin:!!me().admin}), quick:appQuick, go:appGo, D:()=>D, undo:(r)=>unApply(curTab,!!r), undoState:()=>UNDO, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, ftPdf, aiSrc, IMP:()=>IMP, patchNmic, docProfit, payOf, setPay, calm:fdCalm, zkJState:j=>zkJState(j), pcdData:id=>pcdData(id)};
 })();
 </script>
 <!-- ============ конец блока ============ -->
