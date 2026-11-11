@@ -2812,8 +2812,13 @@ function setStatus(s, text){
 }
 let whoSel = curUser() || lsGet("frudom-docs-lastuser") || "";
 function renderWho(){ $("#fd-who").innerHTML = USERS_LIST.map(n=>`<button type="button" role="radio" aria-checked="${n===whoSel}" data-who="${esc(n)}"><i>${esc(n[0])}</i>${esc(n)}</button>`).join(""); }
-$("#fd-who").addEventListener("click",e=>{ const b=e.target.closest("[data-who]"); if(!b) return; whoSel=b.dataset.who; renderWho(); $("#fd-loginmsg").textContent=""; $("#fd-pass").focus(); });
-function showLogin(msg){ $("#fd-login").hidden=false; if(!$("#tsheet").hidden) closeSheet(); $("#fd-main").hidden=true; renderWho(); $("#fd-loginmsg").textContent=msg||""; applyRole(); (whoSel?$("#fd-pass"):$("#fd-who")).focus(); }
+$("#fd-who").addEventListener("click",e=>{ const b=e.target.closest("[data-who]"); if(!b) return; whoSel=b.dataset.who; renderWho(); $("#fd-loginmsg").textContent=""; FD_PASS.focus(); });
+/* Поле пароля есть в странице только пока виден вход: иначе автозаполнение Android/Chrome
+   считает любое поле ввода (поиск товара и т. п.) полем логина и на секунду показывает почты. */
+const FD_PASS=document.getElementById("fd-pass"), FD_PASSL=FD_PASS.parentNode;
+function passOn(on){ if(on){ if(!FD_PASS.isConnected) FD_PASSL.appendChild(FD_PASS); } else { FD_PASS.value=""; FD_PASS.remove(); } }
+passOn(false);
+function showLogin(msg){ passOn(true); $("#fd-login").hidden=false; if(!$("#tsheet").hidden) closeSheet(); $("#fd-main").hidden=true; renderWho(); $("#fd-loginmsg").textContent=msg||""; applyRole(); (whoSel?FD_PASS:$("#fd-who")).focus(); }
 function applyRole(){
   const u=curUser(), m=me(), logged=!!(u && pass()), adm=logged && !!m.admin && m.name===u;
   const chip=$("#fd-user"); chip.hidden=!logged; chip.classList.remove("armed"); chip.innerHTML = logged ? `<b>${esc(u[0])}</b>${esc(u)}` : "";
@@ -2827,9 +2832,9 @@ function applyRole(){
   if(!adm && ADMIN_TABS.includes(curTab)) showTab("doc");
 }
 $("#fd-enter").onclick=async()=>{
-  const p=$("#fd-pass").value.trim(), u=whoSel;
+  const p=FD_PASS.value.trim(), u=whoSel;
   if(!u){ $("#fd-loginmsg").textContent="Выберите, кто входит."; return; }
-  if(!p){ $("#fd-loginmsg").textContent="Введите пароль."; $("#fd-pass").focus(); return; }
+  if(!p){ $("#fd-loginmsg").textContent="Введите пароль."; FD_PASS.focus(); return; }
   $("#fd-loginmsg").textContent="Проверяю…"; $("#fd-enter").disabled=true;
   try{
     let r=await fetch(API_URL,{method:"POST", body:JSON.stringify({key:p, user:u, action:"login", device:deviceName()})}), j=await r.json(), meObj=j.me;
@@ -2840,7 +2845,7 @@ $("#fd-enter").onclick=async()=>{
     if(!j.ok){ $("#fd-loginmsg").textContent = j.error==="auth" ? "Неверный пароль для пользователя «"+u+"»." : "Ошибка: "+j.error; return; }
     lsSet(PKEY,p); lsSet(UKEY,u); lsSet("frudom-docs-lastuser",u); lsSet(MKEY, JSON.stringify(meObj||{name:u, admin:false}));
     try{ sessionStorage.setItem("fd-session","1"); }catch(e){}
-    $("#fd-pass").value=""; $("#fd-login").hidden=true; $("#fd-main").hidden=false; applyRole(); applyTabOrder(); startTab();
+    passOn(false); $("#fd-login").hidden=true; $("#fd-main").hidden=false; applyRole(); applyTabOrder(); startTab();
     toast("ok","Здравствуйте, "+u+"!","Вы вошли в систему.");
     await pull(); renderDoc();
   }catch(e){ $("#fd-loginmsg").textContent="Нет связи с хранилищем. Проверьте интернет и попробуйте ещё раз."; }
@@ -2853,7 +2858,7 @@ async function logout(){
   showLogin(); setStatus("local"); applyRole(); toast("info","Вы вышли из системы","");
 }
 $("#fd-user").onclick=()=>{ const c=$("#fd-user"); if(c.classList.contains("armed")){ logout(); return; } c.classList.add("armed"); c.innerHTML="Выйти из «"+esc(curUser())+"»?"; setTimeout(()=>{ if(c.classList.contains("armed")) applyRole(); },4000); };
-$("#fd-pass").addEventListener("keydown",e=>{ if(e.key==="Enter") $("#fd-enter").click(); });
+FD_PASS.addEventListener("keydown",e=>{ if(e.key==="Enter") $("#fd-enter").click(); });
 $("#fd-status").onclick=()=>{ if(online()) pull(true); };
 document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible" && online() && $("#pv").hidden && Date.now()-lastPullAt>20000) pull(); });
 /* ---------- свежесть данных: «Загружаю свежие данные…» / «Обновлено» / «Возможно, данные устарели» ---------- */
