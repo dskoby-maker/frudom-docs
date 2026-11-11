@@ -168,6 +168,8 @@ const Eis = (() => {
       // Архив уже принятого документа содержит ещё ответ заказчика (DP_PDPOL…, титул покупателя) — он для образца не нужен.
       let entries=Object.values(z.files).filter(f=>!f.dir&&/\.xml$/i.test(f.name));
       const upd=entries.filter(f=>/(^|\/)(PRIL_)?ON_NSCHF[^/]*\.xml$/i.test(f.name));if(entries.length!==2&&upd.length===2)entries=upd;
+      // Полный пакет ЕИС: ещё и титул покупателя (ON_NSCHFDOPPOK…) — берём только титул продавца ON_NSCHFDOPPR + его PRIL.
+      const pr=entries.filter(f=>/(^|\/)(PRIL_)?ON_NSCHFDOPPR_[^/]*\.xml$/i.test(f.name));if(entries.length!==2&&pr.length===2)entries=pr;
       if(entries.length!==2)throw Error('В ZIP должны быть два XML одного УПД: основной и PRIL.');
       for(const f of entries){if(f._data?.uncompressedSize>300000)throw Error('XML образца слишком большой.');const b=await f.async('uint8array');if(b.length>300000)throw Error('XML образца слишком большой.');docs.push({text:decode(b),bytes:b});}
     }else{
