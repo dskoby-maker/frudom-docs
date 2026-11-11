@@ -1165,7 +1165,36 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .calgrid .dtb{position:absolute;top:4px;right:4px;min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:#e08a1e;color:#fff;font:700 10px/16px var(--ui,inherit);font-style:normal;text-align:center}
 #fd-app .calgrid .dtb.new{background:#c0392b}
 #fd-app .calgrid button.sel .dtb{box-shadow:0 0 0 2px #fff}
-#fd-app .mulhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 12px}#fd-app .mulhead b{font-size:15px}
+#fd-app .mulhead{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 12px;position:sticky;top:var(--toph,0px);z-index:25;background:var(--bg);padding:10px 14px;margin-left:-14px;margin-right:-14px;border-radius:0 0 14px 14px;transition:box-shadow .2s,background .2s}#fd-app .mulhead.stuck{box-shadow:0 8px 20px -12px rgba(40,20,30,.35);background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(8px)}
+/* черновики */
+#fd-app .drcard{padding:0;overflow:hidden;animation:fdin .35s ease both}
+#fd-app .drhead{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;user-select:none}#fd-app .drhead b{font-size:15px}
+#fd-app .drn{min-width:22px;height:22px;padding:0 7px;border-radius:99px;background:var(--accent);color:#fff;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+#fd-app .drlast{flex:1;min-width:0;color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:6px}
+#fd-app .drfold{color:var(--accent);font-size:13px;font-weight:600;white-space:nowrap;margin-left:auto}
+#fd-app .drbody{display:grid;grid-template-rows:1fr;transition:grid-template-rows .32s cubic-bezier(.2,.8,.2,1)}#fd-app .drcard.folded .drbody{grid-template-rows:0fr}
+#fd-app .drbody>.drbi{overflow:hidden;min-height:0;padding:0 18px 14px;transition:opacity .25s}#fd-app .drcard.folded .drbody>.drbi{opacity:0;padding-bottom:0}
+#fd-app .drnote{background:#fff7e0;border:1px solid #f0d58a;border-radius:10px;padding:8px 12px;font-size:13px;margin-bottom:10px}
+#fd-app .drf{margin:0 0 10px}
+#fd-app .drlist{display:grid;gap:8px}
+#fd-app .drrow{border:1px solid var(--line);border-radius:14px;background:var(--surface);transition:box-shadow .2s,border-color .2s,opacity .25s,transform .25s,height .25s,margin .25s;overflow:hidden}
+#fd-app .drrow:hover{border-color:rgba(106,44,78,.3);box-shadow:0 4px 16px -8px rgba(60,20,40,.25)}#fd-app .drrow.cur{border-color:rgba(106,44,78,.45);background:linear-gradient(0deg,var(--surface),var(--surface)),var(--accent-soft)}
+#fd-app .drrow.out{opacity:0;transform:translateX(24px)}
+#fd-app .drh{display:flex;align-items:center;gap:12px;padding:10px 12px;cursor:pointer}
+#fd-app .drico{width:36px;height:36px;flex:none;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent)}#fd-app .drico svg{width:20px;height:20px}
+#fd-app .drico.k-multi{background:#e6f0f7;color:#1f5f7a}#fd-app .drico.k-order{background:#eef5e8;color:#3d6b2a}
+#fd-app .drm{flex:1;min-width:0;display:grid;gap:2px}#fd-app .drm b{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#fd-app .drm small{color:var(--muted);font-size:12.5px}
+#fd-app .drcur{color:var(--accent);font-weight:600}#fd-app .drok{color:#2f7d4f;font-weight:600}
+#fd-app .drr{display:grid;justify-items:end;gap:3px;white-space:nowrap}#fd-app .drr b{font-size:14px}#fd-app .drr small{color:var(--muted);font-size:12px;display:inline-flex;align-items:center;gap:5px}
+#fd-app .drava{width:20px;height:20px;border-radius:50%;flex:none;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;background:hsl(var(--h) 45% 48%)}
+#fd-app .drchev{color:var(--muted);font-size:20px;transition:transform .25s}#fd-app .drrow.open .drchev{transform:rotate(90deg)}
+#fd-app .drb{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s cubic-bezier(.2,.8,.2,1)}#fd-app .drrow.open .drb{grid-template-rows:1fr}
+#fd-app .drb>.drbi{overflow:hidden;min-height:0;padding:0 12px;opacity:0;transition:opacity .25s,padding .25s}#fd-app .drrow.open .drb>.drbi{opacity:1;padding:0 12px 12px}
+#fd-app .drt{width:100%;border-collapse:collapse;font-size:13px;margin:4px 0 8px}#fd-app .drt td{padding:5px 6px;border-top:1px solid var(--line)}#fd-app .drt td.n{text-align:right;white-space:nowrap}
+#fd-app .drwho{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin:6px 0 10px}#fd-app .drwho b{color:var(--ink)}#fd-app .drsep{width:1px;height:14px;background:var(--line);margin:0 4px}
+#fd-app .dract{display:flex;gap:8px;flex-wrap:wrap;align-items:center}#fd-app .dract .drdanger{background:#b3261e;color:#fff;border-color:#b3261e}
+@media (max-width:560px){#fd-app .drhead{padding:12px 14px}#fd-app .drlast{display:none}#fd-app .drbody>.drbi{padding:0 12px 12px}#fd-app .drh{gap:10px;padding:10px}#fd-app .drico{width:32px;height:32px}#fd-app .drr small{display:none}#fd-app .dract .btn{flex:1}#fd-app .mulhead{margin-left:-10px;margin-right:-10px;padding:8px 10px}}
+@media (prefers-reduced-motion:reduce){#fd-app .drbody,#fd-app .drb,#fd-app .drrow,#fd-app .drchev{transition:none}}#fd-app .mulhead b{font-size:15px}
 #fd-app .mul h2{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}#fd-app .mul h2 .ok{color:#2f7d4f;font-size:13px;font-weight:600}#fd-app .mul h2 .ch{color:#a3620c;font-size:13px;font-weight:600}
 #fd-app .mul .mmeta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-bottom:8px}#fd-app .mul .mmeta input{width:80px}
 #fd-app .mt{width:100%;border-collapse:collapse;font-size:14px}#fd-app .mt th{text-align:left;font-weight:600;color:var(--muted);font-size:12.5px;padding:4px 6px;border-bottom:1px solid var(--line)}
@@ -2014,6 +2043,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
   <div id="demoNote" class="note" style="margin-top:16px" hidden>Реквизиты, товары и цены заполнены для примера. Замените их на свои во вкладках «Поставщики», «Товары» и «Заказчики и цены». <button class="btn ghost sm" id="hideDemo">Понятно</button></div>
 
   <section class="tab" id="tab-doc">
+    <div class="card drcard" hidden></div>
     <div class="card impcard" id="imp-card">
       <h2 class="ih">Заказ из файла <small>заполнит форму сам — останется проверить и напечатать</small><button class="btn ghost sm iclr" id="d-clrall" type="button" title="Очистить заявку, стороны, номер и товары">Очистить всё</button></h2>
       <div class="impdrop" id="imp-drop">
@@ -2076,6 +2106,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
   </section>
 
   <section class="tab" id="tab-order" hidden>
+    <div class="card drcard" hidden></div>
     <div class="card">
       <h2>Заявка → документы <small>на каждый адрес доставки — своя накладная</small></h2>
       <div class="oedit" id="o-editing" hidden></div>
@@ -2706,7 +2737,7 @@ function handleErr(e){ if(e.message==="auth"){ showLogin("Неверный па�
   else if(e && !e.net){ setStatus("err","Ошибка таблицы, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Таблица ответила ошибкой","«"+String(e.message||e).slice(0,160)+"». Всё сохранено на этом устройстве, повторю сам. Если повторяется — пришлите этот текст Claude."); } }
   else { setStatus("err","Не сохранено — нет связи, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Нет связи с Google Таблицей",(e&&e.message?"Причина: "+e.message+". ":"")+"Всё сохранено на этом устройстве и отправится автоматически, когда связь появится. Ничего делать не нужно."); } } }
 
-const NEED_VER=28;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
+const NEED_VER=29;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
 function srvVerCheck(v){ const el=$("#srvOld"); if(!el) return; const old=(+v||0)<NEED_VER; el.hidden=!old || docLimited(); D.srvVer=+v||0; }
 document.addEventListener("click",e=>{ if(!e.target.closest || !e.target.closest("#srvOldHow")) return; openCard(`<div class="dc-head"><div><div class="dc-kicker">Code.gs</div><h3>Как обновить скрипт таблицы</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
   <ol class="srvsteps"><li>GitHub → файл <b>dev/Code.template.gs</b> → кнопка «Copy raw file» (два квадратика).</li><li>Таблица «Документы ФД» → «Расширения» → «Apps Script» → файл <b>Код.gs</b> → Ctrl+A → Ctrl+V → «Сохранить». Файл «Пароли.gs» не трогать.</li><li>«Начать развёртывание» → «Управление развёртываниями» → карандаш → «Версия: новая версия» → «Развернуть».</li><li>Обновите эту страницу — жёлтая плашка исчезнет.</li></ol>
@@ -3336,11 +3367,11 @@ $("#d-save").onclick=async()=>{
   catch(e){ msg.textContent="Не получилось сохранить: "+e.message; toast("err","Не получилось сохранить документ", e.message+". Проверьте интернет и нажмите кнопку ещё раз."); }
   finally{ b.disabled=false; }
 };
-$("#d-new").onclick=$("#d-new2").onclick=e=>{ const bt=e.currentTarget; if(!armed(bt,"Точно очистить форму?")) return; delete bt.dataset.armed; bt.classList.remove("armed"); bt.textContent=bt.id==="d-new2"?"Очистить":"Очистить форму"; const s=D.draft.supplierId, c=D.draft.customerId; D.draft=newDraft(D); D.draft.supplierId=s; D.draft.customerId=c;
-  D.draft.contractId=pickCtr(); { const x=ctr(D.draft.contractId); if(x&&x.supplierId) D.draft.supplierId=x.supplierId; } D.draft.number=nextNum(D.draft.supplierId, c); D.draft.basis=(ctr(D.draft.contractId)||{}).basis||""; saveLocal(); renderDoc(); $("#d-saved").textContent=""; };
+$("#d-new").onclick=$("#d-new2").onclick=e=>{ const bt=e.currentTarget; if(!armed(bt,"Точно очистить форму?")) return; delete bt.dataset.armed; bt.classList.remove("armed"); bt.textContent=bt.id==="d-new2"?"Очистить":"Очистить форму"; if(typeof drTick==="function") drTick(true); const drK=typeof drDocOn==="function"&&drDocOn(D.draft); const s=D.draft.supplierId, c=D.draft.customerId; D.draft=newDraft(D); D.draft.supplierId=s; D.draft.customerId=c;
+  D.draft.contractId=pickCtr(); { const x=ctr(D.draft.contractId); if(x&&x.supplierId) D.draft.supplierId=x.supplierId; } D.draft.number=nextNum(D.draft.supplierId, c); D.draft.basis=(ctr(D.draft.contractId)||{}).basis||""; saveLocal(); renderDoc(); $("#d-saved").textContent=""; if(drK) toast("info","Форма очищена","Прежний документ остался в «Черновиках» — его можно продолжить или удалить."); };
 
 /* «Очистить всё»: заявка из файла, стороны, номер, основание, адрес, товары — всё пустое, в списках «(не выбрано)» */
-$("#d-clrall").onclick=e=>{ const bt=e.currentTarget; if(!armed(bt,"Точно очистить всё?")) return; delete bt.dataset.armed; bt.classList.remove("armed"); bt.textContent="Очистить всё";
+$("#d-clrall").onclick=e=>{ const bt=e.currentTarget; if(!armed(bt,"Точно очистить всё?")) return; delete bt.dataset.armed; bt.classList.remove("armed"); bt.textContent="Очистить всё"; if(typeof drTick==="function") drTick(true);
   psClose(); IMP=null; D.multi=null; drawImp();
   { const f=$("#imp-file"); if(f) f.value=""; const ta=$("#imp-ta"); if(ta) ta.value=""; const pp=$("#imp-paste"); if(pp) pp.hidden=true; }
   D.draft=Object.assign(newDraft(D), {supplierId:"", customerId:"", branchId:"", contractId:"", noCtr:false, number:"", numManual:false, basis:"", ship:"", buyer:"", bphone:""});
@@ -3822,7 +3853,7 @@ $("#o-tbl").addEventListener("keydown",e=>{ const el=e.target; if(!el.classList.
 $("#o-addaddr").onclick=()=>{ const a=(prompt("Адрес доставки (как он должен быть в накладной):")||"").trim(); if(!a) return; const o=O();
   { const L=shipElsewhere(o.customerId, o.branchId, a); if(L.length && !confirm((L[0].exact?"Этот адрес":"Похожий адрес")+" есть у другого подразделения этого заказчика — «"+brNm(L[0].b)+"»:\n"+L[0].a+"\n\nСейчас выбрано другое подразделение. Всё равно добавить адрес сюда?")) return; } if(!o.extra.includes(a)) o.extra.push(a); saveLocal(); renderOrderGrid(); };
 $("#o-editing").addEventListener("click",e=>{ if(e.target.closest("#o-edcancel")){ bundleEditEnd(true); $("#o-msg").textContent=""; toast("ok","Правка комплекта отменена","Документы в журнале не изменились."); } });
-$("#o-clear").onclick=()=>{ O().qty={}; O().num={}; saveLocal(); renderOrderGrid(); $("#o-done").innerHTML=""; $("#o-msg").textContent=""; };
+$("#o-clear").onclick=()=>{ if(typeof drTick==="function") drTick(true); const had=!!O().did && drArr().some(r=>r.id==="o-"+O().did); delete O().did; O().qty={}; O().num={}; if(had) toast("info","Заявка очищена","Прежняя заявка осталась в «Черновиках» — её можно продолжить или удалить."); saveLocal(); renderOrderGrid(); $("#o-done").innerHTML=""; $("#o-msg").textContent=""; };
 async function manyPdf(kinds, ks, name){
   await pdfLibs();
   const box=document.createElement("div"); box.style.cssText="position:absolute;left:0;top:0;z-index:-1;pointer-events:none";
@@ -3868,7 +3899,7 @@ async function oGo(noPdf){
       const j=D.journal.find(z=>z.id===dr.id); made.push(calc(j.snap.dr, j.snap));
     }
     if(drop.length) setArch(drop, true);
-    if(ed) bundleEditEnd(true); else { o.qty={}; o.num={}; saveLocal(); renderOrderGrid(); }
+    if(ed) bundleEditEnd(true); else { if(o.did && typeof drDrop==="function") drDrop("o-"+o.did); delete o.did; o.qty={}; o.num={}; saveLocal(); renderOrderGrid(); }
     const lbl=made.map(k=>"№ "+k.dr.number).join(", ")+(drop.length?" (в архив: "+drop.map(j=>"№ "+j.number).join(", ")+")":"");
     $("#o-done").innerHTML=made.map(k=>`<div><b>№ ${esc(k.dr.number)}</b> — ${esc(k.c.branchLabel||stLabel(k.dr.ship, k.c.address))} — ${fm(k.t.sum)} ₽ ${["invoice","torg12","upd"].map(kd=>`<button class="btn sm" data-ov="${kd}" data-id="${k.dr.id}">${KSHORT[kd]}</button>`).join(" ")}</div>`).join("");
     if(kinds.length){ msg.textContent="Создано: "+lbl+". Готовлю PDF…";
@@ -7474,7 +7505,7 @@ function drawImp(){
   if(IMP.err){ box.innerHTML=`<div class="impg"><ul><li class="e">${IMP.many||/файл(а|ов)?$/.test(IMP.file)&&/^\d/.test(IMP.file)?esc(IMP.file)+": ":"Файл «"+esc(IMP.file)+"» не прочитан: "}${esc(IMP.err)}.</li></ul></div>`; return; }
   const R=IMP.r, many=R.groups.length>1;
   if(IMP.many && mulOn()){ const G=R.groups, cn=[...new Set(G.map(g=>cusNm(g.c.id)))].join(", ");
-    box.innerHTML=`<div class="imphead">Загружено ${esc(IMP.file)} · ${esc(cn)} · документов: ${G.length} · с ${fd(G[0].date)} по ${fd(G[G.length-1].date)} · ${fm(r2(G.reduce((a,g)=>a+g.sum,0)))} ₽ — каждый отдельным блоком ниже</div>`
+    box.innerHTML=`<div class="imphead">Загружено ${esc(IMP.file)} · ${esc(cn)} · документов: ${G.length} · с ${fd(G[0].date)} по ${fd(G[G.length-1].date)} · ${fm(r2(D.multi.docs.reduce((a,M)=>a+calc(M.dr).t.sum,0)))} ₽ — каждый отдельным блоком ниже</div>`
       + (R.warn.length?`<div class="impg"><ul>${R.warn.map(w=>`<li class="${w.t}">${esc(w.m)}</li>`).join("")}</ul></div>`:""); return; }
   if(many && mulOn()){ box.innerHTML=`<div class="imphead">Файл «${esc(IMP.file)}» · ${esc(R.c.name)} · ${esc(R.k?R.k.basis||"договор":"без договора")} · поставка ${fd(R.date)} · ${esc(supShort(R.s.name))} · накладных: ${R.groups.length} — каждая отдельным блоком ниже</div>`
     + (R.warn.length?`<div class="impg"><ul>${R.warn.map(w=>`<li class="${w.t}">${esc(w.m)}</li>`).join("")}</ul></div>`:""); return; }
@@ -7793,7 +7824,7 @@ function drawMulti(){ const box=$("#mul"), on=mulOn(), all=on && D.multi.view<0;
   if(!all){ box.innerHTML=""; return; }
   const tot=r2(D.multi.docs.reduce((a,M)=>a+calc(M.dr).t.sum,0)), done=D.multi.docs.filter(M=>M.saved&&!M.ch).length;
   const bk=D.multi.bank, bop=bk&&typeof BNK==="function"?BNK().ops.find(o=>o.id===bk.op):null;
-  box.innerHTML=`<div class="mulhead"><b>${bk?"Из платежа «"+esc(bk.payer)+"» "+fm(bk.sum)+" ₽ от "+fd(bk.date):"Заявка «"+esc(D.multi.file||"")+"»"} — ${D.multi.docs.length} ${plural(D.multi.docs.length,["накладная","накладные","накладных"])} · ${fm(tot)} ₽</b>${done?`<span class="muted">сохранено: ${done} из ${D.multi.docs.length}</span>`:""}${bk&&bk.paid?`<span class="ok">✓ платёж разнесён</span>`:""}<span style="flex:1"></span>${bk&&bop&&done===D.multi.docs.length&&!bk.paid&&bnIsWait(bop)?`<button class="btn sm" type="button" id="mul-bnpay">Разнести платёж…</button>`:""}
+  box.innerHTML=`<div class="mulhead"><b>${bk?"Из платежа «"+esc(bk.payer)+"» "+fm(bk.sum)+" ₽ от "+fd(bk.date):(/^\d+ файл/.test(D.multi.file||"")?"Документы из файлов ("+esc(D.multi.file)+")":"Заявка «"+esc(D.multi.file||"")+"»")} — ${D.multi.docs.length} ${plural(D.multi.docs.length,["накладная","накладные","накладных"])} · ${fm(tot)} ₽</b>${done?`<span class="muted">сохранено: ${done} из ${D.multi.docs.length}</span>`:""}${bk&&bk.paid?`<span class="ok">✓ платёж разнесён</span>`:""}<span style="flex:1"></span>${bk&&bop&&done===D.multi.docs.length&&!bk.paid&&bnIsWait(bop)?`<button class="btn sm" type="button" id="mul-bnpay">Разнести платёж…</button>`:""}
     <button class="btn pri sm" type="button" id="mul-saveall">Сохранить все в журнал</button><button class="btn ghost sm" type="button" id="mul-close">Закончить</button></div>`
     + D.multi.docs.map(mulBlock).join(""); }
 async function mulCommit(i){ const M=D.multi.docs[i]; if(!calc(M.dr).lines.length){ toast("err","Нет товаров в накладной "+(i+1),"Укажите количество больше нуля."); return false; }
@@ -7804,7 +7835,7 @@ $("#mul").addEventListener("input",e=>{ const el=e.target, bx=el.closest("[data-
   else if(el.dataset.mnum!=null){ M.dr.number=el.value.replace(/\D/g,""); M.dr.numManual=true; saveLocal(); } });
 $("#mul").addEventListener("change",e=>{ if(e.target.closest("[data-impmiss]")) impMissPick(e); else if(e.target.dataset.mq!=null) drawMulti(); });
 $("#mul").addEventListener("click",async e=>{
-  if(e.target.closest("#mul-close")){ D.multi=null; saveLocal(); if(IMP) IMP=null; drawImp(); renderDoc(); return; }
+  if(e.target.closest("#mul-close")){ if(typeof drTick==="function") drTick(true); const left=D.multi&&D.multi.docs.some(M=>!M.saved||M.ch); D.multi=null; saveLocal(); if(IMP) IMP=null; drawImp(); renderDoc(); if(left) toast("info","Несохранённые накладные — в «Черновиках»","Продолжите оттуда в любой момент."); return; }
   if(e.target.closest("#mul-saveall")){ const b=e.target.closest("#mul-saveall"); b.disabled=true; let n=0;
     try{ for(let i=0;i<D.multi.docs.length;i++){ const M=D.multi.docs[i]; if(M.saved && !M.ch) continue; if(await mulCommit(i)) n++; } toast("ok","Сохранено в журнал: "+n,"Распечатать можно здесь же или из журнала."); }
     catch(x){ toast("err","Не получилось сохранить", x.message+". Проверьте интернет и нажмите ещё раз."); } finally{ drawMulti(); } return; }
