@@ -1017,6 +1017,21 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .sgprev img{max-width:90%;max-height:130px}
 #fd-app .bar .pvsign{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;padding:0 8px;cursor:pointer;white-space:nowrap}
 #fd-app .signopt{margin:8px 0 2px}
+/* «Сформировать»: главное — «Сохранить в журнал», печать рядом, остальное мелкой строкой */
+#fd-app .dmk{gap:10px}
+#fd-app .dmk-row{display:flex;gap:8px;align-items:stretch}
+#fd-app .dmk-save{flex:1.5 1 0;min-width:0;padding:10px 14px;font-size:16px;font-weight:600}
+#fd-app .dmk-pr{flex:2 1 0;min-width:0;display:flex;gap:8px}
+#fd-app .dmk-pr .btn{flex:1 1 0;min-width:0;padding:8px 6px;font-weight:600}
+#fd-app .dmk .btn small{display:block;font-weight:400;font-size:11px;opacity:.75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fd-app .dmk-msg{font-size:13px}#fd-app .dmk-msg:empty{display:none}
+#fd-app .dmk-opt{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}
+#fd-app .dmk-opt .signopt{margin:0;display:inline-flex;gap:14px;flex-wrap:wrap}
+#fd-app .dmk-pdf{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}#fd-app .dmk-pdf[hidden]{display:none!important}
+#fd-app .dmk-l{font-size:13px;color:var(--muted)}
+#fd-app .dmk-new{margin-left:auto;width:auto}
+@media (max-width:640px){#fd-app .dmk-row{flex-direction:column}#fd-app .dmk-save{flex:none;min-height:54px}#fd-app .dmk-pr{flex:none}#fd-app .dmk-pr .btn{min-height:50px}#fd-app .dmk .btn small{font-size:10.5px}}
+@media (max-width:640px){#fd-app .dmk-new{min-height:36px;border:0}#fd-app .dmk-pdf{display:grid;grid-template-columns:auto 1fr 1fr;width:100%}#fd-app .dmk-pdf .btn{padding:5px 4px;white-space:nowrap}#fd-app .dmk-l{font-size:12px;line-height:1.15;width:42px}}
 #fd-app .dtbox{margin:12px 0 14px;border:1px solid #f0dcb0;background:#fffaf0;border-radius:12px;padding:10px 12px}
 #fd-app .dt-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}#fd-app .dt-head b{font-size:15px}#fd-app .dt-head small{color:var(--muted);font-size:12.5px}
 #fd-app .dt-count{font-size:12.5px;color:#a3620c;font-weight:600}
@@ -2025,17 +2040,23 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
       <div class="row"><button class="btn" id="d-add">+ Добавить товар</button><button class="btn ghost" id="d-addall">Добавить весь прайс заказчика</button><button class="btn ghost skallb" id="d-skall" type="button" hidden title="Все строки, которые есть на складе, — со склада. Чего мало — частью со склада, остальное от Саида.">Со склада всё, что есть</button></div>
       <div class="totals" id="d-totals"></div>
     </div>
-    <div class="card dform">
-      <h2>Сформировать <small>документ сохранится в журнал</small></h2>
-      <div class="make">
-        <button class="btn pri" data-make="nakl" hidden>Накладная<small>простая, для частника</small></button>
-        <button class="btn pri" data-make="invoice">Счёт<small>на оплату</small></button>
-        <button class="btn pri" data-make="torg12">ТОРГ‑12<small>товарная накладная</small></button>
-        <button class="btn pri" data-make="upd" data-npriv>УПД<small>универсальный</small></button>
+    <div class="card dform dmk">
+      <h2>Сформировать</h2>
+      <div class="dmk-row">
+        <button class="btn pri dmk-save" id="d-save">Сохранить в журнал<small>без печати — распечатать можно потом</small></button>
+        <div class="dmk-pr">
+          <button class="btn" data-make="nakl" hidden>Накладная<small>для частника</small></button>
+          <button class="btn" data-make="invoice">Счёт<small>печать</small></button>
+          <button class="btn" data-make="torg12">ТОРГ‑12<small>печать</small></button>
+          <button class="btn" data-make="upd" data-npriv>УПД<small>печать</small></button>
+        </div>
       </div>
-      <div class="row signopt"><label class="chk" id="d-signw" hidden><input type="checkbox" id="d-sign"> С печатью и подписью поставщика</label><label class="chk" id="d-scanw" hidden title="Только в скачанном PDF"><input type="checkbox" id="d-scan"> Вид скана в PDF</label></div>
-      <div class="make2" data-npriv><button class="btn" data-combo="invoice,torg12">Скачать счёт + ТОРГ‑12<small>одним PDF</small></button><button class="btn" data-combo="invoice,upd">Скачать счёт + УПД<small>одним PDF</small></button></div>
-      <div class="row"><button class="btn" id="d-save">Сохранить в журнал без печати</button><button class="btn ghost" id="d-new">Очистить и начать новый</button><span class="muted" id="d-saved"></span></div>
+      <div class="dmk-msg muted" id="d-saved"></div>
+      <div class="dmk-opt">
+        <span class="dmk-pdf" data-npriv><span class="dmk-l">Одним PDF:</span><button class="btn sm" data-combo="invoice,torg12">Счёт + ТОРГ‑12</button><button class="btn sm" data-combo="invoice,upd">Счёт + УПД</button></span>
+        <span class="signopt"><label class="chk" id="d-signw" hidden><input type="checkbox" id="d-sign"> С печатью и подписью</label><label class="chk" id="d-scanw" hidden title="Только в скачанном PDF"><input type="checkbox" id="d-scan"> Вид скана в PDF</label></span>
+        <button class="btn ghost sm dmk-new" id="d-new" type="button">Очистить форму</button>
+      </div>
     </div>
     <div class="card invdc" id="inv-dc" hidden></div>
   </section>
@@ -3265,7 +3286,7 @@ $("#d-save").onclick=async()=>{
   catch(e){ msg.textContent="Не получилось сохранить: "+e.message; toast("err","Не получилось сохранить документ", e.message+". Проверьте интернет и нажмите кнопку ещё раз."); }
   finally{ b.disabled=false; }
 };
-$("#d-new").onclick=$("#d-new2").onclick=e=>{ const bt=e.currentTarget; if(!armed(bt,"Точно очистить форму?")) return; delete bt.dataset.armed; bt.classList.remove("armed"); bt.textContent=bt.id==="d-new2"?"Очистить":"Очистить и начать новый"; const s=D.draft.supplierId, c=D.draft.customerId; D.draft=newDraft(D); D.draft.supplierId=s; D.draft.customerId=c;
+$("#d-new").onclick=$("#d-new2").onclick=e=>{ const bt=e.currentTarget; if(!armed(bt,"Точно очистить форму?")) return; delete bt.dataset.armed; bt.classList.remove("armed"); bt.textContent=bt.id==="d-new2"?"Очистить":"Очистить форму"; const s=D.draft.supplierId, c=D.draft.customerId; D.draft=newDraft(D); D.draft.supplierId=s; D.draft.customerId=c;
   D.draft.contractId=pickCtr(); { const x=ctr(D.draft.contractId); if(x&&x.supplierId) D.draft.supplierId=x.supplierId; } D.draft.number=nextNum(D.draft.supplierId, c); D.draft.basis=(ctr(D.draft.contractId)||{}).basis||""; saveLocal(); renderDoc(); $("#d-saved").textContent=""; };
 
 /* «Очистить всё»: заявка из файла, стороны, номер, основание, адрес, товары — всё пустое, в списках «(не выбрано)» */
@@ -7808,7 +7829,7 @@ const HELP={
   "Заказ из файла":["Загрузите заявку заказчика как есть — PDF, Word (.docx), Excel — или вставьте текст из письма кнопкой «Вставить текст».",["Сайт сам найдёт заказчика (по номеру договора, ИНН или названию), дату поставки, адрес и товары, цены — по договору. Сканы и фото не читаются — для них вставьте текст.","Всё, в чём сайт не уверен, помечено: жёлтое — проверьте, красное — товар не найден, выберите его из списка (сайт запомнит название).","Проверьте замечания (красные — товар не найден, добавьте вручную), поправьте номер и сформируйте документы.","Если в файле несколько адресов — будет несколько документов, заполняйте по очереди.","«Скачать шаблон» — пустой файл с прайсом выбранного заказчика, можно заполнить и самому."]],
   "Стороны":["Кто продаёт, кому и по какому договору.",["Выберите заказчика и договор — поставщик (ИП) подставится сам.","Номер документа ставится следующий по порядку, дата — день поставки.","Если у заказчика несколько подразделений (как у МГУ), выберите нужное — в документах будут его реквизиты.","Адрес доставки — куда везём, он попадёт в накладную."]],
   "Товары":["Что везём и сколько.",["Выберите товар и впишите количество — цена подставится из прайса заказчика по договору.","«Добавить весь прайс» — сразу все позиции заказчика; лишние оставьте с пустым количеством.","× удаляет строку."]],
-  "Сформировать":["Создать документы.",["Счёт / ТОРГ‑12 / УПД — откроется документ, вверху «Скачать PDF» или «Печать».","«Скачать счёт + ТОРГ‑12» — два документа одним файлом.","«Сохранить в журнал без печати» — распечатаете позже из «Журнала».","Каждый документ сохраняется в «Журнал»."]],
+  "Сформировать":["Создать документы.",["«Сохранить в журнал» — сохранить без печати, распечатаете позже из «Журнала».","Счёт / ТОРГ‑12 / УПД — откроется документ, вверху «Скачать PDF» или «Печать».","«Одним PDF: Счёт + ТОРГ‑12» — два документа одним файлом.","Каждый документ сохраняется в «Журнал»."]],
   "Заявка → документы":["Для заявок, где у одного заказчика много точек (столовые МГУ).",["Выберите заказчика, подразделение и день поставки.","Ниже впишите количество по каждой точке — на каждую будет своя накладная."]],
   "Количество по адресам":["Перепишите цифры из заявки.",["«Вид таблицы» — как удобнее: адреса в строках или товары в строках (адреса и ОП тогда в столбцах). Выбор запоминается для каждого заказчика.","Enter и стрелки ↑↓ переходят к соседней клетке.","Пустые строки пропускаются.","Серый номер в «№ док.» подставлен автоматически. Нажмите на него, чтобы исправить. Если сотрёте — номер снова подставится сам."]],
   "Что скачать":["Отметьте документы и нажмите кнопку.","Все накладные создадутся сразу, скачаются одним PDF и сохранятся в «Журнал» одним комплектом."],
