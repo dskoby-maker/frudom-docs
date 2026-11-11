@@ -243,7 +243,7 @@ function pcdHtml(){ const p=prod(PCD.id); if(!p) return `<div class="dc-head"><d
   const BL=BU.slice().sort((a,b)=>String(b.d).localeCompare(String(a.d))), lastB=BL[0], prevB=BL.find(b=>b.d<(lastB||{}).d);
   const chB=lastB&&prevB&&prevB.p ? (lastB.p-prevB.p)/prevB.p*100 : null;
   const tile=(l,v,s,cls)=>`<div class="${cls||""}"><small>${l}</small><b>${v}</b>${s?`<span>${s}</span>`:""}</div>`;
-  const cat=catOf(p), aliases=[...new Set(M.flatMap(x=>String(x.aliases||"").split(/[;\n]/).map(s=>s.trim()).filter(Boolean)))];
+  const cat=catOf(p);
   let h=`<div class="dc-head"><div><div class="dc-kicker">Карточка товара${pArt(p)?" · арт. "+esc(pArt(p)):""}${M.length>1?" · "+M.length+" "+plural(M.length,["название","названия","названий"]):""}</div><h3>${esc((prod(root)||p).name||"Без названия")}</h3>
     <p class="muted sk-sub">${[cat?esc(cat.name):"", esc(p.unit||""), p.country&&COUNTRIES[p.country]?esc(COUNTRIES[p.country]):"", +p.price>0?"базовая цена "+fm(p.price)+" ₽":""].filter(Boolean).join(" · ")}</p></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>`;
   /* связанные названия */
@@ -254,7 +254,9 @@ function pcdHtml(){ const p=prod(PCD.id); if(!p) return `<div class="dc-head"><d
     else { const sim=pgSimilar(p.id);
       h+=(sim.length?`<div class="pcd-sim"><small class="muted">Похоже, это тот же товар:</small> ${sim.slice(0,8).map(x=>`<button type="button" class="pcd-chip" data-pglink="${x.id}" title="Связать с этой карточкой">+ ${esc(x.name)} <em>${esc(x.unit||"")}</em></button>`).join("")}</div>`:"")
         + `<div class="pcd-add"><input id="pcd-q" type="search" placeholder="Связать с товаром: начните вводить название" autocomplete="off" value="${esc(PCD.q)}" aria-label="Найти товар, чтобы связать"><div class="pcd-sug" id="pcd-sug">${pcdSugHtml()}</div></div>`; } }
-  if(aliases.length) h+=`<p class="muted pcd-al">Так его пишут в заявках: ${aliases.slice(0,12).map(esc).join(", ")}${aliases.length>12?" и ещё "+(aliases.length-12):""}</p>`;
+  /* «Так его пишут в заявках» — выученные названия; лишнее (выбрали не тот товар) убирается крестиком */
+  { const AL=[]; M.forEach(x=>aliasesOf(x).forEach(a=>{ if(a && !AL.some(y=>y.a===a)) AL.push({a, id:x.id}); }));
+    if(AL.length) h+=`<div class="muted pcd-al">Так его пишут в заявках: ${AL.map(x=>`<span class="pcd-alc">${esc(x.a)}${can?`<button type="button" data-pcdal="${esc(x.id)}" data-a="${esc(x.a)}" title="Это не этот товар — забыть название" aria-label="Убрать «${esc(x.a)}»">×</button>`:""}</span>`).join(" ")}</div>`; }
   h+=`</div>`;
   /* период */
   h+=`<div class="pfchips pcd-per">${PCD_PER.map(([k,t])=>`<button type="button" data-pcdper="${k}" class="${PCD.per===k?"on":""}">${t}</button>`).join("")}</div>`;
@@ -303,6 +305,9 @@ document.addEventListener("click", e=>{ const t=e.target; if(!t.closest || !PCD 
   const pf=t.closest("[data-pcdper]"); if(pf){ PCD.per=pf.dataset.pcdper; PCD.n=15; pcdRedraw(); return; }
   const ff=t.closest("[data-pcdf]"); if(ff){ PCD.f=ff.dataset.pcdf; PCD.n=15; pcdRedraw(); return; }
   const mo=t.closest("[data-pcdmore]"); if(mo){ PCD.n = mo.dataset.pcdmore==="all" ? 1e9 : PCD.n+15; pcdRedraw(); return; }
+  const al=t.closest("[data-pcdal]"); if(al){ if(!pgCan()) return; const x=prod(al.dataset.pcdal), a=al.dataset.a; if(!x) return;
+    x.aliases=JSON.stringify(aliasesOf(x).filter(y=>y!==a)); dirty("products", x.id); saveLocal(); logEv("Справочники","У товара «"+x.name+"» убрано название из заявок «"+a+"»");
+    pcdRedraw(); toast("ok","Название забыто","«"+a+"» больше не будет подставляться как «"+x.name+"»."); return; }
   if(!pgCan() || !pgSrv()) return;
   const lk=t.closest("[data-pglink]"); if(lk){ const o=prod(lk.dataset.pglink); pgLink(PCD.id, lk.dataset.pglink); PCD.q=""; pcdRedraw(); pgStockAuto().then(n=>{ if(n){ toast("ok","Склад: связано ещё "+n+" "+plural(n,["название","названия","названий"]),"Теперь «Со склада» работает для всех названий этого товара."); pcdRedraw(); } }); if(curTab==="products") renderProducts(); toast("ok","Товары связаны","«"+(o||{}).name+"» теперь в этой карточке. В документах названия не меняются."); return; }
   const un=t.closest("[data-pgun]"); if(un){ const id=un.dataset.pgun, o=prod(id); pgUnlink(id); pcdRedraw(); if(curTab==="products") renderProducts(); toast("ok","Отвязан","«"+(o||{}).name+"» — снова отдельный товар."); return; }

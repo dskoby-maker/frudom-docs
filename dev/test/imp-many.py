@@ -52,8 +52,9 @@ async def main():
             ok('27' in I[0]['price'], f'{W}: цена из файла (27 ₽)')
             # «+ Создать новый товар» — подставляется и во второй документ
             sel=pg.locator('#mul select[data-impmiss]').filter(has=pg.locator('option[value="__new"]')).first
-            v=await pg.evaluate("[...document.querySelectorAll('#mul select[data-impmiss]')].findIndex(s=>/Тыквенная смесь/.test(s.closest('.impmiss').textContent))")
-            await pg.locator('#mul select[data-impmiss]').nth(v).select_option('__new'); await pg.wait_for_timeout(500)
+            v=await pg.evaluate("[...document.querySelectorAll('#mul .ims-q')].findIndex(s=>/Тыквенная смесь/.test(s.closest('.impmiss').textContent))")
+            await pg.locator('#mul .ims-q').nth(v).click(); await pg.wait_for_timeout(200)
+            await pg.locator('.imsm [data-imsnew]').click(); await pg.wait_for_timeout(500)
             I2=await pg.evaluate("__fd.IMP().r.groups.map(g=>g.miss.map(l=>l.name))")
             ok(all('Тыквенная смесь новая' not in g for g in I2), f'{W}: новый товар подставлен в оба документа: {I2}')
             ok(await pg.evaluate("__fd.D().products.filter(p=>p.name==='Тыквенная смесь новая').length")==1, f'{W}: товар создан один раз')
@@ -62,10 +63,22 @@ async def main():
             L2=await pg.evaluate("__fd.D().multi.docs[1].dr.lines.map(l=>[(__fd.D().products.find(p=>p.id===l.productId)||{}).name, l.price])")
             ok(['Тыква продовольственная','55'] in L2, f'{W}: «Да» подставил похожий товар с ценой из файла: {L2}')
             # оставшиеся «не найдены» — создать тоже, чтобы суммы сошлись
+            # поиск по мере ввода: «карт» → подсказка, Enter выбирает; потом «Отменить» (Ctrl+Z) возвращает «не найден» и убирает название из товара
+            q=pg.locator('#mul .ims-q').first; await q.click(); await q.type('карт'); await pg.wait_for_timeout(250)
+            first=(await pg.locator('.imsm button.on').inner_text()).strip()
+            ok('Картофель' in first, f'{W}: подсказка по мере ввода — «{first[:40]}»')
+            nm=await pg.evaluate("__fd.IMP().r.groups[0].miss[0].name")
+            await q.press('Enter'); await pg.wait_for_timeout(400)
+            ok(nm not in await pg.evaluate("__fd.IMP().r.groups[0].miss.map(l=>l.name)"), f'{W}: Enter выбрал товар для «{nm}»')
+            al=await pg.evaluate(f"__fd.D().products.filter(p=>String(p.aliases||'').includes({nm!r})).length")
+            await pg.mouse.click(5,5); await pg.keyboard.press('Control+z'); await pg.wait_for_timeout(600)
+            ok(nm in await pg.evaluate("__fd.IMP().r.groups[0].miss.map(l=>l.name)") and await pg.locator('#mul .ims-q').count()>0, f'{W}: «Отменить» вернул «{nm}» в «не найден»')
+            ok(al>=0 and await pg.evaluate(f"__fd.D().products.filter(p=>String(p.aliases||'').includes({nm!r})).length")==0, f'{W}: отмена убрала «{nm}» из названий товара')
             for _ in range(6):
-                n=await pg.locator('#mul select[data-impmiss]').count()
+                n=await pg.locator('#mul .ims-q').count()
                 if not n: break
-                await pg.locator('#mul select[data-impmiss]').first.select_option('__new'); await pg.wait_for_timeout(400)
+                await pg.locator('#mul .ims-q').first.click(); await pg.wait_for_timeout(150)
+                await pg.locator('.imsm [data-imsnew]').click(); await pg.wait_for_timeout(400)
             sums=await pg.evaluate("__fd.D().multi.docs.map(M=>__fd.calc(M.dr).t.sum)")
             ok(abs(sums[0]-T1)<0.01 and abs(sums[1]-T2)<0.01, f'{W}: суммы как в файлах {sums} = {[T1,T2]}')
             ok('Сумма сходится с документом' in await pg.inner_text('#mul'), f'{W}: «Сумма сходится с документом ✓»')

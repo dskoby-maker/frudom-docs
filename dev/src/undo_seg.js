@@ -51,6 +51,13 @@ const UN_LOCAL={
       else if(v.id){ const r=(D.purchases||[]).find(x=>x.id===v.id); if(r){ v.upd=r.updated; v.synced=D.zkSrv?1:0; } }
       D.zk=v; const ta=document.getElementById("zk-src"); if(ta) ta.value=v.text||""; saveLocal(); if(String(v.text||"").trim() && typeof zkAutoSave==="function") zkAutoSave(); },
     label:(b,a)=>(b&&b.id&&b.id!==(a&&a.id) ? (a&&a.id ? "переход к другой закупке" : "новая закупка") : "правка закупки")},
+  /* документы из файлов («Заказ из файла»): выбор «Не найден товар …» — отменяется вместе с новым товаром/названием в «Товарах» */
+  imp:{tab:"doc", get:()=>{ const R=typeof IMP!=="undefined"&&IMP&&IMP.r; if(!D.multi && !R) return null;
+      return {m:D.multi||null, g:R?R.groups.map(g=>({items:g.items, miss:(g.miss||[]).map(l=>Object.assign({},l,{sug:l.sug?l.sug.id:null, amb:l.amb?l.amb.map(p=>p.id):null})), warn:g.warn, pdiff:g.pdiff||null, sum:g.sum})):null}; },
+    set:v=>{ v=v||{}; D.multi=v.m?clone(v.m):null; const R=typeof IMP!=="undefined"&&IMP&&IMP.r;
+      if(R && v.g && v.g.length===R.groups.length) v.g.forEach((x,i)=>{ const g=R.groups[i]; g.items=clone(x.items); g.miss=x.miss.map(l=>Object.assign({},l,{sug:l.sug?prod(l.sug)||null:null, amb:l.amb?l.amb.map(id=>prod(id)).filter(p=>p&&p.id):null})); g.warn=clone(x.warn); g.pdiff=x.pdiff||undefined; g.sum=x.sum; });
+      saveLocal(); try{ if(typeof imsClose==="function") imsClose(); drawImp(); drawMulti(); }catch(e){} },
+    label:()=>"выбор товара в документах из файлов"},
   prefs:{tab:null, get:()=>{ if(!curUser()) return null; const p=getPrefs(); delete p.pfSeen; delete p.skLogSize; return p; },   /* pfSeen — служебная отметка «был во вкладке Прибыль», не шаг отмены */
     set:v=>{ if(!curUser()) return; v=Object.assign({}, v||{}); const g=getPrefs(), ps=g.pfSeen; if(ps) v.pfSeen=ps; else delete v.pfSeen; if(g.skLogSize!=null) v.skLogSize=g.skLogSize; else delete v.skLogSize; setPrefs(v, true); try{ applyTabOrder(); }catch(e){} }, label:unPrefsLabel}
 };
