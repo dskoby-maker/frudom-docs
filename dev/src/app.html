@@ -1246,6 +1246,31 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .calgrid .dn{font-weight:600;font-size:14px}
 #fd-app .calgrid .cn{display:inline-block;align-self:flex-start;background:var(--accent-soft);color:var(--accent);font-size:11px;font-weight:700;border-radius:9px;padding:1px 7px}
 #fd-app .calgrid button.sel .cn{background:rgba(255,255,255,.25);color:#fff}
+#fd-app .calgrid .cnr{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+#fd-app .calgrid .cnd{display:inline-flex;align-items:center;gap:3px;background:#FFF1D6;color:#8a5200;font-size:11px;font-weight:700;border-radius:9px;padding:1px 7px 1px 5px;box-shadow:inset 0 0 0 1px rgba(194,122,14,.28)}#fd-app .calgrid .cnd svg{width:11px;height:11px}
+#fd-app .calgrid button.nd:not(.sel){border-color:rgba(194,122,14,.45);box-shadow:inset 0 -3px 0 rgba(194,122,14,.35)}
+#fd-app .calgrid button.sel .cnd{background:#FFE3A8;color:#6b3f00;box-shadow:none}
+#fd-app .calnd{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;background:#FFF4E0;color:#7a4a00;font-size:13px;box-shadow:inset 0 0 0 1px rgba(194,122,14,.3);transition:background .15s,transform .15s}
+#fd-app .calnd svg{width:15px;height:15px}#fd-app .calnd b{font-weight:700}#fd-app .calnd i{font-style:normal;opacity:.6}#fd-app .calnd:hover{background:#FFEBC4}#fd-app .calnd:focus-visible{outline:2px solid var(--warn)}
+#fd-app .calnd.late{background:#FDE8E4;color:#9b2a1e;box-shadow:inset 0 0 0 1px rgba(179,38,30,.28)}#fd-app .calnd.late:hover{background:#FBD9D2}
+#fd-app .dt.nodoc{box-shadow:inset 3px 0 0 #E0A43A}
+#fd-app .dtdoc{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;margin:4px 0 6px;padding:7px 10px;border-radius:10px;font-size:13px}#fd-app .dtdoc>svg{width:16px;height:16px;flex:none}
+#fd-app .dtdoc.need{background:#FFF4E0;color:#7a4a00}#fd-app .dtdoc.need.late{background:#FDE8E4;color:#9b2a1e}
+#fd-app .dtdoc.ok{background:rgba(47,107,69,.08);color:var(--ok);padding:5px 10px}#fd-app .dtdoc.ok small{color:var(--muted)}
+#fd-app .dtdoc-a{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
+#fd-app .dtdoc-j{all:unset;cursor:pointer;font-weight:600;color:var(--ok);padding:1px 6px;border-radius:6px}#fd-app .dtdoc-j:hover{background:rgba(47,107,69,.12)}
+#fd-app .dt-docs{display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:5px 10px;border-radius:999px;font-size:13px;color:#5d574f;background:rgba(28,34,32,.04);box-shadow:inset 0 0 0 1px var(--line);user-select:none;transition:background .15s,color .15s}
+#fd-app .dt-docs svg{width:15px;height:15px;flex:none}#fd-app label.dt-docs input[type=checkbox]{margin:0;accent-color:#c27a0e;width:15px;height:15px;min-width:0;min-height:0;flex:none;padding:0;box-shadow:none}#fd-app .dt-docs span{white-space:nowrap}#fd-app label.dt-docs{flex:none;width:auto;min-height:0;line-height:1.2}
+#fd-app .dt-docs:has(input:checked){background:#FFF1D6;color:#7a4a00;box-shadow:inset 0 0 0 1px rgba(194,122,14,.4)}
+#fd-app .dt-docs.off{opacity:.55;cursor:not-allowed}
+dialog .ndd{margin:12px 0 4px}dialog .ndd-h{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:6px}dialog .ndd-h i{font-style:normal;font-size:11.5px;padding:0 7px;border-radius:99px;background:rgba(28,34,32,.06)}
+dialog .ndd.late .ndd-h{color:#9b2a1e}dialog .ndr-late{color:#9b2a1e;font-weight:600}
+dialog .ndr{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;margin-bottom:6px;background:#fff}
+dialog .ndd.late .ndr{border-color:rgba(179,38,30,.25)}
+dialog .ndr-m{all:unset;cursor:pointer;flex:1;min-width:0;display:grid;gap:2px}dialog .ndr-m b{font-size:14px}dialog .ndr-m b span{font-weight:500;color:var(--muted)}dialog .ndr-m small{color:var(--muted);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+dialog .ndr-a{display:flex;gap:6px;flex:none}
+@media(max-width:560px){dialog .ndr{flex-wrap:wrap}dialog .ndr-a{width:100%}dialog .ndr-a .btn{flex:1}#fd-app .dtdoc-a{width:100%;margin-left:0}#fd-app .dtdoc-a .btn{flex:1}#fd-app .calnd{order:5;width:100%;justify-content:center;margin-top:4px}}
+@media(max-width:700px){#fd-app .calgrid .cnr{justify-content:center;gap:2px}#fd-app .calgrid .cnd{padding:0 4px}#fd-app .calgrid .cnd svg{display:none}}
 #fd-app .calgrid .cs{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #fd-app .calacts .btn{flex:1 1 200px}
 #fd-app #cal-load ul{margin:4px 0 0;padding-left:18px;font-size:14px}
@@ -2021,7 +2046,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
   <section class="tab" id="tab-calendar" hidden>
     <div class="card">
       <div class="calhead"><button class="btn ghost" id="cal-prev" aria-label="Предыдущий месяц">‹</button><h2 id="cal-title"></h2><button class="btn ghost" id="cal-next" aria-label="Следующий месяц">›</button>
-        <button class="btn ghost sm" id="cal-today">Сегодня</button><button class="hq" type="button" data-hq="Календарь" aria-label="Подсказка">?</button><span style="flex:1"></span><label class="f" style="min-width:180px">Заказчик<select id="cal-cus"></select></label></div>
+        <button class="btn ghost sm" id="cal-today">Сегодня</button><button class="hq" type="button" data-hq="Календарь" aria-label="Подсказка">?</button><button type="button" class="calnd" id="cal-nodoc" hidden></button><span style="flex:1"></span><label class="f" style="min-width:180px">Заказчик<select id="cal-cus"></select></label></div>
       <div class="calgrid" id="cal-grid"></div>
     </div>
     <div class="card" id="cal-day">
@@ -2039,6 +2064,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
             <div class="dt-cbar">
               <select id="dt-cus" aria-label="Заказчик"></select>
               <select id="dt-pt" aria-label="Точка доставки" hidden></select>
+              <span id="dt-docsw"></span>
               <label class="dt-pbtn" title="Прикрепить фото"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.3l1.4-2h5.6l1.4 2h1.3A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.4"/></svg><span>Фото</span><input type="file" accept="image/*" multiple hidden data-phfile></label>
               <span class="dt-hint">Shift+Enter — новая строка</span>
               <button class="btn pri" type="submit">Добавить</button>
@@ -2618,7 +2644,7 @@ function handleErr(e){ if(e.message==="auth"){ showLogin("Неверный па�
   else if(e && !e.net){ setStatus("err","Ошибка таблицы, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Таблица ответила ошибкой","«"+String(e.message||e).slice(0,160)+"». Всё сохранено на этом устройстве, повторю сам. Если повторяется — пришлите этот текст Claude."); } }
   else { setStatus("err","Не сохранено — нет связи, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Нет связи с Google Таблицей",(e&&e.message?"Причина: "+e.message+". ":"")+"Всё сохранено на этом устройстве и отправится автоматически, когда связь появится. Ничего делать не нужно."); } } }
 
-const NEED_VER=27;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
+const NEED_VER=28;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
 function srvVerCheck(v){ const el=$("#srvOld"); if(!el) return; const old=(+v||0)<NEED_VER; el.hidden=!old || docLimited(); D.srvVer=+v||0; }
 document.addEventListener("click",e=>{ if(!e.target.closest || !e.target.closest("#srvOldHow")) return; openCard(`<div class="dc-head"><div><div class="dc-kicker">Code.gs</div><h3>Как обновить скрипт таблицы</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
   <ol class="srvsteps"><li>GitHub → файл <b>dev/Code.template.gs</b> → кнопка «Copy raw file» (два квадратика).</li><li>Таблица «Документы ФД» → «Расширения» → «Apps Script» → файл <b>Код.gs</b> → Ctrl+A → Ctrl+V → «Сохранить». Файл «Пароли.gs» не трогать.</li><li>«Начать развёртывание» → «Управление развёртываниями» → карандаш → «Версия: новая версия» → «Развернуть».</li><li>Обновите эту страницу — жёлтая плашка исчезнет.</li></ol>
@@ -3314,7 +3340,7 @@ async function commitDoc(dr0, opt){
   const forceSave=async()=>{ const i=D.journal.findIndex(j=>j.id===entry.id); if(i>=0) D.journal[i]=entry; else D.journal.unshift(entry);
     logEv("Документ",(old?"Изменён":"Создан")+" документ № "+dr.number+" от "+fd(dr.date)+" — "+shortCus(calc(dr))+(dr.ship?", "+dr.ship:"")+", сумма "+fm(calc(dr).t.sum)+" ₽"+(liveDup()?" (номер повторяется)":""), dr.id);
     dirty("journal", entry.id); if(+dr.number>=(+s.next||1)){ s.next=(+dr.number)+1; dirty("suppliers", s.id); }
-    docTasks([old&&old.date, entry.date]); saveLocal(); if(online()){ try{ await flush(); }catch(e){ handleErr(e); } } skAfterSave(entry); if(typeof bnMulCommitted==="function") bnMulCommitted(entry); };
+    docTasks([old&&old.date, entry.date]); saveLocal(); if(online()){ try{ await flush(); }catch(e){ handleErr(e); } } skAfterSave(entry); if(typeof bnMulCommitted==="function") bnMulCommitted(entry); dtDocsAfter(entry, dr); };
   if(own && !(opt&&opt.force) && !dr.qtyOnly && liveDup()) opt=Object.assign({}, opt, {force:true});   /* номер уже есть у заказчика — предупредили красным, сохраняем как есть */
   if(opt&&opt.force){ await forceSave(); LC={n:dr.number, created:!old, warn:"Номер "+dr.number+" повторяется — сохранён по вашему решению."}; if(own) msg.textContent="Сохранено в журнал с повторяющимся номером "+dr.number+"."; return ""; }
   if(online()){
@@ -3340,7 +3366,7 @@ async function commitDoc(dr0, opt){
   const i=D.journal.findIndex(j=>j.id===entry.id); if(i>=0) D.journal[i]=entry; else D.journal.unshift(entry);
   docTasks([old&&old.date, entry.date]); saveLocal(); if(own) msg.textContent=note+"Сохранено в журнал. Следующий номер для этого заказчика: "+nextNum(dr.supplierId, dr.customerId);
   LC={n:dr.number, created:!old, warn:note.trim()};
-  skAfterSave(entry); if(old) skAfterEdit(entry); if(typeof bnMulCommitted==="function") bnMulCommitted(entry);
+  skAfterSave(entry); if(old) skAfterEdit(entry); if(typeof bnMulCommitted==="function") bnMulCommitted(entry); dtDocsAfter(entry, dr);
   return note;
 }
 /* ---------- общие функции XML ---------- */
@@ -3899,10 +3925,14 @@ function renderCalendar(){
   const [y,m]=c.ym.split("-").map(Number); $("#cal-title").textContent=MONTHS[m-1]+" "+y;
   const first=new Date(y,m-1,1), start=new Date(first); start.setDate(1-((first.getDay()+6)%7));
   const byDate={}; D.journal.forEach(j=>{ if(!j.snap||isArch(j)||(c.cus&&j.customerId!==c.cus)) return; (byDate[j.date]=byDate[j.date]||[]).push(j); });
+  dtDocsSync();
+  const ndBy={}; dtNoDocs(c.cus).forEach(x=>{ ndBy[x.date]=(ndBy[x.date]||0)+1; });
+  { const L=dtNoDocs(c.cus), b=$("#cal-nodoc"), late=L.filter(x=>x.date<today).length; if(b){ b.hidden=!L.length; b.classList.toggle("late", !!late);
+      b.innerHTML=L.length?`${IDOC}<span>Без документов: <b>${L.length}</b>${late?` · ${late} уже отвезли`:""}</span><i aria-hidden="true">›</i>`:""; b.title="Поставки, по которым ещё не сделаны документы — нажмите, чтобы открыть список"; } }
   const staff=isStaff(); let h=["пн","вт","ср","чт","пт","сб","вс"].map(w=>`<div class="wd">${w}</div>`).join("");
   for(let i=0;i<42;i++){ const d=new Date(start); d.setDate(start.getDate()+i); const iso=jIso(d), L=byDate[iso]||[], sum=r2(L.reduce((a,j)=>a+(+j.sum||0),0));
     if(i>=35 && d.getMonth()!==m-1) break;
-    const pt=dayPoints(iso, L, c.cus); h+=`<button type="button" data-d="${iso}" class="${d.getMonth()!==m-1?"out ":""}${d.getDay()%6===0?"we ":""}${iso===today?"today ":""}${iso===c.sel?"sel":""}" aria-label="${d.getDate()} ${MONG[d.getMonth()]}${pt?", точек: "+pt:""}"><span class="dn">${d.getDate()}</span>${pt?`<span class="cn" title="Точек: ${pt}">${pt}</span>`:""}${L.length&&!staff?`<span class="cs">${fm(sum)} ₽</span>`:""}</button>`; }
+    const pt=dayPoints(iso, L, c.cus); h+=`<button type="button" data-d="${iso}" class="${d.getMonth()!==m-1?"out ":""}${d.getDay()%6===0?"we ":""}${iso===today?"today ":""}${iso===c.sel?"sel ":""}${ndBy[iso]?"nd":""}" aria-label="${d.getDate()} ${MONG[d.getMonth()]}${pt?", точек: "+pt:""}${ndBy[iso]?", без документов: "+ndBy[iso]:""}"><span class="dn">${d.getDate()}</span>${pt||ndBy[iso]?`<span class="cnr">${pt?`<span class="cn" title="Точек: ${pt}">${pt}</span>`:""}${ndBy[iso]?`<span class="cnd" title="Без документов: ${ndBy[iso]}">${IDOC}${ndBy[iso]}</span>`:""}</span>`:""}${L.length&&!staff?`<span class="cs">${fm(sum)} ₽</span>`:""}</button>`; }
   $("#cal-grid").innerHTML=h; drawCalDay(); drawDayTasks(); renderDriver();
 }
 /* ---------- задачи на день (общие для всех, включая водителя) ---------- */
@@ -3928,7 +3958,7 @@ function dtEdRow(x){ const e=EDf();
     <div class="fmtprev"${fmtHas(e.text)?"":" hidden"}>${fmtHas(e.text)?fmtPrevHtml(e.text):""}</div>
     ${isAuto(x)?`<div class="dt-edrow"><span class="muted">Задача из накладной — дата и заказчик как в накладной</span></div>`:`<div class="dt-edrow"><input type="date" data-edf="date" value="${esc(e.date||x.date)}" aria-label="Дата задачи">
       <select data-edf="cus" aria-label="Заказчик"><option value="">Без заказчика</option>${opts(D.customers, e.cus!=null?e.cus:x.customerId)}</select>${(()=>{ const L=cusAddrs(cus(e.cus!=null?e.cus:x.customerId)), a=e.addr!=null?e.addr:x.addr;
-        return `<select data-edf="addr" aria-label="Точка доставки"${L.length<2?" hidden":""}><option value="">Точка не выбрана</option>${L.map(o=>`<option value="${esc(o.a)}"${o.a===a?" selected":""}>${esc(o.label)}</option>`).join("")}</select>`; })()}</div>`}
+        return `<select data-edf="addr" aria-label="Точка доставки"${L.length<2?" hidden":""}><option value="">Точка не выбрана</option>${L.map(o=>`<option value="${esc(o.a)}"${o.a===a?" selected":""}>${esc(o.label)}</option>`).join("")}</select>`; })()}${dtDocChk(e.docs!=null?e.docs:!!x.docs, 'data-edf="docs"')}</div>`}
     <div class="dt-phs" data-phs="${esc(x.id)}" data-x="1">${phItems(x.id,x.photos,true)}</div>
     <div class="dt-cbar"><label class="dt-pbtn">${ICAM}<span>Фото</span><input type="file" accept="image/*" multiple hidden data-phfile></label>
       <span class="dt-hint">Enter — сохранить · Shift+Enter — новая строка</span>
@@ -3939,9 +3969,9 @@ function dtRow(x, ing){ const e=EDf(); if(e && e.id===x.id && dtCan(x)) return d
   const tm = n => (sn[n].slice(0,10)===todayISO()?"":fd(sn[n].slice(0,10)).slice(0,5)+" ")+hhmm(sn[n]);
   const who = (rd.length?`<span class="ok"><em>Прочитал:</em> ${rd.map(n=>`<b title="Увидел ${esc(fd(sn[n].slice(0,10)))} в ${hhmm(sn[n])}">${esc(n)}</b> <s>${tm(n)}</s>`).join(", ")}</span>`:"")
     + (nr.length?`<span class="no"><em>Не прочитал:</em> ${nr.map(esc).join(", ")}</span>`:"");
-  return `<div class="dt${x._new?" new":""}${hu!=null?" hc":""}" data-dt="${esc(x.id)}"${hu!=null?` style="--h:${hu}"`:""}>
+  return `<div class="dt${x._new?" new":""}${hu!=null?" hc":""}${dtNeed(x)?" nodoc":""}" data-dt="${esc(x.id)}"${hu!=null?` style="--h:${hu}"`:""}>
     <div class="dt-b"><div class="dt-top">${cn?`<span class="dt-c"${ing?' title="Точка"':""}>${ing?IPIN:""}${esc(cn)}</span>`:""}${who?`<div class="dt-rd${nr.length?"":" all"}" aria-label="Кто прочитал">${who}</div>`:""}</div>
-      <div class="dt-t"${dtCan(x)?' data-dtedit title="Нажмите, чтобы исправить"':""}>${fmtHtml(x.text)}</div>
+      ${dtDocsHtml(x)}<div class="dt-t"${dtCan(x)?' data-dtedit title="Нажмите, чтобы исправить"':""}>${fmtHtml(x.text)}</div>
       <div class="dt-phs" data-phs="${esc(x.id)}">${phItems(x.id,x.photos,false)}</div>
       <small>${esc(x.by||"")}${x.created?" · "+(x.created.slice(0,10)===todayISO()?"сегодня ":fd(x.created.slice(0,10))+" ")+hhmm(x.created):""}</small></div>
     <div class="dt-a">${dtCan(x)?`<button type="button" class="dt-pen" data-dtpen title="Изменить задачу" aria-label="Изменить задачу">${IPEN}</button>`:""}<label class="dt-cam" title="Прикрепить фото" aria-label="Прикрепить фото">${ICAM}<input type="file" accept="image/*" multiple hidden data-phfile></label>${dtCan(x)?`<button type="button" class="dt-x" data-dtdel title="Удалить" aria-label="Удалить">×</button>`:""}</div></div>`; }
@@ -3995,6 +4025,7 @@ function drawDayTasks(){
     dtKeys(ta, ()=>dtEdFinish(true), ()=>dtEdFinish(false));
     if(hadFocus || E.focus){ delete E.focus; edSave(); ta.focus({preventScroll:hadFocus}); const a=Math.min(E.a==null?ta.value.length:E.a, ta.value.length); ta.setSelectionRange(a,a); } }
   $("#dt-count").textContent = L.length ? L.length+" "+plural(L.length,["задача","задачи","задач"]) : "";
+  { const w=$("#dt-docsw"), on=!!DRf().docs; if(w && (!w.firstElementChild || w.dataset.st!==String(on)+dtDocSrv())){ w.innerHTML=dtDocChk(on,'id="dt-docs"'); w.dataset.st=String(on)+dtDocSrv(); } }
   const cs=$("#dt-cus"), keep=cs.value, D0=DRf(); const ids=new Set(calDocs(sel,"").map(j=>j.customerId));
   const first=D.customers.filter(x=>ids.has(x.id)), rest=D.customers.filter(x=>!ids.has(x.id));
   cs.innerHTML=`<option value="">Без заказчика</option>`+(first.length?`<optgroup label="Заказы на этот день">${opts(first)}</optgroup><optgroup label="Остальные">${opts(rest)}</optgroup>`:opts(rest));
@@ -4010,8 +4041,9 @@ function dtPtFill(){ const ps=$("#dt-pt"), L=cusAddrs(cus($("#dt-cus").value)), 
   ps.hidden=L.length<2; ps.innerHTML=`<option value="">Точка не выбрана</option>`+L.map(o=>`<option value="${esc(o.a)}" title="${esc(o.a)}">${esc(o.label)}</option>`).join("");
   ps.value = L.some(o=>o.a===keep) ? keep : ""; }
 function dtEdFinish(save){ const e=EDf(); if(!e) return; const x=DTS().find(y=>y.id===e.id); ED=null; edSave();
-  if(save && x){ const v=e.text.trim(), nd=!isAuto(x)&&e.date&&e.date!==x.date?e.date:"", nc=!isAuto(x)&&e.cus!=null&&e.cus!==x.customerId, na=!isAuto(x)&&e.addr!=null&&e.addr!==(x.addr||"");
-    const tch=!!v && v!==x.text; if(tch||nd||nc||na){ const was=x.date; if(tch) x.text=v; if(nd) x.date=nd; if(nc){ x.customerId=e.cus; x.addr=e.addr||""; } else if(na) x.addr=e.addr;
+  if(save && x){ const v=e.text.trim(), nd=!isAuto(x)&&e.date&&e.date!==x.date?e.date:"", nc=!isAuto(x)&&e.cus!=null&&e.cus!==x.customerId, na=!isAuto(x)&&e.addr!=null&&e.addr!==(x.addr||""), ndc=!isAuto(x)&&e.docs!=null&&!!e.docs!==!!x.docs;
+    const tch=!!v && v!==x.text; if(tch||nd||nc||na||ndc){ const was=x.date; if(tch) x.text=v; if(nd) x.date=nd; if(nc){ x.customerId=e.cus; x.addr=e.addr||""; } else if(na) x.addr=e.addr;
+      if(ndc) dtDocsSet(x, e.docs?DTD_NEED:"", [], false); if(ndc||nd||nc||na) dtDocsSync();
       if(tch||nd) x.seen="";
       dtSave(x,"Изменена"+(nd?" (перенесена с "+fd(was)+" на "+fd(nd)+")":"")+": "+fmtPlain(x.text));
       toast("ok", nd?"Задача перенесена на "+fd(nd):"Задача исправлена", (tch||nd)?"Отметки «видел» начнутся заново.":"", nd?{action:{label:"Открыть "+fd(nd), fn:()=>{ const c=CAL(); c.sel=nd; c.ym=nd.slice(0,7); saveLocal(); renderCalendar(); }}}:undefined); return; } }
@@ -4070,6 +4102,73 @@ document.querySelectorAll('.fmtbar[data-fmtfor]').forEach(x=>{ x.innerHTML=FMT_B
 function dtKeys(t, onEnter, onEsc){ t.addEventListener("input",()=>dtGrow(t));
   t.addEventListener("keydown",k=>{ if(k.key==="Enter" && !k.shiftKey && !k.isComposing && !dtTouch()){ k.preventDefault(); onEnter(); } else if(k.key==="Escape" && onEsc){ k.preventDefault(); onEsc(); } }); }
 function dtSave(x, ev){ dirty("daytasks", x.id); saveLocal(); if(ev) logEv("Задача на день", ev); renderCalendar(); }
+/* ---- «Сделать документы»: товар уже отвезли, а накладных ещё нет (11.11.2026, Code.gs ≥ 28: колонки docs/docsAt/docsBy/docsRef листа «Задачи на день»).
+   docs: «нужны» → в календаре жёлтая метка дня и счётчик «Без документов: N»; «сделаны» — сайт ставит сам, когда появилась накладная
+   того же заказчика на тот же день (и точку), или по кнопке «Сделать документы ›» / «Уже сделаны». Накладную отправили в архив — снова «нужны». ---- */
+const DTD_NEED="нужны", DTD_OK="сделаны";
+const IDOC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>';
+const dtDocSrv = () => (D.srvVer||0)>=28 || DTS().some(x=>"docs" in x);
+const dtNeed = x => !!x && !x._del && x.docs===DTD_NEED;
+const dtDocsOk = x => !!x && x.docs===DTD_OK;
+const dtRefs = x => String((x&&x.docsRef)||"").split(",").map(t=>t.trim()).filter(Boolean);
+const dtDocChk = (on, attr) => { const off=!dtDocSrv(); return `<label class="dt-docs${off?" off":""}" title="${off?"Чтобы отметка сохранялась, обновите скрипт таблицы (Code.gs, версия 28)":"Товар отвезём (отвезли) раньше, чем сделаем документы — сайт напомнит в календаре и отметит сам, когда накладная появится"}"><input type="checkbox" ${attr}${on&&!off?" checked":""}${off?" disabled":""}>${IDOC}<span>Сделать документы</span></label>`; };
+const dtNoDocs = cid => DTS().filter(x=>dtNeed(x) && (!cid || x.customerId===cid)).sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+/* накладные к задаче: тот же заказчик и день; у задачи есть точка — та же или похожая точка */
+function dtDocsFor(x){ if(!x || !x.customerId) return []; return D.journal.filter(j=>j.snap && !isArch(j) && j.customerId===x.customerId && j.date===x.date
+  && (!x.addr || !(j.snap.dr||{}).ship || j.snap.dr.ship===x.addr || shipSim(j.snap.dr.ship, x.addr)>=0.6)); }
+function dtDocsSet(x, st, refs, auto){ x.docs=st; x.docsAt=st?new Date().toISOString():""; x.docsBy=st?(auto?"сайт":curUser()||""):""; x.docsRef=(refs||[]).join(","); dirty("daytasks", x.id); }
+/* сайт сам сверяет задачи с журналом (не у водителя — он смотрит, а отмечают офис и склад) */
+function dtDocsSync(){ if(!dtDocSrv() || docLimited()) return 0; let n=0;
+  DTS().forEach(x=>{ if(isAuto(x)) return;
+    if(dtNeed(x)){ const L=dtDocsFor(x); if(L.length){ dtDocsSet(x, DTD_OK, L.map(j=>j.id), true); n++; } return; }
+    if(dtDocsOk(x) && x.docsBy==="сайт"){ const R=dtRefs(x), J=R.map(id=>D.journal.find(j=>j.id===id)).filter(Boolean);
+      if(J.length && J.every(isArch) && !dtDocsFor(x).length){ dtDocsSet(x, DTD_NEED, [], false); x.docsBy="сайт"; n++; } } });
+  if(n) saveLocal(); return n; }
+/* документ сохранён по кнопке «Сделать документы ›» у задачи — отмечаем именно эту задачу (даже если дата документа другая) */
+function dtDocsAfter(entry, dr){ if(!dtDocSrv()) return; const tid=dr && dr.taskId, x=tid && DTS().find(t=>t.id===tid);
+  if(x && !isAuto(x)){ const R=dtRefs(x); if(!R.includes(entry.id)) R.push(entry.id); const was=dtNeed(x); dtDocsSet(x, DTD_OK, R, true); saveLocal();
+    if(was) toast("ok","Документы по задаче сделаны","Задача на "+fd(x.date)+(x.customerId?" · "+cusNm(x.customerId):"")+" больше не висит в «Без документов»."); }
+  if(dtDocsSync() && curTab==="calendar") renderCalendar(); }
+function dtDocsHtml(x){ if(isAuto(x) || !x.docs) return "";
+  if(dtNeed(x)){ const late=x.date<todayISO();
+    return `<div class="dtdoc need${late?" late":""}">${IDOC}<b>${late?"Документы не сделаны":"Нужно сделать документы"}</b><span class="dtdoc-a"><button type="button" class="btn sm pri" data-dtdmk>Сделать документы ›</button><button type="button" class="btn ghost sm" data-dtdok title="Документы уже есть, но сайт их не нашёл (другая дата или заказчик)">Уже сделаны</button></span></div>`; }
+  const J=dtRefs(x).map(id=>D.journal.find(j=>j.id===id)).filter(j=>j && !isArch(j));
+  return `<div class="dtdoc ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg><b>Документы сделаны</b>${J.map(j=>`<button type="button" class="dtdoc-j" data-dtdj="${esc(j.id)}">№ ${esc(j.number)} ›</button>`).join("")}${x.docsBy && x.docsBy!=="сайт"?`<small>отметил${/а$/.test(x.docsBy)?"а":""} ${esc(x.docsBy)}</small>`:""}</div>`; }
+/* «Сделать документы ›»: новый документ сразу на заказчика, день и точку задачи */
+function dtMakeDocs(x, back){ const dr0=D.draft, keepUnsaved = dr0 && !D.journal.some(j=>j.id===dr0.id) && (dr0.lines||[]).some(l=>l.productId && +l.qty>0);
+  const go=()=>{ const d=newDraft(D); d.date=x.date; d.taskId=x.id; D.draft=d; saveLocal();
+    const open=()=>{ showTab("doc"); const cs=$("#d-cus");
+      if(x.customerId && cs){ cs.value=x.customerId; cs.dispatchEvent(new Event("change",{bubbles:true})); }
+      const dr=D.draft; dr.date=x.date; dr.taskId=x.id; const di=$("#d-date"); if(di) di.value=x.date;
+      if(x.addr){ const bl=branches(cus(x.customerId)), b=bl.find(b=>addrs(liveCus({customerId:x.customerId, branchId:b.id})).some(a=>a===x.addr||shipSim(a,x.addr)>=0.6));
+        if(b && b.id!==dr.branchId){ dr.branchId=b.id; renderBranch(); } dr.ship=x.addr; renderShip(); }
+      syncNum(); saveLocal(); toast("info","Документы по задаче на "+fd(x.date), "Заказчик, дата и точка — как в задаче. Добавьте товары и сохраните: задача сама отметится «Документы сделаны»."); };
+    if(back) tabBackFrom("Календарь", open); else open(); };
+  if(keepUnsaved){ toast("warn","В «Новом документе» есть несохранённый документ","Если открыть документ по задаче, он заменится. Сначала сохраните его или нажмите «Всё равно открыть».",{action:{label:"Всё равно открыть", fn:go}}); return; }
+  go(); }
+/* окно «Без документов»: все такие поставки, старые сверху; день → календарь, «Сделать документы ›» → новый документ */
+function dtNoDocsCard(){ const c=CAL(), L=dtNoDocs(c.cus), today=todayISO();
+  CARD_RE=()=>dtNoDocsCard();
+  const by={}; L.forEach(x=>{ (by[x.date]=by[x.date]||[]).push(x); });
+  const row=x=>{ const cu=x.customerId?cus(x.customerId):null, pt=cu&&cu.id&&x.addr?stLabel(x.addr, cu.address):"", t=fmtPlain(x.text||"").split("\n").filter(Boolean)[0]||"";
+    return `<div class="ndr" data-dt="${esc(x.id)}"><button type="button" class="ndr-m" data-dtdgo="${esc(x.date)}" title="Открыть этот день в календаре"><b>${esc(cu&&cu.id?cusNm(cu.id):"Без заказчика")}${pt?` <span>· ${esc(pt)}</span>`:""}</b><small>${esc(t.slice(0,90))}${t.length>90?"…":""}</small></button>
+      <span class="ndr-a"><button type="button" class="btn sm pri" data-dtdmk>Сделать ›</button><button type="button" class="btn ghost sm" data-dtdok>Уже сделаны</button></span></div>`; };
+  const late=L.filter(x=>x.date<today).length;
+  openCard(`<div class="dc-head"><div><div class="dc-kicker">Календарь · поставки</div><h3>Без документов: ${L.length}</h3><div class="dc-sub">${c.cus?esc(cusNm(c.cus))+" · ":""}${late?`<b class="ndr-late">${late} — день поставки уже прошёл</b>`:"все — на сегодня и позже"}</div></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+    ${L.length?Object.keys(by).sort().map(d=>`<div class="ndd${d<today?" late":""}"><div class="ndd-h">${esc(fd(d))}${d===today?" · сегодня":d<today?" · "+Math.round((new Date(today)-new Date(d))/864e5)+" дн. назад":""}<i>${by[d].length}</i></div>${by[d].map(row).join("")}</div>`).join("")
+      :`<p class="muted">Все поставки с документами.</p>`}`, true, ()=>{});
+  const dc=$("#fd-dcard"); dc.addEventListener("click", dtDocsClick); }
+/* общие нажатия: задача в календаре и окно «Без документов» */
+function dtDocsClick(e){ const row=e.target.closest("[data-dt]"), x=row && DTS().find(t=>t.id===row.dataset.dt);
+  const inCard=!!e.target.closest("#fd-dcard");
+  if(e.target.closest("[data-dtdmk]") && x){ e.preventDefault(); e.stopPropagation(); if(inCard){ const d=$("#fd-dcard"); if(d && d.open) d.close(); } dtMakeDocs(x, true); return true; }
+  if(e.target.closest("[data-dtdok]") && x){ e.preventDefault(); e.stopPropagation(); const L=dtDocsFor(x); dtDocsSet(x, DTD_OK, L.map(j=>j.id), false); saveLocal(); logEv("Задача на день","Документы отмечены сделанными ("+fd(x.date)+"): "+fmtPlain(x.text).slice(0,80));
+    toast("ok","Отмечено: документы сделаны","",{action:{label:"Отменить", fn:()=>{ dtDocsSet(x, DTD_NEED, [], false); saveLocal(); renderCalendar(); if(inCard) dtNoDocsCard(); }}});
+    renderCalendar(); if(inCard) dtNoDocsCard(); return true; }
+  const jb=e.target.closest("[data-dtdj]"); if(jb){ e.preventDefault(); e.stopPropagation(); const j=D.journal.find(z=>z.id===jb.dataset.dtdj); if(j) docCard(j); return true; }
+  const g=e.target.closest("[data-dtdgo]"); if(g){ const c=CAL(); c.sel=g.dataset.dtdgo; c.ym=c.sel.slice(0,7); saveLocal(); const d=$("#fd-dcard"); if(d && d.open) d.close(); renderCalendar();
+    const t=$("#dt-box"); if(t) setTimeout(()=>t.scrollIntoView({behavior:"smooth", block:"start"}), 80); return true; }
+  return false; }
 /* авто‑задачи из накладных: на каждую точку дня одна задача «Отвезти товар на … общий вес … кг».
    Пересчитываются при сохранении, изменении и архивации накладной; ID задачи постоянный (дата+заказчик+точка), поэтому дублей не бывает */
 const AUTO_T="auto-", isAuto = x => String((x&&x.id)||"").startsWith(AUTO_T);
@@ -4108,17 +4207,21 @@ function docTasks(dates, quiet){ const now=new Date().toISOString(); let ch=0;
 $("#dt-add").addEventListener("submit",e=>{ e.preventDefault(); const inp=$("#dt-text"), D0=DRf(); let v=inp.value.trim();
   if(!v && !D0.photos.length){ inp.focus(); return; } if(!v) v="Фото";
   const x={id:D0.id, date:CAL().sel, customerId:$("#dt-cus").value||"", addr:($("#dt-cus").value&&!$("#dt-pt").hidden&&$("#dt-pt").value)||"", text:v, done:"", by:curUser()||"", created:new Date().toISOString(), doneBy:"", doneAt:"", seen:"", photos:D0.photos.slice()};
-  DTS().push(x); DR=null; lsSet(DRK(), null); inp.value=""; dtGrow(inp); fmtSync(inp); $("#dt-cus").value=""; dtPtFill();
+  if(D0.docs && dtDocSrv()){ dtDocsSet(x, DTD_NEED, [], false); const L=dtDocsFor(x); if(L.length){ x.docs=DTD_OK; x.docsBy="сайт"; x.docsRef=L.map(j=>j.id).join(","); } }
+  DTS().push(x); DR=null; lsSet(DRK(), null); inp.value=""; dtGrow(inp); fmtSync(inp); { const dc=$("#dt-docs"); if(dc) dc.checked=false; } $("#dt-cus").value=""; dtPtFill();
   dtSave(x, "Добавлена на "+fd(x.date)+": "+(x.customerId?cusShort(cus(x.customerId).name)+(x.addr?" ("+stLabel(x.addr,cus(x.customerId).address)+")":"")+" — ":"")+fmtPlain(v)+(x.photos.length?" (фото: "+x.photos.length+")":""));
   toast("ok","Задача добавлена","На "+fd(x.date)+". Её увидят все, в том числе водитель."); setTimeout(()=>$("#dt-text").focus(),50); });
 dtKeys($("#dt-text"), ()=>$("#dt-add").requestSubmit());
 $("#dt-text").addEventListener("input",()=>{ DRf().text=$("#dt-text").value; drSave(); });
 $("#dt-cus").addEventListener("change",()=>{ DRf().cus=$("#dt-cus").value; DRf().pt=""; $("#dt-pt").value=""; dtPtFill(); drSave(); });
 $("#dt-pt").addEventListener("change",()=>{ DRf().pt=$("#dt-pt").value; drSave(); });
-$("#dt-box").addEventListener("change",e=>{ const ef=e.target.dataset&&e.target.dataset.edf; if(ef){ const E=EDf(); if(!E) return; E[ef]=e.target.value; if(ef==="cus") E.addr=""; edSave(); if(ef==="cus"){ E.text=($("#dt-list .dt-edit")||{}).value||E.text; drawDayTasks(); } return; }
+$("#dt-box").addEventListener("change",e=>{ if(e.target.id==="dt-docs"){ DRf().docs=e.target.checked; drSave(); return; }
+  const ef=e.target.dataset&&e.target.dataset.edf; if(ef){ const E=EDf(); if(!E) return; E[ef]=e.target.type==="checkbox"?e.target.checked:e.target.value; if(ef==="cus") E.addr=""; edSave(); if(ef==="cus"){ E.text=($("#dt-list .dt-edit")||{}).value||E.text; drawDayTasks(); } return; }
   const f=e.target.closest("[data-phfile]"); if(!f) return; const row=e.target.closest("[data-dt]"), files=[...f.files]; f.value="";
   if(files.length) phAdd(row ? row.dataset.dt : DRf().id, files); });
+$("#cal-nodoc").addEventListener("click",()=>dtNoDocsCard());
 $("#dt-box").addEventListener("click",e=>{
+  if(dtDocsClick(e)) return;
   const ph=e.target.closest(".ph[data-ph]");
   if(ph){ e.preventDefault(); const tid=ph.closest("[data-phs]").dataset.phs, list=phList(tid), p=list.find(z=>z.id===ph.dataset.ph); if(!p) return;
     if(e.target.closest("[data-phx]")){ if(!ph.classList.contains("arm")){ ph.classList.add("arm"); setTimeout(()=>ph.isConnected&&ph.classList.remove("arm"),2500); return; } phDel(tid, p); return; }
@@ -5268,7 +5371,7 @@ function setArch(list, on){
   list.forEach(j=>{ const m=j.snap.meta=j.snap.meta||{}; histPush(m, [on?"в архив":"возвращён из архива"]); if(on) m.arch=now; else { delete m.arch;
       const y=String(j.date).slice(0,4); if(D.journal.some(x=>x.id!==j.id && !isArch(x) && x.supplierId===j.supplierId && String(x.date).slice(0,4)===y && String(x.number)===String(j.number))) clash.push(j.number); }
     dirty("journal", j.id); });
-  docTasks(list.map(j=>j.date), true); saveLocal(); renderJournal(); if(curTab==="archive") renderArchive(); if(curTab==="calendar") renderCalendar();
+  docTasks(list.map(j=>j.date), true); dtDocsSync(); saveLocal(); renderJournal(); if(curTab==="archive") renderArchive(); if(curTab==="calendar") renderCalendar();
   skAfterArch(list, on);
   return clash;
 }
@@ -7457,6 +7560,9 @@ function reqTask(list){ const bad=list.map(([k,msg,lvl])=>msg?{k,msg,lvl}:null).
 function autoTasks(){
   const T=[], add=(g,o)=>T.push(Object.assign({g},o)), today=isoToday();
   const live=D.journal.filter(j=>j.snap && !isArch(j));
+  { const L=dtNoDocs(""), late=L.filter(x=>x.date<today); if(L.length) add("Документы",{key:"nodocs-"+L.length+"-"+late.length, lvl:late.some(x=>x.date<jIso(new Date(Date.now()-3*864e5)))?"err":"warn",
+      title:"Поставки без документов: "+L.length, text:(late.length?late.length+" уже отвезли, а накладных нет — ":"")+[...new Set(L.map(x=>x.customerId?cusNm(x.customerId):"без заказчика"))].slice(0,4).join(", ")+". Отмечены «Сделать документы» в задачах календаря.",
+      act:"Открыть список", go:{fn:()=>{ showTab("calendar"); dtNoDocsCard(); }}}); }
   if(me().old) add("Система",{key:"script-old", lvl:"err", title:"Обновите скрипт Google Таблицы", text:"Пока стоит старая версия: не работают пароли Натальи, Гриши и Склада, журнал событий и настройки. Вставьте новый Code.gs и разверните как «Новая версия».", go:null});
   /* поставщики */
   D.suppliers.forEach(s=>{
@@ -7638,8 +7744,8 @@ const HELP={
   "Заявка → документы":["Для заявок, где у одного заказчика много точек (столовые МГУ).",["Выберите заказчика, подразделение и день поставки.","Ниже впишите количество по каждой точке — на каждую будет своя накладная."]],
   "Количество по адресам":["Перепишите цифры из заявки.",["«Вид таблицы» — как удобнее: адреса в строках или товары в строках (адреса и ОП тогда в столбцах). Выбор запоминается для каждого заказчика.","Enter и стрелки ↑↓ переходят к соседней клетке.","Пустые строки пропускаются.","Серый номер в «№ док.» подставлен автоматически. Нажмите на него, чтобы исправить. Если сотрёте — номер снова подставится сам."]],
   "Что скачать":["Отметьте документы и нажмите кнопку.","Все накладные создадутся сразу, скачаются одним PDF и сохранятся в «Журнал» одним комплектом."],
-  "Календарь":["Все заказы по дням поставки.",["На дне видно количество точек доставки и сумму. Считаются все адреса доставки: по накладным и по задачам дня. Если товар везут на точку без накладной — добавьте задачу, выберите заказчика и точку (столовую, склад), и она посчитается.","Нажмите на день — ниже появятся его заказы, товар на день, маршрут водителю и текст для копирования.","Новые накладные появляются здесь сразу после создания."]],
-  "Задачи на день":["Дела на день, кроме самих заказов: замена товара, исправленные документы, возврат.",["Выберите заказчика (можно без него), впишите задачу и нажмите «Добавить». Кнопки ниже подставят частые фразы.","Писать можно в несколько строк: Enter — добавить задачу, Shift+Enter — новая строка (на телефоне новая строка — обычным Enter, добавить — кнопкой).","Задачи видят все, в том числе водитель. Они попадают и в текст маршрута.","Фото: кнопка «Фото» в поле задачи или значок фотоаппарата у готовой задачи. Нажмите на фото — оно откроется крупно: приближайте колесом мыши, двумя пальцами или двойным касанием, поворачивайте кнопками или двумя пальцами, листайте стрелками или смахиванием, смахните вниз — закроется.","Недописанная задача не пропадёт: если свернуть браузер или закрыть страницу, текст и фото останутся в поле до вашего возвращения.","Под задачей видно, кто её уже открыл (зелёным, со временем), а кто ещё нет. Отмечать ничего не нужно — достаточно открыть календарь на этот день.","Если текст задачи исправить, отметки «видел» сбрасываются, чтобы все прочитали новую версию."]],
+  "Календарь":["Все заказы по дням поставки.",["Жёлтая метка с листком на дне — сколько поставок этого дня ещё без документов. Кнопка «Без документов: N» сверху открывает список всех таких поставок: «Сделать ›» — сразу новый документ, «Уже сделаны» — отметить вручную.","На дне видно количество точек доставки и сумму. Считаются все адреса доставки: по накладным и по задачам дня. Если товар везут на точку без накладной — добавьте задачу, выберите заказчика и точку (столовую, склад), и она посчитается.","Нажмите на день — ниже появятся его заказы, товар на день, маршрут водителю и текст для копирования.","Новые накладные появляются здесь сразу после создания."]],
+  "Задачи на день":["Дела на день, кроме самих заказов: замена товара, исправленные документы, возврат.",["Отвезли товар раньше документов? Отметьте у задачи «Сделать документы»: в календаре на этом дне появится жёлтая метка, сверху — «Без документов: N». Кнопка «Сделать документы ›» открывает новый документ сразу на заказчика, день и точку; когда накладная сохранена (или появилась накладная этого заказчика на этот день), сайт сам отметит «Документы сделаны».","Выберите заказчика (можно без него), впишите задачу и нажмите «Добавить». Кнопки ниже подставят частые фразы.","Писать можно в несколько строк: Enter — добавить задачу, Shift+Enter — новая строка (на телефоне новая строка — обычным Enter, добавить — кнопкой).","Задачи видят все, в том числе водитель. Они попадают и в текст маршрута.","Фото: кнопка «Фото» в поле задачи или значок фотоаппарата у готовой задачи. Нажмите на фото — оно откроется крупно: приближайте колесом мыши, двумя пальцами или двойным касанием, поворачивайте кнопками или двумя пальцами, листайте стрелками или смахиванием, смахните вниз — закроется.","Недописанная задача не пропадёт: если свернуть браузер или закрыть страницу, текст и фото останутся в поле до вашего возвращения.","Под задачей видно, кто её уже открыл (зелёным, со временем), а кто ещё нет. Отмечать ничего не нужно — достаточно открыть календарь на этот день.","Если текст задачи исправить, отметки «видел» сбрасываются, чтобы все прочитали новую версию."]],
   "Маршрут для водителя":["Собирается сам из накладных выбранного в календаре дня.",["Галочка «Подробно» — для наёмного водителя: телефоны, часы приёмки, получатель, документы.","Контакты точки можно поправить прямо в её карточке."]],
   "Текстом для копирования":["Готовое сообщение для рабочей группы в MAX.","Нажмите «Скопировать текст» и вставьте в чат."],
   "Журнал документов":["Все созданные документы.",["Фильтры — период, поставщик, заказчик; поиск — по номеру, адресу, товару.","«Комплект» — документы одной заявки, нажмите, чтобы развернуть.","«Изменить» — исправить документ под тем же номером. «Ещё» — XML, копия, архив."]],
