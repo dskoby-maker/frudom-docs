@@ -311,7 +311,8 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-fresh .sp{width:14px;height:14px;border-radius:50%;border:2px solid #e6e0d8;border-top-color:#5b2a48;animation:fdspin .8s linear infinite}
 #fd-fresh[data-s="warn"] .fi{color:#c27a0e}
 #fd-fresh{--c:#2f7d4f}#fd-fresh[data-s="warn"]{--c:#c27a0e}#fd-fresh[data-s="load"]{--c:#5b2a48}#fd-fresh[data-s="err"]{--c:#c2402f}
-#fd-fresh.row{padding:6px 10px 6px 10px;border-radius:999px}#fd-fresh.row .ft span{display:inline;margin-left:6px}#fd-fresh.row .ft b{display:inline}
+#fd-fresh.row{padding:6px 10px 6px 10px;border-radius:999px}
+#fd-fresh.mini{padding:4px 11px 4px 9px;gap:7px;border-radius:999px;font-size:12px;max-width:none}#fd-fresh.mini .fi{width:13px;height:13px}#fd-fresh.mini .sp{width:11px;height:11px;border-width:1.6px}#fd-fresh.mini .ft b{font-weight:500;color:#5d574f}#fd-fresh.row .ft span{display:inline;margin-left:6px}#fd-fresh.row .ft b{display:inline}
 #fd-fresh .ft{flex:1;min-width:0}#fd-fresh .ft b{display:block;font-weight:600}#fd-fresh .ft span{display:block;color:#7a736a;font-size:12px}
 #fd-fresh .fb{flex:none;border:1px solid #5b2a48;color:#5b2a48;background:#fff;border-radius:8px;padding:5px 10px;font:600 12.5px inherit;font-family:inherit;cursor:pointer}#fd-fresh .fb:hover{background:#5b2a48;color:#fff}
 #fd-fresh .fx{flex:none;border:0;background:none;color:#8a847b;font-size:18px;line-height:1;cursor:pointer;padding:2px 4px;border-radius:6px}#fd-fresh .fx:hover{background:#f2efe9;color:#1f1d1a}
@@ -1885,7 +1886,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
 
 <div id="fd-app">
 <header class="top"><div class="wrap">
-  <div class="brand"><b>Фруктовый Дом · документы</b><span class="sub">счёт · ТОРГ‑12 · УПД</span><span class="mtitle" id="mtitle"></span>
+  <div class="brand"><b>Фруктовый Дом · документы</b><span class="mtitle" id="mtitle"></span>
     <button class="status" id="fd-status" data-s="local" title="Нажмите, чтобы обновить данные"><i></i><span>На этом устройстве</span></button><button class="userchip" id="fd-user" hidden title="Нажмите дважды, чтобы выйти"></button></div>
   <nav class="tabs" role="tablist">
     <button data-tab="doc" aria-selected="true">Новый документ</button>
@@ -2748,12 +2749,13 @@ function frPlace(){ const el=FR.el, st=$("#fd-status"); if(!el||!st) return; con
   const free=r.left-Math.max(0,...(tx||[0]))-28; el.style.maxWidth=""; el.style.left=""; el.classList.remove("row");
   if(!nar && free>=el.offsetWidth){ el.classList.add("row"); el.style.right=(innerWidth-r.left+10)+"px"; el.style.top=Math.max(8, r.top+r.height/2-el.offsetHeight/2)+"px"; return; }
   const hd=document.querySelector("#fd-app header.top"), hb=hd?hd.getBoundingClientRect().bottom:r.bottom;
-  el.style.top=Math.max(12, Math.min(hb, innerHeight*0.5)+10)+"px"; el.style.right=(nar?16:Math.max(16, innerWidth-r.right))+"px"; el.style.left=nar?"16px":""; el.style.maxWidth=nar?"none":""; }
+  el.style.top=Math.max(12, Math.min(hb, innerHeight*0.5)+10)+"px"; const mini=el.classList.contains("mini"); el.style.right=(nar?16:Math.max(16, innerWidth-r.right))+"px"; el.style.left=nar&&!mini?"16px":""; el.style.maxWidth=nar&&!mini?"none":""; }
 function frShow(kind, title, sub, ms){ let el=FR.el; if(!el){ el=FR.el=document.createElement("div"); el.id="fd-fresh"; el.setAttribute("role","status"); el.setAttribute("aria-live","polite"); document.body.appendChild(el);
     el.addEventListener("click",e=>{ if(e.target.closest(".fb")){ frHide(); if(online()) pull(true); } else if(e.target.closest(".fx")) frHide(); }); }
   clearTimeout(FR.t); el.dataset.s=kind;
   const ic = kind==="load" ? '<i class="sp"></i>' : TICON[kind==="warn"?"warn":"ok"].replace('stroke-width="3"','stroke-width="2.6"');
-  el.innerHTML=`<span class="fi">${ic}</span><span class="ft"><b>${esc(title)}</b>${sub?`<span>${esc(sub)}</span>`:""}</span>${kind==="warn"?'<button type="button" class="fb">Обновить</button><button type="button" class="fx" aria-label="Закрыть">×</button>':""}`;
+  el.classList.toggle("mini", kind==="load" || (kind==="ok" && !sub)); el.title = kind==="load" && sub ? sub : "";
+  el.innerHTML=`<span class="fi">${ic}</span><span class="ft"><b>${esc(kind==="load"?"Обновляю…":title)}</b>${sub&&kind!=="load"?`<span>${esc(sub)}</span>`:""}</span>${kind==="warn"?'<button type="button" class="fb">Обновить</button><button type="button" class="fx" aria-label="Закрыть">×</button>':""}`;
   frPlace(); requestAnimationFrame(()=>el.classList.add("in")); if(ms) FR.t=setTimeout(frHide, ms); }
 function frHide(){ clearTimeout(FR.t); if(FR.el) FR.el.classList.remove("in"); }
 addEventListener("resize",()=>{ if(FR.el && FR.el.classList.contains("in")) frPlace(); });

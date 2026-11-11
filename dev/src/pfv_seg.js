@@ -161,6 +161,7 @@ function pvCusDraw(keepInput){
 }
 function pvCusClick(e){
   const m=e.target.closest("[data-pvm]"); if(m){ pvMonClick(m); return; }
+  if(e.target.closest("[data-pvmiss]")){ const mm=pvMonth(), [a,b]=pvRange(); tabBackFrom("Прибыль", ()=>zkpGoMiss(a, b, mm==="all"?"за всё время":"за "+pvMon(mm).toLowerCase())); return; }
   const t=e.target.closest("[data-pvc]"); if(t) pvLedger(t.dataset.pvc);
 }
 
