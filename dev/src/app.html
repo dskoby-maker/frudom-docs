@@ -882,6 +882,12 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 @media(max-width:700px){#fd-app .pgsize{margin-left:0}#fd-app .prtools .muted{margin-left:0;flex-basis:100%}}
 #fd-app .oviewrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:-2px 0 10px;font-size:13px}
 #fd-app table.order.oflip{animation:fdin .28s ease}
+#fd-app .octrf{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:6px;padding:8px 12px;border-radius:12px;background:var(--accent-soft);font-size:13px;color:var(--ink)}
+#fd-app .octrf .btn{margin-left:auto}
+#fd-app #o-ctrinfo.warn{color:var(--err);font-weight:600}
+#fd-app table.order em.oleft{display:block;font-style:normal;font-size:11.5px;line-height:1.3;color:var(--ok);text-transform:none;letter-spacing:0;font-weight:500;white-space:normal}
+#fd-app table.order em.oleft.bad{color:var(--err)}#fd-app table.order em.oleft.out{color:var(--warn)}
+#fd-app table.order tr.oout td.oprod b,#fd-app table.order th.oout{opacity:.62}
 #fd-app table.order.ov th.oaddr{vertical-align:bottom;min-width:118px;text-transform:none;letter-spacing:0;transition:background .2s}
 #fd-app table.order.ov th.oaddr b{display:block;font-size:13px;color:var(--ink)}#fd-app table.order.ov th.oaddr small{display:block;font-weight:400;color:var(--muted);font-size:11px;line-height:1.25;margin:1px 0 6px;white-space:normal}
 #fd-app table.order.ov .onm{display:inline-flex;align-items:center;gap:4px;font-weight:500;color:var(--muted)}
@@ -1966,12 +1972,14 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
       <div class="oedit" id="o-editing" hidden></div>
       <div class="grid">
         <label class="f">Заказчик<select id="o-cus"></select></label>
+        <label class="f" id="o-ctrwrap">Договор<select id="o-ctr" aria-label="Договор"></select></label>
         <label class="f">Поставщик<select id="o-sup"></select><span id="o-supwarn" class="ctrinfo warn" hidden></span></label>
         <label class="f wide" id="o-brwrap" hidden>Обособленное подразделение<select id="o-br"></select></label>
         <label class="f">Дата документов (день поставки)<input id="o-date" type="date"></label>
         <label class="f">Основание<input id="o-basis" readonly></label>
       </div>
       <p class="muted" id="o-ctrinfo"></p>
+      <div class="octrf" id="o-ctrf" hidden></div>
     </div>
     <div class="card">
       <h2>Количество по адресам <small>впишите цифры из заявки, пустые строки пропускаются</small></h2>
@@ -3436,13 +3444,50 @@ function stLabel(a, legal){
 function O(){ if(!D.order) D.order={qty:{}, extra:[]}; const o=D.order; o.qty=o.qty||{}; o.extra=o.extra||[]; o.num=o.num||{};
   if(!D.customers.some(x=>x.id===o.customerId)){ const m=D.customers.find(x=>x.inn==="7729082090")||D.customers[0]; o.customerId=m?m.id:""; o.branchId=""; o.supplierId=""; }
   const bl=branches(cus(o.customerId)); if(bl.length && !bl.some(b=>b.id===o.branchId)) o.branchId=bl[0].id; if(!bl.length) o.branchId="";
-  const cl=ctrs(o.customerId); if(!o.supplierId || !sup(o.supplierId).id){ const x=cl.find(x=>x.supplierId)||cl[0]; o.supplierId=(x&&x.supplierId)||(D.suppliers[0]||{}).id||""; }
   if(!o.edit && (!o.date || o.date<todayISO())) o.date=nextWorkday();
+  const cl=ctrs(o.customerId);
+  /* договор: выбранный вручную (запоминается у заказчика) → договор последней накладной → действующий договор поставщика → первый */
+  if(o.noCtr) o.contractId=""; else if(!cl.some(x=>x.id===o.contractId)) o.contractId=oCtrPick(o);
+  const x=ctr(o.contractId); if(x && x.supplierId && !o.edit && !o.supKeep) o.supplierId=x.supplierId;
+  if(!o.supplierId || !sup(o.supplierId).id){ const y=cl.find(x=>x.supplierId)||cl[0]; o.supplierId=(y&&y.supplierId)||(D.suppliers[0]||{}).id||""; }
   return o; }
-const oCtr = o => { const cl=ctrs(o.customerId); return cl.find(x=>x.supplierId===o.supplierId)||cl.find(x=>!x.supplierId)||cl[0]||null; };
-const oProds = o => D.products.filter(p=>{ if(o.edit && o.edit.price && o.edit.price[p.id]!=null) return true; const v=custPrice(o.customerId,p.id); return v!=null&&v!==""; });
-/* цена в заявке: при правке комплекта — цена из его документов, иначе прайс заказчика */
-const oPrice = (o,pid) => o.edit && o.edit.price && o.edit.price[pid]!=null ? +o.edit.price[pid] : getPrice(o.customerId,pid);
+const oCtrLive = (x, date) => !x.dateTo || !date || date<=x.dateTo;
+function oCtrPick(o){ const cl=ctrs(o.customerId); if(!cl.length) return "";
+  const rem=((getPrefs().oc||{})[o.customerId]); if(rem && cl.some(x=>x.id===rem)) return rem;
+  const live=cl.filter(x=>oCtrLive(x,o.date)), pool=live.length?live:cl;
+  const last=D.journal.filter(j=>j.customerId===o.customerId && !isArch(j) && j.snap && j.snap.dr.contractId && pool.some(x=>x.id===j.snap.dr.contractId)).sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
+  if(last) return last.snap.dr.contractId;
+  const m=(o.supplierId && pool.find(x=>x.supplierId===o.supplierId)) || pool[0]; return m?m.id:""; }
+const oCtr = o => { if(o.noCtr) return null; const x=ctr(o.contractId); return x && x.customerId===o.customerId ? x : null; };
+/* товары заявки по договору: «Товары по договору» → что уже возили по нему → совпадение слов с названием договора → весь прайс.
+   Товары с годом поставки в названии («Стружка (поставка 2027 г.)») — только того года, на который заявка. */
+const oStems = t => pdWords(t).filter(w=>w.length>=4 && !/^(догов|контр|поста|товар|обще|назна|разме)/.test(w)).map(w=>w.slice(0,5));
+function oCtrSet(o, x, base){
+  const sp=ctSpec(x), ids=[], add=id=>{ if(id && prod(id) && prod(id).id && !ids.includes(id)) ids.push(id); };
+  if(sp.length){ sp.forEach(s=>{ if(s.pid && prod(s.pid)) add(s.pid); else { const n=norm(s.name||""); const p=n && D.products.find(p=>!p._del && norm(p.name)===n); if(p) add(p.id); } }); if(ids.length) return {ids, how:"spec"}; }
+  D.journal.forEach(j=>{ if(j.snap && !isArch(j) && j.snap.dr.contractId===x.id) j.snap.dr.lines.forEach(l=>{ if(l.productId && +l.qty>0 && base.some(p=>p.id===l.productId)) add(l.productId); }); });
+  const hist=ids.length, st=new Set(oStems((x.short||"")+" "+String(x.basis||"").replace(/№\s*\S+|от\s+\d\S*/g," ")));
+  if(st.size) base.forEach(p=>{ if(oStems(p.name).some(w=>st.has(w))) add(p.id); });
+  if(ids.length) return {ids:base.filter(p=>ids.includes(p.id)).map(p=>p.id), how:hist?"hist":"name"};
+  return null; }
+function oYear(o, L){ const y=String(o.date||"").slice(0,4), yr=p=>(String(p.name).match(/поставк\S*\s*(20\d\d)/i)||[])[1]||"";
+  const withY=L.filter(p=>yr(p)); if(withY.length<2 || !withY.some(p=>yr(p)===y)) return L; return L.filter(p=>!yr(p) || yr(p)===y); }
+function oProdsAll(o){ const base=D.products.filter(p=>{ if(o.edit && o.edit.price && o.edit.price[p.id]!=null) return true; const v=custPrice(o.customerId,p.id); return v!=null&&v!==""; });
+  const x=oCtr(o); if(!x) return {P:base, x:null};
+  const cs=oCtrSet(o, x, base); if(!cs) return {P:base, x, how:""};
+  const inC=cs.ids.map(id=>prod(id)).filter(Boolean), ed=o.edit&&o.edit.price||{};
+  let P=oYear(o, inC); const hid=inC.length-P.length;
+  P=P.concat(base.filter(p=>ed[p.id]!=null && !P.includes(p))); /* правка комплекта: товары из его документов всегда видны */
+  const rest=base.filter(p=>!P.includes(p));
+  return {P: o.allP ? P.concat(rest) : P, x, how:cs.how, inC:new Set(P.map(p=>p.id)), rest:rest.length, hid}; }
+const oProds = o => oProdsAll(o).P;
+/* цена в заявке: при правке комплекта — цена из его документов, иначе прайс заказчика, нет — цена из «Товаров по договору» */
+const oSpecPrice = (o,pid) => { const x=oCtr(o); if(!x) return null; const s=ctSpec(x).find(s=>s.pid===pid || (!s.pid && norm(s.name||"")===norm((prod(pid)||{}).name||""))); return s && +s.price ? +s.price : null; };
+const oPrice = (o,pid) => { if(o.edit && o.edit.price && o.edit.price[pid]!=null) return +o.edit.price[pid]; const v=custPrice(o.customerId,pid); if(v!=null&&v!=="") return +v; const sp=oSpecPrice(o,pid); return sp!=null?sp:getPrice(o.customerId,pid); };
+/* сколько товара осталось по договору (если в «Товарах по договору» есть количество) */
+function oCtrLeft(o, pid){ const x=oCtr(o); if(!x) return null; const s=ctSpec(x).find(s=>s.pid===pid || (!s.pid && norm(s.name||"")===norm((prod(pid)||{}).name||""))); if(!s || !(+num(s.qty||"")>0)) return null;
+  let used=0; const own=new Set(o.edit?Object.values(o.edit.ids):[]); D.journal.forEach(j=>{ if(j.snap && !isArch(j) && !own.has(j.id) && j.snap.dr.contractId===x.id) j.snap.dr.lines.forEach(l=>{ if(l.productId===pid) used+=+l.qty||0; }); });
+  return r3(+num(s.qty)-used); }
 const oGoLabel = () => O().edit ? "Сохранить комплект и скачать PDF" : "Создать документы и скачать PDF";
 /* заказчик с несколькими ОП и одним адресом выгрузки (НМИЦ гематологии: бюджет / ОМС / внебюджет) — в заявке строки = ОП */
 function oBrMode(o){ const bl=branches(cus(o.customerId)); if(bl.length<2) return false; const set=new Set();
@@ -3461,19 +3506,36 @@ function oAddrs(o){
 function renderOrder(){
   const o=O(), x=oCtr(o), ed=$("#o-editing");
   ed.hidden=!o.edit; if(o.edit) ed.innerHTML=`<div><b>Правка комплекта № ${esc(o.edit.nums.length>2?o.edit.nums[0]+"–"+o.edit.nums[o.edit.nums.length-1]:o.edit.nums.join(", "))}</b><span>Поменяйте количества, номера или дату, добавьте адрес. Строка без количества — документ уйдёт в архив. Цены — как в документах комплекта.</span></div><button class="btn ghost sm" id="o-edcancel">Отменить правку</button>`;
-  ["#o-cus","#o-sup","#o-br"].forEach(id=>{ $(id).disabled=!!o.edit; });
+  ["#o-cus","#o-sup","#o-br","#o-ctr"].forEach(id=>{ $(id).disabled=!!o.edit; });
   $("#o-go").textContent=oGoLabel(); $("#o-save").textContent=o.edit?"Сохранить изменения комплекта":"Сохранить в журнал без PDF";
   $("#o-cus").innerHTML=opts(D.customers, o.customerId); $("#o-sup").innerHTML=opts(D.suppliers, o.supplierId);
+  { const cl=ctrs(o.customerId), sel=x?x.id:""; $("#o-ctrwrap").hidden=!cl.length && !o.edit;
+    $("#o-ctr").innerHTML = cl.map(c=>ctrOpt(c, sel)).join("") + `<option value=""${!sel?" selected":""}>Без договора</option>`; }
   const bl=branches(cus(o.customerId)); $("#o-brwrap").hidden=!bl.length;
   $("#o-br").innerHTML=bl.map(b=>`<option value="${b.id}"${b.id===o.branchId?" selected":""}>${esc(b.label||b.fullName||"ОП")}${b.kpp?" — КПП "+esc(b.kpp):""}</option>`).join("");
   $("#o-date").value=o.date; $("#o-basis").value=x?(x.basis||""):"";
-  const inf=[]; if(!x) inf.push("У заказчика нет контракта с этим поставщиком — основание в документах будет пустым.");
-  else { if(+x.maxSum) inf.push("Остаток по контракту: "+fm(r2(+x.maxSum-ctrUsed(x.id)))+" ₽."); }
-  $("#o-ctrinfo").textContent=inf.join(" ");
   const mis=!!(x && x.supplierId && x.supplierId!==o.supplierId), ow=$("#o-supwarn"); $("#o-sup").classList.toggle("bad",mis); ow.hidden=!mis;
   ow.textContent = mis ? "По этому договору поставщик — "+sup(x.supplierId).name+". Документы создать можно, но проверьте." : "";
   renderOrderGrid();
 }
+/* строка под шапкой заявки: остаток по договору с учётом этой заявки, срок; какие товары показаны */
+function oCtrInfo(){
+  const o=O(), x=oCtr(o), el=$("#o-ctrinfo"), f=$("#o-ctrf"); if(!el) return; let bad=false; const inf=[];
+  if(!x) inf.push(ctrs(o.customerId).length ? "Без договора — основание в документах будет пустым." : "У заказчика нет договора на сайте — основание в документах будет пустым.");
+  else {
+    if(+x.maxSum){ const own=o.edit?Object.values(o.edit.ids):[], used=r2(D.journal.filter(j=>j.snap && !isArch(j) && j.snap.dr.contractId===x.id && !own.includes(j.id)).reduce((a,j)=>a+(+j.sum||0),0)), now=oSum(o), left=r2(+x.maxSum-used-now);
+      inf.push("Цена договора "+fm(+x.maxSum)+" ₽ · отгружено "+fm(used)+" ₽"+(now?" · эта заявка "+fm(now)+" ₽ · останется "+fm(left)+" ₽":" · остаток "+fm(r2(+x.maxSum-used))+" ₽")+".");
+      if(left<0){ inf.push("Превышение цены договора на "+fm(-left)+" ₽!"); bad=true; } }
+    if(x.dateTo && o.date>x.dateTo){ inf.push("Договор действует до "+fd(x.dateTo)+" — на дату поставки он уже закончился."); bad=true; }
+  }
+  el.innerHTML=esc(inf.join(" ")); el.classList.toggle("warn", bad);
+  const A=oProdsAll(o); let h="";
+  if(A.x && A.how){ const n=A.inC.size, w={spec:"из «Товаров по договору»", hist:"по прошлым накладным и названию договора", name:"подходящие по названию договора"}[A.how];
+    h=`<span>Показаны товары договора «${esc(ctrNm(A.x))}» — ${n} ${n===1?"позиция":n<5?"позиции":"позиций"} (${w})${A.hid?`, ${A.hid} — на другой год поставки`:""}.</span>`
+      +(A.rest||o.allP?`<button type="button" class="btn ghost sm" id="o-allp">${o.allP?"Только по договору":"Показать все товары заказчика ("+(A.rest)+")"}</button>`:""); }
+  f.hidden=!h; f.innerHTML=h;
+}
+const oSum = o => { const P=oProds(o), {all}=oAddrs(o); let s=0; all.forEach(a=>{ const q=o.qty[a]||{}; P.forEach(p=>{ s+=r2((+q[p.id]||0)*oPrice(o,p.id)); }); }); return r2(s); };
 /* вид таблицы заявки: "h" — адреса в строках, товары в столбцах; "v" — товары в строках, адреса (ОП) в столбцах.
    Выбор запоминается для каждого заказчика в личных настройках. По умолчанию «товары в строках» — у заказчиков с ОП на одном адресе (НМИЦ). */
 function oView(o){ const v=((getPrefs().ov||{})[o.customerId]); return v==="v"||v==="h" ? v : (oBrMode(o)?"v":"h"); }
@@ -3508,8 +3570,10 @@ const pdLabel = (p, short, cl) => short(p)+(cl[p.id]?" ("+cl[p.id]+")":"");
 const oQv = v => v ? String(+(+v).toFixed(3)).replace(".",",") : "";
 const oDocs = n => n===1?"документ":n>=2&&n<=4?"документа":"документов";
 function renderOrderGrid(){
-  const o=O(), P=oProds(o), {all, legal, br}=oAddrs(o), V=oView(o);
+  const o=O(), A=oProdsAll(o), P=A.P, {all, legal, br}=oAddrs(o), V=oView(o);
   const oCl=pdClarify(P, oPName), oNm=p=>pdLabel(p, oPName, oCl);
+  const oOut=p=>!!(A.inC && !A.inC.has(p.id)), oL=p=>{ const v=oCtrLeft(o,p.id); return v==null?"":`<em class="oleft${v<=0?" bad":""}">по договору осталось ${oQv(v)||"0"} ${esc(p.unit||"")}</em>`; };
+  const oX=p=>oOut(p)?`<em class="oleft out">не по этому договору</em>`:oL(p);
   $("#o-brwrap").hidden=$("#o-brwrap").hidden||!!br; $("#o-addaddr").hidden=!!br;
   const sg=$("#o-view"); if(sg){ sg.hidden=!P.length; sg.querySelectorAll("button").forEach(b=>{ const on=b.dataset.v===V; b.setAttribute("aria-pressed", on?"true":"false"); b.classList.toggle("on", on); }); sg.style.setProperty("--x", V==="v"?"100%":"0%"); }
   const tb=$("#o-tbl"); if(tb) tb.classList.toggle("ov", V==="v");
@@ -3517,9 +3581,9 @@ function renderOrderGrid(){
   if(V==="v"){
     $("#o-head").innerHTML=`<tr><th class="oprod">Товар</th><th class="num">Цена, ₽</th>${all.map((a,i)=>{ const r=oRow(o,a,legal), ex=o.extra.includes(a);
         return `<th class="num oaddr" data-col="${i}"><b>${esc(r.title)}</b><small>${esc(r.sub)}</small><label class="onm">№<input class="nm" data-a="${i}" inputmode="numeric" value="${esc(o.num[a]||"")}" aria-label="Номер документа: ${esc(r.title)}"></label>${ex?`<button class="btn ghost sm danger" data-rm="${i}">убрать</button>`:""}</th>`; }).join("")}<th class="num">Всего</th></tr>`;
-    $("#o-body").innerHTML=P.map(p=>`<tr data-p="${p.id}"><td class="a oprod"><b>${esc(oNm(p))}</b><small>${esc(p.unit||"")}</small></td><td class="num opr">${fm(oPrice(o,p.id))}</td>${all.map((a,i)=>`<td class="num" data-col="${i}"><input class="q" inputmode="decimal" data-a="${i}" data-p="${p.id}" value="${esc((o.qty[a]||{})[p.id]||"")}" placeholder="0" aria-label="${esc(oPName(p))} — ${esc(oRow(o,a,legal).title)}"></td>`).join("")}<td class="num otq" data-tq="${p.id}"></td></tr>`).join("");
+    $("#o-body").innerHTML=P.map(p=>`<tr data-p="${p.id}"${oOut(p)?' class="oout"':""}><td class="a oprod"><b>${esc(oNm(p))}</b><small>${esc(p.unit||"")}</small>${oX(p)}</td><td class="num opr">${fm(oPrice(o,p.id))}</td>${all.map((a,i)=>`<td class="num" data-col="${i}"><input class="q" inputmode="decimal" data-a="${i}" data-p="${p.id}" value="${esc((o.qty[a]||{})[p.id]||"")}" placeholder="0" aria-label="${esc(oPName(p))} — ${esc(oRow(o,a,legal).title)}"></td>`).join("")}<td class="num otq" data-tq="${p.id}"></td></tr>`).join("");
   } else {
-    $("#o-head").innerHTML=`<tr><th>${br?"Подразделение":"Адрес"}</th><th class="num">№ док.</th>${P.map(p=>`<th class="num">${esc(oNm(p))}, ${esc(p.unit)}<br><small style="text-transform:none;letter-spacing:0">${fm(oPrice(o,p.id))} ₽</small></th>`).join("")}<th class="num">Сумма, ₽</th></tr>`;
+    $("#o-head").innerHTML=`<tr><th>${br?"Подразделение":"Адрес"}</th><th class="num">№ док.</th>${P.map(p=>`<th class="num${oOut(p)?" oout":""}">${esc(oNm(p))}, ${esc(p.unit)}<br><small style="text-transform:none;letter-spacing:0">${fm(oPrice(o,p.id))} ₽</small>${oX(p)}</th>`).join("")}<th class="num">Сумма, ₽</th></tr>`;
     $("#o-body").innerHTML = all.map((a,i)=>{ const q=o.qty[a]||{}, ex=o.extra.includes(a);
       const r=oRow(o,a,legal); return `<tr data-i="${i}"><td class="a"><b>${esc(r.title)}</b><small>${esc(r.sub)}</small>${ex?`<button class="btn ghost sm danger" data-rm="${i}" style="margin-top:4px">убрать адрес</button>`:""}</td><td class="num"><input class="nm" data-a="${i}" inputmode="numeric" value="${esc(o.num[a]||"")}"></td>${P.map(p=>`<td class="num"><input class="q" inputmode="decimal" data-a="${i}" data-p="${p.id}" value="${esc(q[p.id]||"")}" placeholder="0"></td>`).join("")}<td class="num rs" data-rs="${i}"></td></tr>`; }).join("");
   }
@@ -3530,6 +3594,7 @@ function oPin(){ const t=$("#o-tbl"); if(!t) return; const c=t.querySelector("tr
   const w=t.parentElement; if(w && !w.dataset.pin){ w.dataset.pin="1"; w.addEventListener("scroll",()=>w.classList.toggle("oscr", w.scrollLeft>2),{passive:true}); window.addEventListener("resize",()=>{ clearTimeout(oPin._t); oPin._t=setTimeout(oPin,120); }); }
   if(w) w.classList.toggle("oscr", w.scrollLeft>2); }
 function oTotals(){
+  oCtrInfo();
   const o=O(), P=oProds(o), {all}=oAddrs(o), V=oView(o); const tq={}, rs={}; let tot=0;
   all.forEach((a,i)=>{ const q=o.qty[a]||{}; let s=0; P.forEach(p=>{ const v=+q[p.id]||0; s+=r2(v*oPrice(o,p.id)); tq[p.id]=(tq[p.id]||0)+v; }); rs[i]=r2(s); tot+=rs[i]; });
   document.querySelectorAll("#o-body [data-rs]").forEach(td=>{ const s=rs[+td.dataset.rs]; td.textContent=s?fm(s):""; });
@@ -3551,10 +3616,19 @@ function oTotals(){
     : `<tr><td>Итого: ${n} ${oDocs(n)}</td><td></td>${P.map(p=>`<td class="num">${oQv(tq[p.id])}</td>`).join("")}<td class="num">${fm(r2(tot))}</td></tr>`;
   if(V==="v") document.querySelectorAll("#o-foot [data-col]").forEach(el=>{ el.classList.toggle("ohas", !!rs[+el.dataset.col]); });
 }
-$("#o-cus").onchange=e=>{ const o=O(); o.customerId=e.target.value; o.branchId=""; o.supplierId=""; o.extra=[]; o.qty={}; saveLocal(); renderOrder(); };
-$("#o-sup").onchange=e=>{ O().supplierId=e.target.value; saveLocal(); renderOrder(); };
+$("#o-cus").onchange=e=>{ const o=O(); o.customerId=e.target.value; o.branchId=""; o.supplierId=""; o.extra=[]; o.qty={}; o.contractId=""; o.noCtr=false; o.supKeep=false; o.allP=false; saveLocal(); renderOrder(); };
+/* выбрали договор: поставщик, основание, товары, цены и остаток — по нему; выбор запоминается у заказчика */
+$("#o-ctr").onchange=e=>{ const o=O(), v=e.target.value; o.noCtr=!v; o.contractId=v; o.supKeep=false; o.allP=false;
+  const p=getPrefs(); p.oc=p.oc||{}; p.oc[o.customerId]=v; setPrefs(p,true); saveLocal(); renderOrder();
+  const x=ctr(v); if(x) toast("ok","Договор «"+ctrNm(x)+"»", (x.supplierId?"Поставщик — "+sup(x.supplierId).name+". ":"")+"Товары, цены и остаток в заявке — по этому договору."); };
+/* сменили поставщика: если у заказчика есть договор с ним — переключаемся на этот договор */
+$("#o-sup").onchange=e=>{ const o=O(), v=e.target.value; o.supplierId=v; const x=oCtr(o);
+  if(!x || (x.supplierId && x.supplierId!==v)){ const cl=ctrs(o.customerId).filter(c=>c.supplierId===v), m=cl.find(c=>oCtrLive(c,o.date))||cl[0];
+    if(m){ o.contractId=m.id; o.noCtr=false; o.supKeep=false; } else o.supKeep=true; }
+  saveLocal(); renderOrder(); };
+$("#o-ctrf").addEventListener("click",e=>{ if(e.target.closest("#o-allp")){ const o=O(); o.allP=!o.allP; saveLocal(); renderOrderGrid(); } });
 $("#o-br").onchange=e=>{ const o=O(); o.branchId=e.target.value; saveLocal(); renderOrder(); };
-$("#o-date").addEventListener("input",e=>{ O().date=e.target.value; saveLocal(); });
+$("#o-date").addEventListener("input",e=>{ const o=O(), y=String(o.date||"").slice(0,4); o.date=e.target.value; saveLocal(); if(String(o.date).slice(0,4)!==y) renderOrderGrid(); else oCtrInfo(); });
 function oUsed(o){ const m={}, own=new Set(o.edit?Object.values(o.edit.ids):[]); D.journal.forEach(j=>{ if(!isArch(j) && !own.has(j.id) && j.supplierId===o.supplierId && j.customerId===o.customerId) m[String(j.number)]=j; }); return m; }
 /* номер на каждую строку с количеством: вписанный вручную или следующий свободный */
 function oPlan(o){
@@ -5871,9 +5945,10 @@ function bundleEdit(g){
   const seen={}; for(const j of live){ const a=rk(j); if(seen[a]){ toast("warn","Комплект нельзя открыть в «Заявке»","№ "+seen[a]+" и № "+j.number+" — "+(brm?"на одно подразделение":"на один адрес")+". Отредактируйте эти документы по отдельности кнопкой «Изменить»."); return; } seen[a]=j.number; }
   const j0=live[0], cs=new Set(live.map(j=>j.customerId+"|"+j.supplierId+"|"+(brm?"":(j.snap.dr.branchId||""))));
   if(cs.size>1){ toast("warn","Комплект нельзя открыть в «Заявке»","В комплекте документы разных заказчиков или поставщиков. Отредактируйте их по отдельности."); return; }
-  const o=O(), backup=o.edit ? o.edit.backup : clone({customerId:o.customerId, supplierId:o.supplierId, branchId:o.branchId, date:o.date, qty:o.qty, num:o.num, extra:o.extra});
+  const o=O(), backup=o.edit ? o.edit.backup : clone({customerId:o.customerId, supplierId:o.supplierId, branchId:o.branchId, date:o.date, qty:o.qty, num:o.num, extra:o.extra, contractId:o.contractId, noCtr:o.noCtr, supKeep:o.supKeep});
   const ids={}, price={};
   o.customerId=j0.customerId; o.supplierId=j0.supplierId; o.branchId=j0.snap.dr.branchId||""; o.date=j0.date; o.qty={}; o.num={}; o.extra=[];
+  o.contractId=j0.snap.dr.contractId||""; o.noCtr=!o.contractId; o.supKeep=true;
   live.forEach(j=>{ const a=rk(j); ids[a]=j.id; o.num[a]=String(j.number); const q={};
     j.snap.dr.lines.forEach(l=>{ if(!l.productId||!(+l.qty>0)) return; q[l.productId]=String(r3((+q[l.productId]||0)+(+l.qty))); if(price[l.productId]==null) price[l.productId]=+l.price||0; }); o.qty[a]=q; });
   o.edit={ids, price, batch:(j0.snap.meta||{}).batch||"", nums:live.map(j=>j.number), backup};
@@ -5882,7 +5957,7 @@ function bundleEdit(g){
   toast("ok","Комплект открыт для правки","Измените количества, добавьте или уберите адреса и нажмите «Сохранить изменения комплекта».");
 }
 function bundleEditEnd(restore){ const o=O(); if(!o.edit) return; const b=o.edit.backup||{}; delete o.edit;
-  if(restore!==false) Object.assign(o, {customerId:b.customerId, supplierId:b.supplierId, branchId:b.branchId, date:b.date, qty:b.qty||{}, num:b.num||{}, extra:b.extra||[]});
+  if(restore!==false) Object.assign(o, {customerId:b.customerId, supplierId:b.supplierId, branchId:b.branchId, date:b.date, qty:b.qty||{}, num:b.num||{}, extra:b.extra||[], contractId:b.contractId||"", noCtr:!!b.noCtr, supKeep:!!b.supKeep});
   saveLocal(); renderOrder(); }
 $("#jr-body").addEventListener("click", onJClick(false));
 $("#ar-body").addEventListener("click", onJClick(true));
