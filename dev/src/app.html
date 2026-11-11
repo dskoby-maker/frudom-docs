@@ -310,6 +310,8 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-fresh .fi{flex:none;width:18px;height:18px;display:grid;place-items:center;color:#2f7d4f}
 #fd-fresh .sp{width:14px;height:14px;border-radius:50%;border:2px solid #e6e0d8;border-top-color:#5b2a48;animation:fdspin .8s linear infinite}
 #fd-fresh[data-s="warn"] .fi{color:#c27a0e}
+#fd-fresh{--c:#2f7d4f}#fd-fresh[data-s="warn"]{--c:#c27a0e}#fd-fresh[data-s="load"]{--c:#5b2a48}#fd-fresh[data-s="err"]{--c:#c2402f}
+#fd-fresh.row{padding:6px 10px 6px 10px;border-radius:999px}#fd-fresh.row .ft span{display:inline;margin-left:6px}#fd-fresh.row .ft b{display:inline}
 #fd-fresh .ft{flex:1;min-width:0}#fd-fresh .ft b{display:block;font-weight:600}#fd-fresh .ft span{display:block;color:#7a736a;font-size:12px}
 #fd-fresh .fb{flex:none;border:1px solid #5b2a48;color:#5b2a48;background:#fff;border-radius:8px;padding:5px 10px;font:600 12.5px inherit;font-family:inherit;cursor:pointer}#fd-fresh .fb:hover{background:#5b2a48;color:#fff}
 #fd-fresh .fx{flex:none;border:0;background:none;color:#8a847b;font-size:18px;line-height:1;cursor:pointer;padding:2px 4px;border-radius:6px}#fd-fresh .fx:hover{background:#f2efe9;color:#1f1d1a}
@@ -882,6 +884,12 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 @media(max-width:700px){#fd-app .pgsize{margin-left:0}#fd-app .prtools .muted{margin-left:0;flex-basis:100%}}
 #fd-app .oviewrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:-2px 0 10px;font-size:13px}
 #fd-app table.order.oflip{animation:fdin .28s ease}
+#fd-app .octrf{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;margin-top:6px;padding:8px 12px;border-radius:12px;background:var(--accent-soft);font-size:13px;color:var(--ink)}
+#fd-app .octrf .btn{margin-left:auto}
+#fd-app #o-ctrinfo.warn{color:var(--err);font-weight:600}
+#fd-app table.order em.oleft{display:block;font-style:normal;font-size:11.5px;line-height:1.3;color:var(--ok);text-transform:none;letter-spacing:0;font-weight:500;white-space:normal}
+#fd-app table.order em.oleft.bad{color:var(--err)}#fd-app table.order em.oleft.out{color:var(--warn)}
+#fd-app table.order tr.oout td.oprod b,#fd-app table.order th.oout{opacity:.62}
 #fd-app table.order.ov th.oaddr{vertical-align:bottom;min-width:118px;text-transform:none;letter-spacing:0;transition:background .2s}
 #fd-app table.order.ov th.oaddr b{display:block;font-size:13px;color:var(--ink)}#fd-app table.order.ov th.oaddr small{display:block;font-weight:400;color:var(--muted);font-size:11px;line-height:1.25;margin:1px 0 6px;white-space:normal}
 #fd-app table.order.ov .onm{display:inline-flex;align-items:center;gap:4px;font-weight:500;color:var(--muted)}
@@ -1060,6 +1068,16 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .dt-comp{margin-top:10px;background:#fff;border:1px solid #ecd9b0;border-radius:14px;padding:3px 4px 7px;transition:border-color .2s,box-shadow .25s}
 #fd-app .dt-comp:focus-within{border-color:#d9a441;box-shadow:0 0 0 4px rgba(217,164,65,.17)}
 #fd-app .dt-comp textarea.dt-in{border:0;background:transparent;box-shadow:none;outline:none;padding:9px 10px 6px;min-height:48px;font-size:15px;border-radius:10px}
+#fd-app .fmtbar{display:flex;gap:2px;align-items:center;padding:4px 6px 0;flex-wrap:wrap}
+#fd-app .fmtb{all:unset;box-sizing:border-box;cursor:pointer;width:32px;height:30px;display:grid;place-items:center;border-radius:8px;color:#5d574f;font-size:14.5px;line-height:1;transition:background .15s,color .15s}
+#fd-app .fmtb:hover{background:rgba(106,44,78,.08);color:var(--accent)}#fd-app .fmtb:focus-visible{outline:2px solid var(--accent)}#fd-app .fmtb:active{transform:scale(.94)}
+#fd-app .fmtb b{font-weight:800}#fd-app .fmtb i{font-family:Georgia,serif;font-style:italic;font-weight:600}#fd-app .fmtb svg{width:17px;height:17px}
+#fd-app .fmtb[data-fmt="li"]{margin-left:6px;border-left:1px solid var(--line);border-radius:0 8px 8px 0;width:36px}
+#fd-app .fmtprev{margin:2px 10px 6px;padding:8px 10px;border-radius:10px;background:rgba(106,44,78,.05);border:1px dashed rgba(106,44,78,.2)}#fd-app .fmtprev>small{display:block;color:var(--muted);font-size:11.5px;margin-bottom:2px}
+#fd-app .dt-t ul.fmtul{margin:2px 0;padding-left:20px;white-space:normal}#fd-app .dt-t ul.fmtul li{margin:1px 0;white-space:pre-wrap}#fd-app .dt-t ul.fmtul li::marker{color:var(--accent)}
+#fd-app textarea.dt-in.scr{scrollbar-width:thin;scrollbar-color:rgba(106,44,78,.45) transparent;padding-right:6px}
+#fd-app textarea.dt-in.scr::-webkit-scrollbar{width:8px}#fd-app textarea.dt-in.scr::-webkit-scrollbar-thumb{background:rgba(106,44,78,.38);border-radius:8px;border:2px solid transparent;background-clip:padding-box}#fd-app textarea.dt-in.scr::-webkit-scrollbar-track{background:transparent}
+@media(max-width:560px){#fd-app .fmtb{width:36px;height:34px}}
 #fd-app .dt-cbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:2px 4px 0}
 #fd-app .dt-cbar select[hidden]{display:none}#fd-app .dt-cbar select{flex:0 1 230px;width:auto;min-width:140px;padding:6px 10px;font-size:13.5px;border-radius:99px;background:#fbf6ec;border-color:#f0e2c4}
 #fd-app .dt-pbtn{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:99px;border:1px solid #f0e2c4;background:#fbf6ec;color:#7a4b08;font-size:13.5px;font-weight:500;cursor:pointer;transition:background .15s,transform .15s;user-select:none}
@@ -1420,6 +1438,9 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .pvbar{height:5px;border-radius:9px;background:var(--bg);overflow:hidden}#fd-app .pvbar i{display:block;height:100%;border-radius:9px;background:var(--ok);opacity:.75;animation:pvgrow .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--d) + .15s);transform-origin:left}
 @keyframes pvgrow{0%{transform:scaleX(0)}}
 #fd-app .pvcs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0}#fd-app .pvcs dt{font-size:11px;color:var(--muted)}#fd-app .pvcs dd{margin:0;font-size:13.5px;font-weight:500}
+#fd-app .pvidle-h{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:10px 2px 0;font-size:13px;color:var(--muted);font-weight:600}#fd-app .pvidle-h::after{content:"";flex:1;height:1px;background:var(--line)}#fd-app .pvidle-h i{font-style:normal;font-weight:600;font-size:11.5px;padding:1px 8px;border-radius:99px;background:rgba(28,34,32,.06)}
+#fd-app .pvcus.idle{padding:11px 14px;gap:0;background:rgba(255,255,255,.55);animation:none}#fd-app .pvcus.idle .pvcn b{font-weight:600}#fd-app .pvcus.idle .pvava{opacity:.7}
+#fd-app .pvempty.sm{grid-column:1/-1;padding:14px}
 #fd-app .pvgo{position:absolute;right:14px;bottom:12px;font-size:12px;color:var(--accent);opacity:0;transform:translateX(-4px);transition:opacity .18s,transform .18s}#fd-app .pvcus:hover .pvgo{opacity:1;transform:none}
 #fd-app .pvempty{grid-column:1/-1;display:grid;justify-items:center;gap:4px;padding:30px 10px;color:var(--muted);text-align:center;animation:fdin .3s ease}#fd-app .pvempty .pvi.big{width:34px;height:34px;color:var(--muted);opacity:.7}#fd-app .pvempty b{color:var(--ink)}
 /* окно заказчика */
@@ -1804,6 +1825,12 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
 }
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){#fd-app dialog.dcard,#fd-toasts .fd-toast{background:rgba(255,255,255,.96)}#fd-app header.top::before{background:#F2F3EF}}
 @media (prefers-reduced-transparency:reduce){#fd-app .card,#fd-app dialog.dcard,#fd-toasts .fd-toast{background:#fff;-webkit-backdrop-filter:none;backdrop-filter:none}#fd-app header.top::before{background:#F2F3EF;-webkit-backdrop-filter:none;backdrop-filter:none}}
+/* мягкая цветная подсветка позади уведомлений — по смыслу: зелёная (готово), жёлтая (внимание), красная (ошибка), сливовая (сведения, загрузка) */
+#fd-toasts .fd-toast,#fd-fresh{background:linear-gradient(135deg,color-mix(in srgb,var(--c) 13%,rgba(255,255,255,.9)) 0%,rgba(255,255,255,.9) 62%);border-color:color-mix(in srgb,var(--c) 24%,rgba(255,255,255,.7));box-shadow:inset 0 1px 0 #fff,0 0 0 1px color-mix(in srgb,var(--c) 10%,transparent),0 16px 38px -14px color-mix(in srgb,var(--c) 60%,transparent),0 0 34px -6px color-mix(in srgb,var(--c) 34%,transparent)}
+#fd-fresh{border:1px solid color-mix(in srgb,var(--c) 24%,#fff);-webkit-backdrop-filter:blur(16px) saturate(1.6);backdrop-filter:blur(16px) saturate(1.6)}
+#fd-toasts .fd-toast.in,#fd-fresh.in{animation:fdglow 1.6s ease-out .1s 1 both}
+@keyframes fdglow{0%{filter:drop-shadow(0 0 0 transparent)}35%{filter:drop-shadow(0 0 10px color-mix(in srgb,var(--c) 45%,transparent))}100%{filter:drop-shadow(0 0 0 transparent)}}
+@media(prefers-reduced-motion:reduce){#fd-toasts .fd-toast.in,#fd-fresh.in{animation:none}}
 @media (prefers-reduced-motion:reduce){#fd-app section.tab:not([hidden])>.card{animation:none}#fd-app .btn,#fd-app nav.tabs button,#fd-app .card{transition:none}#fd-app .btn:active,#fd-app nav.tabs button:active{transform:none}}
 @media print{#fd-app::before,#fd-app header.top::before{display:none}#fd-app .card{box-shadow:none}}
 #fd-app .pdnm{display:flex;gap:6px;align-items:center}#fd-app .pdnm input{flex:1;min-width:0}
@@ -1966,12 +1993,14 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
       <div class="oedit" id="o-editing" hidden></div>
       <div class="grid">
         <label class="f">Заказчик<select id="o-cus"></select></label>
+        <label class="f" id="o-ctrwrap">Договор<select id="o-ctr" aria-label="Договор"></select></label>
         <label class="f">Поставщик<select id="o-sup"></select><span id="o-supwarn" class="ctrinfo warn" hidden></span></label>
         <label class="f wide" id="o-brwrap" hidden>Обособленное подразделение<select id="o-br"></select></label>
         <label class="f">Дата документов (день поставки)<input id="o-date" type="date"></label>
         <label class="f">Основание<input id="o-basis" readonly></label>
       </div>
       <p class="muted" id="o-ctrinfo"></p>
+      <div class="octrf" id="o-ctrf" hidden></div>
     </div>
     <div class="card">
       <h2>Количество по адресам <small>впишите цифры из заявки, пустые строки пропускаются</small></h2>
@@ -2002,7 +2031,9 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
         <div id="dt-list" class="dt-list"></div>
                 <form class="dt-add" id="dt-add" autocomplete="off">
           <div class="dt-comp">
+            <div class="fmtbar" role="toolbar" aria-label="Оформление текста" data-fmtfor="#dt-text"></div>
             <textarea id="dt-text" class="dt-in" rows="2" placeholder="Что сделать — например, «заменить картофель»" maxlength="1000"></textarea>
+            <div class="fmtprev" hidden></div>
             <div class="dt-phs" id="dt-addph" data-phs="" data-x="1"></div>
             <div class="dt-cbar">
               <select id="dt-cus" aria-label="Заказчик"></select>
@@ -2710,8 +2741,14 @@ const FR={el:null, t:0, busy:false, first:true, at:+(lsGet("frudom-lastpull")||0
 function frWhen(ms){ if(!ms) return ""; const d=new Date(ms), hm=d.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}), m=Math.round((Date.now()-ms)/60000);
   const day = d.toDateString()===new Date().toDateString() ? hm : d.toLocaleDateString("ru-RU",{day:"numeric",month:"short"})+", "+hm;
   return day+(m>=1 && m<60 ? " ("+m+" мин назад)" : ""); }
+/* окошко «Данные обновлены» не закрывает вкладки: на широком экране — в строке шапки слева от «Сохранено в таблице»,
+   если там тесно (телефон, длинный текст) — под шапкой, над страницей */
 function frPlace(){ const el=FR.el, st=$("#fd-status"); if(!el||!st) return; const r=st.getBoundingClientRect(); if(!r.height) return;
-  const nar=innerWidth<640; el.style.top=Math.max(12, r.bottom+8)+"px"; el.style.right=(nar?16:Math.max(16, innerWidth-r.right))+"px"; el.style.left=nar?"16px":""; el.style.maxWidth=nar?"none":""; }
+  const nar=innerWidth<640, br=document.querySelector("#fd-app header.top .brand"), tx=br && [...br.querySelectorAll(":scope>b,:scope>.sub,:scope>.mtitle")].filter(x=>x.getBoundingClientRect().width).map(x=>x.getBoundingClientRect().right);
+  const free=r.left-Math.max(0,...(tx||[0]))-28; el.style.maxWidth=""; el.style.left=""; el.classList.remove("row");
+  if(!nar && free>=el.offsetWidth){ el.classList.add("row"); el.style.right=(innerWidth-r.left+10)+"px"; el.style.top=Math.max(8, r.top+r.height/2-el.offsetHeight/2)+"px"; return; }
+  const hd=document.querySelector("#fd-app header.top"), hb=hd?hd.getBoundingClientRect().bottom:r.bottom;
+  el.style.top=Math.max(12, Math.min(hb, innerHeight*0.5)+10)+"px"; el.style.right=(nar?16:Math.max(16, innerWidth-r.right))+"px"; el.style.left=nar?"16px":""; el.style.maxWidth=nar?"none":""; }
 function frShow(kind, title, sub, ms){ let el=FR.el; if(!el){ el=FR.el=document.createElement("div"); el.id="fd-fresh"; el.setAttribute("role","status"); el.setAttribute("aria-live","polite"); document.body.appendChild(el);
     el.addEventListener("click",e=>{ if(e.target.closest(".fb")){ frHide(); if(online()) pull(true); } else if(e.target.closest(".fx")) frHide(); }); }
   clearTimeout(FR.t); el.dataset.s=kind;
@@ -3436,13 +3473,50 @@ function stLabel(a, legal){
 function O(){ if(!D.order) D.order={qty:{}, extra:[]}; const o=D.order; o.qty=o.qty||{}; o.extra=o.extra||[]; o.num=o.num||{};
   if(!D.customers.some(x=>x.id===o.customerId)){ const m=D.customers.find(x=>x.inn==="7729082090")||D.customers[0]; o.customerId=m?m.id:""; o.branchId=""; o.supplierId=""; }
   const bl=branches(cus(o.customerId)); if(bl.length && !bl.some(b=>b.id===o.branchId)) o.branchId=bl[0].id; if(!bl.length) o.branchId="";
-  const cl=ctrs(o.customerId); if(!o.supplierId || !sup(o.supplierId).id){ const x=cl.find(x=>x.supplierId)||cl[0]; o.supplierId=(x&&x.supplierId)||(D.suppliers[0]||{}).id||""; }
   if(!o.edit && (!o.date || o.date<todayISO())) o.date=nextWorkday();
+  const cl=ctrs(o.customerId);
+  /* договор: выбранный вручную (запоминается у заказчика) → договор последней накладной → действующий договор поставщика → первый */
+  if(o.noCtr) o.contractId=""; else if(!cl.some(x=>x.id===o.contractId)) o.contractId=oCtrPick(o);
+  const x=ctr(o.contractId); if(x && x.supplierId && !o.edit && !o.supKeep) o.supplierId=x.supplierId;
+  if(!o.supplierId || !sup(o.supplierId).id){ const y=cl.find(x=>x.supplierId)||cl[0]; o.supplierId=(y&&y.supplierId)||(D.suppliers[0]||{}).id||""; }
   return o; }
-const oCtr = o => { const cl=ctrs(o.customerId); return cl.find(x=>x.supplierId===o.supplierId)||cl.find(x=>!x.supplierId)||cl[0]||null; };
-const oProds = o => D.products.filter(p=>{ if(o.edit && o.edit.price && o.edit.price[p.id]!=null) return true; const v=custPrice(o.customerId,p.id); return v!=null&&v!==""; });
-/* цена в заявке: при правке комплекта — цена из его документов, иначе прайс заказчика */
-const oPrice = (o,pid) => o.edit && o.edit.price && o.edit.price[pid]!=null ? +o.edit.price[pid] : getPrice(o.customerId,pid);
+const oCtrLive = (x, date) => !x.dateTo || !date || date<=x.dateTo;
+function oCtrPick(o){ const cl=ctrs(o.customerId); if(!cl.length) return "";
+  const rem=((getPrefs().oc||{})[o.customerId]); if(rem && cl.some(x=>x.id===rem)) return rem;
+  const live=cl.filter(x=>oCtrLive(x,o.date)), pool=live.length?live:cl;
+  const last=D.journal.filter(j=>j.customerId===o.customerId && !isArch(j) && j.snap && j.snap.dr.contractId && pool.some(x=>x.id===j.snap.dr.contractId)).sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
+  if(last) return last.snap.dr.contractId;
+  const m=(o.supplierId && pool.find(x=>x.supplierId===o.supplierId)) || pool[0]; return m?m.id:""; }
+const oCtr = o => { if(o.noCtr) return null; const x=ctr(o.contractId); return x && x.customerId===o.customerId ? x : null; };
+/* товары заявки по договору: «Товары по договору» → что уже возили по нему → совпадение слов с названием договора → весь прайс.
+   Товары с годом поставки в названии («Стружка (поставка 2027 г.)») — только того года, на который заявка. */
+const oStems = t => pdWords(t).filter(w=>w.length>=4 && !/^(догов|контр|поста|товар|обще|назна|разме)/.test(w)).map(w=>w.slice(0,5));
+function oCtrSet(o, x, base){
+  const sp=ctSpec(x), ids=[], add=id=>{ if(id && prod(id) && prod(id).id && !ids.includes(id)) ids.push(id); };
+  if(sp.length){ sp.forEach(s=>{ if(s.pid && prod(s.pid)) add(s.pid); else { const n=norm(s.name||""); const p=n && D.products.find(p=>!p._del && norm(p.name)===n); if(p) add(p.id); } }); if(ids.length) return {ids, how:"spec"}; }
+  D.journal.forEach(j=>{ if(j.snap && !isArch(j) && j.snap.dr.contractId===x.id) j.snap.dr.lines.forEach(l=>{ if(l.productId && +l.qty>0 && base.some(p=>p.id===l.productId)) add(l.productId); }); });
+  const hist=ids.length, st=new Set(oStems((x.short||"")+" "+String(x.basis||"").replace(/№\s*\S+|от\s+\d\S*/g," ")));
+  if(st.size) base.forEach(p=>{ if(oStems(p.name).some(w=>st.has(w))) add(p.id); });
+  if(ids.length) return {ids:base.filter(p=>ids.includes(p.id)).map(p=>p.id), how:hist?"hist":"name"};
+  return null; }
+function oYear(o, L){ const y=String(o.date||"").slice(0,4), yr=p=>(String(p.name).match(/поставк\S*\s*(20\d\d)/i)||[])[1]||"";
+  const withY=L.filter(p=>yr(p)); if(withY.length<2 || !withY.some(p=>yr(p)===y)) return L; return L.filter(p=>!yr(p) || yr(p)===y); }
+function oProdsAll(o){ const base=D.products.filter(p=>{ if(o.edit && o.edit.price && o.edit.price[p.id]!=null) return true; const v=custPrice(o.customerId,p.id); return v!=null&&v!==""; });
+  const x=oCtr(o); if(!x) return {P:base, x:null};
+  const cs=oCtrSet(o, x, base); if(!cs) return {P:base, x, how:""};
+  const inC=cs.ids.map(id=>prod(id)).filter(Boolean), ed=o.edit&&o.edit.price||{};
+  let P=oYear(o, inC); const hid=inC.length-P.length;
+  P=P.concat(base.filter(p=>ed[p.id]!=null && !P.includes(p))); /* правка комплекта: товары из его документов всегда видны */
+  const rest=base.filter(p=>!P.includes(p));
+  return {P: o.allP ? P.concat(rest) : P, x, how:cs.how, inC:new Set(P.map(p=>p.id)), rest:rest.length, hid}; }
+const oProds = o => oProdsAll(o).P;
+/* цена в заявке: при правке комплекта — цена из его документов, иначе прайс заказчика, нет — цена из «Товаров по договору» */
+const oSpecPrice = (o,pid) => { const x=oCtr(o); if(!x) return null; const s=ctSpec(x).find(s=>s.pid===pid || (!s.pid && norm(s.name||"")===norm((prod(pid)||{}).name||""))); return s && +s.price ? +s.price : null; };
+const oPrice = (o,pid) => { if(o.edit && o.edit.price && o.edit.price[pid]!=null) return +o.edit.price[pid]; const v=custPrice(o.customerId,pid); if(v!=null&&v!=="") return +v; const sp=oSpecPrice(o,pid); return sp!=null?sp:getPrice(o.customerId,pid); };
+/* сколько товара осталось по договору (если в «Товарах по договору» есть количество) */
+function oCtrLeft(o, pid){ const x=oCtr(o); if(!x) return null; const s=ctSpec(x).find(s=>s.pid===pid || (!s.pid && norm(s.name||"")===norm((prod(pid)||{}).name||""))); if(!s || !(+num(s.qty||"")>0)) return null;
+  let used=0; const own=new Set(o.edit?Object.values(o.edit.ids):[]); D.journal.forEach(j=>{ if(j.snap && !isArch(j) && !own.has(j.id) && j.snap.dr.contractId===x.id) j.snap.dr.lines.forEach(l=>{ if(l.productId===pid) used+=+l.qty||0; }); });
+  return r3(+num(s.qty)-used); }
 const oGoLabel = () => O().edit ? "Сохранить комплект и скачать PDF" : "Создать документы и скачать PDF";
 /* заказчик с несколькими ОП и одним адресом выгрузки (НМИЦ гематологии: бюджет / ОМС / внебюджет) — в заявке строки = ОП */
 function oBrMode(o){ const bl=branches(cus(o.customerId)); if(bl.length<2) return false; const set=new Set();
@@ -3461,19 +3535,36 @@ function oAddrs(o){
 function renderOrder(){
   const o=O(), x=oCtr(o), ed=$("#o-editing");
   ed.hidden=!o.edit; if(o.edit) ed.innerHTML=`<div><b>Правка комплекта № ${esc(o.edit.nums.length>2?o.edit.nums[0]+"–"+o.edit.nums[o.edit.nums.length-1]:o.edit.nums.join(", "))}</b><span>Поменяйте количества, номера или дату, добавьте адрес. Строка без количества — документ уйдёт в архив. Цены — как в документах комплекта.</span></div><button class="btn ghost sm" id="o-edcancel">Отменить правку</button>`;
-  ["#o-cus","#o-sup","#o-br"].forEach(id=>{ $(id).disabled=!!o.edit; });
+  ["#o-cus","#o-sup","#o-br","#o-ctr"].forEach(id=>{ $(id).disabled=!!o.edit; });
   $("#o-go").textContent=oGoLabel(); $("#o-save").textContent=o.edit?"Сохранить изменения комплекта":"Сохранить в журнал без PDF";
   $("#o-cus").innerHTML=opts(D.customers, o.customerId); $("#o-sup").innerHTML=opts(D.suppliers, o.supplierId);
+  { const cl=ctrs(o.customerId), sel=x?x.id:""; $("#o-ctrwrap").hidden=!cl.length && !o.edit;
+    $("#o-ctr").innerHTML = cl.map(c=>ctrOpt(c, sel)).join("") + `<option value=""${!sel?" selected":""}>Без договора</option>`; }
   const bl=branches(cus(o.customerId)); $("#o-brwrap").hidden=!bl.length;
   $("#o-br").innerHTML=bl.map(b=>`<option value="${b.id}"${b.id===o.branchId?" selected":""}>${esc(b.label||b.fullName||"ОП")}${b.kpp?" — КПП "+esc(b.kpp):""}</option>`).join("");
   $("#o-date").value=o.date; $("#o-basis").value=x?(x.basis||""):"";
-  const inf=[]; if(!x) inf.push("У заказчика нет контракта с этим поставщиком — основание в документах будет пустым.");
-  else { if(+x.maxSum) inf.push("Остаток по контракту: "+fm(r2(+x.maxSum-ctrUsed(x.id)))+" ₽."); }
-  $("#o-ctrinfo").textContent=inf.join(" ");
   const mis=!!(x && x.supplierId && x.supplierId!==o.supplierId), ow=$("#o-supwarn"); $("#o-sup").classList.toggle("bad",mis); ow.hidden=!mis;
   ow.textContent = mis ? "По этому договору поставщик — "+sup(x.supplierId).name+". Документы создать можно, но проверьте." : "";
   renderOrderGrid();
 }
+/* строка под шапкой заявки: остаток по договору с учётом этой заявки, срок; какие товары показаны */
+function oCtrInfo(){
+  const o=O(), x=oCtr(o), el=$("#o-ctrinfo"), f=$("#o-ctrf"); if(!el) return; let bad=false; const inf=[];
+  if(!x) inf.push(ctrs(o.customerId).length ? "Без договора — основание в документах будет пустым." : "У заказчика нет договора на сайте — основание в документах будет пустым.");
+  else {
+    if(+x.maxSum){ const own=o.edit?Object.values(o.edit.ids):[], used=r2(D.journal.filter(j=>j.snap && !isArch(j) && j.snap.dr.contractId===x.id && !own.includes(j.id)).reduce((a,j)=>a+(+j.sum||0),0)), now=oSum(o), left=r2(+x.maxSum-used-now);
+      inf.push("Цена договора "+fm(+x.maxSum)+" ₽ · отгружено "+fm(used)+" ₽"+(now?" · эта заявка "+fm(now)+" ₽ · останется "+fm(left)+" ₽":" · остаток "+fm(r2(+x.maxSum-used))+" ₽")+".");
+      if(left<0){ inf.push("Превышение цены договора на "+fm(-left)+" ₽!"); bad=true; } }
+    if(x.dateTo && o.date>x.dateTo){ inf.push("Договор действует до "+fd(x.dateTo)+" — на дату поставки он уже закончился."); bad=true; }
+  }
+  el.innerHTML=esc(inf.join(" ")); el.classList.toggle("warn", bad);
+  const A=oProdsAll(o); let h="";
+  if(A.x && A.how){ const n=A.inC.size, w={spec:"из «Товаров по договору»", hist:"по прошлым накладным и названию договора", name:"подходящие по названию договора"}[A.how];
+    h=`<span>Показаны товары договора «${esc(ctrNm(A.x))}» — ${n} ${n===1?"позиция":n<5?"позиции":"позиций"} (${w})${A.hid?`, ${A.hid} — на другой год поставки`:""}.</span>`
+      +(A.rest||o.allP?`<button type="button" class="btn ghost sm" id="o-allp">${o.allP?"Только по договору":"Показать все товары заказчика ("+(A.rest)+")"}</button>`:""); }
+  f.hidden=!h; f.innerHTML=h;
+}
+const oSum = o => { const P=oProds(o), {all}=oAddrs(o); let s=0; all.forEach(a=>{ const q=o.qty[a]||{}; P.forEach(p=>{ s+=r2((+q[p.id]||0)*oPrice(o,p.id)); }); }); return r2(s); };
 /* вид таблицы заявки: "h" — адреса в строках, товары в столбцах; "v" — товары в строках, адреса (ОП) в столбцах.
    Выбор запоминается для каждого заказчика в личных настройках. По умолчанию «товары в строках» — у заказчиков с ОП на одном адресе (НМИЦ). */
 function oView(o){ const v=((getPrefs().ov||{})[o.customerId]); return v==="v"||v==="h" ? v : (oBrMode(o)?"v":"h"); }
@@ -3508,8 +3599,10 @@ const pdLabel = (p, short, cl) => short(p)+(cl[p.id]?" ("+cl[p.id]+")":"");
 const oQv = v => v ? String(+(+v).toFixed(3)).replace(".",",") : "";
 const oDocs = n => n===1?"документ":n>=2&&n<=4?"документа":"документов";
 function renderOrderGrid(){
-  const o=O(), P=oProds(o), {all, legal, br}=oAddrs(o), V=oView(o);
+  const o=O(), A=oProdsAll(o), P=A.P, {all, legal, br}=oAddrs(o), V=oView(o);
   const oCl=pdClarify(P, oPName), oNm=p=>pdLabel(p, oPName, oCl);
+  const oOut=p=>!!(A.inC && !A.inC.has(p.id)), oL=p=>{ const v=oCtrLeft(o,p.id); return v==null?"":`<em class="oleft${v<=0?" bad":""}">по договору осталось ${oQv(v)||"0"} ${esc(p.unit||"")}</em>`; };
+  const oX=p=>oOut(p)?`<em class="oleft out">не по этому договору</em>`:oL(p);
   $("#o-brwrap").hidden=$("#o-brwrap").hidden||!!br; $("#o-addaddr").hidden=!!br;
   const sg=$("#o-view"); if(sg){ sg.hidden=!P.length; sg.querySelectorAll("button").forEach(b=>{ const on=b.dataset.v===V; b.setAttribute("aria-pressed", on?"true":"false"); b.classList.toggle("on", on); }); sg.style.setProperty("--x", V==="v"?"100%":"0%"); }
   const tb=$("#o-tbl"); if(tb) tb.classList.toggle("ov", V==="v");
@@ -3517,9 +3610,9 @@ function renderOrderGrid(){
   if(V==="v"){
     $("#o-head").innerHTML=`<tr><th class="oprod">Товар</th><th class="num">Цена, ₽</th>${all.map((a,i)=>{ const r=oRow(o,a,legal), ex=o.extra.includes(a);
         return `<th class="num oaddr" data-col="${i}"><b>${esc(r.title)}</b><small>${esc(r.sub)}</small><label class="onm">№<input class="nm" data-a="${i}" inputmode="numeric" value="${esc(o.num[a]||"")}" aria-label="Номер документа: ${esc(r.title)}"></label>${ex?`<button class="btn ghost sm danger" data-rm="${i}">убрать</button>`:""}</th>`; }).join("")}<th class="num">Всего</th></tr>`;
-    $("#o-body").innerHTML=P.map(p=>`<tr data-p="${p.id}"><td class="a oprod"><b>${esc(oNm(p))}</b><small>${esc(p.unit||"")}</small></td><td class="num opr">${fm(oPrice(o,p.id))}</td>${all.map((a,i)=>`<td class="num" data-col="${i}"><input class="q" inputmode="decimal" data-a="${i}" data-p="${p.id}" value="${esc((o.qty[a]||{})[p.id]||"")}" placeholder="0" aria-label="${esc(oPName(p))} — ${esc(oRow(o,a,legal).title)}"></td>`).join("")}<td class="num otq" data-tq="${p.id}"></td></tr>`).join("");
+    $("#o-body").innerHTML=P.map(p=>`<tr data-p="${p.id}"${oOut(p)?' class="oout"':""}><td class="a oprod"><b>${esc(oNm(p))}</b><small>${esc(p.unit||"")}</small>${oX(p)}</td><td class="num opr">${fm(oPrice(o,p.id))}</td>${all.map((a,i)=>`<td class="num" data-col="${i}"><input class="q" inputmode="decimal" data-a="${i}" data-p="${p.id}" value="${esc((o.qty[a]||{})[p.id]||"")}" placeholder="0" aria-label="${esc(oPName(p))} — ${esc(oRow(o,a,legal).title)}"></td>`).join("")}<td class="num otq" data-tq="${p.id}"></td></tr>`).join("");
   } else {
-    $("#o-head").innerHTML=`<tr><th>${br?"Подразделение":"Адрес"}</th><th class="num">№ док.</th>${P.map(p=>`<th class="num">${esc(oNm(p))}, ${esc(p.unit)}<br><small style="text-transform:none;letter-spacing:0">${fm(oPrice(o,p.id))} ₽</small></th>`).join("")}<th class="num">Сумма, ₽</th></tr>`;
+    $("#o-head").innerHTML=`<tr><th>${br?"Подразделение":"Адрес"}</th><th class="num">№ док.</th>${P.map(p=>`<th class="num${oOut(p)?" oout":""}">${esc(oNm(p))}, ${esc(p.unit)}<br><small style="text-transform:none;letter-spacing:0">${fm(oPrice(o,p.id))} ₽</small>${oX(p)}</th>`).join("")}<th class="num">Сумма, ₽</th></tr>`;
     $("#o-body").innerHTML = all.map((a,i)=>{ const q=o.qty[a]||{}, ex=o.extra.includes(a);
       const r=oRow(o,a,legal); return `<tr data-i="${i}"><td class="a"><b>${esc(r.title)}</b><small>${esc(r.sub)}</small>${ex?`<button class="btn ghost sm danger" data-rm="${i}" style="margin-top:4px">убрать адрес</button>`:""}</td><td class="num"><input class="nm" data-a="${i}" inputmode="numeric" value="${esc(o.num[a]||"")}"></td>${P.map(p=>`<td class="num"><input class="q" inputmode="decimal" data-a="${i}" data-p="${p.id}" value="${esc(q[p.id]||"")}" placeholder="0"></td>`).join("")}<td class="num rs" data-rs="${i}"></td></tr>`; }).join("");
   }
@@ -3530,6 +3623,7 @@ function oPin(){ const t=$("#o-tbl"); if(!t) return; const c=t.querySelector("tr
   const w=t.parentElement; if(w && !w.dataset.pin){ w.dataset.pin="1"; w.addEventListener("scroll",()=>w.classList.toggle("oscr", w.scrollLeft>2),{passive:true}); window.addEventListener("resize",()=>{ clearTimeout(oPin._t); oPin._t=setTimeout(oPin,120); }); }
   if(w) w.classList.toggle("oscr", w.scrollLeft>2); }
 function oTotals(){
+  oCtrInfo();
   const o=O(), P=oProds(o), {all}=oAddrs(o), V=oView(o); const tq={}, rs={}; let tot=0;
   all.forEach((a,i)=>{ const q=o.qty[a]||{}; let s=0; P.forEach(p=>{ const v=+q[p.id]||0; s+=r2(v*oPrice(o,p.id)); tq[p.id]=(tq[p.id]||0)+v; }); rs[i]=r2(s); tot+=rs[i]; });
   document.querySelectorAll("#o-body [data-rs]").forEach(td=>{ const s=rs[+td.dataset.rs]; td.textContent=s?fm(s):""; });
@@ -3551,10 +3645,19 @@ function oTotals(){
     : `<tr><td>Итого: ${n} ${oDocs(n)}</td><td></td>${P.map(p=>`<td class="num">${oQv(tq[p.id])}</td>`).join("")}<td class="num">${fm(r2(tot))}</td></tr>`;
   if(V==="v") document.querySelectorAll("#o-foot [data-col]").forEach(el=>{ el.classList.toggle("ohas", !!rs[+el.dataset.col]); });
 }
-$("#o-cus").onchange=e=>{ const o=O(); o.customerId=e.target.value; o.branchId=""; o.supplierId=""; o.extra=[]; o.qty={}; saveLocal(); renderOrder(); };
-$("#o-sup").onchange=e=>{ O().supplierId=e.target.value; saveLocal(); renderOrder(); };
+$("#o-cus").onchange=e=>{ const o=O(); o.customerId=e.target.value; o.branchId=""; o.supplierId=""; o.extra=[]; o.qty={}; o.contractId=""; o.noCtr=false; o.supKeep=false; o.allP=false; saveLocal(); renderOrder(); };
+/* выбрали договор: поставщик, основание, товары, цены и остаток — по нему; выбор запоминается у заказчика */
+$("#o-ctr").onchange=e=>{ const o=O(), v=e.target.value; o.noCtr=!v; o.contractId=v; o.supKeep=false; o.allP=false;
+  const p=getPrefs(); p.oc=p.oc||{}; p.oc[o.customerId]=v; setPrefs(p,true); saveLocal(); renderOrder();
+  const x=ctr(v); if(x) toast("ok","Договор «"+ctrNm(x)+"»", (x.supplierId?"Поставщик — "+sup(x.supplierId).name+". ":"")+"Товары, цены и остаток в заявке — по этому договору."); };
+/* сменили поставщика: если у заказчика есть договор с ним — переключаемся на этот договор */
+$("#o-sup").onchange=e=>{ const o=O(), v=e.target.value; o.supplierId=v; const x=oCtr(o);
+  if(!x || (x.supplierId && x.supplierId!==v)){ const cl=ctrs(o.customerId).filter(c=>c.supplierId===v), m=cl.find(c=>oCtrLive(c,o.date))||cl[0];
+    if(m){ o.contractId=m.id; o.noCtr=false; o.supKeep=false; } else o.supKeep=true; }
+  saveLocal(); renderOrder(); };
+$("#o-ctrf").addEventListener("click",e=>{ if(e.target.closest("#o-allp")){ const o=O(); o.allP=!o.allP; saveLocal(); renderOrderGrid(); } });
 $("#o-br").onchange=e=>{ const o=O(); o.branchId=e.target.value; saveLocal(); renderOrder(); };
-$("#o-date").addEventListener("input",e=>{ O().date=e.target.value; saveLocal(); });
+$("#o-date").addEventListener("input",e=>{ const o=O(), y=String(o.date||"").slice(0,4); o.date=e.target.value; saveLocal(); if(String(o.date).slice(0,4)!==y) renderOrderGrid(); else oCtrInfo(); });
 function oUsed(o){ const m={}, own=new Set(o.edit?Object.values(o.edit.ids):[]); D.journal.forEach(j=>{ if(!isArch(j) && !own.has(j.id) && j.supplierId===o.supplierId && j.customerId===o.customerId) m[String(j.number)]=j; }); return m; }
 /* номер на каждую строку с количеством: вписанный вручную или следующий свободный */
 function oPlan(o){
@@ -3693,7 +3796,7 @@ const ptName = (p) => { const l=stLabel(p.addr,p.c.address), m=l.match(/^ст ([
 const itemShort = n => String(n||"").replace(/\s*\([^)]*\)/g,"").replace(/\s+(свеж\S*|продовольственн\S*|столов\S*)(?=\s|$)/gi,"").replace(/\s+/g," ").trim();
 function dvText(P){
   const f=DV(), TK=DTS().filter(x=>x.date===f.date && !isAuto(x)); if(!P.length && !TK.length) return "";
-  const tkLines = TK.length ? ["Задачи на день:", ...TK.map(x=>"• "+(x.customerId?cusShort(cus(x.customerId).name)+(x.addr?" ("+x.addr+")":"")+": ":"")+String(x.text).replace(/\n/g,"\n   ")+(x.photos&&x.photos.length?" (фото на сайте: "+x.photos.length+")":"")), ""] : [];
+  const tkLines = TK.length ? ["Задачи на день:", ...TK.map(x=>"• "+(x.customerId?cusShort(cus(x.customerId).name)+(x.addr?" ("+x.addr+")":"")+": ":"")+fmtPlain(x.text).replace(/\n/g,"\n   ")+(x.photos&&x.photos.length?" (фото на сайте: "+x.photos.length+")":"")), ""] : [];
   const short=a=>a.replace(/^\d{6},\s*/,"").replace(/^г\.\s*Москва,\s*/i,"").replace(/\s*\([^)]*\)\s*$/,"");
   const L=[], groups=[]; P.forEach(p=>{ const g=cusShort(cusNm(p.cid)||p.c.name); let G=groups.find(x=>x.g===g); if(!G){ G={g, P:[]}; groups.push(G); } G.P.push(p); });
   if(f.full){ const d=new Date(f.date+"T12:00:00"); L.push("Доставка "+fd(f.date)+" ("+wdays[d.getDay()]+")"); L.push(""); }
@@ -3818,7 +3921,9 @@ function EDf(){ if(ED===undefined || (ED && ED.u!==curUser())){ try{ ED=JSON.par
 const edSave = () => lsSet(EDK(), ED ? JSON.stringify(ED) : null);
 function dtEdRow(x){ const e=EDf();
   return `<div class="dt dt-ed" data-dt="${esc(x.id)}"><div class="dt-comp">
+    <div class="fmtbar" role="toolbar" aria-label="Оформление текста">${FMT_BTNS}</div>
     <textarea class="dt-in dt-edit" rows="2" maxlength="1000" aria-label="Текст задачи">${esc(e.text)}</textarea>
+    <div class="fmtprev"${fmtHas(e.text)?"":" hidden"}>${fmtHas(e.text)?fmtPrevHtml(e.text):""}</div>
     ${isAuto(x)?`<div class="dt-edrow"><span class="muted">Задача из накладной — дата и заказчик как в накладной</span></div>`:`<div class="dt-edrow"><input type="date" data-edf="date" value="${esc(e.date||x.date)}" aria-label="Дата задачи">
       <select data-edf="cus" aria-label="Заказчик"><option value="">Без заказчика</option>${opts(D.customers, e.cus!=null?e.cus:x.customerId)}</select>${(()=>{ const L=cusAddrs(cus(e.cus!=null?e.cus:x.customerId)), a=e.addr!=null?e.addr:x.addr;
         return `<select data-edf="addr" aria-label="Точка доставки"${L.length<2?" hidden":""}><option value="">Точка не выбрана</option>${L.map(o=>`<option value="${esc(o.a)}"${o.a===a?" selected":""}>${esc(o.label)}</option>`).join("")}</select>`; })()}</div>`}
@@ -3834,7 +3939,7 @@ function dtRow(x, ing){ const e=EDf(); if(e && e.id===x.id && dtCan(x)) return d
     + (nr.length?`<span class="no"><em>Не прочитал:</em> ${nr.map(esc).join(", ")}</span>`:"");
   return `<div class="dt${x._new?" new":""}${hu!=null?" hc":""}" data-dt="${esc(x.id)}"${hu!=null?` style="--h:${hu}"`:""}>
     <div class="dt-b"><div class="dt-top">${cn?`<span class="dt-c"${ing?' title="Точка"':""}>${ing?IPIN:""}${esc(cn)}</span>`:""}${who?`<div class="dt-rd${nr.length?"":" all"}" aria-label="Кто прочитал">${who}</div>`:""}</div>
-      <div class="dt-t"${dtCan(x)?' data-dtedit title="Нажмите, чтобы исправить"':""}>${esc(x.text)}</div>
+      <div class="dt-t"${dtCan(x)?' data-dtedit title="Нажмите, чтобы исправить"':""}>${fmtHtml(x.text)}</div>
       <div class="dt-phs" data-phs="${esc(x.id)}">${phItems(x.id,x.photos,false)}</div>
       <small>${esc(x.by||"")}${x.created?" · "+(x.created.slice(0,10)===todayISO()?"сегодня ":fd(x.created.slice(0,10))+" ")+hhmm(x.created):""}</small></div>
     <div class="dt-a">${dtCan(x)?`<button type="button" class="dt-pen" data-dtpen title="Изменить задачу" aria-label="Изменить задачу">${IPEN}</button>`:""}<label class="dt-cam" title="Прикрепить фото" aria-label="Прикрепить фото">${ICAM}<input type="file" accept="image/*" multiple hidden data-phfile></label>${dtCan(x)?`<button type="button" class="dt-x" data-dtdel title="Удалить" aria-label="Удалить">×</button>`:""}</div></div>`; }
@@ -3894,7 +3999,7 @@ function drawDayTasks(){
   const has=id=>id && D.customers.some(x=>x.id===id);
   cs.value = has(keep) ? keep : has(D0.cus) ? D0.cus : (c.cus||"");
   dtPtFill();
-  const tt=$("#dt-text"); if(document.activeElement!==tt && tt.value!==D0.text){ tt.value=D0.text; }
+  const tt=$("#dt-text"); if(document.activeElement!==tt && tt.value!==D0.text){ tt.value=D0.text; dtGrow(tt); fmtSync(tt); }
   dtGrow(tt);
   const ap=$("#dt-addph"); ap.dataset.phs=D0.id; ap.innerHTML=phItems(D0.id, D0.photos, true);
   phThumbs($("#dt-box"));
@@ -3906,12 +4011,60 @@ function dtEdFinish(save){ const e=EDf(); if(!e) return; const x=DTS().find(y=>y
   if(save && x){ const v=e.text.trim(), nd=!isAuto(x)&&e.date&&e.date!==x.date?e.date:"", nc=!isAuto(x)&&e.cus!=null&&e.cus!==x.customerId, na=!isAuto(x)&&e.addr!=null&&e.addr!==(x.addr||"");
     const tch=!!v && v!==x.text; if(tch||nd||nc||na){ const was=x.date; if(tch) x.text=v; if(nd) x.date=nd; if(nc){ x.customerId=e.cus; x.addr=e.addr||""; } else if(na) x.addr=e.addr;
       if(tch||nd) x.seen="";
-      dtSave(x,"Изменена"+(nd?" (перенесена с "+fd(was)+" на "+fd(nd)+")":"")+": "+x.text);
+      dtSave(x,"Изменена"+(nd?" (перенесена с "+fd(was)+" на "+fd(nd)+")":"")+": "+fmtPlain(x.text));
       toast("ok", nd?"Задача перенесена на "+fd(nd):"Задача исправлена", (tch||nd)?"Отметки «видел» начнутся заново.":"", nd?{action:{label:"Открыть "+fd(nd), fn:()=>{ const c=CAL(); c.sel=nd; c.ym=nd.slice(0,7); saveLocal(); renderCalendar(); }}}:undefined); return; } }
   renderCalendar(); }
 /* поле задачи: Enter — сохранить, Shift+Enter — новая строка (на телефоне Enter = новая строка, сохраняет кнопка) */
 const dtTouch = () => { try{ return matchMedia("(pointer:coarse)").matches; }catch(e){ return false; } };
-const dtGrow = t => { if(!t) return; t.style.height="auto"; t.style.height=Math.min(t.scrollHeight+2, 320)+"px"; };
+/* поле растёт с текстом до половины экрана (не больше 420 px), дальше — ползунок прокрутки справа */
+const dtGrow = t => { if(!t) return; const mx=Math.max(160, Math.min(420, Math.round((window.innerHeight||800)*0.5))); t.style.height="auto"; const h=t.scrollHeight+2;
+  t.style.height=Math.min(h, mx)+"px"; t.style.overflowY = h>mx ? "auto" : "hidden"; t.classList.toggle("scr", h>mx); };
+/* ---- оформление текста задачи: **жирный**, *курсив*, __подчёркнутый__, ~~зачёркнутый~~, «• » — список.
+   В поле видны значки, в задаче — готовое оформление; в текст для MAX, «События» и уведомления идёт без значков. ---- */
+const FMT = [{k:"b",m:"**",t:"Жирный",h:"Ctrl+B",i:"<b>Ж</b>"},{k:"i",m:"*",t:"Курсив",h:"Ctrl+I",i:"<i>К</i>"},{k:"u",m:"__",t:"Подчёркнутый",h:"Ctrl+U",i:"<u>Ч</u>"},{k:"s",m:"~~",t:"Зачёркнутый",h:"",i:"<s>З</s>"}];
+const FMT_BTNS = FMT.map(f=>`<button type="button" class="fmtb" data-fmt="${f.k}" title="${f.t}${f.h?" · "+f.h:""}" aria-label="${f.t}">${f.i}</button>`).join("")
+  + `<button type="button" class="fmtb" data-fmt="li" title="Список — точка в начале строки" aria-label="Список"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="7" r="1.2" fill="currentColor"/><circle cx="5" cy="12" r="1.2" fill="currentColor"/><circle cx="5" cy="17" r="1.2" fill="currentColor"/><path d="M10 7h10M10 12h10M10 17h10"/></svg></button>`
+  + `<button type="button" class="fmtb" data-fmt="x" title="Убрать оформление у выделенного" aria-label="Убрать оформление"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5h12M10 5l-3 14M14 5l-1.2 5.5M4 20l16-16"/></svg></button>`;
+const FMT_RE = /\*\*(?=\S)([\s\S]*?\S)\*\*|__(?=\S)([\s\S]*?\S)__|~~(?=\S)([\s\S]*?\S)~~|\*(?=[^\s*])([^*\n]*?[^\s*])\*/g;
+const fmtHas = t => { FMT_RE.lastIndex=0; return FMT_RE.test(String(t||"")); };
+function fmtInline(t){ return esc(t).replace(FMT_RE, (m,b,u,st,i)=> b!=null?"<b>"+fmtInlineRaw(b)+"</b>" : u!=null?"<u>"+fmtInlineRaw(u)+"</u>" : st!=null?"<s>"+fmtInlineRaw(st)+"</s>" : "<i>"+i+"</i>"); }
+function fmtInlineRaw(h){ return h.replace(FMT_RE, (m,b,u,st,i)=> b!=null?"<b>"+fmtInlineRaw(b)+"</b>" : u!=null?"<u>"+fmtInlineRaw(u)+"</u>" : st!=null?"<s>"+fmtInlineRaw(st)+"</s>" : "<i>"+i+"</i>"); }
+/* текст задачи → HTML: оформление + строки «• …» / «- …» — пунктами списка */
+function fmtHtml(t){ const L=String(t||"").split("\n"); let h="", inL=false;
+  L.forEach((l,i)=>{ const m=l.match(/^\s*(?:[•·]|-(?=\s))\s*(.*)$/);
+    if(m){ if(!inL){ h+='<ul class="fmtul">'; inL=true; } h+="<li>"+fmtInline(m[1])+"</li>"; return; }
+    if(inL){ h+="</ul>"; inL=false; } h+=fmtInline(l)+(i<L.length-1 && !(L[i+1]||"").match(/^\s*(?:[•·]|-(?=\s))/)?"\n":""); });
+  if(inL) h+="</ul>"; return h; }
+const fmtPlain = t => String(t||"").replace(/\*\*(?=\S)([\s\S]*?\S)\*\*/g,"$1").replace(/__(?=\S)([\s\S]*?\S)__/g,"$1").replace(/~~(?=\S)([\s\S]*?\S)~~/g,"$1").replace(/\*(?=[^\s*])([^*\n]*?[^\s*])\*/g,"$1");
+const fmtPrevHtml = t => `<small>Так увидят все:</small><div class="dt-t">${fmtHtml(t)}</div>`;
+function fmtSync(ta){ const box=ta.closest(".dt-comp"), pv=box&&box.querySelector(".fmtprev"); if(!pv) return; const on=fmtHas(ta.value); pv.hidden=!on; pv.innerHTML=on?fmtPrevHtml(ta.value):""; }
+function fmtApply(ta, k){ if(!ta) return; const v=ta.value; let a=ta.selectionStart, z=ta.selectionEnd;
+  if(k==="li"){ const s0=v.lastIndexOf("\n", a-1)+1, e0=v.indexOf("\n", z); const e1=e0<0?v.length:e0, L=v.slice(s0,e1).split("\n");
+    const all=L.every(l=>/^\s*•\s?/.test(l)||!l.trim()), N=L.map(l=>all ? l.replace(/^\s*•\s?/,"") : (!l.trim()?l:"• "+l.replace(/^\s*[-·]\s+/,"")));
+    const out=N.join("\n"); ta.setRangeText(out, s0, e1, "end"); if(!L.join("").trim() && !all){ ta.setRangeText("• ", s0, s0+out.length, "end"); }
+  } else if(k==="x"){ if(a===z){ const s0=v.lastIndexOf("\n", a-1)+1, e0=v.indexOf("\n", a); a=s0; z=e0<0?v.length:e0; } ta.setRangeText(fmtPlain(v.slice(a,z)), a, z, "select");
+  } else { const f=FMT.find(x=>x.k===k); if(!f) return; const m=f.m, n=m.length;
+    let sel=v.slice(a,z); const tA=sel.match(/^\s*/)[0].length, tZ=sel.match(/\s*$/)[0].length; if(sel.trim()){ a+=tA; z-=tZ; sel=v.slice(a,z); }
+    const wrapped = sel.length>=2*n && sel.startsWith(m) && sel.endsWith(m) && !(n===1 && (sel.startsWith("**")||sel.endsWith("**")));
+    const around = v.slice(a-n,a)===m && v.slice(z,z+n)===m && !(n===1 && (v.slice(a-2,a)==="**"||v.slice(z,z+2)==="**"));
+    if(wrapped){ ta.setRangeText(sel.slice(n,-n), a, z, "select"); }
+    else if(around){ ta.setRangeText(sel, a-n, z+n, "select"); }
+    else if(a===z){ ta.setRangeText(m+m, a, z, "start"); ta.setSelectionRange(a+n, a+n); }
+    else { ta.setRangeText(m+sel+m, a, z, "end"); ta.setSelectionRange(a+n, z+n); } }
+  ta.focus(); ta.dispatchEvent(new Event("input",{bubbles:true})); }
+document.addEventListener("mousedown",e=>{ if(e.target.closest && e.target.closest(".fmtb")) e.preventDefault(); });
+document.addEventListener("click",e=>{ const b=e.target.closest && e.target.closest(".fmtb[data-fmt]"); if(!b) return; e.preventDefault();
+  const box=b.closest(".dt-comp"), ta=box && box.querySelector("textarea.dt-in"); fmtApply(ta, b.dataset.fmt); });
+document.addEventListener("keydown",e=>{ const ta=e.target; if(!(e.ctrlKey||e.metaKey) || e.altKey || !ta || !ta.classList || !ta.classList.contains("dt-in")) return;
+  const k={b:"b",и:"b",i:"i",ш:"i",u:"u",г:"u"}[String(e.key).toLowerCase()]; if(k){ e.preventDefault(); fmtApply(ta,k); } });
+document.addEventListener("input",e=>{ const ta=e.target; if(ta && ta.classList && ta.classList.contains("dt-in")) fmtSync(ta); }, true);
+/* список продолжается сам: новая строка после «• текст» начинается с «• », на пустом пункте — точка убирается */
+document.addEventListener("keydown",e=>{ const ta=e.target; if(e.key!=="Enter" || e.isComposing || !ta || !ta.classList || !ta.classList.contains("dt-in")) return;
+  if(!(e.shiftKey || dtTouch())) return; const v=ta.value, a=ta.selectionStart, s0=v.lastIndexOf("\n", a-1)+1, line=v.slice(s0,a); if(!/^\s*•/.test(line)) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  if(/^\s*•\s*$/.test(line) && (v.indexOf("\n",a)<0 ? v.length===a : v.slice(a, v.indexOf("\n",a))==="")) ta.setRangeText("", s0, a, "end"); else ta.setRangeText("\n• ", a, ta.selectionEnd, "end");
+  ta.dispatchEvent(new Event("input",{bubbles:true})); }, true);
+document.querySelectorAll('.fmtbar[data-fmtfor]').forEach(x=>{ x.innerHTML=FMT_BTNS; });
 function dtKeys(t, onEnter, onEsc){ t.addEventListener("input",()=>dtGrow(t));
   t.addEventListener("keydown",k=>{ if(k.key==="Enter" && !k.shiftKey && !k.isComposing && !dtTouch()){ k.preventDefault(); onEnter(); } else if(k.key==="Escape" && onEsc){ k.preventDefault(); onEsc(); } }); }
 function dtSave(x, ev){ dirty("daytasks", x.id); saveLocal(); if(ev) logEv("Задача на день", ev); renderCalendar(); }
@@ -3953,8 +4106,8 @@ function docTasks(dates, quiet){ const now=new Date().toISOString(); let ch=0;
 $("#dt-add").addEventListener("submit",e=>{ e.preventDefault(); const inp=$("#dt-text"), D0=DRf(); let v=inp.value.trim();
   if(!v && !D0.photos.length){ inp.focus(); return; } if(!v) v="Фото";
   const x={id:D0.id, date:CAL().sel, customerId:$("#dt-cus").value||"", addr:($("#dt-cus").value&&!$("#dt-pt").hidden&&$("#dt-pt").value)||"", text:v, done:"", by:curUser()||"", created:new Date().toISOString(), doneBy:"", doneAt:"", seen:"", photos:D0.photos.slice()};
-  DTS().push(x); DR=null; lsSet(DRK(), null); inp.value=""; dtGrow(inp); $("#dt-cus").value=""; dtPtFill();
-  dtSave(x, "Добавлена на "+fd(x.date)+": "+(x.customerId?cusShort(cus(x.customerId).name)+(x.addr?" ("+stLabel(x.addr,cus(x.customerId).address)+")":"")+" — ":"")+v+(x.photos.length?" (фото: "+x.photos.length+")":""));
+  DTS().push(x); DR=null; lsSet(DRK(), null); inp.value=""; dtGrow(inp); fmtSync(inp); $("#dt-cus").value=""; dtPtFill();
+  dtSave(x, "Добавлена на "+fd(x.date)+": "+(x.customerId?cusShort(cus(x.customerId).name)+(x.addr?" ("+stLabel(x.addr,cus(x.customerId).address)+")":"")+" — ":"")+fmtPlain(v)+(x.photos.length?" (фото: "+x.photos.length+")":""));
   toast("ok","Задача добавлена","На "+fd(x.date)+". Её увидят все, в том числе водитель."); setTimeout(()=>$("#dt-text").focus(),50); });
 dtKeys($("#dt-text"), ()=>$("#dt-add").requestSubmit());
 $("#dt-text").addEventListener("input",()=>{ DRf().text=$("#dt-text").value; drSave(); });
@@ -3973,8 +4126,8 @@ $("#dt-box").addEventListener("click",e=>{
   if(e.target.closest("[data-edok]")){ dtEdFinish(true); return; }
   if(e.target.closest("[data-edno]")){ dtEdFinish(false); return; }
   if(e.target.closest("[data-dtdel]")){ const b=e.target.closest("[data-dtdel]"); if(!b.dataset.armed){ b.dataset.armed=1; b.textContent="Удалить?"; b.classList.add("armed"); setTimeout(()=>{ if(b.isConnected){ delete b.dataset.armed; b.textContent="×"; b.classList.remove("armed"); } },3000); return; }
-    const i=DTS().indexOf(x); DTS().splice(i,1); dirty("daytasks",x.id,true); saveLocal(); logEv("Задача на день","Удалена ("+fd(x.date)+"): "+x.text); renderCalendar();
-    toast("info","Задача удалена",x.text,{action:{label:"Вернуть", fn:()=>{ DTS().push(x); dtSave(x,"Возвращена: "+x.text); }}}); return; }
+    const i=DTS().indexOf(x); DTS().splice(i,1); dirty("daytasks",x.id,true); saveLocal(); logEv("Задача на день","Удалена ("+fd(x.date)+"): "+fmtPlain(x.text)); renderCalendar();
+    toast("info","Задача удалена",fmtPlain(x.text),{action:{label:"Вернуть", fn:()=>{ DTS().push(x); dtSave(x,"Возвращена: "+fmtPlain(x.text)); }}}); return; }
   if(e.target.closest("[data-dtpen]")){ if(EDf()) dtEdFinish(true); const y=DTS().find(z=>z.id===row.dataset.dt); if(!y) return; ED={u:curUser(), id:y.id, text:y.text, a:y.text.length, focus:1, date:y.date, cus:y.customerId||"", addr:y.addr||""}; edSave(); drawDayTasks(); return; }
   if(e.target.closest("[data-dtedit]") && !EDf()){ ED={u:curUser(), id:x.id, text:x.text, a:x.text.length, focus:1}; edSave(); drawDayTasks(); } });
 
@@ -4172,18 +4325,19 @@ $("#cal-pdf").onclick=async()=>{ const docs=calDocs(CAL().sel, CAL().cus).sort(j
   catch(e){ toast("err","Не получилось сделать PDF", e.message+". Попробуйте ещё раз."); } finally{ b.disabled=false; b.textContent=t0; } };
 
 /* ================= прибыль (только администратор) ================= */
-let pfLoaded=false, pfOpen=new Set(), pfPrev=[];
+let pfLoaded=false, pfOpen=new Set(), pfPrev=[], pfAt=0;
 const PF = () => (D.pf = D.pf || {per:"month", sup:"", cus:"", from:"", to:""});
 const pfArr = k => (D[k] = Array.isArray(D[k]) ? D[k] : []);
 async function loadProfit(quiet){
   if(!me().admin) return;
-  try{ if(hasPending()) await flush(); const j=await api({action:"profit"}); if(hasPending()||syncBlocked)return; rememberBase(j); D.costs=j.costs||[]; D.doccosts=j.doccosts||[]; D.psettings=j.psettings||[]; if(Array.isArray(j.purchases)) zkMerge(j.purchases); else D.zkSrv=false; poMerge(j.pother); dbMerge(j.debts); pfLoaded=true; saveLocal(); $("#pf-msg").textContent=""; if(!quiet) toast("ok","Данные о прибыли обновлены",""); }
+  try{ if(hasPending()) await flush(); const j=await api({action:"profit"}); if(hasPending()||syncBlocked)return; rememberBase(j); D.costs=j.costs||[]; D.doccosts=j.doccosts||[]; D.psettings=j.psettings||[]; if(Array.isArray(j.purchases)) zkMerge(j.purchases); else D.zkSrv=false; poMerge(j.pother); dbMerge(j.debts); pfLoaded=true; pfAt=Date.now(); saveLocal(); $("#pf-msg").textContent=""; if(!quiet) toast("ok","Данные о прибыли обновлены",""); }
   catch(e){ $("#pf-msg").textContent = /unknown action/.test(e.message) ? "Чтобы прибыль сохранялась в таблицу, обновите скрипт таблицы (новая версия). Пока данные хранятся только на этом устройстве." : "Не получилось загрузить: "+e.message; pfLoaded=true; }
   if(curTab==="profit") drawProfit();
   if(curTab==="purchase"){ drawPurchase(); drawHist(); zkpDraw(); }
   if(quiet) fdCalm();
 }
-function renderProfit(){ if(!me().admin) return; pfMarkSeen(); if(!pfLoaded){ $("#pf-msg").textContent="Загружаю…"; loadProfit(true); } drawProfit(); }
+/* «Прибыль» всегда свежая: закупки и оплаты с других устройств подтягиваются сами, если открыли вкладку спустя 2+ минуты */
+function renderProfit(){ if(!me().admin) return; pfMarkSeen(); if(!pfLoaded){ $("#pf-msg").textContent="Загружаю…"; loadProfit(true); } else if(Date.now()-pfAt>120000 && online()){ pfAt=Date.now(); loadProfit(true); } drawProfit(); }
 const taxOf = sid => { const x=pfArr("psettings").find(y=>y.id===sid); return x && x.tax!=="" && x.tax!=null && !isNaN(+x.tax) ? +x.tax : 8; };
 /* ---- связанные товары (одно и то же под разными названиями, поле grp = ID основного): быстрый указатель для расчётов ----
    объявлено здесь (функциями), чтобы работало и до загрузки dev/src/pcd_seg.js */
@@ -5871,9 +6025,10 @@ function bundleEdit(g){
   const seen={}; for(const j of live){ const a=rk(j); if(seen[a]){ toast("warn","Комплект нельзя открыть в «Заявке»","№ "+seen[a]+" и № "+j.number+" — "+(brm?"на одно подразделение":"на один адрес")+". Отредактируйте эти документы по отдельности кнопкой «Изменить»."); return; } seen[a]=j.number; }
   const j0=live[0], cs=new Set(live.map(j=>j.customerId+"|"+j.supplierId+"|"+(brm?"":(j.snap.dr.branchId||""))));
   if(cs.size>1){ toast("warn","Комплект нельзя открыть в «Заявке»","В комплекте документы разных заказчиков или поставщиков. Отредактируйте их по отдельности."); return; }
-  const o=O(), backup=o.edit ? o.edit.backup : clone({customerId:o.customerId, supplierId:o.supplierId, branchId:o.branchId, date:o.date, qty:o.qty, num:o.num, extra:o.extra});
+  const o=O(), backup=o.edit ? o.edit.backup : clone({customerId:o.customerId, supplierId:o.supplierId, branchId:o.branchId, date:o.date, qty:o.qty, num:o.num, extra:o.extra, contractId:o.contractId, noCtr:o.noCtr, supKeep:o.supKeep});
   const ids={}, price={};
   o.customerId=j0.customerId; o.supplierId=j0.supplierId; o.branchId=j0.snap.dr.branchId||""; o.date=j0.date; o.qty={}; o.num={}; o.extra=[];
+  o.contractId=j0.snap.dr.contractId||""; o.noCtr=!o.contractId; o.supKeep=true;
   live.forEach(j=>{ const a=rk(j); ids[a]=j.id; o.num[a]=String(j.number); const q={};
     j.snap.dr.lines.forEach(l=>{ if(!l.productId||!(+l.qty>0)) return; q[l.productId]=String(r3((+q[l.productId]||0)+(+l.qty))); if(price[l.productId]==null) price[l.productId]=+l.price||0; }); o.qty[a]=q; });
   o.edit={ids, price, batch:(j0.snap.meta||{}).batch||"", nums:live.map(j=>j.number), backup};
@@ -5882,7 +6037,7 @@ function bundleEdit(g){
   toast("ok","Комплект открыт для правки","Измените количества, добавьте или уберите адреса и нажмите «Сохранить изменения комплекта».");
 }
 function bundleEditEnd(restore){ const o=O(); if(!o.edit) return; const b=o.edit.backup||{}; delete o.edit;
-  if(restore!==false) Object.assign(o, {customerId:b.customerId, supplierId:b.supplierId, branchId:b.branchId, date:b.date, qty:b.qty||{}, num:b.num||{}, extra:b.extra||[]});
+  if(restore!==false) Object.assign(o, {customerId:b.customerId, supplierId:b.supplierId, branchId:b.branchId, date:b.date, qty:b.qty||{}, num:b.num||{}, extra:b.extra||[], contractId:b.contractId||"", noCtr:!!b.noCtr, supKeep:!!b.supKeep});
   saveLocal(); renderOrder(); }
 $("#jr-body").addEventListener("click", onJClick(false));
 $("#ar-body").addEventListener("click", onJClick(true));

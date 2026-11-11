@@ -116,30 +116,40 @@ function pvMonClick(b){ const f=PV(), k=b.dataset.pvm; if(k==="all") f.m = f.m==
 
 /* ---------- По заказчикам ---------- */
 function pvCusData(d1, d2){
-  const G=new Map();
-  D.journal.filter(j=>j.snap && !isArch(j) && j.date>=d1 && j.date<=d2).forEach(j=>{ const x=docProfit(j), k=j.customerId||"-";
+  const G=new Map(), ever={};
+  D.journal.forEach(j=>{ if(!j.snap || isArch(j)) return; const k=j.customerId||"-", e=ever[k]=ever[k]||{n:0,last:""}; e.n++; if(j.date>e.last) e.last=j.date;
+    if(!PVNM[k] && j.snap.c && j.snap.c.name) PVNM[k]=cusShort(j.snap.c.name);
+    if(j.date<d1 || j.date>d2) return; const x=docProfit(j);
     if(!G.has(k)) G.set(k, {cid:k, docs:[], rev:0, rs:0, cost:0, exp:0, profit:0, miss:0, last:""}); const g=G.get(k);
     g.docs.push(x); g.rev+=x.rev; g.rs+=x.rev-x.tax; g.cost+=x.cost; g.exp+=x.exp; g.profit+=x.profit; if(x.miss) g.miss++; if(j.date>g.last) g.last=j.date; });
-  const had=new Set();
-  D.journal.forEach(j=>{ if(j.snap && !isArch(j) && j.customerId) had.add(j.customerId); });
-  (D.customers||[]).forEach(c=>{ if(!c.id || isPriv(c.id) || had.has(c.id) || G.has(c.id)) return;
-    G.set(c.id, {cid:c.id, docs:[], rev:0, rs:0, cost:0, exp:0, profit:0, miss:0, last:"", fresh:1}); });
-  return [...G.values()].map(g=>{ ["rev","rs","cost","exp","profit"].forEach(k=>g[k]=r2(g[k])); return g; }).sort((a,b)=>(b.rev-a.rev) || ((a.fresh?1:0)-(b.fresh?1:0)) || pvCusName(a.cid).localeCompare(pvCusName(b.cid),"ru"));
+  /* все остальные заказчики тоже видны — ниже, «без накладных за этот период»: новый заказчик или документ появляются сами, ничего настраивать не нужно */
+  (D.customers||[]).forEach(c=>{ if(!c.id || c._del || G.has(c.id)) return; const e=ever[c.id]; if(isPriv(c.id) && !e) return;
+    G.set(c.id, {cid:c.id, docs:[], rev:0, rs:0, cost:0, exp:0, profit:0, miss:0, last:"", idle:1, fresh:e?0:1, lastAll:e?e.last:"", nAll:e?e.n:0}); });
+  Object.keys(ever).forEach(k=>{ if(!G.has(k)) G.set(k, {cid:k, docs:[], rev:0, rs:0, cost:0, exp:0, profit:0, miss:0, last:"", idle:1, lastAll:ever[k].last, nAll:ever[k].n}); });
+  return [...G.values()].map(g=>{ ["rev","rs","cost","exp","profit"].forEach(k=>g[k]=r2(g[k])); return g; })
+    .sort((a,b)=>((a.idle?1:0)-(b.idle?1:0)) || (b.rev-a.rev) || String(b.lastAll||"").localeCompare(String(a.lastAll||"")) || pvCusName(a.cid).localeCompare(pvCusName(b.cid),"ru"));
 }
-const pvCusName = cid => cid==="-" ? "Без заказчика" : (cusNm(cid) || "Заказчик");
+/* название заказчика, которого уже нет в справочнике, — из самой накладной */
+const PVNM={};
+const pvCusName = cid => cid==="-" ? "Без заказчика" : (cusNm(cid) || PVNM[cid] || "Заказчик");
 const pvAva = cid => { const h=dtHue(cid), n=pvCusName(cid).replace(/[«»"']/g,"").replace(/^(ФГБУ|ФГБНУ|ГБПОУ|ГАПОУ|ГУП|АО|ООО|ИП|ФГУП|МБОУ|ГБУ)\s+/i,"").trim();
   return `<span class="pvava" style="--h:${h==null?200:h}">${esc((n[0]||"?").toUpperCase())}</span>`; };
 function pvCusDraw(keepInput){
   const box=$("#pv-cus"), f=PV(), [d1,d2]=pvRange(), all=pvCusData(d1,d2), q=(f.q||"").trim().toLowerCase();
   const L=q ? all.filter(g=>pvCusName(g.cid).toLowerCase().includes(q)) : all;
   const T=all.reduce((a,g)=>({rev:a.rev+g.rev, rs:a.rs+g.rs, cost:a.cost+g.cost+g.exp, profit:a.profit+g.profit, n:a.n+g.docs.length, miss:a.miss+g.miss}),{rev:0,rs:0,cost:0,profit:0,n:0,miss:0});
-  const tiles = L.length ? L.map((g,i)=>{ const mg=g.rev>0?Math.max(0,Math.min(100,g.profit/g.rev*100)):0;
+  const act=L.filter(g=>!g.idle), idl=L.filter(g=>g.idle), mon=pvMonth(), mName=mon==="all"?"":["январе","феврале","марте","апреле","мае","июне","июле","августе","сентябре","октябре","ноябре","декабре"][+mon.slice(5,7)-1]||"";
+  const idleT = g => `<button type="button" class="pvcus idle" data-pvc="${esc(g.cid)}"><div class="pvch">${pvAva(g.cid)}<div class="pvcn"><b>${esc(pvCusName(g.cid))}</b><small>${g.nAll?`последняя накладная ${fd(g.lastAll)} · всего ${g.nAll}`:"накладных пока нет"}</small></div></div><span class="pvgo">Открыть ›</span></button>`;
+  const idleH = idl.length ? `<div class="pvidle-h"><span>${mon==="all"?"Без накладных":"Без накладных"+(mName?" в "+mName:" за этот месяц")}</span><i>${idl.length}</i></div>` : "";
+  const tiles = (act.length || idl.length) ? act.map((g,i)=>{ const mg=g.rev>0?Math.max(0,Math.min(100,g.profit/g.rev*100)):0;
     return `<button type="button" class="pvcus" data-pvc="${esc(g.cid)}" style="--d:${Math.min(i,12)*30}ms">
       <div class="pvch">${pvAva(g.cid)}<div class="pvcn"><b>${esc(pvCusName(g.cid))}</b><small>${g.fresh?"накладных пока нет":`${g.docs.length} ${plural(g.docs.length,["накладная","накладные","накладных"])} · последняя ${fd(g.last).slice(0,5)}`}</small></div>${g.miss?`<span class="pvwarn" title="Нет закупки у ${g.miss} ${plural(g.miss,["накладной","накладных","накладных"])}"><i></i>${g.miss}</span>`:""}</div>
       <div class="pvcp"><small>Прибыль</small><b class="${g.profit<0?"neg":""}">${fm(g.profit)} ₽</b><span>${pct(g.profit,g.rev)}</span></div>
       <div class="pvbar"><i style="width:${mg}%"></i></div>
       <dl class="pvcs"><div><dt>Сумма</dt><dd>${fm(g.rev)}</dd></div><div><dt>На р/с</dt><dd>${fm(g.rs)}</dd></div><div><dt>Закупка</dt><dd>${fm(r2(g.cost+g.exp))}</dd></div></dl>
       <span class="pvgo">Открыть ›</span></button>`; }).join("")
+      + (!act.length ? `<div class="pvempty sm">${pvIco("folder","big")}<b>${all.some(g=>!g.idle)?"Никого не нашлось":"За этот месяц накладных нет"}</b></div>` : "")
+      + idleH + idl.map(idleT).join("")
     : `<div class="pvempty">${pvIco("folder","big")}<b>${all.length?"Никого не нашлось":"За этот месяц накладных нет"}</b><small>${all.length?"Попробуйте другое название.":"Выберите другой месяц стрелками сверху."}</small></div>`;
   const head = `<div class="pvhead"><div><h2>По заказчикам</h2><small class="muted">Нажмите на заказчика — накладные, «на р/с», закупка и прибыль, как в вашей таблице</small></div>${pvMonBar()}</div>
     <div class="pvkpi"><div><small>Сумма накладных</small><b>${fm(r2(T.rev))}</b><span>${T.n} ${plural(T.n,["накладная","накладные","накладных"])}</span></div>
