@@ -241,11 +241,11 @@ function pvLedgerClick(e){
   if(a==="cancel"){ PVL.ed=""; pvLedgerDraw(); return; }
   if(a==="prod"){ const d=$("#fd-dcard"); if(d){ navStash(d); d._bye=1; d.classList.add("out"); setTimeout(()=>{ try{ d.close(); }catch(x){} d.remove(); NAV.pend&&(NAV.pend.at=Date.now()); docCard(j); setTimeout(()=>{ const t=document.querySelector('#fd-dcard [data-zkc="toggle"]'); if(t) t.click(); }, 80); }, 200); } return; }
   const dc=dcUpsert(j), L=dcLines(dc);
-  if(a==="clear"){ delete L._src; dc.lines=JSON.stringify(L); dirty("doccosts", dc.id); logEv("Прибыль","Убрана быстрая закупка: накладная № "+j.number+" от "+fd(j.date)+" — "+jWho(j).main); saveLocal(); PVL.ed=""; pvLedgerDraw(); drawProfit(); toast("ok","Закупка убрана","Снова считается по товарам."); return; }
+  if(a==="clear"){ delete L._src; delete L._oneAdd; dc.lines=JSON.stringify(L); dirty("doccosts", dc.id); logEv("Прибыль","Убрана быстрая закупка: накладная № "+j.number+" от "+fd(j.date)+" — "+jWho(j).main); saveLocal(); PVL.ed=""; pvLedgerDraw(); drawProfit(); toast("ok","Закупка убрана","Снова считается по товарам."); return; }
   if(a==="save"){ const rows=pvEdRows().filter(r=>r.n || r.s!=="");
     const bad=rows.find(r=>r.s==="" || isNaN(+r.s) || +r.s<0); if(bad){ toast("err","Проверьте сумму", (bad.n||"Строка")+": впишите сумму закупки."); return; }
     const noName=rows.find(r=>!r.n); if(noName){ toast("err","От кого закупка?","Впишите, например, «Саид» или «Склад»."); return; }
-    if(!rows.length){ delete L._src; } else L._src=rows.map(r=>({n:r.n, s:String(r2(+r.s))}));
+    if(!rows.length){ delete L._src; } else L._src=rows.map(r=>({n:r.n, s:String(r2(+r.s))})); delete L._oneAdd;   /* «от кого — сумма» — вся закупка накладной */
     dc.lines=JSON.stringify(L); dirty("doccosts", dc.id);
     logEv("Прибыль","Закупка по накладной № "+j.number+" от "+fd(j.date)+" — "+jWho(j).main+": "+(rows.length?rows.map(r=>r.n+" "+fm(+r.s)).join(", "):"убрана"));
     saveLocal(); PVL.ed=""; pvLedgerDraw(); drawProfit(); const x=docProfit(j); toast("ok","Закупка сохранена","№ "+j.number+": закупка "+fm(x.cost)+" ₽, прибыль "+fm(x.profit)+" ₽");
