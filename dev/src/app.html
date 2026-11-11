@@ -1068,6 +1068,16 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .dt-comp{margin-top:10px;background:#fff;border:1px solid #ecd9b0;border-radius:14px;padding:3px 4px 7px;transition:border-color .2s,box-shadow .25s}
 #fd-app .dt-comp:focus-within{border-color:#d9a441;box-shadow:0 0 0 4px rgba(217,164,65,.17)}
 #fd-app .dt-comp textarea.dt-in{border:0;background:transparent;box-shadow:none;outline:none;padding:9px 10px 6px;min-height:48px;font-size:15px;border-radius:10px}
+#fd-app .fmtbar{display:flex;gap:2px;align-items:center;padding:4px 6px 0;flex-wrap:wrap}
+#fd-app .fmtb{all:unset;box-sizing:border-box;cursor:pointer;width:32px;height:30px;display:grid;place-items:center;border-radius:8px;color:#5d574f;font-size:14.5px;line-height:1;transition:background .15s,color .15s}
+#fd-app .fmtb:hover{background:rgba(106,44,78,.08);color:var(--accent)}#fd-app .fmtb:focus-visible{outline:2px solid var(--accent)}#fd-app .fmtb:active{transform:scale(.94)}
+#fd-app .fmtb b{font-weight:800}#fd-app .fmtb i{font-family:Georgia,serif;font-style:italic;font-weight:600}#fd-app .fmtb svg{width:17px;height:17px}
+#fd-app .fmtb[data-fmt="li"]{margin-left:6px;border-left:1px solid var(--line);border-radius:0 8px 8px 0;width:36px}
+#fd-app .fmtprev{margin:2px 10px 6px;padding:8px 10px;border-radius:10px;background:rgba(106,44,78,.05);border:1px dashed rgba(106,44,78,.2)}#fd-app .fmtprev>small{display:block;color:var(--muted);font-size:11.5px;margin-bottom:2px}
+#fd-app .dt-t ul.fmtul{margin:2px 0;padding-left:20px;white-space:normal}#fd-app .dt-t ul.fmtul li{margin:1px 0;white-space:pre-wrap}#fd-app .dt-t ul.fmtul li::marker{color:var(--accent)}
+#fd-app textarea.dt-in.scr{scrollbar-width:thin;scrollbar-color:rgba(106,44,78,.45) transparent;padding-right:6px}
+#fd-app textarea.dt-in.scr::-webkit-scrollbar{width:8px}#fd-app textarea.dt-in.scr::-webkit-scrollbar-thumb{background:rgba(106,44,78,.38);border-radius:8px;border:2px solid transparent;background-clip:padding-box}#fd-app textarea.dt-in.scr::-webkit-scrollbar-track{background:transparent}
+@media(max-width:560px){#fd-app .fmtb{width:36px;height:34px}}
 #fd-app .dt-cbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:2px 4px 0}
 #fd-app .dt-cbar select[hidden]{display:none}#fd-app .dt-cbar select{flex:0 1 230px;width:auto;min-width:140px;padding:6px 10px;font-size:13.5px;border-radius:99px;background:#fbf6ec;border-color:#f0e2c4}
 #fd-app .dt-pbtn{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:99px;border:1px solid #f0e2c4;background:#fbf6ec;color:#7a4b08;font-size:13.5px;font-weight:500;cursor:pointer;transition:background .15s,transform .15s;user-select:none}
@@ -2021,7 +2031,9 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
         <div id="dt-list" class="dt-list"></div>
                 <form class="dt-add" id="dt-add" autocomplete="off">
           <div class="dt-comp">
+            <div class="fmtbar" role="toolbar" aria-label="Оформление текста" data-fmtfor="#dt-text"></div>
             <textarea id="dt-text" class="dt-in" rows="2" placeholder="Что сделать — например, «заменить картофель»" maxlength="1000"></textarea>
+            <div class="fmtprev" hidden></div>
             <div class="dt-phs" id="dt-addph" data-phs="" data-x="1"></div>
             <div class="dt-cbar">
               <select id="dt-cus" aria-label="Заказчик"></select>
@@ -3784,7 +3796,7 @@ const ptName = (p) => { const l=stLabel(p.addr,p.c.address), m=l.match(/^ст ([
 const itemShort = n => String(n||"").replace(/\s*\([^)]*\)/g,"").replace(/\s+(свеж\S*|продовольственн\S*|столов\S*)(?=\s|$)/gi,"").replace(/\s+/g," ").trim();
 function dvText(P){
   const f=DV(), TK=DTS().filter(x=>x.date===f.date && !isAuto(x)); if(!P.length && !TK.length) return "";
-  const tkLines = TK.length ? ["Задачи на день:", ...TK.map(x=>"• "+(x.customerId?cusShort(cus(x.customerId).name)+(x.addr?" ("+x.addr+")":"")+": ":"")+String(x.text).replace(/\n/g,"\n   ")+(x.photos&&x.photos.length?" (фото на сайте: "+x.photos.length+")":"")), ""] : [];
+  const tkLines = TK.length ? ["Задачи на день:", ...TK.map(x=>"• "+(x.customerId?cusShort(cus(x.customerId).name)+(x.addr?" ("+x.addr+")":"")+": ":"")+fmtPlain(x.text).replace(/\n/g,"\n   ")+(x.photos&&x.photos.length?" (фото на сайте: "+x.photos.length+")":"")), ""] : [];
   const short=a=>a.replace(/^\d{6},\s*/,"").replace(/^г\.\s*Москва,\s*/i,"").replace(/\s*\([^)]*\)\s*$/,"");
   const L=[], groups=[]; P.forEach(p=>{ const g=cusShort(cusNm(p.cid)||p.c.name); let G=groups.find(x=>x.g===g); if(!G){ G={g, P:[]}; groups.push(G); } G.P.push(p); });
   if(f.full){ const d=new Date(f.date+"T12:00:00"); L.push("Доставка "+fd(f.date)+" ("+wdays[d.getDay()]+")"); L.push(""); }
@@ -3909,7 +3921,9 @@ function EDf(){ if(ED===undefined || (ED && ED.u!==curUser())){ try{ ED=JSON.par
 const edSave = () => lsSet(EDK(), ED ? JSON.stringify(ED) : null);
 function dtEdRow(x){ const e=EDf();
   return `<div class="dt dt-ed" data-dt="${esc(x.id)}"><div class="dt-comp">
+    <div class="fmtbar" role="toolbar" aria-label="Оформление текста">${FMT_BTNS}</div>
     <textarea class="dt-in dt-edit" rows="2" maxlength="1000" aria-label="Текст задачи">${esc(e.text)}</textarea>
+    <div class="fmtprev"${fmtHas(e.text)?"":" hidden"}>${fmtHas(e.text)?fmtPrevHtml(e.text):""}</div>
     ${isAuto(x)?`<div class="dt-edrow"><span class="muted">Задача из накладной — дата и заказчик как в накладной</span></div>`:`<div class="dt-edrow"><input type="date" data-edf="date" value="${esc(e.date||x.date)}" aria-label="Дата задачи">
       <select data-edf="cus" aria-label="Заказчик"><option value="">Без заказчика</option>${opts(D.customers, e.cus!=null?e.cus:x.customerId)}</select>${(()=>{ const L=cusAddrs(cus(e.cus!=null?e.cus:x.customerId)), a=e.addr!=null?e.addr:x.addr;
         return `<select data-edf="addr" aria-label="Точка доставки"${L.length<2?" hidden":""}><option value="">Точка не выбрана</option>${L.map(o=>`<option value="${esc(o.a)}"${o.a===a?" selected":""}>${esc(o.label)}</option>`).join("")}</select>`; })()}</div>`}
@@ -3925,7 +3939,7 @@ function dtRow(x, ing){ const e=EDf(); if(e && e.id===x.id && dtCan(x)) return d
     + (nr.length?`<span class="no"><em>Не прочитал:</em> ${nr.map(esc).join(", ")}</span>`:"");
   return `<div class="dt${x._new?" new":""}${hu!=null?" hc":""}" data-dt="${esc(x.id)}"${hu!=null?` style="--h:${hu}"`:""}>
     <div class="dt-b"><div class="dt-top">${cn?`<span class="dt-c"${ing?' title="Точка"':""}>${ing?IPIN:""}${esc(cn)}</span>`:""}${who?`<div class="dt-rd${nr.length?"":" all"}" aria-label="Кто прочитал">${who}</div>`:""}</div>
-      <div class="dt-t"${dtCan(x)?' data-dtedit title="Нажмите, чтобы исправить"':""}>${esc(x.text)}</div>
+      <div class="dt-t"${dtCan(x)?' data-dtedit title="Нажмите, чтобы исправить"':""}>${fmtHtml(x.text)}</div>
       <div class="dt-phs" data-phs="${esc(x.id)}">${phItems(x.id,x.photos,false)}</div>
       <small>${esc(x.by||"")}${x.created?" · "+(x.created.slice(0,10)===todayISO()?"сегодня ":fd(x.created.slice(0,10))+" ")+hhmm(x.created):""}</small></div>
     <div class="dt-a">${dtCan(x)?`<button type="button" class="dt-pen" data-dtpen title="Изменить задачу" aria-label="Изменить задачу">${IPEN}</button>`:""}<label class="dt-cam" title="Прикрепить фото" aria-label="Прикрепить фото">${ICAM}<input type="file" accept="image/*" multiple hidden data-phfile></label>${dtCan(x)?`<button type="button" class="dt-x" data-dtdel title="Удалить" aria-label="Удалить">×</button>`:""}</div></div>`; }
@@ -3985,7 +3999,7 @@ function drawDayTasks(){
   const has=id=>id && D.customers.some(x=>x.id===id);
   cs.value = has(keep) ? keep : has(D0.cus) ? D0.cus : (c.cus||"");
   dtPtFill();
-  const tt=$("#dt-text"); if(document.activeElement!==tt && tt.value!==D0.text){ tt.value=D0.text; }
+  const tt=$("#dt-text"); if(document.activeElement!==tt && tt.value!==D0.text){ tt.value=D0.text; dtGrow(tt); fmtSync(tt); }
   dtGrow(tt);
   const ap=$("#dt-addph"); ap.dataset.phs=D0.id; ap.innerHTML=phItems(D0.id, D0.photos, true);
   phThumbs($("#dt-box"));
@@ -3997,12 +4011,60 @@ function dtEdFinish(save){ const e=EDf(); if(!e) return; const x=DTS().find(y=>y
   if(save && x){ const v=e.text.trim(), nd=!isAuto(x)&&e.date&&e.date!==x.date?e.date:"", nc=!isAuto(x)&&e.cus!=null&&e.cus!==x.customerId, na=!isAuto(x)&&e.addr!=null&&e.addr!==(x.addr||"");
     const tch=!!v && v!==x.text; if(tch||nd||nc||na){ const was=x.date; if(tch) x.text=v; if(nd) x.date=nd; if(nc){ x.customerId=e.cus; x.addr=e.addr||""; } else if(na) x.addr=e.addr;
       if(tch||nd) x.seen="";
-      dtSave(x,"Изменена"+(nd?" (перенесена с "+fd(was)+" на "+fd(nd)+")":"")+": "+x.text);
+      dtSave(x,"Изменена"+(nd?" (перенесена с "+fd(was)+" на "+fd(nd)+")":"")+": "+fmtPlain(x.text));
       toast("ok", nd?"Задача перенесена на "+fd(nd):"Задача исправлена", (tch||nd)?"Отметки «видел» начнутся заново.":"", nd?{action:{label:"Открыть "+fd(nd), fn:()=>{ const c=CAL(); c.sel=nd; c.ym=nd.slice(0,7); saveLocal(); renderCalendar(); }}}:undefined); return; } }
   renderCalendar(); }
 /* поле задачи: Enter — сохранить, Shift+Enter — новая строка (на телефоне Enter = новая строка, сохраняет кнопка) */
 const dtTouch = () => { try{ return matchMedia("(pointer:coarse)").matches; }catch(e){ return false; } };
-const dtGrow = t => { if(!t) return; t.style.height="auto"; t.style.height=Math.min(t.scrollHeight+2, 320)+"px"; };
+/* поле растёт с текстом до половины экрана (не больше 420 px), дальше — ползунок прокрутки справа */
+const dtGrow = t => { if(!t) return; const mx=Math.max(160, Math.min(420, Math.round((window.innerHeight||800)*0.5))); t.style.height="auto"; const h=t.scrollHeight+2;
+  t.style.height=Math.min(h, mx)+"px"; t.style.overflowY = h>mx ? "auto" : "hidden"; t.classList.toggle("scr", h>mx); };
+/* ---- оформление текста задачи: **жирный**, *курсив*, __подчёркнутый__, ~~зачёркнутый~~, «• » — список.
+   В поле видны значки, в задаче — готовое оформление; в текст для MAX, «События» и уведомления идёт без значков. ---- */
+const FMT = [{k:"b",m:"**",t:"Жирный",h:"Ctrl+B",i:"<b>Ж</b>"},{k:"i",m:"*",t:"Курсив",h:"Ctrl+I",i:"<i>К</i>"},{k:"u",m:"__",t:"Подчёркнутый",h:"Ctrl+U",i:"<u>Ч</u>"},{k:"s",m:"~~",t:"Зачёркнутый",h:"",i:"<s>З</s>"}];
+const FMT_BTNS = FMT.map(f=>`<button type="button" class="fmtb" data-fmt="${f.k}" title="${f.t}${f.h?" · "+f.h:""}" aria-label="${f.t}">${f.i}</button>`).join("")
+  + `<button type="button" class="fmtb" data-fmt="li" title="Список — точка в начале строки" aria-label="Список"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="7" r="1.2" fill="currentColor"/><circle cx="5" cy="12" r="1.2" fill="currentColor"/><circle cx="5" cy="17" r="1.2" fill="currentColor"/><path d="M10 7h10M10 12h10M10 17h10"/></svg></button>`
+  + `<button type="button" class="fmtb" data-fmt="x" title="Убрать оформление у выделенного" aria-label="Убрать оформление"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5h12M10 5l-3 14M14 5l-1.2 5.5M4 20l16-16"/></svg></button>`;
+const FMT_RE = /\*\*(?=\S)([\s\S]*?\S)\*\*|__(?=\S)([\s\S]*?\S)__|~~(?=\S)([\s\S]*?\S)~~|\*(?=[^\s*])([^*\n]*?[^\s*])\*/g;
+const fmtHas = t => { FMT_RE.lastIndex=0; return FMT_RE.test(String(t||"")); };
+function fmtInline(t){ return esc(t).replace(FMT_RE, (m,b,u,st,i)=> b!=null?"<b>"+fmtInlineRaw(b)+"</b>" : u!=null?"<u>"+fmtInlineRaw(u)+"</u>" : st!=null?"<s>"+fmtInlineRaw(st)+"</s>" : "<i>"+i+"</i>"); }
+function fmtInlineRaw(h){ return h.replace(FMT_RE, (m,b,u,st,i)=> b!=null?"<b>"+fmtInlineRaw(b)+"</b>" : u!=null?"<u>"+fmtInlineRaw(u)+"</u>" : st!=null?"<s>"+fmtInlineRaw(st)+"</s>" : "<i>"+i+"</i>"); }
+/* текст задачи → HTML: оформление + строки «• …» / «- …» — пунктами списка */
+function fmtHtml(t){ const L=String(t||"").split("\n"); let h="", inL=false;
+  L.forEach((l,i)=>{ const m=l.match(/^\s*(?:[•·]|-(?=\s))\s*(.*)$/);
+    if(m){ if(!inL){ h+='<ul class="fmtul">'; inL=true; } h+="<li>"+fmtInline(m[1])+"</li>"; return; }
+    if(inL){ h+="</ul>"; inL=false; } h+=fmtInline(l)+(i<L.length-1 && !(L[i+1]||"").match(/^\s*(?:[•·]|-(?=\s))/)?"\n":""); });
+  if(inL) h+="</ul>"; return h; }
+const fmtPlain = t => String(t||"").replace(/\*\*(?=\S)([\s\S]*?\S)\*\*/g,"$1").replace(/__(?=\S)([\s\S]*?\S)__/g,"$1").replace(/~~(?=\S)([\s\S]*?\S)~~/g,"$1").replace(/\*(?=[^\s*])([^*\n]*?[^\s*])\*/g,"$1");
+const fmtPrevHtml = t => `<small>Так увидят все:</small><div class="dt-t">${fmtHtml(t)}</div>`;
+function fmtSync(ta){ const box=ta.closest(".dt-comp"), pv=box&&box.querySelector(".fmtprev"); if(!pv) return; const on=fmtHas(ta.value); pv.hidden=!on; pv.innerHTML=on?fmtPrevHtml(ta.value):""; }
+function fmtApply(ta, k){ if(!ta) return; const v=ta.value; let a=ta.selectionStart, z=ta.selectionEnd;
+  if(k==="li"){ const s0=v.lastIndexOf("\n", a-1)+1, e0=v.indexOf("\n", z); const e1=e0<0?v.length:e0, L=v.slice(s0,e1).split("\n");
+    const all=L.every(l=>/^\s*•\s?/.test(l)||!l.trim()), N=L.map(l=>all ? l.replace(/^\s*•\s?/,"") : (!l.trim()?l:"• "+l.replace(/^\s*[-·]\s+/,"")));
+    const out=N.join("\n"); ta.setRangeText(out, s0, e1, "end"); if(!L.join("").trim() && !all){ ta.setRangeText("• ", s0, s0+out.length, "end"); }
+  } else if(k==="x"){ if(a===z){ const s0=v.lastIndexOf("\n", a-1)+1, e0=v.indexOf("\n", a); a=s0; z=e0<0?v.length:e0; } ta.setRangeText(fmtPlain(v.slice(a,z)), a, z, "select");
+  } else { const f=FMT.find(x=>x.k===k); if(!f) return; const m=f.m, n=m.length;
+    let sel=v.slice(a,z); const tA=sel.match(/^\s*/)[0].length, tZ=sel.match(/\s*$/)[0].length; if(sel.trim()){ a+=tA; z-=tZ; sel=v.slice(a,z); }
+    const wrapped = sel.length>=2*n && sel.startsWith(m) && sel.endsWith(m) && !(n===1 && (sel.startsWith("**")||sel.endsWith("**")));
+    const around = v.slice(a-n,a)===m && v.slice(z,z+n)===m && !(n===1 && (v.slice(a-2,a)==="**"||v.slice(z,z+2)==="**"));
+    if(wrapped){ ta.setRangeText(sel.slice(n,-n), a, z, "select"); }
+    else if(around){ ta.setRangeText(sel, a-n, z+n, "select"); }
+    else if(a===z){ ta.setRangeText(m+m, a, z, "start"); ta.setSelectionRange(a+n, a+n); }
+    else { ta.setRangeText(m+sel+m, a, z, "end"); ta.setSelectionRange(a+n, z+n); } }
+  ta.focus(); ta.dispatchEvent(new Event("input",{bubbles:true})); }
+document.addEventListener("mousedown",e=>{ if(e.target.closest && e.target.closest(".fmtb")) e.preventDefault(); });
+document.addEventListener("click",e=>{ const b=e.target.closest && e.target.closest(".fmtb[data-fmt]"); if(!b) return; e.preventDefault();
+  const box=b.closest(".dt-comp"), ta=box && box.querySelector("textarea.dt-in"); fmtApply(ta, b.dataset.fmt); });
+document.addEventListener("keydown",e=>{ const ta=e.target; if(!(e.ctrlKey||e.metaKey) || e.altKey || !ta || !ta.classList || !ta.classList.contains("dt-in")) return;
+  const k={b:"b",и:"b",i:"i",ш:"i",u:"u",г:"u"}[String(e.key).toLowerCase()]; if(k){ e.preventDefault(); fmtApply(ta,k); } });
+document.addEventListener("input",e=>{ const ta=e.target; if(ta && ta.classList && ta.classList.contains("dt-in")) fmtSync(ta); }, true);
+/* список продолжается сам: новая строка после «• текст» начинается с «• », на пустом пункте — точка убирается */
+document.addEventListener("keydown",e=>{ const ta=e.target; if(e.key!=="Enter" || e.isComposing || !ta || !ta.classList || !ta.classList.contains("dt-in")) return;
+  if(!(e.shiftKey || dtTouch())) return; const v=ta.value, a=ta.selectionStart, s0=v.lastIndexOf("\n", a-1)+1, line=v.slice(s0,a); if(!/^\s*•/.test(line)) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  if(/^\s*•\s*$/.test(line) && (v.indexOf("\n",a)<0 ? v.length===a : v.slice(a, v.indexOf("\n",a))==="")) ta.setRangeText("", s0, a, "end"); else ta.setRangeText("\n• ", a, ta.selectionEnd, "end");
+  ta.dispatchEvent(new Event("input",{bubbles:true})); }, true);
+document.querySelectorAll('.fmtbar[data-fmtfor]').forEach(x=>{ x.innerHTML=FMT_BTNS; });
 function dtKeys(t, onEnter, onEsc){ t.addEventListener("input",()=>dtGrow(t));
   t.addEventListener("keydown",k=>{ if(k.key==="Enter" && !k.shiftKey && !k.isComposing && !dtTouch()){ k.preventDefault(); onEnter(); } else if(k.key==="Escape" && onEsc){ k.preventDefault(); onEsc(); } }); }
 function dtSave(x, ev){ dirty("daytasks", x.id); saveLocal(); if(ev) logEv("Задача на день", ev); renderCalendar(); }
@@ -4044,8 +4106,8 @@ function docTasks(dates, quiet){ const now=new Date().toISOString(); let ch=0;
 $("#dt-add").addEventListener("submit",e=>{ e.preventDefault(); const inp=$("#dt-text"), D0=DRf(); let v=inp.value.trim();
   if(!v && !D0.photos.length){ inp.focus(); return; } if(!v) v="Фото";
   const x={id:D0.id, date:CAL().sel, customerId:$("#dt-cus").value||"", addr:($("#dt-cus").value&&!$("#dt-pt").hidden&&$("#dt-pt").value)||"", text:v, done:"", by:curUser()||"", created:new Date().toISOString(), doneBy:"", doneAt:"", seen:"", photos:D0.photos.slice()};
-  DTS().push(x); DR=null; lsSet(DRK(), null); inp.value=""; dtGrow(inp); $("#dt-cus").value=""; dtPtFill();
-  dtSave(x, "Добавлена на "+fd(x.date)+": "+(x.customerId?cusShort(cus(x.customerId).name)+(x.addr?" ("+stLabel(x.addr,cus(x.customerId).address)+")":"")+" — ":"")+v+(x.photos.length?" (фото: "+x.photos.length+")":""));
+  DTS().push(x); DR=null; lsSet(DRK(), null); inp.value=""; dtGrow(inp); fmtSync(inp); $("#dt-cus").value=""; dtPtFill();
+  dtSave(x, "Добавлена на "+fd(x.date)+": "+(x.customerId?cusShort(cus(x.customerId).name)+(x.addr?" ("+stLabel(x.addr,cus(x.customerId).address)+")":"")+" — ":"")+fmtPlain(v)+(x.photos.length?" (фото: "+x.photos.length+")":""));
   toast("ok","Задача добавлена","На "+fd(x.date)+". Её увидят все, в том числе водитель."); setTimeout(()=>$("#dt-text").focus(),50); });
 dtKeys($("#dt-text"), ()=>$("#dt-add").requestSubmit());
 $("#dt-text").addEventListener("input",()=>{ DRf().text=$("#dt-text").value; drSave(); });
@@ -4064,8 +4126,8 @@ $("#dt-box").addEventListener("click",e=>{
   if(e.target.closest("[data-edok]")){ dtEdFinish(true); return; }
   if(e.target.closest("[data-edno]")){ dtEdFinish(false); return; }
   if(e.target.closest("[data-dtdel]")){ const b=e.target.closest("[data-dtdel]"); if(!b.dataset.armed){ b.dataset.armed=1; b.textContent="Удалить?"; b.classList.add("armed"); setTimeout(()=>{ if(b.isConnected){ delete b.dataset.armed; b.textContent="×"; b.classList.remove("armed"); } },3000); return; }
-    const i=DTS().indexOf(x); DTS().splice(i,1); dirty("daytasks",x.id,true); saveLocal(); logEv("Задача на день","Удалена ("+fd(x.date)+"): "+x.text); renderCalendar();
-    toast("info","Задача удалена",x.text,{action:{label:"Вернуть", fn:()=>{ DTS().push(x); dtSave(x,"Возвращена: "+x.text); }}}); return; }
+    const i=DTS().indexOf(x); DTS().splice(i,1); dirty("daytasks",x.id,true); saveLocal(); logEv("Задача на день","Удалена ("+fd(x.date)+"): "+fmtPlain(x.text)); renderCalendar();
+    toast("info","Задача удалена",fmtPlain(x.text),{action:{label:"Вернуть", fn:()=>{ DTS().push(x); dtSave(x,"Возвращена: "+fmtPlain(x.text)); }}}); return; }
   if(e.target.closest("[data-dtpen]")){ if(EDf()) dtEdFinish(true); const y=DTS().find(z=>z.id===row.dataset.dt); if(!y) return; ED={u:curUser(), id:y.id, text:y.text, a:y.text.length, focus:1, date:y.date, cus:y.customerId||"", addr:y.addr||""}; edSave(); drawDayTasks(); return; }
   if(e.target.closest("[data-dtedit]") && !EDf()){ ED={u:curUser(), id:x.id, text:x.text, a:x.text.length, focus:1}; edSave(); drawDayTasks(); } });
 
