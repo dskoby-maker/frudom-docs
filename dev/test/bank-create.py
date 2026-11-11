@@ -46,7 +46,7 @@ async def main():
     for q,nxt,dt in [(184.8,'447','2026-09-21'),(179,'449','2026-10-01'),(193.5,None,None)]:
         await pg.evaluate(LINE+f"({q})"); await pg.wait_for_timeout(300)
         bar=await pg.text_content('#mulbar-bn'); ok('✓' in bar, f'сумма сошлась: {bar[:110]}')
-        await pg.click('#d-save'); await pg.wait_for_timeout(1500)
+        await pg.keyboard.press('Escape'); await pg.click('#d-save'); await pg.wait_for_timeout(1500)
         zk=await pg.evaluate("!!document.querySelector('#fd-dcard [data-zkc=\"toggle\"].on')"); ok(zk, 'после сохранения открыто окно накладной с закупкой')
         if q==184.8: await pg.screenshot(path=f'{SHOT}/bank-create-zk.png')
         await pg.keyboard.press('Escape'); await pg.wait_for_timeout(500)
