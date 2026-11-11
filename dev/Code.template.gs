@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 26;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 27;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -584,6 +584,7 @@ function handle_(p) {
     if (p.action === 'plist')    { if (me.role === 'staff') return { ok: false, error: 'forbidden' }; return plist_(p, me); }
     if (p.action === 'stock') return stock_(p, me);
     if (/^akt(List|Add|Get|Del)$/.test(p.action || '')) return cakt_(p, me);
+    if (p.action === 'aktDir') return aktDir_(p, me);
     if (p.action === 'addPhoto') return addPhoto_(p, me);
     if (p.action === 'photo')    { const r = read_('taskphotos').find(x => x.id === String(p.id)); if (!r) return { ok: false, error: 'фото не найдено' };
       const b = DriveApp.getFileById(r.file).getBlob(); return { ok: true, data: 'data:' + (b.getContentType() || 'image/jpeg') + ';base64,' + Utilities.base64Encode(b.getBytes()) }; }
@@ -1048,6 +1049,41 @@ function cakt_(p, me) {
   const sh = sheet_('cakts'), n = sh.getLastRow(), cols = S.cakts.cols, rng = sh.getRange(n + 1, 1, 1, cols.length); rng.setNumberFormat('@'); rng.setValues([cols.map(c => row[c[0]] == null ? '' : String(row[c[0]]))]); delete MEMO_.cakts;
   log_(me, [{ action: 'Справочники', text: 'Загружен акт «' + name + '»' + (row.month ? ' за ' + row.month.split('-').reverse().join('.') : '') + ' — ' + cn[cid] }]);
   return { ok: true, item: clean(row) };
+}
+
+/* ---------- папка заказчика на Google Диске с актами и письмами (Даниил сам кладёт туда файлы каждый месяц) ----------
+   Свойство скрипта AKT_DIRS = {ID заказчика: ID папки}. op: list (по умолчанию) / set {url} / del / pdf {id} — файл в PDF / get {id} — файл как есть.
+   Отдаём только файлы, которые лежат прямо в этой папке. */
+function aktDirs_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('AKT_DIRS') || '{}') || {}; } catch (e) { return {}; } }
+function aktDirId_(s) { s = String(s || '').trim(); const m = s.match(/folders\/([\w-]{10,})/) || s.match(/[?&]id=([\w-]{10,})/) || s.match(/^([\w-]{20,})$/); return m ? m[1] : ''; }
+function aktDir_(p, me) {
+  if (lim_(me) || me.role === 'staff') return { ok: false, error: 'forbidden' };
+  const cid = String(p.customerId || ''), cn = nameMap_('customers'); if (!cn[cid]) return { ok: false, error: 'заказчик не найден' };
+  const op = String(p.op || 'list'), pr = PropertiesService.getScriptProperties(), all = aktDirs_();
+  if (op === 'set') {
+    const id = aktDirId_(p.url); if (!id) return { ok: false, error: 'Это не похоже на ссылку на папку Google Диска' };
+    try { DriveApp.getFolderById(id).getName(); } catch (e) { return { ok: false, error: 'Папка не открывается — проверьте ссылку и что папка на вашем Диске' }; }
+    all[cid] = id; pr.setProperty('AKT_DIRS', JSON.stringify(all)); log_(me, [{ action: 'Справочники', text: 'Подключена папка актов — ' + cn[cid] }]);
+  }
+  if (op === 'del') { delete all[cid]; pr.setProperty('AKT_DIRS', JSON.stringify(all)); log_(me, [{ action: 'Справочники', text: 'Отключена папка актов — ' + cn[cid] }]); return { ok: true, folder: null, files: [] }; }
+  const id = all[cid]; if (!id) return { ok: true, folder: null, files: [] };
+  let f = null; try { f = DriveApp.getFolderById(id); if (f.isTrashed && f.isTrashed()) f = null; } catch (e) { f = null; }
+  if (!f) return { ok: true, folder: { id: id, err: 'Папка не открывается — возможно, её удалили или переместили. Подключите заново.' }, files: [] };
+  if (op === 'pdf' || op === 'get') {
+    const fid = String(p.id || ''); let file = null; try { file = DriveApp.getFileById(fid); } catch (e) {}
+    if (!file) return { ok: false, error: 'файл не найден' };
+    let inside = false; const ps = file.getParents(); while (ps.hasNext()) { if (ps.next().getId() === id) { inside = true; break; } }
+    if (!inside) return { ok: false, error: 'этого файла нет в папке заказчика' };
+    const mime = file.getMimeType(), name = file.getName();
+    if (op === 'get') return { ok: true, name: name, mime: mime, data: Utilities.base64Encode(file.getBlob().getBytes()) };
+    let b = null;
+    try { b = mime === 'application/pdf' ? file.getBlob() : stToPdf_(fid, name, mime); } catch (e) { return { ok: false, error: e.message || String(e) }; }
+    return { ok: true, name: name.replace(/\.[^.]+$/, '') + '.pdf', mime: 'application/pdf', data: Utilities.base64Encode(b.getBytes()) };
+  }
+  const files = [], it = f.getFiles();
+  while (it.hasNext() && files.length < 200) { const x = it.next(); if (x.isTrashed && x.isTrashed()) continue;
+    files.push({ id: x.getId(), name: x.getName(), mime: x.getMimeType(), at: x.getLastUpdated().toISOString(), size: x.getSize ? x.getSize() : 0 }); }
+  return { ok: true, folder: { id: id, name: f.getName(), url: f.getUrl() }, files: files };
 }
 
 /* ---------- папка деклараций (закрытая, как фото задач) ---------- */

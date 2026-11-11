@@ -136,6 +136,7 @@ async function aktImport(file, ctr){
   cfg.spec=spec; return {cfg, n:spec.length, matched:spec.filter(r=>r.pid).length}; }
 /* ---------- карточка на вкладке ---------- */
 function renderAkt(cid){ const box=$("#akt-box"); if(!box) return; const L=ctrs(cid), gen=aktGen(cid);
+  if(ADIR.cid!==cid) aktDirLoad(cid); else aktDirDraw();
   if(AKT.cid!==cid) aktFilesLoad(cid);
   $("#akt-desc").textContent = gen ? "Акт приёмки-передачи за месяц собирается сам из накладных по договору — выберите месяц и скачайте. Подписанные акты загружайте ниже." : "Загрузите сюда акты этого заказчика (Word, PDF, скан) — они сохранятся за ним и будут доступны с любого устройства.";
   if(!gen){ if(AKT.cid!==cid) AKT={cid, ctr:"", ym:aktDefYm(), date:"", off:{}, edit:false, all:false, cfg:null, dirty:false}; $("#akt-name").textContent=cusNm(cid)?"— "+cusNm(cid):""; box.innerHTML=""; aktFilesDraw(); return; }
@@ -231,3 +232,184 @@ $("#akt-files").addEventListener("change", e=>{ const t=e.target; if(t.id==="akt
 $("#akt-files").addEventListener("click", async e=>{ const v=e.target.closest("[data-aktfv],[data-aktfg]"); if(v){ aktFileGet(v.dataset.aktfv||v.dataset.aktfg, !!v.dataset.aktfv); return; }
   const d=e.target.closest("[data-aktfd]"); if(d){ if(!armed(d,"Удалить?")) return; const id=d.dataset.aktfd; try{ await api({action:"aktDel", id}); AKTF.list=(AKTF.list||[]).filter(x=>x.id!==id); aktFilesDraw(); toast("info","Акт удалён",""); }catch(er){ toast("err","Не удалилось", er.message); } } });
 window.__akt={model:()=>aktModel(), get st(){ return AKT; }, files:AKTF};   /* для тестов */   /* для тестов */
+
+/* ---------- папка заказчика на Google Диске: акты и сопроводительные письма по ОП, скачивание с печатью и подписью ----------
+   Даниил сам кладёт файлы в свою папку (каждый месяц меняет), сайт берёт их оттуда (действие aktDir в Code.gs ≥ 27).
+   Подразделение (ОП) — по словам в названии файла («Диет», «Комбинат»), вид — «Акт» / «Сопровод…» / «Счёт».
+   Печать и подпись — картинки поставщика (карточка «Поставщики»). Место находится само: подпись — на линии «______» рядом
+   с фамилией поставщика, печать — на «м.п.» в колонке поставщика; поправленное руками запоминается (prefs.aktSig) относительно
+   фамилии, поэтому в следующем месяце встаёт так же, даже если таблица в письме стала длиннее. */
+const ADIR={cid:"", st:null, err:"", busy:0, url:"", chg:false};
+const AD_KL={act:"Акт", letter:"Письмо", inv:"Счёт", other:"Файл"}, AD_KF={act:"Акт сдачи-приёмки", letter:"Сопроводительное письмо", inv:"Счёт", other:"Документ"};
+const adKind = n => /сопровод|письм/i.test(n)?"letter":/(^|[^а-я])акт/i.test(n)?"act":/сч[её]т/i.test(n)?"inv":"other";
+const AD_STOP=new Set(["моск","госу","унив","имен","ломо","обос","подр","учре","обра","феде","бюдж","выс","высш","мгу","2026","2025","2027"]);
+const adToks = s => norm(s).replace(/\.[a-z0-9]{2,5}$/,"").replace(/[«»"().,_\-–—№]/g," ").split(" ").filter(Boolean);
+const adStems = s => adToks(s).filter(w=>w.length>=4 && !/^\d/.test(w)).map(w=>w.slice(0,4)).filter(w=>!AD_STOP.has(w));
+function adBranch(name, bl){ const T=adToks(name); let best=null, bs=0, tie=false;
+  bl.forEach(b=>{ const st=[...new Set(adStems(b.label||b.fullName||""))], sc=st.filter(x=>T.some(t=>t.startsWith(x))).length; if(sc>bs){ best=b; bs=sc; tie=false; } else if(sc && sc===bs) tie=true; });
+  return bs && !tie ? best : null; }
+const adOk = f => /\.(pdf|docx?|odt|rtf|xlsx?|ods)$/i.test(f.name) || /pdf|word|document|spreadsheet|excel|rtf/.test(f.mime||"");
+function adGroups(){ const c=cus(ADIR.cid)||{}, bl=branches(c), F=((ADIR.st||{}).files||[]).filter(adOk), G=bl.map(b=>({k:b.id, b, label:b.label||b.fullName||"Подразделение", L:[]})), gen={k:"", label:bl.length?"Общие (подразделение не понятно из названия)":"Файлы", L:[]};
+  F.forEach(f=>{ const b=adBranch(f.name, bl), g=b?G.find(x=>x.k===b.id):gen; g.L.push(Object.assign({kind:adKind(f.name)}, f)); });
+  const ko={act:0, letter:1, inv:2, other:3}; [...G, gen].forEach(g=>g.L.sort((a,b)=>ko[a.kind]-ko[b.kind]||a.name.localeCompare(b.name,"ru")));
+  return [...G, gen].filter(g=>g.L.length); }
+async function aktDirLoad(cid, quiet){ ADIR.cid=cid; if(!quiet){ ADIR.st=null; ADIR.err=""; ADIR.chg=false; } aktDirDraw();
+  if(!API_URL || !pass()){ ADIR.st={folder:null, files:[]}; aktDirDraw(); return; }
+  try{ const j=await api({action:"aktDir", customerId:cid}); if(ADIR.cid!==cid) return; ADIR.st=j; ADIR.err=""; }
+  catch(e){ if(ADIR.cid!==cid) return; ADIR.st={folder:null, files:[]}; ADIR.err=/unknown action/.test(e.message)?"old":e.message; }
+  aktDirDraw(); }
+function aktDirDraw(){ const box=$("#akt-dir"); if(!box) return; if(isStaff()){ box.innerHTML=""; return; }
+  const st=ADIR.st, fo=st&&st.folder, help=`<p class="muted adhelp">Каждый месяц кладите новые акты и письма в эту папку на своём Google Диске (старые можно заменить) — сайт возьмёт их оттуда сам. Подразделение сайт понимает по названию файла (например, «Акт Диет», «Сопровод Комбинат»).</p>`;
+  if(ADIR.err==="old"){ box.innerHTML=`<h4 class="akth first">Акты и письма из папки на Диске</h4><p class="note">Чтобы брать акты из папки на Google Диске, обновите скрипт Google Таблицы (Code.gs версии 27) — жёлтая плашка сверху, кнопка «Как обновить».</p>`; return; }
+  if(!st){ box.innerHTML=`<h4 class="akth first">Акты и письма из папки на Диске</h4><p class="muted">Смотрю папку…</p>`; return; }
+  if(!fo || ADIR.chg){ box.innerHTML=`<h4 class="akth first">Акты и письма из папки на Диске</h4>${help}
+      ${fo&&fo.err?`<p class="note">${esc(fo.err)}</p>`:""}${ADIR.err?`<p class="note">${esc(ADIR.err)}</p>`:""}
+      <div class="adset"><label class="f">Ссылка на папку Google Диска<input id="ad-url" type="url" inputmode="url" placeholder="https://drive.google.com/drive/folders/…" value="${esc(ADIR.url)}"></label><button type="button" class="btn pri" data-adset${ADIR.busy?" disabled":""}>${ADIR.busy?"Проверяю…":"Подключить папку"}</button>${ADIR.chg?`<button type="button" class="btn ghost" data-adchg="0">Отмена</button>`:""}</div>`; return; }
+  const G=adGroups(), n=G.reduce((s,g)=>s+g.L.length,0);
+  box.innerHTML=`<h4 class="akth first">Акты и письма из папки на Диске</h4>
+    <div class="adbar"><span class="adfo">Папка: <b>${esc(fo.name||"")}</b> · ${n} ${plural(n,["файл","файла","файлов"])}</span><span class="adbtns"><a class="btn ghost sm" href="${esc(fo.url||"")}" target="_blank" rel="noopener">Открыть папку ↗</a><button type="button" class="btn ghost sm" data-adre>Обновить</button><button type="button" class="btn ghost sm" data-adchg="1">Другая папка</button></span></div>
+    ${n?G.map(g=>`<div class="adg"><div class="adgh"><b>${esc(g.label)}</b>${g.L.length>1&&g.L.some(f=>f.kind!=="other")?`<button type="button" class="btn sm" data-adall="${esc(g.k)}" title="Все файлы подразделения одним PDF — с печатью и подписью">Всё одним PDF с печатью</button>`:""}</div>
+      ${g.L.map(f=>`<div class="adr"><span class="adk k-${f.kind}">${AD_KL[f.kind]}</span><span class="adn"><b>${esc(f.name)}</b><small>${AD_KF[f.kind]} · изменён ${f.at?fd(f.at.slice(0,10)):"—"}</small></span><span class="ada"><button type="button" class="btn pri sm" data-adsig="${esc(f.id)}">С печатью и подписью</button><button type="button" class="btn ghost sm" data-adview="${esc(f.id)}">Открыть</button><button type="button" class="btn ghost sm" data-adget="${esc(f.id)}" title="Исходный файл, как лежит в папке">${/\.docx?$/i.test(f.name)?"Word":"Файл"}</button></span></div>`).join("")}</div>`).join("")
+      :`<p class="muted">В папке пока нет актов и писем (Word или PDF).</p>`}
+    ${help}`; }
+/* --- файлы --- */
+const ADPDF={};
+const adB64 = d => { const b=atob(d), u=new Uint8Array(b.length); for(let i=0;i<b.length;i++) u[i]=b.charCodeAt(i); return u; };
+const adFile = id => ((ADIR.st||{}).files||[]).find(x=>x.id===id);
+async function adPdf(f){ const k=f.id+"|"+f.at; if(ADPDF[k]) return ADPDF[k]; const j=await api({action:"aktDir", customerId:ADIR.cid, op:"pdf", id:f.id}); return ADPDF[k]=adB64(j.data); }
+async function adPdfJs(){ const L=await ftLib("pdf.js/3.11.174/pdf.min.js",()=>window.pdfjsLib,"PDF"); const P=L||window.pdfjsLib; if(!P) throw new Error("не загрузилась библиотека PDF"); if(!P.GlobalWorkerOptions.workerSrc) P.GlobalWorkerOptions.workerSrc=LIBCDN+"pdf.js/3.11.174/pdf.worker.min.js"; return P; }
+async function adRead(u8){ const P=await adPdfJs(), doc=await P.getDocument({data:u8.slice()}).promise, pages=[];
+  for(let n=1;n<=doc.numPages;n++){ const pg=await doc.getPage(n), vp=pg.getViewport({scale:1}), tc=await pg.getTextContent();
+    pages.push({pg, w:vp.width, h:vp.height, it:tc.items.filter(i=>i.str&&i.str.trim()).map(i=>{ const t=P.Util&&P.Util.transform?P.Util.transform(vp.transform, i.transform):[1,0,0,1,i.transform[4],vp.height-i.transform[5]]; return {s:i.str, x:t[4], y:t[5], w:i.width||0, fh:Math.abs(i.transform[3])||Math.abs(i.height)||10}; })}); }
+  return {doc, pages}; }
+/* --- картинки поставщика --- */
+const adSurname = s => String((s&&s.fio)||"").trim().split(/\s+/)[0]||"";
+const adSups = () => D.suppliers.filter(s=>s.stamp||s.sign);
+function adImg(src){ return new Promise(ok=>{ if(!src) return ok(null); const im=new Image(); im.onload=()=>ok({src, w:im.naturalWidth||1, h:im.naturalHeight||1, im}); im.onerror=()=>ok(null); im.src=src; }); }
+function adSupFor(R, cid){ const L=adSups(); if(!L.length) return null; const txt=norm(R.pages.map(p=>p.it.map(i=>i.s).join(" ")).join(" "));
+  const hit=L.find(s=>{ const sn=norm(adSurname(s)); return sn.length>3 && txt.includes(sn); }); if(hit) return hit;
+  const cs=ctrs(cid).filter(x=>!x.dateTo||x.dateTo>=todayISO()); const bySup=cs.map(x=>L.find(s=>s.id===x.supplierId)).find(Boolean); return bySup||L[0]; }
+/* опорная точка — последнее упоминание фамилии поставщика (обычно строка подписи) */
+function adAnchor(R, s){ const sn=norm(adSurname(s)); let a=null;
+  if(sn.length>3) R.pages.forEach((p,pi)=>p.it.forEach(i=>{ const t=norm(i.s), k=t.lastIndexOf(sn); if(k<0) return; const cw=i.w/Math.max(1,i.s.length);
+    const c={pi, x:i.x+k*cw, y:i.y, fh:i.fh, it:i, cw}; if(!a || pi>a.pi || (pi===a.pi && (c.y>a.y+2 || (Math.abs(c.y-a.y)<=2 && c.x>a.x)))) a=c; }));
+  return a; }
+function adAuto(R, s, A, sz){ const pi=A?A.pi:R.pages.length-1, P=R.pages[pi], o={pi, st:null, sg:null};
+  const sgW=sz.sg?Math.min(110, P.w*0.19):0, sgH=sz.sg?sgW*sz.sg.h/sz.sg.w:0, stW=sz.st?Math.min(118, P.w*0.2):0, stH=sz.st?stW*sz.st.h/sz.st.w:0;
+  let ux=null, by=A?A.y:P.h*0.85;
+  if(A){ const us=/_{4,}/, line=P.it.filter(i=>Math.abs(i.y-A.y)<4 && us.test(i.s));
+    let best=null; line.forEach(i=>{ const m=i.s.match(/_{4,}/g)||[]; let from=0; const cw=i.w/Math.max(1,i.s.length); m.forEach(run=>{ const k=i.s.indexOf(run, from); from=k+run.length; const cx=i.x+(k+run.length/2)*cw; if(cx<A.x+2 && (!best || cx>best)) best=cx; }); });
+    ux = best!=null ? best : A.x-sgW*0.55; }
+  else ux=P.w*0.7;
+  if(sz.sg) o.sg={x:ux-sgW/2, y:by-sgH*0.72, w:sgW};
+  if(sz.st){ const mp=[]; P.it.forEach(i=>{ const t=norm(i.s), k=t.search(/м\.\s?п\.?/); if(k>=0){ const cw=i.w/Math.max(1,i.s.length); mp.push({x:i.x+k*cw+cw*2, y:i.y-i.fh*0.35}); } });
+    const ax=A?A.x:ux; let m=null; mp.filter(p=>Math.abs(p.x-ax)<P.w*0.4 && (!A || p.y>A.y-40)).forEach(p=>{ const d=Math.abs(p.x-ax)+Math.abs(p.y-by)*0.5; if(!m || d<m.d) m={...p, d}; });
+    const cx=m?m.x:ux-sgW*0.25, cy=m?Math.min(m.y, by+stH*0.6):by-sgH*0.2; o.st={x:cx-stW/2, y:cy-stH/2, w:stW}; }
+  return o; }
+const adKey = (cid, f, gk) => cid+"|"+f.kind+"|"+(gk||"");
+function adLayout(R, s, A, sz, key){ const auto=adAuto(R, s, A, sz), sv=(getPrefs().aktSig||{})[key]; if(!sv || sv.sid!==s.id) return Object.assign(auto,{auto:1});
+  const pi=A?A.pi:Math.min(sv.pi||0, R.pages.length-1), ax=A?A.x:0, ay=A?A.y:0, o={pi};
+  ["st","sg"].forEach(k=>{ const v=sv[k]; o[k]= !sz[k] ? null : v===0 ? null : v ? {x:ax+v.dx, y:ay+v.dy, w:v.w} : auto[k]; }); return o; }
+function adRemember(key, s, A, L){ const p=getPrefs(); p.aktSig=p.aktSig||{}; const ax=A?A.x:0, ay=A?A.y:0;
+  p.aktSig[key]={sid:s.id, pi:L.pi, st:L.st?{dx:+(L.st.x-ax).toFixed(1), dy:+(L.st.y-ay).toFixed(1), w:+L.st.w.toFixed(1)}:0, sg:L.sg?{dx:+(L.sg.x-ax).toFixed(1), dy:+(L.sg.y-ay).toFixed(1), w:+L.sg.w.toFixed(1)}:0};
+  setPrefs(p, true); }
+/* --- PDF с картинками (pdf-lib) --- */
+/* белый фон у картинки (фото печати на бумаге, JPG) делаем прозрачным — иначе в PDF он закроет текст под печатью */
+const ADCLR={};
+function adClear(im){ if(ADCLR[im.src]) return ADCLR[im.src]; const c=document.createElement("canvas"), k=Math.min(1, 1200/Math.max(im.w, im.h)); c.width=Math.round(im.w*k); c.height=Math.round(im.h*k);
+  const x=c.getContext("2d"); x.drawImage(im.im,0,0,c.width,c.height); try{ const d=x.getImageData(0,0,c.width,c.height), a=d.data; for(let i=0;i<a.length;i+=4){ const m=Math.min(a[i],a[i+1],a[i+2]); if(m>238) a[i+3]=0; else if(m>205) a[i+3]=Math.min(a[i+3], Math.round((238-m)*255/33)); } x.putImageData(d,0,0); }catch(e){}
+  return ADCLR[im.src]=c.toDataURL("image/png"); }
+async function adEmbed(out, im){ return out.embedPng(adB64(adClear(im).split(",")[1])); }
+async function adStampPdf(u8, jobs){ const L=await dLib(), doc=await L.PDFDocument.load(u8.slice(), {ignoreEncryption:true});
+  for(const j of jobs){ const pg=doc.getPages()[j.pi]; if(!pg) continue; const H=pg.getHeight();
+    for(const k of ["sg","st"]){ const b=j[k]; if(!b || !j.img[k]) continue; const e=await adEmbed(doc, j.img[k]), h=b.w*j.img[k].h/j.img[k].w; pg.drawImage(e, {x:b.x, y:H-b.y-h, width:b.w, height:h}); } }
+  return doc; }
+const adOut = (f, sfx) => fileSafe(String(f.name||"документ").replace(/\.[^.]+$/,""))+(sfx||"")+".pdf";
+/* --- окно «С печатью и подписью» --- */
+const ADS={};
+async function aktSignOpen(id){ const f=adFile(id); if(!f) return; const fl=adGroups().flatMap(g=>g.L.map(x=>Object.assign({gk:g.k}, x))).find(x=>x.id===id)||f;
+  if(!adSups().length){ toast("warn","Нет печати и подписи","Загрузите картинки печати и подписи в карточке поставщика (вкладка «Поставщики»)."); return; }
+  const btn=document.querySelector(`[data-adsig="${CSS.escape(id)}"]`), t0=btn&&btn.textContent; if(btn){ btn.disabled=true; btn.textContent="Готовлю PDF…"; }
+  try{ const u8=await adPdf(f), R=await adRead(u8); let s=adSupFor(R, ADIR.cid);
+    Object.assign(ADS, {f:fl, u8, R, cid:ADIR.cid, scrolled:0}); await adSetSup(s, true);
+    CARD_RE=null; openCard(adSignHtml(), true); adPaint(); }
+  catch(e){ toast("err","Не получилось открыть", e.message); }
+  finally{ if(btn){ btn.disabled=false; btn.textContent=t0; } } }
+async function adSetSup(s, first){ const [st, sg]=await Promise.all([adImg(s.stamp), adImg(s.sign)]); ADS.s=s; ADS.img={st, sg}; ADS.A=adAnchor(ADS.R, s);
+  ADS.key=adKey(ADS.cid, ADS.f, ADS.f.gk); ADS.L=adLayout(ADS.R, s, ADS.A, {st, sg}, ADS.key); ADS.on={st:!!ADS.L.st || (first?false:!!st), sg:!!ADS.L.sg || (first?false:!!sg)};
+  if(!ADS.L.st && st) ADS.L.st=adAuto(ADS.R, s, ADS.A, {st, sg}).st; if(!ADS.L.sg && sg) ADS.L.sg=adAuto(ADS.R, s, ADS.A, {st, sg}).sg; }
+function adSignHtml(){ const f=ADS.f, L=adSups(), n=ADS.R.pages.length;
+  return `<div class="dc-head"><div><div class="dc-kicker">${esc(AD_KF[f.kind])} · ${esc(cusNm(ADS.cid)||"")}</div><h3>${esc(f.name.replace(/\.[^.]+$/,""))}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+    <div class="adtool"><label class="f">Чья печать<select id="ads-sup">${L.map(s=>`<option value="${s.id}"${s.id===ADS.s.id?" selected":""}>${esc(s.name)}</option>`).join("")}</select></label>
+      <label class="chk"><input type="checkbox" id="ads-st"${ADS.on.st?" checked":""}${ADS.img.st?"":" disabled"}> Печать</label><label class="chk"><input type="checkbox" id="ads-sg"${ADS.on.sg?" checked":""}${ADS.img.sg?"":" disabled"}> Подпись</label>
+      ${n>1?`<span class="adpg"><button type="button" class="btn ghost sm" data-adpg="-1" aria-label="Предыдущая страница">‹</button><b id="ads-pn"></b><button type="button" class="btn ghost sm" data-adpg="1" aria-label="Следующая страница">›</button></span>`:""}
+      <button type="button" class="btn ghost sm" data-adauto title="Поставить печать и подпись туда, где сайт нашёл их место сам">Как было</button></div>
+    <p class="muted adtip">${ADS.A?"Печать и подпись стоят у фамилии «"+esc(adSurname(ADS.s))+"».":"Фамилию поставщика в файле не нашёл — поставил внизу страницы."} Перетащите их пальцем или мышью, уголок справа внизу — размер. Новое место запомнится для этого вида документа.</p>
+    <div class="adstage" id="ads-stage"><div class="adpage" id="ads-page"><canvas id="ads-cv"></canvas><div class="adov" data-k="st" tabindex="0" aria-label="Печать — перетащите; стрелки двигают"><img alt="Печать"><i class="adrs" aria-hidden="true"></i></div><div class="adov" data-k="sg" tabindex="0" aria-label="Подпись — перетащите; стрелки двигают"><img alt="Подпись"><i class="adrs" aria-hidden="true"></i></div></div></div>
+    <div class="dc-acts adacts"><button type="button" class="btn pri" data-adsdl>Скачать PDF с печатью</button><button type="button" class="btn" data-adsed title="Скачает PDF с печатью и откроет редактор PDF — там можно поправить что угодно">В редактор PDF ↗</button><button type="button" class="btn ghost" data-adsplain>Без печати</button></div>`; }
+async function adPaint(){ const pg=$("#ads-page"), cv=$("#ads-cv"); if(!pg||!cv) return; const P=ADS.R.pages[ADS.L.pi], st=$("#ads-stage");
+  const W=Math.min(st.clientWidth||600, 820), sc=W/P.w, dpr=Math.min(2.5, window.devicePixelRatio||1); ADS.sc=sc;
+  pg.style.width=W+"px"; pg.style.height=(P.h*sc)+"px"; cv.width=Math.round(W*dpr); cv.height=Math.round(P.h*sc*dpr); cv.style.width=W+"px"; cv.style.height=(P.h*sc)+"px";
+  const pn=$("#ads-pn"); if(pn) pn.textContent="стр. "+(ADS.L.pi+1)+" из "+ADS.R.pages.length;
+  const vp=P.pg.getViewport({scale:sc*dpr}), ctx=cv.getContext("2d"); ctx.fillStyle="#fff"; ctx.fillRect(0,0,cv.width,cv.height);
+  try{ if(ADS.task) ADS.task.cancel(); ADS.task=P.pg.render({canvasContext:ctx, canvas:cv, viewport:vp}); await ADS.task.promise; }catch(e){ if(!/cancel/i.test(e&&e.name||e&&e.message||"")) console.warn(e); }
+  adOvPaint();
+  if(!ADS.scrolled){ ADS.scrolled=1; const b=ADS.L.sg||ADS.L.st; if(b){ st.scrollTop=Math.max(0, b.y*sc - st.clientHeight/2); st.scrollLeft=Math.max(0, b.x*sc - st.clientWidth/2); } } }
+function adOvPaint(){ ["st","sg"].forEach(k=>{ const el=document.querySelector(`#ads-page .adov[data-k="${k}"]`); if(!el) return; const b=ADS.L[k], im=ADS.img[k];
+  el.hidden=!(b && im && ADS.on[k]); if(el.hidden) return; const sc=ADS.sc; el.querySelector("img").src=im.src;
+  el.style.left=(b.x*sc)+"px"; el.style.top=(b.y*sc)+"px"; el.style.width=(b.w*sc)+"px"; el.style.height=(b.w*im.h/im.w*sc)+"px"; }); }
+function adSave(){ const L={pi:ADS.L.pi, st:ADS.on.st?ADS.L.st:null, sg:ADS.on.sg?ADS.L.sg:null}; adRemember(ADS.key, ADS.s, ADS.A && ADS.A.pi===ADS.L.pi ? ADS.A : null, L); }
+function adJob(){ return [{pi:ADS.L.pi, st:ADS.on.st?ADS.L.st:null, sg:ADS.on.sg?ADS.L.sg:null, img:ADS.img}]; }
+async function adSignDl(mode){ const f=ADS.f;
+  try{ let blob; if(mode==="plain") blob=new Blob([ADS.u8],{type:"application/pdf"});
+    else { const doc=await adStampPdf(ADS.u8, adJob()); blob=new Blob([await doc.save()],{type:"application/pdf"}); adSave(); }
+    const name=adOut(f, mode==="plain"?"":" (с печатью)"); dDownload(blob, name);
+    if(mode==="ed"){ window.open(PDF_URL, "_blank", "noopener"); toast("info","PDF скачан — откройте его в редакторе", name+" — нажмите в редакторе «Открыть файл» и выберите его из «Загрузок»."); }
+    else toast("ok","PDF скачан", name); }
+  catch(e){ toast("err","PDF не получился", e.message); } }
+/* перетаскивание и размер */
+let ADDG=null;
+document.addEventListener("pointerdown", e=>{ const ov=e.target.closest && e.target.closest("#ads-page .adov"); if(!ov) return; e.preventDefault();
+  const k=ov.dataset.k, b=ADS.L[k]; ADDG={k, rs:!!e.target.closest(".adrs"), x0:e.clientX, y0:e.clientY, b0:{...b}, id:e.pointerId}; ov.classList.add("drag"); try{ ov.setPointerCapture(e.pointerId); }catch(er){} });
+document.addEventListener("pointermove", e=>{ if(!ADDG || e.pointerId!==ADDG.id) return; const sc=ADS.sc, P=ADS.R.pages[ADS.L.pi], b=ADS.L[ADDG.k], im=ADS.img[ADDG.k], dx=(e.clientX-ADDG.x0)/sc, dy=(e.clientY-ADDG.y0)/sc;
+  if(ADDG.rs){ b.w=Math.max(30, Math.min(P.w*0.6, ADDG.b0.w+dx)); }
+  else { const h=b.w*im.h/im.w; b.x=Math.max(-b.w*0.3, Math.min(P.w-b.w*0.7, ADDG.b0.x+dx)); b.y=Math.max(-h*0.3, Math.min(P.h-h*0.7, ADDG.b0.y+dy)); }
+  adOvPaint(); });
+const adDgEnd = e => { if(!ADDG || (e.pointerId!=null && e.pointerId!==ADDG.id)) return; document.querySelectorAll("#ads-page .adov.drag").forEach(x=>x.classList.remove("drag")); const moved=Math.abs(e.clientX-ADDG.x0)+Math.abs(e.clientY-ADDG.y0)>2; ADDG=null; if(moved) adSave(); };
+document.addEventListener("pointerup", adDgEnd); document.addEventListener("pointercancel", adDgEnd);
+document.addEventListener("keydown", e=>{ const ov=e.target.closest && e.target.closest("#ads-page .adov"); if(!ov || !/^Arrow/.test(e.key)) return; e.preventDefault(); const b=ADS.L[ov.dataset.k], st=e.shiftKey?10:2;
+  if(e.key==="ArrowLeft") b.x-=st; if(e.key==="ArrowRight") b.x+=st; if(e.key==="ArrowUp") b.y-=st; if(e.key==="ArrowDown") b.y+=st; adOvPaint(); adSave(); });
+document.addEventListener("change", async e=>{ const t=e.target; if(!t.closest || !t.closest("#ads-page") && !/^ads-/.test(t.id||"")) return;
+  if(t.id==="ads-sup"){ const s=D.suppliers.find(x=>x.id===t.value); if(!s) return; await adSetSup(s, false); $("#ads-st").checked=ADS.on.st; $("#ads-st").disabled=!ADS.img.st; $("#ads-sg").checked=ADS.on.sg; $("#ads-sg").disabled=!ADS.img.sg; adPaint(); return; }
+  if(t.id==="ads-st" || t.id==="ads-sg"){ const k=t.id.slice(4); ADS.on[k]=t.checked; if(t.checked && !ADS.L[k]) ADS.L[k]=adAuto(ADS.R, ADS.s, ADS.A, ADS.img)[k]; adOvPaint(); adSave(); } });
+document.addEventListener("click", e=>{ const b=e.target.closest && e.target.closest("[data-adsdl],[data-adsed],[data-adsplain],[data-adauto],[data-adpg]"); if(!b || !b.closest("dialog")) return;
+  if(b.dataset.adsdl!=null) return adSignDl("st"); if(b.dataset.adsed!=null) return adSignDl("ed"); if(b.dataset.adsplain!=null) return adSignDl("plain");
+  if(b.dataset.adauto!=null){ const a=adAuto(ADS.R, ADS.s, ADS.A, ADS.img); ADS.L=Object.assign(a, {}); ADS.on={st:!!ADS.img.st, sg:!!ADS.img.sg}; $("#ads-st").checked=ADS.on.st; $("#ads-sg").checked=ADS.on.sg; const p=getPrefs(); if(p.aktSig){ delete p.aktSig[ADS.key]; setPrefs(p, true); } adPaint(); return; }
+  if(b.dataset.adpg){ const n=ADS.R.pages.length, pi=Math.max(0, Math.min(n-1, ADS.L.pi+ +b.dataset.adpg)); if(pi===ADS.L.pi) return; const P0=ADS.R.pages[ADS.L.pi], P1=ADS.R.pages[pi];
+    ["st","sg"].forEach(k=>{ const x=ADS.L[k]; if(x){ x.x=x.x*P1.w/P0.w; x.y=Math.min(x.y, P1.h-40); } }); ADS.L.pi=pi; adPaint(); adSave(); } });
+/* «Всё одним PDF с печатью»: акт + письмо подразделения, места — запомненные или найденные сами */
+async function adAll(gk, btn){ const g=adGroups().find(x=>x.k===gk); if(!g) return; if(!adSups().length){ toast("warn","Нет печати и подписи","Загрузите их в карточке поставщика."); return; }
+  const t0=btn.textContent; btn.disabled=true; btn.textContent="Собираю…";
+  try{ const L=await dLib(), out=await L.PDFDocument.create(), miss=[];
+    for(const f of g.L){ try{ const u8=await adPdf(f), R=await adRead(u8), s=adSupFor(R, ADIR.cid), [st, sg]=await Promise.all([adImg(s.stamp), adImg(s.sign)]), A=adAnchor(R, s), lay=adLayout(R, s, A, {st, sg}, adKey(ADIR.cid, f, gk));
+        const doc=await adStampPdf(u8, [{pi:lay.pi, st:lay.st, sg:lay.sg, img:{st, sg}}]), pp=await out.copyPages(doc, doc.getPageIndices()); pp.forEach(p=>out.addPage(p)); }
+      catch(er){ miss.push(f.name+": "+er.message); } }
+    if(!out.getPageCount()) throw new Error(miss.join("; ")||"нет файлов");
+    const name=fileSafe((cusNm(ADIR.cid)||"Заказчик")+" — "+g.label+" — с печатью")+".pdf"; dDownload(new Blob([await out.save()],{type:"application/pdf"}), name);
+    toast(miss.length?"warn":"ok", miss.length?"Скачано не всё":"PDF скачан", miss.length?miss.join("; "):name+" — проверьте места печати; поправить можно кнопкой «С печатью и подписью» у файла."); }
+  catch(e){ toast("err","Не получилось собрать PDF", e.message); }
+  finally{ btn.disabled=false; btn.textContent=t0; } }
+async function adSetFolder(){ const u=($("#ad-url")||{}).value||""; ADIR.url=u.trim(); if(!ADIR.url){ toast("warn","Вставьте ссылку на папку",""); return; }
+  ADIR.busy=1; aktDirDraw(); try{ const j=await api({action:"aktDir", customerId:ADIR.cid, op:"set", url:ADIR.url}); ADIR.st=j; ADIR.chg=false; ADIR.err=""; ADIR.url=""; toast("ok","Папка подключена", (j.folder&&j.folder.name)||""); }
+  catch(e){ ADIR.err=/unknown action/.test(e.message)?"old":e.message; } finally{ ADIR.busy=0; aktDirDraw(); } }
+$("#akt-dir").addEventListener("click", async e=>{ const b=e.target.closest("button,a"); if(!b) return; const d=b.dataset;
+  if(d.adset!=null) return adSetFolder(); if(d.adre!=null){ b.disabled=true; await aktDirLoad(ADIR.cid, true); return; }
+  if(d.adchg!=null){ ADIR.chg=d.adchg==="1"; ADIR.err=""; aktDirDraw(); if(ADIR.chg){ const i=$("#ad-url"); if(i) i.focus(); } return; }
+  if(d.adsig) return aktSignOpen(d.adsig); if(d.adall!=null) return adAll(d.adall, b);
+  if(d.adview || d.adget){ const f=adFile(d.adview||d.adget); if(!f) return; const t0=b.textContent; b.disabled=true; b.textContent="…";
+    try{ if(d.adview){ const u8=await adPdf(f), url=URL.createObjectURL(new Blob([u8],{type:"application/pdf"})), v=document.createElement("dialog"); v.className="dcard wide skview"; v.innerHTML=`<div class="dc-head"><div><div class="dc-kicker">${esc(AD_KF[adKind(f.name)])}</div><h3>${esc(f.name)}</h3></div><button class="dc-x" aria-label="Закрыть">×</button></div><iframe src="${url}" title="${esc(f.name)}"></iframe><div class="dc-acts"><a class="btn" href="${url}" download="${esc(adOut(f))}">Скачать PDF</a></div>`;
+        document.getElementById("fd-app").appendChild(v); v.querySelector(".dc-x").onclick=()=>v.close(); v.addEventListener("close",()=>{ v.remove(); URL.revokeObjectURL(url); }); v.showModal(); requestAnimationFrame(()=>v.classList.add("in")); }
+      else { const j=await api({action:"aktDir", customerId:ADIR.cid, op:"get", id:f.id}); dDownload(new Blob([adB64(j.data)],{type:j.mime||"application/octet-stream"}), j.name); } }
+    catch(er){ toast("err","Файл не открылся", er.message); } finally{ b.disabled=false; b.textContent=t0; } } });
+$("#akt-dir").addEventListener("keydown", e=>{ if(e.key==="Enter" && e.target.id==="ad-url"){ e.preventDefault(); adSetFolder(); } });
+window.__adir={st:ADIR, sign:ADS, groups:()=>adGroups()};   /* для тестов */
