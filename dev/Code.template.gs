@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 28;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 29;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -76,6 +76,9 @@ const S = {
   slog: { title: 'Склад: история', key: 'id', cols: [
     ['at','Когда'],['by','Кто'],['action','Действие'],['object','Объект'],['before','Было'],['after','Стало'],['reason','Причина'],['id','ID'],['docId','ID документа'],['batchId','ID партии'],['itemId','ID товара'],['op','Операция']]},
   sops: { title: 'Склад: операции (служебный)', key: 'id', cols: [['id','ID запроса'],['at','Когда'],['by','Кто'],['kind','Операция'],['status','Статус'],['data','Данные (не редактировать)']]},
+  drafts: { title: 'Черновики', key: 'id', cols: [
+    ['updated','Изменён'],['kind','Вид'],['title','Что'],['sum','Сумма'],['byName','Кто начал'],['lastBy','Кто изменил последним'],['created','Создан'],
+    ['id','ID (не менять)'],['data','Данные черновика (не редактировать)']]},
   cakts: { title: 'Акты заказчиков', key: 'id', cols: [
     ['customerName','Заказчик'],['name','Файл'],['month','За месяц'],['by','Кто загрузил'],['at','Когда'],['mime','Тип'],['size','Размер'],['id','ID (не менять)'],['customerId','ID заказчика'],['file','ID файла на Диске']]},
   journal: { title: 'Журнал', key: 'id', cols: [
@@ -310,6 +313,31 @@ function auth_(p) {
 /* сотрудник склада (staff): новый документ — только по ценам прайса; существующий — меняется только количество */
 /* staff без docs:true — ограниченный (только цены прайса и количество); staff с docs:true редактирует документы полностью */
 function lim_(me) { return me.role === 'staff' && !me.docs; }
+
+/* ---------- черновики документов (вкладки «Новый документ» и «Заявка») ----------
+   Строка = незаконченный документ: накладная из формы, документы из файлов или заявка. Сохраняет сайт сам (через 1–2 с после правки).
+   Водитель (staff без docs) видит и меняет только свои; остальные — все. Последняя запись побеждает. Старше 90 дней — удаляются при записи. */
+function drafts_(p, me) {
+  const op = String(p.op || 'list'), all = !lim_(me), mine = r => r.byName === me.name;
+  if (op === 'list') return { ok: true, list: read_('drafts').filter(r => all || mine(r)) };
+  if (op !== 'put' && op !== 'del') return { ok: false, error: 'unknown op' };
+  const id = String(p.id || (p.row && p.row.id) || '');
+  if (!/^[\w:\-]{3,80}$/.test(id)) return { ok: false, error: 'bad id' };
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    let rows = read_('drafts'); const i = rows.findIndex(r => r.id === id), cur = i >= 0 ? rows[i] : null;
+    if (cur && !all && !mine(cur)) return { ok: false, error: 'forbidden' };
+    if (op === 'del') { if (i >= 0) { rows.splice(i, 1); write_('drafts', rows); } return { ok: true }; }
+    const r = p.row || {}, data = String(r.data || '');
+    if (data.length > 49000) return { ok: false, error: 'big' };
+    const now = new Date().toISOString(), old = new Date(Date.now() - 90 * 864e5).toISOString();
+    const o = { id: id, kind: String(r.kind || '').slice(0, 20), title: String(r.title || '').slice(0, 300), sum: String(r.sum || '').slice(0, 20),
+      byName: cur ? cur.byName : me.name, created: cur ? cur.created : now, lastBy: me.name, updated: now, data: data };
+    if (i >= 0) rows[i] = o; else rows.push(o);
+    rows = rows.filter(x => x.id === id || String(x.updated || '') >= old);
+    write_('drafts', rows); return { ok: true, row: o };
+  } finally { lock.releaseLock(); }
+}
 
 function staffOk_(e) {
   let ns; try { ns = JSON.parse(e.snap || '{}'); } catch (x) { return false; }
@@ -546,6 +574,7 @@ function handle_(p) {
   if (p.action === 'aiRead') return aiRead_(p, me);        // без блокировки: ИИ думает до минуты, остальные в это время работают
   if (p.action === 'aiCfg') return aiCfg_(p, me);
   if (p.action === 'notes') return notes_(p, me);    // уведомления для приложения Android (раз в час), только чтение, без общей блокировки
+  if (p.action === 'drafts') return drafts_(p, me);   // черновики документов: свой лист, своя короткая блокировка, без общей синхронизации
   if (p.action === 'bank') return bank_(p, me);         // Т-Бизнес: поступления на счёт (только Даниил), блокировка — только на запись в лист      // настройки ИИ («Данные» → «ИИ»), только Даниил, без общей блокировки
   if (p.action === 'aiKey') { if (!me.admin) return { ok: false, error: 'forbidden' }; const k = String(p.gkey || '').trim();
     if (!/^[\w.\-]{20,}$/.test(k)) return { ok: false, error: 'это не похоже на ключ Gemini' }; PropertiesService.getScriptProperties().setProperty('GEMINI_KEY', k); return { ok: true }; }
