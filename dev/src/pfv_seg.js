@@ -97,7 +97,10 @@ function pvInit(){
   const debt=$("#pv-debt");
   debt.addEventListener("click", dbClick);
   debt.addEventListener("input", dbInput);
-  debt.addEventListener("keydown", e=>{ if(e.key==="Enter" && e.target.matches(".dbkpi [data-dbf]")){ e.preventDefault(); e.target.click(); return; } if(e.key==="Enter" && e.target.closest(".dbadd")){ e.preventDefault(); dbAdd(); } });
+  debt.addEventListener("focusin", e=>{ if(e.target.id==="db-name"){ dbSugOpen(); if(matchMedia("(max-width:720px)").matches) setTimeout(()=>e.target.scrollIntoView({behavior:"smooth", block:"start"}), 250); } });
+  debt.addEventListener("focusout", e=>{ if(e.target.id==="db-name") setTimeout(dbSugClose, 120); });
+  debt.addEventListener("mousedown", e=>{ if(e.target.closest(".dbsug")) e.preventDefault(); });
+  debt.addEventListener("keydown", e=>{ if(e.target.id==="db-name" && dbSugKey(e)) return; if(e.key==="Enter" && e.target.matches(".dbkpi [data-dbf]")){ e.preventDefault(); e.target.click(); return; } if(e.key==="Enter" && e.target.closest(".dbadd")){ e.preventDefault(); dbAdd(); } });
 }
 function pvDraw(){
   pvInit(); const f=PV(), tab=$("#tab-profit"); if(!tab) return; tab.dataset.v=f.v;
@@ -653,6 +656,27 @@ function dbLate(x){ return dbLeft(x)>0.004 && !!(x.due && x.due<todayISO()); }
 function dbTouch(x){ const p=r2(dbPays(x).reduce((a,y)=>a+(+y.sum||0),0)); x.paid=String(p); x.pays=JSON.stringify(dbPays(x)); if((+x.sum||0)>0 && p>=(+x.sum||0)-0.004) x.closed="1"; return x; }
 function dbPut(x, msg){ if(!pfArr("debts").some(y=>y.id===x.id)) pfArr("debts").push(x); dirty("debts", x.id); if(msg) logEv("Прибыль", msg); saveLocal(); if(curTab==="profit") drawProfit(); }
 function dbNames(){ const s=new Set(); (D.customers||[]).forEach(c=>{ if(c.name) s.add(c.name); }); (D.suppliers||[]).forEach(c=>{ if(c.name) s.add(c.name); }); pfArr("debts").forEach(x=>{ if(x.name) s.add(x.name); }); return [...s].sort((a,b)=>a.localeCompare(b,"ru")); }
+/* подсказки «Кто»: своё окошко вместо стандартного списка телефона — коротко, по группам, только подходящие */
+let DBSG={i:-1, L:[]};
+function dbSugList(q){ const n=norm(q||""), seen=new Set(), out=[];
+  const add=(v, g, sub)=>{ v=String(v||"").trim(); const k=norm(v); if(!v || seen.has(k)) return; if(n && !k.includes(n) && !norm(sub||"").includes(n)) return; seen.add(k); out.push({v, g, sub:sub&&sub!==v?sub:""}); };
+  const past={}; pfArr("debts").forEach(x=>{ if(x.name) past[x.name]=(past[x.name]||"")<(x.date||"")?(x.date||""):past[x.name]; });
+  Object.keys(past).sort((a,b)=>String(past[b]).localeCompare(String(past[a]))).forEach(v=>add(v, "Раньше в долгах"));
+  (D.customers||[]).filter(c=>c.id && !c._del && !isPriv(c.id) && !c.priv).forEach(c=>add(cusNm(c.id)||c.name, "Заказчики", c.name));
+  (D.suppliers||[]).forEach(s=>add(s.name, "Поставщики"));
+  return out.slice(0, n?10:8); }
+function dbSugOpen(){ const box=$("#db-sug"), el=$("#db-name"); if(!box||!el) return; const q=el.value.trim(), L=dbSugList(q);
+  const exact=L.length===1 && norm(L[0].v)===norm(q); DBSG={i:-1, L};
+  if(!L.length || exact){ dbSugClose(); return; }
+  let g=""; box.innerHTML=L.map((x,i)=>{ const h=x.g!==g?`<div class="dbsg-h">${esc(x.g)}</div>`:""; g=x.g;
+    return h+`<button type="button" role="option" class="dbsg" data-dbsug="${esc(x.v)}" data-i="${i}"><b>${esc(x.v)}</b>${x.sub?`<small>${esc(x.sub)}</small>`:""}</button>`; }).join("");
+  box.hidden=false; el.setAttribute("aria-expanded","true"); }
+function dbSugClose(){ const box=$("#db-sug"), el=$("#db-name"); if(box){ box.hidden=true; box.innerHTML=""; } if(el) el.setAttribute("aria-expanded","false"); DBSG.i=-1; }
+function dbSugKey(e){ const box=$("#db-sug"); if(!box || box.hidden) return false; const B=[...box.querySelectorAll(".dbsg")];
+  if(e.key==="ArrowDown"||e.key==="ArrowUp"){ e.preventDefault(); DBSG.i=(DBSG.i+(e.key==="ArrowDown"?1:-1)+B.length)%B.length; B.forEach((b,i)=>b.classList.toggle("on", i===DBSG.i)); B[DBSG.i].scrollIntoView({block:"nearest"}); return true; }
+  if(e.key==="Enter" && DBSG.i>=0){ e.preventDefault(); B[DBSG.i].click(); return true; }
+  if(e.key==="Escape"){ e.preventDefault(); dbSugClose(); return true; }
+  return false; }
 function dbShow(){ const q=norm(DBUI.q||""); return pfArr("debts").filter(x=>{
   if(DBUI.flt==="open" && dbLeft(x)<=0.004) return false;
   if(DBUI.flt==="in" && (x.side===DB_OUT || dbLeft(x)<=0.004)) return false;
@@ -746,7 +770,7 @@ function dbDraw(){
       <div class="due go" data-dbf="out" role="button" tabindex="0" title="Показать, кому должен я"><small>Я должен</small><b>${fm(out)} ₽</b><span>${all.filter(x=>x.side===DB_OUT && dbLeft(x)>0.004).length} открытых</span></div>
       <div class="${net<0?"neg":"pos"} go" data-dbf="${lateN?"late":"open"}" role="button" tabindex="0" title="${lateN?"Показать просроченные":"Показать все открытые"}"><small>Разница</small><b>${net<0?"−":""}${fm(Math.abs(net))} ₽</b><span>${Math.abs(net)<0.005?"всё ровно":net<0?"вы должны больше":"вам должны больше"}${lateN?" · просрочено "+lateN:""}</span></div></div>
     <div class="dbadd"><label class="f dbkind"><span>Сторона</span><div class="fdseg" id="db-side" style="--x:${DBUI.side===DB_OUT?"100%":"0"}"><i></i><button type="button" data-dbk="${DB_IN}" class="${DBUI.side===DB_OUT?"":"on"}" aria-pressed="${DBUI.side!==DB_OUT}">Мне должны</button><button type="button" data-dbk="${DB_OUT}" class="${DBUI.side===DB_OUT?"on":""}" aria-pressed="${DBUI.side===DB_OUT}">Я должен</button></div></label>
-      <label class="f dbwho"><span>Кто</span><input id="db-name" list="db-names" maxlength="160" placeholder="имя или компания" value="${esc(DBUI.name||"")}"><datalist id="db-names">${dbNames().map(n=>`<option value="${esc(n)}">`).join("")}</datalist></label>
+      <div class="f dbwho"><label for="db-name">Кто</label><div class="dbsw"><input id="db-name" maxlength="160" placeholder="имя или компания" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="db-sug" value="${esc(DBUI.name||"")}"><div class="dbsug" id="db-sug" role="listbox" hidden></div></div></div>
       <label class="f dbsum"><span>Сумма, ₽</span><input id="db-sum" inputmode="decimal" placeholder="0" value="${esc(DBUI.sum||"")}"></label>
       <label class="f dbgo"><span class="dbph">.</span><button type="button" class="btn pri" data-dbadd>Добавить</button></label>
       <label class="f dbwhen"><span>Когда возник</span><input type="date" id="db-date" value="${esc(DBUI.date)}"></label>
@@ -759,10 +783,11 @@ function dbDraw(){
   if(fid){ const el=document.getElementById(fid); if(el){ el.focus(); try{ if(pos!=null && el.setSelectionRange) el.setSelectionRange(pos,pos); }catch(e){} } }
 }
 function dbInput(e){ const t=e.target;
-  if(t.id==="db-name") DBUI.name=t.value; else if(t.id==="db-sum") DBUI.sum=t.value; else if(t.id==="db-date") DBUI.date=t.value; else if(t.id==="db-due") DBUI.due=t.value; else if(t.id==="db-note") DBUI.note=t.value;
+  if(t.id==="db-name"){ DBUI.name=t.value; dbSugOpen(); } else if(t.id==="db-sum") DBUI.sum=t.value; else if(t.id==="db-date") DBUI.date=t.value; else if(t.id==="db-due") DBUI.due=t.value; else if(t.id==="db-note") DBUI.note=t.value;
   else if(t.id==="db-q"){ DBUI.q=t.value; dbPaintList(); } else if(t.id==="db-pay") DBUI.pay=t.value; else if(t.id==="db-paydate") DBUI.payDate=t.value; else if(t.id==="db-paynote") DBUI.payNote=t.value;
 }
-function dbClick(e){ const b=e.target.closest("[data-dbk],[data-dbf],[data-dbopen],[data-dbadd],[data-dbpay],[data-dball],[data-dbundo],[data-dbclose],[data-dbre],[data-dbedit],[data-dbdel]"); if(!b) return;
+function dbClick(e){ const sg=e.target.closest("[data-dbsug]"); if(sg){ const el=$("#db-name"); DBUI.name=sg.dataset.dbsug; if(el){ el.value=DBUI.name; } dbSugClose(); const nx=$("#db-sum"); if(nx) nx.focus(); return; }
+  const b=e.target.closest("[data-dbk],[data-dbf],[data-dbopen],[data-dbadd],[data-dbpay],[data-dball],[data-dbundo],[data-dbclose],[data-dbre],[data-dbedit],[data-dbdel]"); if(!b) return;
   if(b.dataset.dbk){ DBUI.side=b.dataset.dbk; dbDraw(); return; }
   if(b.dataset.dbf){ DBUI.flt=b.dataset.dbf; dbPaintList(); if(b.closest(".dbkpi")){ const t=$("#db-tools"); if(t) t.scrollIntoView({behavior:"smooth", block:"start"}); } return; }
   if(b.dataset.dbopen!=null){ dbOpen=dbOpen===b.dataset.dbopen?"":b.dataset.dbopen; dbPaintList(); return; }
