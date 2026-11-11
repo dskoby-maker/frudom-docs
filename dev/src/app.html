@@ -495,6 +495,16 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .dcard .dztr{grid-column:2/-1;display:grid;grid-template-columns:110px auto;grid-template-columns:subgrid;align-items:center;gap:8px;margin-top:-2px}#fd-app .dcard .dztr input{width:100%;text-align:right;padding:6px 8px}
 #fd-app .dcard .dztr em{font-style:normal;font-size:11.5px;color:var(--muted);white-space:nowrap}#fd-app .dcard .dztr em b{display:block;font-weight:600;color:var(--accent)}
 @media (max-width:480px){#fd-app .dcard .dztr{grid-column:1/-1}}
+#fd-app .dcard .zfl{display:none;grid-column:2/-1;align-items:center;gap:6px;justify-self:end;padding:6px 10px;border-radius:10px;background:rgba(47,107,69,.09);color:var(--ok);font-size:12.5px}
+#fd-app .dcard .zfl svg{width:16px;height:16px;flex:none}#fd-app .dcard .dzr>.zfl b{display:inline;font-weight:650;font-size:12.5px;overflow:visible;white-space:nowrap}#fd-app .dcard .dzr>.zfl small{display:inline;color:var(--muted);font-size:11.5px}#fd-app .dcard .zfl{flex-wrap:wrap}
+#fd-app .dcard .dzr.free .zfl{display:inline-flex}
+#fd-app .dcard .dzr.free>input,#fd-app .dcard .dzr.free>em,#fd-app .dcard .dzr.free>.pcsw,#fd-app .dcard .dzr.free>.dztr,#fd-app .dcard .dzr.free>.pcrow{display:none}
+#fd-app .dcard .dzr.free{background:rgba(47,107,69,.05)}
+#fd-app .zfb{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:5px;padding:3px 10px 3px 8px;border-radius:999px;font-size:12px;color:#5d574f;background:rgba(28,34,32,.04);box-shadow:inset 0 0 0 1px var(--line);transition:background .15s,color .15s}
+#fd-app .zfb svg{width:14px;height:14px}#fd-app .zfb:hover{background:rgba(47,107,69,.08);color:var(--ok)}#fd-app .zfb:focus-visible{outline:2px solid var(--ok)}
+#fd-app .zfb.on{background:rgba(47,107,69,.14);color:var(--ok);box-shadow:inset 0 0 0 1px rgba(47,107,69,.35);font-weight:600}
+#fd-app .zffl{display:inline-flex;align-items:center;gap:3px;color:var(--ok)}#fd-app .zffl svg{width:13px;height:13px}
+@media(max-width:480px){#fd-app .dcard .zfl{grid-column:1/-1;justify-self:stretch}}
 #fd-app .dzbq{grid-column:1/-1;display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}#fd-app .dzbq label{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}#fd-app .dzr .dzbq input,#fd-app .dzbq input{width:96px;flex:none;padding:5px 8px;font-size:13px;text-align:right;min-height:0}#fd-app .dzbx{font-size:12.5px}#fd-app .dzbx.up{color:#8a5a12}#fd-app .dzsaid{margin:4px 0 10px}#fd-app .dzsaid-b{margin-top:8px;display:grid;gap:8px;animation:fdin .2s ease both}#fd-app .dzsaid-b textarea{width:100%;box-sizing:border-box;font:14px/1.4 var(--ui);resize:vertical}#fd-app .dzsaid-b .row span{font-size:12px}#fd-app .dzsaid-m{font-size:13px;line-height:1.5;padding:8px 10px;border-radius:10px;background:rgba(47,107,69,.07)}#fd-app .dzsaid.open .dzsaid-t{background:var(--accent-soft);color:var(--accent)}
 #fd-app .pfl-sum{margin:0 0 10px;font-size:13.5px;color:var(--muted)}#fd-app .pfl{display:grid;gap:6px}#fd-app .pfl-r{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;padding:10px 12px;border-radius:12px;background:rgba(179,38,30,.045);border:1px solid rgba(179,38,30,.1)}#fd-app .pfl-n small{display:block;font-size:12px;color:var(--muted);margin-top:2px}#fd-app .pfl-l{font-weight:700;font-variant-numeric:tabular-nums;align-self:center}#fd-app .pfl-d{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px;align-items:center;font-size:12px}#fd-app .pfl-doc{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:3px 9px;font:500 12px var(--ui);color:var(--ink);cursor:pointer}#fd-app .pfl-doc:hover{border-color:var(--accent);color:var(--accent)}
 #fd-app .invdc .invbtn{display:flex;gap:8px;flex-wrap:wrap;align-items:center}#fd-app .invdc .invn{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;margin-left:4px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700}#fd-app .invmini{margin-top:14px}#fd-app .invarch input{width:18px;height:18px;flex:none;margin:0;padding:0}#fd-app .invmh{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 2px 6px}#fd-app .invh2{align-items:center;margin-top:4px}#fd-app .invh2 p{margin:0;flex:1 1 240px}
@@ -4505,6 +4515,8 @@ function docProfit(j){
       cost+=r2(t); return {l, c: l.qty?r2(t/l.qty):null, own:(o!=null&&o!==""), e, sk}; }
     /* фактически куплено (lines._bq) — закупка считается по купленному, а не по проданному количеству */
     const bq=+((ov._bq||{})[l.pid])||0, qq=bq>0?bq:l.qty;
+    /* «Бесплатно» (lines._free): закупщик подарил — закупка 0, но в среднюю цену и статистику закупки не идёт */
+    if((ov._free||{})[l.pid]) return {l, c:0, own:true, e:null, free:true, bq:bq>0?bq:null, cu:0};
     if(c==null) miss++; else cost+=r2(c*qq); return {l, c, own:(o!=null&&o!==""), e, bq:bq>0?bq:null, cu:c!=null&&l.qty?r2(c*qq/l.qty):c}; });
   /* быстрая закупка «от кого — сумма» (раздел «По заказчикам») заменяет расчёт по товарам */
   const qs=Array.isArray(ov._src)&&ov._src.length?ov._src:null; if(qs){ cost=qs.reduce((a,x)=>a+(+x.s||0),0); miss=0; prelim=false; }
@@ -4616,7 +4628,7 @@ function pfDocRow(x){ const w=jWho(x.j), op=pfOpen.has(x.j.id);
         <span class="or">или</span><label>наценка<input class="pfbm" inputmode="decimal" data-doc="${x.j.id}" placeholder="25"> %</label><button type="button" class="btn sm" data-bulk="mk" data-doc="${x.j.id}">Применить</button>
         ${own?`<button type="button" class="btn ghost sm" data-bulk="reset" data-doc="${x.j.id}">Вернуть цены из списка</button>`:""}
         <small class="muted">Сумма делится по товарам пропорционально продаже. Отменить — кнопка «Отменить» внизу или Ctrl+Z.</small></div>
-      <div class="tbl"><table class="pfl"><thead><tr><th>Товар</th><th>Кол-во</th><th>Продажа, ₽</th><th>Закупка за ед., ₽</th><th>Прибыль строки</th></tr></thead><tbody>${x.lines.map(r=>`<tr><td>${esc(r.l.name)}</td><td>${String(r.l.qty).replace(".",",")} ${esc(r.l.unit)}</td><td>${fm(r.l.price)}</td><td>${r.sk?`<small class="pfsk">склад ${skQf(r.sk.stockQ)}: ${fm(r.sk.stockCost)} ₽${r.sk.prelim?" (предварительно)":""}${r.sk.directQ?" · от Саида "+skQf(r.sk.directQ)+(r.sk.pd!=null?" по "+fm(r.sk.pd)+" ₽":" — цена ниже"):""}</small>`:""}${r.sk&&(!r.sk.directQ||r.sk.pd!=null)?"":`<input class="pfc" inputmode="decimal" data-doc="${x.j.id}" data-pid="${r.l.pid}" value="${r.own?esc(String(dcLines(docCost(x.j.id))[r.l.pid]||"").replace(".",",")):""}" placeholder="${r.e?esc(String(r.e.price).replace(".",",")):"нет цены"}"> <small class="muted">${r.own?"своя для этой накладной":r.e?"из списка с "+fd(r.e.from):""}</small>`}</td><td>${r.c==null?`<span class="miss">—</span>`:sgn(r2((r.l.price-(r.cu!=null?r.cu:r.c))*r.l.qty))}${r.bq?`<small class="muted" style="display:block">куплено ${esc(qfmt(r.bq,r.l.unit))}</small>`:""}</td></tr>`).join("")}</tbody></table></div>
+      <div class="tbl"><table class="pfl"><thead><tr><th>Товар</th><th>Кол-во</th><th>Продажа, ₽</th><th>Закупка за ед., ₽</th><th>Прибыль строки</th></tr></thead><tbody>${x.lines.map(r=>`<tr><td>${esc(r.l.name)}</td><td>${String(r.l.qty).replace(".",",")} ${esc(r.l.unit)}</td><td>${fm(r.l.price)}</td><td>${r.sk?`<small class="pfsk">склад ${skQf(r.sk.stockQ)}: ${fm(r.sk.stockCost)} ₽${r.sk.prelim?" (предварительно)":""}${r.sk.directQ?" · от Саида "+skQf(r.sk.directQ)+(r.sk.pd!=null?" по "+fm(r.sk.pd)+" ₽":" — цена ниже"):""}</small>`:""}${r.sk&&(!r.sk.directQ||r.sk.pd!=null)?"":`${r.free?`<small class="zffl">${IC_GIFT}бесплатно</small> `:""}<input class="pfc" inputmode="decimal" data-doc="${x.j.id}" data-pid="${r.l.pid}" value="${r.own&&!r.free?esc(String(dcLines(docCost(x.j.id))[r.l.pid]||"").replace(".",",")):""}" placeholder="${r.e?esc(String(r.e.price).replace(".",",")):"нет цены"}"> <small class="muted">${r.own?"своя для этой накладной":r.e?"из списка с "+fd(r.e.from):""}</small>`}</td><td>${r.c==null?`<span class="miss">—</span>`:sgn(r2((r.l.price-(r.cu!=null?r.cu:r.c))*r.l.qty))}${r.bq?`<small class="muted" style="display:block">куплено ${esc(qfmt(r.bq,r.l.unit))}</small>`:""}</td></tr>`).join("")}</tbody></table></div>
       <div class="pfxfoot"><label class="f" style="max-width:220px">Прочие расходы по накладной, ₽<input class="pfe" inputmode="decimal" data-doc="${x.j.id}" value="${esc(dc&&dc.expense?String(dc.expense).replace(".",","):"")}" placeholder="доставка, грузчики…"></label>
         <label class="f" style="max-width:200px">Оплачено, ₽<input class="pfps" inputmode="decimal" data-doc="${x.j.id}" value="${x.pay.s?esc(String(x.pay.s).replace(".",",")):""}" placeholder="из ${esc(fm(x.pay.tot))}"></label>
         <label class="f" style="max-width:170px">Дата оплаты<input type="date" class="pfpd" data-doc="${x.j.id}" value="${esc(x.pay.d||"")}"></label>
@@ -4698,7 +4710,7 @@ $("#pf-docs").addEventListener("click",e=>{
   const bk=e.target.closest("[data-bulk]"); if(bk){ pfBulk(bk.dataset.bulk, bk.dataset.doc, bk.closest(".pfbulk")); return; }
   if(e.target.closest("input,label,button,select")) return; const tr=e.target.closest("tr.pfd"); if(!tr) return; const id=tr.dataset.pf; pfOpen.has(id)?pfOpen.delete(id):pfOpen.add(id); drawProfit(); });
 /* закупка всей накладной одной кнопкой: суммой (делится пропорционально продаже), наценкой или возврат к ценам из списка */
-function pfBulk(mode, id, box){ const j=pfDoc(id); if(!j) return; const k=calc(j.snap.dr, j.snap), dc=dcUpsert(j), L=dcLines(dc), lines=k.lines.filter(l=>l.qty>0);
+function pfBulk(mode, id, box){ const j=pfDoc(id); if(!j) return; const k=calc(j.snap.dr, j.snap), dc=dcUpsert(j), L=dcLines(dc), lines=k.lines.filter(l=>l.qty>0 && !(L._free||{})[l.pid]);   /* «бесплатно» не трогаем */
   if(mode==="reset"){ lines.forEach(l=>delete L[l.pid]); dc.lines=JSON.stringify(L); dirty("doccosts", dc.id); saveLocal(); drawProfit(); toast("ok","Закупка из списка","Накладная № "+j.number+": свои цены убраны, берутся закупочные цены на дату накладной."); return; }
   if(mode==="sum"){ const v=+num(box.querySelector(".pfbs").value), base=lines.reduce((a,l)=>a+l.net,0);
     if(!(v>0)){ toast("err","Впишите сумму","Сколько всего стоила закупка товара для этой накладной."); box.querySelector(".pfbs").focus(); return; }
@@ -4741,7 +4753,7 @@ $("#po-body").addEventListener("click",e=>{ const b=e.target.closest("[data-pode
   D.pother=pfArr("pother").filter(y=>y.id!==id); dirty("pother", id, true); if(x) logEv("Прибыль","Удалён "+(x.kind===PO_INC?"прочий доход":"прочий расход")+": "+(x.note||"")+" — "+fm(+x.sum||0)+" ₽"); saveLocal(); drawProfit(); });
 function dcUpsert(j){ let dc=docCost(j.id); if(!dc){ dc={id:j.id, number:String(j.number), date:j.date, customerName:jWho(j).main, expense:"", note:"", lines:"{}"}; pfArr("doccosts").push(dc); } return dc; }
 $("#pf-docs").addEventListener("change",e=>{ const el=e.target, j=D.journal.find(x=>x.id===el.dataset.doc); if(!j || el.classList.contains("pfbs") || el.classList.contains("pfbm")) return; const dc=dcUpsert(j), v=num(el.value);
-  if(el.classList.contains("pfc")){ const L=dcLines(dc); if(v===""||isNaN(+v)) delete L[el.dataset.pid]; else L[el.dataset.pid]=String(+v); dc.lines=JSON.stringify(L); }
+  if(el.classList.contains("pfc")){ const L=dcLines(dc); if(v===""||isNaN(+v)) delete L[el.dataset.pid]; else { L[el.dataset.pid]=String(+v); zfDel(L, el.dataset.pid); } dc.lines=JSON.stringify(L); }
   if(el.classList.contains("pfe")) dc.expense = v===""||isNaN(+v) ? "" : String(+v);
   if(el.classList.contains("pfps")||el.classList.contains("pfpd")){ const row=el.closest(".pfxfoot"), s=+num(row.querySelector(".pfps").value)||0, d=row.querySelector(".pfpd").value||todayISO();
     setPay(j, s, d); saveLocal(); drawProfit(); toast("ok", s>0?"Оплата сохранена":"Оплата снята","Накладная № "+j.number+(s>0?": "+fm(Math.min(s,docTotal(j)))+" ₽ от "+fd(d):"")); return; }
@@ -5123,7 +5135,7 @@ function zkSave(B){
     const share = last ? r2(left) : r2(tot>0 ? B.exp*(+j.sum||0)/tot : B.exp/B.docs.length); left=r2(left-share);
     const has=new Set(calc(j.snap.dr, j.snap).lines.map(l=>l.pid)), put=[];
     (prev.p||[]).forEach(pid=>{ if(B.cost[pid]==null) delete L[pid]; });
-    Object.keys(B.cost).forEach(pid=>{ if(has.has(pid)){ L[pid]=String(B.cost[pid]); put.push(pid); } });
+    Object.keys(B.cost).forEach(pid=>{ if(has.has(pid)){ L[pid]=String(B.cost[pid]); zfDel(L, pid); put.push(pid); } });
     const base=r2((+dc.expense||0)-(+prev.e||0)), ex=r2(base+share);
     L._zk={d:date, e:share, p:put, s:r2(B.spent), k:pid0}; dc.lines=JSON.stringify(L); dc.expense = ex ? String(ex) : "";
     dc.note="Закупка Саида от "+fd(date)+(B.docs.length>1?" (на "+B.docs.length+" накл.)":"")+": "+fm(B.spent)+" ₽";
@@ -5656,7 +5668,7 @@ const IC_ZK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-w
 function zkJState(j){ if(!me().admin || !j || !j.snap || isArch(j)) return null; let x; try{ x=docProfit(j); }catch(e){ return null; } const ov=dcLines(docCost(j.id)), notes=[];
   if(x.src){ const n=x.lines.filter(r=>r.l.qty>0).length; return n ? {st:"ok", tip:"Закупка заполнена суммой «от кого» (Прибыль → По заказчикам)", ok:n, n} : null; }
   let n=0, ok=0, part=0; const neg=[];
-  x.lines.forEach(r=>{ const l=r.l; if(!(l.qty>0)) return; n++; const own=ov[l.pid]!=null&&ov[l.pid]!=="", sk=r.sk;
+  x.lines.forEach(r=>{ const l=r.l; if(!(l.qty>0)) return; n++; const own=(ov[l.pid]!=null&&ov[l.pid]!=="")||!!r.free, sk=r.sk;
     if(sk){ const dOk=sk.directQ<=0 || own || sk.pd!=null; if(dOk) ok++; else part++;
       if(sk.short>0) notes.push(l.name+": не хватает на складе"); else if(sk.prelim) notes.push(l.name+": со склада ещё не отгружено"); }
     else if(own) ok++;
@@ -5729,6 +5741,20 @@ function pcInit(sc, k, pid, name, saved, kg){ const key=sc+"|"+k; if(PC[key]) re
   return PC[key] = ok ? {on:true, g:pcFmt(+saved.g,1), p:pcFmt(+saved.p,2)} : {on:false, g:pcGuess(pid,name), p:""}; }
 const pcReset = sc => Object.keys(PC).forEach(x=>{ if(x.indexOf(sc+"|")===0) delete PC[x]; });
 /* ячейка цены: inp — поле цены за кг (class dzc/bzc); в режиме «за шт» оно скрыто, видно цену за 1 шт и вес */
+/* ---- «Бесплатно» в закупке: lines._free = {ID товара: "1"} в «Себестоимости накладных». Закупка 0 ₽, товар считается заполненным,
+   но в среднюю закупочную цену, график цен и «последние закупки» не попадает. ZF — что отмечено в открытом редакторе (dz — накладная, bz — комплект). ---- */
+const IC_GIFT='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="8" width="17" height="4" rx="1"/><path d="M5 12v8h14v-8M12 8v12M12 8c-1.6-3.6-6-3.8-6-1.3C6 8 9 8 12 8zM12 8c1.6-3.6 6-3.8 6-1.3C18 8 15 8 12 8z"/></svg>';
+let ZF={};
+const zfOn = (sc,k) => !!ZF[sc+"|"+k];
+const zfReset = sc => { Object.keys(ZF).forEach(k=>{ if(k.startsWith(sc+"|")) delete ZF[k]; }); };
+const zfDel = (L, pid) => { if(L._free){ delete L._free[pid]; if(!Object.keys(L._free).length) delete L._free; } };
+const zfBtn = (sc,k,name) => `<button type="button" class="zfb${zfOn(sc,k)?" on":""}" data-zf="${sc}" data-k="${esc(k)}" aria-pressed="${zfOn(sc,k)}" title="Закупщик отдал этот товар бесплатно: закупка 0 ₽, в среднюю закупочную цену и статистику не идёт">${IC_GIFT}<span>Бесплатно</span></button>`;
+const zfLbl = () => `<div class="zfl">${IC_GIFT}<b>Бесплатно</b><small>закупка 0 ₽ · в среднюю цену не идёт</small></div>`;
+document.addEventListener("click", e=>{ const b=e.target.closest(".zfb[data-zf]"); if(!b) return; e.preventDefault(); const sc=b.dataset.zf, k=b.dataset.k, on=!zfOn(sc,k); ZF[sc+"|"+k]=on;
+  const row=b.closest(".dzr"); if(row) row.classList.toggle("free", on); b.classList.toggle("on", on); b.setAttribute("aria-pressed", on);
+  if(sc==="dz"){ const wrap=$("#dc-zk"), j=wrap&&D.journal.find(x=>x.id===wrap.dataset.doc), box=$("#dc-zki"); if(j&&box) dcZkSum(j, box); }
+  else if(typeof bzSum==="function") bzSum();
+  if(!on){ const inp=row&&row.querySelector(".dzc,.bzc,.pcp"); if(inp) setTimeout(()=>inp.focus(), 30); } });
 function pcCell(sc, k, unit, inp, st){ const u=esc(unit||"ед.");
   if(String(unit||"").toLowerCase()!=="кг" || !st) return {cell: inp+`<em>₽/${u}</em>`, sub:""};
   const sw=`<span class="pcsw" role="group" aria-label="Цена за"><button type="button" data-pcu="kg" data-sc="${sc}" data-k="${esc(k)}" class="${st.on?"":"on"}" aria-pressed="${!st.on}">₽/кг</button><button type="button" data-pcu="pc" data-sc="${sc}" data-k="${esc(k)}" class="${st.on?"on":""}" aria-pressed="${st.on}">₽/шт</button></span>`;
@@ -5786,6 +5812,7 @@ const zkCostTile = (cost, exp) => `<div><small>Закупка${exp?" с расх
 function dcZkSum(j, box){ ztSync(box); const k=calc(j.snap.dr, j.snap), tx=taxOf(j.supplierId)/100; let cost=0, miss=0; const N=[];
   k.lines.forEach(l=>{ const el=box.querySelector(`.dzc[data-k="${dzKey(l)}"]`), v=el?num(el.value):""; const typed=v!=="" && !isNaN(+v), c = typed ? +v : (el && el.placeholder && !isNaN(+num(el.placeholder)) ? +num(el.placeholder) : null);
     if(!(l.qty>0)) return;
+    if(zfOn("dz",dzKey(l)) && !dzCost(j,l,0)){ const bx=box.querySelector(`.dzbx[data-k="${dzKey(l)}"]`); if(bx) bx.innerHTML=""; return; }
     const z=dzCost(j, l, c); if(z){ if(z.cost==null) miss++; else { cost+=z.cost; zkNote(N, l.name, z.cost/l.qty, l, PC["dz|"+dzKey(l)]); } return; }
     if(el && !typed && c!=null) N.push({t:`<b>${esc(l.name)}</b>: своя цена не вписана — берётся из «Закупочных цен» (${fm(c)} ₽). Впишите цену, чтобы закупка считалась заполненной.`});
     const be=box.querySelector(`.dzb[data-k="${dzKey(l)}"]`), bv=be?+num(be.value):0, bq=bv>0?bv:0, qq=bq||l.qty, bx=box.querySelector(`.dzbx[data-k="${dzKey(l)}"]`);
@@ -5795,7 +5822,7 @@ function dcZkSum(j, box){ ztSync(box); const k=calc(j.snap.dr, j.snap), tx=taxOf
   const exp=+num((box.querySelector(".dze")||{}).value||"")||0, rev=k.t.net, tax=r2(rev*tx), gross=r2(rev-cost-tax), net=r2(gross-exp);
   box.querySelector("#dc-zks").innerHTML=`<div><small>Выручка</small><b>${fm(rev)}</b></div>${zkCostTile(cost, exp)}<div><small>Налог ${String(tx*100).replace(".",",")}%</small><b>${fm(tax)}</b></div><div class="hi"><small>Прибыль${exp?" (после расходов)":""}</small><b class="${net<0?"neg":""}">${fm(net)}</b><span>маржа ${pct(net,rev)}</span></div>`+(miss?`<p class="miss">Нет закупки у ${miss} ${plural(miss,["позиции","позиций","позиций"])}</p>`:"")+zkNotesHtml(N, miss, net); }
 function dcZkDraw(j, keep){ const box=$("#dc-zki"); if(!box) return; const x=docProfit(j), dc=docCost(j.id), ov=dcLines(dc);
-  if(!keep || !DZ || DZ.doc!==j.id){ dzInit(j); pcReset("dz"); }
+  if(!keep || !DZ || DZ.doc!==j.id){ dzInit(j); pcReset("dz"); zfReset("dz"); }
   const V=keep||{}, val=(kk,d)=>V[kk]!=null?V[kk]:d;
   const row=r=>{ const l=r.l, kk=dzKey(l), s=dzSt(j,l), lk=s&&dzLocked(j,l), m=lk?(s.m0||""):(s?s.m:""), u=esc(l.unit||"ед.");
     const own=ov[l.pid]!=null&&ov[l.pid]!=="" ? String(ov[l.pid]) : (r.sk&&r.sk.pd!=null?String(r.sk.pd):"");
@@ -5804,8 +5831,10 @@ function dcZkDraw(j, keep){ const box=$("#dc-zki"); if(!box) return; const x=doc
       : `<input class="dzc" inputmode="decimal" data-pid="${l.pid}" data-k="${esc(kk)}" value="${esc(val(kk, v0.replace(".",",")))}" placeholder="${r.e?esc(String(r.e.price).replace(".",",")):m==="x"?"цена Саида":"цена за "+u}" aria-label="${m==="x"?"Цена Саида за единицу (часть не со склада)":"Закупка за единицу"}: ${esc(l.name)}">`;
     const pst = m==="s" ? null : pcInit("dz", kk, l.pid, l.name, (ov._pc||{})[l.pid], own!==""?own:(r.own?r.c:null)), pc=pcCell("dz", kk, l.unit, inp, pst);
     const bq0=(ov._bq||{})[l.pid], bqv=val("b:"+kk, bq0!=null&&bq0!==""?String(bq0).replace(".",","):"");
-    const bqh = m ? "" : `<div class="dzbq"><label>Куплено фактически<input class="dzb" inputmode="decimal" data-k="${esc(kk)}" data-pid="${l.pid}" value="${esc(bqv)}" placeholder="${esc(String(r3(l.qty)).replace(".",","))}" aria-label="Сколько куплено фактически: ${esc(l.name)}"><span>${u}</span></label><span class="dzbx" data-k="${esc(kk)}"></span></div>`;
-    return `<div class="dzr${m?" sk":""}"><span><b>${esc(l.name)}</b><small>${esc(qfmt(l.qty,l.unit))} × ${fm(l.price)} ₽</small></span>${pc.cell}${m?"":ztHtml("dz", kk, l.qty, l.name, V, l.unit)}${pc.sub}${bqh}${dzSrcHtml(j,l)}</div>`; };
+    if(!m && !(("dz|"+kk) in ZF)) ZF["dz|"+kk]=!!(ov._free||{})[l.pid];
+    const fr = !m && zfOn("dz",kk);
+    const bqh = m ? "" : `<div class="dzbq">${zfBtn("dz",kk,l.name)}<label>Куплено фактически<input class="dzb" inputmode="decimal" data-k="${esc(kk)}" data-pid="${l.pid}" value="${esc(bqv)}" placeholder="${esc(String(r3(l.qty)).replace(".",","))}" aria-label="Сколько куплено фактически: ${esc(l.name)}"><span>${u}</span></label><span class="dzbx" data-k="${esc(kk)}"></span></div>`;
+    return `<div class="dzr${m?" sk":""}${fr?" free":""}"><span><b>${esc(l.name)}</b><small>${esc(qfmt(l.qty,l.unit))} × ${fm(l.price)} ₽</small></span>${m?"":zfLbl()}${pc.cell}${m?"":ztHtml("dz", kk, l.qty, l.name, V, l.unit)}${pc.sub}${bqh}${dzSrcHtml(j,l)}</div>`; };
   const any=DZ&&x.lines.some(r=>{ const s=dzSt(j,r.l); return s && (s.m||s.m0) && !dzLocked(j,r.l); });
   box.innerHTML=`<div class="dzh"><b>Закупка по накладной</b><small class="muted">Пустое поле — цена из «Закупочных цен» на дату накладной${dzOn()?". Если товар взяли со склада — нажмите «Со склада» под товаром":""}</small></div>
     <div class="dzbulk"><label>Вся закупка одной суммой<input class="dzs" inputmode="decimal" value="${esc(val("_bulk",""))}" placeholder="${x.cost?esc(String(x.cost).replace(".",",")):"0"}"> ₽</label><button type="button" class="btn sm pri" data-zkc="one" title="Записать закупку всей накладной этой суммой — без цен по товарам">Записать одной суммой</button><button type="button" class="btn sm" data-zkc="spread">Разнести по товарам</button></div>${oneInfo([j],"data-zkc")}
@@ -5872,7 +5901,7 @@ document.addEventListener("click", async e=>{ const b=e.target.closest("#fd-dcar
     if(!(v>0) || !(base>0)){ toast("err","Впишите сумму","Сколько всего стоила закупка товара для этой накладной."); box.querySelector(".dzs").focus(); return; }
     /* строки «со склада» не делим: их себестоимость — по партиям склада; сумму делим на купленное у Саида */
     const stQ=l=>{ const s=dzSt(j,l), lk=s&&dzLocked(j,l); if(lk) return r3(lk.req||0); return s?dzQ(l,s):0; };
-    const P=L.map(l=>({l, dq:r3(l.qty-stQ(l))})).filter(o=>o.dq>0), pb=P.reduce((s,o)=>s+o.l.net*o.dq/o.l.qty,0);
+    const P=L.map(l=>({l, dq:r3(l.qty-stQ(l))})).filter(o=>o.dq>0 && !zfOn("dz",dzKey(o.l))), pb=P.reduce((s,o)=>s+o.l.net*o.dq/o.l.qty,0);
     if(!P.length){ toast("info","Весь товар — со склада","Его себестоимость считается по партиям склада, делить сумму не на что."); return; }
     let left=r2(v); P.forEach((o,i)=>{ const w=o.l.net*o.dq/o.l.qty, part=i===P.length-1?left:r2(v*w/pb); left=r2(left-part); const el=box.querySelector(`.dzc[data-k="${dzKey(o.l)}"]`), be=box.querySelector(`.dzb[data-k="${dzKey(o.l)}"]`), bq=be&&+num(be.value)>0?+num(be.value):0; if(el){ el.value=String(Math.round(part/(bq||o.dq)*100)/100).replace(".",","); el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); } });
     pcFromKg("dz"); dcZkSum(j, box); $("#dc-zkmsg").textContent="Разнесено — проверьте и нажмите «Сохранить закупку»."; return; }
@@ -5885,6 +5914,8 @@ document.addEventListener("click", async e=>{ const b=e.target.closest("#fd-dcar
       b.disabled=false; b.textContent=t0; j=D.journal.find(x=>x.id===j.id)||j; }
     const dc=dcUpsert(j), L=dcLines(dc), k=calc(j.snap.dr, j.snap); let n=0;
     k.lines.forEach(l=>{ const s=dzSt(j,l), m=s?((dzLocked(j,l)?s.m0:s.m)||""):((l.stk||{}).m||""), kk=dzKey(l);
+      if(!m && zfOn("dz",kk)){ delete L[l.pid]; if(L._pc){ delete L._pc[l.pid]; if(!Object.keys(L._pc).length) delete L._pc; } L._free=Object.assign({}, L._free||{}, {[l.pid]:"1"}); n++; return; }
+      zfDel(L, l.pid);
       if(m==="s"){ delete L[l.pid]; if(L._pc){ delete L._pc[l.pid]; if(!Object.keys(L._pc).length) delete L._pc; } return; }
       if(!(kk in cv)) return; const v=num(cv[kk]); if(v===""||isNaN(+v)) delete L[l.pid]; else { L[l.pid]=String(+v); n++; } pcSaveTo(L, "dz", kk, l.pid); });
     { const BQ=Object.assign({}, L._bq||{}); k.lines.forEach(l=>{ const kk=dzKey(l), s=dzSt(j,l), m=s?((dzLocked(j,l)?s.m0:s.m)||""):((l.stk||{}).m||""); if(m){ delete BQ[l.pid]; return; } if(!(kk in bv)) return; const v=+num(bv[kk]); if(v>0 && Math.abs(v-l.qty)>0.0005) BQ[l.pid]=String(r3(v)); else delete BQ[l.pid]; });
@@ -6004,11 +6035,11 @@ function bzPrice(o){ const box=$("#bz-zki"), el=box&&box.querySelector(`.bzc[dat
   if(v!==""&&!isNaN(+v)) return +v; if(!BZ.touched[o.k] && o.mixed) return "mixed"; return null; }
 function bzSum(){ const box=$("#bz-zki"); if(!box||!BZ) return; ztSync(box); const G=bzDocs(); let rev=0, tax=0, cost=0, miss=0;
   G.forEach(j=>{ const k=calc(j.snap.dr, j.snap); rev+=k.t.net; tax+=r2(k.t.net*taxOf(j.supplierId)/100); });
-  const N=[]; BZ.rows.forEach(o=>{ const p=bzPrice(o), c=bzCost(o, p); if(c==null) miss++; else { cost+=c; if(p==null && o.dq>0) N.push({t:`<b>${esc(o.name)}</b>: своя цена не вписана — берётся из «Закупочных цен». Впишите цену, чтобы закупка считалась заполненной.`}); if(o.qty>0 && (p!=null||!o.dq)) zkNote(N, o.name, c/o.qty, {price:o.net/o.qty, priceNet:o.net/o.qty, unit:o.unit}, PC["bz|"+o.k]); } });
+  const N=[]; BZ.rows.forEach(o=>{ if(o.zfOk && zfOn("bz",o.k)) return; const p=bzPrice(o), c=bzCost(o, p); if(c==null) miss++; else { cost+=c; if(p==null && o.dq>0) N.push({t:`<b>${esc(o.name)}</b>: своя цена не вписана — берётся из «Закупочных цен». Впишите цену, чтобы закупка считалась заполненной.`}); if(o.qty>0 && (p!=null||!o.dq)) zkNote(N, o.name, c/o.qty, {price:o.net/o.qty, priceNet:o.net/o.qty, unit:o.unit}, PC["bz|"+o.k]); } });
   [...new Set([].concat(...G.map(j=>((zkJState(j)||{}).tip||"").split("\n").slice(1).filter(t=>/склад/.test(t)).map(t=>"№ "+j.number+" · "+t))))].forEach(t=>N.push({t:esc(t)}));
   const exp=+num((box.querySelector(".bze")||{}).value||"")||0; rev=r2(rev); tax=r2(tax); cost=r2(cost); const net=r2(rev-cost-tax-exp);
   box.querySelector("#bz-zks").innerHTML=`<div><small>Выручка</small><b>${fm(rev)}</b></div>${zkCostTile(cost, exp)}<div><small>Налог</small><b>${fm(tax)}</b></div><div class="hi"><small>Прибыль${exp?" (после расходов)":""}</small><b class="${net<0?"neg":""}">${fm(net)}</b><span>маржа ${pct(net,rev)}</span></div>`+(miss?`<p class="miss">Нет закупки у ${miss} ${plural(miss,["позиции","позиций","позиций"])}</p>`:"")+zkNotesHtml(N, miss, net); }
-function bzDraw(keep){ const box=$("#bz-zki"); if(!box||!BZ) return; const G=bzDocs(); BZ.rows=bzRows(G); if(!keep || !BZ.s) bzInitS(); if(!keep) pcReset("bz"); const V=keep||{};
+function bzDraw(keep){ const box=$("#bz-zki"); if(!box||!BZ) return; const G=bzDocs(); BZ.rows=bzRows(G); if(!keep || !BZ.s) bzInitS(); if(!keep){ pcReset("bz"); zfReset("bz"); } const V=keep||{};
   const exp0=r2(G.reduce((a,j)=>{ const dc=docCost(j.id); return a+(+(dc&&dc.expense)||0); },0));
   const row=o=>{ const kk=esc(o.k), u=esc(o.unit||"ед."), s=bzSt(o), m=s?(s.lock?s.m0:s.m):"", st=o.stockQ>0||!!m;
     const allStock = s ? (s.lock ? o.dq<=0 : m==="s") : o.dq<=0;
@@ -6019,7 +6050,11 @@ function bzDraw(keep){ const box=$("#bz-zki"); if(!box||!BZ) return; const G=bzD
     const old = !s && o.stockQ>0 ? `<div class="dzsk lock">${skIcon}<span>Со склада ${skQf(o.stockQ,o.unit)} · себестоимость <b>${fm(o.stockCost)} ₽</b>${o.dq>0?` · цена справа — за ${skQf(o.dq,o.unit)} от Саида`:""}</span></div>` : "";
     const pst = allStock ? null : pcInit("bz", o.k, o.pid, o.name, o.mixed?null:o.pc, o.same), pc=pcCell("bz", o.k, o.unit, inp, pst);
     const zt = !allStock && !m && !(o.stockQ>0) ? ztHtml("bz", o.k, o.qty, o.name, V, o.unit) : "";
-    return `<div class="dzr${st?" sk":""}"><span><b>${esc(o.name)}</b><small>${esc(qfmt(o.qty,o.unit))} · ${o.docs.length} ${plural(o.docs.length,["накладная","накладные","накладных"])}${o.mixed?` · <span class="miss">цены в накладных разные</span>`:""}</small></span>${pc.cell}${zt}${pc.sub}${bzSrcHtml(o)||old}</div>`; };
+    o.zfOk = !allStock && !m && !(o.stockQ>0);
+    o.zf0 = o.lines.every(x=>!!(dcLines(docCost(x.j.id))._free||{})[o.pid]);
+    if(o.zfOk && !(("bz|"+o.k) in ZF)) ZF["bz|"+o.k]=o.zf0;
+    const fr = o.zfOk && zfOn("bz",o.k);
+    return `<div class="dzr${st?" sk":""}${fr?" free":""}"><span><b>${esc(o.name)}</b><small>${esc(qfmt(o.qty,o.unit))} · ${o.docs.length} ${plural(o.docs.length,["накладная","накладные","накладных"])}${o.mixed?` · <span class="miss">цены в накладных разные</span>`:""}</small></span>${o.zfOk?zfLbl():""}${pc.cell}${zt}${pc.sub}${o.zfOk?`<div class="dzbq">${zfBtn("bz",o.k,o.name)}</div>`:""}${bzSrcHtml(o)||old}</div>`; };
   const any=BZ.s&&BZ.rows.some(o=>{ const s=bzSt(o); return s && !s.lock && (s.m||s.m0); });
   if(BZ.ship==null) BZ.ship=G.every(j=>j.date<=todayISO());
   box.innerHTML=`<div class="dzh"><b>${BZ.mg?"Одна закупка на весь день у заказчика":"Закупка на комплект"}</b><small class="muted">${BZ.mg?`Объединено ${BZ.mg} ${plural(BZ.mg,["строка","строки","строк"])}, ${G.length} ${docsWord(G.length)}. Впишите, сколько Саид потратил всего, и нажмите «Записать одной суммой» — сумма разделится по накладным пропорционально их сумме. Или укажите цену за товар — она пойдёт во все накладные. `:`Одна цена за товар — сразу во все ${G.length} ${docsWord(G.length)}. `} Пустое поле — цена из «Закупочных цен».${dzOn()?" Если товар взяли со склада — нажмите «Со склада» под товаром.":""}</small></div>
@@ -6066,7 +6101,7 @@ document.addEventListener("click", async e=>{ const b=e.target.closest&&e.target
     after(); const cost=r2(G.reduce((x,j)=>x+docProfit(j).cost,0)), prof=r2(G.reduce((x,j)=>x+docProfit(j).profit,0));
     $("#bz-msg").textContent="Записано ✓"; toast("ok","Закупка комплекта записана одной суммой","закупка "+fm(cost)+" ₽ · прибыль "+fm(prof)+" ₽ · разделено по "+G.length+" "+docsWord(G.length)+"."); return; }
   if(a==="spread"){ const v=+num(box.querySelector(".bzs").value), P=[];
-    BZ.rows.forEach(o=>{ const s=bzSt(o), el=box.querySelector(`.bzc[data-k="${CSS.escape(o.k)}"]`); if(!el) return; const dq = s&&bzChanged(s) ? r3(o.qty-bzSQ(o,s)) : o.dq; if(dq>0) P.push({o, dq, w:o.qty?o.net*dq/o.qty:0, el}); });
+    BZ.rows.forEach(o=>{ const s=bzSt(o), el=box.querySelector(`.bzc[data-k="${CSS.escape(o.k)}"]`); if(!el || (o.zfOk && zfOn("bz",o.k))) return; const dq = s&&bzChanged(s) ? r3(o.qty-bzSQ(o,s)) : o.dq; if(dq>0) P.push({o, dq, w:o.qty?o.net*dq/o.qty:0, el}); });
     const base=P.reduce((x,p)=>x+p.w,0);
     if(!(v>0) || !(base>0)){ toast("err","Впишите сумму","Сколько всего стоила закупка у Саида для этого комплекта."); box.querySelector(".bzs").focus(); return; }
     let left=r2(v); P.forEach((p,i)=>{ const part=i===P.length-1?left:r2(v*p.w/base); left=r2(left-part); p.el.value=String(Math.round(part/p.dq*10000)/10000).replace(".",","); BZ.touched[p.o.k]=1; p.el.classList.remove("flash","mix"); void p.el.offsetWidth; p.el.classList.add("flash"); });
@@ -6086,7 +6121,7 @@ document.addEventListener("click", async e=>{ const b=e.target.closest&&e.target
       catch(er){ toast("err","Склад не изменён до конца", er.message+". Откройте закупку комплекта ещё раз — уже проведённое будет видно."); $("#bz-msg").textContent="Склад: "+er.message; b.disabled=false; b.textContent=t0; bzDraw(); return; }
       b.disabled=false; b.textContent=t0; G=bzDocs(); BZ.rows=bzRows(G); }
     let nDoc=0; const touched={};
-    BZ.rows.forEach(o=>{ if(allS[o.k]){ touched[o.k]=null; return; } if(!(o.k in cv)) return; const v=num(cv[o.k]), cur=o.same?String(o.same):"";
+    BZ.rows.forEach(o=>{ if(allS[o.k]){ touched[o.k]=null; return; } if(o.zfOk && zfOn("bz",o.k)) return; if(!(o.k in cv)) return; const v=num(cv[o.k]), cur=o.same?String(o.same):"";
       if(!BZ.touched[o.k] && (v===""?"":String(+v))===cur) return;   /* не трогали — разные цены в накладных остаются как есть */
       touched[o.k]= v===""||isNaN(+v) ? null : String(+v); });
     const ev=num(ev0), expCh=BZ.expT;
@@ -6095,6 +6130,10 @@ document.addEventListener("click", async e=>{ const b=e.target.closest&&e.target
       Object.keys(touched).forEach(k=>{ const o=BZ.rows.find(x=>x.k===k); if(!o||!o.docs.includes(j.id)) return; if(touched[k]==null){ if(o.pid in L){ delete L[o.pid]; chd=true; } } else { L[o.pid]=touched[k]; if(L._src) delete L._src; chd=true; }
         const b4=JSON.stringify(L._pc||null); if(allS[k]) { if(L._pc){ delete L._pc[o.pid]; if(!Object.keys(L._pc).length) delete L._pc; } } else pcSaveTo(L, "bz", k, o.pid); if(JSON.stringify(L._pc||null)!==b4) chd=true; });
       if(expCh){ const part = ev===""||isNaN(+ev) ? "" : (i===G.length-1 ? left : r2(+ev*(rb?revs[i]/rb:1/G.length))); if(part!=="") left=r2(left-part); dc.expense = part===""||!(+part)?"":String(part); chd=true; }
+      /* «Бесплатно» у товара комплекта — во всех его накладных */
+      BZ.rows.forEach(o=>{ if(!o.docs.includes(j.id) || !o.zfOk) return; const on=zfOn("bz",o.k), had=!!(L._free||{})[o.pid];
+        if(on){ if(!had || o.pid in L){ delete L[o.pid]; if(L._pc){ delete L._pc[o.pid]; if(!Object.keys(L._pc).length) delete L._pc; } L._free=Object.assign({}, L._free||{}, {[o.pid]:"1"}); if(L._src) delete L._src; chd=true; } }
+        else if(had){ zfDel(L, o.pid); chd=true; } });
       if(chd){ dc.lines=JSON.stringify(L); dirty("doccosts", dc.id); nDoc++; } });
     if(!nDoc && !rep){ $("#bz-msg").textContent="Изменений нет."; return; }
     saveLocal(); const cost=r2(G.reduce((x,j)=>x+docProfit(j).cost,0)), prof=r2(G.reduce((x,j)=>x+docProfit(j).profit,0));
@@ -7853,7 +7892,7 @@ function appGo(t){ const nav=document.querySelector("#fd-app nav.tabs"); if(!nav
   if(A || /Android/i.test(navigator.userAgent||"")){ c.hidden=false; g.hidden=false;
     t.textContent = A ? "У вас старая версия приложения — в ней нет уведомлений и виджета. Скачайте новую и установите поверх старой (входить заново не нужно), потом откройте её и зайдите сюда снова."
       : "Уведомления на телефон и виджет «Расход · Доход · Личное» работают в приложении «Документы ФД». Скачайте его и установите."; } })();
-window.__fd = {prNorm:v=>prNorm(v), getPrice:(c,p)=>getPrice(c,p), shipSim:(a,b)=>shipSim(a,b), shipElsewhere:(c,b,a)=>shipElsewhere(c,b,a), acct:()=>({url:API_URL, user:curUser()||"", key:pass()||"", admin:!!me().admin}), quick:appQuick, go:appGo, D:()=>D, undo:(r)=>unApply(curTab,!!r), undoState:()=>UNDO, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, aiSrc, IMP:()=>IMP, patchNmic, docProfit, payOf, setPay, calm:fdCalm};
+window.__fd = {prNorm:v=>prNorm(v), getPrice:(c,p)=>getPrice(c,p), shipSim:(a,b)=>shipSim(a,b), shipElsewhere:(c,b,a)=>shipElsewhere(c,b,a), acct:()=>({url:API_URL, user:curUser()||"", key:pass()||"", admin:!!me().admin}), quick:appQuick, go:appGo, D:()=>D, undo:(r)=>unApply(curTab,!!r), undoState:()=>UNDO, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, aiSrc, IMP:()=>IMP, patchNmic, docProfit, payOf, setPay, calm:fdCalm, zkJState:j=>zkJState(j), pcdData:id=>pcdData(id)};
 })();
 </script>
 <!-- ============ конец блока ============ -->
