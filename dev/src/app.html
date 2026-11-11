@@ -1428,6 +1428,9 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .pvbar{height:5px;border-radius:9px;background:var(--bg);overflow:hidden}#fd-app .pvbar i{display:block;height:100%;border-radius:9px;background:var(--ok);opacity:.75;animation:pvgrow .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--d) + .15s);transform-origin:left}
 @keyframes pvgrow{0%{transform:scaleX(0)}}
 #fd-app .pvcs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0}#fd-app .pvcs dt{font-size:11px;color:var(--muted)}#fd-app .pvcs dd{margin:0;font-size:13.5px;font-weight:500}
+#fd-app .pvidle-h{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:10px 2px 0;font-size:13px;color:var(--muted);font-weight:600}#fd-app .pvidle-h::after{content:"";flex:1;height:1px;background:var(--line)}#fd-app .pvidle-h i{font-style:normal;font-weight:600;font-size:11.5px;padding:1px 8px;border-radius:99px;background:rgba(28,34,32,.06)}
+#fd-app .pvcus.idle{padding:11px 14px;gap:0;background:rgba(255,255,255,.55);animation:none}#fd-app .pvcus.idle .pvcn b{font-weight:600}#fd-app .pvcus.idle .pvava{opacity:.7}
+#fd-app .pvempty.sm{grid-column:1/-1;padding:14px}
 #fd-app .pvgo{position:absolute;right:14px;bottom:12px;font-size:12px;color:var(--accent);opacity:0;transform:translateX(-4px);transition:opacity .18s,transform .18s}#fd-app .pvcus:hover .pvgo{opacity:1;transform:none}
 #fd-app .pvempty{grid-column:1/-1;display:grid;justify-items:center;gap:4px;padding:30px 10px;color:var(--muted);text-align:center;animation:fdin .3s ease}#fd-app .pvempty .pvi.big{width:34px;height:34px;color:var(--muted);opacity:.7}#fd-app .pvempty b{color:var(--ink)}
 /* окно заказчика */
@@ -4260,18 +4263,19 @@ $("#cal-pdf").onclick=async()=>{ const docs=calDocs(CAL().sel, CAL().cus).sort(j
   catch(e){ toast("err","Не получилось сделать PDF", e.message+". Попробуйте ещё раз."); } finally{ b.disabled=false; b.textContent=t0; } };
 
 /* ================= прибыль (только администратор) ================= */
-let pfLoaded=false, pfOpen=new Set(), pfPrev=[];
+let pfLoaded=false, pfOpen=new Set(), pfPrev=[], pfAt=0;
 const PF = () => (D.pf = D.pf || {per:"month", sup:"", cus:"", from:"", to:""});
 const pfArr = k => (D[k] = Array.isArray(D[k]) ? D[k] : []);
 async function loadProfit(quiet){
   if(!me().admin) return;
-  try{ if(hasPending()) await flush(); const j=await api({action:"profit"}); if(hasPending()||syncBlocked)return; rememberBase(j); D.costs=j.costs||[]; D.doccosts=j.doccosts||[]; D.psettings=j.psettings||[]; if(Array.isArray(j.purchases)) zkMerge(j.purchases); else D.zkSrv=false; poMerge(j.pother); dbMerge(j.debts); pfLoaded=true; saveLocal(); $("#pf-msg").textContent=""; if(!quiet) toast("ok","Данные о прибыли обновлены",""); }
+  try{ if(hasPending()) await flush(); const j=await api({action:"profit"}); if(hasPending()||syncBlocked)return; rememberBase(j); D.costs=j.costs||[]; D.doccosts=j.doccosts||[]; D.psettings=j.psettings||[]; if(Array.isArray(j.purchases)) zkMerge(j.purchases); else D.zkSrv=false; poMerge(j.pother); dbMerge(j.debts); pfLoaded=true; pfAt=Date.now(); saveLocal(); $("#pf-msg").textContent=""; if(!quiet) toast("ok","Данные о прибыли обновлены",""); }
   catch(e){ $("#pf-msg").textContent = /unknown action/.test(e.message) ? "Чтобы прибыль сохранялась в таблицу, обновите скрипт таблицы (новая версия). Пока данные хранятся только на этом устройстве." : "Не получилось загрузить: "+e.message; pfLoaded=true; }
   if(curTab==="profit") drawProfit();
   if(curTab==="purchase"){ drawPurchase(); drawHist(); zkpDraw(); }
   if(quiet) fdCalm();
 }
-function renderProfit(){ if(!me().admin) return; pfMarkSeen(); if(!pfLoaded){ $("#pf-msg").textContent="Загружаю…"; loadProfit(true); } drawProfit(); }
+/* «Прибыль» всегда свежая: закупки и оплаты с других устройств подтягиваются сами, если открыли вкладку спустя 2+ минуты */
+function renderProfit(){ if(!me().admin) return; pfMarkSeen(); if(!pfLoaded){ $("#pf-msg").textContent="Загружаю…"; loadProfit(true); } else if(Date.now()-pfAt>120000 && online()){ pfAt=Date.now(); loadProfit(true); } drawProfit(); }
 const taxOf = sid => { const x=pfArr("psettings").find(y=>y.id===sid); return x && x.tax!=="" && x.tax!=null && !isNaN(+x.tax) ? +x.tax : 8; };
 /* ---- связанные товары (одно и то же под разными названиями, поле grp = ID основного): быстрый указатель для расчётов ----
    объявлено здесь (функциями), чтобы работало и до загрузки dev/src/pcd_seg.js */
