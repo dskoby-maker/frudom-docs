@@ -310,6 +310,8 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-fresh .fi{flex:none;width:18px;height:18px;display:grid;place-items:center;color:#2f7d4f}
 #fd-fresh .sp{width:14px;height:14px;border-radius:50%;border:2px solid #e6e0d8;border-top-color:#5b2a48;animation:fdspin .8s linear infinite}
 #fd-fresh[data-s="warn"] .fi{color:#c27a0e}
+#fd-fresh{--c:#2f7d4f}#fd-fresh[data-s="warn"]{--c:#c27a0e}#fd-fresh[data-s="load"]{--c:#5b2a48}#fd-fresh[data-s="err"]{--c:#c2402f}
+#fd-fresh.row{padding:6px 10px 6px 10px;border-radius:999px}#fd-fresh.row .ft span{display:inline;margin-left:6px}#fd-fresh.row .ft b{display:inline}
 #fd-fresh .ft{flex:1;min-width:0}#fd-fresh .ft b{display:block;font-weight:600}#fd-fresh .ft span{display:block;color:#7a736a;font-size:12px}
 #fd-fresh .fb{flex:none;border:1px solid #5b2a48;color:#5b2a48;background:#fff;border-radius:8px;padding:5px 10px;font:600 12.5px inherit;font-family:inherit;cursor:pointer}#fd-fresh .fb:hover{background:#5b2a48;color:#fff}
 #fd-fresh .fx{flex:none;border:0;background:none;color:#8a847b;font-size:18px;line-height:1;cursor:pointer;padding:2px 4px;border-radius:6px}#fd-fresh .fx:hover{background:#f2efe9;color:#1f1d1a}
@@ -1810,6 +1812,12 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
 }
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){#fd-app dialog.dcard,#fd-toasts .fd-toast{background:rgba(255,255,255,.96)}#fd-app header.top::before{background:#F2F3EF}}
 @media (prefers-reduced-transparency:reduce){#fd-app .card,#fd-app dialog.dcard,#fd-toasts .fd-toast{background:#fff;-webkit-backdrop-filter:none;backdrop-filter:none}#fd-app header.top::before{background:#F2F3EF;-webkit-backdrop-filter:none;backdrop-filter:none}}
+/* мягкая цветная подсветка позади уведомлений — по смыслу: зелёная (готово), жёлтая (внимание), красная (ошибка), сливовая (сведения, загрузка) */
+#fd-toasts .fd-toast,#fd-fresh{background:linear-gradient(135deg,color-mix(in srgb,var(--c) 13%,rgba(255,255,255,.9)) 0%,rgba(255,255,255,.9) 62%);border-color:color-mix(in srgb,var(--c) 24%,rgba(255,255,255,.7));box-shadow:inset 0 1px 0 #fff,0 0 0 1px color-mix(in srgb,var(--c) 10%,transparent),0 16px 38px -14px color-mix(in srgb,var(--c) 60%,transparent),0 0 34px -6px color-mix(in srgb,var(--c) 34%,transparent)}
+#fd-fresh{border:1px solid color-mix(in srgb,var(--c) 24%,#fff);-webkit-backdrop-filter:blur(16px) saturate(1.6);backdrop-filter:blur(16px) saturate(1.6)}
+#fd-toasts .fd-toast.in,#fd-fresh.in{animation:fdglow 1.6s ease-out .1s 1 both}
+@keyframes fdglow{0%{filter:drop-shadow(0 0 0 transparent)}35%{filter:drop-shadow(0 0 10px color-mix(in srgb,var(--c) 45%,transparent))}100%{filter:drop-shadow(0 0 0 transparent)}}
+@media(prefers-reduced-motion:reduce){#fd-toasts .fd-toast.in,#fd-fresh.in{animation:none}}
 @media (prefers-reduced-motion:reduce){#fd-app section.tab:not([hidden])>.card{animation:none}#fd-app .btn,#fd-app nav.tabs button,#fd-app .card{transition:none}#fd-app .btn:active,#fd-app nav.tabs button:active{transform:none}}
 @media print{#fd-app::before,#fd-app header.top::before{display:none}#fd-app .card{box-shadow:none}}
 #fd-app .pdnm{display:flex;gap:6px;align-items:center}#fd-app .pdnm input{flex:1;min-width:0}
@@ -2718,8 +2726,14 @@ const FR={el:null, t:0, busy:false, first:true, at:+(lsGet("frudom-lastpull")||0
 function frWhen(ms){ if(!ms) return ""; const d=new Date(ms), hm=d.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}), m=Math.round((Date.now()-ms)/60000);
   const day = d.toDateString()===new Date().toDateString() ? hm : d.toLocaleDateString("ru-RU",{day:"numeric",month:"short"})+", "+hm;
   return day+(m>=1 && m<60 ? " ("+m+" мин назад)" : ""); }
+/* окошко «Данные обновлены» не закрывает вкладки: на широком экране — в строке шапки слева от «Сохранено в таблице»,
+   если там тесно (телефон, длинный текст) — под шапкой, над страницей */
 function frPlace(){ const el=FR.el, st=$("#fd-status"); if(!el||!st) return; const r=st.getBoundingClientRect(); if(!r.height) return;
-  const nar=innerWidth<640; el.style.top=Math.max(12, r.bottom+8)+"px"; el.style.right=(nar?16:Math.max(16, innerWidth-r.right))+"px"; el.style.left=nar?"16px":""; el.style.maxWidth=nar?"none":""; }
+  const nar=innerWidth<640, br=document.querySelector("#fd-app header.top .brand"), tx=br && [...br.querySelectorAll(":scope>b,:scope>.sub,:scope>.mtitle")].filter(x=>x.getBoundingClientRect().width).map(x=>x.getBoundingClientRect().right);
+  const free=r.left-Math.max(0,...(tx||[0]))-28; el.style.maxWidth=""; el.style.left=""; el.classList.remove("row");
+  if(!nar && free>=el.offsetWidth){ el.classList.add("row"); el.style.right=(innerWidth-r.left+10)+"px"; el.style.top=Math.max(8, r.top+r.height/2-el.offsetHeight/2)+"px"; return; }
+  const hd=document.querySelector("#fd-app header.top"), hb=hd?hd.getBoundingClientRect().bottom:r.bottom;
+  el.style.top=Math.max(12, Math.min(hb, innerHeight*0.5)+10)+"px"; el.style.right=(nar?16:Math.max(16, innerWidth-r.right))+"px"; el.style.left=nar?"16px":""; el.style.maxWidth=nar?"none":""; }
 function frShow(kind, title, sub, ms){ let el=FR.el; if(!el){ el=FR.el=document.createElement("div"); el.id="fd-fresh"; el.setAttribute("role","status"); el.setAttribute("aria-live","polite"); document.body.appendChild(el);
     el.addEventListener("click",e=>{ if(e.target.closest(".fb")){ frHide(); if(online()) pull(true); } else if(e.target.closest(".fx")) frHide(); }); }
   clearTimeout(FR.t); el.dataset.s=kind;
