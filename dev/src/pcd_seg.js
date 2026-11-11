@@ -41,8 +41,8 @@ function pcdData(id){ const M=pgMembers(id), ids=new Set(M.map(x=>x.id)), adm=!!
     let x=null, k=null; try{ if(adm && typeof docProfit==="function") x=docProfit(j); else k=calc(j.snap.dr, j.snap); }catch(e){ return; }
     const rows = x ? x.lines : k.lines.map(l=>({l})); const who=jWho(j).main;
     rows.forEach(r=>{ const l=r.l; if(!ids.has(l.pid) || !(l.qty>0)) return; const un=l.unit||(prod(l.pid)||{}).unit||"";
-      sales.push({d:j.date, j, pid:l.pid, name:l.name||(prod(l.pid)||{}).name||"", unit:un, qty:l.qty, price:l.priceNet, sum:l.net, cus:who, cid:j.customerId, c: x&&!x.src ? r.c : null});
-      if(x && !x.src && r.own && !r.sk && r.c!=null) buys.push({d:j.date, p:+r.c, u:un, q:r.bq||l.qty, src:"накл. № "+j.number+" · "+who, jid:j.id, pid:l.pid}); }); });
+      sales.push({d:j.date, j, pid:l.pid, name:l.name||(prod(l.pid)||{}).name||"", unit:un, qty:l.qty, price:l.priceNet, sum:l.net, cus:who, cid:j.customerId, c: x&&!x.src&&!r.free ? r.c : null});
+      if(x && !x.src && r.own && !r.sk && !r.free && r.c!=null) buys.push({d:j.date, p:+r.c, u:un, q:r.bq||l.qty, src:"накл. № "+j.number+" · "+who, jid:j.id, pid:l.pid}); }); });
   if(adm){ pfArr("costs").forEach(e=>{ if(!ids.has(e.productId) || !(+e.price>0)) return; const p=prod(e.productId)||{};
       buys.push({d:e.from||"", p:+e.price, u:p.unit||"", q:0, src:"«Закупочные цены»"+(e.customerId?" · для "+(cus(e.customerId).name||""):""), pid:e.productId, said:e.note==="Закупка Саида"}); }); }
   const items=[]; try{ M.forEach(p=>{ const it=skItemOf(p.id); if(it && !items.some(x=>x.id===it.id)) items.push(it); }); }catch(e){}
