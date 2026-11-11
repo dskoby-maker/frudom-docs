@@ -255,6 +255,13 @@
 #fd-app .line{display:grid;grid-template-columns:26px minmax(0,1fr) 90px 44px 110px 110px 36px;gap:8px;align-items:center}
 #fd-app .line .ln{width:24px;height:24px;border-radius:50%;background:var(--soft,#f1ece6);color:var(--accent);font:600 12px/24px var(--ui,inherit);text-align:center;justify-self:center;transition:background .15s,color .15s}
 #fd-app .line:focus-within .ln{background:var(--accent);color:#fff}
+#fd-app .line .ln.lng{display:grid;place-items:center;padding:0;border:0;cursor:grab;touch-action:none;position:relative}#fd-app .line .ln.lng b{font:inherit;transition:opacity .15s}#fd-app .line .ln.lng svg{position:absolute;width:9px;height:13px;fill:currentColor;opacity:0;transition:opacity .15s}
+#fd-app .line .ln.lng:hover b,#fd-app .line .ln.lng:focus-visible b,#fd-app .line.dragging .ln.lng b{opacity:0}#fd-app .line .ln.lng:hover svg,#fd-app .line .ln.lng:focus-visible svg,#fd-app .line.dragging .ln.lng svg{opacity:1}
+#fd-app .line .ln.lng:hover{background:var(--accent-soft,#F2E7ED)}#fd-app .line .ln.lng:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#fd-app .line.dragging{position:relative;z-index:5;background:#fff;border-radius:12px;box-shadow:0 0 0 6px #fff,0 0 0 7px rgba(106,44,78,.14),0 18px 34px -12px rgba(48,32,44,.45)}#fd-app .line.dragging .ln.lng{background:var(--accent);color:#fff;cursor:grabbing}
+@media (pointer:coarse){#fd-app .line .ln.lng::after{content:"";position:absolute;inset:-10px}}
+#fd-app .line.drop{transition:transform .2s cubic-bezier(.2,.7,.2,1),box-shadow .2s}
+body.lndrag,body.lndrag *{cursor:grabbing!important;user-select:none!important;-webkit-user-select:none!important}
 #fd-app .line .pc{display:flex;gap:6px;align-items:center;min-width:0;position:relative}#fd-app .line .pc select{flex:1;min-width:0}
 #fd-app .line .pc .ps{flex:1;min-width:0}#fd-app .line .pc .ps.empty{border-style:dashed}
 #fd-app .psm{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:30;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 28px rgba(0,0,0,.14);max-height:320px;overflow:auto;padding:4px 0}
@@ -3012,7 +3019,7 @@ function renderLines(){
     dr.lines.map((l,i)=>{ const p=prod(l.productId), custom=l.productId && +l.price!==getPrice(dr.customerId,l.productId);
       const named=!!(l.name&&String(l.name).trim()), canEd=!ro && !!p, showN=named||l.edName;
       const dup=dupAt[i];
-      return `<div class="line${named?" named":""}${dup?" dup":""}" data-i="${i}"><span class="ln">${i+1}</span><div class="pc"><input class="ps${p?"":" empty"}" value="${esc(p?p.name:"")}" placeholder="Начните вводить название товара" autocomplete="off" aria-label="Товар"${qo?" readonly":""}>${p && pdSame(p) ? `<span class="pdcl pdcl-l" title="Одинаковое название у нескольких товаров — уточнение только на экране, в документ идёт название как есть">${esc(pdSame(p))}</span>`:""}${canEd?`<button type="button" class="ed${showN?" on":""}" title="Изменить название в этом документе" aria-label="Изменить название">✎</button>`:""}${skLineBtn(i)}</div>
+      return `<div class="line${named?" named":""}${dup?" dup":""}" data-i="${i}">${lnGrip(i, !ro && dr.lines.length>1)}<div class="pc"><input class="ps${p?"":" empty"}" value="${esc(p?p.name:"")}" placeholder="Начните вводить название товара" autocomplete="off" aria-label="Товар"${qo?" readonly":""}>${p && pdSame(p) ? `<span class="pdcl pdcl-l" title="Одинаковое название у нескольких товаров — уточнение только на экране, в документ идёт название как есть">${esc(pdSame(p))}</span>`:""}${canEd?`<button type="button" class="ed${showN?" on":""}" title="Изменить название в этом документе" aria-label="Изменить название">✎</button>`:""}${skLineBtn(i)}</div>
         <input class="qty" inputmode="decimal" placeholder="0" value="${esc(l.qty)}" aria-label="Количество">${l.newP&&p&&!ro?`<select class="unit nu" aria-label="Единица">${skDocUnits(p.unit).map(u=>`<option${u===p.unit?" selected":""}>${esc(u)}</option>`).join("")}<option value="__new">+ своя…</option></select>`:`<span class="unit">${p?esc(p.unit):""}</span>`}
         <input class="price${custom?" custom":""}" inputmode="decimal" placeholder="0,00" value="${esc(l.price)}" aria-label="Цена"${ro?" readonly tabindex=\"-1\"":""}>
         <span class="sum">${fm(r2((+l.qty||0)*(+l.price||0)))}</span><button class="x" aria-label="Удалить строку"${qo?" hidden":""}>×</button>${dup?`<div class="dupnote" role="note">Эта позиция уже есть в строке № ${dup.join(", ")} — проверьте, не задвоилась ли. Документ сохранить можно.</div>`:""}<div class="ctrnote" role="note" hidden></div>${showN&&p?`<div class="lname"><span>В документе:</span><input class="nmx" value="${esc(named?l.name:p.name)}" aria-label="Название в документе"${ro?" readonly":""}>${ro?"":`<button type="button" class="btn ghost sm" data-nmreset>Как в справочнике</button><button type="button" class="btn ghost sm" data-nmglob>Сохранить в справочник</button>`}</div>`:""}${l.auto?`<div class="lnote${l.autoEd?" ed":""}">${l.autoEd?"Исправлено вручную — сайт запомнит новый вес (в заявке «"+esc(l.pack&&l.pack.t||"")+"»)":"⚠ "+packAutoHtml(l,p)}</div>`:l.pack&&!(+l.qty>0)?`<div class="lnote">В заявке «${esc(l.pack.t)}» — впишите вес, сайт запомнит, сколько весит 1 ${esc(l.pack.u)}</div>`:""}${skLineNote(i)}</div>`; }).join("");
@@ -3021,6 +3028,42 @@ function renderLines(){
   $("#d-pricehint").textContent = !dr.customerId ? "выберите заказчика — подставлю его цены" : n ? "цены из прайса заказчика ("+n+" поз.)" : "у заказчика нет своего прайса — базовые цены";
   renderTotals();
 }
+/* ---------- перестановка строк документа: потянуть за номер строки (как «Строки счёта») ---------- */
+function lnGrip(i, on){ if(!on) return `<span class="ln">${i+1}</span>`;
+  return `<button type="button" class="ln lng" data-lngrip aria-label="Строка ${i+1}: переставить (потяните или стрелки ↑↓)" title="Потяните, чтобы переставить строку"><b>${i+1}</b><svg viewBox="0 0 12 16" aria-hidden="true"><circle cx="3.5" cy="3" r="1.4"/><circle cx="8.5" cy="3" r="1.4"/><circle cx="3.5" cy="8" r="1.4"/><circle cx="8.5" cy="8" r="1.4"/><circle cx="3.5" cy="13" r="1.4"/><circle cx="8.5" cy="13" r="1.4"/></svg></button>`; }
+const lnRM = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+const lnRows = () => [...document.querySelectorAll("#d-lines > .line[data-i]")];
+function lnMove(from, to, focus){ const L=D.draft&&D.draft.lines; if(!L || from===to || to<0 || to>=L.length) return; L.splice(to,0,L.splice(from,1)[0]);
+  saveLocal(); renderLines(); if(focus){ const g=document.querySelector(`#d-lines .line[data-i="${to}"] [data-lngrip]`); g&&g.focus(); } }
+let LNDG=null;
+document.addEventListener("pointerdown", e=>{ const g=e.target.closest&&e.target.closest("#d-lines [data-lngrip]"); if(!g || e.button>0) return;
+  e.preventDefault(); if(typeof psClose==="function") psClose(); const ae=document.activeElement; if(ae && ae.closest && ae.closest("#d-lines")) ae.blur();
+  const row=g.closest(".line"), rows=lnRows(), from=rows.indexOf(row); if(from<0 || rows.length<2) return;
+  const R=rows.map(r=>r.getBoundingClientRect()), gap=Math.max(0,R[1].top-R[0].bottom);
+  LNDG={g, row, rows, from, to:from, R:R.map(r=>({top:r.top+scrollY, h:r.height})), y0:e.clientY+scrollY, cy:e.clientY, id:e.pointerId, gap};
+  try{ g.setPointerCapture(e.pointerId); }catch(x){}
+  row.classList.add("dragging"); document.body.classList.add("lndrag");
+  rows.forEach(r=>{ if(r!==row) r.style.transition="transform .22s cubic-bezier(.2,.7,.2,1)"; });
+  lnDgLoop(); });
+function lnDgPlace(){ const G=LNDG; if(!G) return; const dy=G.cy+scrollY-G.y0, me=G.R[G.from], top=me.top+dy, bot=top+me.h, sh=me.h+G.gap;
+  /* место — по переднему краю строки: вверх — её верх выше середины соседней, вниз — низ ниже середины (строки бывают высокими) */
+  let to=G.from; G.R.forEach((r,i)=>{ if(i<G.from && top<r.top+r.h/2) to=Math.min(to,i); if(i>G.from && bot>r.top+r.h/2) to=Math.max(to,i); });
+  G.to=to; G.row.style.transform=`translateY(${dy}px) scale(1.01)`;
+  G.rows.forEach((r,i)=>{ if(i===G.from) return; const s2=(G.from<to && i>G.from && i<=to) ? -sh : (G.from>to && i>=to && i<G.from) ? sh : 0; r.style.transform=s2?`translateY(${s2}px)`:""; }); }
+function lnDgLoop(){ const G=LNDG; if(!G) return; if(Math.abs(G.cy+scrollY-G.y0)>6) G.mv=1;
+  const hd=document.querySelector("header.top"), top=hd?Math.max(0,hd.getBoundingClientRect().bottom):0, bot=innerHeight-(parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--mbh"))||0), edge=G.mv?70:-1e4;
+  let v=0; if(G.cy<top+edge) v=-Math.ceil((top+edge-G.cy)/6); else if(G.cy>bot-edge) v=Math.ceil((G.cy-(bot-edge))/6); if(v) scrollBy(0, Math.max(-18,Math.min(18,v)));
+  lnDgPlace(); G.raf=requestAnimationFrame(lnDgLoop); }
+document.addEventListener("pointermove", e=>{ if(!LNDG || e.pointerId!==LNDG.id) return; e.preventDefault(); LNDG.cy=e.clientY; }, {passive:false});
+function lnDgEnd(e, cancel){ const G=LNDG; if(!G || (e && e.pointerId!==G.id)) return; LNDG=null; cancelAnimationFrame(G.raf); document.body.classList.remove("lndrag");
+  const to=cancel?G.from:G.to, fin=()=>{ G.rows.forEach(r=>{ r.style.transition=""; r.style.transform=""; }); G.row.classList.remove("dragging","drop"); if(to!==G.from) lnMove(G.from, to); };
+  if(to===G.from){ G.row.classList.add("drop"); G.row.style.transform=""; G.rows.forEach(r=>{ r.style.transform=""; }); setTimeout(fin, lnRM()?0:200); return; }
+  let off=0; if(to>G.from){ for(let i=G.from+1;i<=to;i++) off+=G.R[i].h+G.gap; } else { for(let i=to;i<G.from;i++) off-=G.R[i].h+G.gap; }
+  G.row.classList.add("drop"); G.row.style.transform=`translateY(${off}px)`; setTimeout(fin, lnRM()?0:200); }
+document.addEventListener("pointerup", e=>lnDgEnd(e)); document.addEventListener("pointercancel", e=>lnDgEnd(e, true));
+document.addEventListener("keydown", e=>{ if(LNDG && e.key==="Escape"){ e.preventDefault(); lnDgEnd(null, true); return; }
+  const g=e.target.closest&&e.target.closest("#d-lines [data-lngrip]"); if(!g || !["ArrowUp","ArrowDown"].includes(e.key)) return; e.preventDefault();
+  const i=+g.closest(".line").dataset.i; lnMove(i, i+(e.key==="ArrowUp"?-1:1), true); });
 /* повторы одной позиции в документе: номер строки → номера других строк с тем же товаром */
 function dupLines(lines){ const by={}, out={}; (lines||[]).forEach((l,i)=>{ if(l.productId) (by[l.productId]=by[l.productId]||[]).push(i); });
   Object.values(by).forEach(a=>{ if(a.length>1) a.forEach(i=>{ out[i]=a.filter(j=>j!==i).map(j=>j+1); }); }); return out; }
