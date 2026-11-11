@@ -192,11 +192,11 @@ async function zkxSave(a, b){
       x.lines.forEach(r=>{ const l=r.l, sk=r.sk;
         let from="Закупка", bq=r.bq||l.qty, cu=r.c, cs=r.c!=null?r2(r.c*(r.bq||l.qty)):null;
         if(sk){ from = sk.directQ>0 ? `Часть со склада (${fm(sk.stockQ)} ${l.unit})` : "Со склада"; bq=l.qty; cs=r.c!=null?r2(r.c*l.qty):null; cu=r.c; }
-        if(x.src){ from="Одной суммой"; cu=null; cs=null; bq=null; }
+        if(x.src && !(x.oneTop>0 && r.own && !sk && !r.free)){ from="Одной суммой"; cu=null; cs=null; bq=null; }
         else if(r.free){ from="Бесплатно"; cu=0; cs=0; }
         const prof = cs!=null ? r2(l.net-cs) : null;
         R.push([fd(j.date), who, String(j.number||""), ip, l.name, l.unit, l.qty, l.priceNet, l.net, from, bq, cu, cs, prof]);
-        if(cs!=null && !x.src && !r.free){ const k=l.name.trim().toLowerCase()+"|"+l.unit, g=G.get(k)||{n:l.name, u:l.unit, q:0, s:0, sold:0, rev:0, d:0}; g.q+=+bq||0; g.s+=cs; g.sold+=l.qty; g.rev+=l.net; g.d++; G.set(k,g); } });
+        if(cs!=null && (!x.src || x.oneTop>0 && r.own && !sk) && !r.free){ const k=l.name.trim().toLowerCase()+"|"+l.unit, g=G.get(k)||{n:l.name, u:l.unit, q:0, s:0, sold:0, rev:0, d:0}; g.q+=+bq||0; g.s+=cs; g.sold+=l.qty; g.rev+=l.net; g.d++; G.set(k,g); } });
       N.push([fd(j.date), who, String(j.number||""), ip, x.rev, x.cost, x.exp, x.tax, x.profit, x.rev>0?r2(x.profit/x.rev*100)/100:null, stTxt(st), x.src?"одной суммой: "+x.src.map(s=>s.n+" "+fm(+s.s||0)).join(", "):x.miss?"не у всех товаров есть цена закупки":"по товарам"]); });
     const sum=(A,i)=>r2(A.reduce((s,r)=>s+(+r[i]||0),0));
     const head=t=>[["Закупка — "+t+" — "+per],[]];
