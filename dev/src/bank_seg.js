@@ -112,8 +112,11 @@ function bnMerge(list){ const B=BNK(), del=new Set(B.mdel||[]), L=(list||[]).fil
   B.ops=L.sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0); }
 /* «Это не оплата накладных» запоминается по ИНН плательщика; переводы от своих ИП — всегда не накладные */
 const bnOwnInn = () => new Set(D.suppliers.map(x=>bnDigits(x.inn)).filter(Boolean));
-function bnSkipWhy(op){ const inn=bnDigits(op.payerInn); if(!inn) return "";
-  if(bnOwnInn().has(inn)) return "Перевод от своего ИП — сайт сам относит такие платежи к «Не накладные»";
+const BN_OWN_RX = /перевод\s+(собственных|своих|личных)\s+(денежных\s+)?средств|собственных\s+средств|между\s+своими\s+сч[её]тами|пополнение\s+(своего\s+)?сч[её]та\s+собственными/i;
+function bnSkipWhy(op){ const inn=bnDigits(op.payerInn);
+  if(inn && bnOwnInn().has(inn)) return "Перевод от своего ИП — сайт сам относит такие платежи к «Не накладные»";
+  if(BN_OWN_RX.test(String(op.purpose||""))) return "Перевод собственных средств — это не оплата, сайт сам относит такие платежи к «Не накладные»";
+  if(!inn) return "";
   return (getPrefs().bnSkip||{})[inn] ? "Запомнено: платежи от этого плательщика — не оплата накладных" : ""; }
 async function bnSync(quiet){
   if(bnBusy || !online() || !bnOk() || !me().admin) return; bnBusy=true; const B=BNK();

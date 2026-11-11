@@ -476,6 +476,8 @@ function bank_(p, me) {
    p.kinds — «bank,debt,staff,tasks»; p.evAfter — время последнего уже показанного события (yyyyMMddHHmmss). */
 function notesIso_(s) { s = String(s || '').trim(); const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})/); return m ? m[3] + '-' + m[2] + '-' + m[1] : s.slice(0, 10); }
 function notesEvKey_(at) { const m = String(at || '').match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2}):?(\d{2})?/); return m ? m[3] + m[2] + m[1] + m[4] + m[5] + (m[6] || '00') : ''; }
+/* назначение платежа «перевод собственных средств» и похожие — деньги самому себе, это не оплата */
+const OWN_RX_ = /перевод\s+(собственных|своих|личных)\s+(денежных\s+)?средств|собственных\s+средств|между\s+своими\s+сч[её]тами|пополнение\s+(своего\s+)?сч[её]та\s+собственными/i;
 function notes_(p, me) {
   const want = {}; String(p.kinds || 'bank,debt,staff,tasks').split(',').forEach(k => want[k.trim()] = 1);
   const tz = Session.getScriptTimeZone() || 'Europe/Moscow', today = Utilities.formatDate(new Date(), tz, 'yyyy-MM-dd');
@@ -484,7 +486,10 @@ function notes_(p, me) {
   if (want.bank && me.admin) {
     try { if (p.sync) bankSync_(null); } catch (e) {}
     const from = new Date(); from.setDate(from.getDate() - 4); const f = Utilities.formatDate(from, tz, 'yyyy-MM-dd');
-    read_('bankops').filter(r => notesIso_(r.date) >= f && +r.sum > 0).slice(-40).forEach(r =>
+    // переводы самому себе (с ИНН своего ИП или «перевод собственных средств») — не уведомлять
+    const ownInn = {}; read_('suppliers').forEach(x => { const d = String(x.inn || '').replace(/\D/g, ''); if (d) ownInn[d] = 1; });
+    const own = r => !!ownInn[String(r.payerInn || '').replace(/\D/g, '')] || OWN_RX_.test(String(r.purpose || ''));
+    read_('bankops').filter(r => notesIso_(r.date) >= f && +r.sum > 0 && !own(r)).slice(-40).forEach(r =>
       items.push({ t: 'bank', id: 'bank-' + r.id, title: 'Пришли деньги: ' + money(r.sum), text: (r.payerName || 'плательщик не указан') + (r.supplierName ? ' → ' + r.supplierName : '') + (r.purpose ? '. ' + String(r.purpose).slice(0, 140) : ''), go: 'profit' }));
   }
   const payMap = () => { const pay = {}; read_('doccosts').forEach(r => { try { const l = JSON.parse(r.lines || '{}'); if (l && l._pay) pay[r.id] = +l._pay.s || 0; } catch (x) {} }); return pay; };
