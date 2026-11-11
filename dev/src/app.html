@@ -2150,8 +2150,8 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
       <div class="jf">
         <label class="f">Поставщик<select id="dv-sup"></select></label>
       </div>
-      <div class="row"><label class="chk"><input type="checkbox" id="dv-full">Подробно — для наёмного водителя (Яндекс Доставка, Достависта): телефоны, время приёмки, въезд, документы</label></div>
-      <div class="row"><label class="chk"><input type="checkbox" id="dv-load" checked>Добавить «Загрузить всего» — сколько каждого товара взять со склада</label></div>
+      <div class="row"><label class="chk"><input type="checkbox" id="dv-full">Подробно — для наёмного водителя (Яндекс Доставка, Достависта): телефоны, условия и время приёмки, въезд, документы</label></div>
+      <div class="row"><label class="chk"><input type="checkbox" id="dv-load">Добавить «Загрузить всего» — сколько каждого товара взять со склада</label></div>
       <div id="dv-points"></div>
       </div></div>
     </div>
@@ -3888,7 +3888,7 @@ $("#o-done").addEventListener("click",e=>{ const b=e.target.closest("[data-ov]")
 const ptKey = a => norm(a).replace(/[^a-zа-я0-9]/g,"");
 const ptsOf = c => { try{ const o=JSON.parse(c.points||"{}"); return o&&typeof o==="object"?o:{}; }catch(e){ return {}; } };
 const ptInfo = (cid, addr) => ptsOf(cus(cid)||{})[ptKey(addr)] || {};
-const DV = () => (D.dv = D.dv || {date:"", sup:"", phone:"", full:false, load:true});
+const DV = () => (D.dv = D.dv || {date:"", sup:"", phone:"", full:false, ld:false});
 let dvTouched=false; const dvOpen=new Set(), DV_SHOW=3;
 const ptTime = pi => { if(pi.from||pi.to) return (pi.from||"…")+"–"+(pi.to||"…"); return pi.time||""; };
 function ptFields(cid, addr){ const pi=ptInfo(cid,addr); let f=pi.from||"", to=pi.to||""; if(!f && !to && pi.time){ const m=String(pi.time).match(/(\d{1,2})[:.](\d\d)\s*[–-]\s*(\d{1,2})[:.](\d\d)/); if(m){ f=m[1].padStart(2,"0")+":"+m[2]; to=m[3].padStart(2,"0")+":"+m[4]; } }
@@ -3944,15 +3944,14 @@ function dvText(P){
       L.push(""); L.push((i+1)+". "+ptName(p)+(pi.tag?" ("+pi.tag+")":""));
       L.push("Накладная #"+p.docs.map(j=>j.number).join(", #"));
       L.push(f.full ? (pi.daddr||p.addr) : short(pi.daddr||p.addr));
-      if(pi.note) L.push(pi.note);
-      if(pi.phone||pi.contact) L.push([pi.phone,pi.contact].filter(Boolean).join(" "));
-      if(pi.phone2) L.push(pi.phone2);
+      /* коротко (по умолчанию): без условий приёмки и телефонов — они в «Подробно» и в карточке точки */
+      if(f.full){ if(pi.note) L.push(pi.note); if(pi.phone||pi.contact) L.push([pi.phone,pi.contact].filter(Boolean).join(" ")); if(pi.phone2) L.push(pi.phone2); }
       if(f.full){ if(ptTime(pi)) L.push("Приёмка: "+ptTime(pi)); L.push("Получатель: "+(p.c.name||cus(p.cid).name||"")); }
       const it={}; Object.values(p.items).forEach(x=>{ const k=itemShort(x.name); const y=it[k]=it[k]||{name:k,unit:x.unit,qty:0,st:0}; y.qty+=x.qty; y.st+=x.st||0; });
       Object.values(it).forEach(x=>L.push(x.name+" — "+qfmt(x.qty,x.unit)+(x.st>0?" (со склада "+qfmt(x.st,x.unit)+")":"")));
       if(f.full) L.push("Документы: "+p.docs.map(j=>kindsOf(j)+" #"+j.number).join("; ")+". Передать на подпись, подписанный экземпляр вернуть.");
     }); });
-  if(f.load){ const tot={}; P.forEach(p=>Object.values(p.items).forEach(x=>{ const k=itemShort(x.name); const y=tot[k]=tot[k]||{name:k,unit:x.unit,qty:0}; y.qty+=x.qty; }));
+  if(f.ld){ const tot={}; P.forEach(p=>Object.values(p.items).forEach(x=>{ const k=itemShort(x.name); const y=tot[k]=tot[k]||{name:k,unit:x.unit,qty:0}; y.qty+=x.qty; }));
     L.push(""); L.push("Загрузить всего:"); Object.values(tot).sort((a,b)=>a.name.localeCompare(b.name,"ru")).forEach(y=>L.push("• "+y.name+" — "+qfmt(y.qty,y.unit))); }
   const sph=(D.suppliers.find(s=>s.id===P[0].docs[0].supplierId)||{}).phone; if(f.full && sph) L.push("", "Вопросы по заказу: "+sph);
   return L.join("\n");
@@ -3960,7 +3959,7 @@ function dvText(P){
 function renderDriver(){
   const f=DV(); f.date=CAL().sel||todayISO();
   { const d=new Date(f.date+"T12:00:00"); $("#dv-date-lbl").textContent="на "+d.getDate()+" "+MONG[d.getMonth()]; }
-  $("#dv-sup").innerHTML=`<option value="">Все</option>`+opts(D.suppliers,f.sup); $("#dv-full").checked=!!f.full; $("#dv-load").checked=f.load!==false;
+  $("#dv-sup").innerHTML=`<option value="">Все</option>`+opts(D.suppliers,f.sup); $("#dv-full").checked=!!f.full; $("#dv-load").checked=!!f.ld;
   const P=dvPoints();
   $("#dv-count").textContent=P.length?P.length+" "+(P.length===1?"точка":P.length<5?"точки":"точек"):"";
   if(P.length) $("#dv-date-lbl").textContent+=" · "+P.length+" "+plural(P.length,["точка","точки","точек"]); dvFold();
@@ -4006,7 +4005,7 @@ $("#dv-points").addEventListener("click",e=>{ const b=e.target.closest("[data-dv
   b.closest(".dvp").querySelectorAll("li").forEach((li,n)=>{ if(n>=DV_SHOW) li.hidden=!op; });
   b.setAttribute("aria-expanded", op); b.textContent = op ? "Свернуть список" : "Раскрыть весь список (ещё "+(b.closest(".dvp").querySelectorAll("li").length-DV_SHOW)+")"; });
  $("#dv-sup").onchange=e=>dvSet("sup",e.target.value);
-$("#dv-full").onchange=e=>dvSet("full",e.target.checked); $("#dv-load").onchange=e=>dvSet("load",e.target.checked);
+$("#dv-full").onchange=e=>dvSet("full",e.target.checked); $("#dv-load").onchange=e=>dvSet("ld",e.target.checked);
 $("#dv-points").addEventListener("change",e=>{ const el=e.target; if(!el.dataset.pt) return; const r=savePt(el); if(!r) return;
   const open=[...document.querySelectorAll("#dv-points details[open] [data-addr]")].map(x=>x.dataset.addr);
   renderDriver(); document.querySelectorAll("#dv-points details").forEach(d=>{ const x=d.querySelector("[data-addr]"); if(x && open.includes(x.dataset.addr)) d.open=true; });
