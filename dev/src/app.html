@@ -2290,7 +2290,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
       </div>
       <div class="dmk-msg muted" id="d-saved"></div>
       <div class="dmk-opt">
-        <span class="dmk-pdf" data-npriv role="group" aria-label="Что войдёт в один PDF"><span class="dmk-l">Одним PDF:</span><button class="pdfk" type="button" data-pdfk="invoice" aria-pressed="false">Счёт</button><button class="pdfk" type="button" data-pdfk="torg12" aria-pressed="false">ТОРГ‑12</button><button class="pdfk" type="button" data-pdfk="upd" aria-pressed="false">УПД</button><button class="btn sm pri dmk-go" id="d-pdfgo" type="button" data-combo="invoice,torg12">Скачать PDF</button><button class="btn sm dmk-go dmk-prn" id="d-pdfprn" type="button" data-combo="invoice,torg12" data-print="1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>Печать</button></span>
+        <span class="dmk-pdf" data-npriv role="group" aria-label="Что войдёт в один PDF"><span class="dmk-l">Одним PDF:</span><button class="pdfk" type="button" data-pdfk="invoice" aria-pressed="false">Счёт</button><button class="pdfk" type="button" data-pdfk="torg12" aria-pressed="false">ТОРГ‑12</button><button class="pdfk" type="button" data-pdfk="upd" aria-pressed="false">УПД</button><button class="btn sm dmk-go dmk-prn" id="d-pdfgo" type="button" data-combo="invoice,torg12"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>Скачать PDF</button><button class="btn sm dmk-go dmk-prn" id="d-pdfprn" type="button" data-combo="invoice,torg12" data-print="1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>Печать</button></span>
         <span class="signopt"><label class="chk" id="d-signw" hidden><input type="checkbox" id="d-sign"> С печатью и подписью</label><label class="chk" id="d-scanw" hidden title="Только в скачанном PDF"><input type="checkbox" id="d-scan"> Вид скана в PDF</label></span>
         <button class="btn ghost sm dmk-new" id="d-new" type="button">Очистить форму</button>
       </div>
@@ -3899,7 +3899,7 @@ function pdfKGet(){ let a=null; try{ a=JSON.parse(localStorage.getItem("frudom-p
 function pdfKSync(){ const a=pdfKGet(), go=$("#d-pdfgo"); if(!go) return;
   document.querySelectorAll("#fd-app [data-pdfk]").forEach(b=>b.setAttribute("aria-pressed", a.includes(b.dataset.pdfk)?"true":"false"));
   go.dataset.combo=a.join(","); go.disabled=!a.length || go.textContent==="Готовлю PDF…";
-  if(go.textContent!=="Готовлю PDF…") go.textContent=!a.length?"Отметьте документы":a.length===1?"Скачать PDF":"Скачать PDF ("+a.length+")";
+  if(go.textContent!=="Готовлю PDF…") go.innerHTML=(a.length?'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>':"")+(!a.length?"Отметьте документы":a.length===1?"Скачать PDF":"Скачать PDF ("+a.length+")");   /* как «Печать»: белая, со значком */
   go.title=a.length?"В файле: "+a.map(x=>KSHORT[x]).join(" + "):"Отметьте хотя бы один документ";
   const pr=$("#d-pdfprn"); if(pr){ pr.dataset.combo=a.join(","); pr.disabled=!a.length; pr.title=a.length?"Распечатать: "+a.map(x=>KSHORT[x]).join(" + "):"Отметьте хотя бы один документ"; } }
 document.querySelectorAll("#fd-app [data-pdfk]").forEach(b=>b.onclick=()=>{ const k=b.dataset.pdfk, a=pdfKGet(), on=a.includes(k);
