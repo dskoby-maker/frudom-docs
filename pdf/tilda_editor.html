@@ -6,10 +6,21 @@
 .tools-nav{display:grid;gap:3px}.tool-link{border:0;background:transparent;display:flex;align-items:center;gap:11px;text-align:left;width:100%;padding:9px 10px;border-radius:9px;color:#646977;font-size:12px;font-weight:500;transition:background .15s,color .15s}.tool-link svg{width:17px;height:17px;color:#928acb}.tool-link:hover{background:#f7f6fc}.tool-link[aria-pressed=true]{background:#efedff;color:var(--accent)}.tool-card{background:#fff;border:1px solid var(--line);border-radius:13px;padding:18px 20px;margin-bottom:18px;max-width:100%}.tool-card-head{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px}.tool-card h2{font-size:15px;letter-spacing:-.3px;font-weight:600;margin:0}.tool-card p{font-size:12px;color:#8a8e99;margin:7px 0 0;line-height:1.5}.tool-card select,.text-input{max-width:440px}.text-input{width:100%;border:1px solid #e5e6ed;border-radius:8px;padding:10px 12px;background:white;font-size:13px;color:#484d59;min-width:0}.tool-action{margin-top:14px;display:flex}.tool-note{display:block;font-size:11px;color:#969aa5;margin-top:9px;line-height:1.5}.tool-feedback{font-size:12px;color:#696386;line-height:1.5;margin-top:10px}.tool-feedback:empty{display:none}.tool-feedback.error{color:#c23e50}.order-row{display:flex;align-items:center;gap:8px}.image-import-actions{display:flex;gap:8px}.tool-card .file{width:auto}.tool-card-head .icon-btn{font-size:23px}.tool-card input[aria-invalid=true]{border-color:#d87985}@media(max-width:760px){.tools-panel{flex-basis:100%}.tools-nav{grid-template-columns:1fr 1fr}.tool-card{padding:16px}.order-row{flex-wrap:wrap}.tool-link{font-size:11px}}
 @media(max-width:760px){.header-actions .new-document{font-size:11px;gap:5px}}
 .seo-content{max-width:1080px;margin:0 auto;padding:58px 28px 30px;border-top:1px solid var(--line);color:#656b78}.seo-heading{max-width:660px}.seo-eyebrow{font-size:10px;letter-spacing:.14em;color:#9b95b4}.seo-heading h1{font-size:25px;letter-spacing:-.7px;color:#353943;font-weight:600;margin:11px 0 13px}.seo-content p{font-size:13px;line-height:1.8;margin:0;color:#858a96}.seo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:30px;margin-top:35px}.seo-content h2{font-size:14px;font-weight:550;color:#555b68;margin:0 0 10px;line-height:1.6}.seo-grid article{scroll-margin-top:20px}.seo-faq{margin-top:40px;max-width:780px}.seo-faq>h2{margin-bottom:13px}.seo-faq details{border-bottom:1px solid var(--line);padding:13px 0}.seo-faq summary{font-size:12px;color:#676d7a;cursor:pointer}.seo-faq details p{margin-top:10px;font-size:12px}.seo-footer{border-top:1px solid var(--line);margin-top:35px;padding-top:20px;display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;font-size:11px}.seo-footer nav{display:flex;gap:18px;flex-wrap:wrap}.seo-footer a{color:#9992b5;text-decoration:none}.seo-footer a:hover{text-decoration:underline}@media(max-width:760px){.seo-content{padding:35px 18px 25px}.seo-grid{grid-template-columns:1fr;gap:22px}.seo-heading h1{font-size:22px}}.image-rotation{display:flex;align-items:center;gap:8px}.image-rotation .icon-btn{font-size:23px}.image-clipboard{display:flex;gap:7px;margin-top:12px}.image-clipboard .btn{font-size:11px;min-height:33px;padding:7px 9px}.radio-row{gap:12px;flex-wrap:wrap}.stamp{transform-origin:center center}
+.text-edit-options,.text-edit-actions{display:flex;align-items:end;flex-wrap:wrap;gap:8px 14px;margin:10px 0}
+.text-edit-options label{font-size:12px;color:#646977}
+.text-edit-options select{display:block;margin-top:4px}
+.text-edit-options input[type=color]{width:34px;height:30px;display:block;margin-top:4px;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer}
+.text-edit-options .check{align-self:center;margin-top:12px}
+.text-edit-layer{position:absolute;inset:0;z-index:4;cursor:crosshair;touch-action:none;user-select:none}
+.text-edit-layer canvas,.text-edit-box{position:absolute;pointer-events:none}
+.text-edit-box{border:1px solid var(--accent);outline:1px solid #fff8;background:#6658e817}
+.text-edit-box.has-preview{background:none}
+body .page.is-editing-text .stamp{z-index:5;pointer-events:none}
+body .page.is-editing-text .stamp img{visibility:visible}
 </style>
 <noscript><p style="padding:16px;font:14px system-ui">Для работы PDF редактора включите JavaScript в браузере. Описание возможностей доступно ниже.</p></noscript>
 <header class="top"><div class="brand"><span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span>PDF редактор</div><div class="header-actions"><button class="btn minor new-document" id="clearAll" type="button" disabled hidden title="Убрать текущий PDF и изображения, начать новый документ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 11v7M8.5 14.5h7"/></svg>Новый документ</button><label class="check scan-option" title="Эффект сканера при скачивании"><input type="checkbox" id="scanMode">Как скан</label><button class="btn minor" id="downloadPlain" disabled hidden title="Скачать без изображений">Без изображений</button><button class="btn" id="download" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg>Скачать PDF</button></div></header>
-<div class="layout"><aside><section class="panel tools-panel"><div class="section-heading"><h3>Инструменты PDF</h3></div><nav class="tools-nav" aria-label="Инструменты PDF"><button class="tool-link" data-tool="merge" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h6v6H4z M14 15h6v6h-6z M7 9v8h7 M10 14l4 3-4 3"/></svg>Объединить PDF</button><button class="tool-link" data-tool="split" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v6H5z M5 15h5v6H5z M14 15h5v6h-5z M12 9v3 M7 15v-3h10v3"/></svg>Разделить PDF</button><button class="tool-link" data-tool="remove" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5z M9 9l6 6 M15 9l-6 6"/></svg>Удалить страницы</button><button class="tool-link" data-tool="extract" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h10v14H4z M10 7h10v14H10 M7 10h10 M14 7l3 3-3 3"/></svg>Извлечь страницы</button><button class="tool-link" data-tool="organize" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4z M14 14h6v6h-6z M15 4h5v5 M20 4l-7 7 M4 15v5h5 M4 20l7-7"/></svg>Порядок страниц</button><button class="tool-link" data-tool="images" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h16v18H4z M7 15l4-4 6 6 M16 8h.01"/></svg>Скан в PDF</button></nav></section>
+<div class="layout"><aside><section class="panel tools-panel"><div class="section-heading"><h3>Инструменты PDF</h3></div><nav class="tools-nav" aria-label="Инструменты PDF"><button class="tool-link" data-tool="text" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7V4h16v3M12 4v16m-4 0h8"/></svg>Заменить текст</button><button class="tool-link" data-tool="merge" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h6v6H4z M14 15h6v6h-6z M7 9v8h7 M10 14l4 3-4 3"/></svg>Объединить PDF</button><button class="tool-link" data-tool="split" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v6H5z M5 15h5v6H5z M14 15h5v6h-5z M12 9v3 M7 15v-3h10v3"/></svg>Разделить PDF</button><button class="tool-link" data-tool="remove" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5z M9 9l6 6 M15 9l-6 6"/></svg>Удалить страницы</button><button class="tool-link" data-tool="extract" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h10v14H4z M10 7h10v14H10 M7 10h10 M14 7l3 3-3 3"/></svg>Извлечь страницы</button><button class="tool-link" data-tool="organize" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h6v6H4z M14 14h6v6h-6z M15 4h5v5 M20 4l-7 7 M4 15v5h5 M4 20l7-7"/></svg>Порядок страниц</button><button class="tool-link" data-tool="images" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h16v18H4z M7 15l4-4 6 6 M16 8h.01"/></svg>Скан в PDF</button></nav></section>
 <section class="panel"><div class="section-heading"><h3>Документ</h3></div><label class="file upload"><span class="file-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></span><div class="file-copy"><b>PDF, Word или Excel</b><span class="meta" id="pdfFileName">Один или несколько файлов</span></div><svg class="add-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><input id="pdfInput" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf,.pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple></label></section>
 <section class="panel"><div class="section-heading"><h3>Подписи и печати</h3></div><label class="file upload"><span class="file-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></span><div class="file-copy"><b>Добавить изображение</b><span class="meta" id="imageFileName">PNG, JPG, WebP</span></div><svg class="add-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><input id="imgInput" type="file" accept="image/png,image/jpeg,image/webp" multiple></label>
 <div class="image-settings" id="imageSettings" hidden><div class="image-row"><select id="imageSelect" aria-label="Выбранное изображение" disabled></select><button class="icon-btn" id="removeImage" title="Удалить изображение (Delete)" aria-label="Удалить изображение" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></button></div>
@@ -24,9 +35,22 @@
 <div id="selectionTool" hidden><label class="field" for="pageSelection" id="selectionLabel">Страницы</label><input class="text-input" id="pageSelection" placeholder="1-3, 5, 8" autocomplete="off"><div class="tool-note" id="selectionHint"></div><button class="btn tool-action" id="selectionApply" disabled></button></div>
 <div id="organizeTool" hidden><label class="field" for="pageOrder">Новый порядок страниц</label><div class="order-row"><input class="text-input" id="pageOrder" placeholder="3, 1, 2" autocomplete="off"><button class="btn minor" id="reverseOrder" disabled>Обратить</button></div><div class="tool-note">Или перетаскивайте миниатюры ниже.</div><button class="btn tool-action" id="orderApply" disabled>Применить порядок</button></div>
 <div id="imagesTool" hidden><div class="image-import-actions"><label class="btn minor file">Добавить фото<input id="scanFiles" type="file" accept="image/png,image/jpeg,image/webp" multiple></label><label class="btn minor file">Камера<input id="cameraFile" type="file" accept="image/*" capture="environment"></label></div><div class="tool-note">Каждое фото — отдельная страница. Можно добавить несколько сразу.</div></div>
+<div id="textTool" hidden>
+ <div class="tool-note" id="textHint" aria-live="polite"></div>
+ <form id="textReplacementForm" hidden>
+  <label class="field" for="replacementText">Новый текст или число</label>
+  <input class="text-input" id="replacementText" type="text" maxlength="500" autocomplete="off" placeholder="Введите замену">
+  <div class="text-edit-options">
+   <label>Выравнивание<select id="replacementAlign"><option value="left">Слева</option><option value="center">По центру</option><option value="right">Справа</option></select></label>
+   <label>Фон<input type="color" id="replacementBackground" value="#ffffff"></label>
+   <label class="check"><input type="checkbox" id="replacementBold">Жирный</label>
+  </div>
+  <div class="text-edit-actions"><button class="btn" id="textApply" type="submit" disabled>Применить</button><button class="btn minor" id="textClear" type="button" disabled>Снять выделение</button><button class="btn minor" id="textUndo" type="button" disabled>Отменить замену</button></div>
+ </form>
+</div>
 <div id="toolFeedback" class="tool-feedback" role="status" aria-live="polite"></div></section><div class="toolbar" id="documentTools" hidden><div class="tool-group"><button class="icon-btn" id="prev" title="Предыдущая страница" aria-label="Предыдущая страница" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><span class="page-no" id="pageNo">— / —</span><button class="icon-btn" id="next" title="Следующая страница" aria-label="Следующая страница" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button><span class="separator"></span><button class="icon-btn" id="moveLeft" title="Переместить страницу назад" aria-label="Переместить страницу назад" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><button class="icon-btn" id="moveRight" title="Переместить страницу вперёд" aria-label="Переместить страницу вперёд" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button><button class="icon-btn" id="deletePage" title="Удалить страницу" aria-label="Удалить страницу" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg></button></div><div class="tool-group"><button class="icon-btn" id="rotateLeft" title="Повернуть влево на 90°" aria-label="Повернуть влево на 90°" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10a9 9 0 1 1 2 8M3 4v6h6"/></svg></button><button class="icon-btn" id="rotateRight" title="Повернуть вправо на 90°" aria-label="Повернуть вправо на 90°" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10a9 9 0 1 0-2 8M21 4v6h-6"/></svg></button><label class="check rotate-scope"><input type="checkbox" id="rotateAll">Все страницы</label><span class="separator"></span><button class="icon-btn" id="fit" title="Вписать страницу" aria-label="Вписать страницу" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/></svg></button></div></div>
 <div class="pages-list" id="pagesList" aria-label="Страницы документа"></div>
-<div class="viewer is-empty" id="viewer"><div class="empty-state" id="emptyState"><div class="empty-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></div><h2>Ваш документ здесь</h2><p>Объединяйте, поворачивайте и добавляйте подписи</p><label class="btn" for="pdfInput"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Выбрать файл</label><span class="drop-text">или перетащите файлы сюда</span></div><div class="page" id="page"><canvas id="canvas"></canvas><canvas id="scanPreview" hidden aria-label="Предпросмотр скана"></canvas><div class="stamp" id="stamp" tabindex="0" title="Перетащите для перемещения, потяните угол для изменения размера"><img id="stampImg" alt="Изображение"></div></div></div>
+<div class="viewer is-empty" id="viewer"><div class="empty-state" id="emptyState"><div class="empty-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg></div><h2>Ваш документ здесь</h2><p>Объединяйте, поворачивайте и добавляйте подписи</p><label class="btn" for="pdfInput"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Выбрать файл</label><span class="drop-text">или перетащите файлы сюда</span></div><div class="page" id="page"><canvas id="canvas"></canvas><canvas id="scanPreview" hidden aria-label="Предпросмотр скана"></canvas><div class="text-edit-layer" id="textEditLayer" hidden aria-hidden="true"><canvas id="textEditPreview" hidden></canvas><div class="text-edit-box" id="textEditBox" hidden></div></div><div class="stamp" id="stamp" tabindex="0" title="Перетащите для перемещения, потяните угол для изменения размера"><img id="stampImg" alt="Изображение"></div></div></div>
 <div class="status" id="status" role="status" aria-live="polite"></div><div class="footer-note"><span class="privacy-dot"></span>Файлы остаются на вашем устройстве</div></main></div><section class="seo-content" aria-labelledby="seoTitle"><div class="seo-heading"><span class="seo-eyebrow">FRUDOM · PDF</span><h1 id="seoTitle">PDF редактор онлайн</h1><p>Объединяйте документы, редактируйте страницы, добавляйте подпись и скачивайте PDF в виде скана. Бесплатно, без регистрации.</p></div><div class="seo-grid"><article id="pdf-merge"><h2>Объединить PDF</h2><p>Добавьте несколько PDF в один документ. Порядок страниц можно менять перетаскиванием или списком.</p></article><article id="pdf-split"><h2>Разделить PDF и извлечь страницы</h2><p>Разделите документ на отдельные страницы или диапазоны и скачайте ZIP с PDF. Выбранные страницы можно сохранить отдельным файлом.</p></article><article id="pdf-pages"><h2>Удалить, повернуть и переставить страницы</h2><p>Уберите ненужные листы, поверните выбранную страницу или весь документ на 90° и задайте новый порядок.</p></article><article id="pdf-signature"><h2>Добавить подпись и печать в PDF</h2><p>Загрузите изображение подписи или печати, выберите размер, положение, прозрачность и страницы для размещения.</p></article><article id="pdf-scan"><h2>Сделать PDF как скан</h2><p>Включите «Как скан»: настройте цвет, рамку, поворот, яркость, контраст, размытие, шум, оттенок бумаги и разрешение. Результат виден в предпросмотре.</p></article><article id="word-photo-pdf"><h2>Word, Excel и фотографии в PDF</h2><p>Загрузите DOCX для преобразования в PDF с эффектом сканирования или создайте страницы из фотографий. Таблицу XLSX можно преобразовать в страницы PDF, добавить штамп и скачать для печати. Диаграммы и сложная вёрстка Office могут отличаться — проверьте предпросмотр.</p></article></div><div class="seo-faq"><h2>Вопросы о редакторе</h2>
 <details><summary>Как сделать скан из PDF или Word?</summary><p>Загрузите PDF или DOCX, включите «Как скан», настройте эффект и нажмите «Скачать PDF». Для DOCX режим скана включается автоматически. Старый формат DOC предварительно сохраните как DOCX в Word.</p></details>
 <details><summary>Можно ли объединить PDF и убрать лишние страницы?</summary><p>Да. Загруженные PDF добавляются в общий документ. Выберите «Удалить страницы» и укажите номера, например 1–3, 5. Можно также извлечь выбранные страницы или разделить PDF на несколько файлов.</p></details>
@@ -39,12 +63,15 @@ import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38
 import { PDFDocument, degrees } from 'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/+esm';
 pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
 const el=id=>document.getElementById(id),state={pdfBytes:null,doc:null,imgBytes:null,imgType:null,imgURL:null,imgRatio:1,pageNum:1,count:0,coord:{x:15,y:15,w:50},renderScale:1,pxPerMm:1,renderJob:null,pageLabels:[],pageIds:[],thumbnailGeneration:0,images:[],activeImage:null,rotating:false,originalName:'',activeTool:null};
+let textView=null,textDrag=null,textSelection=null,textUndo=null;
+const textLayer=el('textEditLayer');
 const status=t=>{el('status').textContent=t;el('status').classList.toggle('error',/Ошибка|Не удалось/.test(t))};
 const controls=['margin','width','opacity'];controls.forEach(id=>el(id).addEventListener('input',()=>{el(id+'Val').textContent=el(id).value;if(id==='width')state.coord.w=+el('width').value; if(id==='margin'&&el('position').value!=='custom')alignPreset();updateStamp();}));
 el('position').addEventListener('change',()=>{if(el('position').value!=='custom')alignPreset();updateStamp()});
 async function setDocument(bytes,labels,select=1,pageIds=null){
  saveActiveImage();
  const doc=await pdfjsLib.getDocument({data:bytes.slice()}).promise;scanPreviewGeneration++;if(scanPreviewJob){scanPreviewJob.cancel();scanPreviewJob=null}
+ clearTextSelection();textUndo=null;
  const old=state.doc;state.pdfBytes=bytes;state.doc=doc;state.count=doc.numPages;state.pageLabels=labels;state.pageNum=Math.max(1,Math.min(select,state.count));
  state.pageIds=pageIds||Array.from({length:state.count},(_,i)=>state.pageIds[i]||crypto.randomUUID());
  const available=new Set(state.pageIds);state.images=state.images.filter(item=>{
@@ -322,6 +349,7 @@ async function startNewDocument(){
   for(const item of state.images)URL.revokeObjectURL(item.url);
   Object.assign(state,{pdfBytes:null,doc:null,imgBytes:null,imgType:null,imgURL:null,imgRatio:1,pageNum:1,count:0,renderScale:1,pxPerMm:1,pageLabels:[],pageIds:[],images:[],activeImage:null,originalName:'',activeTool:null});
   delete state.pageW;delete state.pageH;drag=null;
+  textView=null;textUndo=null;clearTextSelection();
   for(const id of ['pdfInput','imgInput','scanFiles','cameraFile','pageSelection','splitRanges','pageOrder'])el(id).value='';
   el('pagesList').replaceChildren();
   for(const id of ['canvas','scanPreview']){el(id).width=0;el(id).height=0;el(id).style.width='';el(id).style.height=''}
@@ -525,6 +553,7 @@ async function exportPdf(includeImages=true){
  if(!state.pdfBytes||state.rotating)return;
  const scan=el('scanMode').checked,options=scanOptions();state.rotating=true;ready();
  try{
+  if(pendingTextReplacement())await applyTextReplacement();
   status(scan?'Подготавливаю скан…':'Сохраняю PDF…');
   let bytes=await editedPdf(includeImages);if(scan)bytes=await scannedPdf(bytes,options);
   downloadBytes(bytes,outputFilename());status(scan?'Скан скачан.':'PDF скачан.');
@@ -538,7 +567,7 @@ let scanPreviewTimer=null,scanPreviewGeneration=0,scanPreviewJob=null;
 function scheduleScanPreview(){
  clearTimeout(scanPreviewTimer);const generation=++scanPreviewGeneration;
  if(scanPreviewJob){scanPreviewJob.cancel();scanPreviewJob=null}
- if(!el('scanMode').checked||!state.doc){el('scanPreview').hidden=true;return}
+ if(!el('scanMode').checked||!state.doc||state.activeTool==='text'){el('scanPreview').hidden=true;return}
  scanPreviewTimer=setTimeout(()=>renderScanPreview(generation),180);
 }
 async function renderScanPreview(generation){
@@ -572,6 +601,7 @@ viewer.addEventListener('dragover',e=>{if(e.dataTransfer.types.includes('Files')
 viewer.addEventListener('dragleave',e=>{if(!viewer.contains(e.relatedTarget))viewer.classList.remove('drag-over')});
 viewer.addEventListener('drop',async e=>{e.preventDefault();viewer.classList.remove('drag-over');if(state.activeTool==='images'){const photos=Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('image/'));if(photos.length){await runTool(()=>appendScanImages(photos));return}}const files=Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf'||/\.(pdf|docx|doc|xlsx|xls)$/i.test(f.name));if(!files.length)return;try{await appendFiles(files)}catch(err){status('Ошибка: '+err.message)}});
 const toolInfo={
+ text:['Заменить текст','Выделите старую надпись или число рамкой. Страница с правкой сохранится как изображение.'],
  merge:['Объединить PDF','Добавляйте файлы и меняйте порядок страниц.'],
  split:['Разделить PDF','Скачать отдельные PDF в одном ZIP-архиве.'],
  remove:['Удалить страницы','Указанные страницы будут удалены из документа.'],
@@ -581,18 +611,177 @@ const toolInfo={
 };
 function toolFeedback(message,error=false){el('toolFeedback').textContent=message;el('toolFeedback').classList.toggle('error',error)}
 function openTool(tool){
- if(state.rotating||!toolInfo[tool])return;state.activeTool=tool;
+ if(state.rotating||!toolInfo[tool])return;
+ if(state.activeTool==='text'&&tool!=='text')clearTextSelection();
+ state.activeTool=tool;scheduleScanPreview();
  el('toolTitle').textContent=toolInfo[tool][0];el('toolDescription').textContent=toolInfo[tool][1];toolFeedback('');
  el('pageSelection').value='';el('pageSelection').removeAttribute('aria-invalid');syncToolUI();
 }
 function syncToolUI(){
  const active=state.activeTool;el('toolCard').hidden=!active;
  document.querySelectorAll('[data-tool]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.tool===active)));
- for(const [id,tools] of Object.entries({mergeTool:['merge'],splitTool:['split'],selectionTool:['remove','extract'],organizeTool:['organize'],imagesTool:['images']}))el(id).hidden=!tools.includes(active);
+ for(const [id,tools] of Object.entries({mergeTool:['merge'],splitTool:['split'],selectionTool:['remove','extract'],organizeTool:['organize'],imagesTool:['images'],textTool:['text']}))el(id).hidden=!tools.includes(active);
  if(active==='remove'||active==='extract'){el('selectionApply').textContent=active==='remove'?'Удалить страницы':'Скачать выбранные';el('selectionHint').textContent=active==='remove'?'Например: 1-3, 5. Должна остаться хотя бы одна страница.':'Например: 3, 1-2. Порядок сохраняется как в списке.'}
  el('splitRangesWrap').hidden=el('splitMode').value!=='groups';
  for(const id of ['splitApply','selectionApply','orderApply','reverseOrder'])el(id).disabled=!state.pdfBytes||state.rotating;
+ syncTextTool();
 }
+
+function clearTextSelection(){
+ const pointerId=textDrag?.pointerId;
+ textDrag=null;textSelection=null;el('replacementText').value='';
+ if(pointerId!==undefined&&textLayer.hasPointerCapture(pointerId))textLayer.releasePointerCapture(pointerId);
+}
+
+function pendingTextReplacement(){
+ const text=el('replacementText').value.trim();
+ if(!text||textDrag||!textSelection||textSelection.pageId!==state.pageIds[state.pageNum-1])return null;
+ return {...textSelection,text,align:el('replacementAlign').value,
+  background:el('replacementBackground').value,bold:el('replacementBold').checked};
+}
+
+function paintTextReplacement(ctx,edit){
+ const {x,y,w,h,text,align,background,bold}=edit;
+ const inset=Math.min(1.4,w*.08,h*.12);
+ const font=size=>(bold?'700 ':'400 ')+size+'px Arial, sans-serif';
+ ctx.save();
+ ctx.font=font(h*.86);
+ let metrics=ctx.measureText(text);
+ const size=h*.86*Math.min(1,(w-2*inset)/metrics.width,
+  (h-2*inset)/(metrics.actualBoundingBoxAscent+metrics.actualBoundingBoxDescent));
+ if(!(size>=2.5)){ctx.restore();return false}
+ ctx.font=font(size);metrics=ctx.measureText(text);
+ ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
+ ctx.fillStyle=background;ctx.fillRect(x,y,w,h);
+ ctx.fillStyle='#161616';ctx.textAlign=align;ctx.textBaseline='alphabetic';
+ const anchor=align==='right'?x+w-inset:align==='center'?x+w/2:x+inset;
+ ctx.fillText(text,anchor,y+(h+metrics.actualBoundingBoxAscent-metrics.actualBoundingBoxDescent)/2);
+ ctx.restore();return true;
+}
+
+function renderTextSelection(){
+ const box=el('textEditBox'),preview=el('textEditPreview');
+ box.hidden=textLayer.hidden||!textSelection;
+ const edit=box.hidden?null:pendingTextReplacement();
+ preview.hidden=!edit;
+ if(box.hidden){preview.width=preview.height=0;return true}
+ const {x,y,w,h}=textSelection;
+ const bounds={left:x/textView.width*100+'%',top:y/textView.height*100+'%',
+  width:w/textView.width*100+'%',height:h/textView.height*100+'%'};
+ Object.assign(box.style,bounds);box.classList.remove('has-preview');
+ if(!edit)return true;
+ Object.assign(preview.style,bounds);
+ const canvas=el('canvas');
+ preview.width=Math.max(1,Math.ceil(canvas.width*w/textView.width));
+ preview.height=Math.max(1,Math.ceil(canvas.height*h/textView.height));
+ const ctx=preview.getContext('2d');
+ ctx.setTransform(preview.width/w,0,0,preview.height/h,0,0);
+ const fits=paintTextReplacement(ctx,{...edit,x:0,y:0});
+ preview.hidden=!fits;box.classList.toggle('has-preview',fits);
+ return fits;
+}
+
+function syncTextTool(){
+ const active=state.activeTool==='text',loaded=!!state.doc;
+ const canSelect=active&&loaded&&!state.rotating&&textView?.pageId===state.pageIds[state.pageNum-1];
+ textLayer.hidden=!canSelect;el('page').classList.toggle('is-editing-text',canSelect);
+ const fits=renderTextSelection();
+ el('textHint').textContent=loaded
+  ? (fits?'Перетащите указатель от одного угла надписи к другому.':'Увеличьте выделенную область или сократите текст.')
+  : 'Сначала загрузите документ.';
+ el('textReplacementForm').hidden=!loaded;
+ const selected=canSelect&&!!textSelection&&!textDrag;
+ for(const id of ['replacementText','replacementAlign','replacementBackground','replacementBold','textClear'])el(id).disabled=!selected;
+ el('textApply').disabled=!selected||!fits||!pendingTextReplacement();
+ el('textUndo').disabled=!textUndo||state.rotating;
+}
+
+function textPointerPoint(event){
+ const bounds=textLayer.getBoundingClientRect();
+ return {
+  x:Math.max(0,Math.min(1,(event.clientX-bounds.left)/bounds.width))*textView.width,
+  y:Math.max(0,Math.min(1,(event.clientY-bounds.top)/bounds.height))*textView.height
+ };
+}
+
+function updateTextBounds(event){
+ const point=textPointerPoint(event),start=textDrag.start;
+ textSelection={pageId:textView.pageId,x:Math.min(point.x,start.x),y:Math.min(point.y,start.y),
+  w:Math.abs(point.x-start.x),h:Math.abs(point.y-start.y)};
+}
+
+textLayer.addEventListener('pointerdown',event=>{
+ if(textLayer.hidden||textDrag||!event.isPrimary||event.button!==0)return;
+ event.preventDefault();clearTextSelection();toolFeedback('');
+ textDrag={pointerId:event.pointerId,start:textPointerPoint(event)};
+ textLayer.setPointerCapture(event.pointerId);
+ updateTextBounds(event);syncTextTool();
+});
+textLayer.addEventListener('pointermove',event=>{
+ if(textDrag?.pointerId!==event.pointerId)return;
+ updateTextBounds(event);renderTextSelection();
+});
+textLayer.addEventListener('pointerup',event=>{
+ if(textDrag?.pointerId!==event.pointerId)return;
+ updateTextBounds(event);textDrag=null;
+ if(textSelection.w<3||textSelection.h<4)clearTextSelection();
+ syncTextTool();
+ if(textSelection&&event.pointerType==='mouse')el('replacementText').focus({preventScroll:true});
+});
+for(const eventName of ['pointercancel','lostpointercapture']){
+ textLayer.addEventListener(eventName,event=>{
+  if(textDrag?.pointerId===event.pointerId){clearTextSelection();syncTextTool()}
+ });
+}
+for(const id of ['replacementText','replacementAlign','replacementBackground','replacementBold'])
+ el(id).addEventListener('input',syncTextTool);
+el('textClear').onclick=()=>{clearTextSelection();syncTextTool()};
+el('textReplacementForm').addEventListener('keydown',event=>{
+ if(event.key==='Escape'){event.preventDefault();el('textClear').click()}
+});
+el('textReplacementForm').addEventListener('submit',event=>{
+ event.preventDefault();
+ if(!el('textApply').disabled)void runTool(applyTextReplacement);
+});
+el('textUndo').onclick=()=>runTool(undoTextReplacement);
+
+async function applyTextReplacement(){
+ const edit=pendingTextReplacement();
+ if(!edit)return;
+ const bytes=state.pdfBytes,number=state.pageNum,labels=state.pageLabels.slice(),ids=state.pageIds.slice();
+ const sourcePage=await state.doc.getPage(number),base=sourcePage.getViewport({scale:1});
+ const viewport=sourcePage.getViewport({scale:scanScale(base,{ppi:300})});
+ const canvas=document.createElement('canvas');
+ canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
+ let png;
+ try{
+  const ctx=canvas.getContext('2d');
+  await sourcePage.render({canvasContext:ctx,viewport,background:'#ffffff',
+   transform:[canvas.width/viewport.width,0,0,canvas.height/viewport.height,0,0]}).promise;
+  ctx.setTransform(canvas.width/base.width,0,0,canvas.height/base.height,0,0);
+  if(!paintTextReplacement(ctx,edit))throw new Error('Увеличьте выделенную область или сократите текст.');
+  png=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+ }finally{canvas.width=canvas.height=0}
+ if(!png)throw new Error('Не удалось подготовить страницу.');
+ // Copy untouched pages without carrying over the replaced page’s original content stream.
+ const source=await PDFDocument.load(bytes.slice()),output=await PDFDocument.create();
+ const index=number-1,others=source.getPageIndices().filter(i=>i!==index);
+ const copied=await output.copyPages(source,others);
+ for(const page of copied)output.addPage(page);
+ const image=await output.embedPng(await png.arrayBuffer());
+ output.insertPage(index,[base.width,base.height]).drawImage(image,{x:0,y:0,width:base.width,height:base.height});
+ await setDocument(new Uint8Array(await output.save()),labels,number,ids);
+ textUndo={bytes,number};
+ toolFeedback('Замена применена.');status('Страница '+number+' обновлена.');
+}
+
+async function undoTextReplacement(){
+ if(!textUndo)return;
+ const {bytes,number}=textUndo;
+ await setDocument(bytes,state.pageLabels.slice(),number,state.pageIds.slice());
+ toolFeedback('Последняя замена отменена.');status('Страница '+number+' восстановлена.');
+}
+
 // Ordered, strict selection parser. Reject mistakes rather than silently skipping pages.
 function parsePageList(text,count){
  if(!Number.isInteger(count)||count<1)throw new Error('Сначала добавьте PDF.');
@@ -676,7 +865,7 @@ async function appendScanImages(files){
  toolFeedback('Добавлено страниц: '+files.length);status('Фото добавлены. PDF готов к скачиванию.');
 }
 document.querySelectorAll('[data-tool]').forEach(button=>button.addEventListener('click',()=>openTool(button.dataset.tool)));
-el('closeTool').onclick=()=>{state.activeTool=null;syncToolUI()};
+el('closeTool').onclick=()=>{if(state.activeTool==='text')clearTextSelection();state.activeTool=null;syncToolUI();scheduleScanPreview()};
 el('mergeAdd').onclick=()=>el('pdfInput').click();
 el('splitMode').addEventListener('change',syncToolUI);
 el('splitApply').onclick=()=>runTool(applySplit);
@@ -808,6 +997,9 @@ window.addEventListener('pagehide',savePreferences);
     el('scanPreview').hidden = true;
     const version = ++renderVersion;
     const doc = state.doc, number = state.pageNum;
+    textView = null;
+    if (textDrag || (textSelection && textSelection.pageId !== currentPageId())) clearTextSelection();
+    syncTextTool();
     try {
       if (state.renderJob) {
         state.renderJob.cancel();
@@ -832,6 +1024,7 @@ window.addEventListener('pagehide',savePreferences);
       state.pxPerMm = scale * 72 / 25.4;
       state.pageW = base.width * 25.4 / 72;
       state.pageH = base.height * 25.4 / 72;
+      textView = { pageId: currentPageId(), width: base.width, height: base.height };
       loadControls();
       el('pageNo').textContent = number + ' / ' + state.count;
       document.querySelectorAll('.page-tile').forEach((tile, i) =>
