@@ -291,7 +291,7 @@ body.lndrag,body.lndrag *{cursor:grabbing!important;user-select:none!important;-
 #fd-app #d-ctrwarn{margin:0 0 10px}#fd-app #d-ctrwarn .btn{margin-top:8px;display:block}
 @media (max-width:640px){
   #fd-app .line{grid-template-columns:24px 1fr 1fr 36px;grid-template-areas:"n p p x" ". q pr pr" ". u s s";background:var(--bg);padding:8px;border-radius:8px}
-  #fd-app .line .ln{grid-area:n}#fd-app .line .pc{grid-area:p}#fd-app .line .lname{grid-column:1/-1}#fd-app .line .dupnote{grid-column:1/-1}#fd-app .line .ctrnote{grid-column:1/-1}#fd-app .line.dup{box-shadow:none;background:#FDECEA}#fd-app .line.offc{box-shadow:none}#fd-app .lfoot{padding-left:4px}#fd-app .line .qty{grid-area:q}#fd-app .line .price{grid-area:pr}#fd-app .line .unit{grid-area:u}#fd-app .line .sum{grid-area:s}#fd-app .line .x{grid-area:x}
+  #fd-app .line .ln{grid-area:n}#fd-app .line .pc{grid-area:p}#fd-app .line .lname{grid-column:1/-1}#fd-app .line .dupnote{grid-column:1/-1}#fd-app .line .ctrnote{grid-column:1/-1}#fd-app .line.dup{box-shadow:none;background:#FDECEA}#fd-app .line.offc{box-shadow:none}#fd-app .lfoot{padding-left:4px}#fd-app .line .qty{grid-area:q}#fd-app .line .price{grid-area:pr}#fd-app .line .unit{grid-area:u}#fd-app .line>.cpkw{grid-area:u;width:auto;justify-self:start;align-self:center}#fd-app .line>.cpkw>select.unit{width:auto;min-width:0;height:auto;padding:4px 26px 4px 8px;font-size:13px}#fd-app .line .sum{grid-area:s}#fd-app .line .x{grid-area:x}
   #fd-app .lines .head{display:none}
 }
 #fd-app .totals{display:flex;justify-content:flex-end;gap:24px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:10px}
@@ -5673,6 +5673,12 @@ function dcWatch(d){
 }
 document.addEventListener("scroll", e=>{ const d=e.target; if(d && d.matches && d.matches("dialog.dcard")) dcFit(d); }, true);
 document.addEventListener("focusin", e=>{ const d=e.target.closest && e.target.closest("dialog.dcard"); if(d){ dcWatch(d); dcFit(d); } });
+/* Автозаполнение телефона (Android) не должно предлагать почты в полях сайта: всем полям без своего autocomplete — "off" (кроме входа) */
+function acOff(root){ (root.matches&&root.matches("input,textarea")?[root]:[]).concat([...(root.querySelectorAll?root.querySelectorAll("input,textarea"):[])]).forEach(el=>{
+  if(el.hasAttribute("autocomplete") || el.type==="password" || el.type==="hidden") return; el.setAttribute("autocomplete","off"); }); }
+acOff(document.documentElement);
+new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{ if(n.nodeType===1) acOff(n); }))).observe(document.documentElement,{childList:true,subtree:true});
+document.addEventListener("focusin",e=>{ const t=e.target; if(t && t.matches && t.matches("input,textarea")) acOff(t); },true);
 new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{ if(n.tagName==="DIALOG" && n.classList.contains("dcard")) dcWatch(n); }))).observe(document.documentElement,{childList:true,subtree:true});
 /* ---------- переходы между окнами: «‹ Назад» в шапке, Esc, кнопка «Назад» телефона, Alt+←, боковая кнопка мыши ----------
    Окно, в которое можно вернуться, знает, как открыть себя заново (d._re: CARD_RE у карточек, SK_RE у окон склада) —
