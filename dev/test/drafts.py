@@ -19,7 +19,7 @@ async def login(b, who, pw):
     return ctx, pg, errs
 async def fill(pg, q):
     await pg.evaluate(TAB+"('journal')"); await pg.wait_for_timeout(200)
-    await pg.evaluate("(q)=>{const D=__fd.D(); const c=D.customers.find(c=>!c.priv && /Звенигород/.test(c.name))||D.customers[1]; D.draft.customerId=c.id; D.draft.lines=[{productId:D.products[0].id,qty:q,price:'100'},{productId:D.products[1].id,qty:'2',price:'50'}]; }", q)
+    await pg.evaluate("(q)=>{const D=__fd.D(); const c=D.customers.find(c=>!c.priv && /Звенигород/.test(c.name))||D.customers[1]; D.draft.customerId=c.id; D.draft.lines=[{productId:D.products[0].id,qty:q,price:'100',qOk:q,pOk:'100'},{productId:D.products[1].id,qty:'2',price:'50',qOk:'2',pOk:'50'}]; }", q)
     await pg.evaluate(TAB+"('doc')"); await pg.wait_for_timeout(300)
     await pg.locator('#tab-doc .dmk').click(position={'x':5,'y':5}); await pg.wait_for_timeout(2600)
 async def main():

@@ -18,7 +18,7 @@ async def main():
             async def fresh(q):
                 if await pg.evaluate("__fd.D().journal.some(j=>j.id===__fd.D().draft.id)"):
                     await pg.click('#d-new'); await pg.click('#d-new'); await pg.wait_for_timeout(300)
-                await pg.evaluate("(q)=>{const D=__fd.D(); const c=D.customers.find(c=>!c.priv && !/частн/i.test(c.name)); D.draft.customerId=c.id; D.draft.lines=[{productId:D.products[0].id,qty:q,price:'100'}]; }", q)
+                await pg.evaluate("(q)=>{const D=__fd.D(); const c=D.customers.find(c=>!c.priv && !/частн/i.test(c.name)); D.draft.customerId=c.id; D.draft.lines=[{productId:D.products[0].id,qty:q,price:'100',qOk:q,pOk:'100'}]; }", q)
                 await pg.evaluate("document.querySelector('nav.tabs button[data-tab=\"journal\"]').click(); document.querySelector('nav.tabs button[data-tab=\"doc\"]').click()"); await pg.wait_for_timeout(400)
             await fresh('5')
             go=pg.locator('#d-pdfgo'); await go.scroll_into_view_if_needed()
