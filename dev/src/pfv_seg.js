@@ -100,7 +100,7 @@ function pvInit(){
   debt.addEventListener("focusin", e=>{ if(e.target.id==="db-name"){ dbSugOpen(); if(matchMedia("(max-width:720px)").matches) setTimeout(()=>e.target.scrollIntoView({behavior:"smooth", block:"start"}), 250); } });
   debt.addEventListener("focusout", e=>{ if(e.target.id==="db-name") setTimeout(dbSugClose, 120); });
   debt.addEventListener("mousedown", e=>{ if(e.target.closest(".dbsug")) e.preventDefault(); });
-  debt.addEventListener("keydown", e=>{ if(e.target.id==="db-name" && dbSugKey(e)) return; if(e.key==="Enter" && e.target.matches(".dbkpi [data-dbf]")){ e.preventDefault(); e.target.click(); return; } if(e.key==="Enter" && e.target.closest(".dbadd")){ e.preventDefault(); dbAdd(); } });
+  debt.addEventListener("keydown", e=>{ if(e.target.id==="db-name" && dbSugKey(e)) return; if(e.key==="Enter" && e.target.matches(".dbkpi [data-dbf]")){ e.preventDefault(); e.target.click(); return; } if(e.key==="Enter" && e.target.closest(".dbadd")){ e.preventDefault(); dbAdd(); return; } if(e.key==="Enter" && e.target.id==="db-pay" && dbOpen){ e.preventDefault(); dbPay(dbOpen, false); } });
 }
 function pvDraw(){
   pvInit(); const f=PV(), tab=$("#tab-profit"); if(!tab) return; tab.dataset.v=f.v;
@@ -658,7 +658,7 @@ function dbPays(x){ try{ const a=JSON.parse(x&&x.pays||"[]"); return Array.isArr
 function dbLeft(x){ if(!x || String(x.closed)==="1") return 0; return r2(Math.max(0,(+x.sum||0)-(+x.paid||0))); }
 function dbLate(x){ return dbLeft(x)>0.004 && !!(x.due && x.due<todayISO()); }
 function dbTouch(x){ const p=r2(dbPays(x).reduce((a,y)=>a+(+y.sum||0),0)); x.paid=String(p); x.pays=JSON.stringify(dbPays(x)); if((+x.sum||0)>0 && p>=(+x.sum||0)-0.004) x.closed="1"; return x; }
-function dbPut(x, msg){ if(!pfArr("debts").some(y=>y.id===x.id)) pfArr("debts").push(x); dirty("debts", x.id); if(msg) logEv("Прибыль", msg); saveLocal(); if(curTab==="profit") drawProfit(); }
+function dbPut(x, msg, soft){ if(!pfArr("debts").some(y=>y.id===x.id)) pfArr("debts").push(x); dirty("debts", x.id); if(msg) logEv("Прибыль", msg); saveLocal(); if(curTab!=="profit") return; if(soft && dbSoft(x.id)) return; drawProfit(); }
 function dbNames(){ const s=new Set(); (D.customers||[]).forEach(c=>{ if(c.name) s.add(c.name); }); (D.suppliers||[]).forEach(c=>{ if(c.name) s.add(c.name); }); pfArr("debts").forEach(x=>{ if(x.name) s.add(x.name); }); return [...s].sort((a,b)=>a.localeCompare(b,"ru")); }
 /* подсказки «Кто»: своё окошко вместо стандартного списка телефона — коротко, по группам, только подходящие */
 let DBSG={i:-1, L:[]};
@@ -704,28 +704,28 @@ function dbPay(id, all){
   if(!(v>0)){ toast("err","Напишите сумму","Сколько уже вернули."); return; }
   if(v>left+0.004){ toast("err","Сумма больше остатка","Осталось "+fm(left)+" ₽."); return; }
   const pays=dbPays(x); pays.push({id:uid(), date:DBUI.payDate||todayISO(), sum:String(r2(Math.min(v,left))), note:(DBUI.payNote||"").trim()});
-  x.pays=JSON.stringify(pays); x.closed=""; dbTouch(x); DBUI.pay=""; DBUI.payNote="";
-  dbPut(x, "Погашение «"+x.name+"»: "+fm(Math.min(v,left))+" ₽"+(String(x.closed)==="1"?" — долг закрыт":""));
+  x.pays=JSON.stringify(pays); x.closed=""; dbTouch(x); DBUI.pay=""; DBUI.payNote=""; DBUI.payDate=todayISO();
+  dbPut(x, "Погашение «"+x.name+"»: "+fm(Math.min(v,left))+" ₽"+(String(x.closed)==="1"?" — долг закрыт":""), true);
   toast("ok", String(x.closed)==="1"?"Долг закрыт":"Погашение записано", x.name+" · осталось "+fm(dbLeft(x))+" ₽");
 }
-function dbUndo(id){
+function dbUndo(id, pid){
   const x=pfArr("debts").find(y=>y.id===id); if(!x) return;
-  const pays=dbPays(x); if(!pays.length) return; const last=pays.pop();
+  const pays=dbPays(x); if(!pays.length) return; const k=pid?pays.findIndex(p=>p.id===pid):pays.length-1; if(k<0) return; const last=pays.splice(k,1)[0];
   x.pays=JSON.stringify(pays); x.closed=""; dbTouch(x);
-  dbPut(x, "Отменено погашение «"+x.name+"»: "+fm(+last.sum||0)+" ₽");
+  dbPut(x, "Отменено погашение «"+x.name+"»: "+fm(+last.sum||0)+" ₽", true);
   toast("info","Погашение убрано", x.name);
 }
 function dbForgive(id){
   const x=pfArr("debts").find(y=>y.id===id); if(!x) return;
   const left=dbLeft(x); if(!(left>0.004)) return;
   x.closed="1";
-  dbPut(x, "Долг «"+x.name+"» закрыт без оплаты, остаток "+fm(left)+" ₽");
+  dbPut(x, "Долг «"+x.name+"» закрыт без оплаты, остаток "+fm(left)+" ₽", true);
   toast("ok","Долг закрыт", "Остаток "+fm(left)+" ₽ больше не ждём.");
 }
 function dbReopen(id){
   const x=pfArr("debts").find(y=>y.id===id); if(!x) return;
   x.closed=""; dbTouch(x);
-  dbPut(x, "Долг «"+x.name+"» снова открыт");
+  dbPut(x, "Долг «"+x.name+"» снова открыт", true);
 }
 function dbEdit(id){
   const box=document.querySelector('.dbc[data-id="'+id+'"]'); const x=pfArr("debts").find(y=>y.id===id); if(!box||!x) return;
@@ -735,32 +735,84 @@ function dbEdit(id){
   if(sum<(+x.paid||0)-0.004){ toast("err","Сумма меньше уже погашенного", "Уже возвращено "+fm(+x.paid)+" ₽."); return; }
   x.name=name; x.sum=String(r2(sum)); x.due=box.querySelector(".db-due").value||""; x.note=box.querySelector(".db-note").value.trim();
   x.side=box.querySelector(".db-side").value===DB_OUT?DB_OUT:DB_IN; const wasF=String(x.closed)==="1" && (+x.paid||0)<(+x.sum||0)-0.004; x.closed=wasF?"1":""; dbTouch(x);
-  dbPut(x, "Изменён долг «"+name+"»: "+x.side+" "+fm(+x.sum)+" ₽");
+  dbPut(x, "Изменён долг «"+name+"»: "+x.side+" "+fm(+x.sum)+" ₽", true);
   toast("ok","Долг изменён", name);
 }
 function dbDel(id){
   const x=pfArr("debts").find(y=>y.id===id); if(!x) return;
   D.debts=pfArr("debts").filter(y=>y.id!==id); if(dbOpen===id) dbOpen="";
-  dirty("debts", id, true); logEv("Прибыль","Удалён долг «"+x.name+"»: "+x.side+" "+fm(+x.sum||0)+" ₽"); saveLocal(); if(curTab==="profit") drawProfit();
+  dirty("debts", id, true); logEv("Прибыль","Удалён долг «"+x.name+"»: "+x.side+" "+fm(+x.sum||0)+" ₽"); saveLocal(); if(curTab==="profit" && !dbSoft(id)) drawProfit();
+}
+function dbHead(x){
+  const left=dbLeft(x), inn=x.side!==DB_OUT, late=dbLate(x), paid=+x.paid||0, sum=+x.sum||0, done=left<=0.004, forg=done && paid<sum-0.004;
+  const w=sum>0?Math.min(100, paid/sum*100):(done?100:0), part=!done && paid>0.004;
+  const letter=esc((x.name||"?").trim().slice(0,1).toUpperCase());
+  return `<span class="dbwho"><span class="dbava" aria-hidden="true">${letter}</span><span class="pdn"><b>${esc(x.name||"Без имени")}</b><small class="dbmeta"><span class="dbk ${inn?"":"out"}">${esc(x.side||DB_IN)}</span><span>${fd(x.date)}</span>${late?`<span class="dbk late">просрочен</span>`:""}</small>${x.note?`<small class="dbnt">${esc(x.note)}</small>`:""}</span></span>
+      <span class="pdd"><small>${done?(forg?"Закрыт":"Погашен"):"Осталось"}</small><b>${done?fm(sum):fm(left)}</b>${part?`<small class="dbof">из ${fm(sum)}</small>`:""}</span><span class="pda" aria-hidden="true">▾</span>
+      ${part?`<span class="dbprog"><span class="pdbar"><i style="--w:${w.toFixed(1)}%"></i></span><small>${inn?"вернули":"отдали"} ${fm(paid)} ₽ · ${Math.round(w)}%</small></span>`:""}`;
+}
+function dbBody(x){
+  const left=dbLeft(x), inn=x.side!==DB_OUT, paid=+x.paid||0, sum=+x.sum||0, pays=dbPays(x), forg=String(x.closed)==="1" && paid<sum-0.004, half=r2(left/2);
+  const pay=left>0.004?`<div class="dbpz"><div class="dbpzh"><b>${inn?"Вам вернули часть?":"Отдали часть?"}</b><span class="muted">Осталось ${fm(left)} ₽</span></div>
+      <div class="dbpay"><label class="f dbpv"><span>${inn?"Сколько вернули":"Сколько отдали"}, ₽</span><input id="db-pay" inputmode="decimal" placeholder="${esc(fm(left))}" value="${esc(DBUI.pay||"")}"></label><label class="f dbpd"><span>Дата</span><input type="date" id="db-paydate" value="${esc(DBUI.payDate||todayISO())}"></label><label class="f dbpn"><span>Заметка</span><input id="db-paynote" maxlength="120" value="${esc(DBUI.payNote||"")}" placeholder="необязательно"></label></div>
+      <div class="dbqk">${half>=1?`<button type="button" class="chip" data-dbq="${half}">Половину · ${fm(half)}</button>`:""}<button type="button" class="chip" data-dbq="${left}">Весь остаток · ${fm(left)}</button></div>
+      <div class="dbph2" id="db-payh" aria-live="polite"></div>
+      <div class="dbpb"><button type="button" class="btn pri" data-dbpay="${esc(x.id)}">Записать погашение</button><button type="button" class="btn" data-dball="${esc(x.id)}">Всё погашено</button></div></div>`
+    :`<div class="dbdone">${forg?`Закрыт без оплаты · не вернули ${fm(r2(sum-paid))} ₽`:`Погашен полностью · ${fm(sum)} ₽`}</div>`;
+  const hist=`<div class="dbhs"><div class="dbhsh"><b>История погашений</b>${pays.length?`<span class="muted">${pays.length} · ${fm(paid)} ₽</span>`:""}</div>${pays.length?`<div class="dbhist">${pays.slice().reverse().map(p=>`<div><span>${fd(p.date)}${p.note?` · ${esc(p.note)}`:""}</span><b>${fm(+p.sum||0)} ₽</b><button type="button" class="dbpx" data-dbpdel="${esc(x.id)}|${esc(p.id||"")}" title="Убрать это погашение" aria-label="Убрать это погашение">×</button></div>`).join("")}</div>`:`<div class="muted dbnone">Погашений пока нет</div>`}</div>`;
+  const ed=`<details class="dbed"><summary>Изменить долг</summary><div class="grid"><label class="f">Кто<input class="db-name" value="${esc(x.name||"")}"></label><label class="f">Сторона<select class="db-side"><option value="${DB_IN}"${inn?" selected":""}>${DB_IN}</option><option value="${DB_OUT}"${!inn?" selected":""}>${DB_OUT}</option></select></label><label class="f">Сумма долга<input class="db-sum" inputmode="decimal" value="${esc(String(x.sum||"").replace(".",","))}"></label><label class="f">Вернуть до<input type="date" class="db-due" value="${esc(x.due||"")}"></label><label class="f wide">Заметка<input class="db-note" maxlength="200" value="${esc(x.note||"")}"></label></div>
+      <div class="dbeda"><button type="button" class="btn sm" data-dbedit="${esc(x.id)}">Сохранить правку</button>${left>0.004?`<button type="button" class="btn ghost sm" data-dbclose="${esc(x.id)}">Закрыть без оплаты</button>`:(forg?`<button type="button" class="btn ghost sm" data-dbre="${esc(x.id)}">Снова открыть</button>`:"")}<span style="flex:1"></span><button type="button" class="btn ghost sm danger" data-dbdel="${esc(x.id)}">Удалить</button></div></details>`;
+  return pay+hist+ed;
 }
 function dbCard(x, i){
-  const left=dbLeft(x), op=dbOpen===x.id, inn=x.side!==DB_OUT, late=dbLate(x), paid=+x.paid||0, sum=+x.sum||0;
-  const w=sum>0?Math.min(100, paid/sum*100):(String(x.closed)==="1"?100:0), pays=dbPays(x);
-  const letter=esc((x.name||"?").trim().slice(0,1).toUpperCase());
+  const left=dbLeft(x), op=dbOpen===x.id, inn=x.side!==DB_OUT;
   return `<article class="pdc dbc ${inn?"in":"out"}${op?" open":""}${left<=0.004?" clear":""}" data-id="${esc(x.id)}" style="--d:${Math.min(i,12)*35}ms">
-    <button type="button" class="pdh" data-dbopen="${esc(x.id)}" aria-expanded="${op}"><span class="dbwho"><span class="dbava" aria-hidden="true">${letter}</span><span class="pdn"><b>${esc(x.name||"Без имени")}</b><small><span class="dbk ${inn?"":"out"}">${esc(x.side||DB_IN)}</span>${fd(x.date)}${x.note?" · "+esc(x.note):""}${late?` · <span class="dbk late">просрочен</span>`:""}</small></span></span>
-      <span class="pdp"><span class="pdbar"><i style="--w:${w.toFixed(1)}%"></i></span><small>${left<=0.004?"закрыт":"погашено "+fm(paid)+" из "+fm(sum)}</small></span>
-      <span class="pdd"><small>${left<=0.004?"Остаток":"Осталось"}</small><b>${left<=0.004?"0,00":fm(left)}</b></span><span class="pda" aria-hidden="true">▾</span></button>
-    <div class="pdb"><div class="pdbi">${op?`<div class="dbhist">${pays.length?pays.slice().reverse().map(p=>`<div><span>${fd(p.date)}${p.note?" · "+esc(p.note):""}</span><b>${fm(+p.sum||0)} ₽</b></div>`).join(""):`<div><span class="muted">Погашений пока нет</span><b></b></div>`}</div>
-      ${left>0.004?`<div class="dbpay"><label class="f">Сколько вернули<input id="db-pay" inputmode="decimal" placeholder="${esc(fm(left))}" value="${esc(DBUI.pay||"")}"></label><label class="f">Дата<input type="date" id="db-paydate" value="${esc(DBUI.payDate||todayISO())}"></label><label class="f" style="flex:1">Заметка<input id="db-paynote" maxlength="120" value="${esc(DBUI.payNote||"")}" placeholder="необязательно"></label><button type="button" class="btn pri sm" data-dbpay="${esc(x.id)}">Записать</button><button type="button" class="btn sm" data-dball="${esc(x.id)}">Всё погашено</button></div>`:""}
-      <div class="grid" style="margin-top:10px"><label class="f">Кто<input class="db-name" value="${esc(x.name||"")}"></label><label class="f">Сторона<select class="db-side"><option value="${DB_IN}"${inn?" selected":""}>${DB_IN}</option><option value="${DB_OUT}"${!inn?" selected":""}>${DB_OUT}</option></select></label><label class="f">Сумма долга<input class="db-sum" inputmode="decimal" value="${esc(String(x.sum||"").replace(".",","))}"></label><label class="f">Вернуть до<input type="date" class="db-due" value="${esc(x.due||"")}"></label><label class="f wide">Заметка<input class="db-note" maxlength="200" value="${esc(x.note||"")}"></label></div>
-      <div class="row" style="margin-top:8px"><button type="button" class="btn sm" data-dbedit="${esc(x.id)}">Сохранить правку</button>${pays.length?`<button type="button" class="btn ghost sm" data-dbundo="${esc(x.id)}">Убрать последнее погашение</button>`:""}${left>0.004?`<button type="button" class="btn ghost sm" data-dbclose="${esc(x.id)}">Закрыть без оплаты</button>`:(String(x.closed)==="1" && paid<sum-0.004?`<button type="button" class="btn ghost sm" data-dbre="${esc(x.id)}">Снова открыть</button>`:"")}<span style="flex:1"></span><button type="button" class="btn ghost sm danger" data-dbdel="${esc(x.id)}">Удалить</button></div>`:""}</div></div></article>`;
+    <button type="button" class="pdh" data-dbopen="${esc(x.id)}" aria-expanded="${op}">${dbHead(x)}</button>
+    <div class="pdb"><div class="pdbi">${op?dbBody(x):""}</div></div></article>`;
 }
+/* раскрыть/свернуть карточку на месте — плавно, без перерисовки списка */
+function dbToggle(id){
+  const list=$("#db-list"); if(!list){ dbOpen=dbOpen===id?"":id; return; }
+  const close=c=>{ if(!c) return; c.classList.remove("open"); c.querySelector(".pdh").setAttribute("aria-expanded","false"); const bi=c.querySelector(".pdbi"); bi.querySelectorAll("[id]").forEach(e=>e.removeAttribute("id")); setTimeout(()=>{ if(!c.classList.contains("open")) bi.innerHTML=""; }, 380); };
+  const prev=dbOpen?list.querySelector('.dbc[data-id="'+CSS.escape(dbOpen)+'"]'):null;
+  if(dbOpen===id){ dbOpen=""; close(prev); return; }
+  close(prev); dbOpen=id; DBUI.pay=""; DBUI.payNote=""; DBUI.payDate=todayISO();
+  const c=list.querySelector('.dbc[data-id="'+CSS.escape(id)+'"]'), x=pfArr("debts").find(y=>y.id===id); if(!c||!x) return;
+  c.querySelector(".pdbi").innerHTML=dbBody(x); c.querySelector(".pdh").setAttribute("aria-expanded","true");
+  void c.offsetHeight; c.classList.add("open");
+  setTimeout(()=>{ const r=c.getBoundingClientRect(); if(r.bottom>innerHeight-70) c.scrollIntoView({behavior:"smooth", block:"nearest"}); }, 380);
+}
+/* после погашения/правки — обновить плитки и одну карточку на месте, полоса едет плавно */
+function dbSoft(id){
+  const box=$("#pv-debt"), list=$("#db-list"); if(!box||!list||!box.querySelector(".dbkpi")) return false;
+  const k=box.querySelector(".dbkpi"); k.outerHTML=dbKpiHtml().replace('class="pvkpi dbkpi"','class="pvkpi dbkpi calm"');
+  const dw=pfArr("debts").filter(x=>dbLeft(x)>0.004).length, dn=$("#pv-dbn"); if(dn){ dn.hidden=!dw; dn.textContent=dw; }
+  const c=list.querySelector('.dbc[data-id="'+CSS.escape(id)+'"]'), x=pfArr("debts").find(y=>y.id===id), show=x && dbShow().some(y=>y.id===id);
+  if(c && x){ const oi=c.querySelector(".dbprog .pdbar i"), ow=oi?getComputedStyle(oi).width:null;
+    c.classList.add("calm"); c.querySelector(".pdh").innerHTML=dbHead(x); c.classList.toggle("clear", dbLeft(x)<=0.004);
+    const ni=c.querySelector(".dbprog .pdbar i"); if(ni){ const nw=ni.style.getPropertyValue("--w"); ni.style.setProperty("--w", ow||"0%"); void ni.offsetWidth; requestAnimationFrame(()=>ni.style.setProperty("--w", nw)); }
+    if(c.classList.contains("open")){ const bi=c.querySelector(".pdbi"), ed=bi.querySelector(".dbed"), eo=ed&&ed.open; bi.innerHTML=dbBody(x); if(eo){ const e2=bi.querySelector(".dbed"); if(e2) e2.open=true; } }
+  }
+  if(c && !show){ const h=c.offsetHeight; c.style.height=h+"px"; c.style.overflow="hidden"; void c.offsetHeight; c.classList.add("bye"); c.style.height="0px";
+    setTimeout(()=>{ c.remove(); if(!list.querySelector(".dbc")) dbPaintList(); }, 420); if(dbOpen===id) dbOpen=""; }
+  else if(!c && show) dbPaintList();
+  return true;
+}
+function dbPayHint(){ const h=$("#db-payh"), x=pfArr("debts").find(y=>y.id===dbOpen); if(!h||!x) return; const left=dbLeft(x), v=+num(DBUI.pay||"");
+  if(!(v>0)){ h.className="dbph2"; h.textContent=""; return; }
+  if(v>left+0.004){ h.className="dbph2 bad"; h.textContent="Больше остатка — осталось "+fm(left)+" ₽"; return; }
+  const rest=r2(left-v); h.className="dbph2 ok"; h.textContent=rest<=0.004?"Долг закроется полностью":"После этого останется "+fm(rest)+" ₽"; }
 function dbPaintList(){
   const box=$("#db-list"); if(!box) return;
   const L=dbShow();
   box.innerHTML=L.length?L.map(dbCard).join(""):`<div class="dbempty"><b>${pfArr("debts").length?"В этом фильтре пусто":"Долгов пока нет"}</b><span class="muted">${pfArr("debts").length?"Смените фильтр или поиск.":"Добавьте первую запись сверху."}</span></div>`;
   document.querySelectorAll("#db-tools [data-dbf]").forEach(b=>{ const on=b.dataset.dbf===DBUI.flt; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on); });
+}
+function dbKpiHtml(){
+  const all=pfArr("debts"), inn=r2(all.filter(x=>x.side!==DB_OUT).reduce((a,x)=>a+dbLeft(x),0)), out=r2(all.filter(x=>x.side===DB_OUT).reduce((a,x)=>a+dbLeft(x),0)), net=r2(inn-out), lateN=all.filter(dbLate).length;
+  return `<div class="pvkpi dbkpi"><div class="pos go" data-dbf="in" role="button" tabindex="0" title="Показать, кто должен мне"><small>Мне должны</small><b>${fm(inn)} ₽</b><span>${all.filter(x=>x.side!==DB_OUT && dbLeft(x)>0.004).length} открытых</span></div>
+      <div class="due go" data-dbf="out" role="button" tabindex="0" title="Показать, кому должен я"><small>Я должен</small><b>${fm(out)} ₽</b><span>${all.filter(x=>x.side===DB_OUT && dbLeft(x)>0.004).length} открытых</span></div>
+      <div class="${net<0?"neg":"pos"} go" data-dbf="${lateN?"late":"open"}" role="button" tabindex="0" title="${lateN?"Показать просроченные":"Показать все открытые"}"><small>Разница</small><b>${net<0?"−":""}${fm(Math.abs(net))} ₽</b><span>${Math.abs(net)<0.005?"всё ровно":net<0?"вы должны больше":"вам должны больше"}${lateN?" · просрочено "+lateN:""}</span></div></div>`;
 }
 function dbDraw(){
   const box=$("#pv-debt"); if(!box) return;
@@ -770,9 +822,7 @@ function dbDraw(){
   const lateN=all.filter(dbLate).length;
   box.innerHTML=`<div class="dbhead"><div><h2>Долги</h2><small>Отдельная книжка: кто должен вам и кому должны вы. Оплаты накладных остаются в «Обзоре».</small></div></div>
     <p class="note" ${pfLoaded && !D.dbSrv?"":"hidden"}>Чтобы долги были видны на всех устройствах, обновите скрипт таблицы. Пока они хранятся только здесь.</p>
-    <div class="pvkpi dbkpi"><div class="pos go" data-dbf="in" role="button" tabindex="0" title="Показать, кто должен мне"><small>Мне должны</small><b>${fm(inn)} ₽</b><span>${all.filter(x=>x.side!==DB_OUT && dbLeft(x)>0.004).length} открытых</span></div>
-      <div class="due go" data-dbf="out" role="button" tabindex="0" title="Показать, кому должен я"><small>Я должен</small><b>${fm(out)} ₽</b><span>${all.filter(x=>x.side===DB_OUT && dbLeft(x)>0.004).length} открытых</span></div>
-      <div class="${net<0?"neg":"pos"} go" data-dbf="${lateN?"late":"open"}" role="button" tabindex="0" title="${lateN?"Показать просроченные":"Показать все открытые"}"><small>Разница</small><b>${net<0?"−":""}${fm(Math.abs(net))} ₽</b><span>${Math.abs(net)<0.005?"всё ровно":net<0?"вы должны больше":"вам должны больше"}${lateN?" · просрочено "+lateN:""}</span></div></div>
+    ${dbKpiHtml()}
     <div class="dbadd"><label class="f dbkind"><span>Сторона</span><div class="fdseg" id="db-side" style="--x:${DBUI.side===DB_OUT?"100%":"0"}"><i></i><button type="button" data-dbk="${DB_IN}" class="${DBUI.side===DB_OUT?"":"on"}" aria-pressed="${DBUI.side!==DB_OUT}">Мне должны</button><button type="button" data-dbk="${DB_OUT}" class="${DBUI.side===DB_OUT?"on":""}" aria-pressed="${DBUI.side===DB_OUT}">Я должен</button></div></label>
       <div class="f dbwho"><label for="db-name">Кто</label><div class="dbsw"><input id="db-name" maxlength="160" placeholder="имя или компания" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="db-sug" value="${esc(DBUI.name||"")}"><div class="dbsug" id="db-sug" role="listbox" hidden></div></div></div>
       <label class="f dbsum"><span>Сумма, ₽</span><input id="db-sum" inputmode="decimal" placeholder="0" value="${esc(DBUI.sum||"")}"></label>
@@ -788,13 +838,15 @@ function dbDraw(){
 }
 function dbInput(e){ const t=e.target;
   if(t.id==="db-name"){ DBUI.name=t.value; dbSugOpen(); } else if(t.id==="db-sum") DBUI.sum=t.value; else if(t.id==="db-date") DBUI.date=t.value; else if(t.id==="db-due") DBUI.due=t.value; else if(t.id==="db-note") DBUI.note=t.value;
-  else if(t.id==="db-q"){ DBUI.q=t.value; dbPaintList(); } else if(t.id==="db-pay") DBUI.pay=t.value; else if(t.id==="db-paydate") DBUI.payDate=t.value; else if(t.id==="db-paynote") DBUI.payNote=t.value;
+  else if(t.id==="db-q"){ DBUI.q=t.value; dbPaintList(); } else if(t.id==="db-pay"){ DBUI.pay=t.value; dbPayHint(); } else if(t.id==="db-paydate") DBUI.payDate=t.value; else if(t.id==="db-paynote") DBUI.payNote=t.value;
 }
 function dbClick(e){ const sg=e.target.closest("[data-dbsug]"); if(sg){ const el=$("#db-name"); DBUI.name=sg.dataset.dbsug; if(el){ el.value=DBUI.name; } dbSugClose(); const nx=$("#db-sum"); if(nx) nx.focus(); return; }
-  const b=e.target.closest("[data-dbk],[data-dbf],[data-dbopen],[data-dbadd],[data-dbpay],[data-dball],[data-dbundo],[data-dbclose],[data-dbre],[data-dbedit],[data-dbdel]"); if(!b) return;
+  const b=e.target.closest("[data-dbk],[data-dbf],[data-dbopen],[data-dbadd],[data-dbpay],[data-dball],[data-dbundo],[data-dbclose],[data-dbre],[data-dbedit],[data-dbdel],[data-dbq],[data-dbpdel]"); if(!b) return;
+  if(b.dataset.dbq){ const el=$("#db-pay"); DBUI.pay=String(b.dataset.dbq).replace(".",","); if(el){ el.value=DBUI.pay; el.focus(); } dbPayHint(); return; }
+  if(b.dataset.dbpdel){ const [id,pid]=b.dataset.dbpdel.split("|"); if(!armed(b,"Убрать?")) return; dbUndo(id, pid||""); return; }
   if(b.dataset.dbk){ DBUI.side=b.dataset.dbk; dbDraw(); return; }
   if(b.dataset.dbf){ DBUI.flt=b.dataset.dbf; dbPaintList(); if(b.closest(".dbkpi")){ const t=$("#db-tools"); if(t) t.scrollIntoView({behavior:"smooth", block:"start"}); } return; }
-  if(b.dataset.dbopen!=null){ dbOpen=dbOpen===b.dataset.dbopen?"":b.dataset.dbopen; dbPaintList(); return; }
+  if(b.dataset.dbopen!=null){ dbToggle(b.dataset.dbopen); return; }
   if(b.dataset.dbadd!=null){ dbAdd(); return; }
   if(b.dataset.dbpay){ dbPay(b.dataset.dbpay, false); return; }
   if(b.dataset.dball){ if(!armed(b,"Точно всё?")) return; dbPay(b.dataset.dball, true); return; }
