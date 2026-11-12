@@ -458,7 +458,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .dcard input.flash{animation:fdflash .6s ease}
 #fd-app .dcard .dzs-sum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}#fd-app .dcard .dzs-sum>div{border-radius:12px;padding:8px 10px;background:rgba(255,255,255,.7)}
 #fd-app .dcard .dzs-sum small{display:block;font-size:11px;color:var(--muted)}#fd-app .dcard .dzs-sum b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#fd-app .dcard .dzs-sum span{font-size:11px;color:var(--muted)}
-#fd-app .dcard .dzs-sum .hi{background:linear-gradient(160deg,rgba(123,58,94,.16),rgba(106,44,78,.06))}#fd-app .dcard .dzs-sum .hi b{color:var(--accent)}#fd-app .dcard .dzs-sum p{grid-column:1/-1;margin:0;font-size:12.5px}#fd-app .dzs-sum p.zkone{color:var(--muted);font-size:13px}#fd-app .dzs-sum p.zkone em{font-style:normal;font-weight:600;color:var(--ink)}
+#fd-app .dcard .dzs-sum>.zkn{grid-column:1/-1;padding:9px 12px;background:#f8f1df;line-height:1.45}#fd-app .dcard .dzs-sum>.zkn b{display:inline;font-size:inherit;white-space:normal;overflow:visible}#fd-app .dcard .dzs-sum>.zkn>b{display:block;font-size:13.5px}#fd-app .dcard .dzs-sum .hi{background:linear-gradient(160deg,rgba(123,58,94,.16),rgba(106,44,78,.06))}#fd-app .dcard .dzs-sum .hi b{color:var(--accent)}#fd-app .dcard .dzs-sum p{grid-column:1/-1;margin:0;font-size:12.5px}#fd-app .dzs-sum p.zkone{color:var(--muted);font-size:13px}#fd-app .dzs-sum p.zkone em{font-style:normal;font-weight:600;color:var(--ink)}
 #fd-app .dcard .dzact{margin-top:10px;margin-bottom:0}
 #fd-app .dcard [data-bzk="toggle"].on,#fd-app .dcard [data-zkc="toggle"].on{background:var(--accent-soft);color:var(--accent);border-color:rgba(106,44,78,.2)}
 #fd-app .dcard .dzr .dzsc{text-align:right;font-size:13px;font-weight:600;color:var(--accent);padding:6px 8px}
@@ -6156,6 +6156,8 @@ function bzEst(o, itemId, q){ const X=skIdx(), own={}, key=new Set(o.lines.map(x
     const t=r3(Math.min(left,f)); if(t<=0) return; left=r3(left-t); if(b.price===""||b.price==null) unk=true; else cost+=t*(+b.price); });
   return {short:r3(left), cost:r2(cost), unk, avail, unitOk:(X.byItem[itemId]||[]).some(b=>!b.cancel && skK(b.unit)===skK(o.unit))}; }
 /* себестоимость строки-товара: price — вписанная цена (null — не вписана, "mixed" — разные цены по накладным) */
+/* сколько товара сейчас «от Саида» — с учётом ещё не сохранённого выбора «Со склада / Часть» */
+function bzDqNow(o){ const s=bzSt(o); return bzChanged(s) ? Math.max(0, r3(o.qty-(+bzSQ(o,s)||0))) : o.dq; }
 function bzCost(o, price){ const s=bzSt(o), ch=bzChanged(s);
   let stock, A;
   if(ch){ const sq=bzSQ(o,s); if(s.m && (!s.itemId || !(sq>0))) return null; if(sq>0){ const e=bzEst(o,s.itemId,sq); if(e.short>0||e.unk||!e.unitOk) return null; stock=e.cost; } else stock=0; A=bzAlloc(o,sq); }
@@ -6188,7 +6190,7 @@ function bzSum(){ const box=$("#bz-zki"); if(!box||!BZ) return; ztSync(box); con
   const one=G.some(j=>oneIsSum(dcLines(docCost(j.id)))); let oTop=0, oUnc=0; const oT=[];
   const N=[]; BZ.rows.forEach(o=>{ if(o.zfOk && zfOn("bz",o.k)) return; const p=bzPrice(o), c=bzCost(o, p);
     if(one){ const s=bzSt(o), m=s?(s.lock?s.m0:s.m):""; if(m==="x") oUnc++; else if(!m && !(o.stockQ>0)){ if(typeof p==="number" && c!=null){ oTop+=c; oT.push(o.name); } else oUnc++; } }
-    if(c==null) miss++; else { cost+=c; if(p==null && o.dq>0 && !one) N.push({t:`<b>${esc(o.name)}</b>: своя цена не вписана — берётся из «Закупочных цен». Впишите цену, чтобы закупка считалась заполненной.`}); if(o.qty>0 && (p!=null||!o.dq)) zkNote(N, o.name, c/o.qty, {price:o.net/o.qty, priceNet:o.net/o.qty, unit:o.unit}, PC["bz|"+o.k]); } });
+    if(c==null) miss++; else { const dq=bzDqNow(o); cost+=c; if(p==null && dq>0 && !one) N.push({t:`<b>${esc(o.name)}</b>: своя цена не вписана — берётся из «Закупочных цен». Впишите цену, чтобы закупка считалась заполненной.`}); if(o.qty>0 && (p!=null||!dq)) zkNote(N, o.name, c/o.qty, {price:o.net/o.qty, priceNet:o.net/o.qty, unit:o.unit}, PC["bz|"+o.k]); } });
   [...new Set([].concat(...G.map(j=>((zkJState(j)||{}).tip||"").split("\n").slice(1).filter(t=>/склад/.test(t)).map(t=>"№ "+j.number+" · "+t))))].forEach(t=>N.push({t:esc(t)}));
   let oneP=""; if(one){ const ss=r2(G.reduce((a,j)=>a+(oneSrc(j)||[]).reduce((b,x)=>b+(+x.s||0),0),0));
     if(oUnc>0){ oTop=r2(oTop); cost=r2(ss+oTop); miss=0;
