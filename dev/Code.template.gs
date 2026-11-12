@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 31;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 32;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -80,6 +80,8 @@ const S = {
     ['date','Дата'],['box','Ящик'],['fromName','От кого'],['from','Адрес отправителя'],['to','Кому'],['subject','Тема'],['snippet','Начало письма'],['attsText','Вложения'],
     ['read','Прочитано'],['ans','Ответили'],['dir','Папка'],['id','ID (не менять)'],['acc','ID ящика'],['uid','UID'],['msgid','Message-ID'],['refs','References'],['inrep','In-Reply-To'],
     ['cc','Копия'],['replyTo','Ответ на адрес'],['atts','Вложения (не редактировать)'],['body','Файл письма на Диске'],['order','Заявка (не редактировать)'],['by','Кто'],['at','Когда']]},
+  mailtags: { title: 'Почта: отправители', key: 'id', cols: [
+    ['id','Адрес отправителя'],['kind','Кто это (cus — заказчик, no — не заказчик, spam — спам)'],['customerName','Заказчик'],['customerId','ID заказчика'],['by','Кто отметил'],['at','Когда']]},
   drafts: { title: 'Черновики', key: 'id', cols: [
     ['updated','Изменён'],['kind','Вид'],['title','Что'],['sum','Сумма'],['byName','Кто начал'],['lastBy','Кто изменил последним'],['created','Создан'],
     ['id','ID (не менять)'],['data','Данные черновика (не редактировать)']]},
@@ -576,7 +578,7 @@ function mailList_() { return read_('mail').sort((a, b) => String(b.date).locale
 function mail_(p, me) {
   const op = String(p.op || 'list');
   /* Гриша и Склад (staff) — только читают: список, проверка новых, письмо, вложение (Code.gs ≥ 31) */
-  if (me.role === 'staff' && ['list', 'sync', 'get', 'att'].indexOf(op) < 0) return { ok: false, error: op === 'set' ? 'readonly' : 'forbidden' };
+  if (me.role === 'staff' && ['list', 'sync', 'get', 'att', 'attPdf'].indexOf(op) < 0) return { ok: false, error: op === 'set' ? 'readonly' : 'forbidden' };
   try {
     if (op === 'acc' || op === 'delAcc' || op === 'test') {
       if (!me.admin) return { ok: false, error: 'ящики подключает только Даниил' };
@@ -596,10 +598,18 @@ function mail_(p, me) {
       if (!old.id) L.push(a); else L = L.map(y => y.id === a.id ? a : y);
       if (old.id && (old.email !== a.email || old.ih !== a.ih || old.user !== a.user)) { a.uidv = ''; a.last = 0; }
       mailAccSet_(L); const r = mailSync_(true);
-      return { ok: true, acc: mailAccView_(), test: t, added: r.added, errs: r.errs, rows: mailList_() };
+      return { ok: true, acc: mailAccView_(), test: t, added: r.added, errs: r.errs, rows: mailList_(), tags: read_('mailtags') };
     }
-    if (op === 'sync') { const r = mailAcc_().length ? mailSync_(!!p.force) : { added: 0 }; return { ok: true, acc: mailAccView_(), proxy: !!(tbProxy_() || {}).url, added: r.added || 0, skipped: r.skipped || 0, errs: r.errs || {}, rows: mailList_() }; }
-    if (op === 'list') return { ok: true, acc: mailAccView_(), proxy: !!(tbProxy_() || {}).url, rows: mailList_() };
+    if (op === 'sync') { const r = mailAcc_().length ? mailSync_(!!p.force) : { added: 0 }; return { ok: true, acc: mailAccView_(), proxy: !!(tbProxy_() || {}).url, added: r.added || 0, skipped: r.skipped || 0, errs: r.errs || {}, rows: mailList_(), tags: read_('mailtags') }; }
+    if (op === 'list') return { ok: true, acc: mailAccView_(), proxy: !!(tbProxy_() || {}).url, rows: mailList_(), tags: read_('mailtags') };
+    if (op === 'tag') {   /* отправитель: заказчик (cus + customerId) / не заказчик (no) / спам (spam) / '' — снять; Code.gs ≥ 32 */
+      const L = (Array.isArray(p.tags) ? p.tags : [p]).map(x => ({ id: String(x.email || '').trim().toLowerCase(), kind: String(x.kind || ''), cid: String(x.cid || '') })).filter(x => /^[^@\s]+@[^@\s]+$/.test(x.id)).slice(0, 100);
+      if (!L.length) return { ok: false, error: 'нет адреса отправителя' };
+      const cn = nameMap_('customers'), now = new Date().toISOString(), lock = LockService.getScriptLock(); lock.waitLock(25000);
+      try { upsertList_('mailtags', { upsert: L.filter(x => /^(cus|no|spam)$/.test(x.kind)).map(x => ({ id: x.id, kind: x.kind, customerId: x.kind === 'cus' ? x.cid : '', customerName: x.kind === 'cus' ? (cn[x.cid] || '') : '', by: me.name, at: now })),
+        del: L.filter(x => !/^(cus|no|spam)$/.test(x.kind)).map(x => x.id) }); } finally { lock.releaseLock(); }
+      return { ok: true, tags: read_('mailtags') };
+    }
     if (op === 'proxyCheck') { const px = tbProxy_(); if (!px || !px.url) return { ok: true, proxy: 0 };
       const r = UrlFetchApp.fetch(px.url, { method: 'post', contentType: 'application/json', headers: { 'X-Proxy-Key': px.key }, payload: JSON.stringify({ path: '/ping' }), muteHttpExceptions: true });
       let j = {}; try { j = JSON.parse(r.getContentText()) || {}; } catch (e) {} return { ok: true, proxy: j.proxy || 0, mail: j.mail || 0, code: r.getResponseCode() }; }
@@ -607,6 +617,16 @@ function mail_(p, me) {
     if (op === 'get') { if (!row) return { ok: false, error: 'письмо не найдено' }; let b = { text: row.snippet, html: '' };
       if (row.body) { try { b = JSON.parse(DriveApp.getFileById(row.body).getBlob().getDataAsString('UTF-8')); } catch (e) { b.err = 'текст письма на Диске не найден'; } }
       return { ok: true, row: row, text: b.text || '', html: b.html || '', err: b.err || '' }; }
+    if (op === 'attPdf') {   /* Word, Excel, PowerPoint… → PDF для просмотра на сайте (Google Диск, как декларации); готовый PDF запоминается */
+      if (!row) return { ok: false, error: 'письмо не найдено' }; const L = JSON.parse(row.atts || '[]'), i = +p.i || 0, x = L[i]; if (!x) return { ok: false, error: 'вложение не найдено' };
+      if (x.p) { try { return { ok: true, name: x.n.replace(/\.[^.]+$/, '') + '.pdf', data: Utilities.base64Encode(DriveApp.getFileById(x.p).getBlob().getBytes()) }; } catch (e) {} }
+      if (!x.f) { const r0 = mail_(Object.assign({}, p, { op: 'att' }), me); if (!r0.ok) return r0; const rr = read_('mail').find(r => r.id === row.id); const L2 = JSON.parse(rr.atts || '[]'); x.f = (L2[i] || {}).f; }
+      if (!x.f) return { ok: false, error: 'файл не загрузился' };
+      const pdf = stToPdf_(x.f, x.n, x.m), bytes = pdf.getBytes();
+      try { const L3 = JSON.parse((read_('mail').find(r => r.id === row.id) || row).atts || '[]'); if (L3[i]) { L3[i].p = mailDir_().createFile(Utilities.newBlob(bytes, 'application/pdf', row.id.replace(/:/g, '_') + '__' + i + '__view.pdf')).getId();
+          const lock = LockService.getScriptLock(); lock.waitLock(25000); try { upsertList_('mail', { upsert: [{ id: row.id, atts: JSON.stringify(L3) }] }); } finally { lock.releaseLock(); } } } catch (e) {}
+      return { ok: true, name: x.n.replace(/\.[^.]+$/, '') + '.pdf', data: Utilities.base64Encode(bytes) };
+    }
     if (op === 'att') { if (!row) return { ok: false, error: 'письмо не найдено' }; const L = JSON.parse(row.atts || '[]'), i = +p.i || 0, x = L[i]; if (!x) return { ok: false, error: 'вложение не найдено' };
       if (x.f) { try { const b = DriveApp.getFileById(x.f).getBlob(); return { ok: true, name: x.n, mime: x.m, data: Utilities.base64Encode(b.getBytes()) }; } catch (e) {} }
       if (row.dir === 'sent') return { ok: false, error: 'вложение не сохранено' };

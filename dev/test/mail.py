@@ -13,7 +13,7 @@ b64=lambda s: base64.b64encode(s if isinstance(s,bytes) else s.encode()).decode(
 PX='k'*24
 M_RU=[{'uid':11,'date':'2026-11-12T06:15:00.000Z','from':{'n':'МГУ Комбинат','a':'zakaz@msu.ru'},'to':[{'n':'','a':'frudom.ru@mail.ru'}],'cc':[],'replyTo':'','subject':'Заявка на 14.11',
   'msgid':'<m11@msu.ru>','inReply':'','refs':'','text':'Добрый день!\nПрошу поставить:\nПомидоры тест 10 кг\nОгурцы тест 5 кг\n\nС уважением, Комбинат питания','html':'',
-  'atts':[{'name':'заявка.pdf','mime':'application/pdf','size':13,'data':b64('%PDF-1.4 test')}]},
+  'atts':[{'name':'заявка.pdf','mime':'application/pdf','size':13,'data':b64('%PDF-1.4 test')},{'name':'счёт.docx','mime':'application/vnd.openxmlformats-officedocument.wordprocessingml.document','size':7,'data':b64('PK docx')}]},
   {'uid':12,'date':'2026-11-11T08:00:00.000Z','from':{'n':'Рассылка','a':'news@shop.ru'},'to':[{'n':'','a':'frudom.ru@mail.ru'}],'cc':[],'replyTo':'','subject':'Скидки недели','msgid':'<n12@shop.ru>','inReply':'','refs':'',
   'text':'Только сегодня скидки','html':'<p>Только <b>сегодня</b> скидки <img src="https://track.example/x.png"></p>','atts':[]}]
 M_TW=[{'uid':3,'date':'2026-11-12T09:30:00.000Z','from':{'n':'Цирк бухгалтерия','a':'buh@circus.ru'},'to':[{'n':'','a':'info@frudom.ru'}],'cc':[{'n':'Кассир','a':'kassa@circus.ru'}],'replyTo':'','subject':'Акт сверки за октябрь',
@@ -30,7 +30,7 @@ async def until(pg, js, n=60):
         await pg.wait_for_timeout(250)
     return False
 async def main():
-    ev("__mail={boxes:{'frudom.ru@mail.ru':{pass:'app-pass-mailru',uidv:5,msgs:%s},'info@frudom.ru':{pass:'tw-pass',uidv:9,msgs:%s}},sent:[]}; __tb={proxy:{key:'%s'}}; PropertiesService.getScriptProperties().setProperty('TB_PROXY', JSON.stringify({url:'https://functions.yandexcloud.net/dtest', key:'%s'})); PropertiesService.getScriptProperties().setProperty('GEMINI_KEY','AIzaTEST0000000000000000000'); PropertiesService.getScriptProperties().deleteProperty('MAIL_ACC'); PropertiesService.getScriptProperties().deleteProperty('MAIL_SYNC_AT'); write_('mail', []); write_('uprefs', []); 1" % (json.dumps(M_RU,ensure_ascii=False), json.dumps(M_TW,ensure_ascii=False), PX, PX))
+    ev("__mail={boxes:{'frudom.ru@mail.ru':{pass:'app-pass-mailru',uidv:5,msgs:%s},'info@frudom.ru':{pass:'tw-pass',uidv:9,msgs:%s}},sent:[]}; __tb={proxy:{key:'%s'}}; PropertiesService.getScriptProperties().setProperty('TB_PROXY', JSON.stringify({url:'https://functions.yandexcloud.net/dtest', key:'%s'})); PropertiesService.getScriptProperties().setProperty('GEMINI_KEY','AIzaTEST0000000000000000000'); PropertiesService.getScriptProperties().deleteProperty('MAIL_ACC'); PropertiesService.getScriptProperties().deleteProperty('MAIL_SYNC_AT'); write_('mail', []); write_('uprefs', []); write_('mailtags', []); 1" % (json.dumps(M_RU,ensure_ascii=False), json.dumps(M_TW,ensure_ascii=False), PX, PX))
     async with async_playwright() as p:
         b=await p.chromium.launch(executable_path=os.environ.get("BROWSER_EXECUTABLE_PATH"))
         ctx,pg,errs=await login(b,'Даниил','1111')
@@ -67,13 +67,13 @@ async def main():
         # письмо с заявкой
         await pg.click('#ml-list .mlr:has-text("Заявка на 14.11")'); await until(pg,"/Прошу поставить/.test(document.querySelector('#ml-view').textContent)")
         ok(await pg.locator('#ml-view .mlordbox').count()==1, 'открытое письмо: плашка «Похоже на заявку»')
-        ok(await pg.locator('#ml-view [data-mlmk="0"]').count()==1 and await pg.locator('#ml-view [data-mlmk="text"]').count()==1, 'кнопки «из заявка.pdf» и «из текста письма»')
+        ok(await pg.locator('#ml-view [data-mlmk="0"]').count()==1 and await pg.locator('#ml-view [data-mlmk="1"]').count()==1 and await pg.locator('#ml-view [data-mlmk="text"]').count()==1, 'кнопки «из заявка.pdf» и «из текста письма»')
         await pg.wait_for_timeout(800)
         R=rows('Почта'); ok([r for r in R if r['Тема']=='Заявка на 14.11'][0]['Прочитано']=='1', 'письмо отмечено прочитанным в таблице')
         ok(await pg.evaluate("document.querySelector('nav.tabs button[data-tab=\"mail\"]').dataset.n")=='2', 'счётчик стал 2')
         # вложение
         await pg.click('#ml-view [data-mlatt="0"][data-how="view"]'); await pg.wait_for_timeout(1200)
-        ok(await pg.locator('dialog.skview iframe').count()==1, 'PDF-вложение открывается в окне')
+        ok(await until(pg,"!!document.querySelector('dialog.mlvw .mlvpdf canvas, dialog.mlvw iframe.mlvifr')"), 'PDF-вложение показывается на сайте, без скачивания')
         await pg.click('dialog.skview .dc-x'); await pg.wait_for_timeout(500)
         ok(await pg.locator('dialog.skview').count()==0, '× закрывает окно вложения')
         # ответ
@@ -109,12 +109,43 @@ async def main():
         pr=await pg.evaluate("JSON.parse(localStorage.getItem('frudom-docs-prefs:Даниил')||'{}').mlCus||{}"); ok(pr.get('zakaz@msu.ru')==cid, 'отправитель запомнен как этот заказчик')
         await pg.click('#fd-tback'); await pg.wait_for_timeout(800)
         ok(not await pg.locator('#tab-mail').is_hidden() and 'Документы сделаны' in await pg.text_content('#ml-list'), 'назад в «Почту», у письма «Документы сделаны»')
+        # Word — смотреть на сайте (через PDF на Google Диске)
+        await pg.click('#ml-list .mlr:has-text("Заявка на 14.11")'); await until(pg,"!!document.querySelector('#ml-view [data-mlatt=\"1\"]')")
+        await pg.click('#ml-view [data-mlatt="1"][data-how="view"]')
+        ok(await until(pg,"!!document.querySelector('dialog.mlvw .mlvpdf canvas, dialog.mlvw iframe.mlvifr')", 80), 'Word-вложение показывается на сайте (превращено в PDF)')
+        await pg.click('dialog.mlvw .dc-x'); await pg.wait_for_timeout(400)
+        # наведение — быстрые кнопки; правая кнопка — меню
+        row=pg.locator('#ml-list .mlr:has-text("Скидки недели")'); await row.hover(); await pg.wait_for_timeout(300)
+        ok(await pg.evaluate("getComputedStyle(document.querySelector('#ml-list .mlr:hover .mlqa')).opacity")=='1', 'при наведении на письмо — быстрые кнопки')
+        await row.locator('[data-mlq="done"]').click(); await pg.wait_for_timeout(400)
+        ok(await pg.locator('#ml-list .mlr.isdone:has-text("Скидки недели")').count()==1, 'быстрая кнопка «Обработано» сработала, письмо не открылось' )
+        await row.click(button='right'); await pg.wait_for_timeout(300)
+        ok(await pg.locator('#ml-menu').is_visible() and 'В спам' in await pg.text_content('#ml-menu'), 'правая кнопка — меню действий')
+        await pg.keyboard.press('Escape'); await pg.wait_for_timeout(250); ok(await pg.locator('#ml-menu').count()==0, 'Esc закрывает меню')
+        await row.click(button='right'); await pg.wait_for_timeout(300)
+        await pg.click('#ml-menu [data-mlm="spam"]'); await pg.wait_for_timeout(600)
+        ok(await pg.locator('#ml-list .mlr:has-text("Скидки недели")').count()==0, 'в спам — письмо ушло из «Входящих»')
+        T=rows('Почта: отправители'); ok(any(t['Адрес отправителя']=='news@shop.ru' and t['Кто это (cus — заказчик, no — не заказчик, spam — спам)']=='spam' for t in T), 'отправитель записан в таблицу как спам')
+        await pg.click('#ml [data-mlf="spam"]'); await pg.wait_for_timeout(300)
+        ok(await pg.locator('#ml-list .mlr').count()==1, 'фильтр «Спам» — 1 письмо')
+        await pg.click('#ml-list .mlr'); await until(pg,"!!document.querySelector('#ml-view .mlspam')")
+        await pg.click('#ml-view .mlspam [data-ml="nospam"]'); await pg.wait_for_timeout(600)
+        await pg.click('#ml [data-mlf="in"]'); await pg.wait_for_timeout(300)
+        ok(await pg.locator('#ml-list .mlr:has-text("Скидки недели")').count()==1 and not any(t['Адрес отправителя']=='news@shop.ru' for t in rows('Почта: отправители')), '«Не спам» — письмо вернулось, пометка снята')
+        # заказчик / не заказчик
+        await pg.click('#ml-list .mlr:has-text("Акт сверки")'); await until(pg,"!!document.querySelector('#ml-view [data-ml=tagcus]')")
+        await pg.click('#ml-view [data-ml="tagcus"]'); await pg.wait_for_timeout(300); await pg.select_option('#ml-tcus', cid); await pg.click('#ml-view [data-ml="tagsave"]'); await pg.wait_for_timeout(600)
+        ok(await pg.locator('#ml-list .mlr:has-text("Акт сверки") .mltag.cus').count()==1, 'отправитель отмечен как заказчик — пометка в списке')
+        ok(any(t['Адрес отправителя']=='buh@circus.ru' and t['ID заказчика']==cid for t in rows('Почта: отправители')), 'и записан в таблицу')
+        r2=pg.locator('#ml-list .mlr:has-text("Скидки недели")'); await r2.click(button='right'); await pg.wait_for_timeout(300); await pg.click('#ml-menu [data-mlm="tagno"]'); await pg.wait_for_timeout(500)
+        ok(await pg.locator('#ml-list .mlr:has-text("Скидки недели") .mltag.no').count()==1, 'через меню — «Не заказчик»')
+        await pg.screenshot(path=f'{SHOT}/mail-menu.png')
         # «Обработано»: кем и когда
         await pg.click('#ml-list .mlr:has-text("Акт сверки")'); await until(pg,"!!document.querySelector('#ml-view [data-ml=done]')")
         n0=await pg.evaluate("document.querySelector('#ml [data-mlf=undone] em').textContent")
         await pg.click('#ml-view .mldbtn'); await pg.wait_for_timeout(500)
         ok('ОБРАБОТАНО' in await pg.text_content('#ml-view .mldone') and 'Даниил' in await pg.text_content('#ml-view .mldone'), 'в письме пометка «ОБРАБОТАНО» и кто')
-        ok(await pg.locator('#ml-list .mlr.isdone .mldbadge').count()==1 and 'сегодня в' in await pg.text_content('#ml-list .mlr.isdone .mlr5'), 'в списке зелёная плашка «Обработано · Даниил · сегодня в …»')
+        ok(await pg.locator('#ml-list .mlr.isdone:has-text("Акт сверки") .mldbadge').count()==1 and 'сегодня в' in await pg.text_content('#ml-list .mlr.isdone:has-text("Акт сверки") .mlr5'), 'в списке зелёная плашка «Обработано · Даниил · сегодня в …»')
         ok(int(await pg.evaluate("document.querySelector('#ml [data-mlf=undone] em').textContent"))==int(n0)-1, 'счётчик «Не обработаны» уменьшился')
         o=json.loads([r for r in rows('Почта') if r['Тема']=='Акт сверки за октябрь'][0]['Заявка (не редактировать)']); ok(o.get('done',{}).get('by')=='Даниил' and o['done'].get('at'), 'пометка сохранена в таблице')
         await pg.click('#ml [data-mlf="undone"]'); await pg.wait_for_timeout(300); ok(await pg.locator('#ml-list .mlr:has-text("Акт сверки")').count()==0, 'фильтр «Не обработаны» её скрывает')
@@ -122,10 +153,11 @@ async def main():
         ok(not errs, f'без ошибок {errs}'); await ctx.close()
         ctx,pg,errs=await login(b,'Наталья','2222')
         await pg.evaluate("location.hash='#pochta'"); await pg.wait_for_timeout(2500)
-        ok('Даниил' in (await pg.text_content('#ml-list .mlr.isdone')) , 'Наталья видит «Обработано · Даниил»')
-        await pg.click('#ml-list .mlr.isdone'); await until(pg,"!!document.querySelector('#ml-view .mldone')")
+        ok('Даниил' in (await pg.text_content('#ml-list .mlr.isdone:has-text("Акт сверки")')) , 'Наталья видит «Обработано · Даниил»')
+        ok(await pg.locator('#ml-list .mlr:has-text("Акт сверки") .mltag.cus').count()==1, 'Наталья видит пометку «Заказчик» (общая)')
+        await pg.click('#ml-list .mlr.isdone:has-text("Акт сверки")'); await until(pg,"!!document.querySelector('#ml-view .mldone')")
         await pg.click('#ml-view .mldone [data-ml="done"]'); await pg.wait_for_timeout(500)
-        ok(await pg.locator('#ml-list .mlr.isdone').count()==0 and not json.loads([r for r in rows('Почта') if r['Тема']=='Акт сверки за октябрь'][0]['Заявка (не редактировать)'] or '{}').get('done'), 'Наталья сняла пометку')
+        ok(await pg.locator('#ml-list .mlr.isdone:has-text("Акт сверки")').count()==0 and not json.loads([r for r in rows('Почта') if r['Тема']=='Акт сверки за октябрь'][0]['Заявка (не редактировать)'] or '{}').get('done'), 'Наталья сняла пометку')
         await pg.click('#ml-view .mldbtn'); await pg.wait_for_timeout(400); ok('Наталья' in await pg.text_content('#ml-view .mldone'), 'и поставила заново от своего имени')
         await pg.screenshot(path=f'{SHOT}/mail-done.png')
         await ctx.close()
