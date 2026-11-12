@@ -2597,6 +2597,8 @@ function calc(dr, snap){
   ["sum","vat","net"].forEach(x=>t[x]=r2(t[x]));
   return {s, c, rate, add, lines, t, dr, t12};
 }
+/* расчёт для прибыли и закупки: налог 8% считается со всей суммы накладной — НДС из документа (10%/22%) из выручки не вычитается, Даниил платит его отдельно (12.11.2026). Документы (счёт, ТОРГ, УПД, XML) считаются по-прежнему через calc */
+function pfCalc(dr, snap){ const k=calc(dr, snap); k.lines=k.lines.map(l=>Object.assign({}, l, {net:l.sum, priceNet:l.qty?r2(l.sum/l.qty):l.price})); k.t=Object.assign({}, k.t, {net:k.t.sum}); return k; }
 const branches = c => { try{ const a=JSON.parse(c.branches||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; } };
 /* «Частное лицо» — покупатель без реквизитов: простая накладная без ИНН, банка и договора */
 const PRIV_ID="private-buyer", isPriv = id => id===PRIV_ID;
@@ -4633,7 +4635,7 @@ function costFor(pid, cid, date){
 const docCost = id => pfArr("doccosts").find(x=>x.id===id);
 const dcLines = dc => { try{ return dc && dc.lines ? JSON.parse(dc.lines) : {}; }catch(e){ return {}; } };
 function docProfit(j){
-  const k=calc(j.snap.dr, j.snap), dc=docCost(j.id), ov=dcLines(dc); let cost=0, miss=0, prelim=false;
+  const k=pfCalc(j.snap.dr, j.snap), dc=docCost(j.id), ov=dcLines(dc); let cost=0, miss=0, prelim=false;
   const lines=k.lines.map(l=>{ const o=ov[l.pid], e=(o!=null&&o!=="")?null:costFor(l.pid, j.customerId, j.date), c=(o!=null&&o!=="")?+o:(e?+e.price:null);
     /* складская часть — по партиям (общая закупочная цена её не перезаписывает), прямая часть Саида — по его цене */
     const sk=skLineCost(j, l);
@@ -4839,7 +4841,7 @@ $("#pf-docs").addEventListener("click",e=>{
   const bk=e.target.closest("[data-bulk]"); if(bk){ pfBulk(bk.dataset.bulk, bk.dataset.doc, bk.closest(".pfbulk")); return; }
   if(e.target.closest("input,label,button,select")) return; const tr=e.target.closest("tr.pfd"); if(!tr) return; const id=tr.dataset.pf; pfOpen.has(id)?pfOpen.delete(id):pfOpen.add(id); drawProfit(); });
 /* закупка всей накладной одной кнопкой: суммой (делится пропорционально продаже), наценкой или возврат к ценам из списка */
-function pfBulk(mode, id, box){ const j=pfDoc(id); if(!j) return; const k=calc(j.snap.dr, j.snap), dc=dcUpsert(j), L=dcLines(dc), lines=k.lines.filter(l=>l.qty>0 && !(L._free||{})[l.pid]);   /* «бесплатно» не трогаем */
+function pfBulk(mode, id, box){ const j=pfDoc(id); if(!j) return; const k=pfCalc(j.snap.dr, j.snap), dc=dcUpsert(j), L=dcLines(dc), lines=k.lines.filter(l=>l.qty>0 && !(L._free||{})[l.pid]);   /* «бесплатно» не трогаем */
   if(mode==="reset"){ lines.forEach(l=>delete L[l.pid]); dc.lines=JSON.stringify(L); dirty("doccosts", dc.id); saveLocal(); drawProfit(); toast("ok","Закупка из списка","Накладная № "+j.number+": свои цены убраны, берутся закупочные цены на дату накладной."); return; }
   if(mode==="sum"){ const v=+num(box.querySelector(".pfbs").value), base=lines.reduce((a,l)=>a+l.net,0);
     if(!(v>0)){ toast("err","Впишите сумму","Сколько всего стоила закупка товара для этой накладной."); box.querySelector(".pfbs").focus(); return; }
@@ -4993,7 +4995,7 @@ function zkParse(text){
 }
 /* закупка за неделю: если одна точка встречается несколько раз, каждой закупке подбираем свою накладную —
    по совпадению товаров и количества; если подходящая накладная одна на двоих — это продолжение того же заказа, блоки объединятся */
-function zkInv(docs){ const inv=new Map(); docs.forEach(j=>calc(j.snap.dr, j.snap).lines.forEach(l=>{ const dq=r3(l.qty-skStockQ(j,l)); if(dq<=0) return; const o=inv.get(l.pid)||{pid:l.pid, name:l.name, unit:l.unit||"кг", qty:0, net:0, prod:prod(l.pid)||{}}; o.qty=r3(o.qty+dq); o.net+=l.net*dq/l.qty; inv.set(l.pid,o); })); return inv; }
+function zkInv(docs){ const inv=new Map(); docs.forEach(j=>pfCalc(j.snap.dr, j.snap).lines.forEach(l=>{ const dq=r3(l.qty-skStockQ(j,l)); if(dq<=0) return; const o=inv.get(l.pid)||{pid:l.pid, name:l.name, unit:l.unit||"кг", qty:0, net:0, prod:prod(l.pid)||{}}; o.qty=r3(o.qty+dq); o.net+=l.net*dq/l.qty; inv.set(l.pid,o); })); return inv; }
 function zkScore(items, docs){ const inv=zkInv(docs); let s=0;
   items.forEach(it=>{ if(it.bad) return; const r=zkLine(it, inv);
     if(r.kind==="prod" && r.pids.length){ s+=1; const q=it.q*r.f, iq=r.pids.reduce((a,id)=>a+inv.get(id).qty,0); if(iq>0 && Math.abs(q-iq)/iq<=0.25) s+=1; }
@@ -5091,7 +5093,7 @@ function zkBlock(b){
   const docs = sel.map(id=>D.journal.find(j=>j.id===id)).filter(Boolean);
   const inv=new Map();
   /* складская часть строки Саид не покупает — сравниваем только часть «от Саида» */
-  if(!none) docs.forEach(j=>calc(j.snap.dr, j.snap).lines.forEach(l=>{ const o=inv.get(l.pid)||{pid:l.pid, name:l.name, unit:l.unit||"кг", qty:0, net:0, stk:0, prod:prod(l.pid)||{}}; const sq=skStockQ(j,l), dq=r3(l.qty-sq);
+  if(!none) docs.forEach(j=>pfCalc(j.snap.dr, j.snap).lines.forEach(l=>{ const o=inv.get(l.pid)||{pid:l.pid, name:l.name, unit:l.unit||"кг", qty:0, net:0, stk:0, prod:prod(l.pid)||{}}; const sq=skStockQ(j,l), dq=r3(l.qty-sq);
     o.stk=r3((o.stk||0)+sq); if(dq>0){ o.qty=r3(o.qty+dq); o.net+=l.net*dq/l.qty; } inv.set(l.pid,o); }));
   else if(cid){ /* без накладной — сопоставляем с прайсом заказчика (цена по договору), а если прайса нет — со всеми товарами */
     const pl=D.prices[cid]||{}, ids=Object.keys(pl).filter(id=>pl[id]!=="" && pl[id]!=null && prod(id));
@@ -5928,7 +5930,7 @@ const oneDirect = j => docProfit(j).lines.reduce((a,r)=>{ const l=r.l, sq=r.sk?+
 /* Правило: сумма «Одной суммой» — закупка товаров БЕЗ своей цены; товар со своей ценой добавляется сверху (флаг lines._oneAdd).
    Своя цена у всех товаров — сумме нечего покрывать: при «Сохранить закупку» она убирается и всё считается по товарам. */
 const oneIsSum = L => !!L && Array.isArray(L._src) && L._src.some(x=>x && x.n===ONE_N);
-function oneSplit(j, L, k){ k=k||calc(j.snap.dr, j.snap); let top=0, unc=0; const tops=[];
+function oneSplit(j, L, k){ k=k||pfCalc(j.snap.dr, j.snap); let top=0, unc=0; const tops=[];
   k.lines.forEach(l=>{ if(!(l.qty>0) || (L._free||{})[l.pid]) return; const m=(l.stk||{}).m||""; if(m==="s") return;
     const o=L[l.pid], own=o!=null && o!=="" && !isNaN(+o);
     if(m || !own){ unc++; return; }   /* «часть со склада» и товары без своей цены — в сумме */
@@ -5958,7 +5960,7 @@ function zkNotesBody(N, miss){ if(N.length) return `<div class="zkn"><b>Поче
 const dcZkHas = j => { const L=dcLines(docCost(j.id)); return (Array.isArray(L._src) && L._src.length>0) || Object.keys(L).some(k=>k[0]!=="_" && L[k]!==""); };
 /* плитка «Закупка» в блоке закупки: товар + прочие расходы (доставка, грузчики, телега) */
 const zkCostTile = (cost, exp) => `<div><small>Закупка${exp?" с расходами":""}</small><b>${fm(r2(cost+exp))}</b>${exp?`<span>товар ${fm(r2(cost))} + расходы ${fm(r2(exp))}</span>`:""}</div>`;
-function dcZkSum(j, box){ ztSync(box); const k=calc(j.snap.dr, j.snap), tx=taxOf(j.supplierId)/100; let cost=0, miss=0; const N=[];
+function dcZkSum(j, box){ ztSync(box); const k=pfCalc(j.snap.dr, j.snap), tx=taxOf(j.supplierId)/100; let cost=0, miss=0; const N=[];
   const one=oneIsSum(dcLines(docCost(j.id))); let oTop=0, oUnc=0; const oT=[];   /* «одной суммой»: товары со своей ценой — сверху */
   k.lines.forEach(l=>{ const el=box.querySelector(`.dzc[data-k="${dzKey(l)}"]`), v=el?num(el.value):""; const typed=v!=="" && !isNaN(+v), c = typed ? +v : (el && el.placeholder && !isNaN(+num(el.placeholder)) ? +num(el.placeholder) : null);
     if(!(l.qty>0)) return;
@@ -6008,7 +6010,7 @@ function dzSaidHtml(j){ if(DZS.doc!==j.id) DZS={doc:j.id, open:false, text:"", m
   return `<div class="dzsaid${DZS.open?" open":""}"><button type="button" class="btn sm dzsaid-t" data-zkc="said" aria-expanded="${DZS.open}">✉ Вставить сообщение Саида</button>
     <div class="dzsaid-b"${DZS.open?"":" hidden"}><textarea class="dzst" rows="4" placeholder="Помидоры 85,6×70&#10;Огурцы 66,5×45&#10;Памидор ч 20×100&#10;Телега 600">${esc(DZS.text)}</textarea>
     <div class="row"><button type="button" class="btn pri sm" data-zkc="saidgo">Заполнить закупку</button><span class="muted">Цена, сколько куплено и телега встанут сами — проверьте и сохраните</span></div>${DZS.msg?`<div class="dzsaid-m">${DZS.msg}</div>`:""}</div></div>`; }
-function dzSaidFill(j, box){ const text=box.querySelector(".dzst").value; DZS.text=text; const k=calc(j.snap.dr, j.snap), inv=zkInv([j]), acc={}, bad=[], seen=new Set(); let exp=0, total=0, n=0;
+function dzSaidFill(j, box){ const text=box.querySelector(".dzst").value; DZS.text=text; const k=pfCalc(j.snap.dr, j.snap), inv=zkInv([j]), acc={}, bad=[], seen=new Set(); let exp=0, total=0, n=0;
   [].concat(...zkParse(text).map(b=>b.items)).forEach(it=>{ if(it.bad){ bad.push(it.src); return; } total+=+it.s||0; const r=zkLine(it, inv);
     if(r.kind==="exp"){ exp+=+it.s||0; return; } if(r.kind==="skip") return;
     let pid = r.kind==="prod" && r.pids.length===1 ? r.pids[0] : null;
@@ -6053,7 +6055,7 @@ document.addEventListener("click", async e=>{ const b=e.target.closest("#fd-dcar
     oneSet(j, v>0?v:0); const ev=num((box.querySelector(".dze")||{}).value||""), dc=dcUpsert(j); dc.expense = ev===""||isNaN(+ev) ? "" : String(+ev); dirty("doccosts", dc.id);
     logEv("Прибыль","Закупка одной суммой: накладная № "+j.number+" от "+fd(j.date)+" — "+jWho(j).main+": "+fm(v)+" ₽");
     const x=after(); $("#dc-zkmsg").textContent="Записано ✓"; toast("ok","Закупка записана одной суммой","№ "+j.number+": закупка "+fm(x.cost)+" ₽ · прибыль "+fm(x.profit)+" ₽."); return; }
-  if(a==="spread"){ const v=+num(box.querySelector(".dzs").value), k=calc(j.snap.dr, j.snap), L=k.lines.filter(l=>l.qty>0), base=L.reduce((s,l)=>s+l.net,0);
+  if(a==="spread"){ const v=+num(box.querySelector(".dzs").value), k=pfCalc(j.snap.dr, j.snap), L=k.lines.filter(l=>l.qty>0), base=L.reduce((s,l)=>s+l.net,0);
     if(!(v>0) || !(base>0)){ toast("err","Впишите сумму","Сколько всего стоила закупка товара для этой накладной."); box.querySelector(".dzs").focus(); return; }
     /* строки «со склада» не делим: их себестоимость — по партиям склада; сумму делим на купленное у Саида */
     const stQ=l=>{ const s=dzSt(j,l), lk=s&&dzLocked(j,l); if(lk) return r3(lk.req||0); return s?dzQ(l,s):0; };
@@ -6194,7 +6196,7 @@ function bzSrcHtml(o){ const s=bzSt(o); if(!s || !dzOn()) return ""; const X=skI
 function bzPrice(o){ const box=$("#bz-zki"), el=box&&box.querySelector(`.bzc[data-k="${CSS.escape(o.k)}"]`); if(!el) return null; const v=num(el.value);
   if(v!==""&&!isNaN(+v)) return +v; if(!BZ.touched[o.k] && o.mixed) return "mixed"; return null; }
 function bzSum(){ const box=$("#bz-zki"); if(!box||!BZ) return; ztSync(box); const G=bzDocs(); let rev=0, tax=0, cost=0, miss=0;
-  G.forEach(j=>{ const k=calc(j.snap.dr, j.snap); rev+=k.t.net; tax+=r2(k.t.net*taxOf(j.supplierId)/100); });
+  G.forEach(j=>{ const k=pfCalc(j.snap.dr, j.snap); rev+=k.t.net; tax+=r2(k.t.net*taxOf(j.supplierId)/100); });
   const one=G.some(j=>oneIsSum(dcLines(docCost(j.id)))); let oTop=0, oUnc=0; const oT=[];
   const N=[]; BZ.rows.forEach(o=>{ if(o.zfOk && zfOn("bz",o.k)) return; const p=bzPrice(o), c=bzCost(o, p);
     if(one){ const s=bzSt(o), m=s?(s.lock?s.m0:s.m):""; if(m==="x") oUnc++; else if(!m && !(o.stockQ>0)){ if(typeof p==="number" && c!=null){ oTop+=c; oT.push(o.name); } else oUnc++; } }
@@ -6262,7 +6264,7 @@ document.addEventListener("click", async e=>{ const b=e.target.closest&&e.target
     /* сумма делится по накладным пропорционально продаже (без складской части), последней — остаток */
     const live=G.map((j,i)=>({j, w:W[i]})).filter(o=>o.w>0); let left=r2(v>0?v:0);
     G.forEach(j=>{ const o=live.findIndex(y=>y.j===j); let part=0; if(o>=0){ part = o===live.length-1 ? left : r2(v*live[o].w/wb); left=r2(left-part); } oneSet(j, part); });
-    if(BZ.expT){ const ev=num(box.querySelector(".bze").value), revs=G.map(j=>calc(j.snap.dr, j.snap).t.net), rb=revs.reduce((x,y)=>x+y,0); let le=ev===""||isNaN(+ev)?0:r2(+ev);
+    if(BZ.expT){ const ev=num(box.querySelector(".bze").value), revs=G.map(j=>pfCalc(j.snap.dr, j.snap).t.net), rb=revs.reduce((x,y)=>x+y,0); let le=ev===""||isNaN(+ev)?0:r2(+ev);
       G.forEach((j,i)=>{ const dc=dcUpsert(j), part = ev===""||isNaN(+ev) ? "" : (i===G.length-1 ? le : r2(+ev*(rb?revs[i]/rb:1/G.length))); if(part!=="") le=r2(le-part); dc.expense = part===""||!(+part)?"":String(part); dirty("doccosts", dc.id); }); BZ.expT=false; }
     logEv("Прибыль","Закупка одной суммой: комплект № "+G.map(j=>j.number).join(", ")+" от "+fd(G[0].date)+" — "+jWho(G[0]).main+": "+fm(v)+" ₽");
     after(); const cost=r2(G.reduce((x,j)=>x+docProfit(j).cost,0)), prof=r2(G.reduce((x,j)=>x+docProfit(j).profit,0));
@@ -6292,7 +6294,7 @@ document.addEventListener("click", async e=>{ const b=e.target.closest&&e.target
       if(!BZ.touched[o.k] && (v===""?"":String(+v))===cur) return;   /* не трогали — разные цены в накладных остаются как есть */
       touched[o.k]= v===""||isNaN(+v) ? null : String(+v); });
     const ev=num(ev0), expCh=BZ.expT;
-    const revs=G.map(j=>calc(j.snap.dr, j.snap).t.net), rb=revs.reduce((x,y)=>x+y,0); let left=ev===""||isNaN(+ev)?0:r2(+ev);
+    const revs=G.map(j=>pfCalc(j.snap.dr, j.snap).t.net), rb=revs.reduce((x,y)=>x+y,0); let left=ev===""||isNaN(+ev)?0:r2(+ev);
     G.forEach((j,i)=>{ const dc=dcUpsert(j), L=dcLines(dc); let chd=false, pch=false;
       Object.keys(touched).forEach(k=>{ const o=BZ.rows.find(x=>x.k===k); if(!o||!o.docs.includes(j.id)) return; if(touched[k]==null){ if(o.pid in L){ delete L[o.pid]; chd=true; } } else { L[o.pid]=touched[k]; pch=true; chd=true; }
         const b4=JSON.stringify(L._pc||null); if(allS[k]) { if(L._pc){ delete L._pc[o.pid]; if(!Object.keys(L._pc).length) delete L._pc; } } else pcSaveTo(L, "bz", k, o.pid); if(JSON.stringify(L._pc||null)!==b4) chd=true; });
