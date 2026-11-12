@@ -1796,6 +1796,10 @@ dialog .ndr-a{display:flex;gap:6px;flex:none}
 #fd-app .dbsg{all:unset;box-sizing:border-box;display:grid;gap:1px;width:100%;padding:8px 10px;border-radius:10px;cursor:pointer;color:var(--ink)}
 #fd-app .dbsg b{font-weight:550;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fd-app .dbsg small{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #fd-app .dbsg.on,#fd-app .dbsg:focus-visible{background:var(--accent-soft)}@media(hover:hover){#fd-app .dbsg:hover{background:var(--accent-soft)}}
+.dlsug{position:fixed;z-index:2147483002;overflow:auto;box-sizing:border-box;background:#fff;border-radius:12px;padding:5px;box-shadow:0 14px 36px -10px rgba(28,20,30,.35),0 0 0 1px rgba(28,34,32,.08);animation:fdin .15s ease both;overscroll-behavior:contain;font:15px "Golos Text",system-ui,sans-serif;color:#1C2220}
+.dlsug .dlo{all:unset;box-sizing:border-box;display:block;width:100%;padding:10px 10px;border-radius:8px;cursor:pointer;color:#1C2220;font-size:15px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.dlsug .dlo b{font-weight:650;color:#6A2C4E}
+.dlsug .dlo.on{background:#F2E7ED}@media(hover:hover){.dlsug .dlo:hover{background:#F2E7ED}}
 #fd-app .dbkpi b{white-space:nowrap}
 #fd-app .dbtools{display:flex;flex-wrap:wrap;gap:10px 12px;align-items:center;margin:14px 0 4px}
 #fd-app .dbtools .pfchips{margin:0;flex:1 1 auto}
@@ -5787,7 +5791,42 @@ document.addEventListener("scroll", e=>{ const d=e.target; if(d && d.matches && 
 document.addEventListener("focusin", e=>{ const d=e.target.closest && e.target.closest("dialog.dcard"); if(d){ dcWatch(d); dcFit(d); } });
 /* Автозаполнение телефона (Android) не должно предлагать почты в полях сайта: всем полям без своего autocomplete — "off" (кроме входа) */
 function acOff(root){ (root.matches&&root.matches("input,textarea")?[root]:[]).concat([...(root.querySelectorAll?root.querySelectorAll("input,textarea"):[])]).forEach(el=>{
+  if(el.hasAttribute("list")){ el.dataset.dl=el.getAttribute("list"); el.removeAttribute("list"); }   /* стандартный список телефона → свои подсказки dl* */
   if(el.hasAttribute("autocomplete") || el.type==="password" || el.type==="hidden") return; el.setAttribute("autocomplete","off"); }); }
+/* ---------- подсказки по мере ввода вместо <datalist> (12.11.2026): телефон показывал весь список сразу при нажатии.
+   Поле с data-dl (бывший list=) — пока пусто, ничего не показываем; с первой буквы — до 8 подходящих (сначала начинаются с набранного),
+   ↑↓/Enter/Esc, нажатие подставляет и шлёт input/change. Окошко — position:fixed внутри того же <dialog> (поверх окна). ---------- */
+const DL={el:null, box:null, i:-1};
+function dlFind(el){ const dl=document.getElementById(el.dataset.dl||""), q=norm(el.value||"").trim(); if(!dl || !q) return [];
+  const seen=new Set(), A=[], B=[], C=[];
+  [...dl.querySelectorAll("option")].forEach(o=>{ const v=String(o.value||"").trim(); if(!v) return; const k=norm(v); if(seen.has(k)) return; seen.add(k);
+    if(k.startsWith(q)) A.push(v); else if(k.split(/[\s,.;()«»"/-]+/).some(w=>w.startsWith(q))) B.push(v); else if(k.includes(q)) C.push(v); });
+  const L=A.concat(B,C).slice(0,8); return L.length===1 && norm(L[0])===q ? [] : L; }
+function dlClose(){ if(DL.box) DL.box.remove(); if(DL.el) DL.el.setAttribute("aria-expanded","false"); DL.box=null; DL.el=null; DL.i=-1; }
+function dlPlace(){ const el=DL.el, b=DL.box; if(!el||!b) return; const r=el.getBoundingClientRect(), vh=innerHeight, below=vh-r.bottom-8, up=r.top-8;
+  b.style.left=Math.max(8,r.left)+"px"; b.style.width=Math.min(r.width, innerWidth-16)+"px";
+  if(below<160 && up>below){ b.style.top=""; b.style.bottom=(vh-r.top+4)+"px"; b.style.maxHeight=Math.min(280,up)+"px"; }
+  else { b.style.bottom=""; b.style.top=(r.bottom+4)+"px"; b.style.maxHeight=Math.min(280,Math.max(120,below))+"px"; } }
+function dlOpen(el){ const L=dlFind(el); if(!L.length){ if(DL.el===el) dlClose(); return; }
+  if(DL.el!==el){ dlClose(); DL.el=el; }
+  if(!DL.box){ const b=document.createElement("div"); b.className="dlsug"; b.setAttribute("role","listbox");
+    b.addEventListener("pointerdown", e=>e.preventDefault());   /* фокус остаётся в поле */
+    b.addEventListener("click", e=>{ const o=e.target.closest("[data-dlv]"); if(o) dlPick(o.dataset.dlv); });
+    (el.closest("dialog")||document.body).appendChild(b); DL.box=b; }
+  const q=norm(el.value).trim(); DL.i=-1;
+  DL.box.innerHTML=L.map(v=>{ const k=norm(v), p=k.indexOf(q), s=p>=0 && v.length===k.length ? esc(v.slice(0,p))+"<b>"+esc(v.slice(p,p+q.length))+"</b>"+esc(v.slice(p+q.length)) : esc(v);
+    return `<button type="button" role="option" tabindex="-1" class="dlo" data-dlv="${esc(v)}">${s}</button>`; }).join("");
+  el.setAttribute("aria-expanded","true"); dlPlace(); }
+function dlPick(v){ const el=DL.el; if(!el) return; el.value=v; dlClose();
+  el.dispatchEvent(new Event("input",{bubbles:true})); el.dispatchEvent(new Event("change",{bubbles:true})); el.focus(); }
+document.addEventListener("input", e=>{ const t=e.target; if(t && t.dataset && t.dataset.dl) dlOpen(t); }, true);
+document.addEventListener("focusout", e=>{ if(DL.el && e.target===DL.el) setTimeout(()=>{ if(DL.el && document.activeElement!==DL.el) dlClose(); }, 120); }, true);
+document.addEventListener("keydown", e=>{ if(!DL.box || e.target!==DL.el) return; const B=[...DL.box.querySelectorAll(".dlo")];
+  if(e.key==="ArrowDown"||e.key==="ArrowUp"){ e.preventDefault(); e.stopPropagation(); DL.i=(DL.i+(e.key==="ArrowDown"?1:-1)+B.length)%B.length; B.forEach((b,i)=>b.classList.toggle("on",i===DL.i)); B[DL.i].scrollIntoView({block:"nearest"}); }
+  else if(e.key==="Enter" && DL.i>=0){ e.preventDefault(); e.stopPropagation(); dlPick(B[DL.i].dataset.dlv); }
+  else if(e.key==="Escape"){ e.preventDefault(); e.stopPropagation(); dlClose(); } }, true);
+addEventListener("scroll", e=>{ if(DL.box && !(e.target && e.target.closest && e.target.closest(".dlsug"))) dlPlace(); }, true);
+addEventListener("resize", ()=>{ if(DL.box) dlPlace(); });
 acOff(document.documentElement);
 new MutationObserver(ms=>ms.forEach(m=>m.addedNodes.forEach(n=>{ if(n.nodeType===1) acOff(n); }))).observe(document.documentElement,{childList:true,subtree:true});
 document.addEventListener("focusin",e=>{ const t=e.target; if(t && t.matches && t.matches("input,textarea")) acOff(t); },true);
