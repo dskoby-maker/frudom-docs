@@ -619,7 +619,7 @@ function handle_(p) {
           const item = snap.prods[id];
           if (item) prods[id] = {name:item.name, unit:item.unit};
         });
-        documents.push({date: row.date, number: row.number, sum: row.sum, snap:{dr:{lines, ship: snap.dr.ship || ''}, prods}});
+        documents.push({id: row.id, date: row.date, number: row.number, sum: row.sum, snap:{dr:{lines, ship: snap.dr.ship || ''}, prods}});
       });
       return { ok: true, documents };
     }
