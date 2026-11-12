@@ -132,6 +132,14 @@ async def main():
         await pg.click('#ml-view .mlspam [data-ml="nospam"]'); await pg.wait_for_timeout(600)
         await pg.click('#ml [data-mlf="in"]'); await pg.wait_for_timeout(300)
         ok(await pg.locator('#ml-list .mlr:has-text("Скидки недели")').count()==1 and not any(t['Адрес отправителя']=='news@shop.ru' for t in rows('Почта: отправители')), '«Не спам» — письмо вернулось, пометка снята')
+        # неважные: только это письмо, отправитель не запоминается
+        await pg.locator('#ml-list .mlr:has-text("Скидки недели")').click(button='right'); await pg.wait_for_timeout(300); await pg.click('#ml-menu [data-mlm="minor"]'); await pg.wait_for_timeout(500)
+        ok(await pg.locator('#ml-list .mlr:has-text("Скидки недели")').count()==0, '«В неважные» — письмо ушло из «Входящих»')
+        ok(not any(t['Адрес отправителя']=='news@shop.ru' for t in rows('Почта: отправители')), 'отправитель не запомнен (в отличие от спама)')
+        await pg.click('#ml [data-mlf="minor"]'); await pg.wait_for_timeout(300); ok(await pg.locator('#ml-list .mlr').count()==1, 'папка «Неважные» — 1 письмо')
+        await pg.click('#ml-list .mlr'); await until(pg,"!!document.querySelector('#ml-view .mlminorbar')")
+        await pg.click('#ml-view .mlminorbar [data-ml="major"]'); await pg.wait_for_timeout(500); await pg.click('#ml [data-mlf="in"]'); await pg.wait_for_timeout(300)
+        ok(await pg.locator('#ml-list .mlr:has-text("Скидки недели")').count()==1, '«Вернуть во входящие» работает')
         # заказчик / не заказчик
         await pg.click('#ml-list .mlr:has-text("Акт сверки")'); await until(pg,"!!document.querySelector('#ml-view [data-ml=tagcus]')")
         await pg.click('#ml-view [data-ml="tagcus"]'); await pg.wait_for_timeout(300); await pg.select_option('#ml-tcus', cid); await pg.click('#ml-view [data-ml="tagsave"]'); await pg.wait_for_timeout(600)
@@ -143,8 +151,9 @@ async def main():
         # «Обработано»: кем и когда
         await pg.click('#ml-list .mlr:has-text("Акт сверки")'); await until(pg,"!!document.querySelector('#ml-view [data-ml=done]')")
         n0=await pg.evaluate("document.querySelector('#ml [data-mlf=undone] em').textContent")
-        await pg.click('#ml-view .mldbtn'); await pg.wait_for_timeout(500)
-        ok('ОБРАБОТАНО' in await pg.text_content('#ml-view .mldone') and 'Даниил' in await pg.text_content('#ml-view .mldone'), 'в письме пометка «ОБРАБОТАНО» и кто')
+        ok(await pg.locator('#ml-view button.mlundone').is_visible(), 'жёлтая кнопка «Не обработано»')
+        await pg.click('#ml-view button.mlundone'); await pg.wait_for_timeout(500)
+        ok('Обработано' in await pg.text_content('#ml-view .mldone') and 'Даниил' in await pg.text_content('#ml-view .mldone'), 'в письме пометка «Обработано» и кто')
         ok(await pg.locator('#ml-list .mlr.isdone:has-text("Акт сверки") .mldbadge').count()==1 and 'сегодня в' in await pg.text_content('#ml-list .mlr.isdone:has-text("Акт сверки") .mlr5'), 'в списке зелёная плашка «Обработано · Даниил · сегодня в …»')
         ok(int(await pg.evaluate("document.querySelector('#ml [data-mlf=undone] em').textContent"))==int(n0)-1, 'счётчик «Не обработаны» уменьшился')
         o=json.loads([r for r in rows('Почта') if r['Тема']=='Акт сверки за октябрь'][0]['Заявка (не редактировать)']); ok(o.get('done',{}).get('by')=='Даниил' and o['done'].get('at'), 'пометка сохранена в таблице')
@@ -158,7 +167,7 @@ async def main():
         await pg.click('#ml-list .mlr.isdone:has-text("Акт сверки")'); await until(pg,"!!document.querySelector('#ml-view .mldone')")
         await pg.click('#ml-view .mldone [data-ml="done"]'); await pg.wait_for_timeout(500)
         ok(await pg.locator('#ml-list .mlr.isdone:has-text("Акт сверки")').count()==0 and not json.loads([r for r in rows('Почта') if r['Тема']=='Акт сверки за октябрь'][0]['Заявка (не редактировать)'] or '{}').get('done'), 'Наталья сняла пометку')
-        await pg.click('#ml-view .mldbtn'); await pg.wait_for_timeout(400); ok('Наталья' in await pg.text_content('#ml-view .mldone'), 'и поставила заново от своего имени')
+        await pg.click('#ml-view button.mlundone'); await pg.wait_for_timeout(400); ok('Наталья' in await pg.text_content('#ml-view .mldone'), 'и поставила заново от своего имени')
         await pg.screenshot(path=f'{SHOT}/mail-done.png')
         await ctx.close()
         # Наталья — видит почту, но не настройки; Гриша — нет вкладки
