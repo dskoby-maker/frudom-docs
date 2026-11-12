@@ -317,6 +317,19 @@ function lim_(me) { return me.role === 'staff' && !me.docs; }
 /* ---------- черновики документов (вкладки «Новый документ» и «Заявка») ----------
    Строка = незаконченный документ: накладная из формы, документы из файлов или заявка. Сохраняет сайт сам (через 1–2 с после правки).
    Водитель (staff без docs) видит и меняет только свои; остальные — все. Последняя запись побеждает. Старше 90 дней — удаляются при записи. */
+/* личные настройки пишутся целиком с разных устройств — «Мои задачи» сливаем, чтобы старое устройство их не стёрло
+   (у задачи u — время правки, удаление — отметка tdel {id: время}); то же правило, что tkMerge на сайте */
+function prefsMerge_(oldS, newS) {
+  let a, b; try { a = JSON.parse(newS || '{}') || {}; b = JSON.parse(oldS || '{}') || {}; } catch (e) { return String(newS || '').slice(0, 45000); }
+  const del = Object.assign({}, b.tdel || {}); Object.keys(a.tdel || {}).forEach(k => { if (!(del[k] >= a.tdel[k])) del[k] = a.tdel[k]; });
+  const lim = Date.now() - 90 * 864e5; Object.keys(del).forEach(k => { if (del[k] < lim) delete del[k]; });
+  const A = Array.isArray(a.tasks) ? a.tasks : [], B = Array.isArray(b.tasks) ? b.tasks : [], m = {}, ord = [];
+  B.forEach(x => { if (x && x.id) m[x.id] = x; });
+  A.forEach(x => { if (!x || !x.id) return; const y = m[x.id]; if (!y || (+x.u || 0) >= (+y.u || 0)) m[x.id] = x; });
+  B.filter(x => x && x.id && !A.some(y => y && y.id === x.id)).forEach(x => ord.push(x.id)); A.forEach(x => { if (x && x.id && ord.indexOf(x.id) < 0) ord.push(x.id); });
+  a.tasks = ord.map(id => m[id]).filter(x => x && !((del[x.id] || 0) > (+x.u || 0))); a.tdel = del;
+  return JSON.stringify(a).slice(0, 45000);
+}
 function drafts_(p, me) {
   const op = String(p.op || 'list'), all = !lim_(me), mine = r => r.byName === me.name;
   if (op === 'list') return { ok: true, list: read_('drafts').filter(r => all || mine(r)) };
@@ -612,7 +625,7 @@ function handle_(p) {
     }
     if (p.action === 'login')   { log_(me, [{ action: 'Вход', text: 'Вход в систему' + (p.device ? ' (' + String(p.device).slice(0, 60) + ')' : '') }]); return { ok: true, me: me }; }
     if (p.action === 'profit')  { if (!me.admin) return { ok: false, error: 'forbidden' }; return { ok: true, costs: read_('costs'), doccosts: read_('doccosts'), psettings: read_('psettings'), purchases: read_('purchases'), pother: read_('pother'), debts: read_('debts') }; }
-    if (p.action === 'setPrefs') { upsertList_('uprefs', { upsert: [{ id: me.name, data: String(p.data || '').slice(0, 20000), updated: new Date().toISOString() }] }); return { ok: true }; }
+    if (p.action === 'setPrefs') { upsertList_('uprefs', { upsert: [{ id: me.name, data: prefsMerge_((read_('uprefs').find(r => r.id === me.name) || {}).data, String(p.data || '')), updated: new Date().toISOString() }] }); return { ok: true }; }
     if (p.action === 'events')  { if (!me.admin) return { ok: false, error: 'forbidden' }; return { ok: true, events: readEvents_(+p.limit || 1000) }; }
     if (p.action === 'sync') { const g = guardChanges_(p.changes, p.base, p.protocol, me); if (g.error) return g; syncIn_(g.changes, me); return { ok: true, concurrency: 1, accepted: syncState_(g.changes, me) }; }
     if (p.action === 'plist')    { if (me.role === 'staff') return { ok: false, error: 'forbidden' }; return plist_(p, me); }

@@ -7155,7 +7155,22 @@ let prefsDirty=false, prefsT=null;
 const getPrefs = () => { try{ return JSON.parse(lsGet(PREFKEY())||"{}")||{}; }catch(e){ return {}; } };
 function setPrefs(p, push){ lsSet(PREFKEY(), JSON.stringify(p)); if(push){ prefsDirty=true; clearTimeout(prefsT); prefsT=setTimeout(pushPrefs,800); } }
 async function pushPrefs(){ if(!prefsDirty || !online()) return; try{ await api({action:"setPrefs", data:JSON.stringify(getPrefs())}); prefsDirty=false; }catch(e){ if(!/unknown action/.test(e.message)) { clearTimeout(prefsT); prefsT=setTimeout(pushPrefs,15000); } else prefsDirty=false; } }
-function serverPrefs(s){ if(prefsDirty || s==null) return; let p={}; try{ p=JSON.parse(s||"{}")||{}; }catch(e){} lsSet(PREFKEY(), JSON.stringify(p)); applyTabOrder(); }
+/* «Мои задачи» живут в личных настройках, а их пишут целиком с нескольких устройств — поэтому задачи сливаются, а не затираются:
+   у задачи u — время последней правки, удаление — отметка в tdel {id: время}; новее отметки — задача остаётся (так же сливает Code.gs) */
+function tkMerge(a, b){ const del=Object.assign({}, (a&&a.tdel)||{}); Object.entries((b&&b.tdel)||{}).forEach(([k,v])=>{ if(!(del[k]>=v)) del[k]=v; });
+  const lim=Date.now()-90*864e5; Object.keys(del).forEach(k=>{ if(del[k]<lim) delete del[k]; });
+  const A=Array.isArray(a&&a.tasks)?a.tasks:[], B=Array.isArray(b&&b.tasks)?b.tasks:[], m=new Map();
+  B.forEach(x=>{ if(x&&x.id) m.set(x.id,x); }); A.forEach(x=>{ if(!x||!x.id) return; const y=m.get(x.id); if(!y || (+x.u||0)>=(+y.u||0)) m.set(x.id,x); });
+  const ord=[...A.map(x=>x&&x.id), ...B.map(x=>x&&x.id)].filter((id,i,L)=>id && L.indexOf(id)===i);
+  const onlyB=B.filter(x=>x&&x.id&&!A.some(y=>y&&y.id===x.id)).map(x=>x.id), first=new Set(onlyB);
+  const out=[...onlyB, ...ord.filter(id=>!first.has(id))].map(id=>m.get(id)).filter(x=>x && !((del[x.id]||0) > (+x.u||0)));
+  return {tasks:out, tdel:del}; }
+function serverPrefs(s){ if(prefsDirty || s==null) return; let p={}; try{ p=JSON.parse(s||"{}")||{}; }catch(e){ return; }
+  const L=getPrefs(), m=tkMerge(L,p), J=JSON.stringify, chSrv=J(m.tasks)!==J(p.tasks||[]) || J(m.tdel)!==J(p.tdel||{}), chLoc=J(m.tasks)!==J(L.tasks||[]);
+  p.tasks=m.tasks; p.tdel=m.tdel; if(L.tkSeed) p.tkSeed=1;
+  lsSet(PREFKEY(), J(p)); applyTabOrder();
+  if(chSrv){ prefsDirty=true; clearTimeout(prefsT); prefsT=setTimeout(pushPrefs,800); }
+  if(chLoc && typeof curTab!=="undefined" && curTab==="tasks" && typeof drawTasks==="function") drawTasks(); }
 function applyTabOrder(){
   const nav=$("#fd-app nav.tabs"), edit=$("#tab-edit"), btn=id=>nav.querySelector(`button[data-tab="${id}"]`);
   const ord=(getPrefs().tabs||[]).filter(id=>DEFAULT_TABS.includes(id)); DEFAULT_TABS.forEach((id,i)=>{ if(!ord.includes(id)){ const prev=DEFAULT_TABS.slice(0,i).reverse().find(x=>ord.includes(x)); ord.splice(prev?ord.indexOf(prev)+1:0,0,id); } });
@@ -8019,15 +8034,15 @@ function tkGo0(g){
     el.scrollIntoView({block:"center", behavior:"smooth"}); el.classList.remove("tkflash"); void el.offsetWidth; el.classList.add("tkflash"); setTimeout(()=>el.classList.remove("tkflash"),2100);
     try{ el.focus({preventScroll:true}); }catch(e){} }, 120);
 }
-$("#tk-add").onclick=()=>{ const inp=$("#tk-new"), v=inp.value.trim(); if(!v){ inp.focus(); return; } const p=tkPrefs(); p.tasks.unshift({id:uid(), t:v, d:isoToday()}); setPrefs(p,true); inp.value=""; drawTasks(); inp.focus(); };
+$("#tk-add").onclick=()=>{ const inp=$("#tk-new"), v=inp.value.trim(); if(!v){ inp.focus(); return; } const p=tkPrefs(); p.tasks.unshift({id:uid(), t:v, d:isoToday(), u:Date.now()}); setPrefs(p,true); inp.value=""; drawTasks(); inp.focus(); };
 $("#tk-new").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); $("#tk-add").click(); } });
 $("#tk-my").addEventListener("change",e=>{ if(!e.target.matches("[data-done]")) return; const p=tkPrefs(), x=p.tasks.find(y=>y.id===e.target.closest("[data-id]").dataset.id); if(!x) return;
-  x.done=e.target.checked; if(x.done) x.dd=isoToday(); else delete x.dd; setPrefs(p,true); setTimeout(drawTasks, x.done?250:0); if(x.done) toast("ok","Задача выполнена",x.t); });
+  x.done=e.target.checked; if(x.done) x.dd=isoToday(); else delete x.dd; x.u=Date.now(); setPrefs(p,true); setTimeout(drawTasks, x.done?250:0); if(x.done) toast("ok","Задача выполнена",x.t); });
 $("#tk-my").addEventListener("click",e=>{ const b=e.target.closest("[data-del]"); if(!b) return; if(!b.dataset.armed){ b.dataset.armed=1; b.textContent="Удалить?"; setTimeout(()=>{ if(b.isConnected){ delete b.dataset.armed; b.textContent="×"; } },3000); return; }
-  const p=tkPrefs(), id=b.closest("[data-id]").dataset.id, i=p.tasks.findIndex(y=>y.id===id); if(i<0) return; const [x]=p.tasks.splice(i,1); setPrefs(p,true); drawTasks();
-  toast("info","Задача удалена",x.t,{action:{label:"Вернуть", fn:()=>{ const q=tkPrefs(); q.tasks.splice(Math.min(i,q.tasks.length),0,x); setPrefs(q,true); if(curTab==="tasks") drawTasks(); }}}); });
-$("#tk-clear").onclick=()=>{ const p=tkPrefs(), was=p.tasks.slice(); p.tasks=p.tasks.filter(x=>!x.done); setPrefs(p,true); drawTasks();
-  toast("info","Сделанные убраны","",{action:{label:"Вернуть", fn:()=>{ const q=tkPrefs(); q.tasks=was; setPrefs(q,true); if(curTab==="tasks") drawTasks(); }}}); };
+  const p=tkPrefs(), id=b.closest("[data-id]").dataset.id, i=p.tasks.findIndex(y=>y.id===id); if(i<0) return; const [x]=p.tasks.splice(i,1); p.tdel=Object.assign({},p.tdel,{[x.id]:Date.now()}); setPrefs(p,true); drawTasks();
+  toast("info","Задача удалена",x.t,{action:{label:"Вернуть", fn:()=>{ const q=tkPrefs(); x.u=Date.now(); if(q.tdel) delete q.tdel[x.id]; q.tasks.splice(Math.min(i,q.tasks.length),0,x); setPrefs(q,true); if(curTab==="tasks") drawTasks(); }}}); });
+$("#tk-clear").onclick=()=>{ const p=tkPrefs(), was=p.tasks.slice(); const now=Date.now(); p.tdel=Object.assign({},p.tdel); p.tasks.filter(x=>x.done).forEach(x=>{ p.tdel[x.id]=now; }); p.tasks=p.tasks.filter(x=>!x.done); setPrefs(p,true); drawTasks();
+  toast("info","Сделанные убраны","",{action:{label:"Вернуть", fn:()=>{ const q=tkPrefs(), t2=Date.now(); q.tdel=Object.assign({},q.tdel); was.forEach(x=>{ x.u=t2; delete q.tdel[x.id]; }); q.tasks=tkMerge({tasks:was},q).tasks; setPrefs(q,true); if(curTab==="tasks") drawTasks(); }}}); };
 $("#tk-lv").addEventListener("click",e=>{ const b=e.target.closest("[data-tkf]"); if(!b) return; TKV.f=b.dataset.tkf; drawTasks(); });
 $("#tk-auto").addEventListener("click",e=>{ const c=e.target.closest("[data-tkc]"); if(c){ const g=c.dataset.tkc; if(TKV.c[g]) delete TKV.c[g]; else TKV.c[g]=1; try{ localStorage.setItem("frudom-tkc", JSON.stringify(TKV.c)); }catch(x){} const s=c.closest(".tkc"); s.classList.toggle("cl", !!TKV.c[g]); c.setAttribute("aria-expanded", !TKV.c[g]); return; }
   const m=e.target.closest("[data-tkall]"); if(m){ TKV.all[m.dataset.tkall]=1; drawTasks(); return; }
