@@ -947,6 +947,21 @@ function skPickSug(sc, k, l, q){ const L=skPickList(l, q||"");
 function skPickHtml(sc, k, l, cur){ const it=cur?skIdx().item[cur]:null, key=sc+"|"+k;
   if(it) return `<div class="skpk on"><small>Товар на складе <i>(связь запомнится)</i></small><div class="skpk-sel"><b>${esc(it.name)}</b><span>свободно ${skQf(skFreeU(it.id,l.unit),l.unit)}</span><button type="button" class="btn ghost sm" data-skpkclr="${esc(k)}" data-sc="${sc}">Сменить</button></div></div>`;
   return `<div class="skpk"><small>Товар на складе <i>(связь запомнится)</i></small><input class="skpq" data-sc="${sc}" data-k="${esc(k)}" autocomplete="off" placeholder="Начните вводить: рис, фасоль, Макфа…" value="${esc(SKPQ[key]||"")}" aria-label="Найти товар на складе"><div class="skpk-l" data-for="${esc(k)}">${skPickSug(sc, k, l, SKPQ[key]||"")}</div></div>`; }
+/* нехватка в кг, а товар лежит в штуках (приход в «шт»): подсказка + «Перевести в кг» одним нажатием (то же, что «Перевзвесить» партии) */
+function skRwPack(it){ const X=skIdx(), B=(X.byItem[it.id]||[]).filter(b=>!b.cancel && skK(b.unit)==="кг" && skPack(b)>0).sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
+  if(B.length) return skPack(B[0]); const w=miWeight(it.name); return w && w.unit==="кг" ? w.w : 0; }
+function skRwHint(itemId, unit, short){ if(!(short>0) || skK(unit)!=="кг" || docLimited()) return ""; const X=skIdx(), it=X.item[itemId]; if(!it) return "";
+  const B=(X.byItem[itemId]||[]).filter(b=>!b.cancel && b.kind!=="rw" && skK(b.unit)==="шт" && skFree(b.id)>0); if(!B.length) return "";
+  const pk=skRwPack(it);
+  return B.map(b=>{ const n=skFree(b.id), kg=pk?r3(n*pk):0;
+    return `<div class="dzrw"><span>На складе этот товар лежит в штуках: <b>${skQf(n,b.unit)}</b> (партия от ${esc(fd(b.date))})${kg?` ≈ <b>${skQf(kg,"кг")}</b> по ${skQf(pk,"кг")} за 1 шт`:""}.</span>${kg?`<button type="button" class="btn sm" data-skrwq="${esc(b.id)}" data-n="${n}" data-kg="${kg}">Перевести в кг</button>`:`<small class="muted">Вес 1 шт неизвестен — перевзвесьте партию на складе («Склад» → товар → партия → «Перевзвесить»).</small>`}</div>`; }).join(""); }
+document.addEventListener("click", async e=>{ const b=e.target.closest&&e.target.closest("[data-skrwq]"); if(!b || b.disabled) return; e.preventDefault();
+  const n=+b.dataset.n, kg=+b.dataset.kg;
+  if(!b.classList.contains("arm")){ b.classList.add("arm"); b.textContent=`Да, ${skQf(n,"шт")} → ${skQf(kg,"кг")}`; clearTimeout(b._t); b._t=setTimeout(()=>{ if(b.isConnected){ b.classList.remove("arm"); b.textContent="Перевести в кг"; } },5000); return; }
+  const j=await skDo("rw",{batchId:b.dataset.skrwq, n:String(n), kg:String(kg)},"Перевзвешивание","Переведено в кг: "+skQf(kg,"кг"),b);
+  if(!j) return;
+  if(b.closest("#dc-zki")){ const wrap=$("#dc-zk"), d=wrap&&D.journal.find(x=>x.id===wrap.dataset.doc); if(d) dcZkKeep(d); }
+  else if(b.closest("#bz-zki") && typeof bzKeep==="function") bzKeep(); });
 /* строка источника под товаром в блоке закупки */
 function dzSrcHtml(j, l){ if(!dzOn() || !DZ || DZ.doc!==j.id) return ""; const s=dzSt(j,l); if(!s) return ""; const X=skIdx(); if(!X.S.items.length && !s.m0) return "";
   const k=esc(dzKey(l)), u=esc(l.unit||""), lk=dzLocked(j,l);
@@ -960,9 +975,9 @@ function dzSrcHtml(j, l){ if(!dzOn() || !DZ || DZ.doc!==j.id) return ""; const s
     let info="";
     if(!it) info=`<span class="miss">Выберите, какой товар взяли со склада.</span>`;
     else { const e=dzEst(j,l,it.id,sq||0);
-      if(!e.unitOk) info=`<span class="miss">На складе «${esc(it.name)}» нет в единицах «${u}» — сначала перевзвесьте на складе.</span>`;
+      if(!e.unitOk) info=`<span class="miss">На складе «${esc(it.name)}» нет в единицах «${u}» — сначала перевзвесьте на складе.</span>`+skRwHint(it.id,l.unit,1);
       else if(s.m==="x" && !(sq>0 && sq<(+l.qty||0))) info=`<span class="muted">Свободно ${skQf(e.avail,l.unit)}. Впишите, сколько взяли со склада (меньше ${esc(nq3(l.qty))}).</span>`;
-      else if(e.short>0) info=`<span class="miss">На складе свободно только ${skQf(e.avail,l.unit)} — не хватает ${skQf(e.short,l.unit)}. Проведите приход или выберите «Часть».</span>`;
+      else if(e.short>0) info=`<span class="miss">На складе свободно только ${skQf(e.avail,l.unit)} — не хватает ${skQf(e.short,l.unit)}. Проведите приход или выберите «Часть».</span>`+skRwHint(it.id,l.unit,e.short);
       else info=`<span>«${esc(it.name)}»: ${skQf(sq,l.unit)} со склада · себестоимость ${e.unk?`<span class="miss">у партии нет цены</span>`:`<b>${fm(e.cost)} ₽</b> (${fm(r2(e.cost/sq))} ₽/${u})`}${s.m==="x"?` · от Саида ${skQf(r3((+l.qty||0)-sq),l.unit)} — цена справа`:""}</span>`; }
     det=`<div class="dzskd">${pick}${qf}<div class="dzinf">${info}</div></div>`; }
   return `<div class="dzsk" data-k="${k}"><div class="dzseg" role="group" aria-label="Откуда товар">${b("","Закупка")}${b("s","Со склада")}${b("x",`Часть<span class="dzlong"> со склада</span>`)}</div>${det}</div>`; }
