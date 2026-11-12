@@ -287,7 +287,9 @@ body.lndrag,body.lndrag *{cursor:grabbing!important;user-select:none!important;-
 #fd-app .line.dup.offc{background:#FDECEA;box-shadow:0 0 0 5px #FDECEA}
 #fd-app .line.offc input.price{border-color:var(--warn);color:var(--warn);font-weight:600}
 #fd-app .line .ctrnote{grid-column:2/-1;font-size:12.5px;line-height:1.35;color:var(--warn);font-weight:500;margin-top:-2px;display:flex;gap:4px 10px;align-items:center;flex-wrap:wrap}
-#fd-app .line .ctrnote[hidden]{display:none}#fd-app .line .ctrnote .btn{font-size:12.5px;padding:4px 10px}
+#fd-app .line .ctrnote[hidden]{display:none}#fd-app .line .qcknote{grid-column:2/-1;font-size:12.5px;line-height:1.4;color:#7d5a17;margin-top:-2px;display:flex;gap:6px 10px;align-items:center;flex-wrap:wrap}#fd-app .line .qcknote[hidden]{display:none}#fd-app .line .qcknote b{font-weight:600}#fd-app .line .qcknote .btn{font-size:12.5px;padding:4px 10px}#fd-app .line .qcknote.info{color:var(--muted)}#fd-app .line.qck{background:#fdf6e3;box-shadow:inset 3px 0 0 #e0a43a}#fd-app .line.qck .qty{border-color:#e0a43a}
+#fd-app .qckbox{margin:0 0 10px;padding:10px 12px;border-radius:12px;background:#fdf6e3;border-left:3px solid #e0a43a;font-size:13.5px;line-height:1.45;color:#5f4b1c;display:grid;gap:8px}#fd-app .qckbox[hidden]{display:none}#fd-app .qckbox>div{display:flex;gap:6px 12px;align-items:center;flex-wrap:wrap}#fd-app .qckbox .btn{font-size:12.5px;padding:4px 10px}#fd-app .qckbox .lk{border:0;background:none;padding:0;font:inherit;color:var(--accent);text-decoration:underline;cursor:pointer}#fd-app .qckbox ul{margin:0;padding-left:18px}#fd-app #o-qck{margin-top:10px}
+#fd-app table.order input.q.qhi{background:#fdf0cc;border-color:#e0a43a;color:#6a4a10;font-weight:600}#fd-app .line .ctrnote .btn{font-size:12.5px;padding:4px 10px}
 #fd-app #d-ctrwarn{margin:0 0 10px}#fd-app #d-ctrwarn .btn{margin-top:8px;display:block}
 @media (max-width:640px){
   #fd-app .line{grid-template-columns:24px 1fr 1fr 36px;grid-template-areas:"n p p x" ". q pr pr" ". u s s";background:var(--bg);padding:8px;border-radius:8px}
@@ -2080,6 +2082,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
     <div class="card dform">
       <h2>Товары <small id="d-pricehint"></small></h2>
       <div class="note" id="d-ctrwarn" role="alert" hidden></div>
+      <div class="qckbox" id="d-qck" role="alert" hidden></div>
       <div class="lines" id="d-lines"></div>
       <div class="lfoot" id="d-lfoot"></div>
       <div class="row"><button class="btn" id="d-add">+ Добавить товар</button><button class="btn ghost" id="d-addall">Добавить весь прайс заказчика</button><button class="btn ghost skallb" id="d-skall" type="button" hidden title="Все строки, которые есть на складе, — со склада. Чего мало — частью со склада, остальное от Саида.">Со склада всё, что есть</button></div>
@@ -3068,7 +3071,7 @@ function renderLines(){
       return `<div class="line${named?" named":""}${dup?" dup":""}" data-i="${i}">${lnGrip(i, !ro && dr.lines.length>1)}<div class="pc"><input class="ps${p?"":" empty"}" value="${esc(p?p.name:"")}" placeholder="Начните вводить название товара" autocomplete="off" aria-label="Товар"${qo?" readonly":""}>${p && pdSame(p) ? `<span class="pdcl pdcl-l" title="Одинаковое название у нескольких товаров — уточнение только на экране, в документ идёт название как есть">${esc(pdSame(p))}</span>`:""}${canEd?`<button type="button" class="ed${showN?" on":""}" title="Изменить название в этом документе" aria-label="Изменить название">✎</button>`:""}${skLineBtn(i)}</div>
         <input class="qty" inputmode="decimal" placeholder="0" value="${esc(l.qty)}" aria-label="Количество">${l.newP&&p&&!ro?`<select class="unit nu" aria-label="Единица">${skDocUnits(p.unit).map(u=>`<option${u===p.unit?" selected":""}>${esc(u)}</option>`).join("")}<option value="__new">+ своя…</option></select>`:`<span class="unit">${p?esc(p.unit):""}</span>`}
         <input class="price${custom?" custom":""}" inputmode="decimal" placeholder="0,00" value="${esc(l.price)}" aria-label="Цена"${ro?" readonly tabindex=\"-1\"":""}>
-        <span class="sum">${fm(r2((+l.qty||0)*(+l.price||0)))}</span><button class="x" aria-label="Удалить строку"${qo?" hidden":""}>×</button>${dup?`<div class="dupnote" role="note">Эта позиция уже есть в строке № ${dup.join(", ")} — проверьте, не задвоилась ли. Документ сохранить можно.</div>`:""}<div class="ctrnote" role="note" hidden></div>${showN&&p?`<div class="lname"><span>В документе:</span><input class="nmx" value="${esc(named?l.name:p.name)}" aria-label="Название в документе"${ro?" readonly":""}>${ro?"":`<button type="button" class="btn ghost sm" data-nmreset>Как в справочнике</button><button type="button" class="btn ghost sm" data-nmglob>Сохранить в справочник</button>`}</div>`:""}${l.auto?`<div class="lnote${l.autoEd?" ed":""}">${l.autoEd?"Исправлено вручную — сайт запомнит новый вес (в заявке «"+esc(l.pack&&l.pack.t||"")+"»)":"⚠ "+packAutoHtml(l,p)}</div>`:l.pack&&!(+l.qty>0)?`<div class="lnote">В заявке «${esc(l.pack.t)}» — впишите вес, сайт запомнит, сколько весит 1 ${esc(l.pack.u)}</div>`:""}${skLineNote(i)}</div>`; }).join("");
+        <span class="sum">${fm(r2((+l.qty||0)*(+l.price||0)))}</span><button class="x" aria-label="Удалить строку"${qo?" hidden":""}>×</button>${dup?`<div class="dupnote" role="note">Эта позиция уже есть в строке № ${dup.join(", ")} — проверьте, не задвоилась ли. Документ сохранить можно.</div>`:""}<div class="ctrnote" role="note" hidden></div><div class="qcknote" role="note" hidden></div>${showN&&p?`<div class="lname"><span>В документе:</span><input class="nmx" value="${esc(named?l.name:p.name)}" aria-label="Название в документе"${ro?" readonly":""}>${ro?"":`<button type="button" class="btn ghost sm" data-nmreset>Как в справочнике</button><button type="button" class="btn ghost sm" data-nmglob>Сохранить в справочник</button>`}</div>`:""}${l.auto?`<div class="lnote${l.autoEd?" ed":""}">${l.autoEd?"Исправлено вручную — сайт запомнит новый вес (в заявке «"+esc(l.pack&&l.pack.t||"")+"»)":"⚠ "+packAutoHtml(l,p)}</div>`:l.pack&&!(+l.qty>0)?`<div class="lnote">В заявке «${esc(l.pack.t)}» — впишите вес, сайт запомнит, сколько весит 1 ${esc(l.pack.u)}</div>`:""}${skLineNote(i)}</div>`; }).join("");
   $("#d-add").hidden=$("#d-addall").hidden=qo;
   const n=Object.values(D.prices[dr.customerId]||{}).filter(v=>v!=="").length;
   $("#d-pricehint").textContent = !dr.customerId ? "выберите заказчика — подставлю его цены" : n ? "цены из прайса заказчика ("+n+" поз.)" : "у заказчика нет своего прайса — базовые цены";
@@ -3115,13 +3118,105 @@ function dupLines(lines){ const by={}, out={}; (lines||[]).forEach((l,i)=>{ if(l
   Object.values(by).forEach(a=>{ if(a.length>1) a.forEach(i=>{ out[i]=a.filter(j=>j!==i).map(j=>j+1); }); }); return out; }
 function dupWarn(i){ const d=dupLines(D.draft.lines)[i], l=D.draft.lines[i]; if(!d||!l) return;
   toast("warn","Такая позиция уже есть","«"+((prod(l.productId)||{}).name||"товар")+"» уже есть в строке № "+d.join(", ")+". Если это не ошибка — оставьте, документ сохранится. Если ошибка — удалите лишнюю строку (×)."); }
+/* ---------- «Умная проверка» (12.11.2026): сайт помнит, что и сколько обычно берёт заказчик, и переспрашивает необычное ----------
+   количество (в разы больше/меньше прошлых поставок, «лишний ноль»), цена (не как в прайсе и не как в прошлый раз),
+   товар, который заказчик ещё не брал, второй документ на тот же день и точку, дата далеко от сегодняшней.
+   Ничего не меняет само: подсказка + «Да, верно» (отметка в строке qOk/pOk, у документа dOk/dupOk), первое нажатие «Сохранить»/печати — переспрашивает. */
+const QCK={k:"", t:0, by:null, n:0, asked:""};
+const qf = v => String(+(+v).toFixed(3)).replace(".",",");
+function qckIdx(cid){ const J=D.journal||[], k=cid+"|"+J.length+"|"+((J[J.length-1]||{}).id||"");
+  if(QCK.k===k && Date.now()-QCK.t<15000) return QCK;
+  const by={}; let n=0;
+  J.forEach(j=>{ const dr=j.snap&&j.snap.dr; if(!dr || isArch(j) || dr.customerId!==cid) return; n++;
+    const q={}; (dr.lines||[]).forEach(l=>{ const v=+l.qty; if(l.productId && v>0){ const o=q[l.productId]=q[l.productId]||{q:0,p:+l.price||0}; o.q+=v; } });
+    Object.keys(q).forEach(pid=>(by[pid]=by[pid]||[]).push({id:j.id, d:j.date||dr.date||"", no:j.number||dr.number||"", br:dr.branchId||"", sh:ptKey(dr.ship||""), q:r3(q[pid].q), p:q[pid].p})); });
+  Object.values(by).forEach(a=>a.sort((x,y)=>x.d<y.d?1:x.d>y.d?-1:0));
+  Object.assign(QCK, {k, t:Date.now(), by, n}); return QCK; }
+const qckReset = () => { QCK.k=""; };
+function qckHist(dr, pid){ const a=((qckIdx(dr.customerId).by[pid])||[]).filter(x=>x.id!==dr.id); if(!a.length) return null;
+  const sh=ptKey(dr.ship||""), anyBr=dr.branchId==null, br=dr.branchId||"";
+  let h=sh?a.filter(x=>x.sh===sh && (anyBr||x.br===br)):[], w=" на эту точку";
+  if(h.length<3 && !anyBr){ h=a.filter(x=>x.br===br); w=br?" в это подразделение":""; }
+  if(h.length<3){ h=a; w=""; }
+  return {h:h.slice(0,8), all:a, w}; }
+const qMed = a => { const s=[...a].sort((x,y)=>x-y), m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; };
+/* необычное количество: нужно хотя бы 3 прошлые поставки; «больше» — выше и полуторного максимума, и тройной середины; «меньше» — наоборот */
+function qckLine(dr, l){ const pid=l.productId, q=+num(l.qty); if(!pid || !(q>0) || !dr.customerId) return null;
+  const H=qckHist(dr, pid); if(!H || H.h.length<3) return null;
+  const Q=H.h.map(x=>x.q), med=qMed(Q), lo=Math.min(...Q), hi=Math.max(...Q);
+  const k = q>Math.max(hi*1.5, med*3) ? "hi" : q<Math.min(lo/1.5, med/3) ? "lo" : null; if(!k) return null;
+  let fix=null; for(const f of (k==="hi"?[10,100,1000]:[0.1,0.01,0.001])){ const v=r3(q/f); if(v>=lo*0.8 && v<=hi*1.25){ fix=v; break; } }
+  return {k, q, med:r3(med), lo, hi, n:H.h.length, w:H.w, fix}; }
+/* цена: не как в прайсе заказчика и больше чем на 30% от прайса и от прошлой поставки */
+function qckPrice(dr, l){ const pid=l.productId, p=+num(l.price); if(!pid || !(p>0) || !dr.customerId) return null;
+  /* сравниваем только со своим прайсом заказчика и прошлой поставкой (базовая цена — не довод); без прошлых поставок — только явная опечатка (в 3+ раза) */
+  const own=(D.prices[dr.customerId]||{})[pid], pl=own!==undefined&&own!==""&&+num(own)>0?+num(own):0; if(pl>0 && Math.abs(p-pl)<0.005) return null;
+  const H=qckHist(dr, pid), last=H&&H.all[0]&&H.all[0].p>0?H.all[0]:null, ref=[pl, last?last.p:0].filter(v=>v>0);
+  if(!ref.length || ref.some(v=>Math.abs(p-v)/v<=0.3)) return null;
+  if(!last && p/pl<3 && pl/p<3) return null;
+  return {p, pl, last}; }
+/* товар, которого заказчик не брал ни разу (из 5+ накладных) и которого нет в его прайсе — может, выбран не тот */
+function qckNew(dr, l){ if(!l.productId || !dr.customerId) return false; const I=qckIdx(dr.customerId);
+  if(I.n<5 || (I.by[l.productId]||[]).some(x=>x.id!==dr.id)) return false;
+  const v=(D.prices[dr.customerId]||{})[l.productId]; return v===undefined || v===""; }
+function qckDup(dr){ if(!dr.customerId || !dr.date) return [];
+  return (D.journal||[]).filter(j=>{ const s=j.snap&&j.snap.dr; return s && j.id!==dr.id && !isArch(j) && s.customerId===dr.customerId && (j.date||s.date)===dr.date
+    && (s.branchId||"")===(dr.branchId||"") && (!dr.ship || !s.ship || shipSim(s.ship, dr.ship)>=0.9); }); }
+function qckDays(dr){ if(!dr.date) return 0; const d=Math.round((new Date(dr.date+"T12:00:00")-new Date(todayISO()+"T12:00:00"))/864e5); return Math.abs(d)>45?d:0; }
+const qckU = l => esc((prod(l.productId)||{}).unit||"");
+function qckLineHtml(dr, l, i, ro){ const u=qckU(l), out=[]; let warn=false;
+  const x=qckLine(dr, l); if(x && l.qOk!==String(l.qty)){ warn=true;
+    const rng = x.lo===x.hi ? qf(x.lo) : qf(x.lo)+"–"+qf(x.hi);
+    out.push(`<span><b>${x.k==="hi"?"Много":"Мало"}? ${qf(x.q)} ${u}.</b> Обычно ${esc(cusNm(dr.customerId))} берёт ${rng} ${u}${x.w} — в среднем ${qf(x.med)} ${u} за ${x.n} ${plural(x.n,["последнюю поставку","последние поставки","последних поставок"])}.</span>`
+      +(x.fix?`<button type="button" class="btn" data-qckfix="${i}" data-v="${x.fix}">Поставить ${qf(x.fix)} ${u}</button>`:"")
+      +`<button type="button" class="btn ghost" data-qckok="${i}">Да, ${qf(x.q)} ${u} — верно</button>`); }
+  const pr=ro?null:qckPrice(dr, l); if(pr && l.pOk!==String(l.price)){ warn=true;
+    out.push(`<span><b>Проверьте цену ${fm(pr.p)} ₽.</b> ${pr.pl?"В прайсе заказчика — "+fm(pr.pl)+" ₽":"В прайсе заказчика цены нет"}${pr.last?`, в прошлой накладной № ${esc(pr.last.no)} от ${fd(pr.last.d)} — ${fm(pr.last.p)} ₽`:""}.</span>`
+      +(pr.pl?`<button type="button" class="btn" data-pckfix="${i}" data-v="${pr.pl}">Поставить ${fm(pr.pl)} ₽</button>`:"")
+      +`<button type="button" class="btn ghost" data-pckok="${i}">Да, цена верная</button>`); }
+  if(!out.length && qckNew(dr, l)) out.push(`<span class="qi">Этот товар ${esc(cusNm(dr.customerId))} раньше не брал${(prod(l.productId)||{}).name?"":""} и его нет в прайсе заказчика — проверьте, тот ли выбран.</span>`);
+  return {html:out.join(""), warn}; }
+function qckMark(){ const dr=D.draft; if(!dr) return; const ro=!!dr.qtyOnly||docLimited();
+  document.querySelectorAll("#d-lines .line[data-i]").forEach(el=>{ const i=+el.dataset.i, l=dr.lines[i], n=el.querySelector(".qcknote"); if(!l||!n) return;
+    const r=qckLineHtml(dr, l, i, ro); el.classList.toggle("qck", r.warn); if(n.dataset.h===r.html) return; n.dataset.h=r.html; n.hidden=!r.html; n.innerHTML=r.html; n.classList.toggle("info", !r.warn); });
+  qckDocBox(); }
+function qckDocBox(){ const box=$("#d-qck"), dr=D.draft; if(!box||!dr) return; const out=[];
+  const dup=D.multi?[]:qckDup(dr); if(dup.length && dr.dupOk!==dup.map(j=>j.id).join(",")) out.push(`<div><span><b>На ${fd(dr.date)} у ${esc(cusNm(dr.customerId))} уже есть ${dup.length>1?"накладные":"накладная"} на эту точку:</b> ${dup.slice(0,4).map(j=>`<button type="button" class="lk" data-qckdoc="${esc(j.id)}">№ ${esc(j.number)} · ${fm(calc(j.snap.dr, j.snap).t.sum)} ₽</button>`).join(", ")}. Не делаете ли второй раз то же самое?</span><button type="button" class="btn ghost" data-qckdupok>Нет, это другая поставка</button></div>`);
+  const dd=qckDays(dr); if(dd && dr.dOk!==dr.date) out.push(`<div><span><b>Дата документа ${fd(dr.date)}</b> — ${Math.abs(dd)} ${plural(Math.abs(dd),["день","дня","дней"])} ${dd<0?"назад":"вперёд"} от сегодня. Проверьте месяц и год.</span><button type="button" class="btn ghost" data-qckdok>Дата верная</button></div>`);
+  const h=out.join(""); if(box.dataset.h===h) return; box.dataset.h=h; box.hidden=!h; box.innerHTML=h; }
+/* что ещё не подтверждено — для переспроса при сохранении */
+function qckOpen(){ const dr=D.draft, L=[]; if(!dr) return L; const ro=!!dr.qtyOnly||docLimited();
+  dr.lines.forEach((l,i)=>{ const x=qckLine(dr,l), u=(prod(l.productId)||{}).unit||""; if(x && l.qOk!==String(l.qty)) L.push({i, t:`строка ${i+1}: ${qf(x.q)} ${u} (обычно ${x.lo===x.hi?qf(x.lo):qf(x.lo)+"–"+qf(x.hi)})`, ack:()=>{ l.qOk=String(l.qty); }});
+    const pr=ro?null:qckPrice(dr,l); if(pr && l.pOk!==String(l.price)) L.push({i, t:`строка ${i+1}: цена ${fm(pr.p)} ₽`, ack:()=>{ l.pOk=String(l.price); }}); });
+  /* второй документ на тот же день и дата далеко — только подсказкой над товарами (так бывает и по делу), сохранение не останавливают */
+  return L; }
+$("#d-lines").addEventListener("click", e=>{ const b=e.target.closest("[data-qckok],[data-qckfix],[data-pckok],[data-pckfix]"); if(!b) return; const dr=D.draft;
+  const i=+(b.dataset.qckok??b.dataset.qckfix??b.dataset.pckok??b.dataset.pckfix), l=dr.lines[i], row=b.closest(".line"); if(!l) return;
+  if(b.dataset.qckok!=null){ l.qOk=String(l.qty); toast("info","Хорошо, оставляю "+qf(l.qty)+" "+((prod(l.productId)||{}).unit||""),"Больше по этой строке не спрошу, пока не поменяете количество."); }
+  else if(b.dataset.pckok!=null){ l.pOk=String(l.price); }
+  else if(b.dataset.qckfix!=null){ l.qty=String(b.dataset.v); const inp=row&&row.querySelector(".qty"); if(inp) inp.value=l.qty; toast("ok","Количество исправлено", qf(l.qty)+" "+((prod(l.productId)||{}).unit||"")); }
+  else { l.price=String(b.dataset.v); const inp=row&&row.querySelector(".price"); if(inp){ inp.value=l.price; inp.classList.remove("custom"); } }
+  saveLocal(); renderTotals(); });
+$("#d-qck").addEventListener("click", e=>{ const dr=D.draft, o=e.target.closest("[data-qckdoc]");
+  if(o){ const j=D.journal.find(x=>x.id===o.dataset.qckdoc); if(j) docCard(j); return; }
+  if(e.target.closest("[data-qckdupok]")){ dr.dupOk=qckDup(dr).map(j=>j.id).join(","); saveLocal(); qckDocBox(); return; }
+  if(e.target.closest("[data-qckdok]")){ dr.dOk=dr.date; saveLocal(); qckDocBox(); } });
+/* «Заявка»: необычное количество в клетке — жёлтая клетка, подсказка и строка под таблицей */
+function qckOrder(){ const o=O(); if(!o) return; const box=qckOrderBox(); if(!o.customerId){ if(box) box.hidden=true; return; }
+  const {all}=oAddrs(o), L=[];
+  document.querySelectorAll("#o-body input.q").forEach(inp=>{ const a=all[+inp.dataset.a], v=+num(inp.value), p=prod(inp.dataset.p);
+    const x = v>0 && a!=null ? qckLine({customerId:o.customerId, id:"", ship:String(a), branchId:null}, {productId:inp.dataset.p, qty:v}) : null;
+    inp.classList.toggle("qhi", !!x); if(x){ const t=`Обычно ${x.lo===x.hi?qf(x.lo):qf(x.lo)+"–"+qf(x.hi)} ${p?p.unit:""} (в среднем ${qf(x.med)})`; inp.title=t; L.push(`<b>${esc(p?oPName(p):"")}</b> — ${qf(v)} ${esc(p?p.unit:"")}, ${t.toLowerCase()}`); } else inp.removeAttribute("title"); });
+  if(box){ box.hidden=!L.length; box.innerHTML = L.length ? `<b>Необычное количество (${L.length})</b> — проверьте жёлтые клетки:<ul>${L.slice(0,6).map(t=>`<li>${t}</li>`).join("")}${L.length>6?`<li>и ещё ${L.length-6}</li>`:""}</ul>` : ""; } }
+function qckOrderBox(){ let b=$("#o-qck"); if(b) return b; const t=$("#o-tbl"), w=t&&t.closest(".tbl"); if(!w) return null;
+  b=document.createElement("div"); b.id="o-qck"; b.className="qckbox"; b.setAttribute("role","note"); b.hidden=true; w.after(b); return b; }
 function renderTotals(){
   const k=calc(D.draft);
   $("#d-totals").innerHTML=`<div class="muted">Позиций<b>${k.lines.length}</b></div>`+(k.rate?`${k.add?`<div class="muted">Без НДС<b>${fm(k.t.net)}</b></div>`:""}<div class="muted">${k.add?"НДС "+k.rate+"% сверху":"В т.ч. НДС "+k.rate+"%"}<b>${fm(k.t.vat)}</b></div>`:`<div class="muted">НДС<b style="font-size:15px;padding-top:5px">не облагается</b></div>`)+`<div class="muted">Итого, ₽<b>${fm(k.t.sum)}</b></div>`;
   document.querySelectorAll("#d-lines .line[data-i]").forEach(el=>{ const l=D.draft.lines[+el.dataset.i]; el.querySelector(".sum").textContent=fm(r2((+l.qty||0)*(+l.price||0))); });
   { const byU={}; k.lines.forEach(l=>{ byU[l.unit||"ед."]=(byU[l.unit||"ед."]||0)+l.qty; }); const n=k.lines.length;
     $("#d-lfoot").innerHTML = n ? `<span>Всего позиций: <b>${n}</b></span>`+Object.entries(byU).map(([u,q])=>`<span>${u==="кг"?"Общий вес":"Итого, "+esc(u)}: <b>${String(+q.toFixed(3)).replace(".",",")} ${esc(u)}</b></span>`).join("") : ""; }
-  renderCtrInfo(); ctrMark(); skDocHints(); if(typeof bnMulBar==="function") bnMulBar();
+  renderCtrInfo(); ctrMark(); qckMark(); skDocHints(); if(typeof bnMulBar==="function") bnMulBar();
 }
 function pickCtr(){ const dr=D.draft, list=ctrs(dr.customerId); const m=list.find(x=>x.supplierId===dr.supplierId)||list.find(x=>!x.supplierId)||list[0]; return m?m.id:""; }
 function renderCtr(){
@@ -3392,6 +3487,12 @@ $("#tab-doc").addEventListener("click",e=>{ const b=e.target.closest("#d-save,[d
   toast("err","Не выбран "+w.replace("поставщика","поставщик").replace("заказчика","заказчик"),"Выберите "+w+" в блоке «Стороны» — затем нажмите кнопку снова.");
   [!dr.supplierId&&"#d-sup", !dr.customerId&&"#d-cus"].filter(Boolean).forEach(sel=>{ const el=$(sel); el.classList.remove("fdflash"); void el.offsetWidth; el.classList.add("fdflash"); });
   ($(!dr.supplierId?"#d-sup":"#d-cus")).focus(); }, true);
+$("#tab-doc").addEventListener("click",e=>{ const b=e.target.closest("#d-save,[data-make],[data-combo]"); if(!b || b.closest("#mul") || shipWarn()) return;
+  const L=qckOpen(); if(!L.length){ QCK.asked=""; return; } const sig=L.map(x=>x.t).join("|");
+  if(QCK.asked===sig){ L.forEach(x=>x.ack()); QCK.asked=""; saveLocal(); qckMark(); return; }   /* второе нажатие — значит всё верно */
+  QCK.asked=sig; e.preventDefault(); e.stopPropagation(); qckMark();
+  toast("warn","Проверьте — необычно для этого заказчика", L.slice(0,3).map(x=>x.t).join("; ")+(L.length>3?"; и ещё "+(L.length-3):"")+". Если всё верно — нажмите кнопку ещё раз.");
+  const el=L[0].doc?$("#d-qck"):document.querySelector(`#d-lines .line[data-i="${L[0].i}"]`); if(el){ el.scrollIntoView({behavior:"smooth", block:"center"}); el.classList.remove("fdflash"); void el.offsetWidth; el.classList.add("fdflash"); } }, true);
 $("#tab-doc").addEventListener("click",e=>{ const b=e.target.closest("#d-save,[data-make],[data-combo]"); if(!b || b.closest("#mul")) return; const x=shipWarn(); if(!x) return;
   e.preventDefault(); e.stopPropagation(); const box=$("#d-shipw");
   toast("warn","Проверьте адрес доставки","Похожий адрес есть у подразделения «"+brNm(x.b)+"». Выберите: перейти туда или оставить адрес.");
@@ -3808,7 +3909,7 @@ function oPin(){ const t=$("#o-tbl"); if(!t) return; const c=t.querySelector("tr
   const w=t.parentElement; if(w && !w.dataset.pin){ w.dataset.pin="1"; w.addEventListener("scroll",()=>w.classList.toggle("oscr", w.scrollLeft>2),{passive:true}); window.addEventListener("resize",()=>{ clearTimeout(oPin._t); oPin._t=setTimeout(oPin,120); }); }
   if(w) w.classList.toggle("oscr", w.scrollLeft>2); }
 function oTotals(){
-  oCtrInfo();
+  oCtrInfo(); qckOrder();
   const o=O(), P=oProds(o), {all}=oAddrs(o), V=oView(o); const tq={}, rs={}; let tot=0;
   all.forEach((a,i)=>{ const q=o.qty[a]||{}; let s=0; P.forEach(p=>{ const v=+q[p.id]||0; s+=r2(v*oPrice(o,p.id)); tq[p.id]=(tq[p.id]||0)+v; }); rs[i]=r2(s); tot+=rs[i]; });
   document.querySelectorAll("#o-body [data-rs]").forEach(td=>{ const s=rs[+td.dataset.rs]; td.textContent=s?fm(s):""; });

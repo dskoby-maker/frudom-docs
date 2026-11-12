@@ -24,7 +24,7 @@ async def main():
             vis=await pg.is_visible('#d-shipw'); t=await pg.inner_text('#d-shipw') if vis else ''
             ok(vis and 'Столовые диетического питания' in t and 'Комбинат питания' in t, f'{W}: предупреждение под адресом ({t[:90]!r})')
             # сохранение блокируется
-            await pg.evaluate("Object.assign(__fd.D().draft,{supplierId:__fd.D().suppliers[0].id}); __fd.D().draft.lines=[{productId:__fd.D().products[0].id,qty:'2',price:'100'}]")
+            await pg.evaluate("Object.assign(__fd.D().draft,{supplierId:__fd.D().suppliers[0].id}); __fd.D().draft.lines=[{productId:__fd.D().products[0].id,qty:'2',price:'100',qOk:'2',pOk:'100'}]")
             n0=await pg.evaluate("__fd.D().journal.length"); await pg.click('#d-save'); await pg.wait_for_timeout(700)
             ok(await pg.evaluate("__fd.D().journal.length")==n0, f'{W}: сохранение не прошло, пока не решено')
             if W==390: await pg.locator('#d-shipw').screenshot(path='/tmp/claude-0/shipw.png')
