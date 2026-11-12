@@ -141,6 +141,8 @@ function pvCusDraw(keepInput){
   const box=$("#pv-cus"), f=PV(), [d1,d2]=pvRange(), all=pvCusData(d1,d2), q=(f.q||"").trim().toLowerCase();
   const L=q ? all.filter(g=>pvCusName(g.cid).toLowerCase().includes(q)) : all;
   const T=all.reduce((a,g)=>({rev:a.rev+g.rev, rs:a.rs+g.rs, cost:a.cost+g.cost+g.exp, profit:a.profit+g.profit, n:a.n+g.docs.length, miss:a.miss+g.miss}),{rev:0,rs:0,cost:0,profit:0,n:0,miss:0});
+  /* не оплачено: накладные месяца с неоплаченным остатком — те же, что в окне «Ждём оплату» */
+  const U=all.reduce((a,g)=>{ g.docs.forEach(x=>{ const p=payOf(x.j); if(p.st!=="paid" && p.left>0.004){ a.n++; a.s=r2(a.s+p.left); } }); return a; },{n:0,s:0});
   const act=L.filter(g=>!g.idle), idl=L.filter(g=>g.idle), mon=pvMonth(), mName=mon==="all"?"":["январе","феврале","марте","апреле","мае","июне","июле","августе","сентябре","октябре","ноябре","декабре"][+mon.slice(5,7)-1]||"";
   const idleT = g => `<button type="button" class="pvcus idle" data-pvc="${esc(g.cid)}"><div class="pvch">${pvAva(g.cid)}<div class="pvcn"><b>${esc(pvCusName(g.cid))}</b><small>${g.nAll?`последняя накладная ${fd(g.lastAll)} · всего ${g.nAll}`:"накладных пока нет"}</small></div></div><span class="pvgo">Открыть ›</span></button>`;
   const idleH = idl.length ? `<div class="pvidle-h"><span>${mon==="all"?"Без накладных":"Без накладных"+(mName?" в "+mName:" за этот месяц")}</span><i>${idl.length}</i></div>` : "";
@@ -157,7 +159,7 @@ function pvCusDraw(keepInput){
   const head = `<div class="pvhead"><div><h2>По заказчикам</h2><small class="muted">Нажмите на заказчика — накладные, «на р/с», закупка и прибыль, как в вашей таблице</small></div>${pvMonBar()}</div>
     <div class="pvkpi"><div><small>Сумма накладных</small><b>${fm(r2(T.rev))}</b><span>${T.n} ${plural(T.n,["накладная","накладные","накладных"])}</span></div>
       <div><small>На р/с (после налога)</small><b>${fm(r2(T.rs))}</b></div><div><small>Закупка</small><b>${fm(r2(T.cost))}</b>${T.miss?`<button type="button" class="pvmiss" data-pvmiss title="Открыть эти накладные во вкладке «Закупка» и заполнить">без закупки: ${T.miss} ›</button>`:""}</div>
-      <div class="pos"><small>Прибыль</small><b class="${T.profit<0?"neg":""}">${fm(r2(T.profit))}</b><span>маржа ${pct(T.profit,T.rev)}</span></div></div>
+      <div class="pos"><small>Прибыль</small><b class="${T.profit<0?"neg":""}">${fm(r2(T.profit))}</b><span>маржа ${pct(T.profit,T.rev)}</span>${U.n?`<button type="button" class="pvmiss pvunp" data-pvunp title="Не оплачено ${fm(U.s)} ₽ — открыть эти накладные">не оплачено: ${U.n} ›</button>`:""}</div></div>
     <div class="pvsearch">${pvIco("search")}<input id="pv-q" placeholder="Найти заказчика" value="${esc(f.q||"")}" autocomplete="off"></div>`;
   if(keepInput && $("#pv-q")){ box.querySelector(".pvgrid").innerHTML=tiles; return; }
   box.innerHTML = head + `<div class="pvgrid">${tiles}</div>`;
@@ -165,6 +167,7 @@ function pvCusDraw(keepInput){
 function pvCusClick(e){
   const m=e.target.closest("[data-pvm]"); if(m){ pvMonClick(m); return; }
   if(e.target.closest("[data-pvmiss]")){ const mm=pvMonth(), [a,b]=pvRange(); tabBackFrom("Прибыль", ()=>zkpGoMiss(a, b, mm==="all"?"за всё время":"за "+pvMon(mm).toLowerCase())); return; }
+  if(e.target.closest("[data-pvunp]")){ const mm=pvMonth(), [a,b]=pvRange(); pfDetail("due", "", [a, b, mm==="all"?"Все месяцы":pvMon(mm)]); return; }
   const t=e.target.closest("[data-pvc]"); if(t) pvLedger(t.dataset.pvc);
 }
 
@@ -563,16 +566,17 @@ function pvCatsClick(e){ const b=e.target.closest("[data-pvcm]"); if(!b) return;
    pfDetail(k): due — ждём оплату за период, debt — все долги, old30 — долги старше 30 дней, paid — оплачено за накладные периода,
    perpaid — деньги, пришедшие в периоде (по дате оплаты), rev/cost/tax/gross/net — по заказчикам (tax — по ИП), exp/inc/own — записи.
    Строка накладной → docCard (в шапке «‹ Назад» вернёт сюда), заказчик → pvLedger, «Оплачено» — сразу отмечает. */
-const PFD={k:"", sc:"", age:"", sort:"sum", open:new Set()};
+const PFD={k:"", sc:"", age:"", sort:"sum", open:new Set(), rng:null};
 const pfdPer = () => { const s=$("#pf-per"); return s && s.selectedOptions[0] ? s.selectedOptions[0].textContent.trim() : ""; };
-function pfdDocs(all){ const f=PF(), [d1,d2]=pfRange(f);
+/* PFD.rng = [от, до, подпись] — окно открыто из «По заказчикам» (месяц оттуда, фильтры «Обзора» не действуют) */
+function pfdDocs(all){ const R=PFD.rng, f=R?{}:PF(), [d1,d2]=R?R:pfRange(f);
   return D.journal.filter(j=>j.snap && !isArch(j) && (all || (j.date>=d1 && j.date<=d2)) && (!f.sup||j.supplierId===f.sup) && (!f.cus||j.customerId===f.cus)); }
 const PFD_T={due:["Ждём оплату","неоплаченные накладные за выбранный период"], debt:["Кто сколько должен","все неоплаченные накладные"], old30:["Долги старше 30 дней","накладные, по которым ждём деньги больше месяца"],
   paid:["Оплачено","оплаты по накладным выбранного периода"], perpaid:["Пришло денег","оплаты, отмеченные в выбранном периоде"], rev:["Выручка","по заказчикам"], cost:["Закупка","по заказчикам"], tax:["Налог","по ИП"],
   gross:["Валовая прибыль","после закупки и налога, по заказчикам"], net:["Чистая прибыль","по заказчикам, плюс общие расходы и доходы"], exp:["Прочие расходы","по накладным и общие"], miss:["Без закупки","накладные, где закупка вписана не у всех товаров — их прибыль завышена"], inc:["Прочие доходы","записи за период"], own:["Личные траты","за период"]};
-function pfDetail(k, sc){ if(!PFD_T[k]) return; sc=sc||""; if(PFD.k!==k||PFD.sc!==sc){ PFD.k=k; PFD.sc=sc; PFD.age=k==="old30"?"30":""; PFD.sort="sum"; PFD.open=new Set(); }
-  CARD_RE=()=>pfDetail(k, sc);
-  openCard(`<div class="dc-head"><div><div class="dc-kicker">Прибыль${["debt","old30","perpaid"].includes(k)&&k!=="perpaid"?"":" · "+esc(pfdPer())}</div><h3>${PFD_T[k][0]}${k==="miss"&&PFD_SC[sc]?" · "+PFD_SC[sc]:""}</h3><div class="dc-sub">${PFD_T[k][1]}</div></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div><div id="pfd"></div><p class="muted pfd-hint">Плитки со стрелкой › и строки накладных нажимаются — можно идти глубже, вплоть до правки накладной. «‹ Назад» в шапке вернёт сюда шаг за шагом.</p>`, true, ()=>{});
+function pfDetail(k, sc, rng){ if(!PFD_T[k]) return; sc=sc||""; rng=rng||null; PFD.rng=rng; if(PFD.k!==k||PFD.sc!==sc){ PFD.k=k; PFD.sc=sc; PFD.age=k==="old30"?"30":""; PFD.sort="sum"; PFD.open=new Set(); }
+  CARD_RE=()=>pfDetail(k, sc, rng);
+  openCard(`<div class="dc-head"><div><div class="dc-kicker">Прибыль${["debt","old30","perpaid"].includes(k)&&k!=="perpaid"?"":" · "+esc(rng?rng[2]:pfdPer())}</div><h3>${PFD_T[k][0]}${k==="miss"&&PFD_SC[sc]?" · "+PFD_SC[sc]:""}</h3><div class="dc-sub">${PFD_T[k][1]}</div></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div><div id="pfd"></div><p class="muted pfd-hint">Плитки со стрелкой › и строки накладных нажимаются — можно идти глубже, вплоть до правки накладной. «‹ Назад» в шапке вернёт сюда шаг за шагом.</p>`, true, ()=>{});
   const d=$("#fd-dcard"); d.classList.add("pfd-d"); d.addEventListener("click", pfdClick); pfdDraw(); }
 const PFD_SC={due:"ждём оплату", debt:"в долгах", old30:"долги старше 30 дней", period:""};
 const pfdAgeOk = (age, b) => !b || (b==="10" ? age<=10 : b==="30" ? age>30 : b==="60" ? age>60 : b==="11" ? age>10&&age<=30 : true);
@@ -630,7 +634,7 @@ function pfdMiss(sc){ const debt=sc!=="period"&&sc!=="", L=pfdDocs(sc==="debt"||
 function pfdDraw(){ const box=$("#pfd"); if(!box) return; const k=PFD.k;
   box.innerHTML = k==="miss" ? pfdMiss(PFD.sc) : ["due","debt","old30"].includes(k) ? pfdDebt(k) : ["paid","perpaid"].includes(k) ? pfdPaid(k) : ["exp","inc","own"].includes(k) ? pfdRec(k) : pfdBy(k); }
 function pfdClick(e){ const t=e.target.closest("[data-pfnav],[data-pfzk],[data-pfzkp],[data-pfpay],[data-pfall],[data-pfled],[data-pfg],[data-pfage],[data-pfsort],[data-pfdoc],[data-pvx],[data-pfmiss],[data-pfgo]"); if(!t) return;
-  if(t.dataset.pfnav){ const [k,sc]=t.dataset.pfnav.split("|"); pfDetail(k, sc); return; }
+  if(t.dataset.pfnav){ const [k,sc]=t.dataset.pfnav.split("|"); pfDetail(k, sc, PFD.rng); return; }
   if(t.dataset.pfzk){ const j=pfDoc(t.dataset.pfzk); if(!j) return; docCard(j,false); setTimeout(()=>{ const b=document.querySelector('#fd-dcard [data-zkc="toggle"]:not(.on)'); if(b) b.click(); }, 80); return; }
   if(t.dataset.pfzkp!=null){ const L=[...document.querySelectorAll("#pfd [data-pfdoc]")].map(r=>pfDoc(r.dataset.pfdoc)).filter(Boolean).map(j=>j.date).sort(); if(!L.length) return; pvCloseCard(); tabBackFrom("Прибыль", ()=>zkpGoMiss(L[0], L[L.length-1], L[0]===L[L.length-1]?"за "+fd(L[0]):"с "+fd(L[0])+" по "+fd(L[L.length-1]))); return; }
   if(t.dataset.pfpay){ const j=pfDoc(t.dataset.pfpay); if(!j) return; const p=payOf(j); setPay(j,p.tot,todayISO()); saveLocal(); const r=t.closest(".pfd-r"); if(r) r.classList.add("justpaid"); toast("ok","Оплачено","Накладная № "+j.number+" · "+fm(p.left)+" ₽ — "+jWho(j).main); setTimeout(()=>{ pfdDraw(); if(curTab==="profit") drawProfit(); },260); return; }
