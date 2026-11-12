@@ -397,6 +397,14 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .mlr.un .mlr1 b,#fd-app .mlr.un .mlr2{font-weight:700}#fd-app .mlr.un .mlr1 b::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#1f5f9f;margin-right:6px;vertical-align:1px}
 #fd-app .mlans{color:var(--muted);margin-right:4px;vertical-align:-2px}
 #fd-app .mlr4{display:flex;gap:6px;flex-wrap:wrap;margin-top:3px}#fd-app .mlclip{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;color:var(--muted);background:rgba(28,34,32,.05);padding:1px 7px;border-radius:99px;max-width:100%;overflow:hidden;white-space:nowrap}
+#fd-app .mldbadge{display:inline-flex;align-items:center;gap:4px;font:700 10.5px/1 var(--ui);letter-spacing:.06em;text-transform:uppercase;color:#fff;padding:4px 8px 4px 6px;border-radius:99px;background:linear-gradient(135deg,#3f9a63,#2f7d4f);box-shadow:0 2px 6px -2px rgba(47,125,79,.55)}
+#fd-app .mldbadge.big{font-size:12px;padding:6px 12px 6px 9px}
+#fd-app .mlr5{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:3px}#fd-app .mlr5 small{font-size:11px;color:var(--muted)}
+#fd-app button.mlr.isdone{background:rgba(236,246,239,.75)}#fd-app button.mlr.isdone::before{background:#2f7d4f;opacity:.8}
+#fd-app .mldone{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:8px 10px;border-radius:12px;background:rgba(47,125,79,.08);border:1px solid rgba(47,125,79,.2)}#fd-app .mldone small{font-size:12px;color:var(--muted)}#fd-app .mldone .btn{margin-left:auto}
+#fd-app .mldone.pop .mldbadge{animation:mldpop .45s cubic-bezier(.2,1.4,.4,1)}@keyframes mldpop{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+#fd-app .mldbtn{border-color:rgba(47,125,79,.35);color:#2f7d4f}#fd-app .mldbtn:hover{background:rgba(47,125,79,.08)}#fd-app .mldbtn svg{vertical-align:-2px;margin-right:2px}
+@media(prefers-reduced-motion:reduce){#fd-app .mldone.pop .mldbadge{animation:none}}
 #fd-app .mlord{font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:99px;background:rgba(47,107,69,.13);color:var(--ok)}#fd-app .mlord.done{background:rgba(28,34,32,.06);color:var(--muted)}
 #fd-app .mlmore{justify-self:center;margin:6px 0}
 #fd-app .mlv{position:sticky;top:calc(var(--toph,70px) + 8px);min-width:0;border-radius:16px;background:rgba(255,255,255,.62);border:1px solid rgba(28,34,32,.07);padding:14px 16px;min-height:300px;max-height:calc(100vh - 110px);overflow:auto;overscroll-behavior:contain}
