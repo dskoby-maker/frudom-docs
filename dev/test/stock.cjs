@@ -63,7 +63,7 @@ async function doc(id, pid, qty, price, src, unit){
   const pot=r.out.itemId, bm=r.out.batchId; S=r.stock; ok(S.units.some(u=>u.name==='Мешок'), 'единица сохранена в справочнике');
   r=await st('in',{itemId:pot, unit:'мешок', qty:'1.5', price:'1000', date:'2026-11-02', supplier:'Б', docRef:'m2'}); ok(r.ok && !r.stock.units.some(u=>u.name==='мешок'), 'дубль единицы по регистру не создаётся');
   r=await st('in',{itemId:pot, unit:'шт', qty:'1.5', price:'10', date:'2026-11-02', supplier:'Б', docRef:'m3'}); ok(!r.ok, 'штуки только целые');
-  r=await st('rw',{batchId:bm, n:'2', kg:'95'}); S=r.stock; const nb=S.batches.find(b=>b.parent===bm); ok(nb && nb.unit==='кг' && +nb.price===stR2(2000/95), 'перевзвешивание 2 мешков в 95 кг, цена '+(nb&&nb.price));
+  r=await st('rw',{batchId:bm, n:'2', kg:'95'}); S=r.stock; const nb=S.batches.find(b=>b.parent===bm); ok(nb && nb.unit==='кг' && +nb.price===Math.round(2000/95*10000)/10000 && +nb.pack===47.5, 'перевзвешивание 2 мешков в 95 кг, цена '+(nb&&nb.price)+', 1 шт = '+(nb&&nb.pack));
   r=await st('batch',{batchId:bm, exp:'2026-12-01'}); S=r.stock; ok(S.batches.find(b=>b.id===bm).exp==='2026-12-01', 'срок исходной партии (перевзвешенная часть берёт его)');
   r=await st('inv',{rows:[{batchId:bm, fact:'0'},{batchId:nb.id, fact:''}]}); S=r.stock; ok(r.ok && calc(S).fact[bm]===0 && calc(S).fact[nb.id]===95, 'инвентаризация: ноль — факт, пустое — пропуск');
   ok(S.acts.length>=1, 'акт сохранён');

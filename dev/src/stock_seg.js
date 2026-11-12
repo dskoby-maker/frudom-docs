@@ -41,7 +41,9 @@ function skUnitsOf(itemId){ const m={}, X=skIdx(); (X.byItem[itemId]||[]).forEac
    Со старым скриптом таблицы поле не сохраняется на сервере — тогда помним на устройстве (SKPL). */
 var SKPL={}; try{ SKPL=JSON.parse(lsGet("frudom-stockpack")||"{}")||{}; }catch(e){ SKPL={}; }
 const skPackSave = (id,v) => { if(!id) return; if(+v>0) SKPL[id]=String(v); else delete SKPL[id]; try{ lsSet("frudom-stockpack",JSON.stringify(SKPL)); }catch(e){} };
-const skPack = b => { if(!b || skK(b.unit)==="шт") return 0; const v=+String(b.pack!=null&&b.pack!==""?b.pack:(SKPL[b.id]||"")).replace(",","."); return v>0?v:0; };
+const skPack = b => { if(!b || skK(b.unit)==="шт") return 0; const v=+String(b.pack!=null&&b.pack!==""?b.pack:(SKPL[b.id]||"")).replace(",","."); if(v>0) return v;
+  /* фасовка не указана — берём вес 1 шт из названия товара склада («Фасоль … 450г» → 0,45 кг), если единицы совпадают */
+  const it=skIdx().item[b.itemId], w=miWeight((it&&it.name)||b.itemName||""); return w && skK(w.unit)===skK(b.unit) ? w.w : 0; };
 const skPcN = n => { const k=Math.round(n); return (Math.abs(n-k)<0.01?String(k):"≈ "+String(Math.round(n*10)/10).replace(".",","))+" шт"; };
 /* коробки: сколько штук в коробке у партии (поле box; со старым скриптом — на устройстве SKBX). Коробок может быть дробное число: 2,35 кор */
 var SKBX={}; try{ SKBX=JSON.parse(lsGet("frudom-stockbox")||"{}")||{}; }catch(e){ SKBX={}; }
@@ -529,7 +531,7 @@ document.addEventListener("click", async e=>{
     if(Object.keys(d).length===1){ SKB.mode=""; skModalRefresh(); return; }
     const j=await skDo("batch",d,"Партия: "+bt.name,"Партия изменена",b); if(j){ SKB.mode=""; skModalRefresh(); } return; }
   if(a==="woSave"){ const r=skN(skVal(".skwr")); if(!r){ toast("err","Укажите причину списания",""); return; } const j=await skDo("wo",{batchId:SKB.id, qty:skVal(".skwq").replace(",","."), reason:r},"Списание","Списано",b); if(j){ SKB.mode=""; skModalRefresh(); } return; }
-  if(a==="rwSave"){ const j=await skDo("rw",{batchId:SKB.id, n:skVal(".skrn").replace(",","."), kg:skVal(".skrk").replace(",",".")},"Перевзвешивание","Перевзвешено",b); if(j && j.out){ skBatchCard(j.out.batchId); } return; }
+  if(a==="rwSave"){ const j=await skDo("rw",{batchId:SKB.id, n:skVal(".skrn").replace(",","."), kg:skVal(".skrk").replace(",",".")},"Перевзвешивание","Перевзвешено",b); if(j && j.out){ const nn=+skVal(".skrn").replace(",","."), kk=+skVal(".skrk").replace(",","."); if(nn>0&&kk>0&&skK(b.unit||"")!=="кг") skPackSave(j.out.batchId, Math.round(kk/nn*10000)/10000); skBatchCard(j.out.batchId); } return; }
   if(a==="inSave"){ skInSave(false); return; }
   if(a==="invSave"){ const rows=Object.keys(SKINV.f).filter(k=>SKINV.f[k]!=="").map(k=>({batchId:k, fact:String(SKINV.f[k]).replace(",",".")})); if(!rows.length){ toast("err","Впишите факт хотя бы по одной партии",""); return; }
     const j=await skDo("inv",{rows, note:skVal(".skinvn")},"Инвентаризация ("+rows.length+" парт.)","Акт проведён",b); if(j){ toast("ok","Акт инвентаризации сохранён", (j.out&&j.out.diffN)?"Расхождений: "+j.out.diffN+" — остатки поправлены":"Расхождений нет"); skClose(); } return; }
@@ -960,6 +962,7 @@ document.addEventListener("click", async e=>{ const b=e.target.closest&&e.target
   if(!b.classList.contains("arm")){ b.classList.add("arm"); b.textContent=`Да, ${skQf(n,"шт")} → ${skQf(kg,"кг")}`; clearTimeout(b._t); b._t=setTimeout(()=>{ if(b.isConnected){ b.classList.remove("arm"); b.textContent="Перевести в кг"; } },5000); return; }
   const j=await skDo("rw",{batchId:b.dataset.skrwq, n:String(n), kg:String(kg)},"Перевзвешивание","Переведено в кг: "+skQf(kg,"кг"),b);
   if(!j) return;
+  if(j.out && j.out.batchId && n>0) skPackSave(j.out.batchId, Math.round(kg/n*10000)/10000);
   if(b.closest("#dc-zki")){ const wrap=$("#dc-zk"), d=wrap&&D.journal.find(x=>x.id===wrap.dataset.doc); if(d) dcZkKeep(d); }
   else if(b.closest("#bz-zki") && typeof bzKeep==="function") bzKeep(); });
 /* строка источника под товаром в блоке закупки */

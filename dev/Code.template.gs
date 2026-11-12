@@ -1402,8 +1402,8 @@ const ST_OPS = {
     const b = c.batch[d.batchId]; if (!b) stErr_('Партия не найдена'); if (stK_(b.unit) === 'кг') stErr_('Партия уже в килограммах');
     const it = c.item[b.itemId] || {}, n = stQty_(d.n, b.unit), kg = stQty_(d.kg, 'кг'), free = stFree_(c, b.id);
     if (n > free + 0.0005) stErr_('Свободно только ' + stQ_(free, b.unit) + ' — зарезервированные упаковки не перевзвешиваются');
-    const at = new Date().toISOString(), price = b.price !== '' && b.price != null ? String(stR2_(n * (+b.price) / kg)) : '';
-    const nb = { id: rid + ':b', itemId: b.itemId, itemName: it.name, name: 'Перевзвешено из «' + b.name + '»', date: b.date, qty: kg, unit: 'кг', price: price, supplier: b.supplier, docRef: b.docRef, exp: '', kind: 'rw', parent: b.id, by: me.name, at: at };
+    const at = new Date().toISOString(), price = b.price !== '' && b.price != null ? String(Math.round(n * (+b.price) / kg * 10000) / 10000) : '', pack = n > 0 ? String(Math.round(kg / n * 10000) / 10000) : '';
+    const nb = { id: rid + ':b', itemId: b.itemId, itemName: it.name, name: 'Перевзвешено из «' + b.name + '»', date: b.date, qty: kg, unit: 'кг', price: price, supplier: b.supplier, docRef: b.docRef, exp: '', kind: 'rw', parent: b.id, by: me.name, at: at, pack: pack };
     const W = { sbatches: { upsert: [nb] }, smoves: { upsert: [
       { id: rid + ':m1', at: at, by: me.name, type: 'rwout', typeName: ST_TYPES.rwout, itemId: b.itemId, itemName: it.name, batchId: b.id, qty: -n, unit: b.unit, cost: b.price, reason: 'перевзвешено: ' + stQ_(kg, 'кг') },
       { id: rid + ':m2', at: at, by: me.name, type: 'rwin', typeName: ST_TYPES.rwin, itemId: b.itemId, itemName: it.name, batchId: nb.id, qty: kg, unit: 'кг', cost: price, reason: 'из ' + stQ_(n, b.unit) } ] } };
