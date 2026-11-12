@@ -59,7 +59,7 @@ async def main():
         recent=pg.locator('#inv-recent')
         toggle=recent.locator('summary')
         row=recent.locator('.invr')
-        assert await toggle.inner_text()=='Последние счета' and await row.is_hidden()
+        assert (await toggle.inner_text()).startswith('Последние счета') and await row.is_hidden()
         await toggle.press('Enter')
         await row.wait_for(state='visible')
         await row.locator('[data-invp]').click()

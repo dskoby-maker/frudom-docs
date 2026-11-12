@@ -45,31 +45,40 @@ function invRowHtml(r,i){ const d=invData(r), c=cus(r.customerId)||{}, n=(d.docs
       <span class="invw"><b>${esc(cusNm(r.customerId)||"заказчик удалён")}${r.place?` <em>${esc(r.place)}</em>`:""}</b><small>${[r.period, n?`${n} ${plural(n,["накладная","накладные","накладных"])}`:"без накладных", esc(sup(r.supplierId).name||"")].filter(Boolean).join(" · ")}${invPayChip(r)}</small></span>
       <span class="invs">${fm(+r.sum||0)} ₽</span>
       <span class="inva"><button type="button" class="btn sm" data-invp="${r.id}">Открыть счёт</button><button type="button" class="btn ghost sm" data-inve="${r.id}">Изменить</button></span></div>`; }
-let INVF={q:"", cus:"", per:"", arch:false};
+let INVF={q:"", cus:"", per:"", arch:false, pay:"", sort:"new"};
 function renderInvoices(){ if(!invCan() || !$("#inv-list")) return;
   const old=$("#inv-old"); old.innerHTML = D.invSrv===false ? `<div class="sknoteb">Чтобы счета сохранялись в таблице и были видны всем — обновите Code.gs (версия 14). До этого создать счёт нельзя: таблица его не сохранит. <button type="button" class="btn sm" id="srvOldHow">Как обновить</button></div>` : "";
   $("#inv-new").disabled = D.invSrv===false;
   const cs=$("#inv-cus"), used=[...new Set(invRows().map(r=>r.customerId))];
   cs.innerHTML=`<option value="">Все заказчики</option>`+opts(D.customers.filter(c=>used.includes(c.id)), INVF.cus);
-  $("#inv-q").value=INVF.q; $("#inv-per").value=INVF.per; $("#inv-arch").checked=INVF.arch;
+  $("#inv-q").value=INVF.q; $("#inv-per").value=INVF.per; $("#inv-arch").checked=INVF.arch; if($("#inv-sort")) $("#inv-sort").value=INVF.sort||"new"; if($("#inv-pay")) $("#inv-pay").value=INVF.pay||"";
   invDrawList(); }
-function invFiltered(){ const q=String(INVF.q||"").toLowerCase().replace(/ё/g,"е").trim(), w=q.split(/\s+/).filter(Boolean);
-  let from="", to=""; if(INVF.per==="m0") [from,to]=invMonth(0); else if(INVF.per==="m1") [from,to]=invMonth(1); else if(INVF.per==="y"){ from=todayISO().slice(0,4)+"-01-01"; to=todayISO().slice(0,4)+"-12-31"; }
-  return invRows().filter(r=>invArch(r)===INVF.arch && (!INVF.cus || r.customerId===INVF.cus) && (!from || (r.date>=from && r.date<=to)) && (!w.length || (()=>{ const d=invData(r), t=[r.number, (cus(r.customerId)||{}).name, r.place, r.period, d.basis, d.note, ...(d.lines||[]).map(x=>x.name)].join(" ").toLowerCase().replace(/ё/g,"е"); return w.every(x=>t.includes(x)); })()))
-    .sort((a,b)=>String(b.date).localeCompare(String(a.date)) || invNumN(b.number)-invNumN(a.number)); }
+/* общий отбор и порядок счетов: поиск, заказчик, период, оплата, порядок (окно «Все счета» и блок «Последние счета») */
+const INV_SORT=[["new","Сначала новые"],["old","Сначала старые"],["sumd","Сумма: больше"],["suma","Сумма: меньше"],["num","По номеру"],["cus","По заказчику"]];
+const INV_PER=[["","Всё время"],["m0","Этот месяц"],["m1","Прошлый месяц"],["y","Этот год"]];
+const INV_PAY=[["","Все"],["due","Не оплачены"],["part","Частично"],["paid","Оплачены"]];
+function invSel(f){ const q=String(f.q||"").toLowerCase().replace(/ё/g,"е").trim(), w=q.split(/\s+/).filter(Boolean);
+  let from="", to=""; if(f.per==="m0") [from,to]=invMonth(0); else if(f.per==="m1") [from,to]=invMonth(1); else if(f.per==="y"){ from=todayISO().slice(0,4)+"-01-01"; to=todayISO().slice(0,4)+"-12-31"; }
+  const pay=f.pay && invPayOk() ? f.pay : "";
+  const L=invRows().filter(r=>invArch(r)===!!f.arch && (!f.cus || r.customerId===f.cus) && (!from || (r.date>=from && r.date<=to)) && (!pay || invPayState(r).st===pay) && (!w.length || (()=>{ const d=invData(r), t=[r.number, (cus(r.customerId)||{}).name, cusNm(r.customerId), r.place, r.period, d.basis, d.note, sup(r.supplierId).name, ...(d.lines||[]).map(x=>x.name)].join(" ").toLowerCase().replace(/ё/g,"е"); return w.every(x=>t.includes(x)); })()));
+  const byNew=(a,b)=>String(b.date).localeCompare(String(a.date)) || invNumN(b.number)-invNumN(a.number);
+  const S={new:byNew, old:(a,b)=>-byNew(a,b), sumd:(a,b)=>(+b.sum||0)-(+a.sum||0)||byNew(a,b), suma:(a,b)=>(+a.sum||0)-(+b.sum||0)||byNew(a,b),
+    num:(a,b)=>invNumN(b.number)-invNumN(a.number)||byNew(a,b), cus:(a,b)=>String(cusNm(a.customerId)||"").localeCompare(String(cusNm(b.customerId)||""),"ru")||byNew(a,b)};
+  return L.sort(S[f.sort]||byNew); }
+function invFiltered(){ return invSel(INVF); }
 function invDrawList(){ const L=invFiltered(), box=$("#inv-list"); if(!box) return; const tot=r2(L.reduce((a,r)=>a+(+r.sum||0),0));
   $("#inv-sum").textContent = L.length ? `Найдено: ${L.length} ${plural(L.length,["счёт","счёта","счетов"])} на ${fm(tot)} ₽` : "";
   if(!L.length){ box.innerHTML=`<div class="skempty"><b>${invRows().length?"Ничего не найдено":"Счетов пока нет"}</b><span>${invRows().length?"Измените поиск или фильтры.":"Нажмите «+ Новый счёт»: выберите заказчика, подразделение и месяц — сайт сам соберёт накладные."}</span></div>`; return; }
   box.innerHTML=`<div class="invl">${L.map(invRowHtml).join("")}</div>`;
   box.querySelector(".invl").classList.add("pgfade"); }
 document.addEventListener("input", e=>{ if(e.target.id==="inv-q"){ INVF.q=e.target.value; invDrawList(); } });
-document.addEventListener("change", e=>{ const id=e.target.id; if(id==="inv-cus"){ INVF.cus=e.target.value; invDrawList(); } else if(id==="inv-per"){ INVF.per=e.target.value; invDrawList(); } else if(id==="inv-arch"){ INVF.arch=e.target.checked; invDrawList(); } });
+document.addEventListener("change", e=>{ const id=e.target.id; if(id==="inv-cus"){ INVF.cus=e.target.value; invDrawList(); } else if(id==="inv-per"){ INVF.per=e.target.value; invDrawList(); } else if(id==="inv-arch"){ INVF.arch=e.target.checked; invDrawList(); } else if(id==="inv-sort"){ INVF.sort=e.target.value; invDrawList(); } else if(id==="inv-pay"){ INVF.pay=e.target.value; invDrawList(); } });
 document.addEventListener("click", e=>{ const t=e.target; if(!t.closest) return;
   if(t.closest("#inv-new")){ invEdit(null); return; }
   const p=t.closest("[data-invp]"); if(p){ e.stopPropagation(); invPreview(p.dataset.invp); return; }
   const ed=t.closest("[data-inve]"); if(ed){ e.stopPropagation(); invEdit(ed.dataset.inve); return; }
   if(t.closest("#inv-new2")){ if(INV && !INV.id && document.getElementById("inv-wrap")){ invOpen(true); return; } invEdit(null); return; }
-  if(t.closest("#inv-all")){ invAll(); return; }
+  if(t.closest("#inv-all,[data-invall]")){ invAll(); return; }
   const r=t.closest("#inv-list [data-inv], #inv-dc [data-inv]"); if(r){ invCard(r.dataset.inv); return; } });
 document.addEventListener("keydown", e=>{ const r=e.target; if(r.classList && r.classList.contains("invr") && (e.key==="Enter"||e.key===" ")){ e.preventDefault(); invCard(r.dataset.inv); } });
 
@@ -268,18 +277,51 @@ window.__inv = { rows:()=>invRows(), edit:invEdit, st:()=>INV };
 /* ---------- счета живут во вкладке «Новый документ»: блок внизу + окно «Все счета» (вкладки «Счета» больше нет) ---------- */
 function invViews(){ invDocCard(); if($("#inv-list")) renderInvoices(); }
 function invDocCard(){ const box=$("#inv-dc"); if(!box) return; box.hidden=!invCan(); if(box.hidden) return;
+  const ae=document.activeElement, fq=ae&&ae.id==="inv-mq"?[ae.selectionStart,ae.selectionEnd]:null;
   const recent=box.querySelector("#inv-recent"), expanded=recent?.open, keepFocus=recent?.firstElementChild===document.activeElement;
   const live=invRows().filter(r=>!invArch(r)).sort((a,b)=>String(b.date).localeCompare(String(a.date)) || invNumN(b.number)-invNumN(a.number)), n=live.length;
   box.innerHTML=`<div class="invh"><div><h2>Отдельный счёт на оплату</h2><p class="muted">За месяц или период, по подразделению — сайт сам соберёт накладные. Это не новая накладная: на контракт, журнал и прибыль не влияет.</p></div>
     <div class="invbtn"><button class="btn" type="button" id="inv-all">Все счета${n?` <span class="invn">${n}</span>`:""}</button><button class="btn pri" type="button" id="inv-new2"${D.invSrv===false?" disabled":""}>+ Отдельный счёт</button></div></div>
     ${D.invSrv===false?`<div class="sknoteb" style="margin-top:10px">Чтобы счета сохранялись в таблице и были видны всем — обновите Code.gs (версия 14). <button type="button" class="btn sm" id="srvOldHow">Как обновить</button></div>`:""}
-    ${n?`<details class="invmini" id="inv-recent"${expanded?" open":""}><summary class="btn invmini-toggle">Последние счета</summary><div class="invl">${live.slice(0,3).map(invRowHtml).join("")}</div></details>`:""}`; invBtn();
+    ${n?`<details class="invmini" id="inv-recent"${expanded?" open":""}><summary class="btn invmini-toggle">Последние счета<span class="invms" id="inv-msum"></span></summary>${invMiniTools()}<div id="inv-mlist"></div></details>`:""}`; invBtn();
+  if(n) invMiniDraw();
+  if(fq){ const q=$("#inv-mq"); if(q){ q.focus({preventScroll:true}); try{ q.setSelectionRange(fq[0],fq[1]); }catch(e){} } }
+  if(n && me().admin && !pfLoaded && !invDocCard.ld){ invDocCard.ld=1; loadProfit(true).then(()=>{ if(pfLoaded) invDocCard(); }).catch(()=>{}); }
   if(keepFocus) box.querySelector("#inv-recent > summary")?.focus({preventScroll:true}); }
+/* «Последние счета»: поиск, заказчик, период, оплата, порядок; по 5 + «Показать ещё» */
+let INVM=(()=>{ let o={}; try{ o=JSON.parse(localStorage.getItem("frudom-invm")||"{}")||{}; }catch(e){} return Object.assign({q:"", cus:"", per:"", pay:"", sort:"new"}, o, {q:"", n:5}); })();
+const invMSave = () => { try{ localStorage.setItem("frudom-invm", JSON.stringify({cus:INVM.cus, per:INVM.per, pay:INVM.pay, sort:INVM.sort})); }catch(e){} };
+function invMiniTools(){ const used=[...new Set(invRows().filter(r=>!invArch(r)).map(r=>r.customerId))];
+  if(INVM.cus && !used.includes(INVM.cus)) INVM.cus="";
+  const chips=(L,k,attr)=>L.map(([v,t])=>`<button type="button" class="invmc${(INVM[k]||"")===v?" on":""}" ${attr}="${v}" aria-pressed="${(INVM[k]||"")===v}">${t}</button>`).join("");
+  return `<div class="invmt">
+    <div class="invmt1"><input type="search" id="inv-mq" placeholder="Поиск: номер, заказчик, подразделение, товар" aria-label="Поиск счетов" value="${esc(INVM.q)}">
+      <select id="inv-mcus" aria-label="Заказчик"><option value="">Все заказчики</option>${opts(D.customers.filter(c=>used.includes(c.id)), INVM.cus)}</select>
+      <select id="inv-msort" aria-label="Порядок">${INV_SORT.map(([k,t])=>`<option value="${k}"${INVM.sort===k?" selected":""}>${t}</option>`).join("")}</select></div>
+    <div class="invmt2"><span class="invmg" role="group" aria-label="Период">${chips(INV_PER,"per","data-invmper")}</span>${invPayOk()?`<span class="invmg" role="group" aria-label="Оплата">${chips(INV_PAY,"pay","data-invmpay")}</span>`:""}</div></div>`; }
+function invMiniDraw(){ const box=$("#inv-mlist"); if(!box) return; const f=Object.assign({}, INVM, {arch:false}), L=invSel(f), all=invRows().filter(r=>!invArch(r)).length;
+  const tot=r2(L.reduce((a,r)=>a+(+r.sum||0),0)), on=!!(INVM.q||INVM.cus||INVM.per||(INVM.pay&&invPayOk()));
+  let due=0; if(invPayOk()) L.forEach(r=>{ const p=invPayState(r); if(p.st) due+=p.left; });
+  const sm=$("#inv-msum"); if(sm) sm.textContent = on ? `${L.length} из ${all}` : `${all}`;
+  const head=L.length?`<div class="invmh2"><span>${on?"Найдено":"Всего"}: <b>${L.length}</b> ${plural(L.length,["счёт","счёта","счетов"])} на <b>${fm(tot)} ₽</b>${invPayOk()&&due>0.005?` · <span class="invmdue">не оплачено ${fm(r2(due))} ₽</span>`:""}</span>${on?`<button type="button" class="btn ghost sm" data-invmreset>Сбросить</button>`:""}</div>`:"";
+  if(!L.length){ box.innerHTML=`<div class="skempty"><b>Ничего не найдено</b><span>Измените поиск или фильтры.</span><button type="button" class="btn sm" data-invmreset>Сбросить фильтры</button></div>`; return; }
+  const V=L.slice(0, INVM.n), rest=L.length-V.length;
+  box.innerHTML=head+`<div class="invl">${V.map(invRowHtml).join("")}</div>`+(rest>0||L.length>5?`<div class="invmmore">${rest>0?`<button type="button" class="btn sm" data-invmmore>Показать ещё ${Math.min(5,rest)}</button>`:""}${INVM.n>5?`<button type="button" class="btn ghost sm" data-invmless>Свернуть до 5</button>`:""}<button type="button" class="btn ghost sm" data-invall>Все счета ›</button></div>`:""); }
+document.addEventListener("input", e=>{ if(e.target.id==="inv-mq"){ INVM.q=e.target.value; INVM.n=5; invMiniDraw(); } });
+document.addEventListener("change", e=>{ const id=e.target.id; if(id==="inv-mcus"){ INVM.cus=e.target.value; INVM.n=5; invMSave(); invMiniDraw(); } else if(id==="inv-msort"){ INVM.sort=e.target.value; invMSave(); invMiniDraw(); } });
+document.addEventListener("keydown", e=>{ if(e.target.id==="inv-mq" && e.key==="Escape" && INVM.q){ e.preventDefault(); e.target.value=""; INVM.q=""; invMiniDraw(); } });
+document.addEventListener("click", e=>{ const t=e.target; if(!t.closest || !t.closest("#inv-recent")) return;
+  const chip=(sel,k)=>{ const b=t.closest(sel); if(!b) return false; INVM[k]=b.getAttribute(sel.slice(1,-1)); INVM.n=5; invMSave();
+    b.parentNode.querySelectorAll(".invmc").forEach(x=>{ const on=x===b; x.classList.toggle("on",on); x.setAttribute("aria-pressed",on); }); invMiniDraw(); return true; };
+  if(chip("[data-invmper]","per") || chip("[data-invmpay]","pay")) return;
+  if(t.closest("[data-invmmore]")){ INVM.n+=5; invMiniDraw(); return; }
+  if(t.closest("[data-invmless]")){ INVM.n=5; invMiniDraw(); $("#inv-recent")?.scrollIntoView({block:"nearest", behavior:"smooth"}); return; }
+  if(t.closest("[data-invmreset]")){ Object.assign(INVM,{q:"",cus:"",per:"",pay:"",n:5}); invMSave(); invDocCard(); return; } });
 function invAll(){ if(!invCan()) return; CARD_RE=()=>invAll();
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Счета на оплату</div><h3>Все отдельные счета</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <div class="invh invh2"><p class="muted">Например, за месяц по каждому подразделению. На сумму контракта, журнал и прибыль не влияют.</p><button class="btn pri" type="button" id="inv-new">+ Новый счёт</button></div>
     <div id="inv-old"></div>
-    <div class="invf"><input id="inv-q" type="search" placeholder="Поиск: номер, заказчик, подразделение, товар" aria-label="Поиск счетов"><select id="inv-cus" aria-label="Заказчик"></select><select id="inv-per" aria-label="Период"><option value="">Всё время</option><option value="m0">Этот месяц</option><option value="m1">Прошлый месяц</option><option value="y">Этот год</option></select><label class="invarch"><input type="checkbox" id="inv-arch"> Архив</label></div>
+    <div class="invf"><input id="inv-q" type="search" placeholder="Поиск: номер, заказчик, подразделение, товар" aria-label="Поиск счетов"><select id="inv-cus" aria-label="Заказчик"></select><select id="inv-per" aria-label="Период"><option value="">Всё время</option><option value="m0">Этот месяц</option><option value="m1">Прошлый месяц</option><option value="y">Этот год</option></select><select id="inv-sort" aria-label="Порядок">${INV_SORT.map(([k,t])=>`<option value="${k}">${t}</option>`).join("")}</select>${invPayOk()?`<select id="inv-pay" aria-label="Оплата">${INV_PAY.map(([k,t])=>`<option value="${k}">${k?t:"Оплата: все"}</option>`).join("")}</select>`:""}<label class="invarch"><input type="checkbox" id="inv-arch"> Архив</label></div>
     <div id="inv-sum" class="muted"></div>
     <div id="inv-list"></div>`, true, ()=>{});
   const d=$("#fd-dcard"); if(d) d.classList.add("xwide"); renderInvoices();
