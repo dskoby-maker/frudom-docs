@@ -856,8 +856,8 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .skdr.skw{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;cursor:default}#fd-app .skdr.skw>b,#fd-app .skdr.skw>span:not(.skwa){grid-column:1}#fd-app .skwa{grid-column:2;grid-row:1/3;display:flex;gap:6px;align-items:center}
 #fd-app .skdr em{font-style:normal}
 #fd-app .skjb{display:inline-flex;align-items:center;gap:4px;margin-top:3px;font-size:11px;font-weight:600;padding:1px 8px 1px 6px;border-radius:99px;background:rgba(31,95,122,.12);color:#1f5f7a;white-space:nowrap}
-#fd-app .skjb svg{width:12px;height:12px}#fd-app .skjb.short{background:#fbe9e7;color:var(--err)}#fd-app .skjb.done{background:rgba(47,107,69,.12);color:var(--ok)}
-#fd-app .kd-w .skjb{margin-left:8px;margin-top:0}
+#fd-app .skjb svg{width:12px;height:12px}#fd-app .skjb.short{background:#fbe9e7;color:var(--err)}#fd-app .skjb.sent{background:rgba(47,107,69,.12);color:var(--ok)}
+#fd-app .kd-w .skjb{margin-left:8px;margin-top:0;vertical-align:1px}
 #fd-app .dvst{display:inline-flex;align-items:center;gap:3px;font-style:normal;font-size:11.5px;font-weight:600;color:#1f5f7a;background:rgba(31,95,122,.1);border-radius:99px;padding:0 7px 0 5px}#fd-app .dvst svg{width:12px;height:12px}
 #fd-app .sknoteb{margin-top:12px;padding:10px 12px;border-radius:12px;background:var(--warn-soft);color:var(--warn);font-size:13px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 #fd-app .skopts.sm{gap:6px;margin-top:4px}#fd-app .skopts.sm .skopt{padding:8px 11px}#fd-app .skopts.row2{grid-template-columns:1fr 1fr;margin:10px 0}
@@ -956,11 +956,11 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app tr.kids.open .kw{grid-template-rows:1fr}
 #fd-app tr.kids .ki{min-height:0;overflow:hidden}
 #fd-app tr.kids .ki>.kd:first-child{margin-top:6px}#fd-app tr.kids .ki>.kd:last-child{margin-bottom:10px}
-#fd-app tr.kids .kd{display:grid;grid-template-columns:72px minmax(0,1fr) 110px 96px auto;align-items:center;gap:10px;margin:0 0 6px 18px;padding:8px 10px 8px 14px;border-left:2px solid rgba(106,44,78,.35);border-radius:0 10px 10px 0;background:#fcfbf8;opacity:0;transition:opacity .2s ease,background .15s}
+#fd-app tr.kids .kd{display:grid;grid-template-columns:var(--kc,72px minmax(0,1fr) 110px 96px auto);align-items:center;gap:10px;margin:0 0 6px 18px;padding:8px 10px 8px 14px;border-left:2px solid rgba(106,44,78,.35);border-radius:0 10px 10px 0;background:#fcfbf8;opacity:0;transition:opacity .2s ease,background .15s}
 #fd-app tr.kids.open .kd{opacity:1;transition-delay:.08s}
 #fd-app tr.kids .kd:hover{background:var(--accent-soft)}
 #fd-app tr.kids .kd-n{font-weight:600;white-space:nowrap}
-#fd-app tr.kids .kd-w{cursor:pointer;min-width:0}#fd-app tr.kids .kd-w span{font-weight:500}#fd-app tr.kids .kd-w:hover span{color:var(--accent);text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(106,44,78,.35)}
+#fd-app tr.kids .kd-w{cursor:pointer;min-width:0}#fd-app tr.kids .kd-w>span:first-child{font-weight:500}#fd-app tr.kids .kd-w:hover>span:first-child{color:var(--accent);text-decoration:underline;text-underline-offset:3px;text-decoration-color:rgba(106,44,78,.35)}
 #fd-app tr.kids .kd-s{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 #fd-app tr.kids .kd-p{font-size:13px;white-space:nowrap}
 #fd-app tr.kids .kd-a{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:4px;white-space:normal}
@@ -5678,15 +5678,24 @@ function renderJournal(){
  
   $("#jr-body").innerHTML = out.length ? out.join("")
     : `<tr><td colspan="6" class="muted" style="padding:16px 6px">${live.length?"По этим фильтрам ничего нет.":"Пока пусто. Документ попадает сюда, когда вы его формируете."}</td></tr>`;
+  jKidObs();
 }
 const jMatch = (j,q) => !q || [j.number, j.snap.c.name, j.snap.c.branchLabel||"", j.snap.s.name, j.snap.dr.ship||"", fd(j.date), cmOf(j).t||"", ...Object.values(j.snap.prods||{}).map(p=>p.name)].join(" ").toLowerCase().includes(q);
 const arOpen=new Set();
+/* строки комплекта: столбцы «точка / сумма / распечатан» ровно под шапкой таблицы */
+function jKidCols(t){ const th=[...t.querySelectorAll("thead th")]; if(th.length<6) return; const L=t.getBoundingClientRect().left, x=th.map(h=>h.getBoundingClientRect().left-L);
+  const c0=x[2]-38, c1=x[3]-x[2]-10, c2=x[4]-x[3]-12, c3=Math.min(x[5]-x[4]-10, 96);
+  if(innerWidth<=700 || Math.min(c0,c1,c2,c3)<40){ t.style.removeProperty("--kc"); return; }
+  t.style.setProperty("--kc", `${c0}px ${c1}px ${c2}px ${c3}px minmax(0,1fr)`); }
+let JKRO=null;
+function jKidObs(){ if(!JKRO && window.ResizeObserver){ JKRO=new ResizeObserver(()=>document.querySelectorAll("#fd-app table.jt").forEach(jKidCols)); document.querySelectorAll("#fd-app table.jt thead th").forEach(h=>JKRO.observe(h)); } document.querySelectorAll("#fd-app table.jt").forEach(jKidCols); }
 function renderArchive(){
   const q=($("#ar-q").value||"").toLowerCase().trim();
   const rows=D.journal.filter(j=>isArch(j) && jMatch(j,q)).sort((a,b)=> a.date<b.date?1:a.date>b.date?-1:-jNumSort(a,b));
   const out=jBuild(rows,true,arOpen), na=D.journal.filter(isArch).length;
   $("#ar-count").textContent=na?na+" шт.":"";
   $("#ar-body").innerHTML = out.length ? out.join("") : `<tr><td colspan="6" class="muted" style="padding:16px 6px">${na?"Ничего не найдено.":"Архив пуст."}</td></tr>`;
+  jKidObs();
 }
 function setArch(list, on){
   if(list.length) logEv("Архив",(on?"В архив":"Возвращено из архива")+(list.length>1?" комплект":"")+": № "+list.map(j=>j.number).join(", ")+" от "+fd(list[0].date)+" — "+shortCus(calc(list[0].snap.dr, list[0].snap)), list.length===1?list[0].id:"");

@@ -670,7 +670,7 @@ function skJState(j){ if(!SK_READY || !j || !j.snap) return ""; const L=skDocLin
 function skJBadge(j){ if(isArch(j)) return ""; const s=skJState(j); if(!s) return "";
   const L=skDocLines(j).filter(x=>x.item && x.req>0), sh=L.filter(x=>x.short>0);
   const t = s==="short" ? "нехватка: "+sh.map(x=>x.item.name+" "+skQf(x.short,x.unit)).join(", ") : s==="wait" ? "ждёт отгрузки со склада" : "отгружено со склада";
-  return `<span class="skjb ${s}" title="Склад: ${esc(t)}">${skIcon}${s==="short"?"нехватка":s==="wait"?"резерв":"отгружено"}</span>`; }
+  return `<span class="skjb ${s==="done"?"sent":s}" title="Склад: ${esc(t)}">${skIcon}${s==="short"?"нехватка":s==="wait"?"резерв":"отгружено"}</span>`; }
 /* ---------- календарь: отгрузить всё за день ---------- */
 let SKDAY=null;
 function skDayDocs(date){ return (D.journal||[]).filter(j=>j.snap && !isArch(j) && j.date===date).map(j=>({j, L:skDocLines(j).filter(x=>x.item && x.req>0 && x.res>0)})).filter(o=>o.L.length).sort((a,b)=>jNumSort(a.j,b.j)); }
