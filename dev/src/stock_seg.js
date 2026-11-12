@@ -376,8 +376,8 @@ function skPickFile(itemId, batchId){ const inp=document.createElement("input");
 async function skFile(id, view){ const t0=toast("info","Открываю файл…","");
   try{ const j=await api({action:"stock", op:"fileGet", d:{id}}); const bin=atob(j.data), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i);
     const blob=new Blob([u8],{type:j.mime||"application/octet-stream"}), url=URL.createObjectURL(blob);
-    if(view){ const im=/^image\//.test(j.mime); const v=document.createElement("dialog"); v.className="dcard wide skview"; v.innerHTML=`<div class="dc-head"><div><div class="dc-kicker">Декларация</div><h3>${esc(j.name)}</h3></div><button class="dc-x" aria-label="Закрыть">×</button></div>${im?`<img src="${url}" alt="${esc(j.name)}">`:`<iframe src="${url}" title="${esc(j.name)}"></iframe>`}<div class="dc-acts"><a class="btn" href="${url}" download="${esc(j.name)}">Скачать</a></div>`;
-      document.getElementById("fd-app").appendChild(v); v.querySelector(".dc-x").onclick=()=>{ v.close(); v.remove(); URL.revokeObjectURL(url); }; v.addEventListener("close",()=>v.remove()); v.showModal(); requestAnimationFrame(()=>v.classList.add("in")); }
+    if(view){ const im=/^image\//.test(j.mime); const v=document.createElement("dialog"); v.className="dcard wide skview"; v.innerHTML=`<div class="dc-head"><div><div class="dc-kicker">Декларация</div><h3>${esc(j.name)}</h3></div><button class="dc-x" aria-label="Закрыть">×</button></div>${im?`<img src="${url}" alt="${esc(j.name)}">`:`<iframe src="${url}" title="${esc(j.name)}"></iframe>`}<div class="dc-acts"><button class="btn" data-skfprn="${esc(id)}">${D_PRN} Печать</button><a class="btn" href="${url}" download="${esc(j.name)}">Скачать</a></div>`;
+      document.getElementById("fd-app").appendChild(v); v.querySelector("[data-skfprn]").onclick=()=>dPrint(id); v.querySelector(".dc-x").onclick=()=>{ v.close(); v.remove(); URL.revokeObjectURL(url); }; v.addEventListener("close",()=>v.remove()); v.showModal(); requestAnimationFrame(()=>v.classList.add("in")); }
     else { const a=document.createElement("a"); a.href=url; a.download=j.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),60000); }
   }catch(e){ toast("err","Файл не открылся", e.message); } }
 /* выбор товара для декларации (из раздела «Декларации») */
@@ -471,6 +471,7 @@ document.addEventListener("click", async e=>{
   const hmo=t.closest("[data-skhmore]"); if(hmo){ SKH.n=hmo.dataset.skhmore==="all"?1e9:SKH.n+20; skModalRefresh(); return; }
   const itb=t.closest("[data-skitem]"); if(itb){ skItemCard(itb.dataset.skitem); return; }
   const bb=t.closest("[data-skbatch]"); if(bb){ skBatchCard(bb.dataset.skbatch); return; }
+  const fp=t.closest("[data-skfprn]"); if(fp){ dPrint(fp.dataset.skfprn); return; }
   const fv=t.closest("[data-skfview],[data-skfget]"); if(fv){ skFile(fv.dataset.skfview||fv.dataset.skfget, !!fv.dataset.skfview); return; }
   const fdl=t.closest("[data-skfdel]"); if(fdl){ if(!armed(fdl,"Удалить?")) return; skDo("fileDel",{id:fdl.dataset.skfdel},"Удаление декларации","Декларация удалена"); return; }
   const ap=t.closest("[data-skattach]"); if(ap){ const id=ap.dataset.skattach; skClose(true); skItemCard(id); skPickFile(id,""); return; }

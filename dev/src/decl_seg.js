@@ -38,7 +38,7 @@ function dRow(f, i){ const G=dGoods(f), P=[...dProds(f)].length, pdf=dIsPdf(f), 
     <button type="button" class="dcl-m" data-dl="view" data-id="${f.id}" title="Подробнее о декларации"><span class="dcl-g">${G.slice(0,8).map(g=>`<i>${esc(g)}</i>`).join("")}${G.length>8?`<i class="more">ещё ${G.length-8}</i>`:""}${!G.length?`<i class="miss">товары не указаны</i>`:""}</span>
       <small>${[f.num?"№ "+esc(f.num):"", f.maker?esc(f.maker):"", P?`привязана к ${P} ${plural(P,["позиции","позициям","позициям"])}`:"", esc(f.name||"")].filter(Boolean).join(" · ")}</small></button>
     <span class="dcl-s">${dBadge(f)}</span>
-    <span class="dcl-a">${pdf||im?`<button type="button" class="btn ghost sm" data-skfview="${f.id}">Открыть</button>`:""}<button type="button" class="btn ghost sm" data-skfget="${f.id}" aria-label="Скачать">⤓</button><button type="button" class="btn ghost sm" data-dl="edit" data-id="${f.id}" aria-label="Изменить">✎</button><button type="button" class="btn ghost sm danger" data-skfdel="${f.id}" aria-label="Удалить">×</button></span></div>`; }
+    <span class="dcl-a">${pdf||im?`<button type="button" class="btn ghost sm" data-skfview="${f.id}">Открыть</button>`:""}<button type="button" class="btn ghost sm" data-skfprn="${f.id}" aria-label="Печать" title="Распечатать">${D_PRN}</button><button type="button" class="btn ghost sm" data-skfget="${f.id}" aria-label="Скачать">⤓</button><button type="button" class="btn ghost sm" data-dl="edit" data-id="${f.id}" aria-label="Изменить">✎</button><button type="button" class="btn ghost sm danger" data-skfdel="${f.id}" aria-label="Удалить">×</button></span></div>`; }
 
 /* ---------- карточка декларации: всё о ней и все действия ---------- */
 let SKDV=null;
@@ -51,7 +51,7 @@ function dViewHtml(){ const f=skD().files.find(x=>x.id===SKDV.id); if(!f) return
      <div class="dcl-g dv-g">${G.map(g=>`<i>${esc(g)}</i>`).join("")||`<i class="miss">товары не указаны</i>`}</div>
      <dl class="dc-info">${info.map(([a,v])=>`<div><dt>${a}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>
      ${P.length||I.length?`<div class="skbox"><div class="skbh"><b>Привязана к позициям</b><small class="muted">в документах с этими товарами подставится сама</small></div>${P.map(p=>`<span class="sklink">${esc(p.name)}</span>`).join("")}${I.map(i=>`<span class="sklink">🔗 ${esc(i.name)} <small class="muted">склад</small></span>`).join("")}</div>`:""}
-     <div class="dc-acts dv-acts">${pdf||im?`<button class="btn" data-skfview="${f.id}">Открыть</button>`:""}<button class="btn" data-skfget="${f.id}">Скачать</button><button class="btn" data-dl="edit" data-id="${f.id}">Изменить</button><button class="btn ghost danger" data-skfdel="${f.id}">Удалить</button><button class="btn pri" data-sk="close">Готово</button></div>`; }
+     <div class="dc-acts dv-acts">${pdf||im?`<button class="btn" data-skfview="${f.id}">Открыть</button>`:""}<button class="btn" data-skfprn="${f.id}">${D_PRN} Печать</button><button class="btn" data-skfget="${f.id}">Скачать</button><button class="btn" data-dl="edit" data-id="${f.id}">Изменить</button><button class="btn ghost danger" data-skfdel="${f.id}">Удалить</button><button class="btn pri" data-sk="close">Готово</button></div>`; }
 
 /* ---------- форма: добавить / изменить декларацию ---------- */
 let SKDF=null;
@@ -241,3 +241,25 @@ document.addEventListener("keydown", e=>{ const t=e.target; if(!SKDF || !t.class
   if(t.classList.contains("dcf-q")){ if(e.key==="Enter"||e.key===","){ if(!t.value.trim()) { if(e.key==="Enter") e.preventDefault(); return; } e.preventDefault(); SKDF.q=t.value; dFormRead(); dAddText(t.value); dRedraw(".dcf-q"); return; }
     if(e.key==="Backspace" && !t.value && SKDF.chips.length){ dFormRead(); SKDF.chips.pop(); dRedraw(".dcf-q"); } } }, true);
 window.__decl = { form: dForm, docs: skDeclDocs, st: () => ({F:SKDF, M:SKDD}), match: dMatch };
+
+/* печать декларации без скачивания: PDF → картинки страниц (pdf.js), фото — как есть, Word/Excel — сначала в PDF на сервере; печать через скрытую рамку (в приложении Android её ловит мост) */
+const D_PRN='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/></svg>';
+let DPRN=false;
+async function dPrint(id){ if(DPRN) return; DPRN=true; const t=toast("info","Готовлю к печати…","", {sticky:true});
+  try{ let F=await dFetch(id); if(!dDirect(F.mime, F.name)) F=await dPdfOf({id});
+    let pages=[];
+    if(/^image\//.test(F.mime||"") && !/heic|heif/i.test(F.mime)) pages=[URL.createObjectURL(new Blob([F.u8],{type:F.mime}))];
+    else if(/^image\//.test(F.mime||"")) throw new Error("фото HEIC браузер не печатает — скачайте файл");
+    else { const P=await adPdfJs(), doc=await P.getDocument({data:F.u8.slice()}).promise;
+      for(let i=1;i<=doc.numPages;i++){ const pg=await doc.getPage(i), v=pg.getViewport({scale:2}), c=document.createElement("canvas"); c.width=v.width; c.height=v.height; const x=c.getContext("2d"); x.fillStyle="#fff"; x.fillRect(0,0,c.width,c.height);
+        await pg.render({canvasContext:x, viewport:v}).promise; pages.push(c.toDataURL("image/jpeg",0.92)); } }
+    if(!pages.length) throw new Error("в файле нет страниц");
+    const html=`<!doctype html><html><head><meta charset="utf-8"><title>${esc(F.name||"Декларация")}</title><style>@page{size:A4;margin:6mm}html,body{margin:0;padding:0;background:#fff}
+      .p{height:285mm;display:flex;align-items:center;justify-content:center;break-after:page;page-break-after:always}.p:last-child{break-after:auto;page-break-after:auto}.p img{max-width:100%;max-height:100%;object-fit:contain}</style></head>
+      <body>${pages.map(u=>`<div class="p"><img src="${u}"></div>`).join("")}</body></html>`;
+    const f=document.createElement("iframe"); f.setAttribute("aria-hidden","true"); f.style.cssText="position:fixed;left:-4000px;top:0;width:900px;height:1200px;border:0;visibility:hidden";
+    document.body.appendChild(f); const d=f.contentWindow.document; d.open(); d.write(html); d.close();
+    await Promise.all([...d.images].map(im=>im.complete?0:new Promise(ok=>{ im.onload=im.onerror=ok; })));
+    typeof t==="function"&&t(); f.contentWindow.focus(); f.contentWindow.print(); setTimeout(()=>{ f.remove(); pages.forEach(u=>/^blob:/.test(u)&&URL.revokeObjectURL(u)); }, 60000);
+  }catch(e){ typeof t==="function"&&t(); toast("err","Не получилось распечатать", e.message); }
+  finally{ DPRN=false; } }
