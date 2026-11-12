@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 30;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 31;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -574,8 +574,9 @@ function mailSync_(force) {
 }
 function mailList_() { return read_('mail').sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 600); }
 function mail_(p, me) {
-  if (me.role === 'staff') return { ok: false, error: 'forbidden' };
   const op = String(p.op || 'list');
+  /* Гриша и Склад (staff) — только читают: список, проверка новых, письмо, вложение (Code.gs ≥ 31) */
+  if (me.role === 'staff' && ['list', 'sync', 'get', 'att'].indexOf(op) < 0) return { ok: false, error: op === 'set' ? 'readonly' : 'forbidden' };
   try {
     if (op === 'acc' || op === 'delAcc' || op === 'test') {
       if (!me.admin) return { ok: false, error: 'ящики подключает только Даниил' };
