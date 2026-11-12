@@ -375,6 +375,68 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .ca-col:hover i,#fd-app .ca-col:focus i{filter:brightness(1.15)}#fd-app .ca-col:hover i em,#fd-app .ca-col:focus i em{opacity:1}
 #fd-app .ca-col span{display:block;text-align:center;font-size:10.5px;color:var(--muted);height:14px;margin-top:4px;white-space:nowrap;overflow:visible}
 @keyframes cagrow{from{transform:scaleY(0)}}
+/* ===== Почта (mail_seg.js, 12.11.2026) ===== */
+#fd-app nav.tabs button[data-n]::after,#fd-app #mbar [data-mt][data-n]::after{content:attr(data-n);display:inline-block;min-width:16px;margin-left:5px;padding:0 5px;border-radius:99px;background:#1f5f9f;color:#fff;font:700 10.5px/16px var(--ui);text-align:center;vertical-align:1px}
+#fd-app #mbar [data-mt][data-n]{position:relative}#fd-app #mbar [data-mt][data-n]::after{position:absolute;top:2px;left:calc(50% + 6px);margin:0}
+#fd-app .mlcard{padding:14px 16px}
+#fd-app .mlhd{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}#fd-app .mlhd h2{margin:0;font-size:20px}#fd-app .mlhd .grow{flex:1}#fd-app .mlsync{font-size:12.5px;display:inline-flex;align-items:center;gap:6px}
+#fd-app .mlhd .btn svg{vertical-align:-3px;margin-right:2px}
+#fd-app .mlerr{margin:0 0 10px}
+#fd-app .mlacc{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+#fd-app .mlacc button{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:99px;border:1px solid var(--line);background:var(--surface);font:500 13px var(--ui);color:var(--ink);transition:background-color .2s,border-color .2s}
+#fd-app .mlacc button i{width:8px;height:8px;border-radius:50%;background:var(--c,#999)}#fd-app .mlacc button.on{border-color:var(--c,var(--accent));background:color-mix(in srgb,var(--c,var(--accent)) 10%,#fff)}
+#fd-app .mlacc button em,#fd-app .mlf button em{font-style:normal;font-size:11px;font-weight:700;background:#1f5f9f;color:#fff;border-radius:99px;padding:0 6px}#fd-app .mlwarn{color:var(--err)}
+#fd-app .mlbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}#fd-app .mlq{flex:1;min-width:200px}#fd-app .mlq input{width:100%}
+#fd-app .mlw{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:12px;align-items:start}
+#fd-app .mll{display:grid;gap:4px;max-height:calc(100vh - 230px);overflow:auto;padding-right:2px;overscroll-behavior:contain}
+#fd-app button.mlr{all:unset;box-sizing:border-box;display:grid;gap:2px;padding:9px 10px 9px 13px;border-radius:12px;cursor:pointer;position:relative;background:rgba(255,255,255,.55);border:1px solid rgba(28,34,32,.06);animation:fdin .25s ease backwards;animation-delay:var(--d);transition:background-color .2s,border-color .2s,box-shadow .2s;min-width:0}
+#fd-app button.mlr::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--c);opacity:.55}
+#fd-app button.mlr:hover{background:#fff;box-shadow:0 6px 16px -12px rgba(48,32,44,.45)}#fd-app button.mlr.sel{background:var(--accent-soft);border-color:rgba(106,44,78,.25)}#fd-app button.mlr:focus-visible{outline:2px solid var(--accent)}
+#fd-app .mlr1{display:flex;gap:8px;align-items:baseline;min-width:0}#fd-app .mlr1 b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}#fd-app .mlr1 time{font-size:11.5px;color:var(--muted);white-space:nowrap}
+#fd-app .mlr2{font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}#fd-app .mlr3{font-size:12.5px;color:var(--muted);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.35}
+#fd-app .mlr.un .mlr1 b,#fd-app .mlr.un .mlr2{font-weight:700}#fd-app .mlr.un .mlr1 b::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#1f5f9f;margin-right:6px;vertical-align:1px}
+#fd-app .mlans{color:var(--muted);margin-right:4px;vertical-align:-2px}
+#fd-app .mlr4{display:flex;gap:6px;flex-wrap:wrap;margin-top:3px}#fd-app .mlclip{display:inline-flex;align-items:center;gap:3px;font-size:11.5px;color:var(--muted);background:rgba(28,34,32,.05);padding:1px 7px;border-radius:99px;max-width:100%;overflow:hidden;white-space:nowrap}
+#fd-app .mlord{font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:99px;background:rgba(47,107,69,.13);color:var(--ok)}#fd-app .mlord.done{background:rgba(28,34,32,.06);color:var(--muted)}
+#fd-app .mlmore{justify-self:center;margin:6px 0}
+#fd-app .mlv{position:sticky;top:calc(var(--toph,70px) + 8px);min-width:0;border-radius:16px;background:rgba(255,255,255,.62);border:1px solid rgba(28,34,32,.07);padding:14px 16px;min-height:300px;max-height:calc(100vh - 110px);overflow:auto;overscroll-behavior:contain}
+#fd-app .mlv.fresh>*{animation:fdin .25s ease}
+#fd-app .mlvh h3{margin:2px 0 10px;font-size:18px;line-height:1.3;word-break:break-word}#fd-app .mlback{display:none}
+#fd-app .mlmeta{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:10px;align-items:center;font-size:13.5px;margin-bottom:10px}#fd-app .mlmeta small{color:var(--muted);word-break:break-all}
+#fd-app .mlav{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 18%,#fff);color:var(--c);font-weight:700}
+#fd-app .mlwhen{text-align:right;display:grid;gap:3px;justify-items:end}#fd-app .mlbx{padding:1px 8px;border-radius:99px;background:color-mix(in srgb,var(--c) 12%,#fff);color:var(--c)!important;word-break:normal!important}
+#fd-app .mlact{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}#fd-app .mlact svg{vertical-align:-3px;margin-right:3px}
+#fd-app .mlbody{white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:1.55;padding-top:10px;border-top:1px solid var(--line)}#fd-app .mlbody a{color:var(--accent)}#fd-app .mlquo{color:var(--muted)}
+#fd-app .mlhtml{width:100%;min-height:420px;height:60vh;border:1px solid var(--line);border-radius:10px;background:#fff}#fd-app .mlimg{font-size:12.5px}
+#fd-app .mlatts{display:grid;gap:6px;margin-bottom:12px}
+#fd-app .mlatt{display:grid;grid-template-columns:40px minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:6px 8px;border-radius:10px;background:rgba(28,34,32,.04)}
+#fd-app .mlext{width:40px;height:32px;border-radius:7px;display:grid;place-items:center;font:700 10.5px var(--ui);background:#fff;border:1px solid var(--line);color:var(--accent)}#fd-app .mlan{min-width:0}#fd-app .mlan b{display:block;font-weight:500;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fd-app .mlan small{font-size:11.5px;color:var(--muted)}
+#fd-app .mlordbox{border-radius:14px;padding:12px 14px;margin-bottom:12px;background:linear-gradient(160deg,rgba(47,107,69,.12),rgba(47,107,69,.04));border:1px solid rgba(47,107,69,.22);animation:fdin .3s ease}
+#fd-app .mlordbox.done{background:rgba(28,34,32,.04);border-color:var(--line)}
+#fd-app .mloh{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;color:var(--ok)}#fd-app .mloh span{color:var(--ink);font-size:13.5px}
+#fd-app .mlocus{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:8px}#fd-app .mlocus .f{margin:0;min-width:220px}#fd-app .mlrem{font-size:12.5px;color:var(--muted);display:flex;gap:6px;align-items:center}
+#fd-app .mlobtn{display:flex;gap:6px;flex-wrap:wrap}#fd-app .mlobtn .btn small{opacity:.75;font-weight:400;margin-left:4px}#fd-app .mlobtn svg{vertical-align:-3px;margin-right:3px}
+#fd-app .mlcomp{display:grid;gap:8px}#fd-app .mlcomp .f{margin:0}#fd-app .mlcomp textarea{min-height:220px;font:14px/1.5 var(--ui)}
+#fd-app .mlcf{display:flex;gap:6px;flex-wrap:wrap;align-items:center}#fd-app .mlchip{display:inline-flex;gap:5px;align-items:center;font-size:12.5px;padding:3px 9px;border-radius:99px;background:rgba(28,34,32,.06)}#fd-app .mlchip button{all:unset;cursor:pointer;padding:0 3px;color:var(--muted)}
+#fd-app .mlcb{display:flex;gap:8px}
+#fd-app .mlempty{display:grid;gap:6px;justify-items:center;text-align:center;padding:40px 12px;color:var(--muted)}#fd-app .mlempty b{color:var(--ink);font-size:16px}#fd-app .mlempty.sm{padding:24px 10px}
+#fd-app .mlpx{border-radius:14px;padding:12px 14px;background:rgba(255,255,255,.6);border:1px solid var(--line);margin-bottom:12px}#fd-app .mlpx ol{padding-left:20px;font-size:13.5px}#fd-app .mlpx.ok{border-color:rgba(47,107,69,.25)}
+#fd-app .mlpxf{display:grid;grid-template-columns:2fr 1fr;gap:8px}
+#fd-app .mlsl{display:grid;gap:6px;margin-bottom:12px}#fd-app .mlsa{display:grid;grid-template-columns:10px minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.6);border:1px solid var(--line)}
+#fd-app .mlsa>i{width:10px;height:10px;border-radius:50%;background:var(--c)}#fd-app .mlsa small{display:block;font-size:12px;color:var(--muted);word-break:break-word}
+#fd-app .mlform{border-radius:14px;padding:12px 14px;background:rgba(255,255,255,.6);border:1px solid var(--line);display:grid;gap:10px;animation:fdin .3s ease}#fd-app .mlform h4{margin:0}
+#fd-app .mlhow{font-size:13px;background:var(--accent-soft);padding:8px 10px;border-radius:10px;margin:0}
+#fd-app .mlfg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr)) 90px;gap:8px}#fd-app .mlfg .f{margin:0}
+#fd-app .mlfg label:nth-child(1),#fd-app .mlfg label:nth-child(3){grid-column:span 2}#fd-app .mlfg label:nth-child(2),#fd-app .mlfg label:nth-child(4){grid-column:span 1}
+#fd-app .mlfg label:nth-child(5),#fd-app .mlfg label:nth-child(7){grid-column:span 2}
+#fd-app input.mlpw{-webkit-text-security:disc;font-family:monospace}#fd-app .mlmsg{margin:0;font-size:13px}
+@media(max-width:899px){#fd-app .mlw{grid-template-columns:minmax(0,1fr)}#fd-app .mlw.vopen .mll{display:none}#fd-app .mlw:not(.vopen) .mlv{display:none}#fd-app .mlv{position:static;max-height:none;padding:12px}#fd-app .mll{max-height:none}#fd-app .mlback{display:inline-flex;margin-bottom:6px}
+  #fd-app .mlmeta{grid-template-columns:32px minmax(0,1fr)}#fd-app .mlwhen{grid-column:1/-1;justify-items:start;text-align:left;display:flex;gap:8px;flex-wrap:wrap}#fd-app .mlav{width:32px;height:32px}}
+@media(max-width:560px){#fd-app .mlcard{padding:12px}#fd-app .mlhd .btn{flex:1 1 auto}#fd-app .mlatt{grid-template-columns:34px minmax(0,1fr) auto}#fd-app .mlatt [data-how="get"]{display:none}#fd-app .mlext{width:34px}
+  #fd-app .mlfg{grid-template-columns:minmax(0,1fr) 80px}#fd-app .mlfg label{grid-column:1/-1!important}#fd-app .mlfg label:nth-child(6),#fd-app .mlfg label:nth-child(8){grid-column:2!important}#fd-app .mlfg label:nth-child(5),#fd-app .mlfg label:nth-child(7){grid-column:1!important}
+  #fd-app .mlpxf{grid-template-columns:minmax(0,1fr)}#fd-app .mlsa{grid-template-columns:10px minmax(0,1fr);}#fd-app .mlsa .btn{grid-column:2}#fd-app .mlobtn .btn{width:100%;justify-content:flex-start;text-align:left}}
+@media(prefers-reduced-motion:reduce){#fd-app button.mlr,#fd-app .mlordbox,#fd-app .mlform{animation:none}}
+
 /* «Аналитика покупок» 12.11.2026: сравнение, нажимаемые плитки, выбор дня, точки, подробности товара (ca_seg.js) */
 #fd-app .ca-cmp{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 2px;font-size:12.5px}
 #fd-app .ca-per.sm button{padding:4px 9px;font-size:12px}
@@ -2105,6 +2167,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
     <button data-tab="customers">Заказчики и цены</button>
     <button data-tab="products">Товары</button>
     <button data-tab="suppliers">Поставщики</button>
+    <button data-tab="mail">Почта</button>
     <button data-tab="data">Данные</button>
     <button data-tab="pdf" title="Откроется frudom.ru/pdf в новой вкладке">Редактор PDF ↗</button>
     <button data-tab="profit" hidden>Прибыль</button>
@@ -2471,6 +2534,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
     </div>
   </section>
 
+  <section class="tab" id="tab-mail" hidden><div class="card mlcard" id="ml"></div></section>
   <section class="tab" id="tab-events" hidden>
     <div class="card evc">
       <div class="evh"><h2>События <small id="ev-count"></small></h2><button type="button" class="evrf" id="ev-refresh" title="Обновить" aria-label="Обновить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></div>
@@ -2723,7 +2787,7 @@ const role = () => { const m=me(); return m.role || (m.admin ? "admin" : "manage
 const isStaff = () => role()==="staff";
 /* сотрудник склада с правом полностью редактировать документы (в «Пароли.gs»: docs:true) — в документах как менеджер */
 const docLimited = () => isStaff() && !me().docs;
-const STAFF_HIDE = ["invoices","archive","customers","products","suppliers","data","profit","purchase","events","tasks"];
+const STAFF_HIDE = ["mail","invoices","archive","customers","products","suppliers","data","profit","purchase","events","tasks"];
 const ADMIN_TABS = ["events","profit","purchase","tasks"];
 if(pass() && !curUser()){ lsSet(UKEY,"Даниил"); lsSet(MKEY, JSON.stringify({name:"Даниил", admin:true})); }   /* вход, сохранённый до появления пользователей */
 /* журнал событий: очередь отправки (переживает перезагрузку и отсутствие связи) */
@@ -2837,7 +2901,7 @@ function handleErr(e){ if(e.message==="auth"){ showLogin("Неверный па�
   else if(e && !e.net){ setStatus("err","Ошибка таблицы, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Таблица ответила ошибкой","«"+String(e.message||e).slice(0,160)+"». Всё сохранено на этом устройстве, повторю сам. Если повторяется — пришлите этот текст Claude."); } }
   else { setStatus("err","Не сохранено — нет связи, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Нет связи с Google Таблицей",(e&&e.message?"Причина: "+e.message+". ":"")+"Всё сохранено на этом устройстве и отправится автоматически, когда связь появится. Ничего делать не нужно."); } } }
 
-const NEED_VER=29;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
+const NEED_VER=30;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
 function srvVerCheck(v){ const el=$("#srvOld"); if(!el) return; const old=(+v||0)<NEED_VER; el.hidden=!old || docLimited(); D.srvVer=+v||0; }
 document.addEventListener("click",e=>{ if(!e.target.closest || !e.target.closest("#srvOldHow")) return; openCard(`<div class="dc-head"><div><div class="dc-kicker">Code.gs</div><h3>Как обновить скрипт таблицы</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
   <ol class="srvsteps"><li>GitHub → файл <b>dev/Code.template.gs</b> → кнопка «Copy raw file» (два квадратика).</li><li>Таблица «Документы ФД» → «Расширения» → «Apps Script» → файл <b>Код.gs</b> → Ctrl+A → Ctrl+V → «Сохранить». Файл «Пароли.gs» не трогать.</li><li>«Начать развёртывание» → «Управление развёртываниями» → карандаш → «Версия: новая версия» → «Развернуть».</li><li>Обновите эту страницу — жёлтая плашка исчезнет.</li></ol>
@@ -3004,7 +3068,7 @@ let curTab="doc";
 /* у кого сайт открывается сразу на календаре (на сегодняшнем дне) */
 const START_TAB={"Гриша":"calendar","Склад":"journal"};   /* с какой вкладки открывается сайт у пользователя */
 /* у каждой вкладки свой адрес (frudom.ru/1c#zhurnal): после обновления страницы и при новом открытии приложения — та же вкладка */
-const TAB_SLUG={doc:"dokument",order:"zayavka",journal:"zhurnal",calendar:"kalendar",customers:"zakazchiki",stock:"sklad",purchase:"zakupka",profit:"pribyl",events:"sobytiya",suppliers:"postavshchiki",tasks:"zadachi",products:"tovary",archive:"arkhiv",data:"dannye"};
+const TAB_SLUG={doc:"dokument",order:"zayavka",journal:"zhurnal",calendar:"kalendar",customers:"zakazchiki",stock:"sklad",purchase:"zakupka",profit:"pribyl",events:"sobytiya",mail:"pochta",suppliers:"postavshchiki",tasks:"zadachi",products:"tovary",archive:"arkhiv",data:"dannye"};
 const SLUG_TAB=Object.fromEntries(Object.entries(TAB_SLUG).map(([k,v])=>[v,k]));
 const LTKEY = () => "frudom-lasttab:"+(curUser()||"-");
 const tabOk = t => { const b=t&&document.querySelector(`#fd-app nav.tabs button[data-tab="${t}"]`); return !!(b && !b.hidden && TAB_SLUG[t]); };
@@ -3042,7 +3106,7 @@ function showTab(t){
   rerender(); window.scrollTo(0, $("#fd-app").getBoundingClientRect().top + window.scrollY);
   if(typeof renderMobileNav==="function") renderMobileNav();
 }
-function rerender(){ ({doc:renderDoc, order:renderOrder, customers:renderCustomers, products:renderProducts, suppliers:renderSuppliers, journal:renderJournal, archive:renderArchive, calendar:renderCalendar, events:renderEvents, profit:renderProfit, stock:renderStock, purchase:renderPurchase, tasks:renderTasks, data:renderData}[curTab]||(()=>{}))(); }
+function rerender(){ ({doc:renderDoc, order:renderOrder, customers:renderCustomers, products:renderProducts, suppliers:renderSuppliers, journal:renderJournal, archive:renderArchive, calendar:renderCalendar, events:renderEvents, profit:renderProfit, stock:renderStock, purchase:renderPurchase, tasks:renderTasks, data:renderData, mail:renderMail}[curTab]||(()=>{}))(); }
 $("#demoNote").hidden = !D.demo;
 $("#hideDemo").onclick=()=>{ D.demo=false; saveLocal(); $("#demoNote").hidden=true; };
 
@@ -7389,10 +7453,11 @@ const TAB_ICON={
   tasks:'<rect x="4" y="4" width="16" height="17" rx="2"/><path d="M8 9l1.5 1.5L12 8M8 15l1.5 1.5L12 14M14 9.5h3M14 15.5h3"/>',
   stock:'<path d="M3 9l9-5 9 5v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M7 20v-7h10v7M7 16h10"/>',
   invoices:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
+  mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5l8.5 6.5 8.5-6.5"/>',
   pdf:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h1.5a1.5 1.5 0 0 1 0 3H9v-5M14 16v-5h2M14 13.5h1.5"/>',
   more:'<circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/>'};
 const TAB_COLOR={doc:"#6a2c4e,#9b3d6f",order:"#b4532a,#e07a3f",driver:"#1f6f8b,#2fa3c4",calendar:"#c0392b,#ec6a5a",journal:"#3d4f9f,#6576d3",archive:"#6b6b6b,#9a9a9a",
-  customers:"#2f7d4f,#4cb377",products:"#8a5a12,#d39a2c",suppliers:"#4a3a8f,#7d67d6",data:"#455a64,#78909c",profit:"#0f7a5f,#28b38c",purchase:"#5d7a1f,#8db33a",events:"#7a3d8f,#b061cc",tasks:"#b8860b,#e6b422",stock:"#1f5f7a,#3a93b8",invoices:"#8a4b6b,#c27a9e",pdf:"#b3261e,#e5534b"};
+  customers:"#2f7d4f,#4cb377",products:"#8a5a12,#d39a2c",suppliers:"#4a3a8f,#7d67d6",data:"#455a64,#78909c",profit:"#0f7a5f,#28b38c",purchase:"#5d7a1f,#8db33a",events:"#7a3d8f,#b061cc",tasks:"#b8860b,#e6b422",stock:"#1f5f7a,#3a93b8",invoices:"#8a4b6b,#c27a9e",pdf:"#b3261e,#e5534b",mail:"#1f5f9f,#3f8fd8"};
 const svgI = id => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${TAB_ICON[id]||TAB_ICON.more}</svg>`;
 const visTabs = () => [...document.querySelectorAll("#fd-app nav.tabs button[data-tab]")].filter(b=>!b.hidden).map(b=>({id:b.dataset.tab, name:b.textContent.trim()}));
 const SHORTN={doc:"Документ", customers:"Заказчики", pdf:"PDF"};

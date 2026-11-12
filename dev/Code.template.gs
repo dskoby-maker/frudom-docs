@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 29;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 30;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -76,6 +76,10 @@ const S = {
   slog: { title: 'Склад: история', key: 'id', cols: [
     ['at','Когда'],['by','Кто'],['action','Действие'],['object','Объект'],['before','Было'],['after','Стало'],['reason','Причина'],['id','ID'],['docId','ID документа'],['batchId','ID партии'],['itemId','ID товара'],['op','Операция']]},
   sops: { title: 'Склад: операции (служебный)', key: 'id', cols: [['id','ID запроса'],['at','Когда'],['by','Кто'],['kind','Операция'],['status','Статус'],['data','Данные (не редактировать)']]},
+  mail: { title: 'Почта', key: 'id', cols: [
+    ['date','Дата'],['box','Ящик'],['fromName','От кого'],['from','Адрес отправителя'],['to','Кому'],['subject','Тема'],['snippet','Начало письма'],['attsText','Вложения'],
+    ['read','Прочитано'],['ans','Ответили'],['dir','Папка'],['id','ID (не менять)'],['acc','ID ящика'],['uid','UID'],['msgid','Message-ID'],['refs','References'],['inrep','In-Reply-To'],
+    ['cc','Копия'],['replyTo','Ответ на адрес'],['atts','Вложения (не редактировать)'],['body','Файл письма на Диске'],['order','Заявка (не редактировать)'],['by','Кто'],['at','Когда']]},
   drafts: { title: 'Черновики', key: 'id', cols: [
     ['updated','Изменён'],['kind','Вид'],['title','Что'],['sum','Сумма'],['byName','Кто начал'],['lastBy','Кто изменил последним'],['created','Создан'],
     ['id','ID (не менять)'],['data','Данные черновика (не редактировать)']]},
@@ -244,12 +248,12 @@ function aiRead_(p, me) {
   if (c.off[kind]) return no('чтение через ИИ («' + AI_KINDS_[kind] + '») выключено в настройках: «Данные» → «ИИ»');
   if (me && !me.admin && (c.who === 'office' && me.role !== 'manager' || c.who === 'nodriver' && lim_(me))) return no('Даниил выключил для вас чтение через ИИ');
   if (c.limit && aiStatGet_().n >= c.limit) return no('дневной лимит запросов к ИИ (' + c.limit + ') исчерпан — его можно поменять в «Данные» → «ИИ»');
-  const mime = String(p.mime || ''), data = String(p.data || '');
-  if (!/^(application\/pdf|image\/(jpeg|png|webp|heic|heif))$/.test(mime)) return { ok: false, error: 'такой файл ИИ не читает — нужен PDF или фото' };
+  const mime = String(p.mime || ''), data = String(p.data || ''), txt = String(p.text || '').slice(0, 40000);   /* text — заявка текстом письма (вкладка «Почта», Code.gs ≥ 30) */
+  if (!txt && !/^(application\/pdf|image\/(jpeg|png|webp|heic|heif))$/.test(mime)) return { ok: false, error: 'такой файл ИИ не читает — нужен PDF или фото' };
   if (data.length > c.maxMb * 1.37e6) return { ok: false, error: 'файл больше ' + c.maxMb + ' МБ — для ИИ слишком большой' };
   const prompt = aiPrompt_(kind) + (c.extra[kind].trim() ? '\nДополнительные указания владельца (соблюдай, но формат JSON не меняй): ' + c.extra[kind].trim() : '');
   const models = [c.model].concat(c.fallback && c.fallback !== c.model ? [c.fallback] : []), t0 = Date.now();
-  const r = aiCall_(models, { prompt: prompt, mime: mime, data: data, json: true });
+  const r = aiCall_(models, txt ? { prompt: prompt + '\n\nЗаявка пришла текстом письма (файла нет). Текст письма:\n' + txt, json: true } : { prompt: prompt, mime: mime, data: data, json: true });
   aiStatAdd_({ at: new Date().toISOString(), u: me ? me.name : '', k: kind, m: r.model || models[0], ok: !!r.ok, e: r.ok ? '' : String(r.error).slice(0, 120), t: r.tokens || 0, ms: Date.now() - t0 });
   return r;
 }
@@ -512,6 +516,134 @@ function bank_(p, me) {
     return { ok: true, keys: bankKeysView_(), proxy: bankProxyView_(), ops: read_('bankops') };
   } catch (e) { return { ok: false, error: String(e.message || e) }; }
 }
+/* ===================== ПОЧТА (вкладка «Почта», Code.gs ≥ 30) =====================
+   Ящики — свойство скрипта MAIL_ACC = [{id, email, name, ih, ip, sh, sp, user, pass, uidv, last, at, err}]; сайт видит только последние 4 знака пароля.
+   Письма забирает посредник в Яндекс Облаке (тот же, что для банка: свойство TB_PROXY, dev/tbank-proxy/index.js, путь /mail/…).
+   Лист «Почта» — короткие строки (кто, тема, начало письма); полный текст и HTML — файл JSON на Диске (папка «Документы ФД — почта»), вложения — там же.
+   Читают и отвечают admin и manager; ящики подключает только admin. Письмо в ящике прочитанным не помечается. */
+function mailAcc_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('MAIL_ACC') || '[]') || []; } catch (e) { return []; } }
+function mailAccSet_(L) { PropertiesService.getScriptProperties().setProperty('MAIL_ACC', JSON.stringify(L)); }
+function mailAccView_() { return mailAcc_().map(a => ({ id: a.id, email: a.email, name: a.name || '', ih: a.ih, ip: a.ip, sh: a.sh, sp: a.sp, user: a.user, tail: String(a.pass || '').slice(-4), last: a.last || 0, at: a.at || '', err: a.err || '', color: a.color || '' })); }
+function mailDir_() {
+  const pr = PropertiesService.getScriptProperties(), id = pr.getProperty('mailFolder');
+  if (id) { try { const f = DriveApp.getFolderById(id); if (!f.isTrashed()) return f; } catch (x) {} }
+  const f = DriveApp.createFolder('Документы ФД — почта'); pr.setProperty('mailFolder', f.getId()); return f;
+}
+function mailPx_(path, body) {
+  const px = tbProxy_(); if (!px || !px.url) throw new Error('noproxy');
+  const r = UrlFetchApp.fetch(px.url, { method: 'post', contentType: 'application/json', headers: { 'X-Proxy-Key': px.key }, payload: JSON.stringify(Object.assign({ path: path }, body)), muteHttpExceptions: true });
+  const c = r.getResponseCode(), t = r.getContentText(); let j = {}; try { j = JSON.parse(t) || {}; } catch (e) { j = {}; }
+  if (c === 403) throw new Error('посредник не принял секрет — проверьте секрет в настройках посредника');
+  if (c === 400 && /path not allowed/.test(t)) throw new Error('oldproxy');
+  if (c >= 300) throw new Error('посредник: ' + (j.error || ('ответ ' + c + ' ' + t.slice(0, 150))));
+  if (j.error) throw new Error(j.error);
+  return j;
+}
+const mailCred_ = a => ({ user: a.user, pass: a.pass, email: a.email, ih: a.ih, ip: +a.ip || 993, sh: a.sh, sp: +a.sp || 465 });
+const mailAddrTxt_ = L => (L || []).map(x => x.n ? x.n + ' <' + x.a + '>' : x.a).join(', ');
+function mailSave_(a, uidv, m) {
+  const id = a.id + ':' + uidv + ':' + m.uid, dir = mailDir_(), atts = [];
+  (m.atts || []).forEach((x, i) => { const o = { n: String(x.name || 'файл'), m: String(x.mime || ''), s: +x.size || 0 };
+    if (x.data) { try { o.f = dir.createFile(Utilities.newBlob(Utilities.base64Decode(x.data), o.m || 'application/octet-stream', id.replace(/:/g, '_') + '__' + i + '__' + o.n)).getId(); } catch (e) { o.e = 1; } }
+    atts.push(o); });
+  let body = '';
+  try { body = dir.createFile(Utilities.newBlob(JSON.stringify({ text: m.text || '', html: m.html || '' }), 'application/json', id.replace(/:/g, '_') + '__body.json')).getId(); } catch (e) {}
+  const txt = String(m.text || '').replace(/\s+/g, ' ').trim();
+  return { id: id, acc: a.id, box: a.email, uid: String(m.uid), date: m.date, fromName: (m.from || {}).n || '', from: (m.from || {}).a || '', to: mailAddrTxt_(m.to), cc: mailAddrTxt_(m.cc), replyTo: m.replyTo || '',
+    subject: String(m.subject || '').slice(0, 500), snippet: txt.slice(0, 600), attsText: atts.map(x => x.n).join(', ').slice(0, 500), atts: JSON.stringify(atts), body: body,
+    msgid: m.msgid || '', refs: String(m.refs || '').slice(0, 2000), inrep: m.inReply || '', dir: 'in', read: '', ans: '', order: '', by: '', at: new Date().toISOString() };
+}
+function mailSync_(force) {
+  const pr = PropertiesService.getScriptProperties(), now = Date.now(), last = +(pr.getProperty('MAIL_SYNC_AT') || 0);
+  if (!force && now - last < 60000) return { skipped: 1 };          /* синхронизация не чаще раза в минуту и не двумя людьми сразу */
+  pr.setProperty('MAIL_SYNC_AT', String(now));
+  const L = mailAcc_(), errs = {}; let added = 0;
+  L.forEach(a => {
+    try { const have = {}; read_('mail').forEach(r => { if (r.acc === a.id) have[r.id] = 1; });
+      for (let round = 0; round < 4 && Date.now() - now < 200000; round++) {
+        const j = mailPx_('/mail/fetch', { acc: mailCred_(a), since: +a.last || 0, uidv: a.uidv || '', days: 30, max: 12 });
+        if (String(j.uidv) !== String(a.uidv)) { a.uidv = j.uidv; }
+        const rows = (j.msgs || []).map(m => ({ m: m, id: a.id + ':' + j.uidv + ':' + m.uid })).filter(x => !have[x.id]).map(x => { have[x.id] = 1; return mailSave_(a, j.uidv, x.m); });
+        if (rows.length) { const lock = LockService.getScriptLock(); lock.waitLock(25000); try { upsertList_('mail', { upsert: rows }); } finally { lock.releaseLock(); } added += rows.length; }
+        a.last = Math.max(+a.last || 0, +j.last || 0); if (!j.more) break; }
+      a.at = new Date().toISOString(); a.err = '';
+    } catch (e) { a.err = String(e.message || e).slice(0, 300); errs[a.id] = a.err; }
+  });
+  const cur = mailAcc_(); L.forEach(a => { const c = cur.find(x => x.id === a.id); if (c) Object.assign(c, { uidv: a.uidv, last: a.last, at: a.at, err: a.err }); }); mailAccSet_(cur);
+  return { added: added, errs: errs };
+}
+function mailList_() { return read_('mail').sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 600); }
+function mail_(p, me) {
+  if (me.role === 'staff') return { ok: false, error: 'forbidden' };
+  const op = String(p.op || 'list');
+  try {
+    if (op === 'acc' || op === 'delAcc' || op === 'test') {
+      if (!me.admin) return { ok: false, error: 'ящики подключает только Даниил' };
+      let L = mailAcc_();
+      if (op === 'delAcc') { L = L.filter(a => a.id !== String(p.id || '')); mailAccSet_(L); return { ok: true, acc: mailAccView_() }; }
+      const x = p.a || {}, old = L.find(a => a.id === x.id) || {};
+      const a = { id: old.id || ('m' + Utilities.getUuid().slice(0, 8)), email: String(x.email || '').trim().toLowerCase(), name: String(x.name || '').trim().slice(0, 80), color: String(x.color || old.color || ''),
+        ih: String(x.ih || '').trim(), ip: +x.ip || 993, sh: String(x.sh || '').trim(), sp: +x.sp || 465, user: String(x.user || x.email || '').trim(), pass: String(x.pass || '') || old.pass || '',
+        uidv: old.uidv || '', last: old.last || 0, at: old.at || '', err: '' };
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(a.email)) return { ok: false, error: 'адрес ящика написан неверно' };
+      if (!/^[\w.\-]+$/.test(a.ih) || !/^[\w.\-]+$/.test(a.sh)) return { ok: false, error: 'серверы IMAP и SMTP написаны неверно' };
+      if (!a.pass) return { ok: false, error: 'вставьте пароль для внешних приложений' };
+      const t = mailPx_('/mail/test', { acc: mailCred_(a) });
+      if (t.imap !== 'ok') return { ok: false, error: 'чтение писем (IMAP): ' + t.imap, test: t };
+      if (t.smtp !== 'ok') return { ok: false, error: 'отправка (SMTP): ' + t.smtp, test: t };
+      if (op === 'test') return { ok: true, test: t };
+      if (!old.id) L.push(a); else L = L.map(y => y.id === a.id ? a : y);
+      if (old.id && (old.email !== a.email || old.ih !== a.ih || old.user !== a.user)) { a.uidv = ''; a.last = 0; }
+      mailAccSet_(L); const r = mailSync_(true);
+      return { ok: true, acc: mailAccView_(), test: t, added: r.added, errs: r.errs, rows: mailList_() };
+    }
+    if (op === 'sync') { const r = mailAcc_().length ? mailSync_(!!p.force) : { added: 0 }; return { ok: true, acc: mailAccView_(), proxy: !!(tbProxy_() || {}).url, added: r.added || 0, skipped: r.skipped || 0, errs: r.errs || {}, rows: mailList_() }; }
+    if (op === 'list') return { ok: true, acc: mailAccView_(), proxy: !!(tbProxy_() || {}).url, rows: mailList_() };
+    if (op === 'proxyCheck') { const px = tbProxy_(); if (!px || !px.url) return { ok: true, proxy: 0 };
+      const r = UrlFetchApp.fetch(px.url, { method: 'post', contentType: 'application/json', headers: { 'X-Proxy-Key': px.key }, payload: JSON.stringify({ path: '/ping' }), muteHttpExceptions: true });
+      let j = {}; try { j = JSON.parse(r.getContentText()) || {}; } catch (e) {} return { ok: true, proxy: j.proxy || 0, mail: j.mail || 0, code: r.getResponseCode() }; }
+    const row = read_('mail').find(r => r.id === String(p.id || ''));
+    if (op === 'get') { if (!row) return { ok: false, error: 'письмо не найдено' }; let b = { text: row.snippet, html: '' };
+      if (row.body) { try { b = JSON.parse(DriveApp.getFileById(row.body).getBlob().getDataAsString('UTF-8')); } catch (e) { b.err = 'текст письма на Диске не найден'; } }
+      return { ok: true, row: row, text: b.text || '', html: b.html || '', err: b.err || '' }; }
+    if (op === 'att') { if (!row) return { ok: false, error: 'письмо не найдено' }; const L = JSON.parse(row.atts || '[]'), i = +p.i || 0, x = L[i]; if (!x) return { ok: false, error: 'вложение не найдено' };
+      if (x.f) { try { const b = DriveApp.getFileById(x.f).getBlob(); return { ok: true, name: x.n, mime: x.m, data: Utilities.base64Encode(b.getBytes()) }; } catch (e) {} }
+      if (row.dir === 'sent') return { ok: false, error: 'вложение не сохранено' };
+      const a = mailAcc_().find(y => y.id === row.acc); if (!a) return { ok: false, error: 'ящик этого письма отключён' };
+      const j = mailPx_('/mail/att', { acc: mailCred_(a), uid: +row.uid, idx: i });
+      try { x.f = mailDir_().createFile(Utilities.newBlob(Utilities.base64Decode(j.data), j.mime || x.m, row.id.replace(/:/g, '_') + '__' + i + '__' + x.n)).getId(); delete x.e;
+        const lock = LockService.getScriptLock(); lock.waitLock(25000); try { upsertList_('mail', { upsert: [{ id: row.id, atts: JSON.stringify(L) }] }); } finally { lock.releaseLock(); } } catch (e) {}
+      return { ok: true, name: x.n, mime: j.mime || x.m, data: j.data }; }
+    if (op === 'set') {   /* отметки: прочитано, заявка (взята в работу / не заявка) */
+      const L = (Array.isArray(p.rows) ? p.rows : []).filter(x => x && x.id).slice(0, 200); if (!L.length) return { ok: true };
+      const lock = LockService.getScriptLock(); lock.waitLock(25000);
+      try { const have = {}; read_('mail').forEach(r => have[r.id] = 1);
+        upsertList_('mail', { upsert: L.filter(x => have[x.id]).map(x => { const o = { id: String(x.id), by: me.name, at: new Date().toISOString() };
+          if (x.read != null) o.read = x.read ? '1' : ''; if (x.order != null) o.order = String(x.order).slice(0, 500); return o; }) });
+      } finally { lock.releaseLock(); }
+      return { ok: true };
+    }
+    if (op === 'send') {
+      const a = mailAcc_().find(y => y.id === String(p.acc || '')); if (!a) return { ok: false, error: 'выберите ящик, с которого отправить' };
+      const m = p.msg || {}, to = (Array.isArray(m.to) ? m.to : []).map(String).filter(Boolean), cc = (Array.isArray(m.cc) ? m.cc : []).map(String).filter(Boolean);
+      if (!to.length) return { ok: false, error: 'укажите, кому отправить' };
+      const atts = (Array.isArray(m.atts) ? m.atts : []).filter(x => x && x.data); if (atts.reduce((s, x) => s + String(x.data).length, 0) > 3.2e6) return { ok: false, error: 'вложения больше 2,3 МБ — отправьте их из обычной почты' };
+      const msg = { to: to, cc: cc, subject: String(m.subject || '').slice(0, 300), text: String(m.text || '').slice(0, 100000), fromName: a.name || '', inReply: String(m.inReply || ''), refs: String(m.refs || ''), atts: atts.map(x => ({ name: String(x.name || 'file'), mime: String(x.mime || ''), data: String(x.data) })) };
+      const j = mailPx_('/mail/send', { acc: Object.assign(mailCred_(a), { fromName: a.name || '' }), msg: msg });
+      const id = 'sent:' + Utilities.getUuid(), dir = mailDir_(), A = [];
+      msg.atts.forEach((x, i) => { const o = { n: x.name, m: x.mime, s: Math.round(x.data.length * 0.75) }; try { o.f = dir.createFile(Utilities.newBlob(Utilities.base64Decode(x.data), x.mime || 'application/octet-stream', id.replace(/:/g, '_') + '__' + i + '__' + x.name)).getId(); } catch (e) {} A.push(o); });
+      let body = ''; try { body = dir.createFile(Utilities.newBlob(JSON.stringify({ text: msg.text, html: '' }), 'application/json', id.replace(/:/g, '_') + '__body.json')).getId(); } catch (e) {}
+      const now = new Date().toISOString(), rows = [{ id: id, acc: a.id, box: a.email, uid: '', date: now, fromName: a.name || me.name, from: a.email, to: to.join(', '), cc: cc.join(', '), subject: msg.subject,
+        snippet: msg.text.replace(/\s+/g, ' ').trim().slice(0, 600), attsText: A.map(x => x.n).join(', '), atts: JSON.stringify(A), body: body, msgid: j.msgid || '', refs: msg.refs, inrep: msg.inReply, dir: 'sent', read: '1', ans: '', order: '', by: me.name, at: now }];
+      if (p.reply) rows.push({ id: String(p.reply), ans: now, read: '1' });
+      const lock = LockService.getScriptLock(); lock.waitLock(25000);
+      try { const have = {}; read_('mail').forEach(r => have[r.id] = 1); upsertList_('mail', { upsert: rows.filter(r => r.id === id || have[r.id]) }); } finally { lock.releaseLock(); }
+      try { log_(me, [{ action: 'Почта', text: 'Отправлено письмо: ' + to.join(', ') + ' — ' + msg.subject }]); } catch (e) {}
+      return { ok: true, saved: !!j.saved, row: rows[0] };
+    }
+    return { ok: false, error: 'unknown op' };
+  } catch (e) { const m = String(e.message || e); return { ok: false, error: m === 'noproxy' ? 'noproxy' : m === 'oldproxy' ? 'oldproxy' : m }; }
+}
 /* ---- Уведомления для приложения Android (действие notes, Code.gs ≥ 21) ----
    Приложение раз в час спрашивает: что нового. Только чтение (кроме подкачки банка), без общей блокировки.
    p.kinds — «bank,debt,staff,tasks»; p.evAfter — время последнего уже показанного события (yyyyMMddHHmmss). */
@@ -588,6 +720,7 @@ function handle_(p) {
   if (p.action === 'aiCfg') return aiCfg_(p, me);
   if (p.action === 'notes') return notes_(p, me);    // уведомления для приложения Android (раз в час), только чтение, без общей блокировки
   if (p.action === 'drafts') return drafts_(p, me);   // черновики документов: свой лист, своя короткая блокировка, без общей синхронизации
+  if (p.action === 'mail') return mail_(p, me);         // почта (Code.gs ≥ 30): ящики через посредника в Яндекс Облаке, своя короткая блокировка
   if (p.action === 'bank') return bank_(p, me);         // Т-Бизнес: поступления на счёт (только Даниил), блокировка — только на запись в лист      // настройки ИИ («Данные» → «ИИ»), только Даниил, без общей блокировки
   if (p.action === 'aiKey') { if (!me.admin) return { ok: false, error: 'forbidden' }; const k = String(p.gkey || '').trim();
     if (!/^[\w.\-]{20,}$/.test(k)) return { ok: false, error: 'это не похоже на ключ Gemini' }; PropertiesService.getScriptProperties().setProperty('GEMINI_KEY', k); return { ok: true }; }
