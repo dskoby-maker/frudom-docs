@@ -14,7 +14,8 @@ const ML_IC={clip:'<svg viewBox="0 0 24 24" width="13" height="13" fill="none" s
   ai:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.8 4.6L18 9.5l-4.2 1.9L12 16l-1.8-4.6L6 9.5l4.2-1.9z"/><path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg>'};
 const mlAccOf = id => ML.acc.find(a=>a.id===id) || {};
 const mlCol = id => mlAccOf(id).color || ML_COL[Math.max(0, ML.acc.findIndex(a=>a.id===id)) % ML_COL.length];
-const mlUnread = r => r.dir!=="sent" && !r.read;
+const mlRO = () => isStaff();   /* Гриша и Склад — только читают: без ответа, отметок и «Сделать документы» */
+const mlUnread = r => r.dir!=="sent" && !r.read && !mlRO();
 const mlIsOrd = r => { try{ const o=r.order?JSON.parse(r.order):null; if(o&&o.st==="no") return false; }catch(e){} return r.dir!=="sent" && !!mlOrd(r).ok; };
 const mlOrdSt = r => { try{ return r.order?JSON.parse(r.order):null; }catch(e){ return null; } };
 const mlDate = iso => { const d=new Date(iso); if(isNaN(d)) return ""; const t=todayISO(), x=jIso(d); return x===t ? d.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}) : x.slice(0,4)===t.slice(0,4) ? d.toLocaleDateString("ru-RU",{day:"numeric",month:"short"}).replace(".","") : fd(x); };
@@ -40,7 +41,7 @@ function mlOrd(r, text){ if(r.dir==="sent") return {ok:false};
   const c=mlCusOf(r, text); let sc=(kw?3:0)+(lines>=2?3:lines?1:0)+(fa.length?1:0)+(c?1:0)-(not?4:0);
   return {ok: sc>=4 && (kw||lines>=2), cus:c, files:fa, lines, kw, score:sc}; }
 /* ---------- загрузка ---------- */
-async function mlLoad(force, quiet){ if(!online() || isStaff()) return; if(ML.sync) return;
+async function mlLoad(force, quiet){ if(!online()) return; if(ML.sync) return;
   ML.sync=true; if(!quiet) mlHead();
   try{ if(!ML.loaded){ const j=await api({action:"mail", op:"list"}); mlTake(j); ML.loaded=true; mlDraw(); }
     if(!ML.acc.length){ ML.sync=false; mlDraw(); return; }
@@ -49,12 +50,12 @@ async function mlLoad(force, quiet){ if(!online() || isStaff()) return; if(ML.sy
     const errs=Object.keys(j.errs||{}); if(errs.length && !quiet) toast("err","Не все ящики обновились", errs.map(id=>(mlAccOf(id).email||id)+": "+j.errs[id]).join("; "));
     if(j.added && !quiet) toast("ok","Новых писем: "+j.added,"");
     if(j.added && quiet && curTab!=="mail") mlBadge();
-  }catch(e){ const m=e.message||""; ML.err = m==="unknown action" ? "old" : m==="noproxy" ? "noproxy" : m==="oldproxy" ? "oldproxy" : m; if(m==="unknown action") ML.loaded=true; if(!quiet && !/^(old|noproxy|oldproxy)$/.test(ML.err)) toast("err","Почта не обновилась", m); }
+  }catch(e){ const m=e.message||""; ML.err = m==="unknown action" ? "old" : m==="noproxy" ? "noproxy" : m==="oldproxy" ? "oldproxy" : m; if(m==="unknown action") ML.loaded=true; if(!quiet && !/^(old|noproxy|oldproxy|forbidden)$/.test(ML.err)) toast("err","Почта не обновилась", m); }
   ML.sync=false; ML.loaded=true; mlBadge(); if(curTab==="mail") mlDraw(); }
 function mlTake(j){ if(Array.isArray(j.rows)) ML.rows=j.rows; if(Array.isArray(j.acc)) ML.acc=j.acc; if(j.proxy!=null) ML.proxy=!!j.proxy; }
 function mlBadge(){ const n=ML.rows.filter(mlUnread).length; document.querySelectorAll('#fd-app nav.tabs button[data-tab="mail"], #mbar [data-mt="mail"]').forEach(b=>{ if(n) b.dataset.n=n>99?"99+":n; else delete b.dataset.n; }); }
-function renderMail(){ if(isStaff()) return; if(!$("#ml")) return; mlDraw(); if(!ML.loaded || Date.now()-ML.at>120000) mlLoad(false, ML.loaded); }
-setInterval(()=>{ if(online() && !isStaff() && ML.acc.length && !document.hidden) mlLoad(false, true); }, 300000);
+function renderMail(){ if(!$("#ml")) return; mlDraw(); if(!ML.loaded || Date.now()-ML.at>120000) mlLoad(false, ML.loaded); }
+setInterval(()=>{ if(online() && ML.acc.length && !document.hidden) mlLoad(false, true); }, 300000);
 /* ---------- отрисовка ---------- */
 function mlList(){ const q=ML.q.trim().toLowerCase();
   return ML.rows.filter(r=>(!ML.box || r.acc===ML.box) && (ML.f==="sent" ? r.dir==="sent" : r.dir!=="sent") && (ML.f!=="unread" || mlUnread(r)) && (ML.f!=="ord" || mlIsOrd(r))
@@ -62,6 +63,7 @@ function mlList(){ const q=ML.q.trim().toLowerCase();
 function mlHead(){ const h=$("#ml-sync"); if(h) h.innerHTML=mlSyncTxt(); }
 const mlSyncTxt = () => ML.sync ? `<i class="spin"></i>Проверяю ящики…` : ML.at ? "обновлено в "+new Date(ML.at).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}) : "";
 function mlDraw(){ const el=$("#ml"); if(!el) return; const adm=me().admin;
+  if(ML.err==="forbidden" && mlRO()){ el.innerHTML=`<div class="mlempty"><b>Почта пока закрыта</b><span>Скрипт таблицы старый — попросите Даниила обновить Code.gs.</span></div>`; return; }
   if(ML.err==="old"){ el.innerHTML=`<div class="mlempty"><b>Скрипт таблицы старый</b><span>Почта заработает после обновления Code.gs — ${adm?"нажмите «Как обновить» в жёлтой плашке сверху":"попросите Даниила обновить Code.gs"}.</span></div>`; return; }
   if(ML.set && adm){ el.innerHTML=mlSetHtml(); return; }
   if(ML.loaded && !ML.acc.length){ el.innerHTML=`<div class="mlempty"><b>Ящики ещё не подключены</b><span>${adm?"Подключите frudom.ru@mail.ru и info@frudom.ru — письма начнут приходить сюда.":"Попросите Даниила подключить почтовые ящики."}</span>${adm?`<button class="btn pri" type="button" data-ml="set">Подключить ящики</button>`:""}</div>`; return; }
@@ -70,7 +72,7 @@ function mlDraw(){ const el=$("#ml"); if(!el) return; const adm=me().admin;
   const accs=`<div class="mlacc"><button type="button" data-mlbox="" class="${ML.box?"":"on"}">Все ящики</button>${ML.acc.map(a=>{ const n=ML.rows.filter(r=>r.acc===a.id && mlUnread(r)).length; return `<button type="button" data-mlbox="${a.id}" class="${ML.box===a.id?"on":""}" style="--c:${mlCol(a.id)}" title="${esc(a.err?"Ошибка: "+a.err:"")}"><i></i>${esc(a.email)}${n?` <em>${n}</em>`:""}${a.err?` <b class="mlwarn">!</b>`:""}</button>`; }).join("")}</div>`;
   const lim=60+ML.more, list=L.slice(0,lim).map((r,i)=>mlRowHtml(r,i)).join("");
   el.innerHTML=`<div class="mlhd"><h2>Почта</h2><span class="muted mlsync" id="ml-sync">${mlSyncTxt()}</span><span class="grow"></span>
-      <button class="btn ghost sm" type="button" data-ml="sync" ${ML.sync?"disabled":""}>${ML_IC.ref} Проверить почту</button><button class="btn sm pri" type="button" data-ml="new">${ML_IC.pen} Написать</button>${adm?`<button class="btn ghost sm" type="button" data-ml="set" title="Ящики и посредник">⚙ Ящики</button>`:""}</div>
+      <button class="btn ghost sm" type="button" data-ml="sync" ${ML.sync?"disabled":""}>${ML_IC.ref} Проверить почту</button>${mlRO()?"":`<button class="btn sm pri" type="button" data-ml="new">${ML_IC.pen} Написать</button>`}${adm?`<button class="btn ghost sm" type="button" data-ml="set" title="Ящики и посредник">⚙ Ящики</button>`:""}</div>
     ${ML.err && ML.err!=="old" ? `<div class="sknoteb mlerr">${ML.err==="noproxy"?"Не подключён посредник в Яндекс Облаке — письма не забираются. "+(adm?"«⚙ Ящики» → «Посредник».":"Скажите Даниилу."):ML.err==="oldproxy"?"Код посредника в Яндекс Облаке старый (только для банка). "+(adm?"«⚙ Ящики» → «Посредник» → обновить код.":"Скажите Даниилу."):esc(ML.err)}</div>`:""}
     ${accs}
     <div class="mlbar"><div class="pfchips mlf">${chip("in","Входящие",unread)}${chip("ord","Заявки",ord)}${chip("unread","Непрочитанные",0)}${chip("sent","Отправленные",0)}</div>
@@ -91,14 +93,14 @@ function mlViewHtml(){ if(ML.comp) return mlCompHtml(); const V=ML.view;
   const A=mlAtts(r), text=V&&V.id===r.id?V.text:"", load=!V||V.id!==r.id, O=mlOrd(r, text), st=mlOrdSt(r), adm=me().admin;
   const html=V&&V.id===r.id&&V.html;
   const body = load ? `<div class="mlbody muted"><i class="spin"></i> Загружаю письмо…</div>` : ML.html && html ? `<iframe class="mlhtml" sandbox="allow-popups allow-popups-to-escape-sandbox" title="Письмо" srcdoc="${esc(mlSrcdoc(html))}"></iframe>` : `<div class="mlbody">${mlLinks(text||r.snippet||"")}</div>`;
-  const ordBox = r.dir!=="sent" && !load && (O.ok || (st&&st.st) || ML.force===r.id) && !(st&&st.st==="no") ? mlOrdHtml(r, O, st) : "";
+  const ordBox = !mlRO() && r.dir!=="sent" && !load && (O.ok || (st&&st.st) || ML.force===r.id) && !(st&&st.st==="no") ? mlOrdHtml(r, O, st) : "";
   return `<div class="mlvh"><button type="button" class="btn ghost sm mlback" data-ml="back">‹ Письма</button>
       <h3>${esc(r.subject||"(без темы)")}</h3>
       <div class="mlmeta"><span class="mlav" style="--c:${mlCol(r.acc)}">${esc(((r.dir==="sent"?r.to:r.fromName||r.from)||"?").trim()[0]||"?").toUpperCase()}</span>
         <span><b>${esc(r.dir==="sent"?"Вы":(r.fromName||r.from))}</b> ${r.dir==="sent"?"":`<small>&lt;${esc(r.from)}&gt;</small>`}<br><small>кому: ${esc(r.to||r.box)}${r.cc?" · копия: "+esc(r.cc):""}</small></span>
         <span class="mlwhen"><small>${esc(mlFull(r.date))}</small><small class="mlbx" style="--c:${mlCol(r.acc)}">${esc(r.box)}</small></span></div>
-      <div class="mlact">${r.dir!=="sent"?`<button class="btn sm pri" type="button" data-ml="reply">${ML_IC.reply} Ответить</button>${(r.cc||String(r.to).includes(","))?`<button class="btn sm" type="button" data-ml="replyall">Ответить всем</button>`:""}`:""}<button class="btn sm ghost" type="button" data-ml="fwd">Переслать</button>
-        ${r.dir!=="sent"?`<button class="btn sm ghost" type="button" data-ml="unread">${mlUnread(r)?"Отметить прочитанным":"Не прочитано"}</button>`:""}${!O.ok&&r.dir!=="sent"&&!(st&&st.st)&&ML.force!==r.id?`<button class="btn sm ghost" type="button" data-ml="isord">Это заявка</button>`:""}${html?`<button class="btn sm ghost" type="button" data-ml="html">${ML.html?"Только текст":"Как в письме"}</button>`:""}</div></div>
+      <div class="mlact">${mlRO()?`<span class="muted mlro">Только чтение</span>`:""}${mlRO()?"":r.dir!=="sent"?`<button class="btn sm pri" type="button" data-ml="reply">${ML_IC.reply} Ответить</button>${(r.cc||String(r.to).includes(","))?`<button class="btn sm" type="button" data-ml="replyall">Ответить всем</button>`:""}`:""}${mlRO()?"":`<button class="btn sm ghost" type="button" data-ml="fwd">Переслать</button>`}
+        ${r.dir!=="sent"&&!mlRO()?`<button class="btn sm ghost" type="button" data-ml="unread">${mlUnread(r)?"Отметить прочитанным":"Не прочитано"}</button>`:""}${!mlRO()&&!O.ok&&r.dir!=="sent"&&!(st&&st.st)&&ML.force!==r.id?`<button class="btn sm ghost" type="button" data-ml="isord">Это заявка</button>`:""}${html?`<button class="btn sm ghost" type="button" data-ml="html">${ML.html?"Только текст":"Как в письме"}</button>`:""}</div></div>
     ${ordBox}
     ${A.length?`<div class="mlatts">${A.map((x,i)=>`<div class="mlatt"><span class="mlext">${esc((x.n.split(".").pop()||"").slice(0,4).toUpperCase())}</span><span class="mlan"><b title="${esc(x.n)}">${esc(x.n)}</b><small>${x.s?mlSize(x.s):""}${x.f?"":" · ещё не загружено"}</small></span>
         <button type="button" class="btn ghost sm" data-mlatt="${i}" data-how="view">Открыть</button><button type="button" class="btn ghost sm" data-mlatt="${i}" data-how="get" aria-label="Скачать">⤓</button></div>`).join("")}</div>`:""}
@@ -118,7 +120,7 @@ function mlSrcdoc(h){ const csp=`default-src 'none'; style-src 'unsafe-inline'; 
 /* ---------- открыть письмо ---------- */
 async function mlOpen(id){ ML.sel=id; ML.comp=null; ML.html=false; ML.imgs=false; const r=ML.rows.find(x=>x.id===id); if(!r) return;
   if(ML.view && ML.view.id!==id) ML.view=null; mlDraw(); mlScrollView();
-  if(mlUnread(r)){ r.read="1"; mlSet([{id, read:1}]); }
+  if(mlUnread(r) && !mlRO()){ r.read="1"; mlSet([{id, read:1}]); }
   try{ const j=await api({action:"mail", op:"get", id}); if(ML.sel!==id) return; ML.view={id, text:j.text||"", html:j.html||"", err:j.err||""}; }
   catch(e){ if(ML.sel!==id) return; ML.view={id, text:r.snippet||"", html:"", err:"Полный текст не загрузился: "+e.message}; }
   const v=$("#ml-view"); if(v){ v.innerHTML=mlViewHtml(); v.classList.add("fresh"); setTimeout(()=>v.classList.remove("fresh"),300); } mlBadge(); mlListMark(); }
@@ -237,7 +239,7 @@ document.addEventListener("click", e=>{ const root=e.target.closest&&e.target.cl
   const f=t.closest("[data-mlf]"); if(f){ ML.f=f.dataset.mlf; ML.more=0; mlDraw(); return; }
   const bx=t.closest("[data-mlbox]"); if(bx){ ML.box=bx.dataset.mlbox; ML.more=0; mlDraw(); return; }
   const at=t.closest("[data-mlatt]"); if(at){ const r=ML.rows.find(x=>x.id===ML.sel); if(r) mlAtt(r, +at.dataset.mlatt, at.dataset.how); return; }
-  const mk=t.closest("[data-mlmk]"); if(mk){ const r=ML.rows.find(x=>x.id===ML.sel); if(r) mlMake(r, mk.dataset.mlmk); return; }
+  const mk=t.closest("[data-mlmk]"); if(mk && !mlRO()){ const r=ML.rows.find(x=>x.id===ML.sel); if(r) mlMake(r, mk.dataset.mlmk); return; }
   const fx=t.closest("[data-mlfx]"); if(fx){ mlCompRead(); ML.comp.files.splice(+fx.dataset.mlfx,1); mlDraw(); return; }
   const fa=t.closest("[data-mlfa]"); if(fa){ mlCompRead(); const x=ML.comp.fwdAtts.find(y=>y.i===+fa.dataset.mlfa); if(x) x.on=fa.checked; return; }
   const pre=t.closest("[data-mlpre]"); if(pre){ mlAccRead(); const P=ML_PRE[pre.dataset.mlpre]; Object.assign(ML.edit,{pre:pre.dataset.mlpre}); if(P.ih){ ML.edit.ih=P.ih; ML.edit.sh=P.sh; ML.edit.ip=993; ML.edit.sp=465; } mlDraw(); return; }
@@ -249,6 +251,7 @@ document.addEventListener("click", e=>{ const root=e.target.closest&&e.target.cl
   if(a==="more"){ ML.more+=60; mlDraw(); return; }
   if(a==="back"){ ML.sel=""; ML.view=null; mlListMark(); return; }
   if(a==="new"){ ML.sel=""; mlCompose("new"); return; }
+  if(mlRO() && /^(new|reply|replyall|fwd|send|unread|notord|isord|set)$/.test(a)) return;
   if(a==="reply"||a==="replyall"||a==="fwd"){ mlCompose(a); return; }
   if(a==="cclose"){ ML.comp=null; mlDraw(); return; }
   if(a==="send"){ mlSend(); return; }

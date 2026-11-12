@@ -115,10 +115,19 @@ async def main():
         await pg.evaluate("location.hash='#pochta'"); await pg.wait_for_timeout(2500)
         ok(await pg.locator('#ml-list .mlr').count()>=3 and await pg.locator('#ml [data-ml="set"]').count()==0, 'Наталья видит письма, без «⚙ Ящики»')
         ok(not errs, f'Наталья: без ошибок {errs}'); await ctx.close()
-        ctx,pg,errs=await login(b,'Гриша','3333')
-        ok(await pg.locator('nav.tabs button[data-tab="mail"]').is_hidden(), 'Гриша вкладку «Почта» не видит')
-        r=ev("JSON.stringify(doPost({postData:{contents:JSON.stringify({key:'3333',user:'Гриша',action:'mail',op:'list'})}}).t)"); ok('forbidden' in r, 'и сервер Грише не отдаёт')
-        await ctx.close()
+        for who,pw in [('Гриша','3333'),('Склад','4444')]:
+            ctx,pg,errs=await login(b,who,pw)
+            ok(await pg.locator('nav.tabs button[data-tab="mail"]').is_visible(), f'{who} видит вкладку «Почта»')
+            await pg.evaluate("location.hash='#pochta'"); await pg.wait_for_timeout(2500)
+            ok(await pg.locator('#ml-list .mlr').count()>=3, f'{who}: письма видны')
+            ok(await pg.locator('#ml [data-ml="new"], #ml [data-ml="set"]').count()==0, f'{who}: нет «Написать» и «Ящики»')
+            await pg.click('#ml-list .mlr:has-text("Заявка на 14.11")'); await until(pg,"/Прошу поставить/.test(document.querySelector('#ml-view').textContent)")
+            ok(await pg.locator('#ml-view [data-ml="reply"], #ml-view [data-ml="fwd"], #ml-view .mlordbox, #ml-view [data-ml="unread"]').count()==0 and 'Только чтение' in await pg.text_content('#ml-view'), f'{who}: письмо только для чтения — без ответа, отметок и «Сделать документы»')
+            ok(await pg.locator('#ml-view [data-mlatt="0"]').count()>=1, f'{who}: вложение открыть можно')
+            pwk={'Гриша':'3333','Склад':'4444'}[who]
+            r=ev("JSON.stringify(doPost({postData:{contents:JSON.stringify({key:'%s',user:'%s',action:'mail',op:'send',acc:'x',msg:{to:['a@b.ru']}})}}).t)"%(pwk,who)); ok('forbidden' in r, f'{who}: сервер не даёт отправить')
+            r=ev("JSON.stringify(doPost({postData:{contents:JSON.stringify({key:'%s',user:'%s',action:'mail',op:'set',rows:[{id:'x',read:1}]})}}).t)"%(pwk,who)); ok('readonly' in r, f'{who}: сервер не даёт менять отметки')
+            ok(not errs, f'{who}: без ошибок {errs}'); await ctx.close()
         # телефон
         ctx,pg,errs=await login(b,'Даниил','1111',390,844)
         await pg.evaluate("location.hash='#pochta'"); await pg.wait_for_timeout(2500)

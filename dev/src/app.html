@@ -405,7 +405,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .mlmeta{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:10px;align-items:center;font-size:13.5px;margin-bottom:10px}#fd-app .mlmeta small{color:var(--muted);word-break:break-all}
 #fd-app .mlav{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 18%,#fff);color:var(--c);font-weight:700}
 #fd-app .mlwhen{text-align:right;display:grid;gap:3px;justify-items:end}#fd-app .mlbx{padding:1px 8px;border-radius:99px;background:color-mix(in srgb,var(--c) 12%,#fff);color:var(--c)!important;word-break:normal!important}
-#fd-app .mlact{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}#fd-app .mlact svg{vertical-align:-3px;margin-right:3px}
+#fd-app .mlact{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}#fd-app .mlro{font-size:12.5px;padding:3px 10px;border-radius:99px;background:rgba(28,34,32,.06)}#fd-app .mlact svg{vertical-align:-3px;margin-right:3px}
 #fd-app .mlbody{white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:1.55;padding-top:10px;border-top:1px solid var(--line)}#fd-app .mlbody a{color:var(--accent)}#fd-app .mlquo{color:var(--muted)}
 #fd-app .mlhtml{width:100%;min-height:420px;height:60vh;border:1px solid var(--line);border-radius:10px;background:#fff}#fd-app .mlimg{font-size:12.5px}
 #fd-app .mlatts{display:grid;gap:6px;margin-bottom:12px}
@@ -2787,7 +2787,7 @@ const role = () => { const m=me(); return m.role || (m.admin ? "admin" : "manage
 const isStaff = () => role()==="staff";
 /* сотрудник склада с правом полностью редактировать документы (в «Пароли.gs»: docs:true) — в документах как менеджер */
 const docLimited = () => isStaff() && !me().docs;
-const STAFF_HIDE = ["mail","invoices","archive","customers","products","suppliers","data","profit","purchase","events","tasks"];
+const STAFF_HIDE = ["invoices","archive","customers","products","suppliers","data","profit","purchase","events","tasks"];
 const ADMIN_TABS = ["events","profit","purchase","tasks"];
 if(pass() && !curUser()){ lsSet(UKEY,"Даниил"); lsSet(MKEY, JSON.stringify({name:"Даниил", admin:true})); }   /* вход, сохранённый до появления пользователей */
 /* журнал событий: очередь отправки (переживает перезагрузку и отсутствие связи) */
@@ -2901,7 +2901,7 @@ function handleErr(e){ if(e.message==="auth"){ showLogin("Неверный па�
   else if(e && !e.net){ setStatus("err","Ошибка таблицы, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Таблица ответила ошибкой","«"+String(e.message||e).slice(0,160)+"». Всё сохранено на этом устройстве, повторю сам. Если повторяется — пришлите этот текст Claude."); } }
   else { setStatus("err","Не сохранено — нет связи, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Нет связи с Google Таблицей",(e&&e.message?"Причина: "+e.message+". ":"")+"Всё сохранено на этом устройстве и отправится автоматически, когда связь появится. Ничего делать не нужно."); } } }
 
-const NEED_VER=30;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
+const NEED_VER=31;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
 function srvVerCheck(v){ const el=$("#srvOld"); if(!el) return; const old=(+v||0)<NEED_VER; el.hidden=!old || docLimited(); D.srvVer=+v||0; }
 document.addEventListener("click",e=>{ if(!e.target.closest || !e.target.closest("#srvOldHow")) return; openCard(`<div class="dc-head"><div><div class="dc-kicker">Code.gs</div><h3>Как обновить скрипт таблицы</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
   <ol class="srvsteps"><li>GitHub → файл <b>dev/Code.template.gs</b> → кнопка «Copy raw file» (два квадратика).</li><li>Таблица «Документы ФД» → «Расширения» → «Apps Script» → файл <b>Код.gs</b> → Ctrl+A → Ctrl+V → «Сохранить». Файл «Пароли.gs» не трогать.</li><li>«Начать развёртывание» → «Управление развёртываниями» → карандаш → «Версия: новая версия» → «Развернуть».</li><li>Обновите эту страницу — жёлтая плашка исчезнет.</li></ol>
