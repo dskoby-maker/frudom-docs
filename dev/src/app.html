@@ -454,7 +454,6 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 html.mailapp #fd-app nav.tabs, html.mailapp #mbar, html.mailapp #tsheet, html.mailapp #tab-bar, html.mailapp #fd-app .brand>b{display:none!important}
 html.mailapp.mlhere #fd-app header.top{display:none}
 html.mailapp #fd-app{--mbh:0px}
-html.mailapp #fd-login h2::after{content:" в почту"}
 #fd-app .mldrapp{margin-top:6px;border-top:1px solid var(--line);padding-top:6px}
 #fd-app .mldi.armed{color:var(--bad,#b3261e)}
 /* ===== Почта на телефоне (mail_seg.js: mlMobDraw, #ml-ov) ===== */
@@ -3019,6 +3018,7 @@ const API_URL = "";
 /* приложение «Почта ФД» (13.11.2026): сайт открыт с ?app=mail — только вкладка «Почта», без шапки и разделов */
 const MAILAPP = /[?&]app=mail(&|$)/.test(location.search||"");
 if(MAILAPP) document.documentElement.classList.add("mailapp","mlhere");
+if(MAILAPP){ const h=document.querySelector("#fd-login h2"); if(h && h.firstChild && h.firstChild.nodeType===3) h.firstChild.nodeValue="Вход в почту"; }
 const KEY = "frudom-docs-v1", PKEY = "frudom-docs-pass", UKEY = "frudom-docs-user", MKEY = "frudom-docs-me", EKEY = "frudom-docs-evq";
 const USERS_LIST = ["Даниил", "Наталья", "Гриша", "Склад"];
 const uid = () => Math.random().toString(36).slice(2, 10);
