@@ -66,7 +66,7 @@ async def main():
         await pg.fill('#bz-zki .bzc[data-k="p-ma|кг"]','62'); await pg.click('#bz-zki [data-bzk="save"]'); await pg.wait_for_timeout(2000)
         c=costs(); ok(L(c,'bz1').get('p-fa')=='140' and L(c,'bz2').get('p-fa')=='160', 'нетронутые разные цены фасоли сохранились')
         ok(all(L(c,j).get('p-ma')=='62' for j in ['bz1','bz2','bz3']), 'макароны поменялись на 62 во всех')
-        ok(await pg.text_content('#fd-dcard [data-bzk="toggle"]')=='Закупка ✓', 'кнопка: «Закупка ✓»')
+        await pg.locator('#fd-dcard .dc-head [data-navback]').first.click(); await pg.wait_for_timeout(700); ok(await pg.text_content('#fd-dcard [data-bzk="toggle"]')=='Закупка ✓', 'кнопка: «Закупка ✓»')
         ok(not errs, f'ошибок нет {errs[:2]}')
         await ctx.close()
         ctx,pg,errs=await login(b,(390,844))

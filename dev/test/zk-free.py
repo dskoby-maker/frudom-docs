@@ -46,7 +46,7 @@ async def main():
             st=await pg.evaluate(f"(()=>{{const j=__fd.D().journal.find(x=>x.id==='{j1}'); const x=__fd.docProfit(j); return [x.cost, x.miss, (__fd.zkJState(j)||{{}}).st]}})()")
             ok(st==[400,0,'ok'], f'{W}: закупка 400, без пропусков, значок «заполнено»: {st}')
             # второй документ: укроп по 80
-            await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
+            await pg.evaluate("document.querySelector('#fd-dcard [data-dc=\"close\"]').click()"); await pg.wait_for_timeout(300)
             await mkdoc(pg, j2, [('p-fz','3')])
             await open_doc(pg, j2)
             ok(not await pg.locator(f'{R}:nth-child(1).free').count(), f'{W}: в новой накладной укроп не бесплатный по умолчанию')
@@ -56,7 +56,7 @@ async def main():
             sale0=await pg.evaluate(f"(()=>{{ const X=__fd.pcdData('p-fz'); return X.sales.filter(s=>s.j.id==='{j1}').map(s=>s.c) }})()")
             ok(sale0==[None], f'{W}: у продажи из «бесплатной» накладной закупка не считается: {sale0}')
             # снять «бесплатно»
-            await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
+            await pg.evaluate("document.querySelector('#fd-dcard [data-dc=\"close\"]').click()"); await pg.wait_for_timeout(300)
             await open_doc(pg, j1)
             ok(await pg.locator(f'{R}:nth-child(1).free').count()==1, f'{W}: отметка «Бесплатно» сохраняется при повторном открытии')
             await pg.locator(f'{R}:nth-child(1) .zfb').click(); await pg.wait_for_timeout(200)
@@ -69,7 +69,7 @@ async def main():
             else: await pg.locator(f'{R}:nth-child(1)').screenshot(path='/tmp/zkfree390.png')
             if W==1300:
                 # комплект: две накладные с укропом и свёклой
-                await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
+                await pg.evaluate("document.querySelector('#fd-dcard [data-dc=\"close\"]').click()"); await pg.wait_for_timeout(300)
                 await mkdoc(pg, 'zfk1', [('p-fz','1'),('p-fb','5')]); await mkdoc(pg, 'zfk2', [('p-fz','2'),('p-fb','5')])
                 await pg.evaluate("__fd.D().journal.filter(j=>['zfk1','zfk2'].includes(j.id)).forEach(j=>{ j.snap.meta=Object.assign(j.snap.meta||{},{batch:'tzf'}); })")
                 await pg.evaluate(TAB+"('journal')"); await pg.wait_for_timeout(500)

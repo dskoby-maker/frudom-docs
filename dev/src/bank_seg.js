@@ -466,7 +466,7 @@ function bnMulNext(note){ const Mu=D.multi; if(!mulOn() || !Mu.bank || Mu.view<0
   else { Mu.view=-1; D.draft=Object.assign(newDraft(D), {supplierId:cur.dr.supplierId, customerId:cur.dr.customerId}); D.draft.number=nextNum(cur.dr.supplierId, cur.dr.customerId); }
   saveLocal(); renderDoc();
   $("#d-saved").textContent=(note||"")+"Накладная № "+cur.dr.number+" сохранена в журнал."+(k>=0?" Сейчас открыта следующая из платежа: № "+Mu.docs[k].dr.number+".":"");
-  if(j && me().admin){ docCard(j, false); setTimeout(()=>{ const b=document.querySelector('#fd-dcard [data-zkc="toggle"]:not(.on)'); if(b) b.click(); }, 80); }
+  if(j && me().admin) zkPageOpen(j);
   if(!Mu.bank.told) toast("ok","Накладная № "+cur.dr.number+" сохранена", "Впишите закупку в открывшемся окне."+(k>=0?" Следующая — № "+Mu.docs[k].dr.number+(Mu.docs[k].ref&&Mu.docs[k].ref.date?" от "+fd(Mu.docs[k].ref.date):"")+", она уже открыта в форме.":""), {ms:8000});
   return true; }
 function bnMulGo(k){ const Mu=D.multi; if(!mulOn() || !Mu.docs[k]) return; const cur=Mu.docs[Mu.view];
@@ -481,5 +481,5 @@ $("#mulbar-bn").addEventListener("click", e=>{ const b=e.target.closest("[data-b
 /* в списке накладных из платежа: сумма по платежу и окно закупки */
 function bnMulLine(M){ if(!D.multi || !D.multi.bank || !M.want) return ""; const now=calc(M.dr).t.sum, d=r2(M.want-now);
   return `<div class="bnmb ${bnEq(d,0)?"ok":""}">По платежу <b>${fm(M.want)}</b> ₽${bnEq(d,0)?" ✓":now>0?(d>0?" · не хватает "+fm(d)+" ₽":" · больше на "+fm(-d)+" ₽"):" · товары ещё не вписаны — «Открыть в полной форме»"}</div>`; }
-$("#mul").addEventListener("click", e=>{ const z=e.target.closest("[data-mzk]"); if(z){ const j=D.journal.find(x=>x.id===z.dataset.mzk); if(!j) return; docCard(j, false); setTimeout(()=>{ const b=document.querySelector('#fd-dcard [data-zkc="toggle"]:not(.on)'); if(b) b.click(); }, 80); }
+$("#mul").addEventListener("click", e=>{ const z=e.target.closest("[data-mzk]"); if(z){ const j=D.journal.find(x=>x.id===z.dataset.mzk); if(!j) return; zkPageOpen(j); }
   if(e.target.closest("#mul-bnpay")){ const op=BNK().ops.find(o=>o.id===(D.multi&&D.multi.bank||{}).op); if(!op) return; goTab("profit"); setTimeout(()=>bnPick(op), 120); } });

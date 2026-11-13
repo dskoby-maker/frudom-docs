@@ -242,7 +242,7 @@ function pvLedgerClick(e){
     const row=emp||box.lastElementChild; row.classList.add("fresh"); (b.dataset.n ? row.querySelector(".pvss") : row.querySelector(".pvsn")).focus(); return; }
   if(a==="del"){ const row=b.closest(".pvsr"); if($("#pvsrc").children.length>1) row.remove(); else { row.querySelector(".pvsn").value=""; row.querySelector(".pvss").value=""; } pvCalc(); return; }
   if(a==="cancel"){ PVL.ed=""; pvLedgerDraw(); return; }
-  if(a==="prod"){ const d=$("#fd-dcard"); if(d){ navStash(d); d._bye=1; d.classList.add("out"); setTimeout(()=>{ try{ d.close(); }catch(x){} d.remove(); NAV.pend&&(NAV.pend.at=Date.now()); docCard(j); setTimeout(()=>{ const t=document.querySelector('#fd-dcard [data-zkc="toggle"]'); if(t) t.click(); }, 80); }, 200); } return; }
+  if(a==="prod"){ const d=$("#fd-dcard"); if(d){ navStash(d); d._bye=1; d.classList.add("out"); setTimeout(()=>{ try{ d.close(); }catch(x){} d.remove(); NAV.pend&&(NAV.pend.at=Date.now()); zkPageOpen(j); }, 200); } return; }
   const dc=dcUpsert(j), L=dcLines(dc);
   if(a==="clear"){ delete L._src; delete L._oneAdd; dc.lines=JSON.stringify(L); dirty("doccosts", dc.id); logEv("Прибыль","Убрана быстрая закупка: накладная № "+j.number+" от "+fd(j.date)+" — "+jWho(j).main); saveLocal(); PVL.ed=""; pvLedgerDraw(); drawProfit(); toast("ok","Закупка убрана","Снова считается по товарам."); return; }
   if(a==="save"){ const rows=pvEdRows().filter(r=>r.n || r.s!=="");
@@ -635,7 +635,7 @@ function pfdDraw(){ const box=$("#pfd"); if(!box) return; const k=PFD.k;
   box.innerHTML = k==="miss" ? pfdMiss(PFD.sc) : ["due","debt","old30"].includes(k) ? pfdDebt(k) : ["paid","perpaid"].includes(k) ? pfdPaid(k) : ["exp","inc","own"].includes(k) ? pfdRec(k) : pfdBy(k); }
 function pfdClick(e){ const t=e.target.closest("[data-pfnav],[data-pfzk],[data-pfzkp],[data-pfpay],[data-pfall],[data-pfled],[data-pfg],[data-pfage],[data-pfsort],[data-pfdoc],[data-pvx],[data-pfmiss],[data-pfgo]"); if(!t) return;
   if(t.dataset.pfnav){ const [k,sc]=t.dataset.pfnav.split("|"); pfDetail(k, sc, PFD.rng); return; }
-  if(t.dataset.pfzk){ const j=pfDoc(t.dataset.pfzk); if(!j) return; docCard(j,false); setTimeout(()=>{ const b=document.querySelector('#fd-dcard [data-zkc="toggle"]:not(.on)'); if(b) b.click(); }, 80); return; }
+  if(t.dataset.pfzk){ const j=pfDoc(t.dataset.pfzk); if(!j) return; zkPageOpen(j); return; }
   if(t.dataset.pfzkp!=null){ const L=[...document.querySelectorAll("#pfd [data-pfdoc]")].map(r=>pfDoc(r.dataset.pfdoc)).filter(Boolean).map(j=>j.date).sort(); if(!L.length) return; pvCloseCard(); tabBackFrom("Прибыль", ()=>zkpGoMiss(L[0], L[L.length-1], L[0]===L[L.length-1]?"за "+fd(L[0]):"с "+fd(L[0])+" по "+fd(L[L.length-1]))); return; }
   if(t.dataset.pfpay){ const j=pfDoc(t.dataset.pfpay); if(!j) return; const p=payOf(j); setPay(j,p.tot,todayISO()); saveLocal(); const r=t.closest(".pfd-r"); if(r) r.classList.add("justpaid"); toast("ok","Оплачено","Накладная № "+j.number+" · "+fm(p.left)+" ₽ — "+jWho(j).main); setTimeout(()=>{ pfdDraw(); if(curTab==="profit") drawProfit(); },260); return; }
   if(t.dataset.pfall){ payAll(t.dataset.pfall, todayISO()); pfdDraw(); return; }
