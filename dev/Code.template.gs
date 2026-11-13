@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 32;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 33;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -575,6 +575,8 @@ function mailSync_(force) {
   return { added: added, errs: errs };
 }
 function mailList_() { return read_('mail').sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 600); }
+/* свои папки почты (Code.gs ≥ 33): список [{id, name, color, order}] в свойстве скрипта MAIL_FOLDERS; письмо в папке — поле fld в отметке письма (order) */
+function mailFolders_() { try { const L = JSON.parse(PropertiesService.getScriptProperties().getProperty('MAIL_FOLDERS') || '[]'); return Array.isArray(L) ? L : []; } catch (e) { return []; } }
 function mail_(p, me) {
   const op = String(p.op || 'list');
   /* Гриша и Склад (staff) — только читают: список, проверка новых, письмо, вложение (Code.gs ≥ 31) */
@@ -598,17 +600,24 @@ function mail_(p, me) {
       if (!old.id) L.push(a); else L = L.map(y => y.id === a.id ? a : y);
       if (old.id && (old.email !== a.email || old.ih !== a.ih || old.user !== a.user)) { a.uidv = ''; a.last = 0; }
       mailAccSet_(L); const r = mailSync_(true);
-      return { ok: true, acc: mailAccView_(), test: t, added: r.added, errs: r.errs, rows: mailList_(), tags: read_('mailtags') };
+      return { ok: true, acc: mailAccView_(), test: t, added: r.added, errs: r.errs, rows: mailList_(), tags: read_('mailtags'), folders: mailFolders_() };
     }
-    if (op === 'sync') { const r = mailAcc_().length ? mailSync_(!!p.force) : { added: 0 }; return { ok: true, acc: mailAccView_(), proxy: !!(tbProxy_() || {}).url, added: r.added || 0, skipped: r.skipped || 0, errs: r.errs || {}, rows: mailList_(), tags: read_('mailtags') }; }
-    if (op === 'list') return { ok: true, acc: mailAccView_(), proxy: !!(tbProxy_() || {}).url, rows: mailList_(), tags: read_('mailtags') };
+    if (op === 'sync') { const r = mailAcc_().length ? mailSync_(!!p.force) : { added: 0 }; return { ok: true, acc: mailAccView_(), proxy: !!(tbProxy_() || {}).url, added: r.added || 0, skipped: r.skipped || 0, errs: r.errs || {}, rows: mailList_(), tags: read_('mailtags'), folders: mailFolders_() }; }
+    if (op === 'list') return { ok: true, acc: mailAccView_(), proxy: !!(tbProxy_() || {}).url, rows: mailList_(), tags: read_('mailtags'), folders: mailFolders_() };
+    if (op === 'folders') {   /* сохранить весь список папок: {folders:[{id, name, color, order}]} */
+      const L = (Array.isArray(p.folders) ? p.folders : []).map((x, i) => ({ id: String(x.id || '').replace(/[^\w-]/g, '').slice(0, 24), name: String(x.name || '').replace(/\s+/g, ' ').trim().slice(0, 40), color: String(x.color || '').replace(/[^#\w]/g, '').slice(0, 9), order: i }))
+        .filter(x => x.id && x.name).slice(0, 60);
+      const lock = LockService.getScriptLock(); lock.waitLock(25000);
+      try { PropertiesService.getScriptProperties().setProperty('MAIL_FOLDERS', JSON.stringify(L)); } finally { lock.releaseLock(); }
+      return { ok: true, folders: L };
+    }
     if (op === 'tag') {   /* отправитель: заказчик (cus + customerId) / не заказчик (no) / спам (spam) / '' — снять; Code.gs ≥ 32 */
       const L = (Array.isArray(p.tags) ? p.tags : [p]).map(x => ({ id: String(x.email || '').trim().toLowerCase(), kind: String(x.kind || ''), cid: String(x.cid || '') })).filter(x => /^[^@\s]+@[^@\s]+$/.test(x.id)).slice(0, 100);
       if (!L.length) return { ok: false, error: 'нет адреса отправителя' };
       const cn = nameMap_('customers'), now = new Date().toISOString(), lock = LockService.getScriptLock(); lock.waitLock(25000);
       try { upsertList_('mailtags', { upsert: L.filter(x => /^(cus|no|spam)$/.test(x.kind)).map(x => ({ id: x.id, kind: x.kind, customerId: x.kind === 'cus' ? x.cid : '', customerName: x.kind === 'cus' ? (cn[x.cid] || '') : '', by: me.name, at: now })),
         del: L.filter(x => !/^(cus|no|spam)$/.test(x.kind)).map(x => x.id) }); } finally { lock.releaseLock(); }
-      return { ok: true, tags: read_('mailtags') };
+      return { ok: true, tags: read_('mailtags'), folders: mailFolders_() };
     }
     if (op === 'proxyCheck') { const px = tbProxy_(); if (!px || !px.url) return { ok: true, proxy: 0 };
       const r = UrlFetchApp.fetch(px.url, { method: 'post', contentType: 'application/json', headers: { 'X-Proxy-Key': px.key }, payload: JSON.stringify({ path: '/ping' }), muteHttpExceptions: true });

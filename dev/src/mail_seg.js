@@ -24,6 +24,7 @@ const mlSpam = r => { if(!r || r.dir==="sent") return false; const o=mlOrdSt(r)|
 /* «Неважные» — только это письмо, в отдельную папку; отправитель не запоминается (в отличие от спама) */
 const mlMinor = r => !!r && r.dir!=="sent" && !mlSpam(r) && (mlOrdSt(r)||{}).minor===1;
 const mlUnread = r => r.dir!=="sent" && !r.read && !mlRO() && !mlSpam(r) && !mlMinor(r);
+const mlUnIn = r => mlUnread(r) && !mlFld(r);   /* непрочитанное во «Входящих» (не в своей папке) */
 const mlIsOrd = r => { try{ const o=r.order?JSON.parse(r.order):null; if(o&&o.st==="no") return false; }catch(e){} if(mlSpam(r) || (mlTag(mlAddr(r))||{}).kind==="no") return false; return r.dir!=="sent" && !!mlOrd(r).ok; };
 const mlOrdSt = r => { try{ return r.order?JSON.parse(r.order):null; }catch(e){ return null; } };
 /* «Обработано» — в том же поле order (JSON {…, done:{by, at}}), поэтому Code.gs обновлять не нужно; заявку (st) и отметку храним вместе */
@@ -75,13 +76,14 @@ async function mlLoad(force, quiet){ if(!online()) return; if(ML.sync) return;
   }catch(e){ const m=e.message||""; ML.err = m==="unknown action" ? "old" : m==="noproxy" ? "noproxy" : m==="oldproxy" ? "oldproxy" : m; if(m==="unknown action") ML.loaded=true; if(!quiet && !/^(old|noproxy|oldproxy|forbidden)$/.test(ML.err)) toast("err","Почта не обновилась", m); }
   ML.sync=false; ML.loaded=true; mlBadge(); if(curTab==="mail") mlDraw(); }
 function mlTake(j){ if(Array.isArray(j.tags)){ ML.tags={}; j.tags.forEach(t=>{ if(t.id) ML.tags[String(t.id).toLowerCase()]={kind:t.kind, customerId:t.customerId, by:t.by, at:t.at}; }); ML.tagSrv=true; } else if(Array.isArray(j.rows) && (D.srvVer||0) && D.srvVer<32) ML.tagSrv=false;
+  if(Array.isArray(j.folders)){ ML.folders=j.folders; ML.fldSrv=true; } else if(Array.isArray(j.rows) && ML.fldSrv!==true){ ML.fldSrv=false; ML.folders=(getPrefs().mlFolders||[]); }
   if(Array.isArray(j.rows)) ML.rows=j.rows; if(Array.isArray(j.acc)) ML.acc=j.acc; if(j.proxy!=null) ML.proxy=!!j.proxy; }
-function mlBadge(){ const n=ML.rows.filter(mlUnread).length; document.querySelectorAll('#fd-app nav.tabs button[data-tab="mail"], #mbar [data-mt="mail"]').forEach(b=>{ if(n) b.dataset.n=n>99?"99+":n; else delete b.dataset.n; }); }
+function mlBadge(){ const n=ML.rows.filter(mlUnIn).length; document.querySelectorAll('#fd-app nav.tabs button[data-tab="mail"], #mbar [data-mt="mail"]').forEach(b=>{ if(n) b.dataset.n=n>99?"99+":n; else delete b.dataset.n; }); }
 function renderMail(){ if(!$("#ml")) return; mlDraw(); if(!ML.loaded || Date.now()-ML.at>120000) mlLoad(false, ML.loaded); }
 setInterval(()=>{ if(online() && ML.acc.length && !document.hidden) mlLoad(false, true); }, 300000);
 /* ---------- отрисовка ---------- */
-function mlList(){ const q=ML.q.trim().toLowerCase(), all=ML.f==="all";
-  return ML.rows.filter(r=>(!ML.box || r.acc===ML.box) && (all || ((ML.f==="sent" ? r.dir==="sent" : r.dir!=="sent") && (ML.f==="spam" ? mlSpam(r) : ML.f==="minor" ? mlMinor(r) : !mlSpam(r) && !mlMinor(r)) && (ML.f!=="unread" || mlUnread(r)) && (ML.f!=="undone" || !!mlTodo(r)) && (ML.f!=="ord" || mlIsOrd(r))))
+function mlList(){ const q=ML.q.trim().toLowerCase(), all=ML.f==="all", uf=ML.f.startsWith("u:")?ML.f.slice(2):"";
+  return ML.rows.filter(r=>(!ML.box || r.acc===ML.box) && (all || (uf ? r.dir!=="sent" && !mlSpam(r) && mlFld(r)===uf : (ML.f!=="in" || !mlFld(r)) && (ML.f==="sent" ? r.dir==="sent" : r.dir!=="sent") && (ML.f==="spam" ? mlSpam(r) : ML.f==="minor" ? mlMinor(r) : !mlSpam(r) && !mlMinor(r)) && (ML.f!=="unread" || mlUnread(r)) && (ML.f!=="undone" || !!mlTodo(r)) && (ML.f!=="ord" || mlIsOrd(r))))
     && (!q || [r.subject, r.fromName, r.from, r.to, r.snippet, r.attsText].join(" ").toLowerCase().includes(q))); }
 function mlHead(){ const h=$("#ml-sync"); if(h) h.innerHTML=mlSyncTxt(); mlSyncUi(); }
 /* идёт проверка ящиков: бегущая полоска над письмами, крутится значок «Проверить почту», мигают точки ящиков */
@@ -95,7 +97,8 @@ function mlDraw(){ const el=$("#ml"); if(!el) return; const adm=me().admin; el.c
   if(ML.set && adm){ el.innerHTML=mlSetHtml(); return; }
   if(ML.comp) mlCompRead();
   if(ML.loaded && !ML.acc.length){ el.innerHTML=`<div class="mlempty"><b>Ящики ещё не подключены</b><span>${adm?"Подключите frudom.ru@mail.ru и info@frudom.ru — письма начнут приходить сюда.":"Попросите Даниила подключить почтовые ящики."}</span>${adm?`<button class="btn pri" type="button" data-ml="set">Подключить ящики</button>`:""}</div>`; return; }
-  const spamN=ML.rows.filter(r=>mlSpam(r) && (!ML.box||r.acc===ML.box)).length, undone=ML.rows.filter(r=>r.dir!=="sent" && !mlSpam(r) && !mlMinor(r) && !!mlTodo(r) && (!ML.box||r.acc===ML.box)).length, L=mlList(), unread=ML.rows.filter(r=>mlUnread(r) && (!ML.box||r.acc===ML.box)).length, ord=ML.rows.filter(r=>(!ML.box||r.acc===ML.box) && mlIsOrd(r) && !(mlOrdSt(r)||{}).st).length;
+  const spamN=ML.rows.filter(r=>mlSpam(r) && (!ML.box||r.acc===ML.box)).length, undone=ML.rows.filter(r=>r.dir!=="sent" && !mlSpam(r) && !mlMinor(r) && !!mlTodo(r) && (!ML.box||r.acc===ML.box)).length, L=mlList(), unread=ML.rows.filter(r=>mlUnIn(r) && (!ML.box||r.acc===ML.box)).length;
+  if(ML.f.startsWith("u:") && !mlFldOf(ML.f.slice(2))) ML.f="in";
   if(mlMob()){ mlMobDraw(el, L); return; } mlOvOff();
   const ra=mlRO()?0:mlRaList().length;
   const chip=(k,t,n)=>`<button type="button" data-mlf="${k}" class="${ML.f===k?"on":""}" aria-pressed="${ML.f===k}">${t}${n?` <em>${n}</em>`:""}</button>`;
@@ -106,14 +109,14 @@ function mlDraw(){ const el=$("#ml"); if(!el) return; const adm=me().admin; el.c
       <button class="btn ghost sm" type="button" data-ml="sync" ${ML.sync?"disabled":""}><span class="mlsyi">${ML_IC.ref}</span><span class="mlsyt">${ML.sync?"Проверяю…":"Проверить почту"}</span></button>${mlRO()?"":`<button class="btn sm pri" type="button" data-ml="new">${ML_IC.pen} Написать</button>`}${adm?`<button class="btn ghost sm" type="button" data-ml="set" title="Ящики и посредник">⚙ Ящики</button>`:""}</div>
     ${mlErrHtml()}
     ${accs}
-    <div class="mlbar"><div class="pfchips mlf">${chip("in","Входящие",unread)}${chip("all","Все письма",0)}${chip("ord","Заявки",ord)}${chip("undone","Не обработаны",undone)}${chip("unread","Непрочитанные",0)}${chip("sent","Отправленные",0)}${chip("minor","Неважные",0)}${chip("spam","Спам",0)}${spamN&&ML.f!=="spam"?`<small class="muted mlspn">в спаме ${spamN}</small>`:""}</div>
+    <div class="mlbar"><div class="pfchips mlf">${chip("in","Входящие",unread)}${chip("all","Все письма",0)}${chip("ord","Заявки",0)}${chip("undone","Не обработаны",undone)}${chip("unread","Непрочитанные",0)}${chip("sent","Отправленные",0)}${chip("minor","Неважные",0)}${chip("spam","Спам",0)}${mlFlds().map(f=>chip("u:"+f.id, ML_IC_FLD+esc(f.name), ML.rows.filter(r=>mlFld(r)===f.id && mlUnread(r) && (!ML.box||r.acc===ML.box)).length)).join("")}${mlRO()?"":`<button type="button" class="mlfnew" data-ml="fldnew" title="Создать свою папку">+ Папка</button>`}${spamN&&ML.f!=="spam"?`<small class="muted mlspn">в спаме ${spamN}</small>`:""}</div>
       ${ra?`<button type="button" class="btn ghost sm mlra" data-ml="readall" title="Отметить прочитанными все письма в этой папке">${ML_IC_OK} Прочитать все <em>${ra}</em></button>`:""}<label class="mlq"><input type="search" id="ml-q" placeholder="Поиск: от кого, тема, текст…" value="${esc(ML.q)}" autocomplete="off"></label></div>
     <div class="mlprog" aria-hidden="true"><i></i></div>
-    <div class="mlw${ML.sel||ML.comp?" vopen":""}"><div class="mll" id="ml-list" role="list">${list||`<div class="mlempty sm"><b>${ML.q?"Ничего не найдено":ML.f==="ord"?"Заявок нет":ML.f==="sent"?"Отправленных пока нет":ML.f==="spam"?"В спаме пусто":ML.f==="minor"?"Неважных писем нет":ML.f==="undone"?"Писем с пометкой «Не обработано» нет":"Писем нет"}</b><span>${ML.loaded?"":"Загружаю…"}</span></div>`}
+    <div class="mlw${ML.sel||ML.comp?" vopen":""}"><div class="mll" id="ml-list" role="list">${mlFolderNote()}${list||`<div class="mlempty sm"><b>${ML.q?"Ничего не найдено":ML.f==="ord"?"Заявок нет":ML.f==="sent"?"Отправленных пока нет":ML.f==="spam"?"В спаме пусто":ML.f==="minor"?"Неважных писем нет":ML.f==="undone"?"Писем с пометкой «Не обработано» нет":"Писем нет"}</b><span>${ML.loaded?"":"Загружаю…"}</span></div>`}
         ${L.length>lim?`<button type="button" class="btn ghost sm mlmore" data-ml="more">Показать ещё (${L.length-lim})</button>`:""}</div>
       <div class="mlv" id="ml-view">${mlViewHtml()}</div></div>`;
   mlSyncUi(); const nl=$("#ml-list"); if(nl){ if(calm){ nl.classList.add("calm"); nl.scrollTop=keepY; } ML.calmKey=ML.f+"|"+ML.box; }
-  mlBadge(); }
+  mlCompFocus(); mlBadge(); }
 function mlRowHtml(r,i){ if(mlMob()) return mlRowMob(r,i); const A=mlAtts(r), o=r.dir!=="sent" && mlIsOrd(r), st=mlOrdSt(r), c=o?mlOrd(r).cus:null, who=r.dir==="sent" ? "Кому: "+(r.to||"") : (r.fromName||r.from||"без имени");
   const tg=r.dir!=="sent"?mlTag(mlAddr(r)):null, sp=mlSpam(r);
   const qa = mlRO() ? `<span class="mlqa"><button type="button" data-mlq="menu" title="Действия" aria-label="Действия">⋯</button></span>` : `<span class="mlqa">${r.dir!=="sent"?`<button type="button" data-mlq="read" title="${r.read?"Отметить непрочитанным":"Отметить прочитанным"}" aria-label="Прочитано">${r.read?ML_IC.mail1:ML_IC.mail0}</button><button type="button" data-mlq="todo" class="${mlTodo(r)?"ontodo":""}" title="${mlTodo(r)?"Снять «Не обработано»":"Не обработано"}" aria-label="Не обработано">${ML_IC_TODO}</button><button type="button" data-mlq="done" class="${mlDone(r)?"on":""}" title="${mlDone(r)?"Снять «Обработано»":"Обработано"}" aria-label="Обработано">${ML_IC_OK}</button><button type="button" data-mlq="${mlMinor(r)?"major":"minor"}" title="${mlMinor(r)?"Вернуть во входящие":"В неважные"}" aria-label="Неважные">${ML_IC.minor}</button><button type="button" data-mlq="${sp?"nospam":"spam"}" title="${sp?"Не спам":"В спам"}" aria-label="Спам">${ML_IC.spam}</button>`:""}<button type="button" data-mlq="menu" title="Ещё действия (или правая кнопка мыши)" aria-label="Ещё действия">⋯</button></span>`;
@@ -124,7 +127,7 @@ function mlRowHtml(r,i){ if(mlMob()) return mlRowMob(r,i); const A=mlAtts(r), o=
     ${tg&&tg.kind==="cus"?`<span class="mltag cus" title="Отправитель отмечен как заказчик">Заказчик${cus(tg.customerId)?" · "+esc(cusNm(tg.customerId)):""}</span>`:tg&&tg.kind==="no"?`<span class="mltag no">Не заказчик</span>`:""}
     ${mlDone(r)?`<span class="mlr5"><span class="mldbadge">${ML_IC_OK}Обработано</span><small>${mlDoneTxt(mlDone(r))}</small></span>`:mlTodo(r)?`<span class="mlr5"><span class="mltbadge">${ML_IC_TODO}Не обработано</span><small>${mlDoneTxt(mlTodo(r))}</small></span>`:""}
     ${A.length||o?`<span class="mlr4">${A.length?`<span class="mlclip">${ML_IC.clip}${A.length>1?A.length+" ":""}${esc(A[0].n.length>28?A[0].n.slice(0,26)+"…":A[0].n)}</span>`:""}${o?`<span class="mlord${st&&st.st==="taken"?" done":""}">${st&&st.st==="taken"?"Документы сделаны":"Заявка"}${c?" · "+esc(cusNm(c.cid)):""}</span>`:""}</span>`:""}</div>`; }
-function mlViewHtml(){ return mlMob() ? mlPgHtml() : mlViewBody(); }
+function mlViewHtml(){ if(ML.comp) mlCompRead(); return mlMob() ? mlPgHtml() : mlViewBody(); }
 function mlViewBody(){ if(ML.comp) return mlCompHtml(); const V=ML.view, mob=mlMob();
   if(!ML.sel) return `<div class="mlempty sm"><b>Выберите письмо</b><span>Нажмите на письмо слева — оно откроется здесь.</span></div>`;
   const r=ML.rows.find(x=>x.id===ML.sel); if(!r) return "";
@@ -138,12 +141,13 @@ function mlViewBody(){ if(ML.comp) return mlCompHtml(); const V=ML.view, mob=mlM
         <span><b>${esc(r.dir==="sent"?"Вы":(r.fromName||r.from))}</b> ${r.dir==="sent"?"":`<small>&lt;${esc(r.from)}&gt;</small>`}<br><small>кому: ${esc(r.to||r.box)}${r.cc?" · копия: "+esc(r.cc):""}</small></span>
         <span class="mlwhen"><small>${esc(mlFull(r.date))}</small><small class="mlbx" style="--c:${mlCol(r.acc)}">${esc(r.box)}</small></span></div>
       ${r.dir!=="sent"?mlTagLine(r):""}${mlSpam(r)?`<div class="mlspam">${ML_IC.spam}<span><b>Письмо в спаме.</b> ${(mlTag(mlAddr(r))||{}).kind==="spam"?"Все письма от "+esc(r.from)+" попадают сюда сами.":""}</span>${mlRO()?"":`<button type="button" class="btn ghost sm" data-ml="nospam">Не спам</button>`}</div>`:""}
+      ${mlFld(r)?`<div class="mlminorbar mlinfld">${ML_IC_FLD}<span>Письмо в папке «${esc(mlFldOf(mlFld(r)).name)}»</span>${mlRO()?"":`<button type="button" class="btn ghost sm" data-ml="fldout">Вернуть во входящие</button>`}</div>`:""}
       ${mlMinor(r)?`<div class="mlminorbar">${ML_IC.minor}<span>Письмо в «Неважных»</span>${mlRO()?"":`<button type="button" class="btn ghost sm" data-ml="major">Вернуть во входящие</button>`}</div>`:""}
       ${r.dir==="sent"?"":mlDone(r)?`<div class="mldone"><span class="mldbadge big">${ML_IC_OK}Обработано</span><small>${mlDoneTxt(mlDone(r))}</small>${mlRO()?"":`<button type="button" class="btn ghost sm" data-mk="">Снять</button>`}</div>`
         : mlTodo(r)?`<div class="mltodo"><span class="mltbadge big">${ML_IC_TODO}Не обработано</span><small>${mlDoneTxt(mlTodo(r))}</small>${mlRO()?"":`<button type="button" class="mlmk mkok" data-mk="done">${ML_IC_OK}Обработано</button><button type="button" class="btn ghost sm" data-mk="">Снять</button>`}</div>`
         : mlRO()?"":`<div class="mlst"><button type="button" class="mlmk mkto" data-mk="todo" title="Пометить: ещё нужно разобраться">${ML_IC_TODO}Не обработано</button><button type="button" class="mlmk mkok" data-mk="done" title="Пометить: всё сделано">${ML_IC_OK}Обработано</button></div>`}
       <div class="mlact">${mlRO()?`<span class="muted mlro">Только чтение</span>`:""}${mlRO()||mob?"":r.dir!=="sent"?`<button class="btn sm pri" type="button" data-ml="reply">${ML_IC.reply} Ответить</button>${(r.cc||String(r.to).includes(","))?`<button class="btn sm" type="button" data-ml="replyall">Ответить всем</button>`:""}`:""}${mlRO()||mob?"":`<button class="btn sm ghost" type="button" data-ml="fwd">Переслать</button>`}
-        ${r.dir!=="sent"&&!mlRO()&&!mob?`<button class="btn sm ghost" type="button" data-ml="unread">${mlUnread(r)?"Отметить прочитанным":"Не прочитано"}</button>`:""}${!mlRO()&&!O.ok&&r.dir!=="sent"&&!(st&&st.st)&&ML.force!==r.id?`<button class="btn sm ghost" type="button" data-ml="isord">Это заявка</button>`:""}${!mob&&!mlRO()&&r.dir!=="sent"&&!mlSpam(r)?`<button class="btn sm ghost" type="button" data-ml="${mlMinor(r)?"major":"minor"}">${ML_IC.minor} ${mlMinor(r)?"Во входящие":"В неважные"}</button>`:""}${!mob&&!mlRO()&&r.dir!=="sent"&&!mlSpam(r)?`<button class="btn sm ghost mlspb" type="button" data-ml="spam">${ML_IC.spam} В спам</button>`:""}${html?`<button class="btn sm ghost" type="button" data-ml="html">${ML.html?"Только текст":"Как в письме"}</button>`:""}</div></div>
+        ${r.dir!=="sent"&&!mlRO()&&!mob?`<button class="btn sm ghost" type="button" data-ml="unread">${mlUnread(r)?"Отметить прочитанным":"Не прочитано"}</button>`:""}${!mlRO()&&!O.ok&&r.dir!=="sent"&&!(st&&st.st)&&ML.force!==r.id?`<button class="btn sm ghost" type="button" data-ml="isord">Это заявка</button>`:""}${!mob&&!mlRO()&&r.dir!=="sent"&&!mlSpam(r)?`<button class="btn sm ghost" type="button" data-ml="${mlMinor(r)?"major":"minor"}">${ML_IC.minor} ${mlMinor(r)?"Во входящие":"В неважные"}</button>`:""}${!mob&&!mlRO()&&r.dir!=="sent"&&!mlSpam(r)?`<button class="btn sm ghost" type="button" data-ml="fldpick">${ML_IC_FLD} ${mlFld(r)?"В другую папку":"В папку"}</button>`:""}${!mob&&!mlRO()&&r.dir!=="sent"&&!mlSpam(r)?`<button class="btn sm ghost mlspb" type="button" data-ml="spam">${ML_IC.spam} В спам</button>`:""}${html?`<button class="btn sm ghost" type="button" data-ml="html">${ML.html?"Только текст":"Как в письме"}</button>`:""}</div></div>
     ${ordBox}
     ${A.length?`<div class="mlatts">${A.map((x,i)=>`<div class="mlatt"><span class="mlext">${esc((x.n.split(".").pop()||"").slice(0,4).toUpperCase())}</span><span class="mlan"><b title="${esc(x.n)}">${esc(x.n)}</b><small>${x.s?mlSize(x.s):""}${x.f?"":" · ещё не загружено"}</small></span>
         <button type="button" class="btn ghost sm" data-mlatt="${i}" data-how="view">Посмотреть</button><button type="button" class="btn ghost sm" data-mlatt="${i}" data-how="get" aria-label="Скачать">⤓</button></div>`).join("")}</div>`:""}
@@ -166,7 +170,8 @@ async function mlOpen(id){ if(mlMob()) mlLayer("v"); ML.sel=id; ML.comp=null; ML
   if(mlUnread(r) && !mlRO()){ r.read="1"; mlSet([{id, read:1}]); }
   try{ const j=await api({action:"mail", op:"get", id}); if(ML.sel!==id) return; ML.view={id, text:j.text||"", html:j.html||"", err:j.err||""}; }
   catch(e){ if(ML.sel!==id) return; ML.view={id, text:r.snippet||"", html:"", err:"Полный текст не загрузился: "+e.message}; }
-  const v=$("#ml-view"); if(v){ v.innerHTML=mlViewHtml(); v.classList.add("fresh"); setTimeout(()=>v.classList.remove("fresh"),300); } mlBadge(); mlListMark(); }
+  if(ML.comp){ mlBadge(); mlListMark(); return; }   /* уже пишут ответ — форму не перерисовываем, набранное не трогаем */
+  const v=$("#ml-view"); if(v){ v.innerHTML=mlViewHtml(); mlCompFocus(); v.classList.add("fresh"); setTimeout(()=>v.classList.remove("fresh"),300); } mlBadge(); mlListMark(); }
 function mlListMark(){ mlPgSync(); document.querySelectorAll("#ml-list .mlr").forEach(b=>{ const r=ML.rows.find(x=>x.id===b.dataset.mlid); b.classList.toggle("sel", b.dataset.mlid===ML.sel); if(r) b.classList.toggle("un", mlUnread(r)); }); const w=$("#ml .mlw"); if(w) w.classList.toggle("vopen", !!(ML.sel||ML.comp)); }
 function mlScrollView(){ if(mlMob()) return; if(matchMedia("(max-width:899px)").matches){ const v=$("#ml .mlw"); if(v) window.scrollTo({top:v.getBoundingClientRect().top+window.scrollY-80, behavior:"smooth"}); } }
 async function mlSet(L){ try{ await api({action:"mail", op:"set", rows:L}); }catch(e){} }
@@ -215,19 +220,25 @@ function mlCompose(kind){ const r=ML.rows.find(x=>x.id===ML.sel), V=ML.view&&r&&
     C.text="\n\n"+(mlAccOf(acc).name||"Фруктовый Дом")+"\n\n"+mlFull(r.date)+", "+(r.fromName||r.from)+" <"+r.from+"> написал(а):\n"+q; }
   if(r && kind==="fwd"){ C.subject="Fwd: "+(r.subject||""); C.text="\n\n---------- Пересланное письмо ----------\nОт: "+(r.fromName||"")+" <"+r.from+">\nДата: "+mlFull(r.date)+"\nТема: "+(r.subject||"")+"\nКому: "+(r.to||"")+"\n\n"+String((V&&V.text)||r.snippet||""); C.fwdAtts=mlAtts(r).map((x,i)=>({i, n:x.n, s:x.s, on:true})); C.fwdFrom=r.id; }
   if(mlMob()) mlLayer("v"); ML.comp=C; mlDraw(); mlScrollView(); setTimeout(()=>{ const f=kind==="new"||kind==="fwd"?$("#mlc-to"):$("#mlc-text"); if(f){ f.focus(); if(f.id==="mlc-text") f.setSelectionRange(0,0); } }, 50); }
-function mlCompHtml(){ const C=ML.comp, sum=C.files.reduce((s,f)=>s+f.size,0)+(C.fwdAtts||[]).filter(x=>x.on).reduce((s,x)=>s+(+x.s||0),0);
-  return `<div class="mlcomp"><div class="mlvh">${mlMob()?"":`<button type="button" class="btn ghost sm mlback" data-ml="cclose">‹ Письма</button>`}<h3>${C.kind==="new"?"Новое письмо":C.kind==="fwd"?"Переслать":"Ответ"}</h3></div>
+/* после перерисовки — курсор туда же, где печатали */
+function mlCompFocus(){ const C=ML.comp, f=C&&C.foc; if(!f) return; const el=document.getElementById(f.id); if(!el || document.activeElement===el) return;
+  try{ el.focus({preventScroll:true}); if(f.s!=null && el.setSelectionRange) el.setSelectionRange(f.s, f.e); if(f.t) el.scrollTop=f.t; }catch(e){} }
+function mlCompHtml(){ const C=ML.comp; C.k=C.k||Math.random().toString(36).slice(2,9); const sum=C.files.reduce((s,f)=>s+f.size,0)+(C.fwdAtts||[]).filter(x=>x.on).reduce((s,x)=>s+(+x.s||0),0);
+  return `<div class="mlcomp" data-ck="${C.k}"><div class="mlvh">${mlMob()?"":`<button type="button" class="btn ghost sm mlback" data-ml="cclose">‹ Письма</button>`}<h3>${C.kind==="new"?"Новое письмо":C.kind==="fwd"?"Переслать":"Ответ"}</h3></div>
     <label class="f">С ящика<select id="mlc-acc">${ML.acc.map(a=>`<option value="${a.id}"${a.id===C.acc?" selected":""}>${esc((a.name?a.name+" — ":"")+a.email)}</option>`).join("")}</select></label>
     <label class="f">Кому<input id="mlc-to" value="${esc(C.to)}" placeholder="адрес@пример.ru, второй@пример.ru" autocomplete="off" list="mlc-dl"></label>
     <label class="f">Копия<input id="mlc-cc" value="${esc(C.cc)}" placeholder="необязательно" autocomplete="off"></label>
     <datalist id="mlc-dl">${[...new Set(ML.rows.filter(r=>r.dir!=="sent"&&r.from).map(r=>(r.fromName?r.fromName+" <"+r.from+">":r.from)))].slice(0,300).map(x=>`<option value="${esc(x)}">`).join("")}</datalist>
     <label class="f">Тема<input id="mlc-sub" value="${esc(C.subject)}" autocomplete="off"></label>
-    <label class="f">Текст<textarea id="mlc-text" rows="12">${esc(C.text)}</textarea></label>
+    <label class="f">Текст<textarea id="mlc-text" rows="12">
+${esc(C.text)}</textarea></label>
     <div class="mlcf">${(C.fwdAtts||[]).map(x=>`<label class="mlchip"><input type="checkbox" data-mlfa="${x.i}"${x.on?" checked":""}> ${ML_IC.clip} ${esc(x.n)} <small>${x.s?mlSize(x.s):""}</small></label>`).join("")}
       ${C.files.map((f,i)=>`<span class="mlchip">${ML_IC.clip} ${esc(f.name)} <small>${mlSize(f.size)}</small><button type="button" data-mlfx="${i}" aria-label="Убрать">×</button></span>`).join("")}
       <label class="btn ghost sm">${ML_IC.clip} Прикрепить файл<input type="file" id="mlc-file" multiple hidden></label>${sum>2.3e6?`<span class="neg" style="font-size:12.5px">вложения больше 2,3 МБ — так не уйдёт</span>`:""}</div>
     <div class="mlcb"><button type="button" class="btn pri" data-ml="send" ${C.busy?"disabled":""}>${C.busy?`<i class="spin"></i>Отправляю…`:"Отправить"}</button><button type="button" class="btn ghost" data-ml="cclose">Отмена</button></div></div>`; }
-function mlCompRead(){ const C=ML.comp; if(!C) return; const v=id=>(document.getElementById(id)||{}).value; C.acc=v("mlc-acc")??C.acc; C.to=v("mlc-to")??C.to; C.cc=v("mlc-cc")??C.cc; C.subject=v("mlc-sub")??C.subject; C.text=v("mlc-text")??C.text; }
+function mlCompRead(){ const C=ML.comp; if(!C) return; const form=document.querySelector('.mlcomp[data-ck="'+(C.k||"")+'"]'); if(!form) return;   /* поля именно этого письма (а не прошлого черновика) */
+  const ae=document.activeElement; C.foc = ae && form.contains(ae) && ae.id ? {id:ae.id, s:ae.selectionStart, e:ae.selectionEnd, t:ae.scrollTop} : null;
+  const v=id=>(document.getElementById(id)||{}).value; C.acc=v("mlc-acc")??C.acc; C.to=v("mlc-to")??C.to; C.cc=v("mlc-cc")??C.cc; C.subject=v("mlc-sub")??C.subject; C.text=v("mlc-text")??C.text; }
 const mlSplit = s => String(s||"").split(/[,;]\s*/).map(x=>x.trim()).filter(Boolean);
 const mlB64 = f => new Promise((ok,bad)=>{ const r=new FileReader(); r.onload=()=>{ const u=String(r.result); ok(u.slice(u.indexOf(",")+1)); }; r.onerror=()=>bad(new Error("файл не прочитался")); r.readAsDataURL(f); });
 async function mlSend(){ mlCompRead(); const C=ML.comp, to=mlSplit(C.to), cc=mlSplit(C.cc), bad=[...to,...cc].filter(x=>!/[^@\s<]+@[^@\s>]+\.[^@\s>]+/.test(x));
@@ -299,6 +310,11 @@ document.addEventListener("click", e=>{ const root=e.target.closest&&e.target.cl
   if(a==="more"){ ML.more+=60; mlDraw(); return; }
   if(a==="back"){ if(mlMob()){ mlLayerOff(); return; } ML.sel=""; ML.view=null; mlListMark(); return; }
   if(a==="readall"){ mlReadAll(); return; }
+  if(!mlRO() && a==="fldnew"){ mlFldNew(); return; }
+  if(!mlRO() && a==="fldren"){ mlFldRen(); return; }
+  if(!mlRO() && a==="flddel"){ mlFldDel(); return; }
+  if(!mlRO() && a==="fldpick" && r){ const b2=b.getBoundingClientRect(); mlFldMenu([r], b2.left, b2.bottom+4); return; }
+  if(!mlRO() && a==="fldout" && r){ mlBulkUi([r], "fld:"); return; }
   if(a==="new"){ ML.sel=""; mlCompose("new"); return; }
   if(mlRO() && /^(new|reply|replyall|fwd|send|unread|notord|isord|set)$/.test(a)) return;
   if(a==="reply"||a==="replyall"||a==="fwd"){ mlCompose(a); return; }
@@ -363,13 +379,14 @@ function mlQuick(r, q, ev){ if(q==="menu"){ const b=ev.target.closest("button").
   if(q==="done"||q==="todo"){ mlMark(r, (q==="done"?mlDone(r):mlTodo(r)) ? "" : q); return; }
   if(q==="done"){ const on=!mlDone(r); mlOrdPatch(r, {done: on?{by:curUser(), at:new Date().toISOString()}:null}, on); if(on) r.read="1"; mlRowSync(r); mlCounts(); mlBadge(); if(ML.sel===r.id){ const v=$("#ml-view"); if(v) v.innerHTML=mlViewHtml(); } toast(on?"ok":"info", on?"Письмо обработано":"Пометка снята",""); return; }
   if(q==="spam"||q==="nospam"||q==="minor"||q==="major") mlAct(r, q); }
-function mlMenuClose(){ const m=document.getElementById("ml-menu"); if(m){ m.classList.add("out"); setTimeout(()=>m.remove(),120); } }
+function mlMenuClose(){ const m=document.getElementById("ml-menu"); if(m){ m.removeAttribute("id"); m.classList.add("out"); setTimeout(()=>m.remove(),120); } }
 function mlMenu(r, x, y){ mlMenuClose(); const ro=mlRO(), inb=r.dir!=="sent", t=mlTag(mlAddr(r)), sp=mlSpam(r);
   const it=(k,ic,txt,cls)=>`<button type="button" role="menuitem" data-mlm="${k}" class="${cls||""}">${ic?`<i>${ic}</i>`:"<i></i>"}<span>${txt}</span></button>`, sep=`<hr>`;
   const L=[it("open",ML_IC.eye,"Открыть")];
   if(!ro){ if(inb) L.push(it("reply",ML_IC.reply,"Ответить")); L.push(it("fwd","","Переслать"));
     if(inb){ L.push(sep, it("read", r.read?ML_IC.mail1:ML_IC.mail0, r.read?"Отметить непрочитанным":"Отметить прочитанным"), it("todo", ML_IC_TODO, mlTodo(r)?"Снять «Не обработано»":"Не обработано", "todo"), it("done", ML_IC_OK, mlDone(r)?"Снять «Обработано»":"Обработано", "ok"));
       L.push(sep, t&&t.kind==="cus" ? it("tagcus","","Заказчик: "+esc(cusNm(t.customerId)||"?")+" — изменить…") : it("tagcus","","Это заказчик…"), t&&t.kind==="no" ? it("untag","","Снять «Не заказчик»") : it("tagno","","Не заказчик"));
+      L.push(sep, it("fldpick", ML_IC_FLD, mlFld(r)?"В другую папку…":"В папку…"));
       L.push(sep, mlMinor(r) ? it("major",ML_IC.minor,"Вернуть во входящие") : it("minor",ML_IC.minor,"В неважные"), sp ? it("nospam",ML_IC.spam,"Не спам") : it("spam",ML_IC.spam,"В спам — и все письма от него", "bad")); } }
   const m=document.createElement("div"); m.id="ml-menu"; m.className="mlmenu"; m.setAttribute("role","menu"); m.dataset.id=r.id;
   m.innerHTML=`<div class="mlmh">${esc(r.dir==="sent"?r.to:(r.fromName||r.from))}<small>${esc(r.subject||"(без темы)")}</small></div>`+L.join("");
@@ -377,7 +394,8 @@ function mlMenu(r, x, y){ mlMenuClose(); const ro=mlRO(), inb=r.dir!=="sent", t=
   const W=m.offsetWidth, H=m.offsetHeight; m.style.left=Math.max(8, Math.min(x, innerWidth-W-8))+"px"; m.style.top=Math.max(8, Math.min(y, innerHeight-H-8))+"px";
   requestAnimationFrame(()=>m.classList.add("in")); const f=m.querySelector("[data-mlm]"); if(f) f.focus(); }
 document.addEventListener("click", e=>{ const m=document.getElementById("ml-menu"); if(!m) return; const b=e.target.closest&&e.target.closest("[data-mlm]");
-  if(b && m.contains(b)){ const r=ML.rows.find(x=>x.id===m.dataset.id), k=b.dataset.mlm; mlMenuClose(); if(!r) return;
+  if(b && m.contains(b)){ const r=ML.rows.find(x=>x.id===m.dataset.id), k=b.dataset.mlm, rc=m.getBoundingClientRect(); mlMenuClose(); if(!r) return;
+    if(k==="fldpick"){ mlFldMenu([r], rc.left, rc.top); return; }
     if(k==="open"){ mlOpen(r.id); return; } if(k==="reply"||k==="fwd"){ mlOpen(r.id).then(()=>mlCompose(k)); return; }
     if(k==="read"||k==="done"||k==="todo"){ mlQuick(r, k); return; } mlAct(r, k); return; }
   if(!m.contains(e.target)) mlMenuClose(); }, true);
@@ -489,7 +507,7 @@ async function mlvPrint(V, name){ if(!V.items.length){ toast("info","Ещё за
 const mlMob = () => matchMedia("(max-width:899px)").matches;
 const ML_FN={in:"Входящие", all:"Все письма", ord:"Заявки", undone:"Не обработаны", unread:"Непрочитанные", sent:"Отправленные", minor:"Неважные", spam:"Спам"};
 const mlSv = (d, w) => `<svg viewBox="0 0 24 24" width="${w||22}" height="${w||22}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
-const MI={menu:mlSv('<path d="M4 7h16M4 12h16M4 17h16"/>'), back:mlSv('<path d="M19 12H5M11 6l-6 6 6 6"/>'), search:mlSv('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>'),
+const MI={plus:mlSv('<path d="M12 5v14M5 12h14"/>'), menu:mlSv('<path d="M4 7h16M4 12h16M4 17h16"/>'), back:mlSv('<path d="M19 12H5M11 6l-6 6 6 6"/>'), search:mlSv('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>'),
   more:mlSv('<circle cx="12" cy="5.5" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="12" cy="18.5" r="1.3"/>'), x:mlSv('<path d="M6 6l12 12M18 6L6 18"/>'),
   check:mlSv('<path d="M5 12.5l4.5 4.5L19 7.5"/>',20), send:mlSv('<path d="M4 12l16-8-6 16-2.5-6.5z"/><path d="M11.5 13.5L20 4"/>'),
   all:mlSv('<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 12l2.5 2.5 4.5-5"/>'), inbox:mlSv('<path d="M4 13l2.5-7h11L20 13v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z"/><path d="M4 13h4.5l1.5 2.5h4l1.5-2.5H20"/>',20),
@@ -521,17 +539,18 @@ function mlRowMob(r,i){ const A=mlAtts(r), un=mlUnread(r), o=r.dir!=="sent"&&mlI
         ${chips?`<span class="mr4">${chips}</span>`:""}</span></span></div>`; }
 /* счётчики папок */
 function mlCnt(){ const bx=r=>!ML.box||r.acc===ML.box, R=ML.rows.filter(bx);
-  return {in:R.filter(mlUnread).length, ord:R.filter(r=>mlIsOrd(r)&&!(mlOrdSt(r)||{}).st).length, undone:R.filter(r=>r.dir!=="sent"&&!mlSpam(r)&&!mlMinor(r)&&!!mlTodo(r)).length,
-    unread:R.filter(mlUnread).length, minor:R.filter(r=>mlMinor(r)&&!r.read).length, spam:R.filter(mlSpam).length, all:0, sent:0}; }
+  const o={in:R.filter(mlUnIn).length, ord:0, undone:R.filter(r=>r.dir!=="sent"&&!mlSpam(r)&&!mlMinor(r)&&!!mlTodo(r)).length,
+    unread:R.filter(mlUnread).length, minor:R.filter(r=>mlMinor(r)&&!r.read).length, spam:R.filter(mlSpam).length, all:0, sent:0};
+  mlFlds().forEach(f=>{ o["u:"+f.id]=R.filter(r=>mlFld(r)===f.id && mlUnread(r)).length; }); return o; }
 function mlAbHtml(){
   if(ML.pmode){ const n=ML.pick.size, P=[...ML.pick].map(id=>ML.rows.find(r=>r.id===id)).filter(Boolean), anyUn=P.some(r=>r.dir!=="sent"&&!r.read), inb=P.some(r=>r.dir!=="sent"), dis=n&&inb?"":" disabled";
     const b=(a,t,ic)=>`<button type="button" class="mlib" data-mm="pact" data-a="${a}" title="${t}" aria-label="${t}"${dis}>${ic}</button>`;
     return `<button type="button" class="mlib" data-mm="pickx" aria-label="Закончить выбор">${MI.x}</button><b class="mlabn" aria-label="Выбрано писем: ${n}">${n||"Выберите"}</b><span class="grow"></span>
-      <button type="button" class="mlib" data-mm="pall" title="Выбрать все" aria-label="Выбрать все">${MI.all}</button>${b(anyUn?"read":"unread", anyUn?"Отметить прочитанными":"Отметить непрочитанными", anyUn?ML_IC.mail1:ML_IC.mail0)}${b("done","Обработано",ML_IC_OK)}${ML.f==="spam"?b("nospam","Не спам",ML_IC_OK):b(ML.f==="minor"?"major":"minor", ML.f==="minor"?"Во входящие":"В неважные", ML_IC.minor)+b("spam","В спам",ML_IC.spam)}`; }
+      <button type="button" class="mlib" data-mm="pall" title="Выбрать все" aria-label="Выбрать все">${MI.all}</button>${b(anyUn?"read":"unread", anyUn?"Отметить прочитанными":"Отметить непрочитанными", anyUn?ML_IC.mail1:ML_IC.mail0)}${b("done","Обработано",ML_IC_OK)}${b("fld","В папку",ML_IC_FLD)}${ML.f==="spam"?b("nospam","Не спам",ML_IC_OK):b(ML.f==="minor"?"major":"minor", ML.f==="minor"?"Во входящие":"В неважные", ML_IC.minor)+b("spam","В спам",ML_IC.spam)}`; }
   if(ML.srch) return `<button type="button" class="mlib" data-mm="srchx" aria-label="Закрыть поиск">${MI.back}</button><input type="search" id="ml-q" placeholder="Поиск в почте" value="${esc(ML.q)}" autocomplete="off" enterkeyhint="search">${ML.q?`<button type="button" class="mlib" data-mm="qclr" aria-label="Очистить поиск">${MI.x}</button>`:""}`;
   const c=mlCnt(), n=ML.f==="sent"||ML.f==="all"?0:ML.f==="spam"?0:(c[ML.f]||0), bx=ML.box?(mlAccOf(ML.box).email||""):"все ящики";
   return `<button type="button" class="mlib" data-mm="dr" aria-label="Папки и ящики">${MI.menu}</button>
-    <button type="button" class="mlabt" data-mm="dr"><span class="mlabh"><b>${ML_FN[ML.f]||"Почта"}</b>${n?`<em>${n}</em>`:""}</span><small><span class="mlabx"${ML.box?` style="--c:${mlCol(ML.box)}"`:""}>${esc(bx)}</span> · <span id="ml-sync">${mlSyncTxt()}</span></small></button>
+    <button type="button" class="mlabt" data-mm="dr"><span class="mlabh"><b>${esc(mlFName(ML.f))}</b>${n?`<em>${n}</em>`:""}</span><small><span class="mlabx"${ML.box?` style="--c:${mlCol(ML.box)}"`:""}>${esc(bx)}</span> · <span id="ml-sync">${mlSyncTxt()}</span></small></button>
     <button type="button" class="mlib" data-mm="srch" aria-label="Поиск">${MI.search}</button><button type="button" class="mlib" data-mm="more" aria-label="Ещё">${MI.more}</button>`; }
 function mlAbSync(){ if(ML.srch) return; const ab=$("#ml-ab"); if(ab) ab.innerHTML=mlAbHtml(); }
 function mlEmptyTxt(){ return ML.q?"Ничего не найдено":ML.f==="ord"?"Заявок нет":ML.f==="sent"?"Отправленных пока нет":ML.f==="spam"?"В спаме пусто":ML.f==="minor"?"Неважных писем нет":ML.f==="undone"?"Писем с пометкой «Не обработано» нет":ML.f==="unread"?"Всё прочитано":"Писем нет"; }
@@ -539,8 +558,9 @@ function mlMobDraw(el, L){ el.classList.add("mob");
   const lim=60+ML.more; let html="", day="";
   L.slice(0,lim).forEach((r,i)=>{ const d=jIso(new Date(r.date)); if(d!==day){ if(day) html+=`</div>`; day=d; html+=`<div class="mlday">${esc(mlDayTxt(r.date))}</div><div class="mlgrp">`; } html+=mlRowMob(r,i); }); if(day) html+=`</div>`;
   const key=ML.f+"|"+ML.box+"|"+ML.q+"|m", calm=ML.calmKey===key || ML.calmKey===ML.f+"|"+ML.box+"|m";
+  if(ML.f.startsWith("u:") && !mlFldOf(ML.f.slice(2))) ML.f="in";
   el.innerHTML=`<div class="mlm${ML.pmode?" selm":""}${ML.srch?" srch":""}"><div class="mlab" id="ml-ab">${mlAbHtml()}</div>${mlErrHtml()}
-    <div class="mll mlml${calm?" calm":""}" id="ml-list" role="list">${html||`<div class="mlempty sm"><b>${mlEmptyTxt()}</b><span>${ML.loaded?"":"Загружаю…"}</span></div>`}${L.length>lim?`<div class="mlsent" id="ml-sent"><i class="spin"></i> Загружаю ещё…</div>`:""}</div></div>`;
+    <div class="mll mlml${calm?" calm":""}" id="ml-list" role="list">${mlFolderNote()}${html||`<div class="mlempty sm"><b>${mlEmptyTxt()}</b><span>${ML.loaded?"":"Загружаю…"}</span></div>`}${L.length>lim?`<div class="mlsent" id="ml-sent"><i class="spin"></i> Загружаю ещё…</div>`:""}</div></div>`;
   ML.calmKey=ML.f+"|"+ML.box+"|m";
   const o=mlOv(); o.hidden=false; const mb=document.getElementById("mbar"), mbh=mb&&!mb.hidden&&getComputedStyle(mb).display!=="none"?Math.round(mb.getBoundingClientRect().height):0; o.style.setProperty("--mbh", mbh+"px"); el.style.setProperty("--mbh", mbh+"px"); document.documentElement.classList.add("mlmob"); document.documentElement.style.setProperty("--mlmbh", mbh+"px"); const fab=o.querySelector(".mlfab"); if(fab) fab.hidden=mlRO();
   mlPgFill(); mlObs(); mlBadge(); mlSyncUi(); }
@@ -566,7 +586,7 @@ function mlPgSync(){ const v=document.getElementById("ml-view"); if(!v || !v.cla
   document.documentElement.classList.toggle("mlpgon", open);
   if(!open && ML.layer==="v"){ ML.layer=""; if(ML.hp){ ML.hp=false; ML.ign=(ML.ign||0)+1; try{ history.back(); }catch(e){ ML.ign--; } } } }
 function mlPgFill(){ const v=document.getElementById("ml-view"); if(!v || !v.classList.contains("mlpage")) return; const k=ML.comp?"c:"+(ML.comp.reply||ML.comp.kind):ML.sel;
-  if(ML.sel||ML.comp){ const y=v.dataset.k===k?v.scrollTop:0; v.innerHTML=mlViewHtml(); v.scrollTop=y; } mlPgSync(); }
+  if(ML.sel||ML.comp){ const y=v.dataset.k===k?v.scrollTop:0; v.innerHTML=mlViewHtml(); v.scrollTop=y; mlCompFocus(); } mlPgSync(); }
 function mlPgHtml(){ const ro=mlRO();
   if(ML.comp){ const C=ML.comp; return `<div class="mlpb"><button type="button" class="mlib" data-ml="cclose" aria-label="Закрыть">${MI.x}</button><b class="mlpt">${C.kind==="new"?"Новое письмо":C.kind==="fwd"?"Переслать":"Ответ"}</b><span class="grow"></span>
       <button type="button" class="mlib mlsend" data-ml="send" aria-label="Отправить" title="Отправить"${C.busy?" disabled":""}>${C.busy?`<i class="spin"></i>`:MI.send}</button></div><div class="mlpc">${mlViewBody()}</div>`; }
@@ -574,7 +594,7 @@ function mlPgHtml(){ const ro=mlRO();
   const inb=r.dir!=="sent", sp=mlSpam(r), mi=mlMinor(r), many=r.cc||String(r.to||"").includes(",");
   const ib=(a,t,ic)=>`<button type="button" class="mlib" data-mm="one" data-a="${a}" title="${t}" aria-label="${t}">${ic}</button>`;
   return `<div class="mlpb"><button type="button" class="mlib" data-ml="back" aria-label="Назад к письмам">${MI.back}</button><span class="grow"></span>
-      ${!ro&&inb?ib(r.read?"unread":"read", r.read?"Отметить непрочитанным":"Отметить прочитанным", r.read?ML_IC.mail0:ML_IC.mail1)+(sp?ib("nospam","Не спам",ML_IC_OK):ib(mi?"major":"minor", mi?"Во входящие":"В неважные", ML_IC.minor)+ib("spam","В спам",ML_IC.spam)):""}
+      ${!ro&&inb?ib(r.read?"unread":"read", r.read?"Отметить непрочитанным":"Отметить прочитанным", r.read?ML_IC.mail0:ML_IC.mail1)+(sp?ib("nospam","Не спам",ML_IC_OK):ib(mi?"major":"minor", mi?"Во входящие":"В неважные", ML_IC.minor)+ib("spam","В спам",ML_IC.spam))+`<button type="button" class="mlib" data-mm="vfld" title="В папку" aria-label="В папку">${ML_IC_FLD}</button>`:""}
       <button type="button" class="mlib" data-mm="vmenu" aria-label="Ещё действия">${MI.more}</button></div>
     <div class="mlpc">${mlViewBody()}</div>
     ${ro?"":`<div class="mlpf">${inb?`<button type="button" class="btn pri" data-ml="reply">${ML_IC.reply} Ответить</button>${many?`<button type="button" class="btn" data-ml="replyall">Всем</button>`:""}`:""}<button type="button" class="btn" data-ml="fwd">Переслать</button></div>`}`; }
@@ -592,6 +612,7 @@ function mlDrHtml(){ const c=mlCnt(), ro=mlRO(), adm=me().admin;
   return `<div class="mldrh"><b>Почта</b><small>${esc(mlSyncTxt().replace(/<[^>]+>/g,""))||"&nbsp;"}</small></div>
     ${ro?"":`<button type="button" class="btn pri mldrnew" data-mm="dnew">${ML_IC.pen} Написать</button>`}
     <div class="mldrg">${F.map(x=>it(x[0],x[1])).join("")}</div>
+    ${mlFlds().length||!ro?`<div class="mldrt">Мои папки</div><div class="mldrg">${mlFlds().map(f=>`<button type="button" class="mldi${ML.f==="u:"+f.id?" on":""}" data-mm="f" data-f="u:${esc(f.id)}">${ML_IC_FLD}<span>${esc(f.name)}</span>${c["u:"+f.id]?`<em>${c["u:"+f.id]}</em>`:""}</button>`).join("")}${ro?"":`<button type="button" class="mldi mldinew" data-mm="fnew">${MI.plus}<span>Новая папка</span></button>`}</div>`:""}
     ${ML.acc.length>1?`<div class="mldrt">Ящики</div><div class="mldrg"><button type="button" class="mldi${ML.box?"":" on"}" data-mm="box" data-box="">${MI.stack}<span>Все ящики</span></button>${ML.acc.map(a=>{ const n=ML.rows.filter(r=>r.acc===a.id&&mlUnread(r)).length; return `<button type="button" class="mldi${ML.box===a.id?" on":""}" data-mm="box" data-box="${esc(a.id)}" style="--c:${mlCol(a.id)}"><i class="mldot"></i><span>${esc(a.email)}${a.err?` <b class="mlwarn" title="${esc(mlErrTxt(a.err))}">!</b>`:""}</span>${n?`<em>${n}</em>`:""}</button>`; }).join("")}</div>`:""}
     <div class="mldrt"></div><div class="mldrg"><button type="button" class="mldi" data-mm="dsync">${MI.ref}<span class="mlsyt">${ML.sync?"Проверяю…":"Проверить почту"}</span></button>${ro?"":`<button type="button" class="mldi" data-mm="dread">${MI.all}<span>Прочитать все</span></button>`}${adm?`<button type="button" class="mldi" data-mm="dset">${MI.gear}<span>Ящики и посредник</span></button>`:""}</div>`; }
 function mlDrOpen(on){ const d=document.getElementById("ml-dr"); if(!d) return; if(on){ document.getElementById("ml-drp").innerHTML=mlDrHtml(); mlLayer("d"); }
@@ -625,6 +646,7 @@ function mlBulk(L, act){ const S=L.map(r=>({id:r.id, read:r.read||"", order:r.or
     const o=Object.assign({}, mlOrdSt(r)||{}); let rd=null, ord=true;
     if(act==="read"){ r.read="1"; rd=1; ord=false; } else if(act==="unread"){ r.read=""; rd=0; ord=false; }
     else if(act==="done"){ o.done=now; delete o.todo; r.read="1"; rd=1; }
+    else if(act.startsWith("fld:")){ const f=act.slice(4); if(f) o.fld=f; else delete o.fld; delete o.minor; }
     else if(act==="minor"){ o.minor=1; r.read="1"; rd=1; } else if(act==="major"){ delete o.minor; }
     else if(act==="spam"){ o.spam=1; delete o.minor; r.read="1"; rd=1; const em=mlAddr(r); if(em && (mlTag(em)||{}).kind!=="spam" && !tags.includes(em)) tags.push(em); }
     else if(act==="nospam"){ o.spam=0; const em=mlAddr(r); if(em && (mlTag(em)||{}).kind==="spam" && !untag.includes(em)) untag.push(em); }
@@ -637,9 +659,10 @@ function mlRestore(R){ R.S.forEach(x=>{ const r=ML.rows.find(y=>y.id===x.id); if
 const ML_BT={read:"Отмечено прочитанным", unread:"Отмечено непрочитанным", done:"Обработано", minor:"В «Неважных»", major:"Снова во «Входящих»", spam:"В спаме", nospam:"Не спам — снова во «Входящих»"};
 function mlBulkUi(L, a){ if(mlRO() || !L.length) return; const R=mlBulk(L, a); if(!R.n){ toast("info","Нечего отмечать",""); return; }
   const w=R.n>1?": "+R.n+" "+plural(R.n,["письмо","письма","писем"]):"", r=L[0];
-  if(ML.sel && /^(minor|spam|major|nospam)$/.test(a) && ML.f!=="all" && !mlList().some(x=>x.id===ML.sel) && ML.layer==="v") mlLayerOff();
+  if(ML.sel && /^(minor|spam|major|nospam|fld:)/.test(a) && ML.f!=="all" && !mlList().some(x=>x.id===ML.sel) && ML.layer==="v") mlLayerOff();
   mlDraw(); mlBadge();
-  toast(a==="spam"?"info":"ok", ML_BT[a]+w, a==="spam"?(R.tags.length?"Следующие письма от "+(R.tags.length>1?"этих отправителей":R.tags[0])+" тоже сразу попадут в спам.":""):a==="minor"&&R.n===1?"Только это письмо — следующие от "+(mlAddr(r)||"отправителя")+" придут как обычно.":"",
+  const fl=a.startsWith("fld:")?a.slice(4):null;
+  toast(a==="spam"?"info":"ok", (fl!=null?(fl?"В папке «"+((mlFldOf(fl)||{}).name||"")+"»":"Снова во «Входящих»"):ML_BT[a])+w, a==="spam"?(R.tags.length?"Следующие письма от "+(R.tags.length>1?"этих отправителей":R.tags[0])+" тоже сразу попадут в спам.":""):a==="minor"&&R.n===1?"Только это письмо — следующие от "+(mlAddr(r)||"отправителя")+" придут как обычно.":"",
     {action:{label:"Отменить", fn:()=>mlRestore(R)}}); }
 async function mlReadAll(){ if(mlRO()) return; const L=mlRaList(); if(!L.length){ toast("info","Здесь всё прочитано",""); return; }
   const R=mlBulk(L,"read"); mlDraw(); mlBadge();
@@ -653,6 +676,8 @@ function mlMobAct(k, el, e){ const row=el.closest("[data-mlid]"), rr=row?ML.rows
   if(k==="dr"){ mlDrOpen(true); return; }
   if(k==="drx"){ mlLayerOff(); return; }
   if(k==="f"||k==="box"){ if(k==="f") ML.f=el.dataset.f; else ML.box=el.dataset.box; ML.more=0; ML.q=""; ML.srch=false; mlLayerOff(); mlDraw(); window.scrollTo({top:0}); return; }
+  if(k==="fnew"){ mlLayerOff(); mlFldNew(); return; }
+  if(k==="vfld"){ if(cur){ const b=el.getBoundingClientRect(); mlFldMenu([cur], b.right-240, b.bottom+4); } return; }
   if(k==="dnew"){ mlLayerOff(); ML.sel=""; mlCompose("new"); return; }
   if(k==="dsync"){ mlLayerOff(); mlLoad(true); return; }
   if(k==="dread"){ mlLayerOff(); mlReadAll(); return; }
@@ -664,7 +689,8 @@ function mlMobAct(k, el, e){ const row=el.closest("[data-mlid]"), rr=row?ML.rows
   if(k==="pick"){ if(!rr) return; if(mlRO()){ mlOpen(rr.id); return; } mlPickTog(rr.id); return; }
   if(k==="pickx"){ mlLayerOff(); return; }
   if(k==="pall"){ ML.pick=ML.pick||new Set(); const L=mlList(), all=L.every(r=>ML.pick.has(r.id)); if(all) ML.pick.clear(); else L.forEach(r=>ML.pick.add(r.id)); if(all){ mlLayerOff(); return; } mlPickSync(); return; }
-  if(k==="pact"){ const P=[...(ML.pick||[])].map(id=>ML.rows.find(r=>r.id===id)).filter(Boolean), a=el.dataset.a; mlLayerOff(); mlBulkUi(P, a); return; }
+  if(k==="pact"){ const P=[...(ML.pick||[])].map(id=>ML.rows.find(r=>r.id===id)).filter(Boolean), a=el.dataset.a;
+    if(a==="fld"){ const b=el.getBoundingClientRect(); mlFldMenu(P, b.right-240, b.bottom+4, ()=>mlLayerOff()); return; } mlLayerOff(); mlBulkUi(P, a); return; }
   if(k==="one"){ if(cur) mlBulkUi([cur], el.dataset.a); return; }
   if(k==="vmenu"){ if(!cur) return; const b=el.getBoundingClientRect(); mlMenu(cur, b.right-250, b.bottom+4); return; } }
 /* смахивание строки и долгое нажатие */
@@ -695,3 +721,55 @@ document.addEventListener("pointercancel", e=>{ if(MG.row && e.pointerId===MG.pi
 let mlLastY=0; window.addEventListener("scroll", ()=>{ const f=document.querySelector("#ml-ov .mlfab"); if(!f) return; const y=window.scrollY; if(Math.abs(y-mlLastY)<6) return; f.classList.toggle("mini", y>mlLastY && y>120); mlLastY=y; }, {passive:true});
 document.addEventListener("keydown", e=>{ if(e.key==="Escape" && ML.layer && mlMob() && !document.getElementById("ml-menu") && !document.querySelector("dialog[open]")){ e.preventDefault(); mlLayerOff(); } });
 (function(){ const mq=matchMedia("(max-width:899px)"); const f=()=>{ if(typeof curTab!=="undefined" && curTab==="mail") mlDraw(); }; if(mq.addEventListener) mq.addEventListener("change", f); else if(mq.addListener) mq.addListener(f); })();
+/* ---------- свои папки (Code.gs ≥ 33: свойство MAIL_FOLDERS, op:folders; у письма — order.fld) ---------- */
+const ML_IC_FLD='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+const mlFlds = () => (ML.folders||[]).slice().sort((a,b)=>(a.order||0)-(b.order||0));
+const mlFldOf = id => (ML.folders||[]).find(f=>f.id===id);
+function mlFld(r){ const o=mlOrdSt(r), id=o&&o.fld; return id && mlFldOf(id) ? id : ""; }
+function mlFName(k){ if(String(k).startsWith("u:")){ const f=mlFldOf(k.slice(2)); return f?f.name:"Почта"; } return ML_FN[k]||"Почта"; }
+/* подпись над письмами: в «Заявках» — что их определяет сайт; в своей папке — переименовать/удалить */
+function mlFolderNote(){
+  if(ML.f==="ord") return `<div class="mlfnote">${ML_IC_FLD}<span>Сюда сайт <b>сам</b> складывает письма, похожие на заявки (по словам, строкам «товар — кг» и вложениям). Могут попасть и не заявки — лучше перепроверяйте.${mlRO()?"":" Если письмо не заявка — откройте его и нажмите «Это не заявка»."}</span></div>`;
+  if(!ML.f.startsWith("u:")) return ""; const f=mlFldOf(ML.f.slice(2)); if(!f) return "";
+  return `<div class="mlfnote fld">${ML_IC_FLD}<span>Своя папка <b>«${esc(f.name)}»</b>${ML.fldSrv===false?" · сохранена только на этом устройстве (обновите Code.gs)":""}</span>${mlRO()?"":`<span class="mlfbtn"><button type="button" class="btn ghost sm" data-ml="fldren">Переименовать</button><button type="button" class="btn ghost sm" data-ml="flddel">Удалить папку</button></span>`}</div>`; }
+async function mlFldSave(L, quiet){ ML.folders=L.map((f,i)=>Object.assign({}, f, {order:i}));
+  const local=()=>{ const p=getPrefs(); p.mlFolders=ML.folders; setPrefs(p, true); };
+  if(ML.fldSrv===false){ local(); if(!quiet) toast("warn","Папка сохранена только у вас","Чтобы папки видели все — обновите Code.gs."); return true; }
+  try{ const j=await api({action:"mail", op:"folders", folders:ML.folders}); if(Array.isArray(j.folders)) ML.folders=j.folders; ML.fldSrv=true; return true; }
+  catch(e){ if(/unknown op|unknown action/.test(e.message)){ ML.fldSrv=false; local(); if(!quiet) toast("warn","Папка сохранена только у вас","Чтобы папки видели все — обновите Code.gs."); return true; }
+    toast("err","Папка не сохранилась", e.message); return false; } }
+/* маленькое окно «Название папки» */
+function mlFldAsk(title, val, ok, cb){ const d=document.createElement("dialog"); d.className="mlfdlg";
+  d.innerHTML=`<form method="dialog"><b>${esc(title)}</b><input type="text" id="mlf-name" maxlength="40" placeholder="Например: Поставщики, Банк, Документы" value="${esc(val||"")}" autocomplete="off" enterkeyhint="done">
+    <small class="mlferr" id="mlf-err"></small><div class="mlfbt"><button type="button" class="btn ghost" data-v="0">Отмена</button><button type="submit" class="btn pri" data-v="1">${esc(ok)}</button></div></form>`;
+  (document.getElementById("fd-app")||document.body).appendChild(d);
+  const inp=d.querySelector("input"), err=d.querySelector("#mlf-err"), close=()=>{ try{ d.close(); }catch(e){} d.remove(); };
+  d.querySelector("form").addEventListener("submit", e=>{ e.preventDefault(); const n=inp.value.replace(/\s+/g," ").trim(); const m=cb(n); if(m){ err.textContent=m; inp.focus(); return; } close(); });
+  d.querySelector('[data-v="0"]').addEventListener("click", close); d.addEventListener("cancel", e=>{ e.preventDefault(); close(); });
+  d.addEventListener("click", e=>{ if(e.target===d) close(); });
+  d.showModal(); inp.focus(); inp.select(); }
+function mlFldCheck(n, skip){ if(!n) return "Напишите название"; if(Object.values(ML_FN).some(x=>x.toLowerCase()===n.toLowerCase())) return "Такая папка уже есть";
+  if(mlFlds().some(f=>f.id!==skip && f.name.toLowerCase()===n.toLowerCase())) return "Такая папка уже есть"; if(mlFlds().length>=60) return "Папок слишком много (до 60)"; return ""; }
+function mlFldNew(then){ if(mlRO()) return; mlFldAsk("Новая папка", "", "Создать", n=>{ const m=mlFldCheck(n); if(m) return m;
+    const f={id:"f"+Date.now().toString(36)+Math.random().toString(36).slice(2,5), name:n, color:""};
+    mlFldSave(mlFlds().concat(f)).then(ok=>{ if(!ok){ ML.folders=mlFlds().filter(x=>x.id!==f.id); mlDraw(); } });
+    if(then) then(f); else { ML.f="u:"+f.id; ML.more=0; ML.sel=""; ML.view=null; mlDraw(); toast("ok","Папка «"+n+"» создана","Переложить письмо: «В папку» у письма"+(mlMob()?"":" или правая кнопка мыши")+"."); }
+    return ""; }); }
+function mlFldRen(){ const f=mlFldOf(ML.f.slice(2)); if(!f || mlRO()) return; mlFldAsk("Переименовать папку", f.name, "Сохранить", n=>{ const m=n===f.name?"":mlFldCheck(n, f.id); if(m) return m;
+    mlFldSave(mlFlds().map(x=>x.id===f.id?Object.assign({}, x, {name:n}):x), true); mlDraw(); return ""; }); }
+function mlFldDel(){ const f=mlFldOf(ML.f.slice(2)); if(!f || mlRO()) return; const n=ML.rows.filter(r=>mlFld(r)===f.id).length, before=mlFlds();
+  mlFldSave(before.filter(x=>x.id!==f.id), true); ML.f="in"; ML.sel=""; ML.view=null; mlDraw(); mlBadge();
+  toast("info","Папка «"+f.name+"» удалена", n?n+" "+plural(n,["письмо","письма","писем"])+" снова во «Входящих».":"", {action:{label:"Отменить", fn:()=>{ mlFldSave(before, true).then(()=>{ ML.f="u:"+f.id; mlDraw(); mlBadge(); }); }}}); }
+/* меню «В папку»: свои папки, «Во входящие», «+ Новая папка…» */
+function mlFldMenu(L, x, y, before){ mlMenuClose(); if(mlRO() || !L.length) return; const cur=L.length===1?mlFld(L[0]):"";
+  const m=document.createElement("div"); m.id="ml-menu"; m.className="mlmenu mlfmenu"; m.setAttribute("role","menu");
+  m.innerHTML=`<div class="mlmh">В папку${L.length>1?`<small>${L.length} ${plural(L.length,["письмо","письма","писем"])}</small>`:""}</div>`
+    + mlFlds().map(f=>`<button type="button" role="menuitem" data-mlfp="${esc(f.id)}"${cur===f.id?' aria-current="true" class="on"':""}><i>${ML_IC_FLD}</i><span>${esc(f.name)}</span></button>`).join("")
+    + (L.some(r=>mlFld(r))?`<button type="button" role="menuitem" data-mlfp=""><i>${MI.inbox}</i><span>Во «Входящие»</span></button>`:"")
+    + `<hr><button type="button" role="menuitem" data-mlfp="+"><i>${MI.plus}</i><span>Новая папка…</span></button>`;
+  (document.getElementById("ml-ov")&&mlMob()?document.getElementById("ml-ov"):document.querySelector("dialog[open]")||document.getElementById("fd-app")).appendChild(m);
+  const W=m.offsetWidth, H=m.offsetHeight; m.style.left=Math.max(8, Math.min(x, innerWidth-W-8))+"px"; m.style.top=Math.max(8, Math.min(y, innerHeight-H-8))+"px";
+  requestAnimationFrame(()=>m.classList.add("in")); const f0=m.querySelector("[data-mlfp]"); if(f0) f0.focus();
+  m.addEventListener("click", e=>{ const b=e.target.closest("[data-mlfp]"); if(!b) return; e.stopPropagation(); mlMenuClose(); const id=b.dataset.mlfp;
+    if(id==="+"){ mlFldNew(f=>{ if(before) before(); mlBulkUi(L, "fld:"+f.id); }); return; }
+    if(before) before(); mlBulkUi(L, "fld:"+id); }); }

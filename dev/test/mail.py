@@ -73,7 +73,7 @@ async def main():
         R=rows('Почта'); ok(len(R)==3 and all(r['Файл письма на Диске'] for r in R), 'письма на листе «Почта», текст — файлом на Диске')
         big=[r for r in R if r['Тема']=='Акт сверки за октябрь'][0]; ok('"f"' not in big['Вложения (не редактировать)'], 'большое вложение не скачано заранее')
         ok(await pg.evaluate("document.querySelector('nav.tabs button[data-tab=\"mail\"]').dataset.n")=='3', 'на вкладке счётчик непрочитанных 3')
-        ok(await pg.locator('#ml [data-mlf="ord"] em').text_content()=='1', 'фильтр «Заявки» — 1')
+        ok(await pg.locator('#ml [data-mlf="ord"] em').count()==0, 'у «Заявок» нет счётчика')
         ok(await pg.locator('#ml-list .mlord').count()==1, 'у письма с заявкой метка «Заявка»')
         await pg.screenshot(path=f'{SHOT}/mail-1300.png')
         # письмо с заявкой
