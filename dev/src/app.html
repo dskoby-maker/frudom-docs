@@ -6200,15 +6200,17 @@ $("#jr-reset").onclick=()=>{ D.jf={per:"all",sup:"",cus:"",br:"",q:"",from:"",to
 /* ================= XML УПД для Портала поставщиков (zakupki.mos.ru) — 13.11.2026 =================
    Схема «mini ON_NSCHFDOPPR_1_997_01_05_01_02» из руководства Портала «Импорт сведений электронного исполнения контракта на форму УПД».
    Файл не отправляется сам: на Портале — исполнение контракта → «Доступные действия» → «Импортировать XML УПД в текущее исполнение»,
-   проверить, подписать ЭП и отправить. По каждой строке нужны «ID спецификации» и «Артикул оферты» — из «Сопоставить с Порталом поставщиков»
+   проверить, подписать ЭП и отправить. По каждой строке нужен «ID спецификации» (артикул — оферты, а без неё артикул товара на сайте) — из «Сопоставить с Порталом поставщиков»
    (D.specs[заказчик][товар] = {spec, ste, art}), и страна происхождения товара. */
 const ppA = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/[\r\n\t]+/g," ").trim();
 const ppN = x => { const v=r2(+x||0); return (Math.round(v*100)/100).toFixed(2); };
 const ppQ = x => { const s=String(+(+x||0).toFixed(6)); return s.includes("e")?(+x).toFixed(6):s; };
 const ppD = iso => fd(String(iso||"").slice(0,10));
 /* что мешает сделать файл: [{pid, name, why}] */
+/* артикул: артикул оферты с Портала; если оферты нет (договор без котировочной сессии) — артикул товара на сайте (XSD требует непустой) */
+function ppArt(pid, sp){ const a=String((sp||{}).art||"").trim(); if(a) return a; const p=prod(pid); return String((typeof pArt==="function"&&pArt(p))||(p&&p.art)||pid||"").slice(0,50); }
 function ppMissing(k){ const cid=k.dr.customerId, m=(D.specs||{})[cid]||{}, out=[];
-  k.lines.forEach(l=>{ const s=m[l.pid]||{}, w=[]; if(!String(s.spec||"").trim()) w.push("ID спецификации"); if(!String(s.art||"").trim()) w.push("артикул оферты"); if(!/^\d{3}$/.test(String(l.country||""))) w.push("страна");
+  k.lines.forEach(l=>{ const s=m[l.pid]||{}, w=[]; if(!String(s.spec||"").trim()) w.push("ID спецификации"); if(!/^\d{3}$/.test(String(l.country||""))) w.push("страна");
     if(w.length) out.push({pid:l.pid, name:l.name, why:w}); });
   return out; }
 function ppXml(k, opt){ opt=opt||{}; const dr=k.dr, c=k.c||{}, s=k.s||{}, m=(D.specs||{})[dr.customerId]||{};
@@ -6216,7 +6218,7 @@ function ppXml(k, opt){ opt=opt||{}; const dr=k.dr, c=k.c||{}, s=k.s||{}, m=(D.s
   const shipAddr=dr.ship||c.ship||c.address||"", br=!!c.branchLabel;
   const cons=`<ГрузПолуч><ИдСв><СвЮЛУч${br&&c.name?` НаимОрг="${ppA(c.name)}"`:""}${br&&/^\d{9}$/.test(String(c.kpp||""))?` КПП="${c.kpp}"`:""}/></ИдСв><Адрес><АдрИнф АдрТекст="${ppA(shipAddr)}"/></Адрес></ГрузПолуч>`;
   const items=k.lines.map(l=>{ const sp=m[l.pid]||{};
-    return `<СведТов КолТов="${ppQ(l.qty)}" ЦенаТов="${ppN(l.priceNet)}" СтТовБезНДС="${ppN(l.net)}" СтТовУчНал="${ppN(l.sum)}"><Акциз><БезАкциз>без акциза</БезАкциз></Акциз><СвТД КодПроисх="${ppA(l.country)}"/><ДопСведТов АртикулТов="${ppA(sp.art)}"/><ИнфПолФХЖ2 Идентиф="ИдСпецификации" Значен="${ppA(sp.spec)}"/>${/^\d{1,10}$/.test(String(sp.ste||"").trim())?`<ИнфПолФХЖ2 Идентиф="ИдСТЕ" Значен="${String(sp.ste).trim()}"/>`:""}</СведТов>`; }).join("");
+    return `<СведТов КолТов="${ppQ(l.qty)}" ЦенаТов="${ppN(l.priceNet)}" СтТовБезНДС="${ppN(l.net)}" СтТовУчНал="${ppN(l.sum)}"><Акциз><БезАкциз>без акциза</БезАкциз></Акциз><СвТД КодПроисх="${ppA(l.country)}"/><ДопСведТов АртикулТов="${ppA(ppArt(l.pid, sp))}"/><ИнфПолФХЖ2 Идентиф="ИдСпецификации" Значен="${ppA(sp.spec)}"/>${/^\d{1,10}$/.test(String(sp.ste||"").trim())?`<ИнфПолФХЖ2 Идентиф="ИдСТЕ" Значен="${String(sp.ste).trim()}"/>`:""}</СведТов>`; }).join("");
   const nds = k.rate ? `<СумНал>${ppN(k.t.vat)}</СумНал>` : `<БезНДС>без НДС</БезНДС>`;
   return `<?xml version="1.0" encoding="windows-1251"?>\n<Файл><Документ><СвСчФакт НомерСчФ="${num}" ДатаСчФ="${date}"><ГрузОт><ГрузОтпр><Адрес><АдрИнф АдрТекст="${ppA(s.address||"")}"/></Адрес></ГрузОтпр></ГрузОт>${cons}<ДокПодтвОтгр НаимДокОтгр="Универсальный передаточный документ" НомДокОтгр="${num}" ДатаДокОтгр="${date}"/></СвСчФакт><ТаблСчФакт>${items}<ВсегоОпл СтТовБезНДСВсего="${ppN(k.t.net)}" СтТовУчНалВсего="${ppN(k.t.sum)}"><СумНалВсего>${nds}</СумНалВсего></ВсегоОпл></ТаблСчФакт><СвПродПер><СвПер${ship!==date?` ДатаПер="${ship}"`:""} ДатаНач="${date}" ДатаОкон="${date}"/></СвПродПер></Документ></Файл>\n`; }
 /* окно: что не хватает / скачать */
@@ -6225,7 +6227,7 @@ function ppOpen(j){ const k=calc(j.snap.dr, j.snap), miss=ppMissing(k), cid=k.dr
   d.innerHTML=`<div class="pph"><b>XML для Портала поставщиков</b><button type="button" class="ppx" aria-label="Закрыть">×</button></div>
     <p class="pps">УПД № ${esc(j.number)} от ${fd(j.date)} · ${esc(nm)} · ${fm(k.t.sum)} ₽ · строк: ${k.lines.length}</p>
     ${miss.length?`<div class="ppbad"><b>Не хватает данных у ${miss.length} ${plural(miss.length,["товара","товаров","товаров"])}:</b><ul>${miss.map(x=>`<li>${esc(x.name)} — <span>${x.why.join(", ")}</span></li>`).join("")}</ul>
-      <p>ID спецификации и артикул: «Заказчики и цены» → ${esc(nm)} → «Сопоставить с Порталом поставщиков» → загрузите выгрузку «Сведения о спецификациях» (на Портале: контракт → «Выгрузить в xls»). Страна — во вкладке «Товары».</p>
+      <p>ID спецификации: «Заказчики и цены» → ${esc(nm)} → «Сопоставить с Порталом поставщиков» → загрузите выгрузку «Сведения о спецификациях» (на Портале: контракт → «Выгрузить в xls»). Страна — во вкладке «Товары».</p>
       <div class="ppbt"><button type="button" class="btn pri" data-ppgo="cus">Открыть сопоставление ›</button><button type="button" class="btn ghost" data-ppgo="x">Закрыть</button></div></div>`
     :`<label class="ppf">Дата документа <input type="date" id="pp-d" value="${esc(j.date)}"></label><label class="ppf">Дата отгрузки <input type="date" id="pp-s" value="${esc(j.date)}"></label>
       <ol class="pphow"><li>Скачайте файл.</li><li>На Портале поставщиков откройте исполнение контракта (УПД, черновик).</li><li>«Доступные действия» → «Импортировать XML УПД в текущее исполнение» → выберите файл.</li><li>Проверьте товары, количество, суммы и адрес, дозаполните пустое, подпишите ЭП и отправьте.</li></ol>
@@ -7588,6 +7590,16 @@ const KIGM_SPEC = [["Пюре фруктовое замороженное (юд�
    Ставится только в пустое поле: вписанное руками или из выгрузки Портала не трогается. ID позиции спецификации и артикул оферты здесь не известны — их даёт «Выгрузить в xls» на Портале. */
 const MOK_STE = [["10iyh8dj","46360446"],["cnmx92eg","46359697"],["g4vlyiyj","17175960"],["m9jk4tfu","39077528"],["mcqk3vs6","34784288"],["558ppkty","35585637"],
   ["abdtxq2a","47121918"],["mgd8sl91","36058953"],["a5atdwk4","46360225"],["opel75j2","46374195"],["coqcx058","39121922"],["4cpf9dg8","37090002"]];
+/* ID позиций спецификации МОК, договор № 5-2026 (выгрузка «Сведения о спецификациях» с Портала поставщиков, 13.11.2026): [название, цена, ИдСпецификации].
+   Товар — по цене в прайсе МОК и названию (без «(поз. N спецификации …)»). Ставится только в пустое поле. */
+const MOK_SPEC = [["Авокадо",315.95,"905836993"],["Апельсины",133.5,"905836994"],["Баклажаны",182.45,"905836995"],["Бананы",129.05,"905836996"],["Капуста брокколи",294.59,"905836997"],["Голубика",1691,"905836998"],["Шампиньоны свежие",280.35,"905836999"],["Груши",160.2,"905837000"],["Ежевика",3026,"905837001"],["Кориандр свежий (кинза)",1068,"905837002"],["Клубника",827.7,"905837003"],["Лаймы",267,"905837004"],["Лимоны",200.25,"905837005"],["Лук-порей",222.5,"905837006"],["Малина",729.8,"905837007"],["Мята перечная свежая",1308.3,"905837008"],["Петрушка свежая",400.5,"905837009"],["Розмарин свежий",1646.5,"905837010"],["Салат овощной Мангольд",2136,"905837011"],["Сельдерей свежий черешковый",173.55,"905837012"],["Спаржа",3230.7,"905837013"],["Тимьян свежий (чабрец)",1655.4,"905837014"],["Укроп свежий",427.2,"905837015"],["Шпинат свежий",1691,"905837016"],["Яблоки",156.64,"905837017"],["Виноград столовый свежий",507.3,"905837018"],["Виноград столовый свежий",480.6,"905837019"],["Мандарины",186.9,"905837020"],["Киви",195.8,"905837021"],["Ананасы",560.7,"905837022"],["Салат овощной Айсберг",164.65,"905837023"],["Салат-латук свежий",685.3,"905837024"],["Салат овощной Руккола",1219.3,"905837025"],["Сельдерей свежий (корнеплод обрезной)",178,"905837026"],["Микс салатов",1593.1,"905837027"],["Батат (картофель сладкий)",222.5,"905837028"],["Капуста цветная",151.3,"905837029"],["Грейпфруты",226.95,"905837030"],["Вешенки свежие",413.85,"905837031"],["Фейхоа",302.6,"905837032"],["Базилик свежий",1593.1,"905837033"],["Яблоки",164.65,"905837034"],["Яблоки",151.3,"905837035"],["Виноград столовый свежий",320.4,"905837036"],["Гранат",774.3,"905837037"],["Дыни",222.5,"905837038"],["Манго",445,"905837039"],["Арбузы",209.15,"905837040"],["Салат овощной Романо (Ромейн)",725.35,"905837041"],["Папайя",1548.6,"905837042"],["Сливы",382.7,"905837043"],["Салат овощной Мангольд",1335,"905837044"],["Салат овощной Фриллис",1646.5,"905837045"],["Эстрагон свежий (тархун)",2714.5,"905837046"],["Фенхель свежий",631.9,"905837047"]];
+function patchMokSpec(){
+  const c=D.customers.find(x=>String(x.inn||"")==="7723920242")||D.customers.find(x=>/Талалихин/i.test(x.name||"")); if(!c) return;
+  const pl=D.prices[c.id]||{}, m=D.specs[c.id]=D.specs[c.id]||{}, base=n=>norm(String(n||"").replace(/\s*\(поз\.[^)]*\)\s*$/i,""));
+  MOK_SPEC.forEach(([nm,pr,sp])=>{ const pid=Object.keys(pl).find(id=>{ const p=prod(id); return p && Math.abs(+pl[id]-pr)<0.006 && base(p.name)===norm(nm); }); if(!pid) return;
+    if(Object.keys(m).some(k=>k!==pid && String(m[k].spec||"")===sp)) return;
+    const x=m[pid]=m[pid]||{}; if(String(x.spec||"").trim()) return; x.spec=sp; if(x.ste==null) x.ste=""; if(x.art==null) x.art=""; dirtySpec(c.id,pid); });
+}
 function patchMokSte(){
   const c=D.customers.find(x=>String(x.inn||"")==="7723920242")||D.customers.find(x=>/Талалихин/i.test(x.name||"")); if(!c) return;
   const m=D.specs[c.id]=D.specs[c.id]||{};
@@ -7799,7 +7811,7 @@ function patchMguPoints2(){
   all.forEach(a=>{ const m=U.find(([re])=>re.test(a)); if(!m) return; const k=ptKey(a); o[k]=Object.assign(o[k]||{addr:a}, m[1]); });
   o.__v=2; c.points=JSON.stringify(o); dirty("customers",c.id);
 }
-function patchAll(){ patchPrivate(); patchKigm(); patchSuppliers(); if(!serverOld){ patchContracts(); patchKigmSpecs(); patchMokSte(); patchMgu(); patchMguSklad(); patchMguNames(); patchCircus(); patchKb1(); patchKb1Countries(); patchCircusSigns(); patchCircusCelery(); patchNiir(); patchNiirAliases(); patchNmic(); patchMguPoints(); patchMguPoints2(); } }
+function patchAll(){ patchPrivate(); patchKigm(); patchSuppliers(); if(!serverOld){ patchContracts(); patchKigmSpecs(); patchMokSte(); patchMokSpec(); patchMgu(); patchMguSklad(); patchMguNames(); patchCircus(); patchKb1(); patchKb1Countries(); patchCircusSigns(); patchCircusCelery(); patchNiir(); patchNiirAliases(); patchNmic(); patchMguPoints(); patchMguPoints2(); } }
 
 /* ---------- товары: список — dev/src/pdl_seg.js (renderProducts) ---------- */
 

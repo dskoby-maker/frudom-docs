@@ -26,6 +26,12 @@ async def main():
         ok(st.get('cnmx92eg',{}).get('ste')=='111' and st['cnmx92eg'].get('spec')=='777', 'петрушка: вписанное раньше не затёрто')
         ok(len(rows)==12, f'всего строк МОК: {len(rows)} (12 товаров)')
         n=await ev("(patchMokSte(), pend.specs.size)"); ok(n==0, 'повторный запуск ничего не меняет')
+        # ID спецификации по выгрузке Портала: одинаковая цена 164,65 у «Айсберга» и «Яблок (поз. 42)» — различаются по названию
+        r=await ev("""(()=>{ const cid='i2sssar0'; D.prices[cid]=D.prices[cid]||{};
+          [['ms1','Салат овощной Айсберг',164.65],['ms2','Яблоки (поз. 42 спецификации № 5-2026)',164.65],['ms3','Яблоки (поз. 43 спецификации № 5-2026)',151.3],['ms4','Яблоки (поз. 25 спецификации № 5-2026)',156.64]].forEach(([id,n,pr])=>{ D.products.push({id, name:n, unit:'кг'}); dirty('products',id); D.prices[cid][id]=String(pr); dirtyPrice(cid,id); });
+          patchMokSpec(); const m=D.specs[cid]; return ['ms1','ms2','ms3','ms4'].map(k=>(m[k]||{}).spec||''); })()""")
+        ok(r==['905837023','905837034','905837035','905837017'], f'ID спецификации: айсберг, яблоки поз. 42/43/25 — {r}')
+        ok(await ev("(()=>{ const x=D.specs['i2sssar0']; x.ms1.spec='999'; patchMokSpec(); return x.ms1.spec; })()")=='999', 'вписанное руками ID спецификации не затирается')
         ok(not errs, f'без ошибок {errs[:2]}')
         await b.close()
     print('ИТОГ:', 'всё прошло' if not fails else f'ошибок {len(fails)}')
