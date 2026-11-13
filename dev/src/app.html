@@ -2329,6 +2329,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
 #fd-app .nmmore{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:10px}#fd-app .nmmore:empty{display:none}#fd-app .psart{font-style:normal;font-size:11.5px;color:var(--accent);font-weight:600}
 @media (min-width:900px){#fd-app .nmg{grid-template-columns:2fr 1fr 1fr 1fr}#fd-app .nmg label.w2{grid-column:span 2}}
 @media (max-width:480px){#fd-app .nmh{gap:9px;padding:9px 10px}#fd-app .nma{min-width:38px;padding:3px 5px;font-size:11.5px}#fd-app .nme{padding:2px 10px 12px}#fd-app .nmg{gap:9px 10px}#fd-app .nmsort span{display:none}#fd-app .nmsort select{max-width:190px}#fd-app .nml{gap:5px}#fd-app .nmn b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.25}#fd-app .nmh{min-height:52px}}
+#fd-app .jwho .jctr{font-size:12px;line-height:1.3;color:var(--muted);margin-top:2px;max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:400}
 </style>
 <style id="fd-doc-css">
 /*__DOC_CSS__*/
@@ -5910,6 +5911,13 @@ function jKey(j){ const m=(j.snap&&j.snap.meta)||{}; if(m.batch) return "B"+m.ba
 /* «Распечатан со склада»: когда пользователь «Склад» открыл документ и нажал именно «Печать» */
 function jDl(j){ const m=j.snap.meta||{}; return m.pr?`<span class="dl" title="Склад нажал «Печать»: ${esc((m.prk||[]).map(x=>KSHORT[x]).join(", "))}${m.prn>1?" · раз: "+m.prn:""}">${dtShort(m.pr)}</span>`:`<span class="muted"${m.dl?` title="Не распечатан со склада. Скачан PDF: ${esc(dtShort(m.dl))}"`:""}>—</span>`; }
 const jNumSort = (a,b)=>(parseInt(a.number,10)||0)-(parseInt(b.number,10)||0);
+/* журнал: по какому договору документ — коротко и мелко под заказчиком, только у заказчиков с 2+ договорами (13.11.2026) */
+function jCtrTxt(j){ const dr=j.snap&&j.snap.dr; if(!dr||!dr.customerId) return "";
+  const cs=(D.contracts||[]).filter(c=>c.customerId===dr.customerId); if(cs.length<2) return "";
+  let x=dr.contractId&&cs.find(c=>c.id===dr.contractId);
+  if(!x && dr.basis){ const b=String(dr.basis); x=cs.find(c=>c.basis && b.includes(String(c.basis).trim())); }
+  return x ? ctrNm(x) : (dr.basis ? String(dr.basis) : "без договора"); }
+const jCtrHtml = t => t ? `<div class="jctr" title="${esc(t)}">${esc(t)}</div>` : "";
 function jRowHtml(j, kid, arch){ const w=jWho(j), pv=!!(j.snap.c&&j.snap.c.priv);
   const view=pv ? `<button class="btn sm" data-p="nakl" data-id="${j.id}">Накладная</button> <button class="btn sm" data-p="invoice" data-id="${j.id}">Счёт</button> <button class="btn sm" data-p="torg12" data-id="${j.id}">ТОРГ‑12</button>` : `<button class="btn sm" data-p="invoice" data-id="${j.id}">Счёт</button> <button class="btn sm" data-p="torg12" data-id="${j.id}">ТОРГ‑12</button> <button class="btn sm" data-p="upd" data-id="${j.id}">УПД</button>`;
   const cj=pv?"":`<button class="btn sm" data-combo-j="${j.id}" title="Счёт и ТОРГ‑12 вместе — просмотр, печать, PDF">Счёт+ТОРГ</button> `;
@@ -5921,7 +5929,7 @@ function jRowHtml(j, kid, arch){ const w=jWho(j), pv=!!(j.snap.c&&j.snap.c.priv)
   const ad = arch ? `<span class="muted" title="Убран в архив">в архиве с ${dtShort(j.snap.meta.arch)}</span>` : jDl(j);
   if(kid) return `<div class="kd"><div class="kd-n">№ ${esc(j.number)}</div><div class="kd-w jcard" data-card="${j.id}" title="Подробнее о документе"><span>${esc(kLbl(j)||w.main)}</span>${jCmIcon(j)}${skJBadge(j)}</div><div class="kd-s">${fm(j.sum)}${arch?"":zkJBadge(j)}</div><div class="kd-p">${ad}</div><div class="kd-a acts">${acts}</div></div>`;
   const prNo=!arch&&!((j.snap.meta||{}).pr);
-  return `<tr class="${kid?"kid":""}"><td class="jdt">${fd(j.date)}</td><td class="jnm">${esc(j.number)}</td><td class="jcard jwho" data-card="${j.id}" title="Подробнее о документе"><div class="who">${esc(kid&&kLbl(j)?kLbl(j):w.main)}${jCmIcon(j)}</div>${skJBadge(j)}</td><td class="num jsm">${fm(j.sum)}${arch?"":zkJBadge(j)}</td><td class="jpr${prNo?" none":""}">${ad}</td><td class="acts">${acts}</td></tr>`; }
+  return `<tr class="${kid?"kid":""}"><td class="jdt">${fd(j.date)}</td><td class="jnm">${esc(j.number)}</td><td class="jcard jwho" data-card="${j.id}" title="Подробнее о документе"><div class="who">${esc(kid&&kLbl(j)?kLbl(j):w.main)}${jCmIcon(j)}</div>${kid?"":jCtrHtml(jCtrTxt(j))}${skJBadge(j)}</td><td class="num jsm">${fm(j.sum)}${arch?"":zkJBadge(j)}</td><td class="jpr${prNo?" none":""}">${ad}</td><td class="acts">${acts}</td></tr>`; }
 /* строки журнала с комплектами; arch — показываем архив */
 /* разделитель дня в журнале (при сортировке по дате документа) */
 function jDaySep(iso, st){ const d=new Date(iso+"T12:00:00"), t=todayISO(), tm=new Date(); tm.setDate(tm.getDate()+1); const tmIso=tm.getFullYear()+"-"+String(tm.getMonth()+1).padStart(2,"0")+"-"+String(tm.getDate()).padStart(2,"0");
@@ -5941,7 +5949,7 @@ function jBuild(rows, arch, openSet, daySep){
     const gacts = arch ? `<button class="btn sm" data-gunarch>Вернуть комплект</button>`
       : docLimited() ? `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button>`
       : `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button> <button class="btn ghost sm ic" data-gedit title="Изменить комплект (откроется во вкладке «Заявка»)" aria-label="Изменить комплект">${IC_EDIT}</button><button class="btn ghost sm ic del" data-garch title="Убрать комплект в архив" aria-label="Убрать комплект в архив">${IC_TRASH}</button>`;
-    out.push(`<tr class="grp${open?" gopen":""}" data-g="${esc(k)}"><td class="jdt">${fd(g[0].date)}</td><td class="jnm">${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))}</td><td class="jcard jwho" data-gcard="1" title="Подробнее о комплекте"><div class="who"><span class="tag">Комплект · ${g.length}</span>${esc(w.main)}${jCmGroup(g)}</div></td><td class="num jsm"><b>${fm(sum)}</b>${arch?"":zkJGroup(g, k)}</td><td class="jpr${!arch&&!dls.length?" none":""}">${arch?`<span class="muted">в архиве</span>`:dls.length?`<span class="dl">${dtShort(dls[dls.length-1])}</span>`:`<span class="muted">—</span>`}</td>
+    out.push(`<tr class="grp${open?" gopen":""}" data-g="${esc(k)}"><td class="jdt">${fd(g[0].date)}</td><td class="jnm">${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))}</td><td class="jcard jwho" data-gcard="1" title="Подробнее о комплекте"><div class="who"><span class="tag">Комплект · ${g.length}</span>${esc(w.main)}${jCmGroup(g)}</div>${jCtrHtml([...new Set(g.map(jCtrTxt).filter(Boolean))].join(" · "))}</td><td class="num jsm"><b>${fm(sum)}</b>${arch?"":zkJGroup(g, k)}</td><td class="jpr${!arch&&!dls.length?" none":""}">${arch?`<span class="muted">в архиве</span>`:dls.length?`<span class="dl">${dtShort(dls[dls.length-1])}</span>`:`<span class="muted">—</span>`}</td>
       <td class="acts">${gacts} <button class="btn ghost sm gt${open?" on":""}" data-gt title="${open?"Скрыть документы комплекта":"Показать документы комплекта"}" aria-label="${open?"Скрыть документы комплекта":"Показать документы комплекта"}" aria-expanded="${open}"><span class="chev"></span></button></td></tr>`);
     out.push(`<tr class="kids${open?" open":""}" data-gk="${esc(k)}"><td colspan="6" class="full"><div class="kw"><div class="ki">${g.map(x=>jRowHtml(x,true,arch)).join("")}</div></div></td></tr>`);
   });
