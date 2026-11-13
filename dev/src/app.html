@@ -1219,6 +1219,38 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app details.more .menu{position:fixed;left:0;top:0;z-index:9500;animation:fdmenu .14s ease-out;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px;display:grid;gap:4px;min-width:150px;box-shadow:0 6px 20px rgba(0,0,0,.12)}
 @keyframes fdmenu{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 @media(max-width:700px){#fd-app .jf{grid-template-columns:1fr 1fr}#fd-app table.jt tr.grp,#fd-app table.jt tr.kid{border-left:3px solid var(--accent);padding-left:10px}#fd-app table.jt tr.grp{background:var(--soft,#f6f4ef)}#fd-app table.jt tr.kid{margin-left:12px;background:#fcfbf8}#fd-app table.jt tr.grp td,#fd-app table.jt tr.kid td{background:none;border-left:0!important;padding-left:0!important}#fd-app details.more .menu{right:auto;left:0}}
+/* Журнал / календарь / архив на телефоне: ровная карточка документа (13.11.2026) */
+@media (max-width:700px){
+  #fd-app .jf{gap:10px 10px}#fd-app .jf .jq,#fd-app .jf .jso{grid-column:1/-1}
+  #fd-app .jf select{-webkit-appearance:none;appearance:none;padding-right:34px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238a8f8c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:16px}
+  #fd-app .jf .fh{display:flex;align-items:center;gap:6px;min-height:0}
+  #fd-app .jsum{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 4px}
+  #fd-app .jsum #jr-sum{flex:1 1 100%;font-size:14px}#fd-app .jsum>span[style*="flex:1"]{display:none}
+  #fd-app .jsum #jr-msg:empty{display:none}
+  #fd-app .jsum .btn,#fd-app .jsum .btn.ghost{flex:1 1 0;justify-content:center;background:rgba(28,34,32,.04);color:var(--ink)}
+  #fd-app tr.dsep .ds{flex-wrap:wrap;row-gap:2px}
+  #fd-app tr.dsep .ds span{order:4;flex-basis:100%;margin-left:19px}
+  #fd-app :is(#jr-body,#cal-body,#ar-body)>tr:not(.dsep):not(.kids){grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"nm dt sm" "who who sm" "pr pr pr" "acts acts acts";gap:2px 10px;align-items:start;padding-top:14px;padding-bottom:14px}
+  #fd-app :is(#jr-body,#cal-body,#ar-body)>tr>td::before{display:none!important}
+  #fd-app :is(#jr-body,#cal-body,#ar-body)>tr>td.jnm{grid-area:nm;align-self:baseline;font-weight:600;font-size:14px;color:var(--ink)}
+  #fd-app :is(#jr-body,#cal-body,#ar-body)>tr:not(.grp)>td.jnm::before{content:"№ "!important;display:inline!important;font:inherit;text-transform:none;letter-spacing:0;color:inherit;margin:0}
+  #fd-app :is(#jr-body,#cal-body,#ar-body)>tr>td.jdt{grid-area:dt;font-size:13px;color:var(--muted);align-self:baseline}
+  #fd-app :is(#jr-body,#cal-body,#ar-body)>tr>td.jwho{grid-area:who;font-size:16px;line-height:1.3;padding-top:2px}
+  #fd-app :is(#jr-body,#cal-body,#ar-body)>tr>td.jsm{grid-area:sm;text-align:right!important;font-size:17px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums;display:flex;flex-direction:column;align-items:flex-end}
+  #fd-app :is(#jr-body,#cal-body,#ar-body)>tr>td.jsm .jzk{margin:6px 0 0}
+  #fd-app :is(#jr-body,#cal-body,#ar-body)>tr>td.jpr{grid-area:pr;font-size:12.5px;color:var(--muted)}
+  #fd-app :is(#jr-body,#cal-body,#ar-body)>tr>td.jpr:not(.none)::before{content:"Распечатан со склада: "!important;display:inline!important;font:inherit;text-transform:none;letter-spacing:0;margin:0}
+  #fd-app :is(#jr-body,#cal-body,#ar-body)>tr>td.jpr.none{display:none}
+  #fd-app :is(#jr-body,#cal-body,#ar-body)>tr>td.acts{grid-area:acts;margin-top:10px;gap:6px}
+  #fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a)>.btn,#fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a)>details.more{margin:0}
+  #fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a) :is([data-p],[data-combo-j],[data-gpdf]){flex:1 1 calc(25% - 6px);min-width:0;justify-content:center;padding:9px 2px!important;font-size:13px;letter-spacing:-.01em;white-space:nowrap}
+  #fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a) :is([data-edit],[data-qty],[data-unarch],[data-gunarch]),#fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a)>details.more{flex:1 1 calc(50% - 6px);min-width:0;justify-content:center}
+  #fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a)>details.more>summary{display:flex;width:100%;justify-content:center;align-items:center;gap:4px;box-sizing:border-box;line-height:1.2}
+  #fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a) :is([data-edit],[data-qty]),#fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a)>details.more>summary{background:rgba(28,34,32,.04);color:var(--ink)}
+  #fd-app :is(#jr-body,#cal-body,#ar-body)>tr.grp>td.acts .btn.ic,#fd-app :is(#jr-body,#cal-body,#ar-body)>tr.grp>td.acts .btn.gt{flex:none;min-height:38px}
+  #fd-app :is(#jr-body,#cal-body,#ar-body)>tr.grp>td.acts [data-gpdf]{flex-basis:calc(50% - 50px)}
+}
+@media (max-width:380px){#fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a) :is([data-p],[data-combo-j]){flex-basis:calc(50% - 6px)}}
 #fd-app .ctrinfo{font-size:12px;color:var(--muted);letter-spacing:0}
 #fd-app .ctrinfo.warn{color:var(--err)}
 #fd-app input.numdup{border-color:var(--err)!important;background-color:#fdf0ee!important;color:var(--err);box-shadow:0 0 0 3px rgba(192,64,47,.15)}#fd-app .ctrinfo.numdup{color:var(--err);font-weight:600}#fd-app #o-numwarn{margin:10px 0 0;background:#fdf0ee;color:var(--err)}
@@ -2495,9 +2527,9 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
         <label class="f">Поставщик<select id="jr-sup"></select></label>
         <label class="f">Заказчик<select id="jr-cus"></select></label>
         <label class="f" id="jr-brw" hidden>Подразделение<select id="jr-br"></select></label>
-        <label class="f" id="jr-skw"><span class="fh">Склад<button type="button" class="hq" data-hq="Склад в журнале" aria-label="Подсказка: склад в журнале">?</button></span><select id="jr-sk"><option value="">Все документы</option><option value="any">Со склада</option><option value="wait">Ждут отгрузки</option><option value="short">С нехваткой</option></select></label>
+        <label class="f" id="jr-skw"><span class="fh">Склад<button type="button" class="hq" data-hq="Склад в журнале" aria-label="Подсказка: склад в журнале">?</button></span><select id="jr-sk"><option value="">Все</option><option value="any">Со склада</option><option value="wait">Ждут отгрузки</option><option value="short">С нехваткой</option></select></label>
         <label class="f jq">Поиск<input id="jr-q" placeholder="номер, адрес, товар…"></label>
-        <label class="f">Порядок<select id="jr-sort"><option value="cr_d">Сначала новые (по созданию)</option><option value="cr_a">Сначала старые (по созданию)</option><option value="dt_d">Дата документа: новые сверху</option><option value="dt_a">Дата документа: старые сверху</option><option value="nm_d">Номер: по убыванию</option><option value="nm_a">Номер: по возрастанию</option><option value="sm_d">Сумма: больше сверху</option><option value="sm_a">Сумма: меньше сверху</option><option value="cu_a">Заказчик: А–Я</option></select></label>
+        <label class="f jso">Порядок<select id="jr-sort"><option value="cr_d">Сначала новые (по созданию)</option><option value="cr_a">Сначала старые (по созданию)</option><option value="dt_d">Дата документа: новые сверху</option><option value="dt_a">Дата документа: старые сверху</option><option value="nm_d">Номер: по убыванию</option><option value="nm_a">Номер: по возрастанию</option><option value="sm_d">Сумма: больше сверху</option><option value="sm_a">Сумма: меньше сверху</option><option value="cu_a">Заказчик: А–Я</option></select></label>
       </div>
       <div class="row jsum"><span id="jr-sum" class="muted"></span><span class="muted" id="jr-msg" style="color:var(--accent)"></span><span style="flex:1"></span><button class="btn ghost sm" id="jr-reset">Сбросить фильтры</button><button class="btn ghost sm" id="jr-refresh">Обновить</button></div>
       <div class="tbl"><table class="stack jt" data-full="2,5"><thead id="jr-head"><tr><th data-js="dt">Дата</th><th data-js="nm">№</th><th data-js="cu">Заказчик и точка</th><th class="num" data-js="sm">Сумма</th><th>Распечатан со склада</th><th class="acts"></th></tr></thead><tbody id="jr-body"></tbody></table></div>
@@ -5871,7 +5903,8 @@ function jRowHtml(j, kid, arch){ const w=jWho(j), pv=!!(j.snap.c&&j.snap.c.priv)
     <details class="more"><summary class="btn ghost sm">Ещё ▾</summary><div class="menu"><button class="btn sm" data-x="${j.id}">XML для ЕИС</button><button class="btn sm" data-copy="${j.id}">Сделать копию</button><button class="btn sm danger" data-arch="${j.id}">В архив</button></div></details>`;
   const ad = arch ? `<span class="muted" title="Убран в архив">в архиве с ${dtShort(j.snap.meta.arch)}</span>` : jDl(j);
   if(kid) return `<div class="kd"><div class="kd-n">№ ${esc(j.number)}</div><div class="kd-w jcard" data-card="${j.id}" title="Подробнее о документе"><span>${esc(kLbl(j)||w.main)}</span>${jCmIcon(j)}${skJBadge(j)}</div><div class="kd-s">${fm(j.sum)}${arch?"":zkJBadge(j)}</div><div class="kd-p">${ad}</div><div class="kd-a acts">${acts}</div></div>`;
-  return `<tr class="${kid?"kid":""}"><td>${fd(j.date)}</td><td>${esc(j.number)}</td><td class="jcard" data-card="${j.id}" title="Подробнее о документе"><div class="who">${esc(kid&&kLbl(j)?kLbl(j):w.main)}${jCmIcon(j)}</div>${skJBadge(j)}</td><td class="num">${fm(j.sum)}${arch?"":zkJBadge(j)}</td><td>${ad}</td><td class="acts">${acts}</td></tr>`; }
+  const prNo=!arch&&!((j.snap.meta||{}).pr);
+  return `<tr class="${kid?"kid":""}"><td class="jdt">${fd(j.date)}</td><td class="jnm">${esc(j.number)}</td><td class="jcard jwho" data-card="${j.id}" title="Подробнее о документе"><div class="who">${esc(kid&&kLbl(j)?kLbl(j):w.main)}${jCmIcon(j)}</div>${skJBadge(j)}</td><td class="num jsm">${fm(j.sum)}${arch?"":zkJBadge(j)}</td><td class="jpr${prNo?" none":""}">${ad}</td><td class="acts">${acts}</td></tr>`; }
 /* строки журнала с комплектами; arch — показываем архив */
 /* разделитель дня в журнале (при сортировке по дате документа) */
 function jDaySep(iso, st){ const d=new Date(iso+"T12:00:00"), t=todayISO(), tm=new Date(); tm.setDate(tm.getDate()+1); const tmIso=tm.getFullYear()+"-"+String(tm.getMonth()+1).padStart(2,"0")+"-"+String(tm.getDate()).padStart(2,"0");
@@ -5891,7 +5924,7 @@ function jBuild(rows, arch, openSet, daySep){
     const gacts = arch ? `<button class="btn sm" data-gunarch>Вернуть комплект</button>`
       : docLimited() ? `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button>`
       : `<button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button> <button class="btn ghost sm ic" data-gedit title="Изменить комплект (откроется во вкладке «Заявка»)" aria-label="Изменить комплект">${IC_EDIT}</button><button class="btn ghost sm ic del" data-garch title="Убрать комплект в архив" aria-label="Убрать комплект в архив">${IC_TRASH}</button>`;
-    out.push(`<tr class="grp${open?" gopen":""}" data-g="${esc(k)}"><td>${fd(g[0].date)}</td><td>${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))}</td><td class="jcard" data-gcard="1" title="Подробнее о комплекте"><div class="who"><span class="tag">Комплект · ${g.length}</span>${esc(w.main)}${jCmGroup(g)}</div></td><td class="num"><b>${fm(sum)}</b>${arch?"":zkJGroup(g, k)}</td><td>${arch?`<span class="muted">в архиве</span>`:dls.length?`<span class="dl">${dtShort(dls[dls.length-1])}</span>`:`<span class="muted">—</span>`}</td>
+    out.push(`<tr class="grp${open?" gopen":""}" data-g="${esc(k)}"><td class="jdt">${fd(g[0].date)}</td><td class="jnm">${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))}</td><td class="jcard jwho" data-gcard="1" title="Подробнее о комплекте"><div class="who"><span class="tag">Комплект · ${g.length}</span>${esc(w.main)}${jCmGroup(g)}</div></td><td class="num jsm"><b>${fm(sum)}</b>${arch?"":zkJGroup(g, k)}</td><td class="jpr${!arch&&!dls.length?" none":""}">${arch?`<span class="muted">в архиве</span>`:dls.length?`<span class="dl">${dtShort(dls[dls.length-1])}</span>`:`<span class="muted">—</span>`}</td>
       <td class="acts">${gacts} <button class="btn ghost sm gt${open?" on":""}" data-gt title="${open?"Скрыть документы комплекта":"Показать документы комплекта"}" aria-label="${open?"Скрыть документы комплекта":"Показать документы комплекта"}" aria-expanded="${open}"><span class="chev"></span></button></td></tr>`);
     out.push(`<tr class="kids${open?" open":""}" data-gk="${esc(k)}"><td colspan="6" class="full"><div class="kw"><div class="ki">${g.map(x=>jRowHtml(x,true,arch)).join("")}</div></div></td></tr>`);
   });
@@ -5916,7 +5949,7 @@ function renderJournal(){
   document.querySelectorAll("#jr-head th[data-js]").forEach(th=>{ const k=th.dataset.js, s=f.sort||"cr_d"; th.classList.toggle("sorted", s.startsWith(k)); th.dataset.dir = s.startsWith(k) ? (s.endsWith("_a")?"▲":"▼") : ""; });
   const out=jBuild(rows,false,jOpen,(f.sort||"cr_d").startsWith("dt")), tot=r2(rows.reduce((a,j)=>a+(+j.sum||0),0)), na=D.journal.length-live.length;
   $("#jr-count").textContent=live.length?live.length+" шт.":"";
-  $("#jr-sum").textContent = rows.length ? "Найдено: "+rows.length+" "+docsWord(rows.length)+" на сумму "+fm(tot)+" ₽" : "";
+  $("#jr-sum").textContent = rows.length ? "Найдено: "+rows.length+" "+docsWord(rows.length)+" на сумму "+fm(tot)+"\u00a0₽" : "";
  
   $("#jr-body").innerHTML = out.length ? out.join("")
     : `<tr><td colspan="6" class="muted" style="padding:16px 6px">${live.length?"По этим фильтрам ничего нет.":"Пока пусто. Документ попадает сюда, когда вы его формируете."}</td></tr>`;
