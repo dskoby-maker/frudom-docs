@@ -2460,7 +2460,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
       <h2 class="ih">Заказ из файла <small>заполнит форму сам — останется проверить и напечатать</small><button class="btn ghost sm iclr" id="d-clrall" type="button" title="Очистить заявку, стороны, номер и товары">Очистить всё</button></h2>
       <div class="impdrop" id="imp-drop">
         <label class="btn pri">Загрузить заявку<input type="file" id="imp-file" accept=".xlsx,.xls,.csv,.json,.pdf,.docx,.doc,.txt,image/*" multiple hidden></label>
-        <button class="btn sm" id="imp-txt" type="button">Вставить текст</button><label class="btn sm impai" id="imp-ai" title="Скан, фото или PDF — прочитает ИИ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.6L18.5 9l-4.7 1.6L12 15l-1.8-4.4L5.5 9l4.7-1.4z"/><path d="M18.5 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg>Распознать с ИИ<input type="file" id="imp-aifile" accept=".pdf,image/*" hidden></label>
+        <button class="btn sm" id="imp-txt" type="button">Вставить текст</button><label class="btn sm impai" id="imp-ai" title="Любой файл: скан, фото, PDF, Word, Excel, PowerPoint, текст, голосовое или видео — прочитает ИИ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.6L18.5 9l-4.7 1.6L12 15l-1.8-4.4L5.5 9l4.7-1.4z"/><path d="M18.5 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></svg>Распознать с ИИ<input type="file" id="imp-aifile" hidden></label>
         <span class="muted">или перетащите файл сюда · PDF, Word, Excel</span>
         <span style="flex:1"></span><button class="btn ghost sm" id="imp-tpl" type="button">Скачать шаблон</button>
       </div>
@@ -8429,13 +8429,51 @@ function aiSrc(x){ const L=[], n=v=>v==null||v===""?"":String(v).replace(".",","
   its.forEach(it=>{ if(!it||!it.name) return; const q=it.qty_text&&!(+it.qty>0)?it.qty_text:n(it.qty); rows.push([it.name, it.unit||"", n(it.price)].concat(cols.map(c=>n(it.qtys&&it.qtys[c]))).concat([q, it.unsure?"ИИ не уверен в этой строке — сверьте со сканом":""])); });
   rows.forEach(r=>L.push(r.join("\t")));
   return {lines:L, tables:[rows], ai:1}; }
+/* «Распознать с ИИ» — любой файл (13.11.2026): что ИИ читает сам (PDF, фото, голосовое/видео — Gemini) уходит как есть,
+   остальное сайт сначала превращает в текст (Word/Excel/PowerPoint/OpenOffice/RTF/HTML/письмо .eml/CSV/JSON/XML/текст)
+   или в PDF через Google Диск (старые .doc/.ppt/.xls и прочее, что Диск открывает) */
+const AI_AUD={ogg:"audio/ogg",oga:"audio/ogg",opus:"audio/ogg",mp3:"audio/mpeg",m4a:"audio/aac",aac:"audio/aac",wav:"audio/wav",flac:"audio/flac",weba:"audio/webm",amr:"audio/amr",aiff:"audio/aiff"};
+const AI_VID={mp4:"video/mp4",m4v:"video/mp4",mov:"video/quicktime",webm:"video/webm","3gp":"video/3gpp",avi:"video/avi",mkv:"video/x-matroska",mpeg:"video/mpeg",mpg:"video/mpeg",wmv:"video/wmv"};
+const aiExt = f => (String(f.name||"").match(/\.([a-z0-9]+)$/i)||[])[1]?.toLowerCase()||"";
+const aiB64 = f => new Promise((ok,bad)=>{ const r=new FileReader(); r.onload=()=>{ const u=String(r.result); ok(u.slice(u.indexOf(",")+1)); }; r.onerror=()=>bad(new Error("файл не открылся")); r.readAsDataURL(f); });
+const aiXmlTxt = (x, tags) => { const d=new DOMParser().parseFromString(x,"application/xml"), out=[]; const walk=n=>{ for(const c of n.childNodes){ if(c.nodeType===3){ out.push(c.nodeValue); continue; } if(c.nodeType!==1) continue; const ln=c.localName; if(ln==="tab") out.push("\t"); else if(ln==="br") out.push("\n"); walk(c); if(tags.includes(ln)) out.push(ln==="tc"||ln==="table-cell"?"\t":"\n"); } }; walk(d); return out.join("").replace(/[  ]+\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim(); };
+async function aiZipTxt(f, ext){ const Z=await ftLib("jszip/3.10.1/jszip.min.js",()=>window.JSZip,"файл"); let z; try{ z=await Z.loadAsync(await f.arrayBuffer()); }catch(e){ throw new Error("файл повреждён или это не "+ext.toUpperCase()); }
+  const rd=async n=>{ const x=z.file(n); return x?x.async("string"):""; };
+  if(/^doc[xm]$|^dot[xm]$/.test(ext)) return aiXmlTxt(await rd("word/document.xml"), ["p","tr","tc"]);
+  if(/^pp[ts][xm]$|^pot[xm]$/.test(ext)){ const sl=Object.keys(z.files).filter(n=>/^ppt\/slides\/slide\d+\.xml$/.test(n)).sort((a,b)=>parseInt(a.match(/\d+/))-parseInt(b.match(/\d+/))); const L=[]; for(const [i,n] of sl.entries()) L.push("Слайд "+(i+1)+":\n"+aiXmlTxt(await rd(n), ["p","tr","tc"])); return L.join("\n\n"); }
+  return aiXmlTxt(await rd("content.xml"), ["p","h","table-row","table-cell"]); }   /* .odt/.odp */
+async function aiSheetTxt(f){ const X=await loadXLSX(); const wb=X.read(await f.arrayBuffer(),{type:"array"});
+  return wb.SheetNames.map(n=>{ const c=X.utils.sheet_to_csv(wb.Sheets[n],{FS:"\t", blankrows:false}).trim(); return c?(wb.SheetNames.length>1?"Лист «"+n+"»:\n":"")+c:""; }).filter(Boolean).join("\n\n"); }
+const aiRtfTxt = t => t.replace(/\\par[d]?/g,"\n").replace(/\\tab/g,"\t").replace(/\\'([0-9a-f]{2})/gi,(m,h)=>new TextDecoder("windows-1251").decode(new Uint8Array([parseInt(h,16)]))).replace(/\\u(-?\d+)\??/g,(m,n)=>String.fromCharCode((+n+65536)%65536)).replace(/\{\\\*[^{}]*\}|\\[a-z]+-?\d* ?|[{}]/gi,"").replace(/\n{3,}/g,"\n\n").trim();
+const aiHtmlTxt = t => { const d=new DOMParser().parseFromString(t,"text/html"); d.querySelectorAll("script,style").forEach(x=>x.remove()); d.querySelectorAll("br").forEach(x=>x.replaceWith("\n")); d.querySelectorAll("p,div,tr,li,h1,h2,h3,h4").forEach(x=>x.append("\n")); d.querySelectorAll("td,th").forEach(x=>x.append("\t")); return (d.body?d.body.textContent:"").replace(/[ \t]+\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim(); };
+async function aiImgJpeg(f){ return new Promise((ok,bad)=>{ const im=new Image(), url=URL.createObjectURL(f); im.onload=()=>{ URL.revokeObjectURL(url); const k=Math.min(1, 2400/Math.max(im.width||1,im.height||1)), c=document.createElement("canvas"); c.width=Math.max(1,Math.round((im.width||800)*k)); c.height=Math.max(1,Math.round((im.height||800)*k)); const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,c.width,c.height); g.drawImage(im,0,0,c.width,c.height); const u=c.toDataURL("image/jpeg",0.9); ok({mime:"image/jpeg", data:u.slice(u.indexOf(",")+1)}); };
+  im.onerror=()=>{ URL.revokeObjectURL(url); bad(new Error("эту картинку браузер не открывает — сохраните её как JPG или PNG")); }; im.src=url; }); }
+async function aiInput(f){ const ext=aiExt(f), t=(f.type||"").toLowerCase();
+  if(ext==="pdf"||t==="application/pdf") return aiPrep(f);
+  if(/^(jpe?g|png|webp)$/.test(ext)||/^image\/(jpeg|png|webp)$/.test(t)) return aiPrep(f);
+  if(/^(heic|heif)$/.test(ext)||/^image\/hei[cf]$/.test(t)) return {mime:"image/"+(ext==="heif"||t==="image/heif"?"heif":"heic"), data:await aiB64(f)};
+  if(/^image\//.test(t)||/^(gif|bmp|svg|avif|ico|tiff?|jfif)$/.test(ext)) return aiImgJpeg(f);
+  const av=AI_AUD[ext]||AI_VID[ext]||(/^(audio|video)\//.test(t)?t:"");
+  if(av){ if((D.srvVer||0)<34) throw new Error("чтобы ИИ слушал голосовые и видео, Даниилу нужно обновить Code.gs (версия 34)"); return {mime:av, data:await aiB64(f), media:1}; }
+  let txt="";
+  if(/^(xlsx|xlsm|xlsb|xls|ods|csv|tsv|numbers)$/.test(ext)||/spreadsheet|excel|csv/.test(t)) txt=await aiSheetTxt(f);
+  else if(/^(docx|docm|dotx|dotm|pptx|pptm|ppsx|potx|odt|odp)$/.test(ext)) txt=await aiZipTxt(f, ext);
+  else if(ext==="rtf"||t==="application/rtf") txt=aiRtfTxt(await f.text());
+  else if(/^(html?|xhtml|mht|mhtml)$/.test(ext)||t==="text/html") txt=aiHtmlTxt(await f.text());
+  else if(/^(txt|text|md|json|xml|eml|log|ini|yaml|yml)$/.test(ext)||/^text\/|json|xml|message\/rfc822/.test(t)){ txt=await f.text(); if(ext==="eml"||t==="message/rfc822") txt=txt.replace(/^[\s\S]*?\r?\n\r?\n/,""); }
+  else { const j=await api({action:"stock", op:"toPdf", d:{name:f.name, mime:t||"application/octet-stream", data:await aiB64(f)}}).catch(e=>{ throw new Error(e.message==="unknown action"?"этот тип файла ИИ напрямую не читает, а Code.gs слишком старый, чтобы перевести его в PDF":"этот тип файла ИИ не читает, и Google Диск не смог перевести его в PDF ("+e.message+")"); });
+    if(!j||!j.data) throw new Error("этот тип файла ИИ не читает"); return {mime:"application/pdf", data:j.data, conv:1}; }
+  txt=String(txt||"").trim(); if(!txt) throw new Error("в файле нет текста — если это скан, сохраните его как PDF или фото");
+  return {text:txt.slice(0,40000), cut:txt.length>40000}; }
 async function aiGo(){ if(!IMP||!IMP.scan) return; const f=IMP.scan; IMP.busy=1; drawImp();
-  try{ const d=await aiPrep(f); if(d.data.length>18e6) throw new Error("файл больше 13 МБ — для ИИ слишком большой");
-    let j; try{ j=await apiFetch(API_URL,{method:"POST", tmo:150000, body:JSON.stringify({key:pass(), user:curUser(), action:"aiRead", mime:d.mime, data:d.data})}); }
+  try{ const d=await aiInput(f); if(d.data&&d.data.length>18e6) throw new Error("файл больше 13 МБ — для ИИ слишком большой");
+    const body=d.text ? {key:pass(), user:curUser(), action:"aiRead", text:d.text, src:"file", fname:f.name} : {key:pass(), user:curUser(), action:"aiRead", mime:d.mime, data:d.data, fname:f.name};
+    let j; try{ j=await apiFetch(API_URL,{method:"POST", tmo:150000, body:JSON.stringify(body)}); }
     catch(e){ const m=e.message||""; if(m==="nokey"||m==="badkey"){ IMP.busy=0; IMP.key=m; drawImp(); return; } if(m==="unknown action") throw new Error("скрипт таблицы старый — Даниилу нужно обновить Code.gs"); throw e; }
     let x; try{ x=JSON.parse(String(j.text).replace(/^```(json)?|```$/g,"").trim()); }catch(e){ throw new Error("ИИ ответил не по форме — попробуйте ещё раз"); }
-    const src=aiSrc(x); src.how="Скан прочитан ИИ ("+(/^claude/i.test(j.model||"")?"Claude":"Gemini")+(j.model?", "+j.model:"")+"). Сверьте количество и товары с оригиналом.";
-    logEv("Документ","Скан заявки «"+f.name+"» прочитан ИИ (Gemini)");
+    const src=aiSrc(x), who=(/^claude/i.test(j.model||"")?"Claude":"Gemini")+(j.model?", "+j.model:"");
+    src.how=(d.media?"Голосовое/видео":d.text?"Файл («"+aiExt(f).toUpperCase()+"», переведён в текст"+(d.cut?", слишком длинный — прочитано начало":"")+")":d.conv?"Файл («"+aiExt(f).toUpperCase()+"», переведён в PDF)":"Скан")+" прочитан ИИ ("+who+"). Сверьте количество и товары с оригиналом.";
+    logEv("Документ","Заявка «"+f.name+"» прочитана ИИ ("+who+")");
     const file=f.name; IMP={file}; IMP.r=impResolve(ftParse(src)); impShow();
   }catch(e){ IMP={file:f.name, err:e.message||String(e)}; drawImp(); toast("err","ИИ не прочитал заявку", IMP.err+"."); } }
 async function aiKeySave(){ const k=($("#imp-gkey")||{}).value||""; if(!k.trim()){ toast("warn","Вставьте ключ"); return; }
