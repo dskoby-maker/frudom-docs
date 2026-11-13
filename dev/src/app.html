@@ -8454,7 +8454,7 @@ async function aiInput(f){ const ext=aiExt(f), t=(f.type||"").toLowerCase();
   if(/^(heic|heif)$/.test(ext)||/^image\/hei[cf]$/.test(t)) return {mime:"image/"+(ext==="heif"||t==="image/heif"?"heif":"heic"), data:await aiB64(f)};
   if(/^image\//.test(t)||/^(gif|bmp|svg|avif|ico|tiff?|jfif)$/.test(ext)) return aiImgJpeg(f);
   const av=AI_AUD[ext]||AI_VID[ext]||(/^(audio|video)\//.test(t)?t:"");
-  if(av){ if((D.srvVer||0)<34) throw new Error("чтобы ИИ слушал голосовые и видео, Даниилу нужно обновить Code.gs (версия 34)"); return {mime:av, data:await aiB64(f), media:1}; }
+  if(av){ if((D.srvVer||0)<35) throw new Error("чтобы ИИ слушал голосовые и видео, Даниилу нужно обновить Code.gs (версия 35)"); return {mime:av, data:await aiB64(f), media:1}; }
   let txt="";
   if(/^(xlsx|xlsm|xlsb|xls|ods|csv|tsv|numbers)$/.test(ext)||/spreadsheet|excel|csv/.test(t)) txt=await aiSheetTxt(f);
   else if(/^(docx|docm|dotx|dotm|pptx|pptm|ppsx|potx|odt|odp)$/.test(ext)) txt=await aiZipTxt(f, ext);
