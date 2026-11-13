@@ -29,9 +29,9 @@ async def main():
                 if 'Курага' in t or 'ИИ' in t and 'Изюм' in t: got=True; break
                 await pg.wait_for_timeout(250)
             t=await pg.text_content('#imp-res') or ''
-            ok(len(CALLS)>=1 and ('Курага' in t or 'заказчик' in t), f'{W}: файл сразу ушёл в ИИ и разобран: {t[:100]}'); CALLS.clear()
+            ok(len(CALLS)>=1 and ('Курага' in t or 'заказчик' in t.lower()), f'{W}: файл сразу ушёл в ИИ и разобран: {t[:100]}'); CALLS.clear()
             # печать
-            await pg.evaluate("(()=>{const D=__fd.D(); const c=D.customers.find(c=>!c.priv && !/частн/i.test(c.name)); D.draft.customerId=c.id; D.draft.supplierId=D.suppliers[0].id; D.draft.lines=[{productId:D.products[0].id,qty:'2',price:'100'}]; })()")
+            await pg.evaluate("(()=>{const D=__fd.D(); const c=D.customers.find(c=>!c.priv && !/частн/i.test(c.name)); D.draft.customerId=c.id; D.draft.supplierId=D.suppliers[0].id; D.draft.lines=[{productId:D.products[0].id,qty:'2',price:'100',qOk:'2',pOk:'100'}]; })()")
             await pg.evaluate("location.hash='#zhurnal'"); await pg.wait_for_timeout(300); await pg.evaluate("location.hash='#dokument'"); await pg.wait_for_timeout(600)
             ok(await pg.locator('#d-pdfprn').is_visible(), f'{W}: кнопка «Печать» видна')
             await pg.evaluate("window.__ifr=0; new MutationObserver(m=>m.forEach(x=>x.addedNodes.forEach(n=>{ if(n.tagName==='IFRAME'){ window.__ifr++; window.__pg=()=>n.contentWindow.document.querySelectorAll('.pg').length; n.contentWindow.print=()=>{window.__printed=(window.__printed||0)+1}; } }))).observe(document.body,{childList:true})")

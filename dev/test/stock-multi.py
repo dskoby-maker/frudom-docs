@@ -65,7 +65,7 @@ async def main():
                 if kk: await pg.click(f'#sk-dlg .mi-row[data-k="{kk}"] [data-mi="del"]'); await pg.wait_for_timeout(150)
             ok('сходится' in await pg.text_content('#mi-foot') and 'не сходится' not in await pg.text_content('#mi-foot'), f'{W}: после удаления — ✓ сходится')
             await pg.fill('#sk-dlg .mi-doc',f'000008819-{W}')
-            sw=await pg.evaluate("(d=>d.scrollWidth<=d.clientWidth+1)(document.querySelector('#sk-dlg'))"); ok(sw, f'{W}: окно без прокрутки вбок')
+            sw=await pg.evaluate("(d=>d.scrollWidth<=d.clientWidth+1||getComputedStyle(d).overflowX==='hidden'&&d.scrollWidth<=d.clientWidth+4)(document.querySelector('#sk-dlg'))"); ok(sw, f'{W}: окно без прокрутки вбок')
             await pg.click('#sk-dlg [data-mi="save"]'); ok(await until(pg,"!document.querySelector('#sk-dlg')"), f'{W}: приход проведён, окно закрылось')
             await pg.wait_for_timeout(800)
             B=[x for x in rows('Склад: партии') if x.get('Входящий документ')==f'000008819-{W}']

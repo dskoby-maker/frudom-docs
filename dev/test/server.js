@@ -70,7 +70,7 @@ vm.createContext(ctx); vm.runInContext((fs.readFileSync(require('path').join(__d
 http.createServer((req,res)=>{
   if(req.method==='OPTIONS'){ res.writeHead(204,{'access-control-allow-origin':'*','access-control-allow-headers':'*'}); res.end(); return; }
   const u=new URL(req.url,'http://x');
-  if(u.pathname.startsWith('/page')){ res.writeHead(200,{'content-type':'text/html; charset=utf-8'}); res.end(fs.readFileSync(require('path').join(__dirname,'../out/test.html'))); return; }
+  if(u.pathname.startsWith('/page')){ res.writeHead(200,{'content-type':'text/html; charset=utf-8'}); res.end(fs.readFileSync(require('path').join(__dirname,'../out/test.html'),'utf8').split('http://localhost:8787/exec').join('http://'+(req.headers.host||'localhost:8787')+'/exec')); return; }
   if(u.pathname==='/files'){ res.writeHead(200,{'content-type':'application/json'}); res.end(JSON.stringify(Object.keys(files).map(k=>({id:k,name:files[k]&&files[k].name})))); return; }
   /* только для тестов: выполнить код внутри «Apps Script» (например, оборвать операцию на середине) */
   if(u.pathname==='/eval'){ let b=''; req.on('data',d=>b+=d); req.on('end',()=>{ vm.runInContext('Object.keys(MEMO_).forEach(k=>delete MEMO_[k]); Object.keys(SH_).forEach(k=>delete SH_[k]);',ctx); let r; try{ r=vm.runInContext(b,ctx); }catch(e){ r='ERR '+e.message; } res.writeHead(200,{'content-type':'application/json'}); res.end(JSON.stringify(r===undefined?null:r)); }); return; }
@@ -79,5 +79,5 @@ http.createServer((req,res)=>{
     vm.runInContext('Object.keys(MEMO_).forEach(k=>delete MEMO_[k]); Object.keys(SH_).forEach(k=>delete SH_[k]);',ctx);
     const out = req.method==='POST' ? ctx.doPost({postData:{contents:body}}) : ctx.doGet({parameter:Object.fromEntries(u.searchParams)});
     res.writeHead(200,{'content-type':'application/json','access-control-allow-origin':'*'}); res.end(out.t); });
-}).listen(8787);
+}).listen(+process.env.PORT||8787);
 console.log('up');

@@ -20,6 +20,7 @@ async def main():
     async with async_playwright() as p:
         b=await p.chromium.launch(executable_path=os.environ.get("BROWSER_EXECUTABLE_PATH"))
         for vw in [(1300,900),(390,844)]:
+            import urllib.request; urllib.request.urlopen(urllib.request.Request('http://localhost:8787/eval', data=b"write_('daytasks', []); 1", method='POST')).read()   # второй проход — с чистыми задачами
             W=vw[0]; pg=await b.new_page(viewport={'width':vw[0],'height':vw[1]}); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
             await pg.goto('http://localhost:8787/page'); await pg.click('#fd-who [data-who="Даниил"]'); await pg.fill('#fd-pass','1111'); await pg.click('#fd-enter'); await pg.wait_for_timeout(2500)
             await pg.evaluate(SEED); await pg.evaluate(TAB+"('calendar')"); await pg.wait_for_timeout(600)
