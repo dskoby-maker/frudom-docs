@@ -414,6 +414,20 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 .mlmenu button{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border-radius:9px;font:500 13.5px var(--ui,system-ui);color:#1c2220;cursor:pointer}
 .mlmenu button i{width:16px;display:grid;place-items:center;color:#7a807c}.mlmenu button:hover,.mlmenu button:focus{background:rgba(106,44,78,.08)}.mlmenu button.ok i{color:#2f7d4f}.mlmenu button.bad{color:#b3261e}.mlmenu button.bad i{color:#b3261e}
 .mlmenu hr{border:0;border-top:1px solid rgba(28,34,32,.08);margin:4px 2px}
+.mlmenu button.on{background:rgba(106,44,78,.1);font-weight:600}
+#fd-app .mlfnote{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;margin:6px 8px 8px;padding:9px 12px;border-radius:12px;background:#fbf6e9;border:1px solid #efe1b8;color:#6b5a2a;font-size:12.5px;line-height:1.4}
+#fd-app .mlfnote svg{flex:none;margin-top:1px}#fd-app .mlfnote>span{flex:1 1 200px;min-width:0}
+#fd-app .mlfnote.fld{background:rgba(106,44,78,.05);border-color:rgba(106,44,78,.14);color:#4a3a44;align-items:center}
+#fd-app .mlfnote .mlfbtn{display:flex;gap:6px;flex:none;flex-wrap:wrap}
+#fd-app .mlf button svg{vertical-align:-2px;margin-right:4px}
+#fd-app .mlf .mlfnew{all:unset;cursor:pointer;padding:6px 11px;border-radius:999px;border:1px dashed rgba(106,44,78,.35);color:#6a2c4e;font:600 12.5px var(--ui,system-ui)}
+#fd-app .mlf .mlfnew:hover{background:rgba(106,44,78,.06)}
+.mlfdlg{border:0;border-radius:16px;padding:0;width:min(380px,calc(100vw - 32px));box-shadow:0 24px 60px -20px rgba(48,32,44,.5);font-family:var(--ui,system-ui)}
+.mlfdlg::backdrop{background:rgba(28,22,26,.35)}
+.mlfdlg form{display:grid;gap:10px;padding:18px}.mlfdlg b{font-size:16px;color:#1c2220}
+.mlfdlg input{box-sizing:border-box;width:100%;height:44px;padding:0 12px;border:1px solid rgba(28,34,32,.18);border-radius:10px;font:16px var(--ui,system-ui)}
+.mlfdlg input:focus{outline:2px solid rgba(106,44,78,.35);border-color:#6a2c4e}
+.mlfdlg .mlferr{color:#b3261e;min-height:1em;font-size:12.5px}.mlfdlg .mlfbt{display:flex;justify-content:flex-end;gap:8px}
 #fd-app dialog.mlvw{position:fixed;inset:0;width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;background:#161817;color:#fff;display:flex;flex-direction:column;opacity:0;transition:opacity .2s ease;overscroll-behavior:contain}
 #fd-app dialog.mlvw.in{opacity:1}#fd-app dialog.mlvw::backdrop{background:transparent}
 #fd-app .mlvbar{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:10px max(14px,env(safe-area-inset-right,0px)) 10px max(14px,env(safe-area-inset-left,0px));padding-top:calc(10px + env(safe-area-inset-top,0px));background:#fff;color:var(--ink);box-shadow:0 1px 0 rgba(0,0,0,.08)}
@@ -539,7 +553,7 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .mlundone{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:7px;font:600 13px/1 var(--ui);color:#7a5a00;padding:8px 14px 8px 11px;border-radius:99px;background:linear-gradient(135deg,#ffe58a,#f6c945);box-shadow:0 2px 8px -3px rgba(180,140,20,.55);cursor:pointer;transition:transform .15s,box-shadow .2s,filter .2s}
 #fd-app .mlundone::before{content:"";width:8px;height:8px;border-radius:50%;background:#b8860b;box-shadow:0 0 0 3px rgba(255,255,255,.55)}
 #fd-app button.mlundone:hover{transform:translateY(-1px);box-shadow:0 6px 14px -6px rgba(180,140,20,.7);filter:saturate(1.1)}#fd-app button.mlundone:active{transform:scale(.97)}#fd-app button.mlundone:focus-visible{outline:2px solid #b8860b;outline-offset:2px}#fd-app .mlundone.ro{cursor:default}
-#fd-app .mlminorbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:8px 10px;border-radius:12px;background:rgba(28,34,32,.06);color:var(--muted);font-size:13px}#fd-app .mlminorbar .btn{margin-left:auto}#fd-app .mlminorbar svg{vertical-align:-3px}
+#fd-app .mlminorbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:8px 10px;border-radius:12px;background:rgba(28,34,32,.06);color:var(--muted);font-size:13px}#fd-app .mlminorbar .btn{margin-left:auto}#fd-app .mlinfld{background:rgba(106,44,78,.06);color:#4a3a44}#fd-app .mlminorbar svg{vertical-align:-3px}
 #fd-app .mlr5{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:3px}#fd-app .mlr5 small{font-size:11px;color:var(--muted)}
 #fd-app .mlr.isdone{background:rgba(236,246,239,.75)}#fd-app .mlr.isdone::before{background:#2f7d4f;opacity:.8}
 #fd-app .mldone{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:8px 10px;border-radius:12px;background:rgba(47,125,79,.08);border:1px solid rgba(47,125,79,.2)}#fd-app .mldone small{font-size:12px;color:var(--muted)}#fd-app .mldone .btn{margin-left:auto}
@@ -3083,7 +3097,7 @@ function handleErr(e){ if(e.message==="auth"){ showLogin("Неверный па�
   else if(e && !e.net){ setStatus("err","Ошибка таблицы, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Таблица ответила ошибкой","«"+String(e.message||e).slice(0,160)+"». Всё сохранено на этом устройстве, повторю сам. Если повторяется — пришлите этот текст Claude."); } }
   else { setStatus("err","Не сохранено — нет связи, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Нет связи с Google Таблицей",(e&&e.message?"Причина: "+e.message+". ":"")+"Всё сохранено на этом устройстве и отправится автоматически, когда связь появится. Ничего делать не нужно."); } } }
 
-const NEED_VER=32;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
+const NEED_VER=33;   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
 function srvVerCheck(v){ const el=$("#srvOld"); if(!el) return; const old=(+v||0)<NEED_VER; el.hidden=!old || docLimited(); D.srvVer=+v||0; }
 document.addEventListener("click",e=>{ if(!e.target.closest || !e.target.closest("#srvOldHow")) return; openCard(`<div class="dc-head"><div><div class="dc-kicker">Code.gs</div><h3>Как обновить скрипт таблицы</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
   <ol class="srvsteps"><li>GitHub → файл <b>dev/Code.template.gs</b> → кнопка «Copy raw file» (два квадратика).</li><li>Таблица «Документы ФД» → «Расширения» → «Apps Script» → файл <b>Код.gs</b> → Ctrl+A → Ctrl+V → «Сохранить». Файл «Пароли.gs» не трогать.</li><li>«Начать развёртывание» → «Управление развёртываниями» → карандаш → «Версия: новая версия» → «Развернуть».</li><li>Обновите эту страницу — жёлтая плашка исчезнет.</li></ol>
@@ -8593,7 +8607,7 @@ function appGo(t){ const nav=document.querySelector("#fd-app nav.tabs"); if(!nav
   if(A || /Android/i.test(navigator.userAgent||"")){ c.hidden=false; g.hidden=false;
     t.textContent = A ? "У вас старая версия приложения — в ней нет уведомлений и виджета. Скачайте новую и установите поверх старой (входить заново не нужно), потом откройте её и зайдите сюда снова."
       : "Уведомления на телефон и виджет «Расход · Доход · Личное» работают в приложении «Документы ФД». Скачайте его и установите."; } })();
-window.__fd = {prNorm:v=>prNorm(v), getPrice:(c,p)=>getPrice(c,p), shipSim:(a,b)=>shipSim(a,b), shipElsewhere:(c,b,a)=>shipElsewhere(c,b,a), acct:()=>({url:API_URL, user:curUser()||"", key:pass()||"", admin:!!me().admin}), quick:appQuick, go:appGo, D:()=>D, undo:(r)=>unApply(curTab,!!r), undoState:()=>UNDO, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, ftPdf, aiSrc, IMP:()=>IMP, patchNmic, docProfit, payOf, setPay, calm:fdCalm, zkJState:j=>zkJState(j), pcdData:id=>pcdData(id)};
+window.__fd = {prNorm:v=>prNorm(v), getPrice:(c,p)=>getPrice(c,p), shipSim:(a,b)=>shipSim(a,b), shipElsewhere:(c,b,a)=>shipElsewhere(c,b,a), acct:()=>({url:API_URL, user:curUser()||"", key:pass()||"", admin:!!me().admin}), quick:appQuick, go:appGo, D:()=>D, undo:(r)=>unApply(curTab,!!r), undoState:()=>UNDO, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, ftPdf, aiSrc, IMP:()=>IMP, patchNmic, docProfit, payOf, setPay, calm:fdCalm, zkJState:j=>zkJState(j), pcdData:id=>pcdData(id), mail:()=>({draw:mlDraw, compose:mlCompose, ML, fname:mlFName, fld:mlFld})};
 })();
 </script>
 <!-- ============ конец блока ============ -->
