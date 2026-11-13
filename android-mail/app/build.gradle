@@ -1,0 +1,17 @@
+plugins { id 'com.android.application' }
+def run = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger()
+android {
+  namespace 'ru.frudom.mail'
+  compileSdk 34
+  defaultConfig {
+    applicationId "ru.frudom.mail"
+    minSdk 24
+    targetSdk 34
+    versionCode run
+    versionName "1.0." + run
+  }
+  buildTypes { release { minifyEnabled false } }
+  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+  lint { checkReleaseBuilds false; abortOnError false }
+}
+dependencies { implementation 'androidx.core:core:1.13.1' }

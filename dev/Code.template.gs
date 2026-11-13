@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 35;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 36;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -716,6 +716,27 @@ function notes_(p, me) {
   if (want.tasks) {
     const L = read_('daytasks').filter(r => notesIso_(r.date) === today && !/^(1|true|да|TRUE)$/i.test(String(r.done || '').trim()));
     if (L.length) items.push({ t: 'tasks', id: 'tasks-' + today, title: 'Задачи на сегодня: ' + L.length, text: L.slice(0, 6).map(r => (r.customerName ? r.customerName + ' — ' : '') + String(r.text || '').slice(0, 80)).join('\n') + (L.length > 6 ? '\n…и ещё ' + (L.length - 6) : ''), go: 'calendar' });
+  }
+  /* новые письма для приложения «Почта ФД» (Code.gs ≥ 36): сначала забрать почту из ящиков (не чаще раза в минуту), потом —
+     входящие за 3 дня: Даниилу и Наталье — непрочитанные (по ним приложение и убирает уведомление, когда письмо прочитали где угодно),
+     Грише и Складу (они только читают) — все новые. Без спама, «Неважных» и писем, разложенных по своим папкам. */
+  if (want.mail) {
+    let serr = '';
+    try { if (p.msync && mailAcc_().length) { const r = mailSync_(false); serr = Object.keys(r.errs || {}).map(k => r.errs[k]).join('; '); } } catch (e) { serr = String(e.message || e).slice(0, 200); }
+    const tags = {}; read_('mailtags').forEach(t => tags[String(t.id || '').toLowerCase()] = t.kind);
+    const from = Date.now() - 3 * 86400000, ro = me.role === 'staff', ordRx = /заявк|заказ|поставк|отгрузк/i;
+    const st = r => { try { return r.order ? JSON.parse(r.order) || {} : {}; } catch (e) { return {}; } };
+    const L = read_('mail').filter(r => {
+      if (r.dir === 'sent') return false; const o = st(r), em = String(r.from || '').toLowerCase();
+      if (o.spam === 1 || (o.spam !== 0 && tags[em] === 'spam') || o.minor === 1 || o.fld) return false;
+      return ro || !r.read; });
+    const box = {}; mailAcc_().forEach(a => box[a.id] = a.email);
+    const recent = L.filter(r => { const t = new Date(r.date).getTime(); return !isNaN(t) && t >= from; }).sort((a, b) => String(a.date).localeCompare(String(b.date))).slice(-60);
+    recent.forEach(r => { const o = st(r), em = String(r.from || '').toLowerCase();
+      const ord = o.st !== 'no' && tags[em] !== 'no' && (o.st === 'taken' || ordRx.test(String(r.subject || '') + ' ' + String(r.snippet || '').slice(0, 300) + ' ' + String(r.attsText || '')));
+      items.push({ t: 'mail', id: r.id, title: r.fromName || r.from || 'Без отправителя', text: String(r.subject || '(без темы)').slice(0, 200), snip: String(r.snippet || '').slice(0, 400),
+        from: r.from || '', box: box[r.acc] || r.box || '', acc: r.acc || '', at: r.date || '', atts: String(r.attsText || '').slice(0, 200), ord: ord ? 1 : 0, go: 'mail:' + r.id }); });
+    out.mail = { unread: ro ? 0 : L.length, ids: ro ? null : L.map(r => r.id).slice(-400), ro: ro, boxes: mailAcc_().map(a => ({ id: a.id, email: a.email, err: a.err || '' })), err: serr, proxy: !!(tbProxy_() || {}).url };
   }
   /* сводка для виджета на рабочем столе (Code.gs ≥ 23): три цифры; Даниилу — деньги, остальным — работа на сегодня */
   if (want.sum) {
