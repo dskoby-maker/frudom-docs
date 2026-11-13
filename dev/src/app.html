@@ -3744,13 +3744,14 @@ function renderCtrInfo(){
   const mis = !!(x && x.supplierId && x.supplierId!==dr.supplierId), sw=$("#d-supwarn");
   $("#d-sup").classList.toggle("bad", mis); sw.hidden=!mis; sw.textContent = mis ? "По этому договору поставщик — "+sup(x.supplierId).name+". Документ сформировать можно, но проверьте." : "";
 }
+function numLastLbl(dr){ if(!numByCtr()) return "Последний у заказчика"; return docCk(dr.customerId, dr) ? "Последний по этому договору" : "Последний без договора"; }
 function syncNum(){ const dr=D.draft; ldSync(); if(!dr || dr.qtyOnly) return; const inJ=D.journal.some(j=>j.id===dr.id);
   if(!inJ && !dr.numManual && (!dr.supplierId || !dr.customerId)){ dr.number=""; const el=$("#d-num"); if(el) el.value=""; const info=$("#d-numinfo"); if(info){ info.textContent=""; info.classList.remove("warn"); } numMark(); return; }
   if(!inJ && !dr.numManual){ dr.number=nextNum(dr.supplierId, dr.customerId, null, dr.id, docCk(dr.customerId, dr)); const el=$("#d-num"); if(el) el.value=dr.number; }
-  const info=$("#d-numinfo"); if(!info) return; const last=pairLast(dr.supplierId, dr.customerId, dr.id), st=parseInt(numsOf(cus(dr.customerId))[dr.supplierId],10)||0;
+  const info=$("#d-numinfo"); if(!info) return; const last=pairLast(dr.supplierId, dr.customerId, dr.id, docCk(dr.customerId, dr)), st=parseInt(numsOf(cus(dr.customerId))[dr.supplierId],10)||0;
   info.classList.remove("warn");
   if(inJ) info.textContent="";
-  else if(last) info.textContent="Последний у заказчика: № "+last.j.number+" от "+fd(last.j.date)+(dr.numManual?"":" → ставлю "+dr.number);
+  else if(last) info.textContent=numLastLbl(dr)+": № "+last.j.number+" от "+fd(last.j.date)+(dr.numManual?"":" → ставлю "+dr.number);
   else if(st) info.textContent="Продолжение нумерации с № "+st+" (из карточки заказчика)";
   else { info.textContent="Первый документ этому заказчику на сайте. Если нумерация уже велась в 1С/Т‑Банке — проверьте номер."; info.classList.add("warn"); } numMark(); }
 function applyCtr(id){
@@ -3903,7 +3904,7 @@ $("#d-cus").onchange=e=>{ const dr=D.draft; dr.customerId=e.target.value; e.targ
   dr.ship=firstAddr(liveCus(dr)); renderShip();
   const rm = isGovCus(dr.customerId) ? ctrRemap(dr, dr.customerId) : [];
   dr.lines.forEach(l=>{ if(l.productId) l.price=String(getPrice(dr.customerId,l.productId)); }); saveLocal(); renderLines(); ctrToast(rm); };
-[["#d-num","number"],["#d-date","date"],["#d-basis","basis"]].forEach(([s,k])=>$(s).addEventListener("input",e=>{ D.draft[k]=e.target.value; if(k==="number"){ D.draft.numManual = !!e.target.value.trim(); if(!D.draft.numManual) syncNum(); else { const i=$("#d-numinfo"); if(i){ const l=pairLast(D.draft.supplierId,D.draft.customerId,D.draft.id); i.textContent=l?"Последний у заказчика: № "+l.j.number+" от "+fd(l.j.date):""; i.classList.remove("warn"); } } numMark(); } saveLocal(); }));
+[["#d-num","number"],["#d-date","date"],["#d-basis","basis"]].forEach(([s,k])=>$(s).addEventListener("input",e=>{ D.draft[k]=e.target.value; if(k==="number"){ D.draft.numManual = !!e.target.value.trim(); if(!D.draft.numManual) syncNum(); else { const i=$("#d-numinfo"); if(i){ const l=pairLast(D.draft.supplierId,D.draft.customerId,D.draft.id,docCk(D.draft.customerId,D.draft)); i.textContent=l?numLastLbl(D.draft)+": № "+l.j.number+" от "+fd(l.j.date):""; i.classList.remove("warn"); } } numMark(); } saveLocal(); }));
 function renderBranch(){
   const dr=D.draft, bl=branches(cus(dr.customerId)), pv=isPriv(dr.customerId);
   $("#d-pbw").hidden=$("#d-pphw").hidden=!pv; $("#fd-app [data-make=\"nakl\"]").hidden=!pv; document.querySelectorAll("#fd-app [data-npriv]").forEach(e=>e.hidden=pv); $("#d-pbuyer").value=dr.buyer||""; $("#d-pphone").value=dr.bphone||"";
