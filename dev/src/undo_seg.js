@@ -107,6 +107,8 @@ function unSig(el){ if(!el || !el.closest) return ""; const r=el.closest("[data-
 function unEvStart(e){ if(!UNDO) return;
   if(e.type==="keydown" && (!(e.key==="Enter" || e.key==="Delete") || (e.target && e.target.tagName==="TEXTAREA"))) return;
   if(e.target && e.target.closest && e.target.closest("#fd-undo")){ unTick(unLive()); unClose(); return; }
+  /* переход на другую вкладку — не правка: вкладка при открытии сама ставит значения по умолчанию (дата, договор…) */
+  if(e.type==="click" && e.target && e.target.closest && e.target.closest("#fd-app nav.tabs, #mbar, #tsheet, [data-mt]")){ unTick(unLive()); unClose(); return; }
   unUser(); const now=Date.now(), o=UNDO.open, live=unLive(), sig=unSig(e.target);
   unTick(live); unRefs();
   if(live && o && o.sig===sig && (e.type==="input" || e.type==="change" || e.type==="paste")) o.last=now;
@@ -209,7 +211,7 @@ function unDraw(){ if(!UNDO) return; const el=unBar(), s=unSt(curTab), u=unTop(s
   applyServer=quiet(applyServer); serverPrefs=quiet(serverPrefs); zkMerge=quiet(zkMerge); zkAdopt=quiet(zkAdopt); patchAll=quiet(patchAll);
   const cd=commitDoc; commitDoc=async function(){ if(UNDO) UNDO.paused++; try{ return await cd.apply(this,arguments); } finally{ if(UNDO){ UNDO.paused--; unResync(); unDraw(); } } };
   const pl=putLocalRow; putLocalRow=function(t,id){ const r=pl.apply(this,arguments); if(UNDO){ try{ UNDO.sh.set(unKey(t,id),{j:unRowJ(t,id), i:unIdx(t,id)}); }catch(e){} } return r; };
-  const st=showTab; showTab=function(){ const r=st.apply(this,arguments); if(UNDO) unDraw(); return r; };
+  const st=showTab; showTab=function(){ if(UNDO){ unTick(unLive()); UNDO.paused++; } let r; try{ r=st.apply(this,arguments); } finally{ if(UNDO){ UNDO.paused--; unResync(); unDraw(); } } return r; };
   const ar=applyRole; applyRole=function(){ const r=ar.apply(this,arguments); if(UNDO){ unUser(); unDraw(); } return r; };
 })();
 UNDO={sh:new Map(), ref:{}, st:{}, open:null, paused:0, applying:false, user:curUser(), ct:0};

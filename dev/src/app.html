@@ -3429,12 +3429,14 @@ document.addEventListener("pointerdown", e=>{ const g=e.target.closest&&e.target
   e.preventDefault(); if(typeof psClose==="function") psClose(); const ae=document.activeElement; if(ae && ae.closest && ae.closest("#d-lines")) ae.blur();
   const row=g.closest(".line"), rows=lnRows(), from=rows.indexOf(row); if(from<0 || rows.length<2) return;
   const R=rows.map(r=>r.getBoundingClientRect()), gap=Math.max(0,R[1].top-R[0].bottom);
-  LNDG={g, row, rows, from, to:from, R:R.map(r=>({top:r.top+scrollY, h:r.height})), y0:e.clientY+scrollY, cy:e.clientY, id:e.pointerId, gap};
+  LNDG={g, row, rows, from, to:from, R:R.map(r=>({top:r.top+scrollY, h:r.height})), y0:e.clientY+scrollY, cy:e.clientY, id:e.pointerId, gap, box:row.parentElement, b0:row.parentElement.getBoundingClientRect().top+scrollY};
   try{ g.setPointerCapture(e.pointerId); }catch(x){}
   row.classList.add("dragging"); document.body.classList.add("lndrag");
   rows.forEach(r=>{ if(r!==row) r.style.transition="transform .22s cubic-bezier(.2,.7,.2,1)"; });
   lnDgLoop(); });
-function lnDgPlace(){ const G=LNDG; if(!G) return; const dy=G.cy+scrollY-G.y0, me=G.R[G.from], top=me.top+dy, bot=top+me.h, sh=me.h+G.gap;
+/* сдвиг списка строк на странице (например, сверху обновился блок «Черновики») не считается движением пальца */
+const dgShift = G => G.box&&G.box.isConnected ? G.box.getBoundingClientRect().top+scrollY-G.b0 : 0;
+function lnDgPlace(){ const G=LNDG; if(!G) return; const dy=G.cy+scrollY-G.y0-dgShift(G), me=G.R[G.from], top=me.top+dy, bot=top+me.h, sh=me.h+G.gap;
   /* место — по переднему краю строки: вверх — её верх выше середины соседней, вниз — низ ниже середины (строки бывают высокими) */
   let to=G.from; G.R.forEach((r,i)=>{ if(i<G.from && top<r.top+r.h/2) to=Math.min(to,i); if(i>G.from && bot>r.top+r.h/2) to=Math.max(to,i); });
   G.to=to; G.row.style.transform=`translateY(${dy}px) scale(1.01)`;
@@ -5978,9 +5980,13 @@ const arOpen=new Set();
 function jKidCols(t){ const th=[...t.querySelectorAll("thead th")]; if(th.length<6) return; const L=t.getBoundingClientRect().left, x=th.map(h=>h.getBoundingClientRect().left-L);
   const c0=x[2]-38, c1=x[3]-x[2]-10, c2=x[4]-x[3]-12, c3=Math.min(x[5]-x[4]-10, 96);
   if(innerWidth<=700 || Math.min(c0,c1,c2,c3)<40){ t.style.removeProperty("--kc"); return; }
-  t.style.setProperty("--kc", `${c0}px ${c1}px ${c2}px ${c3}px minmax(0,1fr)`); }
+  /* целые пиксели и «не трогать, если разница ≤ 1 px»: иначе ширина колонок колеблется на доли пикселя и наблюдатель перезапускает расчёт 60 раз в секунду */
+  const v=[c0,c1,c2,c3].map(Math.round), old=String(t.style.getPropertyValue("--kc")||"").match(/-?\d+(?=px)/g);
+  if(old && old.length>=4 && old.slice(0,4).every((o,i)=>Math.abs(+o-v[i])<=1)) return;
+  t.style.setProperty("--kc", v.map(n=>n+"px").join(" ")+" minmax(0,1fr)"); }
 let JKRO=null;
-function jKidObs(){ if(!JKRO && window.ResizeObserver){ JKRO=new ResizeObserver(()=>document.querySelectorAll("#fd-app table.jt").forEach(jKidCols)); document.querySelectorAll("#fd-app table.jt thead th").forEach(h=>JKRO.observe(h)); } document.querySelectorAll("#fd-app table.jt").forEach(jKidCols); }
+function jKidObs(){ if(!JKRO && window.ResizeObserver) JKRO=new ResizeObserver(()=>requestAnimationFrame(()=>document.querySelectorAll("#fd-app table.jt").forEach(jKidCols)));
+  if(JKRO){ JKRO.disconnect(); document.querySelectorAll("#fd-app table.jt thead th").forEach(h=>JKRO.observe(h)); } document.querySelectorAll("#fd-app table.jt").forEach(jKidCols); }
 function renderArchive(){
   const q=($("#ar-q").value||"").toLowerCase().trim();
   const rows=D.journal.filter(j=>isArch(j) && jMatch(j,q)).sort((a,b)=> a.date<b.date?1:a.date>b.date?-1:-jNumSort(a,b));
@@ -6944,7 +6950,7 @@ function cardEditor({root, type, title, fields, make, onSelect, onChange}){
     root.innerHTML=`<h2>${title}</h2><div class="row"><select class="pick" style="flex:1;min-width:200px">${opts(list,sel)}</select><button class="btn add">+ Новый</button>${list.length>1?'<button class="btn ghost danger del">Удалить</button>':""}</div>
       ${it?`<div class="grid">${fields.map(f=>`<label class="f${f.wide?" wide":""}">${f.l}${f.opts?`<select data-k="${f.k}">${Object.entries(f.opts).map(([v,t])=>`<option value="${v}"${String(it[f.k])===v?" selected":""}>${t}</option>`).join("")}</select>`
         :f.area?`<textarea data-k="${f.k}" rows="5" placeholder="${esc(f.ph||"")}">${esc(it[f.k])}</textarea>`:`<input data-k="${f.k}"${f.type?` type="${f.type}"`:""} value="${esc(it[f.k])}" placeholder="${esc(f.ph||"")}"${f.num?' inputmode="numeric"':""}${f.dis?" disabled":""}>`}</label>`).join("")}</div>`:""}`;
-    root.querySelector(".pick").onchange=e=>{ sel=editorSel[type]=e.target.value; draw(); onSelect&&onSelect(sel); };
+    root.querySelector("select.pick").onchange=e=>{ sel=editorSel[type]=e.target.value; draw(); onSelect&&onSelect(sel); };
     root.querySelector(".add").onclick=()=>{ const n=make(); list.push(n); sel=editorSel[type]=n.id; dirty(type,n.id); draw(); onSelect&&onSelect(sel); root.querySelector('[data-k="name"]').focus(); };
     const del=root.querySelector(".del");
     if(del) del.onclick=()=>{ if(!armed){ armed=true; del.textContent="Нажмите ещё раз для удаления"; return; }
@@ -6952,7 +6958,7 @@ function cardEditor({root, type, title, fields, make, onSelect, onChange}){
       sel=editorSel[type]=(list[0]||{}).id; armed=false; draw(); onSelect&&onSelect(sel); };
     root.querySelectorAll("[data-k]").forEach(inp=>inp.addEventListener(inp.tagName==="SELECT"?"change":"input",e=>{
       it[e.target.dataset.k]=e.target.value; dirty(type,it.id); if(onChange) onChange(it, e.target.dataset.k);
-      if(e.target.dataset.k==="name") root.querySelector(".pick").selectedOptions[0].textContent=e.target.value||"(без названия)"; }));
+      if(e.target.dataset.k==="name") root.querySelector("select.pick").selectedOptions[0].textContent=e.target.value||"(без названия)"; }));
   }
   draw(); onSelect&&onSelect(sel);
 }
@@ -8184,7 +8190,7 @@ function aiPrep(f){ return new Promise((ok,bad)=>{
   im.onerror=()=>{ URL.revokeObjectURL(url); raw(); }; im.src=url; }); }
 function aiSrc(x){ const L=[], n=v=>v==null||v===""?"":String(v).replace(".",",");
   if(x.customer) L.push("Заказчик: "+x.customer); if(x.inn) L.push("ИНН заказчика: "+x.inn); if(x.contract) L.push("Договор № "+String(x.contract).replace(/^\s*(договор|контракт)\s*/i,"").replace(/^№\s*/,""));
-  if(x.request) L.push("Заявка "+x.request); if(x.supplier) L.push("Поставщик: "+x.supplier); if(x.date) L.push("Дата поставки: "+x.date); if(x.address) L.push("Адрес поставки: "+x.address);
+  if(x.request) L.push("Заявка "+x.request); if(x.supplier) L.push("Поставщик: "+x.supplier); if(x.date){ const m=String(x.date).match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); L.push("Дата поставки: "+(m?m[3].padStart(2,"0")+"."+m[2].padStart(2,"0")+"."+m[1]:x.date)); } if(x.address) L.push("Адрес поставки: "+x.address);
   const cols=(Array.isArray(x.columns)?x.columns:[]).filter(Boolean).map(String), its=Array.isArray(x.items)?x.items:[];
   const head=["Наименование","Ед.","Цена"].concat(cols.length?cols:[]).concat(["Количество","Примечание"]), rows=[head];
   its.forEach(it=>{ if(!it||!it.name) return; const q=it.qty_text&&!(+it.qty>0)?it.qty_text:n(it.qty); rows.push([it.name, it.unit||"", n(it.price)].concat(cols.map(c=>n(it.qtys&&it.qtys[c]))).concat([q, it.unsure?"ИИ не уверен в этой строке — сверьте со сканом":""])); });

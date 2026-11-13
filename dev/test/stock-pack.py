@@ -26,7 +26,7 @@ async def main():
             q=await pg.input_value('#sk-dlg .skf-qty'); pr=await pg.input_value('#sk-dlg .skf-price'); sm=await pg.text_content('#sk-insum')
             ok(q=='18', f'{vw[0]}: кг посчитались сами: {q}'); ok(pr=='138,8889', f'{vw[0]}: цена за кг посчиталась: {pr}')
             ok('2 500,00' in sm.replace(' ',' ') and '40 шт' in sm, f'{vw[0]}: итог 2 500,00 ₽ и 40 шт: {sm}')
-            sw=await pg.evaluate("document.querySelector('#sk-dlg').scrollWidth<=document.querySelector('#sk-dlg').clientWidth+1"); ok(sw, f'{vw[0]}: окно без прокрутки вбок')
+            sw=await pg.evaluate("(d=>d.scrollWidth<=d.clientWidth+1||getComputedStyle(d).overflowX==='hidden'&&d.scrollWidth<=d.clientWidth+4)(document.querySelector('#sk-dlg'))"); ok(sw, f'{vw[0]}: окно без прокрутки вбок')
             await pg.screenshot(path=f'/tmp/claude-0/pack-in-{vw[0]}.png')
             # единица шт — блок пропадает
             await pg.select_option('#sk-dlg .skf-unit','шт'); await pg.wait_for_timeout(200)

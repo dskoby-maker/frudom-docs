@@ -57,7 +57,7 @@ async def main():
             await pg.evaluate("document.querySelector('#jr-body [data-card]').click()"); await pg.wait_for_timeout(500)
             ok(await pg.locator('dialog.dcard[open] .dc-back').count()==0, f'{W}: документ из журнала — без «назад» (путь забыт)')
             # обновление того же окна (сохранили комментарий) не добавляет шаг
-            await pg.fill('#dc-cmt','проверка'); await pg.press('#dc-cmt','Control+Enter'); await pg.wait_for_timeout(500)
+            await pg.evaluate("(()=>{const b=document.querySelector('[data-cmopen]'); if(b) b.click(); })()"); await pg.wait_for_timeout(400); await pg.fill('#dc-cmt','проверка'); await pg.press('#dc-cmt','Control+Enter'); await pg.wait_for_timeout(500)
             await pg.evaluate("(()=>{const j=__fd.D().journal.find(x=>x.id===document.querySelector('#dc-cm').dataset.doc); window.__dc && window.__dc(j); })()")
             ok(await pg.locator('dialog.dcard[open] .dc-back').count()==0, f'{W}: правка в окне не создаёт лишний шаг')
             await pg.keyboard.press('Escape'); await pg.wait_for_timeout(500)

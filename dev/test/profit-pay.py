@@ -102,7 +102,9 @@ async def main():
             await pg.screenshot(path=f'{SHOT}/doccard-{W}.png')
             await pg.click('#fd-dcard [data-zkc="save"]'); await pg.wait_for_timeout(300)
             ok('Сохранено' in (await pg.text_content('#dc-zkmsg')), f'{W}: закупка из окна документа сохранена')
-            await pg.keyboard.press('Escape'); await pg.wait_for_timeout(400)
+            for _ in range(3):   # окно накладной могло открыться из окна комплекта: Esc сначала возвращает к нему
+                if not await pg.locator('#fd-dcard[open]').count(): break
+                await pg.keyboard.press('Escape'); await pg.wait_for_timeout(400)
             # ---------- Цены заказчика: страницы ----------
             await pg.evaluate(TAB+"('customers')"); await pg.wait_for_timeout(600)
             n=await pg.locator('#pr-body tr').count(); ok(n==10, f'{W}: по умолчанию 10 товаров ({n})')

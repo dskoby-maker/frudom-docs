@@ -335,12 +335,12 @@ let INVDG=null;
 document.addEventListener("pointerdown", e=>{ const g=e.target.closest&&e.target.closest("#inv-dlg [data-invgrip]"); if(!g || !INV || e.button>0) return;
   e.preventDefault(); const row=g.closest(".invln"), rows=invRows3(), from=rows.indexOf(row); if(from<0 || rows.length<2) return;
   const R=rows.map(r=>r.getBoundingClientRect()), top0=R[0].top+scrollY, gap=rows.length>1?Math.max(0,R[1].top-R[0].bottom):4;
-  INVDG={g, row, rows, from, to:from, R:R.map(r=>({top:r.top+scrollY, h:r.height})), y0:e.clientY+scrollY, cy:e.clientY, id:e.pointerId, gap, top0};
+  INVDG={g, row, rows, from, to:from, R:R.map(r=>({top:r.top+scrollY, h:r.height})), y0:e.clientY+scrollY, cy:e.clientY, id:e.pointerId, gap, top0, box:row.parentElement, b0:row.parentElement.getBoundingClientRect().top+scrollY};
   try{ g.setPointerCapture(e.pointerId); }catch(x){}
   row.classList.add("dragging"); row.closest(".invls").classList.add("sorting"); document.body.classList.add("invdrag");
   rows.forEach(r=>{ if(r!==row) r.style.transition="transform .22s cubic-bezier(.2,.7,.2,1)"; });
   invDgLoop(); });
-function invDgPlace(){ const G=INVDG; if(!G) return; const dy=G.cy+scrollY-G.y0, me=G.R[G.from], mid=me.top+dy+me.h/2, sh=me.h+G.gap;
+function invDgPlace(){ const G=INVDG; if(!G) return; const dy=G.cy+scrollY-G.y0-dgShift(G), me=G.R[G.from], mid=me.top+dy+me.h/2, sh=me.h+G.gap;
   let to=G.from; G.R.forEach((r,i)=>{ if(i<G.from && mid<r.top+r.h/2) to=Math.min(to,i); if(i>G.from && mid>r.top+r.h/2) to=Math.max(to,i); });
   G.to=to; G.row.style.transform=`translateY(${dy}px) scale(1.01)`;
   G.rows.forEach((r,i)=>{ if(i===G.from) return; const s2=(G.from<to && i>G.from && i<=to) ? -sh : (G.from>to && i>=to && i<G.from) ? sh : 0; r.style.transform=s2?`translateY(${s2}px)`:""; }); }
