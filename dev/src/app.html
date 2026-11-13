@@ -6213,14 +6213,43 @@ function ppMissing(k){ const cid=k.dr.customerId, m=(D.specs||{})[cid]||{}, out=
   k.lines.forEach(l=>{ const s=m[l.pid]||{}, w=[]; if(!String(s.spec||"").trim()) w.push("ID спецификации"); if(!/^\d{3}$/.test(String(l.country||""))) w.push("страна");
     if(w.length) out.push({pid:l.pid, name:l.name, why:w}); });
   return out; }
+/* Полный УПД формата 5.03 (ФНС, ЕД-7-26/970) — как его собирает сам Портал (образец: УПД № 195 МОК, 27.10.2026).
+   Сокращённую схему Портал больше не принимает: файл без ИдФайл/КНД/СвПрод/СвПокуп отклоняется. */
+const PP_UNITN = {"166":"Килограмм","796":"Штука","163":"Грамм","112":"Литр","778":"Упаковка","715":"Пара"};
+function ppFio(f){ const w=String(f||"").trim().split(/\s+/).filter(Boolean); return {f:w[0]||"", i:w[1]||"", o:w.slice(2).join(" ")}; }
+function ppFioX(f){ const x=ppFio(f); return `<ФИО Фамилия="${ppA(x.f)}" Имя="${ppA(x.i)}"${x.o?` Отчество="${ppA(x.o)}"`:""}/>`; }
 function ppXml(k, opt){ opt=opt||{}; const dr=k.dr, c=k.c||{}, s=k.s||{}, m=(D.specs||{})[dr.customerId]||{};
-  const date=ppD(opt.date||dr.date), ship=ppD(opt.ship||dr.date), num=ppA(dr.number);
-  const shipAddr=dr.ship||c.ship||c.address||"", br=!!c.branchLabel;
-  const cons=`<ГрузПолуч><ИдСв><СвЮЛУч${br&&c.name?` НаимОрг="${ppA(c.name)}"`:""}${br&&/^\d{9}$/.test(String(c.kpp||""))?` КПП="${c.kpp}"`:""}/></ИдСв><Адрес><АдрИнф АдрТекст="${ppA(shipAddr)}"/></Адрес></ГрузПолуч>`;
-  const items=k.lines.map(l=>{ const sp=m[l.pid]||{};
-    return `<СведТов КолТов="${ppQ(l.qty)}" ЦенаТов="${ppN(l.priceNet)}" СтТовБезНДС="${ppN(l.net)}" СтТовУчНал="${ppN(l.sum)}"><СвДТ КодПроисх="${ppA(l.country)}"/><ДопСведТов АртикулТов="${ppA(ppArt(l.pid, sp))}"/><ИнфПолФХЖ2 Идентиф="ИдСпецификации" Значен="${ppA(sp.spec)}"/>${/^\d{1,10}$/.test(String(sp.ste||"").trim())?`<ИнфПолФХЖ2 Идентиф="ИдСТЕ" Значен="${String(sp.ste).trim()}"/>`:""}</СведТов>`; }).join("");
-  const nds = k.rate ? `<СумНал>${ppN(k.t.vat)}</СумНал>` : `<БезНДС>без НДС</БезНДС>`;
-  return `<?xml version="1.0" encoding="windows-1251"?>\n<Файл><Документ><СвСчФакт НомерСчФ="${num}" ДатаСчФ="${date}"><ГрузОт><ГрузОтпр><Адрес><АдрИнф АдрТекст="${ppA(s.address||"")}"/></Адрес></ГрузОтпр></ГрузОт>${cons}</СвСчФакт><ТаблСчФакт>${items}<ВсегоОпл СтТовБезНДСВсего="${ppN(k.t.net)}" СтТовУчНалВсего="${ppN(k.t.sum)}"><СумНалВсего>${nds}</СумНалВсего></ВсегоОпл></ТаблСчФакт><СвПродПер><СвПер ДатаПер="${ship}" ДатаНачПер="${ship}" ДатаОконПер="${ship}"/></СвПродПер></Документ></Файл>\n`; }
+  const date=ppD(opt.date||dr.date), ship=ppD(opt.ship||dr.date), num=ppA(dr.number), now=new Date();
+  const tm=[now.getHours(),now.getMinutes(),now.getSeconds()].map(x=>String(x).padStart(2,"0")).join(".");
+  const x=ctr(dr.contractId), bas=parseBasis((x&&x.basis)||dr.basis||"")||{}, bn=/контракт/i.test(bas.name||"")?"Контракт":"Договор";
+  const sInn=String(s.inn||"").replace(/\D/g,""), ip=sInn.length===12, og=String(s.ogrn||"").replace(/\D/g,"");
+  const ogD=/^\d{4}-\d\d-\d\d$/.test(String(s.ogrnDate||""))?fd(s.ogrnDate):(/^\d\d\.\d\d\.\d{4}$/.test(String(s.ogrnDate||""))?s.ogrnDate:"");
+  const fio=s.fio||String(s.name||"").replace(/^ИП\s+/i,"");
+  const adr=a=>`<Адрес><АдрИнф КодСтр="643" НаимСтран="Российская Федерация" АдрТекст="${ppA(a)}"/></Адрес>`;
+  const prod = ip
+    ? `<СвИП ИННФЛ="${sInn}"${og?` СвГосРегИП="${og}" ОГРНИП="${og}"`:""}${og&&ogD?` ДатаОГРНИП="${ogD}"`:""}>${ppFioX(fio)}</СвИП>`
+    : `<СвЮЛУч НаимОрг="${ppA(s.name)}" ИННЮЛ="${sInn}"${/^\d{9}$/.test(String(s.kpp||""))?` КПП="${s.kpp}"`:""}/>`;
+  const bank = s.rs ? `<БанкРекв НомерСчета="${ppA(s.rs)}"><СвБанк${s.bank?` НаимБанк="${ppA(s.bank)}"`:""}${s.bik?` БИК="${ppA(s.bik)}"`:""}${s.ks?` КорСчет="${ppA(s.ks)}"`:""}/></БанкРекв>` : "";
+  const buyer=`<ИдСв><СвЮЛУч НаимОрг="${ppA(c.name)}" ИННЮЛ="${ppA(c.inn)}"${/^\d{9}$/.test(String(c.kpp||""))?` КПП="${c.kpp}"`:""}/></ИдСв>`;
+  const shipAddr=dr.ship||c.ship||c.address||"", cons = norm(shipAddr)!==norm(c.address||"") ? `<ГрузПолуч>${buyer}${adr(shipAddr)}</ГрузПолуч>` : "";
+  const tax = v => k.rate ? `<СумНал>${ppN(v)}</СумНал>` : `<БезНДС>без НДС</БезНДС>`;
+  const items=k.lines.map((l,i)=>{ const sp=m[l.pid]||{}, ste=String(sp.ste||"").trim(), art=String(sp.art||"").trim()||"-", cty=String(l.country||"");
+    const okei=l.okei||"796";
+    return `<СведТов НомСтр="${i+1}" НаимТов="${ppA(l.name)}" ОКЕИ_Тов="${okei}" НаимЕдИзм="${ppA(PP_UNITN[okei]||l.unit||"")}" КолТов="${ppQ(l.qty)}" ЦенаТов="${ppN(l.priceNet)}" СтТовБезНДС="${ppN(l.net)}" НалСт="${k.rate?k.rate+"%":"без НДС"}" СтТовУчНал="${ppN(l.sum)}">`
+      +`<ДопСведТов ПрТовРаб="1" АртикулТов="${ppA(art)}"${/^\d{1,20}$/.test(ste)?` КодТов="${ste}"`:""}/>`
+      +`<Акциз><БезАкциз>без акциза</БезАкциз></Акциз><СумНал>${tax(l.vat)}</СумНал>`
+      +`<ИнфПолФХЖ2 Идентиф="ИдСпецификации" Значен="${ppA(sp.spec)}"/>${/^\d{1,10}$/.test(ste)?`<ИнфПолФХЖ2 Идентиф="ИдСТЕ" Значен="${ste}"/>`:""}`
+      +`${COUNTRIES[cty]&&cty?`<ИнфПолФХЖ2 Идентиф="СтранаПроисх" Значен="${ppA(COUNTRIES[cty].toUpperCase())}"/>`:""}</СведТов>`; }).join("");
+  const id="ON_NSCHFDOPPR_"+(String(c.edo||"").trim()||"0")+"_"+(String(s.edo||"").trim()||"0")+"_"+date.split(".").reverse().join("")+"_"+guid().toUpperCase()+"_0_0_0_0_0_00";
+  const dn="Документ об отгрузке товаров (выполнении работ), передаче имущественных прав (документ об оказании услуг)";
+  return `<?xml version="1.0" encoding="windows-1251"?>\n<Файл ИдФайл="${id}" ВерсФорм="5.03" ВерсПрог="Frudom 1.0">`
+    +`<Документ КНД="1115131" Функция="${k.rate?"СЧФДОП":"ДОП"}" ПоФактХЖ="${dn}" НаимДокОпр="${dn}" ДатаИнфПр="${date}" ВремИнфПр="${tm}" НаимЭконСубСост="${ppA(s.name)}">`
+    +`<СвСчФакт НомерДок="${num}" ДатаДок="${date}"><СвПрод><ИдСв>${prod}</ИдСв>${adr(s.address||"")}${bank}</СвПрод><ГрузОт><ОнЖе>он же</ОнЖе></ГрузОт>${cons}`
+    +`<СвПокуп>${buyer}${adr(c.address||shipAddr)}</СвПокуп><ДенИзм КодОКВ="643" НаимОКВ="Российский рубль"/>`
+    +`${bas.num&&bas.date?`<ДопСвФХЖ1><ИнфПродЗаГоскКазн ДатаГосКонт="${bas.date}" НомерГосКонт="${ppA(bas.num)}"/></ДопСвФХЖ1>`:""}</СвСчФакт>`
+    +`<ТаблСчФакт>${items}<ВсегоОпл СтТовБезНДСВсего="${ppN(k.t.net)}" СтТовУчНалВсего="${ppN(k.t.sum)}"><СумНалВсего><СумНал>${ppN(k.rate?k.t.vat:0)}</СумНал></СумНалВсего></ВсегоОпл></ТаблСчФакт>`
+    +`<СвПродПер><СвПер СодОпер="Товары переданы, работы сданы, услуги оказаны" ДатаПер="${ship}">${bas.num&&bas.date?`<ОснПер РеквНаимДок="${bn}" РеквНомерДок="${ppA(bas.num)}" РеквДатаДок="${bas.date}"/>`:`<ОснПер РеквНаимДок="Без документа-основания"/>`}</СвПер></СвПродПер>`
+    +`<Подписант СпосПодтПолном="1">${ppFioX(fio)}</Подписант></Документ></Файл>\n`; }
 /* окно: что не хватает / скачать */
 function ppOpen(j){ const k=calc(j.snap.dr, j.snap), miss=ppMissing(k), cid=k.dr.customerId, d=document.createElement("dialog"); d.className="ppdlg";
   const nm=shortCus(k)||cusNm(cid)||"";
