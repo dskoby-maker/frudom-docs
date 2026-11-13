@@ -55,6 +55,7 @@ const ctx={ SpreadsheetApp:{getActive:()=>ss}, LockService:{getScriptLock:()=>({
       return {getResponseCode:()=>200,getContentText:()=>JSON.stringify({content:[{type:'text',text:'```json\n'+fk+'\n```'}],usage:{input_tokens:1000,output_tokens:111}})}; }
     if(/\/models\?/.test(url)) return key==='bad'?{getResponseCode:()=>403,getContentText:()=>'{}'}:{getResponseCode:()=>200,getContentText:()=>JSON.stringify({models:[{name:'models/gemini-flash-latest',displayName:'Gemini Flash Latest',supportedGenerationMethods:['generateContent']},{name:'models/gemini-3.8-flash',displayName:'Gemini 3.8 Flash',supportedGenerationMethods:['generateContent']},{name:'models/text-embedding-004',supportedGenerationMethods:['embedContent']}]})};
     if(/models\/nope:/.test(url)) return {getResponseCode:()=>404,getContentText:()=>'{"error":{"message":"not found"}}'};
+    if(/:generateContent$/.test(url)) try{ ctx.__lastGem=JSON.parse(o.payload); }catch(e){}
     const code=/:generateContent$/.test(url)?(key==='bad'?403:200):200, t=code===200?JSON.stringify({candidates:[{content:{parts:[{text:fake}]}}],usageMetadata:{totalTokenCount:1234}}):'{"error":{"message":"API key not valid"}}';
     return {getResponseCode:()=>code, getContentText:()=>t}; } },
   /* папка заказчика с актами: ctx.__dir = {id, name, files:[{id, name, mime, b64, at}]} (тест dev/test/akt-dir.py) */

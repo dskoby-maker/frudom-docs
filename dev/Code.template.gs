@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 34;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 35;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -207,6 +207,8 @@ function aiOne_(model, req, key) {
     if (req.data) {
       if (req.mime === 'application/pdf') c.push({ type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: req.data } });
       else if (/^image\/(jpeg|png|webp|gif)$/.test(req.mime)) { if (req.data.length > 6.9e6) return { ok: false, model: model, prov: prov, code: 400, error: 'Claude читает фото до 5 МБ — уменьшите фото или выберите Gemini' }; c.push({ type: 'image', source: { type: 'base64', media_type: req.mime, data: req.data } }); }
+      else if (/^(audio|video)\//.test(req.mime)) return { ok: false, model: model, prov: prov, code: 400, error: 'Claude не слушает голосовые и не смотрит видео — для них нужна модель Gemini' };
+      else if (/^text\//.test(req.mime)) c.push({ type: 'text', text: 'Содержимое файла:\n' + Utilities.newBlob(Utilities.base64Decode(req.data)).getDataAsString() });
       else return { ok: false, model: model, prov: prov, code: 400, error: 'Claude не читает фото HEIC — сохраните как JPG или выберите Gemini' };
     }
     c.push({ type: 'text', text: req.prompt + (req.json ? '\nОтветь только JSON, без пояснений и без ```.' : '') });
@@ -251,11 +253,11 @@ function aiRead_(p, me) {
   if (me && !me.admin && (c.who === 'office' && me.role !== 'manager' || c.who === 'nodriver' && lim_(me))) return no('Даниил выключил для вас чтение через ИИ');
   if (c.limit && aiStatGet_().n >= c.limit) return no('дневной лимит запросов к ИИ (' + c.limit + ') исчерпан — его можно поменять в «Данные» → «ИИ»');
   const mime = String(p.mime || ''), data = String(p.data || ''), txt = String(p.text || '').slice(0, 40000);   /* text — заявка текстом письма (вкладка «Почта», Code.gs ≥ 30) */
-  if (!txt && !/^(application\/pdf|image\/(jpeg|png|webp|heic|heif))$/.test(mime)) return { ok: false, error: 'такой файл ИИ не читает — нужен PDF или фото' };
+  if (!txt && !/^(application\/pdf|image\/(jpeg|png|webp|heic|heif|gif)|audio\/[\w.+-]+|video\/[\w.+-]+|text\/(plain|csv|html|xml|rtf))$/.test(mime)) return { ok: false, error: 'такой файл ИИ не читает — нужен PDF, фото, текст, голосовое или видео' };   /* Code.gs ≥ 34: голосовые, видео и текст (Gemini) */
   if (data.length > c.maxMb * 1.37e6) return { ok: false, error: 'файл больше ' + c.maxMb + ' МБ — для ИИ слишком большой' };
   const prompt = aiPrompt_(kind) + (c.extra[kind].trim() ? '\nДополнительные указания владельца (соблюдай, но формат JSON не меняй): ' + c.extra[kind].trim() : '');
   const models = [c.model].concat(c.fallback && c.fallback !== c.model ? [c.fallback] : []), t0 = Date.now();
-  const r = aiCall_(models, txt ? { prompt: prompt + '\n\nЗаявка пришла текстом письма (файла нет). Текст письма:\n' + txt, json: true } : { prompt: prompt, mime: mime, data: data, json: true });
+  const r = aiCall_(models, txt ? { prompt: prompt + (p.src === 'file' ? '\n\nЗаявка — содержимое файла «' + String(p.fname || '').slice(0, 120) + '», сайт перевёл его в текст (таблицы — через табуляцию). Текст файла:\n' : '\n\nЗаявка пришла текстом письма (файла нет). Текст письма:\n') + txt, json: true } : { prompt: prompt, mime: mime, data: data, json: true });
   aiStatAdd_({ at: new Date().toISOString(), u: me ? me.name : '', k: kind, m: r.model || models[0], ok: !!r.ok, e: r.ok ? '' : String(r.error).slice(0, 120), t: r.tokens || 0, ms: Date.now() - t0 });
   return r;
 }
