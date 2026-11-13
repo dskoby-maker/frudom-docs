@@ -2859,7 +2859,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
     </div>
     <div class="card">
       <h2>Нумерация документов <small id="nm-name"></small></h2>
-      <p class="muted">У каждого заказчика своя нумерация. Новый документ получает номер «последний в журнале + 1». Если раньше документы для этого заказчика делали в 1С или Т‑Банке — один раз впишите, с какого номера продолжить.</p>
+      <p class="muted">У каждого заказчика своя нумерация, а у каждого договора — своя внутри неё (накладные без договора — отдельная серия). Новый документ получает номер «последний по этому договору + 1». Если раньше документы для этого заказчика делали в 1С или Т‑Банке — один раз впишите, с какого номера продолжить.</p>
       <div id="nm-list" class="tklist" style="margin-top:6px"></div>
     </div>
     <div class="card">
@@ -3060,21 +3060,26 @@ function ctrOpt(x, sel){ const sh=String(x.short||"").trim(), full=ctrLabel(x);
   const t = sh ? sh+(x.supplierId?" · "+supSurname(x.supplierId):"") : full;
   return `<option value="${x.id}"${x.id===sel?" selected":""}${sh?` title="${esc(full)}" data-full="${esc(full)}"`:""}>${esc(t)}</option>`; }
 const isArch = j => !!(j && j.snap && j.snap.meta && j.snap.meta.arch);
-/* нумерация: своя у каждой пары «поставщик + заказчик» */
+/* нумерация: своя у каждой пары «поставщик + заказчик», а с Code.gs ≥ 37 — ещё и у каждого договора (13.11.2026, просьба Даниила).
+   ck — ключ серии: ID договора документа (нет ID — договор по основанию), "" — без договора; null — серия не делится по договорам (старый скрипт). */
+const numByCtr = () => (D.srvVer||0) >= 37;
+function docCk(cid, dr){ if(!numByCtr()) return null; dr=dr||{}; if(dr.noCtr) return ""; if(dr.contractId) return String(dr.contractId);
+  const b=String(dr.basis||"").trim(); if(!b) return ""; const x=(D.contracts||[]).find(c=>c.customerId===cid && c.basis && b.includes(String(c.basis).trim())); return x?x.id:""; }
+const jCk = j => docCk(j.customerId, (j.snap||{}).dr);
 const numsOf = c => { try{ const o=JSON.parse((c&&c.nums)||"{}"); return o&&typeof o==="object"?o:{}; }catch(e){ return {}; } };
-const pairDocs = (sid, cid, except) => D.journal.filter(j=>!isArch(j) && j.supplierId===sid && j.customerId===cid && j.id!==except);
-function pairLast(sid, cid, except){ let best=null; pairDocs(sid,cid,except).forEach(j=>{ const n=parseInt(j.number,10)||0; if(!best || n>best.n || (n===best.n && j.date>best.j.date)) best={n, j}; }); return best; }
-function nextNum(sid, cid, skip, except){
-  const last=pairLast(sid,cid,except), st=parseInt(numsOf(cus(cid))[sid],10)||0;
-  let n=Math.max(last?last.n+1:1, st||1); const used=new Set(pairDocs(sid,cid,except).map(j=>String(j.number))); (skip||[]).forEach(x=>used.add(String(x)));
+const pairDocs = (sid, cid, except, ck) => D.journal.filter(j=>!isArch(j) && j.supplierId===sid && j.customerId===cid && j.id!==except && (ck==null || jCk(j)===ck));
+function pairLast(sid, cid, except, ck){ let best=null; pairDocs(sid,cid,except,ck).forEach(j=>{ const n=parseInt(j.number,10)||0; if(!best || n>best.n || (n===best.n && j.date>best.j.date)) best={n, j}; }); return best; }
+function nextNum(sid, cid, skip, except, ck){
+  const ns=numsOf(cus(cid)), last=pairLast(sid,cid,except,ck), st=parseInt((ck?ns[sid+"|"+ck]:null)||ns[sid],10)||0;   /* «продолжить с №»: свой у договора, иначе общий у поставщика */
+  let n=Math.max(last?last.n+1:1, st||1); const used=new Set(pairDocs(sid,cid,except,ck).map(j=>String(j.number))); (skip||[]).forEach(x=>used.add(String(x)));
   while(used.has(String(n))) n++; return String(n); }
 /* документы этой пары «поставщик + заказчик» с таким же номером (кроме архива и самого документа) */
-const numTaken = (sid, cid, num, except) => { const n=String(num||"").trim(); return n ? pairDocs(sid,cid,except).filter(j=>String(j.number).trim()===n) : []; };
+const numTaken = (sid, cid, num, except, ck) => { const n=String(num||"").trim(); return n ? pairDocs(sid,cid,except,ck).filter(j=>String(j.number).trim()===n) : []; };
 const numWho = j => { const w=j.snap&&j.snap.c ? String(j.snap.c.branchLabel||stLabel((j.snap.dr||{}).ship||"", j.snap.c.address)||"").trim() : ""; return "№ "+j.number+" от "+fd(j.date)+(w?" ("+w+")":""); };
 /* «Новый документ»: номер уже есть у этого заказчика → поле красное, подпись-предупреждение; сохранить можно */
 function numMark(){ const dr=D.draft, el=$("#d-num"), info=$("#d-numinfo"); if(!dr||!el||!info) return;
-  const t=dr.qtyOnly?[]:numTaken(dr.supplierId, dr.customerId, dr.number, dr.id); el.classList.toggle("numdup", !!t.length); info.classList.toggle("numdup", !!t.length);
-  if(t.length){ info.classList.remove("warn"); info.textContent="Внимание: у этого заказчика уже есть "+t.map(numWho).join("; ")+". Сохранить можно, но номер задвоится."; } }
+  const t=dr.qtyOnly?[]:numTaken(dr.supplierId, dr.customerId, dr.number, dr.id, docCk(dr.customerId, dr)); el.classList.toggle("numdup", !!t.length); info.classList.toggle("numdup", !!t.length);
+  if(t.length){ info.classList.remove("warn"); info.textContent="Внимание: "+(numByCtr()?(docCk(dr.customerId,dr)?"по этому договору":"у этого заказчика (без договора)"):"у этого заказчика")+" уже есть "+t.map(numWho).join("; ")+". Сохранить можно, но номер задвоится."; } }
 const ctrUsed = (id, except) => r2(D.journal.filter(j=>j.snap && !isArch(j) && j.snap.dr.contractId===id && j.id!==except).reduce((a,j)=>a+(+j.sum||0),0));
 
 /* ---------- расчёт (по текущим справочникам или по снимку из журнала) ---------- */
@@ -3240,7 +3245,7 @@ function handleErr(e){ if(e.message==="auth"){ showLogin("Неверный па�
   else if(e && !e.net){ setStatus("err","Ошибка таблицы, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Таблица ответила ошибкой","«"+String(e.message||e).slice(0,160)+"». Всё сохранено на этом устройстве, повторю сам. Если повторяется — пришлите этот текст Claude."); } }
   else { setStatus("err","Не сохранено — нет связи, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Нет связи с Google Таблицей",(e&&e.message?"Причина: "+e.message+". ":"")+"Всё сохранено на этом устройстве и отправится автоматически, когда связь появится. Ничего делать не нужно."); } } }
 
-const NEED_VER=33;   /* «Состояние сервисов» само просит Code.gs ≥ 34, остальное работает и с 33 */   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
+const NEED_VER=37;   /* «Состояние сервисов» само просит Code.gs ≥ 34, остальное работает и с 33 */   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
 function srvVerCheck(v){ const el=$("#srvOld"); if(!el) return; const old=(+v||0)<NEED_VER; el.hidden=!old || docLimited(); D.srvVer=+v||0; }
 document.addEventListener("click",e=>{ if(!e.target.closest || !e.target.closest("#srvOldHow")) return; openCard(`<div class="dc-head"><div><div class="dc-kicker">Code.gs</div><h3>Как обновить скрипт таблицы</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
   <ol class="srvsteps"><li>GitHub → файл <b>dev/Code.template.gs</b> → кнопка «Copy raw file» (два квадратика).</li><li>Таблица «Документы ФД» → «Расширения» → «Apps Script» → файл <b>Код.gs</b> → Ctrl+A → Ctrl+V → «Сохранить». Файл «Пароли.gs» не трогать.</li><li>«Начать развёртывание» → «Управление развёртываниями» → карандаш → «Версия: новая версия» → «Развернуть».</li><li>Обновите эту страницу — жёлтая плашка исчезнет.</li></ol>
@@ -3741,7 +3746,7 @@ function renderCtrInfo(){
 }
 function syncNum(){ const dr=D.draft; ldSync(); if(!dr || dr.qtyOnly) return; const inJ=D.journal.some(j=>j.id===dr.id);
   if(!inJ && !dr.numManual && (!dr.supplierId || !dr.customerId)){ dr.number=""; const el=$("#d-num"); if(el) el.value=""; const info=$("#d-numinfo"); if(info){ info.textContent=""; info.classList.remove("warn"); } numMark(); return; }
-  if(!inJ && !dr.numManual){ dr.number=nextNum(dr.supplierId, dr.customerId, null, dr.id); const el=$("#d-num"); if(el) el.value=dr.number; }
+  if(!inJ && !dr.numManual){ dr.number=nextNum(dr.supplierId, dr.customerId, null, dr.id, docCk(dr.customerId, dr)); const el=$("#d-num"); if(el) el.value=dr.number; }
   const info=$("#d-numinfo"); if(!info) return; const last=pairLast(dr.supplierId, dr.customerId, dr.id), st=parseInt(numsOf(cus(dr.customerId))[dr.supplierId],10)||0;
   info.classList.remove("warn");
   if(inJ) info.textContent="";
@@ -4091,9 +4096,9 @@ async function commitDoc(dr0, opt){
       catch(x){ if(bp && x.resp && x.resp.synced) sentOk(bp); throw x; }
       if(bp && !j.conflict){ if(j.synced) sentOk(bp); else await flush(); }   /* старый скрипт таблицы не берёт правки вместе с документом — отправим отдельно */
       const liveClash = () => D.journal.some(x=>x.id!==dr.id && !isArch(x) && x.supplierId===dr.supplierId && x.customerId===dr.customerId && String(x.number)===String(dr.number));
-      if(!j.concurrency && j.conflict && !liveClash()){ setStatus("ok"); await forceSave(); LC={n:dr.number, created:!old}; if(own) msg.textContent="Сохранено в журнал. Следующий номер для этого заказчика: "+nextNum(dr.supplierId, dr.customerId); return ""; }
+      if(!j.concurrency && j.conflict && !liveClash()){ setStatus("ok"); await forceSave(); LC={n:dr.number, created:!old}; if(own) msg.textContent="Сохранено в журнал. Следующий номер "+(numByCtr()&&docCk(dr.customerId,dr)?"по этому договору":"для этого заказчика")+": "+nextNum(dr.supplierId, dr.customerId, null, null, docCk(dr.customerId, dr)); return ""; }
       if(!j.concurrency && j.conflict && old && String(old.number)===String(dr.number)){ setStatus("ok"); await forceSave(); LC={n:dr.number, created:false, warn:"Номер "+dr.number+" есть и у другого документа."}; if(own) msg.textContent="Сохранено в журнал (номер "+dr.number+" повторяется у другого документа)."; return ""; }
-      if(j.conflict){ const nn=String(Math.max(+j.next||1,+nextNum(dr.supplierId, dr.customerId, null, dr.id))); note="Номер "+dr.number+" у этого заказчика уже занят — документу присвоен № "+nn+". ";
+      if(j.conflict){ const nn=String(Math.max(+j.next||1,+nextNum(dr.supplierId, dr.customerId, null, dr.id, docCk(dr.customerId, dr)))); note="Номер "+dr.number+(numByCtr()&&docCk(dr.customerId,dr)?" по этому договору":" у этого заказчика")+" уже занят — документу присвоен № "+nn+". ";
         dr.number=nn; if(own) $("#d-num").value=dr.number; entry=keepMeta(mk()); j=await api(Object.assign({action:"saveDoc", entry:jRow(entry), entryBase:clone(Object.prototype.hasOwnProperty.call(dr,"_editBase")?dr._editBase:(BASE.journal||{})[entry.id]||null)},bp?{changes:bp.ch}:{})); if(j.conflict)throw new Error("Номер занят: повторите сохранение"); if(bp&&j.synced)sentOk(bp); }
       if(j.next) s.next=j.next;
       acceptRows(j.accepted,Object.assign({},bp?bp.ch:{},{journal:{upsert:[jRow(entry)]}}));
@@ -4104,7 +4109,7 @@ async function commitDoc(dr0, opt){
       dirty("journal", entry.id); handleErr(e); note="Сохранено на этом устройстве, в таблицу отправлю при появлении связи. "; } finally {docSaving=false;}
   } else if(+dr.number>=(+s.next||1)) s.next=(+dr.number)+1;
   const i=D.journal.findIndex(j=>j.id===entry.id); if(i>=0) D.journal[i]=entry; else D.journal.unshift(entry);
-  docTasks([old&&old.date, entry.date]); saveLocal(); if(own) msg.textContent=note+"Сохранено в журнал. Следующий номер для этого заказчика: "+nextNum(dr.supplierId, dr.customerId);
+  docTasks([old&&old.date, entry.date]); saveLocal(); if(own) msg.textContent=note+"Сохранено в журнал. Следующий номер "+(numByCtr()&&docCk(dr.customerId,dr)?"по этому договору":"для этого заказчика")+": "+nextNum(dr.supplierId, dr.customerId, null, null, docCk(dr.customerId, dr));
   LC={n:dr.number, created:!old, warn:note.trim()};
   skAfterSave(entry); if(old) skAfterEdit(entry); if(typeof bnMulCommitted==="function") bnMulCommitted(entry); dtDocsAfter(entry, dr);
   return note;
@@ -4446,11 +4451,12 @@ $("#o-sup").onchange=e=>{ const o=O(), v=e.target.value; o.supplierId=v; const x
 $("#o-ctrf").addEventListener("click",e=>{ if(e.target.closest("#o-allp")){ const o=O(); o.allP=!o.allP; saveLocal(); renderOrderGrid(); } });
 $("#o-br").onchange=e=>{ const o=O(); o.branchId=e.target.value; saveLocal(); renderOrder(); };
 $("#o-date").addEventListener("input",e=>{ const o=O(), y=String(o.date||"").slice(0,4); o.date=e.target.value; saveLocal(); if(String(o.date).slice(0,4)!==y) renderOrderGrid(); else oCtrInfo(); });
-function oUsed(o){ const m={}, own=new Set(o.edit?Object.values(o.edit.ids):[]); D.journal.forEach(j=>{ if(!isArch(j) && !own.has(j.id) && j.supplierId===o.supplierId && j.customerId===o.customerId) m[String(j.number)]=j; }); return m; }
+const oCk = o => numByCtr() ? (o.noCtr ? "" : docCk(o.customerId, {contractId:o.contractId||"", basis:o.basis||""})) : null;
+function oUsed(o){ const m={}, own=new Set(o.edit?Object.values(o.edit.ids):[]), ck=oCk(o); D.journal.forEach(j=>{ if(!isArch(j) && !own.has(j.id) && j.supplierId===o.supplierId && j.customerId===o.customerId && (ck==null || jCk(j)===ck)) m[String(j.number)]=j; }); return m; }
 /* номер на каждую строку с количеством: вписанный вручную или следующий свободный */
 function oPlan(o){
   const P=oProds(o), rows=oAddrs(o).all.filter(a=>P.some(p=>+((o.qty[a]||{})[p.id])>0)), used=oUsed(o), plan={};
-  const manual=new Set(rows.map(a=>String(o.num[a]||"").trim()).filter(Boolean)); let n=parseInt(nextNum(o.supplierId, o.customerId),10)||1;
+  const manual=new Set(rows.map(a=>String(o.num[a]||"").trim()).filter(Boolean)); let n=parseInt(nextNum(o.supplierId, o.customerId, null, null, oCk(o)),10)||1;
   rows.forEach(a=>{ const m=String(o.num[a]||"").trim(); if(m){ plan[a]=m; return; } while(manual.has(String(n))||used[String(n)]) n++; plan[a]=String(n++); });
   return plan;
 }
@@ -7305,13 +7311,20 @@ function renderCustomers(){
 function renderNums(cid){
   const c=cus(cid); $("#nm-name").textContent=c&&c.name?"— "+c.name:""; if(!cid||!c.id){ $("#nm-list").innerHTML=""; return; }
   const ids=new Set(ctrs(cid).map(x=>x.supplierId).filter(Boolean)); D.journal.forEach(j=>{ if(j.customerId===cid && !isArch(j)) ids.add(j.supplierId); });
-  const S=(ids.size?D.suppliers.filter(s=>ids.has(s.id)):D.suppliers), st=numsOf(c);
-  $("#nm-list").innerHTML=S.map(s=>{ const l=pairLast(s.id,cid); return `<div class="tk"><div class="tkb"><b>${esc(supShort(s.name))}</b><small>${l?"Последний в журнале: № "+esc(l.j.number)+" от "+fd(l.j.date):"На сайте документов пока нет"} · следующий будет <b style="display:inline;font-weight:600">№ ${esc(nextNum(s.id,cid))}</b></small></div>
-    <div class="tka"><label class="f" style="margin:0;min-width:150px">Продолжить с №<input data-nms="${s.id}" inputmode="numeric" value="${esc(st[s.id]||"")}" placeholder="${l?String(l.n+1):"1"}"></label></div></div>`; }).join("");
+  const S=(ids.size?D.suppliers.filter(s=>ids.has(s.id)):D.suppliers), st=numsOf(c), by=numByCtr();
+  /* серии: при нумерации по договорам — каждый договор поставщика и «без договора» (если есть такие документы или договоров нет) */
+  const rows=[]; S.forEach(s=>{ if(!by){ rows.push({sid:s.id, ck:null, key:s.id, t:supShort(s.name)}); return; }
+    const cs=ctrs(cid).filter(x=>x.supplierId===s.id || (!x.supplierId && pairDocs(s.id,cid,null,x.id).length));
+    cs.forEach(x=>rows.push({sid:s.id, ck:x.id, key:s.id+"|"+x.id, t:supShort(s.name), sub:"Договор: "+ctrNm(x)}));
+    if(!cs.length || pairDocs(s.id,cid,null,"").length) rows.push({sid:s.id, ck:"", key:s.id, t:supShort(s.name), sub:cs.length?"Без договора":""}); });
+  $("#nm-list").innerHTML=(by?`<p class="muted" style="margin:0 0 6px">У каждого договора своя нумерация — номера считаются по накладным этого договора.</p>`:"")+rows.map(r=>{ const l=pairLast(r.sid,cid,null,r.ck), own=st[r.key];
+    return `<div class="tk"><div class="tkb"><b>${esc(r.t)}${r.sub?` <span class="muted" style="font-weight:500">· ${esc(r.sub)}</span>`:""}</b><small>${l?"Последний в журнале: № "+esc(l.j.number)+" от "+fd(l.j.date):"На сайте документов пока нет"} · следующий будет <b style="display:inline;font-weight:600">№ ${esc(nextNum(r.sid,cid,null,null,r.ck))}</b></small></div>
+    <div class="tka"><label class="f" style="margin:0;min-width:150px">Продолжить с №<input data-nms="${esc(r.key)}" inputmode="numeric" value="${esc(own||"")}" placeholder="${l?String(l.n+1):"1"}"></label></div></div>`; }).join("");
 }
-$("#nm-list").addEventListener("change",e=>{ const sid=e.target.dataset.nms; if(!sid) return; const c=cus(editorSel.customers); if(!c||!c.id) return; const o=numsOf(c), v=parseInt(dig(e.target.value),10);
-  if(v>0) o[sid]=v; else delete o[sid]; c.nums=Object.keys(o).length?JSON.stringify(o):""; dirty("customers",c.id); saveLocal(); setTimeout(()=>renderNums(c.id),0);
-  toast("ok","Нумерация сохранена", v>0?"Следующий документ для «"+cusShort(c.name)+"» получит № "+nextNum(sid,c.id)+".":"Номер будет считаться по журналу."); });
+$("#nm-list").addEventListener("change",e=>{ const key=e.target.dataset.nms; if(!key) return; const c=cus(editorSel.customers); if(!c||!c.id) return; const o=numsOf(c), v=parseInt(dig(e.target.value),10);
+  const [sid,ck]=key.split("|");
+  if(v>0) o[key]=v; else delete o[key]; c.nums=Object.keys(o).length?JSON.stringify(o):""; dirty("customers",c.id); saveLocal(); setTimeout(()=>renderNums(c.id),0);
+  toast("ok","Нумерация сохранена", v>0?"Следующий документ "+(ck?"по договору «"+ctrNm(ctr(ck))+"»":"для «"+cusShort(c.name)+"»")+" получит № "+nextNum(sid,c.id,null,null,numByCtr()?(ck||""):null)+".":"Номер будет считаться по журналу."); });
 function renderBranches(cid){
   const c=cus(cid); $("#br-name").textContent=c.name?"— "+c.name:"";
   if(!cid){ $("#br-list").innerHTML=""; return; }
@@ -8258,11 +8271,11 @@ function impIssuedNote(g){ if(!g.issued) return; g.warn=g.warn.filter(w=>!w.iss)
 function impFill(i){
   const R=IMP.r, g=R.groups[i]; if(!g) return;
   const dr=newDraft(D);
-  const taken=R.groups.filter((x,j)=>j!==i && x.filled).map(x=>x.filled);
-  const gs=g.s||R.s, gc=g.c||R.c, gk=g.c?g.k:R.k;
+  const gs=g.s||R.s, gc=g.c||R.c, gk=g.c?g.k:R.k, fk=gs.id+"|"+gc.id+"|"+docCk(gc.id, {contractId:gk?gk.id:"", noCtr:!gk});
+  const taken=R.groups.filter((x,j)=>j!==i && x.filled && (!x.fk || x.fk===fk)).map(x=>x.filled);
   Object.assign(dr,{supplierId:gs.id, customerId:gc.id, branchId:g.branchId||"", contractId:gk?gk.id:"", noCtr:!gk, basis:gk?(gk.basis||""):"", date:g.date||R.date, ship:g.ship||"",
-    number:g.num||nextNum(gs.id, gc.id, taken), numManual:!!g.num, lines:g.items.length?g.items.map(x=>Object.assign({},x)):[{productId:"",qty:"",price:""}]});
-  D.draft=dr; g.filled=dr.number; IMP.cur=i; saveLocal(); if(curTab!=="doc") showTab("doc"); else renderDoc(); drawImp();
+    number:g.num||nextNum(gs.id, gc.id, taken, null, docCk(gc.id, {contractId:gk?gk.id:"", noCtr:!gk})), numManual:!!g.num, lines:g.items.length?g.items.map(x=>Object.assign({},x)):[{productId:"",qty:"",price:""}]});
+  D.draft=dr; g.filled=dr.number; g.fk=fk; IMP.cur=i; saveLocal(); if(curTab!=="doc") showTab("doc"); else renderDoc(); drawImp();
   $("#d-saved").textContent="Форма заполнена из файла «"+IMP.file+"». Проверьте количество и номер документа, затем сформируйте документы.";
   toast((g.miss||[]).length?"warn":"ok","Форма заполнена из файла", R.c.name+" · "+g.items.length+" поз. · "+fm(g.sum)+" ₽"+(g.warn.length?" · есть замечания — см. выше":""));
   logEv("Документ","Заказ из файла «"+IMP.file+"»: "+(R.c.name||"")+", "+g.items.length+" поз.");
@@ -8610,11 +8623,12 @@ document.addEventListener("click",e=>{ if(e.target.closest("#imp-res [data-impsu
 $("#imp-res").addEventListener("click",e=>{ if(e.target.closest("[data-aigo]")){ aiGo(); return; } if(e.target.closest("[data-aikey]")){ aiKeySave(); return; } const b=e.target.closest("[data-impfill]"); if(b){ impFill(+b.dataset.impfill); return; } if(e.target.closest("#imp-close")){ IMP=null; drawImp(); } });
 /* ---------- несколько накладных из одной заявки: на «Новом документе» блок на каждую, уже заполненный ---------- */
 const mulOn = () => !!(D.multi && Array.isArray(D.multi.docs) && D.multi.docs.length);
-function mulStart(){ const R=IMP.r, taken=[];
+function mulStart(){ const R=IMP.r, tk={};   /* занятые номера — по сериям (поставщик, заказчик, договор) */
   D.multi={file:IMP.file, view:-1, docs:R.groups.map(g=>{ const dr=newDraft(D), gs=g.s||R.s, gc=g.c||R.c, gk=g.c?g.k:R.k;
     Object.assign(dr,{supplierId:gs.id, customerId:gc.id, branchId:g.branchId||"", contractId:gk?gk.id:"", noCtr:!gk, basis:gk?(gk.basis||""):"", date:g.date||R.date, ship:g.ship||"",
-      number:g.num||nextNum(gs.id, gc.id, taken), numManual:!!g.num, lines:g.items.map(x=>Object.assign({},x))});
-    taken.push(dr.number); g.filled=dr.number; return {dr, saved:"", ch:0}; })};
+      number:"", numManual:!!g.num, lines:g.items.map(x=>Object.assign({},x))});
+    const ck=docCk(gc.id, dr), key=gs.id+"|"+gc.id+"|"+ck, taken=tk[key]=tk[key]||[]; dr.number=g.num||nextNum(gs.id, gc.id, taken, null, ck);
+    taken.push(dr.number); g.filled=dr.number; g.fk=key; return {dr, saved:"", ch:0}; })};
   saveLocal(); logEv("Документ","Заказ из файла «"+IMP.file+"»: "+(R.c.name||"")+", накладных: "+R.groups.length); }
 const mulLabel = dr => { const b=branches(cus(dr.customerId)).find(x=>x.id===dr.branchId); return b ? (b.label||b.fullName||"") : ""; };
 function mulBlock(M,i){ const dr=M.dr, k=calc(dr), lbl=mulLabel(dr), g=IMP&&IMP.r&&IMP.file===D.multi.file?IMP.r.groups[i]:null, inJ=D.journal.some(j=>j.id===dr.id);
