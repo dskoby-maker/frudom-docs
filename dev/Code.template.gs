@@ -128,14 +128,17 @@ function bkPrune_() {
   L.forEach(f => { if (!keep[f.getId()]) f.setTrashed(true); });   /* в корзине Диска ещё 30 дней */
 }
 /* для ночного триггера: «Триггеры» → функция backupNightly → «Время» → «Таймер на день» → 3–4 ночи */
-function backupNightly() { backupMake_('ночная'); }
+function backupNightly() { PropertiesService.getScriptProperties().setProperty('bkNight', new Date().toISOString()); backupMake_('ночная'); }
 function backup_(p, me) {
   const pr = PropertiesService.getScriptProperties(), last = pr.getProperty('bkLast') || '';
   if (p.action === 'backupTick') {   /* кто бы ни зашёл: если копии не было больше 20 часов — сделать */
     if (last && Date.now() - Date.parse(last) < 20 * 3600000) return { ok: true, last: last };
-    const lock = LockService.getScriptLock(); if (!lock.tryLock(2000)) return { ok: true, last: last, busy: true };
-    try { const again = pr.getProperty('bkLast') || ''; if (again && Date.now() - Date.parse(again) < 20 * 3600000) return { ok: true, last: again };
-      backupMake_('автоматическая'); return { ok: true, last: pr.getProperty('bkLast'), made: true }; } finally { lock.releaseLock(); }
+    /* стоит ночной триггер (была ночная копия за 30 часов) — днём копию не делаем: она занимала таблицу у всех («Google Таблица не ответила за 45 секунд») */
+    const night = pr.getProperty('bkNight') || ''; if (night && Date.now() - Date.parse(night) < 30 * 3600000) return { ok: true, last: last };
+    /* без общей блокировки: копия только читает таблицу; от двух копий сразу — отметка «делаю» на 10 минут */
+    const run = +(pr.getProperty('bkRun') || 0); if (Date.now() - run < 600000) return { ok: true, last: last, busy: true };
+    pr.setProperty('bkRun', String(Date.now()));
+    try { backupMake_('автоматическая'); return { ok: true, last: pr.getProperty('bkLast'), made: true }; } finally { pr.deleteProperty('bkRun'); }
   }
   if (!me.admin) return { ok: false, error: 'forbidden' };
   if (p.action === 'backupNow') { const f = backupMake_('вручную, ' + me.name); log_(me, [{ action: 'Данные', text: 'Сделана резервная копия таблицы: ' + f.getName() }]); }
