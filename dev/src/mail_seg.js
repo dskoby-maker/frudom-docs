@@ -376,30 +376,93 @@ window.addEventListener("resize", mlMenuClose);
 /* ---------- просмотр вложений на сайте без скачивания ---------- */
 const mlKind = (n, m) => /\.pdf$/i.test(n)||/pdf/.test(m) ? "pdf" : /\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(n)||/^image\/(jpe?g|png|gif|webp|bmp)/.test(m) ? "img" : /\.(xlsx|xls|xlsm|ods)$/i.test(n) ? "sheet" : /\.(csv|tsv)$/i.test(n) ? "csv"
   : /\.(txt|log|json|xml|html?)$/i.test(n)||/^text\//.test(m) ? "text" : /\.(docx?|rtf|odt|pptx?|odp)$/i.test(n) ? "office" : "";
+/* Окно просмотра во весь экран (как просмотр документа): листание страниц, увеличение (кнопки, Ctrl+колесо, два пальца, двойное нажатие), поворот, печать */
+const MLV_I={zo:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M8 11h6M20 20l-4-4"/></svg>',
+  zi:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M8 11h6M11 8v6M20 20l-4-4"/></svg>',
+  rl:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4v5h5"/><path d="M3.5 9A9 9 0 1 1 6 18.5"/></svg>',
+  rr:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4v5h-5"/><path d="M20.5 9A9 9 0 1 0 18 18.5"/></svg>',
+  dl:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>'};
+const MLV_Z=[0.25,0.33,0.5,0.67,0.75,0.9,1,1.25,1.5,1.75,2,2.5,3,4,5];
 async function mlViewer(r, i){ const x=mlAtts(r)[i]; if(!x) return; const kind=mlKind(x.n, x.m||"");
   if(!kind){ toast("info","Этот файл на сайте не посмотреть","Нажмите «⤓», чтобы скачать."); return; }
-  const v=document.createElement("dialog"); v.className="dcard wide skview mlvw";
-  v.innerHTML=`<div class="dc-head"><div><div class="dc-kicker">Вложение${x.s?" · "+mlSize(x.s):""}</div><h3>${esc(x.n)}</h3></div><button class="dc-x" autofocus aria-label="Закрыть">×</button></div><div class="mlvb"><div class="mlvl"><i class="spin"></i> ${kind==="office"?"Готовлю просмотр (Word/Excel/PowerPoint превращаются в PDF — до 20 секунд)…":"Загружаю…"}</div></div><div class="dc-acts"><button type="button" class="btn" data-mlvd>⤓ Скачать</button></div>`;
-  document.getElementById("fd-app").appendChild(v); let url=null; const bye=()=>{ try{ v.close(); }catch(e){} v.remove(); if(url) setTimeout(()=>URL.revokeObjectURL(url),1000); };
-  v.querySelector(".dc-x").onclick=bye; v.addEventListener("cancel",e=>{ e.preventDefault(); bye(); }); v.addEventListener("click",e=>{ if(e.target===v) bye(); }); v.addEventListener("close",()=>v.remove());
-  v.querySelector("[data-mlvd]").onclick=()=>mlAtt(r, i, "get"); v.showModal(); requestAnimationFrame(()=>v.classList.add("in"));
-  const body=v.querySelector(".mlvb");
+  const pages=kind==="pdf"||kind==="office"||kind==="img", V={z:1, rot:0, items:[], fs:kind==="text"||kind==="sheet"||kind==="csv"};
+  const v=document.createElement("dialog"); v.className="mlvw"+(pages?" pg":" doc"); v.setAttribute("aria-label", x.n);
+  const B=(a,t,ic,txt)=>`<button type="button" class="mlvbt" data-mlv="${a}" title="${t}" aria-label="${t}">${ic}${txt?`<span>${txt}</span>`:""}</button>`;
+  v.innerHTML=`<div class="mlvbar"><div class="mlvt"><b>${esc(x.n)}</b><small>Вложение${x.s?" · "+mlSize(x.s):""}<span class="mlvpc"></span></small></div>
+    <div class="mlvtools"><span class="mlvgrp">${B("zo","Уменьшить",MLV_I.zo)}<button type="button" class="mlvbt mlvzp" data-mlv="fit" title="По ширине экрана">100%</button>${B("zi","Увеличить",MLV_I.zi)}</span>
+    ${pages?`<span class="mlvgrp">${B("rl","Повернуть влево",MLV_I.rl)}${B("rr","Повернуть вправо",MLV_I.rr)}</span>`:""}
+    <span class="mlvgrp">${pages?`<button type="button" class="mlvbt" data-mlv="print" title="Печать" aria-label="Печать">${D_PRN}<span>Печать</span></button>`:""}${B("dl","Скачать",MLV_I.dl,"Скачать")}<button type="button" class="mlvbt mlvx dc-x" data-mlv="close" title="Закрыть (Esc)" aria-label="Закрыть">×</button></span></div></div>
+    <div class="mlvb" tabindex="-1"><div class="mlvl"><i class="spin"></i> ${kind==="office"?"Готовлю просмотр (Word/Excel/PowerPoint превращаются в PDF — до 20 секунд)…":"Загружаю…"}</div></div>`;
+  document.getElementById("fd-app").appendChild(v); let url=null; const body=v.querySelector(".mlvb");
+  const bye=()=>{ try{ v.close(); }catch(e){} v.remove(); if(url) setTimeout(()=>URL.revokeObjectURL(url),1000); };
+  v.addEventListener("cancel",e=>{ e.preventDefault(); bye(); }); v.addEventListener("close",()=>v.remove());
+  /* раскладка: ширина страницы на экране = ширина «по экрану» × увеличение; при повороте на 90° меняются местами ширина и высота */
+  const fitW=()=>Math.max(160, Math.min(body.clientWidth-(innerWidth<=600?16:48), 1100));
+  const lay=()=>{ const zl=v.querySelector(".mlvzp"); if(zl) zl.textContent=Math.round(V.z*100)+"%";
+    if(V.fs){ const t=body.querySelector(".mlvtxt,.mlvsheet"); if(t) t.style.fontSize=(13*V.z).toFixed(1)+"px"; return; }
+    const side=V.rot%180!==0, W=fitW()*V.z;
+    V.items.forEach(it=>{ const a=it.h/it.w, ew=side?W/a:W, eh=side?W:W*a, ww=W, wh=side?W/a:W*a;
+      it.wrap.style.width=ww+"px"; it.wrap.style.height=wh+"px"; it.el.style.width=ew+"px"; it.el.style.height=eh+"px"; it.el.style.transform=`translate(-50%,-50%) rotate(${V.rot}deg)`; });
+    v.classList.toggle("zm", V.z>1.01); };
+  /* увеличение с сохранением точки под пальцем/курсором */
+  const zoomTo=(z, cx, cy)=>{ z=Math.min(5, Math.max(0.25, z)); if(Math.abs(z-V.z)<0.001) return; const R=body.getBoundingClientRect();
+    if(cx==null){ cx=R.left+body.clientWidth/2; cy=R.top+body.clientHeight/2; }
+    const px=body.scrollLeft+cx-R.left, py=body.scrollTop+cy-R.top, k=z/V.z; V.z=z; lay();
+    body.scrollLeft=px*k-(cx-R.left); body.scrollTop=py*k-(cy-R.top); };
+  const step=d=>{ const L=MLV_Z, j=d>0?L.findIndex(q=>q>V.z+0.001):L.length-1-[...L].reverse().findIndex(q=>q<V.z-0.001); if(j>=0&&j<L.length) zoomTo(L[j]); };
+  const rotate=d=>{ const top=body.scrollTop/(body.scrollHeight||1); V.rot=(V.rot+d+360)%360; lay(); body.scrollTop=top*body.scrollHeight; };
+  v.addEventListener("click",e=>{ const b=e.target.closest("[data-mlv]"); if(!b) return; const a=b.dataset.mlv;
+    if(a==="close") bye(); else if(a==="zi") step(1); else if(a==="zo") step(-1); else if(a==="fit"){ V.z=1; lay(); body.scrollLeft=0; }
+    else if(a==="rl") rotate(-90); else if(a==="rr") rotate(90); else if(a==="dl") mlAtt(r, i, "get"); else if(a==="print") mlvPrint(V, x.n); });
+  v.addEventListener("keydown",e=>{ if(e.target.closest("input,textarea,select")) return; const k=e.key;
+    if(k==="+"||k==="="){ e.preventDefault(); step(1); } else if(k==="-"||k==="_"){ e.preventDefault(); step(-1); } else if(k==="0"){ e.preventDefault(); V.z=1; lay(); }
+    else if((k==="r"||k==="к")&&pages&&!e.ctrlKey&&!e.metaKey){ e.preventDefault(); rotate(e.shiftKey?-90:90); } });
+  body.addEventListener("wheel",e=>{ if(!(e.ctrlKey||e.metaKey)) return; e.preventDefault(); zoomTo(V.z*Math.exp(-e.deltaY*0.0025), e.clientX, e.clientY); }, {passive:false});
+  body.addEventListener("dblclick",e=>{ if(!pages||!e.target.closest(".mlvpg")) return; zoomTo(V.z>1.01?1:2, e.clientX, e.clientY); });
+  /* два пальца — увеличение */
+  const T=new Map(); let pinch=null;
+  body.addEventListener("pointerdown",e=>{ if(e.pointerType!=="touch") return; T.set(e.pointerId,{x:e.clientX,y:e.clientY}); if(T.size===2){ const [a,b]=[...T.values()]; pinch={d:Math.hypot(a.x-b.x,a.y-b.y)||1, z:V.z}; } });
+  body.addEventListener("pointermove",e=>{ if(!T.has(e.pointerId)) return; T.set(e.pointerId,{x:e.clientX,y:e.clientY}); if(pinch&&T.size===2){ const [a,b]=[...T.values()]; zoomTo(pinch.z*Math.hypot(a.x-b.x,a.y-b.y)/pinch.d, (a.x+b.x)/2, (a.y+b.y)/2); } });
+  const up=e=>{ T.delete(e.pointerId); if(T.size<2) pinch=null; }; body.addEventListener("pointerup",up); body.addEventListener("pointercancel",up);
+  body.addEventListener("touchmove",e=>{ if(e.touches.length>1) e.preventDefault(); }, {passive:false});
+  /* какая страница сейчас на экране */
+  body.addEventListener("scroll",()=>{ if(V.items.length<2) return; const R=body.getBoundingClientRect(), mid=R.top+R.height/3; let n=1; V.items.forEach((it,j)=>{ if(it.wrap.getBoundingClientRect().top<=mid) n=j+1; }); const pc=v.querySelector(".mlvpc"); if(pc) pc.textContent=` · стр. ${n} из ${V.items.length}`; }, {passive:true});
+  let rz=0; const onRz=()=>{ cancelAnimationFrame(rz); rz=requestAnimationFrame(lay); }; addEventListener("resize", onRz); v.addEventListener("close",()=>removeEventListener("resize", onRz));
+  v.showModal(); body.focus(); requestAnimationFrame(()=>v.classList.add("in"));
+  const addPage=(el, w, h)=>{ const wrap=document.createElement("div"); wrap.className="mlvpg"; el.classList.add("mlvel"); wrap.appendChild(el); body.querySelector(".mlvpdf").appendChild(wrap); const it={wrap, el, w, h}; V.items.push(it); lay(); return it; };
   try{ let f;
     if(kind==="office"){ let j; try{ j=await apiFetch(API_URL,{method:"POST", tmo:120000, body:JSON.stringify({key:pass(), user:curUser(), action:"mail", op:"attPdf", id:r.id, i})}); }
         catch(e){ if(/unknown op/.test(e.message)) throw new Error("для просмотра Word и Excel обновите Code.gs — а пока нажмите «Скачать»"); throw e; }
       const bin=atob(j.data), u8=new Uint8Array(bin.length); for(let k=0;k<bin.length;k++) u8[k]=bin.charCodeAt(k); f=new File([u8], j.name||"файл.pdf", {type:"application/pdf"}); }
     else f=await mlAttGet(r, i);
     if(!v.isConnected) return;
-    if(kind==="img"){ url=URL.createObjectURL(f); body.innerHTML=`<div class="mlvimg"><img src="${url}" alt="${esc(x.n)}" title="Нажмите, чтобы увеличить"></div>`; const im=body.querySelector("img"); im.onclick=()=>im.parentNode.classList.toggle("zoom"); return; }
-    if(kind==="text"){ const t=await f.text(); body.innerHTML=`<pre class="mlvtxt">${esc(t.slice(0,300000))}</pre>`; return; }
+    if(kind==="img"){ url=URL.createObjectURL(f); const im=new Image(); im.alt=x.n; im.src=url; await im.decode().catch(()=>{}); if(!v.isConnected) return;
+      body.innerHTML=`<div class="mlvpdf"></div>`; addPage(im, im.naturalWidth||800, im.naturalHeight||600); return; }
+    if(kind==="text"){ const t=await f.text(); body.innerHTML=`<pre class="mlvtxt">${esc(t.slice(0,300000))}</pre>`; lay(); return; }
     if(kind==="sheet"||kind==="csv"){ const X=await loadXLSX(); const wb=X.read(await f.arrayBuffer(),{type:"array"}); const names=wb.SheetNames;
       const draw=k=>{ const h=X.utils.sheet_to_html(wb.Sheets[names[k]],{editable:false}).replace(/<script[\s\S]*?<\/script>/gi,"").replace(/\son\w+=/gi," data-x="); const m=h.match(/<table[\s\S]*<\/table>/i);
         body.innerHTML=(names.length>1?`<div class="pfchips mlvtabs">${names.map((n,j)=>`<button type="button" data-mlvs="${j}" class="${j===k?"on":""}">${esc(n)}</button>`).join("")}</div>`:"")+`<div class="mlvsheet">${m?m[0]:"<p class='muted'>Лист пустой</p>"}</div>`;
-        body.querySelectorAll("[data-mlvs]").forEach(b=>b.onclick=()=>draw(+b.dataset.mlvs)); };
+        body.querySelectorAll("[data-mlvs]").forEach(b=>b.onclick=()=>draw(+b.dataset.mlvs)); lay(); };
       draw(0); return; }
     /* PDF (в том числе Word/Excel, превращённые в PDF): страницы рисует pdf.js — работает и в приложении на телефоне */
-    try{ const P=await adPdfJs(), doc=await P.getDocument({data:new Uint8Array(await f.arrayBuffer())}).promise; body.innerHTML=`<div class="mlvpdf"></div><p class="muted mlvpn">${doc.numPages} ${plural(doc.numPages,["страница","страницы","страниц"])}</p>`; const box=body.querySelector(".mlvpdf");
-      for(let k=1;k<=Math.min(doc.numPages,60);k++){ if(!v.isConnected) return; const pg=await doc.getPage(k), w=Math.min(box.clientWidth||800, 1000), vp0=pg.getViewport({scale:1}), sc=w/vp0.width*(window.devicePixelRatio||1), vp=pg.getViewport({scale:sc});
-        const c=document.createElement("canvas"); c.width=vp.width; c.height=vp.height; c.style.width="100%"; box.appendChild(c); await pg.render({canvasContext:c.getContext("2d"), viewport:vp}).promise; } }
-    catch(e){ url=URL.createObjectURL(f); body.innerHTML=`<iframe class="mlvifr" src="${url}" title="${esc(x.n)}"></iframe>`; }
+    try{ const P=await adPdfJs(), doc=await P.getDocument({data:new Uint8Array(await f.arrayBuffer())}).promise; body.innerHTML=`<div class="mlvpdf"></div>`;
+      const pc=v.querySelector(".mlvpc"); pc.textContent=doc.numPages>1?` · стр. 1 из ${doc.numPages}`:"";
+      const N=Math.min(doc.numPages,60), dpr=window.devicePixelRatio||1;
+      for(let k=1;k<=N;k++){ if(!v.isConnected) return; const pg=await doc.getPage(k), vp0=pg.getViewport({scale:1}), sc=Math.min(2600, Math.max(1400, fitW()*dpr*1.6))/vp0.width, vp=pg.getViewport({scale:sc});
+        const c=document.createElement("canvas"); c.width=Math.round(vp.width); c.height=Math.round(vp.height); const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,c.width,c.height);
+        addPage(c, vp0.width, vp0.height); await pg.render({canvasContext:g, viewport:vp}).promise; }
+      if(doc.numPages>N) body.insertAdjacentHTML("beforeend",`<p class="mlvmore">Показаны первые ${N} страниц из ${doc.numPages} — остальные в скачанном файле.</p>`); }
+    catch(e){ url=URL.createObjectURL(f); body.innerHTML=`<iframe class="mlvifr" src="${url}" title="${esc(x.n)}"></iframe>`; v.classList.add("ifr"); }
   }catch(e){ if(v.isConnected) body.innerHTML=`<div class="mlvl"><b>Не получилось показать файл.</b> ${esc(e.message||"")}</div>`; } }
+/* печать страниц так, как они повёрнуты на экране */
+async function mlvPrint(V, name){ if(!V.items.length){ toast("info","Ещё загружается","Подождите секунду."); return; }
+  const urls=V.items.map(it=>{ const s=it.el, sw=s.naturalWidth||s.width, sh=s.naturalHeight||s.height, side=V.rot%180!==0, c=document.createElement("canvas");
+    c.width=side?sh:sw; c.height=side?sw:sh; const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,c.width,c.height); g.translate(c.width/2,c.height/2); g.rotate(V.rot*Math.PI/180); g.drawImage(s,-sw/2,-sh/2,sw,sh);
+    try{ return c.toDataURL("image/jpeg",0.92); }catch(e){ return s.src||""; } });
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>${esc(name||"Вложение")}</title><style>@page{size:A4;margin:6mm}html,body{margin:0;padding:0;background:#fff}
+    .p{height:285mm;display:flex;align-items:center;justify-content:center;break-after:page;page-break-after:always}.p:last-child{break-after:auto;page-break-after:auto}.p img{max-width:100%;max-height:100%;object-fit:contain}</style></head>
+    <body>${urls.map(u=>`<div class="p"><img src="${u}"></div>`).join("")}</body></html>`;
+  const f=document.createElement("iframe"); f.setAttribute("aria-hidden","true"); f.style.cssText="position:fixed;left:-4000px;top:0;width:900px;height:1200px;border:0;visibility:hidden";
+  document.body.appendChild(f); const d=f.contentWindow.document; d.open(); d.write(html); d.close();
+  await Promise.all([...d.images].map(im=>im.complete?0:new Promise(ok=>{ im.onload=im.onerror=ok; })));
+  f.contentWindow.focus(); f.contentWindow.print(); setTimeout(()=>f.remove(), 60000); }

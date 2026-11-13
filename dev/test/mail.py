@@ -10,10 +10,18 @@ def ev(js): return json.loads(urllib.request.urlopen(urllib.request.Request('htt
 def rows(t):
     d=json.load(urllib.request.urlopen('http://localhost:8787/dump')).get(t) or [[]]; h=d[0]; return [dict(zip(h,r)) for r in d[1:] if any(str(x) for x in r)]
 b64=lambda s: base64.b64encode(s if isinstance(s,bytes) else s.encode()).decode()
+def mkpdf():
+    try:
+        import io; from reportlab.pdfgen import canvas
+        f=io.BytesIO(); c=canvas.Canvas(f, pagesize=(595,842))
+        for n in (1,2): c.drawString(60,780,f'Zayavka page {n}'); c.showPage()
+        c.save(); return f.getvalue()
+    except Exception: return b'%PDF-1.4 test'
+PDFB=mkpdf()
 PX='k'*24
 M_RU=[{'uid':11,'date':'2026-11-12T06:15:00.000Z','from':{'n':'МГУ Комбинат','a':'zakaz@msu.ru'},'to':[{'n':'','a':'frudom.ru@mail.ru'}],'cc':[],'replyTo':'','subject':'Заявка на 14.11',
   'msgid':'<m11@msu.ru>','inReply':'','refs':'','text':'Добрый день!\nПрошу поставить:\nПомидоры тест 10 кг\nОгурцы тест 5 кг\n\nС уважением, Комбинат питания','html':'',
-  'atts':[{'name':'заявка.pdf','mime':'application/pdf','size':13,'data':b64('%PDF-1.4 test')},{'name':'счёт.docx','mime':'application/vnd.openxmlformats-officedocument.wordprocessingml.document','size':7,'data':b64('PK docx')}]},
+  'atts':[{'name':'заявка.pdf','mime':'application/pdf','size':len(PDFB),'data':b64(PDFB)},{'name':'счёт.docx','mime':'application/vnd.openxmlformats-officedocument.wordprocessingml.document','size':7,'data':b64('PK docx')}]},
   {'uid':12,'date':'2026-11-11T08:00:00.000Z','from':{'n':'Рассылка','a':'news@shop.ru'},'to':[{'n':'','a':'frudom.ru@mail.ru'}],'cc':[],'replyTo':'','subject':'Скидки недели','msgid':'<n12@shop.ru>','inReply':'','refs':'',
   'text':'Только сегодня скидки','html':'<p>Только <b>сегодня</b> скидки <img src="https://track.example/x.png"></p>','atts':[]}]
 M_TW=[{'uid':3,'date':'2026-11-12T09:30:00.000Z','from':{'n':'Цирк бухгалтерия','a':'buh@circus.ru'},'to':[{'n':'','a':'info@frudom.ru'}],'cc':[{'n':'Кассир','a':'kassa@circus.ru'}],'replyTo':'','subject':'Акт сверки за октябрь',
@@ -22,6 +30,10 @@ AIF=os.environ.get('MAILAI','/tmp/mail-ai.json')
 TAB="(t=>{document.querySelector('nav.tabs button[data-tab=\"doc\"]').click(); document.querySelector('nav.tabs button[data-tab=\"'+t+'\"]').click()})"
 async def login(b, who, pw, W=1300, H=900):
     ctx=await b.new_context(viewport={'width':W,'height':H}); pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
+    PJ=os.environ.get('PDFJS_DIR')
+    if PJ:
+        await pg.route('**/pdf.js/*/pdf.min.js', lambda r: r.fulfill(path=PJ+'/pdf.min.js', content_type='text/javascript'))
+        await pg.route('**/pdf.js/*/pdf.worker.min.js', lambda r: r.fulfill(path=PJ+'/pdf.worker.min.js', content_type='text/javascript'))
     await pg.goto('http://localhost:8787/page'); await pg.click(f'#fd-who [data-who="{who}"]'); await pg.fill('#fd-pass',pw); await pg.click('#fd-enter'); await pg.wait_for_timeout(2500)
     return ctx, pg, errs
 async def until(pg, js, n=60):
@@ -74,8 +86,22 @@ async def main():
         # вложение
         await pg.click('#ml-view [data-mlatt="0"][data-how="view"]'); await pg.wait_for_timeout(1200)
         ok(await until(pg,"!!document.querySelector('dialog.mlvw .mlvpdf canvas, dialog.mlvw iframe.mlvifr')"), 'PDF-вложение показывается на сайте, без скачивания')
-        await pg.click('dialog.skview .dc-x'); await pg.wait_for_timeout(500)
-        ok(await pg.locator('dialog.skview').count()==0, '× закрывает окно вложения')
+        if await pg.locator('dialog.mlvw .mlvpdf canvas').count():
+            w0=await pg.evaluate("document.querySelector('dialog.mlvw .mlvpg').getBoundingClientRect().width")
+            dw=await pg.evaluate("document.querySelector('dialog.mlvw').clientWidth"); ok(dw==await pg.evaluate('innerWidth') and abs(w0-min(dw-48,1100))<20, f'окно во весь экран, страница по ширине ({w0:.0f} из {dw})')
+            await pg.screenshot(path=os.environ.get('SHOTS','/tmp')+'/mlv-pdf.png')
+            await pg.click('dialog.mlvw [data-mlv="zi"]'); await pg.wait_for_timeout(300)
+            w1=await pg.evaluate("document.querySelector('dialog.mlvw .mlvpg').getBoundingClientRect().width")
+            ok(w1>w0*1.1 and (await pg.text_content('dialog.mlvw .mlvzp'))=='125%', f'«+» увеличивает ({w0:.0f} → {w1:.0f}, 125%)')
+            await pg.click('dialog.mlvw [data-mlv="fit"]'); await pg.wait_for_timeout(300)
+            hw=await pg.evaluate("(()=>{const r=document.querySelector('dialog.mlvw .mlvpg').getBoundingClientRect(); return r.height/r.width})()")
+            await pg.click('dialog.mlvw [data-mlv="rr"]'); await pg.wait_for_timeout(400)
+            hw2=await pg.evaluate("(()=>{const r=document.querySelector('dialog.mlvw .mlvpg').getBoundingClientRect(); return r.height/r.width})()")
+            tr=await pg.evaluate("document.querySelector('dialog.mlvw .mlvel').style.transform")
+            ok('rotate(90deg)' in tr and abs(hw*hw2-1)<0.05, f'поворот: страница повёрнута, ширина и высота поменялись ({hw:.2f} → {hw2:.2f})')
+            await pg.screenshot(path=os.environ.get('SHOTS','/tmp')+'/mlv-rot.png')
+        await pg.click('dialog.mlvw .dc-x'); await pg.wait_for_timeout(500)
+        ok(await pg.locator('dialog.mlvw').count()==0, '× закрывает окно вложения')
         # ответ
         await pg.click('#ml-view [data-ml="reply"]'); await pg.wait_for_timeout(400)
         ok(await pg.input_value('#mlc-to')=='zakaz@msu.ru' and await pg.input_value('#mlc-sub')=='Re: Заявка на 14.11', 'ответ: кому и тема Re:')
