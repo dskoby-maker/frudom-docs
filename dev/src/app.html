@@ -1056,6 +1056,12 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app #sv-help ol{margin:0 0 12px;padding:0 16px 0 40px;display:grid;gap:6px;font-size:14px;line-height:1.45}
 #fd-app #sv-help .sv-lead{margin:-4px 0 6px}#fd-app #sv-help details.sv-flash{box-shadow:0 0 0 3px rgba(106,44,78,.25)}
 @media (max-width:640px){#fd-app .sv-r{grid-template-columns:12px minmax(0,1fr) auto;grid-template-areas:"d n go" ". t t"}#fd-app .sv-d{grid-area:d}#fd-app .sv-n{grid-area:n}#fd-app .sv-t{grid-area:t}#fd-app .sv-go{grid-area:go}}
+#fd-app .ppdlg{border:0;border-radius:16px;padding:20px;width:min(560px,calc(100vw - 24px));box-shadow:0 30px 70px -20px rgba(48,32,44,.45)}
+#fd-app .ppdlg::backdrop{background:rgba(28,22,26,.4)}#fd-app .ppdlg .pph{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:17px}
+#fd-app .ppdlg .ppx{all:unset;cursor:pointer;font-size:24px;line-height:1;color:var(--muted);padding:0 4px}#fd-app .ppdlg .pps{margin:6px 0 14px;color:var(--muted);font-size:13.5px}
+#fd-app .ppdlg .ppbad{background:#fdf3f1;border-radius:12px;padding:12px 14px;font-size:14px}#fd-app .ppdlg .ppbad ul{margin:8px 0;padding-left:20px;display:grid;gap:3px}#fd-app .ppdlg .ppbad li span{color:var(--err)}#fd-app .ppdlg .ppbad p{margin:6px 0 0;color:#5f6662;font-size:13px}
+#fd-app .ppdlg .ppf{display:inline-grid;gap:4px;margin:0 10px 10px 0;font-size:13px;color:var(--muted)}#fd-app .ppdlg .pphow{margin:6px 0 14px;padding-left:20px;display:grid;gap:4px;font-size:14px}
+#fd-app .ppdlg .ppbt{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 #fd-app .bk-night{margin:10px 0}#fd-app .bk-night b{display:inline}#fd-app #bk-card a.btn{text-decoration:none}#fd-app .bk-list{display:grid;gap:4px;margin:10px 0 6px}#fd-app .bk-r{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;background:rgba(242,243,239,.7)}#fd-app .bk-r small{display:block;font-size:12px;color:var(--muted)}#fd-app .bk-a{display:flex;gap:4px;flex:none}
 #fd-app .bk-how{margin-top:12px;font-size:14px}#fd-app .bk-how summary{cursor:pointer;font-weight:600;color:var(--accent)}#fd-app .bk-how ol{margin:8px 0;padding-left:20px;display:grid;gap:6px}
 #fd-app .cturl{display:flex;gap:6px;align-items:center}#fd-app .cturl input{flex:1;min-width:0}#fd-app .cturl a.btn{flex:none;text-decoration:none;white-space:nowrap}
@@ -6069,7 +6075,7 @@ function jRowHtml(j, kid, arch){ const w=jWho(j), pv=!!(j.snap.c&&j.snap.c.priv)
     ? `<span class="jdocs">${view}</span> <button class="btn sm" data-unarch="${j.id}" title="Вернуть из архива"><span class="jmt">Вернуть из архива</span><span class="jmi" aria-hidden="true">${IC_UNDO}</span></button>`
     : docLimited() ? `<span class="jdocs">${cj}${view}</span> <button class="btn ghost sm" data-qty="${j.id}" title="Изменить количество" aria-label="Изменить количество"><span class="jmt">Изменить количество</span><span class="jmi">${IC_EDIT}</span></button>`
     : `<span class="jdocs">${cj}${view}</span> <button class="btn ghost sm" data-edit="${j.id}" title="Изменить" aria-label="Изменить"><span class="jmt">Изменить</span><span class="jmi">${IC_EDIT}</span></button>
-    <details class="more"><summary class="btn ghost sm" aria-label="Ещё действия"><span class="jmt">Ещё ▾</span><span class="jmi">${IC_DOTS}</span></summary><div class="menu"><button class="btn sm jmed" data-edit="${j.id}">Изменить</button><button class="btn sm" data-x="${j.id}">XML для ЕИС</button><button class="btn sm" data-copy="${j.id}">Сделать копию</button><button class="btn sm danger" data-arch="${j.id}">В архив</button></div></details>`;
+    <details class="more"><summary class="btn ghost sm" aria-label="Ещё действия"><span class="jmt">Ещё ▾</span><span class="jmi">${IC_DOTS}</span></summary><div class="menu"><button class="btn sm jmed" data-edit="${j.id}">Изменить</button><button class="btn sm" data-x="${j.id}">XML для ЕИС</button>${pv?"":`<button class="btn sm" data-ppx="${j.id}">XML для Портала поставщиков</button>`}<button class="btn sm" data-copy="${j.id}">Сделать копию</button><button class="btn sm danger" data-arch="${j.id}">В архив</button></div></details>`;
   const ad = arch ? `<span class="muted" title="Убран в архив">в архиве с ${dtShort(j.snap.meta.arch)}</span>` : jDl(j);
   if(kid) return `<div class="kd"><div class="kd-n">№ ${esc(j.number)}</div><div class="kd-w jcard" data-card="${j.id}" title="Подробнее о документе"><span>${esc(kLbl(j)||w.main)}</span>${jCmIcon(j)}${skJBadge(j)}</div><div class="kd-s">${fm(j.sum)}${arch?"":zkJBadge(j)}</div><div class="kd-p">${ad}</div><div class="kd-a acts">${acts}</div></div>`;
   const prNo=!arch&&!((j.snap.meta||{}).pr);
@@ -6172,6 +6178,51 @@ $("#jr-head").addEventListener("click",e=>{ const th=e.target.closest("th[data-j
   jfSet("sort", cur===k+"_d" ? k+"_a" : cur===k+"_a" ? "cr_d" : (k==="cu"?"cu_a":k+"_d")); });
 $("#ar-q").addEventListener("input",renderArchive);
 $("#jr-reset").onclick=()=>{ D.jf={per:"all",sup:"",cus:"",br:"",q:"",from:"",to:"",sort:"cr_d"}; saveLocal(); $("#jr-q").value=""; renderJournal(); };
+/* ================= XML УПД для Портала поставщиков (zakupki.mos.ru) — 13.11.2026 =================
+   Схема «mini ON_NSCHFDOPPR_1_997_01_05_01_02» из руководства Портала «Импорт сведений электронного исполнения контракта на форму УПД».
+   Файл не отправляется сам: на Портале — исполнение контракта → «Доступные действия» → «Импортировать XML УПД в текущее исполнение»,
+   проверить, подписать ЭП и отправить. По каждой строке нужны «ID спецификации» и «Артикул оферты» — из «Сопоставить с Порталом поставщиков»
+   (D.specs[заказчик][товар] = {spec, ste, art}), и страна происхождения товара. */
+const ppA = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/[\r\n\t]+/g," ").trim();
+const ppN = x => { const v=r2(+x||0); return (Math.round(v*100)/100).toFixed(2); };
+const ppQ = x => { const s=String(+(+x||0).toFixed(6)); return s.includes("e")?(+x).toFixed(6):s; };
+const ppD = iso => fd(String(iso||"").slice(0,10));
+/* что мешает сделать файл: [{pid, name, why}] */
+function ppMissing(k){ const cid=k.dr.customerId, m=(D.specs||{})[cid]||{}, out=[];
+  k.lines.forEach(l=>{ const s=m[l.pid]||{}, w=[]; if(!String(s.spec||"").trim()) w.push("ID спецификации"); if(!String(s.art||"").trim()) w.push("артикул оферты"); if(!/^\d{3}$/.test(String(l.country||""))) w.push("страна");
+    if(w.length) out.push({pid:l.pid, name:l.name, why:w}); });
+  return out; }
+function ppXml(k, opt){ opt=opt||{}; const dr=k.dr, c=k.c||{}, s=k.s||{}, m=(D.specs||{})[dr.customerId]||{};
+  const date=ppD(opt.date||dr.date), ship=ppD(opt.ship||dr.date), num=ppA(dr.number);
+  const shipAddr=dr.ship||c.ship||c.address||"", br=!!c.branchLabel;
+  const cons=`<ГрузПолуч><ИдСв><СвЮЛУч${br&&c.name?` НаимОрг="${ppA(c.name)}"`:""}${br&&/^\d{9}$/.test(String(c.kpp||""))?` КПП="${c.kpp}"`:""}/></ИдСв><Адрес><АдрИнф АдрТекст="${ppA(shipAddr)}"/></Адрес></ГрузПолуч>`;
+  const items=k.lines.map(l=>{ const sp=m[l.pid]||{};
+    return `<СведТов КолТов="${ppQ(l.qty)}" ЦенаТов="${ppN(l.priceNet)}" СтТовБезНДС="${ppN(l.net)}" СтТовУчНал="${ppN(l.sum)}"><Акциз><БезАкциз>без акциза</БезАкциз></Акциз><СвТД КодПроисх="${ppA(l.country)}"/><ДопСведТов АртикулТов="${ppA(sp.art)}"/><ИнфПолФХЖ2 Идентиф="ИдСпецификации" Значен="${ppA(sp.spec)}"/>${/^\d{1,10}$/.test(String(sp.ste||"").trim())?`<ИнфПолФХЖ2 Идентиф="ИдСТЕ" Значен="${String(sp.ste).trim()}"/>`:""}</СведТов>`; }).join("");
+  const nds = k.rate ? `<СумНал>${ppN(k.t.vat)}</СумНал>` : `<БезНДС>без НДС</БезНДС>`;
+  return `<?xml version="1.0" encoding="windows-1251"?>\n<Файл><Документ><СвСчФакт НомерСчФ="${num}" ДатаСчФ="${date}"><ГрузОт><ГрузОтпр><Адрес><АдрИнф АдрТекст="${ppA(s.address||"")}"/></Адрес></ГрузОтпр></ГрузОт>${cons}<ДокПодтвОтгр НаимДокОтгр="Универсальный передаточный документ" НомДокОтгр="${num}" ДатаДокОтгр="${date}"/></СвСчФакт><ТаблСчФакт>${items}<ВсегоОпл СтТовБезНДСВсего="${ppN(k.t.net)}" СтТовУчНалВсего="${ppN(k.t.sum)}"><СумНалВсего>${nds}</СумНалВсего></ВсегоОпл></ТаблСчФакт><СвПродПер><СвПер${ship!==date?` ДатаПер="${ship}"`:""} ДатаНач="${date}" ДатаОкон="${date}"/></СвПродПер></Документ></Файл>\n`; }
+/* окно: что не хватает / скачать */
+function ppOpen(j){ const k=calc(j.snap.dr, j.snap), miss=ppMissing(k), cid=k.dr.customerId, d=document.createElement("dialog"); d.className="ppdlg";
+  const nm=shortCus(k)||cusNm(cid)||"";
+  d.innerHTML=`<div class="pph"><b>XML для Портала поставщиков</b><button type="button" class="ppx" aria-label="Закрыть">×</button></div>
+    <p class="pps">УПД № ${esc(j.number)} от ${fd(j.date)} · ${esc(nm)} · ${fm(k.t.sum)} ₽ · строк: ${k.lines.length}</p>
+    ${miss.length?`<div class="ppbad"><b>Не хватает данных у ${miss.length} ${plural(miss.length,["товара","товаров","товаров"])}:</b><ul>${miss.map(x=>`<li>${esc(x.name)} — <span>${x.why.join(", ")}</span></li>`).join("")}</ul>
+      <p>ID спецификации и артикул: «Заказчики и цены» → ${esc(nm)} → «Сопоставить с Порталом поставщиков» → загрузите выгрузку «Сведения о спецификациях» (на Портале: контракт → «Выгрузить в xls»). Страна — во вкладке «Товары».</p>
+      <div class="ppbt"><button type="button" class="btn pri" data-ppgo="cus">Открыть сопоставление ›</button><button type="button" class="btn ghost" data-ppgo="x">Закрыть</button></div></div>`
+    :`<label class="ppf">Дата документа <input type="date" id="pp-d" value="${esc(j.date)}"></label><label class="ppf">Дата отгрузки <input type="date" id="pp-s" value="${esc(j.date)}"></label>
+      <ol class="pphow"><li>Скачайте файл.</li><li>На Портале поставщиков откройте исполнение контракта (УПД, черновик).</li><li>«Доступные действия» → «Импортировать XML УПД в текущее исполнение» → выберите файл.</li><li>Проверьте товары, количество, суммы и адрес, дозаполните пустое, подпишите ЭП и отправьте.</li></ol>
+      <div class="ppbt"><button type="button" class="btn pri" data-ppgo="dl">Скачать XML</button><button type="button" class="btn ghost" data-ppgo="x">Отмена</button></div>`}`;
+  (document.getElementById("fd-app")||document.body).appendChild(d); const close=()=>{ try{ d.close(); }catch(e){} d.remove(); };
+  d.addEventListener("cancel", e=>{ e.preventDefault(); close(); }); d.querySelector(".ppx").onclick=close;
+  d.addEventListener("click", e=>{ const b=e.target.closest("[data-ppgo]"); if(!b) return; const g=b.dataset.ppgo;
+    if(g==="x"){ close(); return; }
+    if(g==="cus"){ close(); editorSel.customers=cid; showTab("customers"); setTimeout(()=>{ const c=document.getElementById("pp-file"); if(c) c.closest(".card").scrollIntoView({behavior:"smooth", block:"start"}); }, 300); return; }
+    if(g==="dl"){ const dd=(d.querySelector("#pp-d")||{}).value||j.date, ss=(d.querySelector("#pp-s")||{}).value||dd;
+      try{ const xml=ppXml(k, {date:dd, ship:ss}), bytes=Eis.encode(xml), a=document.createElement("a"), url=URL.createObjectURL(new Blob([bytes],{type:"application/xml"}));
+        a.href=url; a.download="УПД № "+String(j.number).replace(/[\\/:*?"<>|]/g,"-")+" от "+fd(dd)+" — Портал поставщиков.xml"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 30000);
+        logEv("XML", "Скачан XML для Портала поставщиков: УПД № "+j.number+" от "+fd(dd)+" — "+nm, j.id); close();
+        toast("ok","XML для Портала поставщиков скачан","На Портале: исполнение контракта → «Доступные действия» → «Импортировать XML УПД в текущее исполнение»."); }
+      catch(err){ toast("err","Файл не получился", err.message); } } });
+  d.showModal(); }
 function onJClick(arch){ return async e=>{
   const b=e.target.closest("button"), msgEl=arch?$("#ar-msg"):$("#jr-msg");
   const cardTd=!b && e.target.closest("[data-card]"); if(cardTd){ const j=D.journal.find(x=>x.id===cardTd.dataset.card); if(j){ docCard(j, arch); if(e.target.closest(".jcm")) cmFocus(); } return; }
@@ -6194,7 +6245,7 @@ function onJClick(arch){ return async e=>{
     if(bt){ bt.classList.toggle("on", op); bt.setAttribute("aria-expanded", op); const t=op?"Скрыть документы комплекта":"Показать документы комплекта"; bt.title=t; bt.setAttribute("aria-label", t); }
     return; }
   if(!b) return; const det=b.closest("details"); if(det && !b.dataset.arch) det.removeAttribute("open");
-  const id=b.dataset.id||b.dataset.edit||b.dataset.copy||b.dataset.x||b.dataset.comboJ||b.dataset.arch||b.dataset.unarch||b.dataset.qty; const j=D.journal.find(x=>x.id===id); if(!j) return;
+  const id=b.dataset.id||b.dataset.edit||b.dataset.copy||b.dataset.x||b.dataset.ppx||b.dataset.comboJ||b.dataset.arch||b.dataset.unarch||b.dataset.qty; const j=D.journal.find(x=>x.id===id); if(!j) return;
   if(docLimited() && (b.dataset.arch||b.dataset.unarch||b.dataset.edit||b.dataset.copy)) return;
   if(b.dataset.qty){ const dr=clone(j.snap.dr); dr._editBase=clone((BASE.journal||{})[j.id]||jRow(j)); dr.qtyOnly=true; D.draft=dr; saveLocal(); $("#d-saved").textContent="Измените количество (например, по факту упаковок) и нажмите «Сохранить в журнал» или сформируйте документ — номер, цены и реквизиты останутся прежними."; showTab("doc"); return; }
   if(b.dataset.arch){ if(!armed(b,"Точно в архив?")) return; setArch([j],true); msgEl.textContent=""; toast("ok","Документ № "+j.number+" в архиве","Его номер снова свободен.",{action:{label:"Вернуть",fn:()=>{ setArch([j],false); toast("ok","Документ № "+j.number+" возвращён в журнал",""); }}}); return; }
@@ -6203,6 +6254,7 @@ function onJClick(arch){ return async e=>{
   if(b.dataset.comboJ){ const k=calc(j.snap.dr, j.snap); showPreviewSet([{kind:"invoice",k},{kind:"torg12",k}], "Счёт и ТОРГ-12 № "+j.number+" от "+fd(j.date)+(shortCus(k)?" — "+shortCus(k):"")); return; }
   if(b.dataset.comboJ){ const t=b.textContent; b.disabled=true; b.textContent="…"; comboPdf(["invoice","torg12"], calc(j.snap.dr, j.snap)).then(()=>toast("ok","PDF скачан","Счёт и ТОРГ‑12 № "+j.number)).catch(err=>toast("err","Не получилось сделать PDF", err.message+". Откройте документ и нажмите «Печать» → «Сохранить как PDF».")).finally(()=>{ b.disabled=false; b.textContent=t; }); return; }
   if(b.dataset.x){ showPreview("upd", calc(j.snap.dr, j.snap)); $("#pv-xml").click(); return; }
+  if(b.dataset.ppx){ ppOpen(j); return; }
   if(!b.dataset.edit && !b.dataset.copy) return;
   const dr=clone(j.snap.dr); if(!b.dataset.copy)dr._editBase=clone((BASE.journal||{})[j.id]||jRow(j));
   if(b.dataset.copy){ dr.id=uid(); delete dr.numManual; dr.number=nextNum(dr.supplierId, dr.customerId); dr.date=todayISO(); dr.lines.forEach(l=>{ if(prod(l.productId)) l.price=String(getPrice(dr.customerId,l.productId)); }); }
