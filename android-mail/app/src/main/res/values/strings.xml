@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name">Почта ФД</string>
+  <string name="sc_new">Написать письмо</string>
+  <string name="sc_ord">Заявки</string>
+  <string name="sc_ntf">Уведомления</string>
+</resources>

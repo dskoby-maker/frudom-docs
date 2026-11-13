@@ -504,7 +504,7 @@ async function mlvPrint(V, name){ if(!V.items.length){ toast("info","Ещё за
    (в «Неважных» — во «Входящие», в «Спаме» — «Не спам»); долгое нажатие или кружок — выбор нескольких писем;
    письмо и новое письмо — страница поверх списка (кнопка «Назад» телефона и смахивание от левого края закрывают её);
    кнопка «Написать» внизу справа. Шаги «Назад» — через history (ML.layer: v — письмо, d — меню папок, p — выбор). */
-const mlMob = () => matchMedia("(max-width:899px)").matches;
+const mlMob = () => MAILAPP || matchMedia("(max-width:899px)").matches;   /* в приложении «Почта ФД» — всегда как почтовое приложение */
 const ML_FN={in:"Входящие", all:"Все письма", ord:"Заявки", undone:"Не обработаны", unread:"Непрочитанные", sent:"Отправленные", minor:"Неважные", spam:"Спам"};
 const mlSv = (d, w) => `<svg viewBox="0 0 24 24" width="${w||22}" height="${w||22}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const MI={plus:mlSv('<path d="M12 5v14M5 12h14"/>'), menu:mlSv('<path d="M4 7h16M4 12h16M4 17h16"/>'), back:mlSv('<path d="M19 12H5M11 6l-6 6 6 6"/>'), search:mlSv('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>'),
@@ -614,7 +614,12 @@ function mlDrHtml(){ const c=mlCnt(), ro=mlRO(), adm=me().admin;
     <div class="mldrg">${F.map(x=>it(x[0],x[1])).join("")}</div>
     ${mlFlds().length||!ro?`<div class="mldrt">Мои папки</div><div class="mldrg">${mlFlds().map(f=>`<button type="button" class="mldi${ML.f==="u:"+f.id?" on":""}" data-mm="f" data-f="u:${esc(f.id)}">${ML_IC_FLD}<span>${esc(f.name)}</span>${c["u:"+f.id]?`<em>${c["u:"+f.id]}</em>`:""}</button>`).join("")}${ro?"":`<button type="button" class="mldi mldinew" data-mm="fnew">${MI.plus}<span>Новая папка</span></button>`}</div>`:""}
     ${ML.acc.length>1?`<div class="mldrt">Ящики</div><div class="mldrg"><button type="button" class="mldi${ML.box?"":" on"}" data-mm="box" data-box="">${MI.stack}<span>Все ящики</span></button>${ML.acc.map(a=>{ const n=ML.rows.filter(r=>r.acc===a.id&&mlUnread(r)).length; return `<button type="button" class="mldi${ML.box===a.id?" on":""}" data-mm="box" data-box="${esc(a.id)}" style="--c:${mlCol(a.id)}"><i class="mldot"></i><span>${esc(a.email)}${a.err?` <b class="mlwarn" title="${esc(mlErrTxt(a.err))}">!</b>`:""}</span>${n?`<em>${n}</em>`:""}</button>`; }).join("")}</div>`:""}
-    <div class="mldrt"></div><div class="mldrg"><button type="button" class="mldi" data-mm="dsync">${MI.ref}<span class="mlsyt">${ML.sync?"Проверяю…":"Проверить почту"}</span></button>${ro?"":`<button type="button" class="mldi" data-mm="dread">${MI.all}<span>Прочитать все</span></button>`}${adm?`<button type="button" class="mldi" data-mm="dset">${MI.gear}<span>Ящики и посредник</span></button>`:""}</div>`; }
+    <div class="mldrt"></div><div class="mldrg"><button type="button" class="mldi" data-mm="dsync">${MI.ref}<span class="mlsyt">${ML.sync?"Проверяю…":"Проверить почту"}</span></button>${ro?"":`<button type="button" class="mldi" data-mm="dread">${MI.all}<span>Прочитать все</span></button>`}${adm?`<button type="button" class="mldi" data-mm="dset">${MI.gear}<span>Ящики и посредник</span></button>`:""}</div>${MAILAPP?mlAppDrHtml():""}`; }
+/* приложение «Почта ФД»: уведомления и выход — в меню слева (шапки сайта в приложении нет) */
+const ML_IC_BELL='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg>';
+const ML_IC_OUT='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 16l-4-4 4-4M6 12h10"/></svg>';
+function mlAppDrHtml(){ const A=window.FrudomApp, n=A&&typeof A.openNotify==="function";
+  return `<div class="mldrg mldrapp">${n?`<button type="button" class="mldi" data-mm="anotify">${ML_IC_BELL}<span>Уведомления</span></button>`:""}<button type="button" class="mldi" data-mm="alogout">${ML_IC_OUT}<span>Выйти из «${esc(curUser()||"")}»</span></button></div>`; }
 function mlDrOpen(on){ const d=document.getElementById("ml-dr"); if(!d) return; if(on){ document.getElementById("ml-drp").innerHTML=mlDrHtml(); mlLayer("d"); }
   ML.dr=on; d.classList.toggle("open", on); d.setAttribute("aria-hidden", on?"false":"true"); }
 (function(){ let s=null; document.addEventListener("touchstart", e=>{ const p=e.target.closest&&e.target.closest("#ml-drp"); s=p&&ML.dr?{x:e.touches[0].clientX, y:e.touches[0].clientY, dx:0}:null; }, {passive:true});
@@ -682,6 +687,9 @@ function mlMobAct(k, el, e){ const row=el.closest("[data-mlid]"), rr=row?ML.rows
   if(k==="dsync"){ mlLayerOff(); mlLoad(true); return; }
   if(k==="dread"){ mlLayerOff(); mlReadAll(); return; }
   if(k==="dset"){ mlLayerOff(); mlSetOpen(); return; }
+  if(k==="anotify"){ mlLayerOff(); try{ window.FrudomApp.openNotify(); }catch(e){} return; }
+  if(k==="alogout"){ if(!el.classList.contains("armed")){ el.classList.add("armed"); el.querySelector("span").textContent="Точно выйти? Нажмите ещё раз"; setTimeout(()=>{ if(el.isConnected){ el.classList.remove("armed"); el.querySelector("span").textContent="Выйти из «"+(curUser()||"")+"»"; } }, 4000); return; }
+    mlLayerOff(); logout(); return; }
   if(k==="srch"){ ML.srch=true; mlDraw(); const q=$("#ml-q"); if(q) q.focus(); return; }
   if(k==="srchx"){ ML.srch=false; ML.q=""; mlDraw(); return; }
   if(k==="qclr"){ ML.q=""; mlDraw(); const q=$("#ml-q"); if(q) q.focus(); return; }

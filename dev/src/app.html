@@ -450,6 +450,13 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .mlvsheet{overflow:auto;background:#fff;color:#1c2220;border-radius:8px;font-size:12.5px}#fd-app .mlvsheet table{border-collapse:collapse;font-size:inherit}#fd-app .mlvsheet td,#fd-app .mlvsheet th{border:1px solid #e3e1dc;padding:.32em .56em;white-space:nowrap;vertical-align:top}#fd-app .mlvtabs{margin-bottom:10px}#fd-app .mlvw .mlvtabs button{background:rgba(255,255,255,.12);color:#fff;border-color:transparent}#fd-app .mlvw .mlvtabs button.on{background:#fff;color:#1c2220}
 #fd-app .mlvifr{display:block;width:calc(100% - 32px);height:calc(100% - 8px);margin:0 auto;border:0;background:#fff;border-radius:6px}
 @media (max-width:600px){#fd-app .mlvbar{gap:6px}#fd-app .mlvt{flex-basis:100%}#fd-app .mlvtools{margin-left:0;width:100%;justify-content:space-between;gap:6px}#fd-app .mlvbt span{display:none}#fd-app .mlvbt{min-width:38px;height:38px;padding:0 7px}#fd-app .mlvpdf{padding:0 8px;gap:12px}#fd-app .mlvw .mlvb{padding:12px 0 30px}}
+/* ===== приложение «Почта ФД» (?app=mail): без шапки, разделов и нижней панели; на вкладке «Почта» — только почта ===== */
+html.mailapp #fd-app nav.tabs, html.mailapp #mbar, html.mailapp #tsheet, html.mailapp #tab-bar, html.mailapp #fd-app .brand>b{display:none!important}
+html.mailapp.mlhere #fd-app header.top{display:none}
+html.mailapp #fd-app{--mbh:0px}
+html.mailapp #fd-login h2::after{content:" в почту"}
+#fd-app .mldrapp{margin-top:6px;border-top:1px solid var(--line);padding-top:6px}
+#fd-app .mldi.armed{color:var(--bad,#b3261e)}
 /* ===== Почта на телефоне (mail_seg.js: mlMobDraw, #ml-ov) ===== */
 #fd-app .mlra em{font-style:normal;font-size:11px;font-weight:700;background:#1f5f9f;color:#fff;border-radius:99px;padding:0 6px;margin-left:2px}#fd-app .mlra svg{vertical-align:-2px}
 #fd-app .mlwh{font-style:normal;font:600 10.5px/1 var(--ui);padding:3px 7px;border-radius:99px;margin-right:6px;vertical-align:1px;background:rgba(28,34,32,.07);color:var(--muted)}#fd-app .mlwh.sp{background:#fbe9e7;color:var(--err)}#fd-app .mlwh.s{background:#e7eff8;color:#1f5f9f}#fd-app .mlwh.mi{background:#f6efdc;color:#8a6a1f}
@@ -3009,6 +3016,9 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
 const API_URL = "";
 /* ==================================================================================== */
 
+/* приложение «Почта ФД» (13.11.2026): сайт открыт с ?app=mail — только вкладка «Почта», без шапки и разделов */
+const MAILAPP = /[?&]app=mail(&|$)/.test(location.search||"");
+if(MAILAPP) document.documentElement.classList.add("mailapp","mlhere");
 const KEY = "frudom-docs-v1", PKEY = "frudom-docs-pass", UKEY = "frudom-docs-user", MKEY = "frudom-docs-me", EKEY = "frudom-docs-evq";
 const USERS_LIST = ["Даниил", "Наталья", "Гриша", "Склад"];
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -3404,7 +3414,7 @@ const tabOk = t => { const b=t&&document.querySelector(`#fd-app nav.tabs button[
 function tabFromHash(){ const h=decodeURIComponent(String(location.hash||"").replace(/^#/,"")).toLowerCase(); return SLUG_TAB[h] || (TAB_SLUG[h]?h:""); }
 function tabRemember(t){ if(!TAB_SLUG[t] || !pass()) return; lsSet(LTKEY(), t);
   const want="#"+TAB_SLUG[t]; if(location.hash!==want){ try{ history.replaceState(history.state, "", location.pathname+location.search+want); }catch(e){} } }
-function startTab(){ if(!pass()) return; if(/^#scheta$/i.test(location.hash||"")){ showTab("doc"); setTimeout(()=>{ if(typeof invAll==="function") invAll(); },300); return; }   /* старая ссылка на вкладку «Счета» */
+function startTab(){ if(!pass()) return; if(MAILAPP){ showTab("mail"); return; } if(/^#scheta$/i.test(location.hash||"")){ showTab("doc"); setTimeout(()=>{ if(typeof invAll==="function") invAll(); },300); return; }   /* старая ссылка на вкладку «Счета» */
   const h=tabFromHash(), last=lsGet(LTKEY()), t0=START_TAB[curUser()];
   const t = tabOk(h) ? h : tabOk(last) ? last : t0;
   if(!t){ tabRemember(curTab||"doc"); return; }
@@ -3427,6 +3437,8 @@ function tbDraw(){ let el=document.getElementById("fd-tback");
   el.title="Вернуться: "+TBACK.label; el.innerHTML=`<span aria-hidden="true">‹</span><b>Назад: ${esc(TBACK.label)}</b>`; }
 window.addEventListener("popstate", ()=>{ if(TBACK) tabBackGo(); });
 function showTab(t){
+  if(MAILAPP && t!=="mail" && !tbLock && !(TBACK && TBACK.to===t)) t="mail";   /* приложение «Почта ФД»: другие вкладки — только по «Сделать документы» из письма */
+  if(MAILAPP) document.documentElement.classList.toggle("mlhere", t==="mail");
   if(t!=="mail" && typeof mlTabOff==="function") mlTabOff();
   if(TBACK && !tbLock && t!==TBACK.to){ TBACK=null; tbDraw(); }
   curTab=t; tabRemember(t);
@@ -8925,6 +8937,25 @@ async function appQuick(k){
   if(!pfLoaded){ try{ await loadProfit(true); }catch(e){} }
   pvItemOpen(null, k==="inc"||k==="per" ? k : "exp"); return "ok";
 }
+/* приложение «Почта ФД»: открыть письмо по нажатию на уведомление (how = reply — сразу ответ) */
+const APPM={id:"", n:0, sync:0};
+function appMail(id, how){ if(!pass() || !$("#fd-login").hidden) return "login";
+  if(curTab!=="mail") showTab("mail");
+  if(!id){ if(!how) return "ok"; if(!ML.loaded) return "wait";   /* ярлыки на значке: «Написать письмо», «Заявки»; сводка уведомлений — «Входящие» */
+    if(ML.layer) mlLayerOff();
+    if(how==="new"){ if(mlRO()) return "ok"; ML.sel=""; mlCompose("new"); return "ok"; }
+    if(ML_FN[how]){ ML.f=how; ML.box=""; ML.q=""; ML.more=0; mlDraw(); window.scrollTo({top:0}); }
+    return "ok"; }
+  if(APPM.id!==id){ APPM.id=id; APPM.n=0; APPM.sync=0; }
+  if(!ML.loaded || ML.sync) return "wait";
+  const r=ML.rows.find(x=>x.id===id);
+  if(!r){ if(!APPM.sync){ APPM.sync=1; mlLoad(true, true); return "wait"; } return ++APPM.n>8 ? "nf" : "wait"; }
+  APPM.id=""; ML.f = mlSpam(r) ? "spam" : mlMinor(r) ? "minor" : r.dir==="sent" ? "sent" : mlFld(r) ? "u:"+mlFld(r) : "in"; ML.box="";
+  if(ML.layer==="d") mlLayerOff();
+  mlDraw(); mlOpen(id); if(how==="reply" && !mlRO()) setTimeout(()=>{ try{ mlCompose("reply"); }catch(e){} }, 450);
+  return "ok"; }
+/* что сейчас не прочитано — приложение убирает уведомления о прочитанных письмах (прочитали здесь или на компьютере) */
+const appMailState = () => ({loaded:!!(ML&&ML.loaded), ro:mlRO(), unread:ML&&ML.loaded&&!mlRO() ? ML.rows.filter(mlUnread).map(r=>r.id) : null});
 function appGo(t){ const nav=document.querySelector("#fd-app nav.tabs"); if(!nav || nav.hidden) return "wait"; if(tabOk(t)){ showTab(t); return "ok"; } return "no"; }
 (function(){ const A=window.FrudomApp, c=document.getElementById("app-ntf"); if(!c) return;
   const t=document.getElementById("app-ntf-t"), b=document.getElementById("app-ntf-open"), g=document.getElementById("app-ntf-get");
@@ -8934,7 +8965,7 @@ function appGo(t){ const nav=document.querySelector("#fd-app nav.tabs"); if(!nav
   if(A || /Android/i.test(navigator.userAgent||"")){ c.hidden=false; g.hidden=false;
     t.textContent = A ? "У вас старая версия приложения — в ней нет уведомлений и виджета. Скачайте новую и установите поверх старой (входить заново не нужно), потом откройте её и зайдите сюда снова."
       : "Уведомления на телефон и виджет «Расход · Доход · Личное» работают в приложении «Документы ФД». Скачайте его и установите."; } })();
-window.__fd = {prNorm:v=>prNorm(v), getPrice:(c,p)=>getPrice(c,p), shipSim:(a,b)=>shipSim(a,b), shipElsewhere:(c,b,a)=>shipElsewhere(c,b,a), acct:()=>({url:API_URL, user:curUser()||"", key:pass()||"", admin:!!me().admin}), quick:appQuick, go:appGo, D:()=>D, undo:(r)=>unApply(curTab,!!r), undoState:()=>UNDO, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, ftPdf, aiSrc, IMP:()=>IMP, patchNmic, docProfit, payOf, setPay, calm:fdCalm, zkJState:j=>zkJState(j), pcdData:id=>pcdData(id), mail:()=>({draw:mlDraw, compose:mlCompose, ML, fname:mlFName, fld:mlFld})};
+window.__fd = {prNorm:v=>prNorm(v), getPrice:(c,p)=>getPrice(c,p), shipSim:(a,b)=>shipSim(a,b), shipElsewhere:(c,b,a)=>shipElsewhere(c,b,a), acct:()=>({url:API_URL, user:curUser()||"", key:pass()||"", admin:!!me().admin, staff:!!(curUser()&&isStaff())}), quick:appQuick, go:appGo, mailOpen:appMail, mailState:appMailState, mailApp:MAILAPP, D:()=>D, undo:(r)=>unApply(curTab,!!r), undoState:()=>UNDO, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, ftPdf, aiSrc, IMP:()=>IMP, patchNmic, docProfit, payOf, setPay, calm:fdCalm, zkJState:j=>zkJState(j), pcdData:id=>pcdData(id), mail:()=>({draw:mlDraw, compose:mlCompose, ML, fname:mlFName, fld:mlFld})};
 })();
 </script>
 <!-- ============ конец блока ============ -->
