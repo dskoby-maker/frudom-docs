@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 36;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 37;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -857,10 +857,11 @@ function handle_(p) {
       const entry = g.changes.journal.upsert.find(x => x.id === p.entry.id);
       if (lim_(me) && !staffOk_(entry)) return { ok: false, error: 'forbidden' };
       // Check everything before the first write. Number conflicts must not acknowledge unsaved changes.
-      const rows = read_('journal');
+      const rows = read_('journal'), cs = read_('contracts'), eck = numCk_(entry, cs);
+      const ser = r => r.supplierId === entry.supplierId && r.customerId === entry.customerId && numCk_(r, cs) === eck;   // своя нумерация у каждого договора
       const clash = rows.some(r => { let sn = {}; try { sn = JSON.parse(r.snap || '{}'); } catch(x) {}
-        return r.id !== entry.id && r.supplierId === entry.supplierId && r.customerId === entry.customerId && String(r.number) === String(entry.number) && !(sn.meta && sn.meta.arch); });
-      if (clash) return { ok: true, concurrency: 1, conflict: true, next: rows.filter(r => r.supplierId === entry.supplierId && r.customerId === entry.customerId).reduce((n,r) => Math.max(n,parseInt(r.number,10)||0),0)+1 };
+        return r.id !== entry.id && ser(r) && String(r.number) === String(entry.number) && !(sn.meta && sn.meta.arch); });
+      if (clash) return { ok: true, concurrency: 1, conflict: true, next: rows.filter(ser).reduce((n,r) => Math.max(n,parseInt(r.number,10)||0),0)+1 };
       g.changes.journal.upsert = g.changes.journal.upsert.filter(x => x.id !== entry.id);
       syncIn_(g.changes, me);
       const r = saveDoc_(entry, me); r.synced = !!p.changes; r.concurrency = 1;
@@ -1737,13 +1738,18 @@ function readEvents_(limit) {
   return sh.getRange(from, 1, n - from + 1, 5).getDisplayValues().map(r => ({ at: r[0], user: r[1], action: r[2], text: r[3], docId: r[4] })).reverse();
 }
 
+/* серия нумерации (Code.gs ≥ 37): у каждого договора своя — ID договора документа (нет ID — договор по основанию), без договора — "" */
+function numCk_(r, cs) { let dr = {}; try { dr = (typeof r.snap === 'string' ? JSON.parse(r.snap || '{}') : (r.snap || {})).dr || {}; } catch (x) {}
+  if (dr.noCtr) return ''; if (dr.contractId) return String(dr.contractId); const b = String(dr.basis || '').trim(); if (!b) return '';
+  const c = (cs || []).find(x => x.customerId === r.customerId && x.basis && b.indexOf(String(x.basis).trim()) >= 0); return c ? c.id : ''; }
 function saveDoc_(e, me) {
   if (!e || !e.id) return { ok: false, error: 'пустой документ' };
   const rows = read_('journal'), sups = read_('suppliers');
   const year = String(e.date).slice(0, 4);
   const arch = r => { try { const k = JSON.parse(r.snap || '{}'); return !!(k.meta && k.meta.arch); } catch (x) { return false; } };
-  // у каждой пары «поставщик + заказчик» своя нумерация
-  const same = rows.filter(r => r.supplierId === e.supplierId && r.customerId === e.customerId);
+  // у каждой пары «поставщик + заказчик» своя нумерация, а внутри неё — у каждого договора (Code.gs ≥ 37)
+  const cs = read_('contracts'), eck = numCk_(e, cs);
+  const same = rows.filter(r => r.supplierId === e.supplierId && r.customerId === e.customerId && numCk_(r, cs) === eck);
   const clash = same.find(r => r.id !== e.id && String(r.number) === String(e.number) && !arch(r));
   const s = sups.find(x => x.id === e.supplierId);
   if (clash) {
