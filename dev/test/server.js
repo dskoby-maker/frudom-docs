@@ -58,7 +58,7 @@ const ctx={ SpreadsheetApp:{getActive:()=>ss}, LockService:{getScriptLock:()=>({
     const code=/:generateContent$/.test(url)?(key==='bad'?403:200):200, t=code===200?JSON.stringify({candidates:[{content:{parts:[{text:fake}]}}],usageMetadata:{totalTokenCount:1234}}):'{"error":{"message":"API key not valid"}}';
     return {getResponseCode:()=>code, getContentText:()=>t}; } },
   /* папка заказчика с актами: ctx.__dir = {id, name, files:[{id, name, mime, b64, at}]} (тест dev/test/akt-dir.py) */
-  DriveApp:{ createFolder:n=>mkFolder(), getFolderById:id=>{ const d=ctx.__dir; if(d && id===d.id) return {getId:()=>d.id, getName:()=>d.name, getUrl:()=>'https://drive.google.com/drive/folders/'+d.id, isTrashed:()=>false,
+  DriveApp:{ getStorageUsed:()=>5e9, getStorageLimit:()=>15e9, createFolder:n=>mkFolder(), getFolderById:id=>{ const d=ctx.__dir; if(d && id===d.id) return {getId:()=>d.id, getName:()=>d.name, getUrl:()=>'https://drive.google.com/drive/folders/'+d.id, isTrashed:()=>false,
         getFiles:()=>{ const L=d.files.slice(); let i=0; return {hasNext:()=>i<L.length, next:()=>{ const f=L[i++]; return {getId:()=>f.id, getName:()=>f.name, getMimeType:()=>f.mime, getLastUpdated:()=>new Date(f.at||'2026-11-06T10:00:00Z'), getSize:()=>Buffer.from(f.b64,'base64').length, isTrashed:()=>false}; }}; } };
       if(/^DIR/.test(id)) throw new Error('no folder'); return mkFolder(); },
     getFileById:id=>{ const d=ctx.__dir, df=d && d.files.find(f=>f.id===id); if(df){ files[id]={getBytes:()=>Buffer.from(df.b64,'base64')};
