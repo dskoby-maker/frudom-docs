@@ -21,7 +21,10 @@ const imap=tls.createServer({key,cert},s=>{ s.write('* OK test imap\r\n'); let b
       else if(!auth) s.write(tag+' BAD login first\r\n');
       else if(/^SELECT$/i.test(cmd)) s.write(`* ${BOX.msgs.length} EXISTS\r\n* OK [UIDVALIDITY ${BOX.uidv}] UIDs\r\n${tag} OK [READ-WRITE] SELECT done\r\n`);
       else if(/^UID$/i.test(cmd) && /^SEARCH/i.test(rest)){ const m=rest.match(/UID (\d+):\*/); let L=BOX.msgs.map(x=>x.uid); if(m){ L=L.filter(u=>u>=+m[1]); if(!L.length) L=[BOX.msgs[BOX.msgs.length-1].uid]; } s.write(`* SEARCH ${L.join(' ')}\r\n${tag} OK SEARCH done\r\n`); }
-      else if(/^UID$/i.test(cmd) && /^FETCH/i.test(rest)){ const u=+rest.split(' ')[1], x=BOX.msgs.find(y=>y.uid===u); if(x){ if(!/PEEK/.test(rest)) x.seen=true; s.write(`* 1 FETCH (UID ${u} BODY[] {${x.raw.length}}\r\n`); s.write(x.raw); s.write(')\r\n'); } s.write(tag+' OK FETCH done\r\n'); }
+      else if(/^UID$/i.test(cmd) && /^FETCH/i.test(rest)){ const set=rest.split(' ')[1].split(',').map(Number);
+        if(/RFC822\.SIZE/i.test(rest)){ set.forEach((u,i)=>{ const x=BOX.msgs.find(y=>y.uid===u); if(x) s.write(`* ${i+1} FETCH (UID ${u} RFC822.SIZE ${x.raw.length})\r\n`); }); s.write(tag+' OK FETCH done\r\n'); BOX.sizeAsks=(BOX.sizeAsks||0)+1; }
+        else { const u=set[0], x=BOX.msgs.find(y=>y.uid===u), pm=rest.match(/<0\.(\d+)>/); if(x){ if(!/PEEK/.test(rest)) x.seen=true; const body=pm?x.raw.subarray(0,+pm[1]):x.raw; if(pm) BOX.partial=(BOX.partial||0)+1;
+          s.write(`* 1 FETCH (UID ${u} BODY[]${pm?'<0>':''} {${body.length}}\r\n`); for(let o=0;o<body.length;o+=16384) s.write(body.subarray(o,o+16384)); s.write(')\r\n'); } s.write(tag+' OK FETCH done\r\n'); } }
       else if(/^LIST$/i.test(cmd)) s.write(`* LIST (\\HasNoChildren) "/" "INBOX"\r\n* LIST (\\HasNoChildren \\Sent) "/" "&BB4EQgQ,BEAEMAQyBDsENQQ9BD0ESwQ1-"\r\n${tag} OK LIST done\r\n`);
       else if(/^APPEND$/i.test(cmd)){ const m=rest.match(/^"([^"]+)".*\{(\d+)\}$/); app={tag, box:m[1], n:+m[2], b:Buffer.alloc(0)}; s.write('+ Ready\r\n'); if(buf.length){ app.b=Buffer.from(buf,'latin1'); buf=''; } }
       else if(/^LOGOUT$/i.test(cmd)){ s.write('* BYE\r\n'+tag+' OK\r\n'); s.end(); }
@@ -37,7 +40,7 @@ const smtp=tls.createServer({key,cert},s=>{ s.write('220 test smtp\r\n'); let bu
 const call=async(p)=>{ const r=await P.handler({headers:{'X-Proxy-Key':process.env.SECRET}, body:JSON.stringify(p)}); return JSON.parse(r.body); };
 (async()=>{ await new Promise(r=>imap.listen(0,r)); await new Promise(r=>smtp.listen(0,r));
   const acc={user:'user@test', pass:'app-pass', email:'user@test', ih:'localhost', ip:imap.address().port, sh:'localhost', sp:smtp.address().port};
-  const pg=await call({path:'/ping'}); ok(pg.proxy===2 && pg.mail===1, 'ping: новая версия посредника с почтой');
+  const pg=await call({path:'/ping'}); ok(pg.proxy===2 && pg.mail===2, 'ping: новая версия посредника с почтой');
   const t=await call({path:'/mail/test', acc}); ok(t.imap==='ok' && t.smtp==='ok' && t.uidv===777, 'вход в IMAP и SMTP '+JSON.stringify(t));
   const bad=await call({path:'/mail/test', acc:Object.assign({},acc,{pass:'wrong'})}); ok(/не пустил/.test(bad.imap) && /не пустил/.test(bad.smtp), 'неверный пароль — понятная ошибка: '+bad.imap+' / '+bad.smtp);
   const f=await call({path:'/mail/fetch', acc, since:0, days:3650}); ok(f.msgs && f.msgs.length===2 && f.last===9 && f.uidv===777, 'первая загрузка: 2 письма, последний UID 9');
@@ -49,6 +52,14 @@ const call=async(p)=>{ const r=await P.handler({headers:{'X-Proxy-Key':process.e
   ok(BOX.msgs.every(x=>!x.seen), 'письма в ящике не помечены прочитанными');
   const f2=await call({path:'/mail/fetch', acc, since:9, uidv:777}); ok(f2.msgs.length===0 && f2.last===9, 'повтор — новых писем нет');
   const f3=await call({path:'/mail/fetch', acc, since:9, uidv:1}); ok(f3.msgs.length===2, 'сменился UIDVALIDITY — загрузка заново');
+  /* импорт старой почты: письмо 15 МБ — берётся только начало (текст), функция не падает; следующее письмо приходит тоже */
+  const BIG=Buffer.from(['From: Old <old@x.ru>','To: info@frudom.ru','Subject: Old big','Date: Wed, 07 Aug 2024 10:00:00 +0300','Content-Type: multipart/mixed; boundary="BB"','','--BB','Content-Type: text/plain; charset=utf-8','','Старая заявка с большим вложением','--BB','Content-Type: application/zip; name="big.zip"','Content-Disposition: attachment; filename="big.zip"','Content-Transfer-Encoding: base64','',Buffer.alloc(11*1048576,7).toString('base64').replace(/.{76}/g,'$&\r\n'),'--BB--',''].join('\r\n'),'utf8');
+  BOX.msgs.push({uid:12, raw:BIG, seen:false}, {uid:13, raw:M2, seen:false});
+  const fb=await call({path:'/mail/fetch', acc, since:9, uidv:777}); const bm=(fb.msgs||[]).find(x=>x.uid===12);
+  ok(bm && bm.big===1 && /Письмо очень большое \(1[45],\d МБ\)/.test(bm.text) && /Старая заявка/.test(bm.text) && bm.atts.length===0 && BOX.partial===1, 'большое письмо: только текст и пометка '+JSON.stringify(bm&&{t:bm.text.slice(0,90), a:bm.atts.length, s:bm.size}));
+  ok(fb.msgs.length===2 && fb.last===13, 'письмо после большого тоже пришло, last=13');
+  const fbig=await call({path:'/mail/att', acc, uid:12, idx:0}); ok(/больше 2,5 МБ|40 МБ/.test(fbig.error||''), 'вложение большого письма — понятная ошибка, без падения: '+fbig.error);
+  BOX.msgs.splice(2);
   const at=await call({path:'/mail/att', acc, uid:5, idx:0}); ok(at.name==='заявка.pdf' && Buffer.from(at.data,'base64').toString()==='%PDF-1.4 test', 'вложение отдельно');
   const s=await call({path:'/mail/send', acc:Object.assign({fromName:'Фруктовый Дом'},acc), msg:{to:['МГУ <zakaz@msu.ru>'], subject:'Re: Заявка', text:'Здравствуйте!\n.точка в начале строки\nПринято.', inReply:'<m1@msu.ru>', refs:'<m1@msu.ru>', fromName:'Фруктовый Дом', atts:[{name:'счёт.pdf', mime:'application/pdf', data:b64('%PDF x')}]}});
   ok(s.ok && s.saved && /^<.+@test>$/.test(s.msgid), 'отправлено и сохранено в «Отправленные» '+JSON.stringify(s));
