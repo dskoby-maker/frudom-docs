@@ -47,7 +47,7 @@ async def main():
         await pg.evaluate(LINE+f"({q})"); await pg.wait_for_timeout(300)
         bar=await pg.text_content('#mulbar-bn'); ok('✓' in bar, f'сумма сошлась: {bar[:110]}')
         await pg.keyboard.press('Escape'); await pg.click('#d-save'); await pg.wait_for_timeout(1500)
-        zk=await pg.evaluate("!!document.querySelector('#fd-dcard [data-zkc=\"toggle\"].on')"); ok(zk, 'после сохранения открыто окно накладной с закупкой')
+        zk=await pg.evaluate("!!document.querySelector('#fd-dcard.zkpage #dc-zk')"); ok(zk, 'после сохранения открыто окно накладной с закупкой')
         if q==184.8: await pg.screenshot(path=f'{SHOT}/bank-create-zk.png')
         await pg.keyboard.press('Escape'); await pg.wait_for_timeout(500)
         if nxt:

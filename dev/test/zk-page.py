@@ -68,7 +68,7 @@ async def main():
         # окно накладной из строки — редактор на странице сворачивается, id не дублируются
         await pg.click('#zkp-list [data-zkpo="d:zp1"]'); await pg.wait_for_timeout(700)
         await pg.click('#zkp [data-zkpcard="d:zp1"]'); await pg.wait_for_timeout(600)
-        ok(await pg.locator('#fd-dcard').count()==1 and await pg.locator('#dc-zk').count()==1, 'окно накладной открылось, редактор на странице свернулся')
+        ok(await pg.locator('#fd-dcard').count()==1 and await pg.locator('#zkp #dc-zk').count()==0 and await pg.locator('#dc-zk').count()<=1, 'окно накладной открылось, редактор на странице свернулся')
         await pg.click('#fd-dcard [data-zkc="toggle"]'); await pg.wait_for_timeout(600)
         ok(await pg.locator('#fd-dcard #dc-zki .dzc').count()==2, 'в окне закупка по-прежнему работает')
         await pg.evaluate("document.querySelector('#fd-dcard [data-dc=\"close\"]').click()"); await pg.wait_for_timeout(400)

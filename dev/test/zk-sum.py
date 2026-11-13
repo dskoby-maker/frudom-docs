@@ -75,7 +75,7 @@ async def main():
             await pg.fill(f'{R}:nth-child(1) .dzt','4700'); await pg.fill(f'{R}:nth-child(1) .dzb',''); await pg.wait_for_timeout(150)
             await pg.click('#dc-zki [data-zkc="save"]'); await pg.wait_for_timeout(600); await pg.evaluate('__fd.flush()'); await pg.wait_for_timeout(1500)
             L=costL(jid); ok(str(L.get('p-sh'))=='235', f'{W}: в таблицу записана цена за кг 235: {L.get("p-sh")}')
-            await pg.keyboard.press('Escape'); await pg.wait_for_timeout(400); await open_doc(pg, jid)
+            await pg.evaluate("document.querySelector('#fd-dcard [data-dc=\"close\"]').click()"); await pg.wait_for_timeout(400); await open_doc(pg, jid)
             ok(await pg.evaluate(V(f'{R}:nth-child(1) .dzt'))=='4700', f'{W}: после повторного открытия сумма 4700 видна сама')
             ok(await pg.evaluate("document.documentElement.scrollWidth")==W and await pg.evaluate("(d=>d.scrollWidth<=d.clientWidth+2)(document.querySelector('#fd-dcard'))"), f'{W}: без прокрутки вбок')
             ok(not errs, f'{W}: ошибок нет {errs[:2]}'); await pg.close()

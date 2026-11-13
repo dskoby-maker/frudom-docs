@@ -932,7 +932,7 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .skpackb{border-radius:14px;padding:10px 12px 12px;background:linear-gradient(160deg,rgba(31,95,122,.07),rgba(31,95,122,.02));border:1px dashed rgba(31,95,122,.28)}
 #fd-app .skpackh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}#fd-app .skpackh b{display:inline-flex;align-items:center;gap:6px;font-size:13.5px}#fd-app .skpackh small{font-size:12px;color:var(--muted)}
 #fd-app .skpackg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}#fd-app .skpackg .f{margin:0}#fd-app .skpackg.sk2{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:10px}
-#fd-app dialog.dcard.wide.xwide{width:min(1100px,calc(100vw - 24px))}
+#fd-app dialog.dcard.wide.xwide{width:min(1100px,calc(100vw - 24px))}#fd-app dialog.dcard.zkpage{width:min(1180px,calc(100vw - 32px));max-height:min(94vh,1200px)}#fd-app dialog.dcard.zkpage .dc-zk.zkpg{margin-top:4px}#fd-app dialog.dcard.zkpage .dzl{max-height:none;overflow:visible}@media (max-width:600px){#fd-app dialog.dcard.zkpage{max-height:96vh;width:100vw;max-width:100vw}}
 #fd-app .mi-head{display:grid;grid-template-columns:1.4fr 1fr 1.2fr 1fr;gap:10px;margin-top:12px}#fd-app .mi-head .f{margin:0}#fd-app .mi-head small{font-size:11px}
 #fd-app .mi-rest{margin-top:10px;padding:8px 12px;border-radius:12px;background:rgba(179,134,0,.10);font-size:13px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;animation:fdin .3s ease}#fd-app .mi-rest.ok{background:rgba(46,125,50,.10)}
 #fd-app .mi-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 8px}#fd-app .mi-ai{cursor:pointer;background:linear-gradient(135deg,rgba(31,95,122,.14),rgba(31,95,122,.05));border-color:rgba(31,95,122,.25)}#fd-app .mi-ai.busy{pointer-events:none;opacity:.85}
@@ -6314,7 +6314,7 @@ function openCard(html, wide, onAct){
   if(typeof zkpCollapse==="function" && ZKP.open) zkpCollapse();   /* редактор закупки на вкладке «Закупка» — у него те же id, что в окне */
   const re=CARD_RE; CARD_RE=null; const prev=navPrev();
   const old=document.getElementById("fd-dcard"); if(old){ old._bye=1; old.remove(); }
-  const d=document.createElement("dialog"); d.id="fd-dcard"; d.className="dcard"+(wide?" wide":""); d.innerHTML=html;
+  const d=document.createElement("dialog"); d.id="fd-dcard"; d.className="dcard"+(wide==="zk"?" wide xwide zkpage":wide?" wide":""); d.innerHTML=html;
   document.getElementById("fd-app").appendChild(d);
   /* go — переход в другое окно: старое гасим чуть позже, чтобы новое успело встать на его место без мигания */
   const close=go=>{ if(d.classList.contains("out")) return; const cmb=d.querySelector("#dc-cm.dirty"); if(cmb) cmSave(); if(!go) d._bye=1; const rm=matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -6332,7 +6332,7 @@ function docCard(j, arch){
   const k=calc(j.snap.dr, j.snap), dr=j.snap.dr, m=j.snap.meta||{}, w=jWho(j), lim=docLimited(), inG=!arch && jKey(j) && D.journal.filter(x=>x.snap&&!isArch(x)&&jKey(x)===jKey(j)).length>1;
   const info=[["Поставщик",j.snap.s.name||""],["Адрес доставки",dr.ship||j.snap.c.address||""],["Основание",dr.basis||""]].concat(whoLine(j)).filter(x=>x[1]);
   const acts = arch ? `<button class="btn" data-dc="close">Закрыть</button>`
-    : `<button class="btn" data-dc="decl" title="Скачать декларации на товары документа">Декларации</button>`+(j.snap.c&&j.snap.c.priv?`<button class="btn" data-dc="nakl">Накладная</button>`:`<button class="btn" data-dc="combo">Счёт+ТОРГ</button><button class="btn" data-dc="upd">УПД</button>`)+(inG&&!lim?`<button class="btn" data-dc="gedit">Редактировать комплект</button>`:"")+(me().admin?`<button class="btn" data-zkc="toggle" aria-expanded="false">${dcZkHas(j)?"Закупка ✓":"Добавить закупку"}</button>`:"")+(lim?`<button class="btn pri" data-dc="qty">Изменить количество</button>`:`<button class="btn pri" data-dc="edit">Изменить</button>`);
+    : `<button class="btn" data-dc="decl" title="Скачать декларации на товары документа">Декларации</button>`+(j.snap.c&&j.snap.c.priv?`<button class="btn" data-dc="nakl">Накладная</button>`:`<button class="btn" data-dc="combo">Счёт+ТОРГ</button><button class="btn" data-dc="upd">УПД</button>`)+(inG&&!lim?`<button class="btn" data-dc="gedit">Редактировать комплект</button>`:"")+(me().admin?`<button class="btn" data-zkc="toggle" data-doc="${j.id}">${dcZkHas(j)?"Закупка ✓":"Добавить закупку"}</button>`:"")+(lim?`<button class="btn pri" data-dc="qty">Изменить количество</button>`:`<button class="btn pri" data-dc="edit">Изменить</button>`);
   CARD_RE=()=>{ const x=D.journal.find(y=>y.id===j.id); if(x) docCard(x, arch); else toast("info","Документа уже нет"); };
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Документ № ${esc(j.number)} · ${fd(j.date)}</div><h3>${esc(w.main)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <dl class="dc-info">${info.map(([a,b])=>`<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>
@@ -6342,7 +6342,6 @@ function docCard(j, arch){
     ${cmHtml(j, arch)}
     ${skDocBlock(j)}
     ${histHtml(histOf(j))}
-    ${!arch&&me().admin?`<div class="dc-zk" id="dc-zk" data-doc="${j.id}"><div class="dc-zki" id="dc-zki"></div></div>`:""}
     <div class="dc-acts">${acts}</div>`, false, a=>{
       if(a==="gedit"){ bundleEdit(D.journal.filter(x=>x.snap&&!isArch(x)&&jKey(x)===jKey(j)).sort(jNumSort)); return; }
       if(a==="decl"){ skDeclDocs([j]); return; }
@@ -6382,9 +6381,8 @@ function zkJGroup(g, key){ const S=g.map(zkJState).filter(Boolean); if(!S.length
 let zkJLoading=false;
 /* клик по значку — окно накладной (или комплекта) сразу с открытым блоком закупки */
 document.addEventListener("click", e=>{ const z=e.target.closest&&e.target.closest("#fd-app [data-zkj],#fd-app [data-zkjg]"); if(!z) return; e.preventDefault(); e.stopPropagation();
-  if(z.dataset.zkj){ const j=D.journal.find(x=>x.id===z.dataset.zkj); if(!j) return; docCard(j, false); }
-  else { const g=D.journal.filter(x=>x.snap && !isArch(x) && jKey(x)===z.dataset.zkjg).sort(jNumSort); if(!g.length) return; bundleCard(g, false); }
-  setTimeout(()=>{ const b=document.querySelector('#fd-dcard [data-zkc="toggle"]:not(.on), #fd-dcard [data-bzk="toggle"]:not(.on)'); if(b) b.click(); }, 80); }, true);
+  if(z.dataset.zkj){ const j=D.journal.find(x=>x.id===z.dataset.zkj); if(j) zkPageOpen(j); }
+  else { const g=D.journal.filter(x=>x.snap && !isArch(x) && jKey(x)===z.dataset.zkjg).sort(jNumSort); if(g.length) bzPageOpen(g); } }, true);
 function jCmIcon(j){ const c=cmOf(j); return c.t ? `<span class="jcm" title="${esc(cmTip(c))}" aria-label="Есть комментарий">${IC_CM}</span>` : ""; }
 function jCmGroup(g){ const n=g.filter(j=>cmOf(j).t).length; if(!n) return ""; const L=g.filter(j=>cmOf(j).t).map(j=>"№ "+j.number+": "+cmTip(cmOf(j))).join("\n\n");
   return `<span class="jcm" title="${esc(L)}" aria-label="Комментарии: ${n}">${IC_CM}${n>1?n:""}</span>`; }
@@ -6592,12 +6590,28 @@ function dcZkKeep(j){ const box=$("#dc-zki"), V={}; if(!box) return; box.querySe
   const e=box.querySelector(".dze"), s=box.querySelector(".dzs"); if(e) V._exp=e.value; if(s) V._bulk=s.value;
   const a=document.activeElement, c0=a&&String(a.className||"").split(" ")[0], sel=a&&box.contains(a)&&c0&&/^(INPUT|SELECT)$/.test(a.tagName)&&a.dataset&&a.dataset.k?`.${c0}[data-k="${a.dataset.k}"]`:null, st=(box.querySelector(".dzl")||{}).scrollTop||0;
   dcZkDraw(j, V); const l=box.querySelector(".dzl"); if(l) l.scrollTop=st; if(sel){ const f=box.querySelector(sel); if(f){ f.focus(); try{ const n=f.value.length; f.setSelectionRange&&f.setSelectionRange(n,n); }catch(x){} } } }
-document.addEventListener("click", async e=>{ const b=e.target.closest("#fd-dcard [data-zkc], #zkp [data-zkc]"); if(!b) return; const wrap=$("#dc-zk"); if(!wrap) return; let j=D.journal.find(x=>x.id===wrap.dataset.doc); if(!j) return; const a=b.dataset.zkc;
-  if(a==="toggle"){ const on=!wrap.classList.contains("open"); wrap.classList.toggle("open", on); b.setAttribute("aria-expanded", on); b.classList.toggle("on", on);
-    if(on){ if(!pfLoaded){ $("#dc-zki").innerHTML=`<p class="muted">Загружаю данные о прибыли…</p>`; await loadProfit(true); }
-      if(SK_READY && skCan() && skSrv!==false && (!SK || !SK.at || Date.now()-new Date(SK.at).getTime()>120000)){ if(!pfLoaded||!$("#dc-zki").textContent) $("#dc-zki").innerHTML=`<p class="muted">Сверяю склад…</p>`; await skLoad(true); }
-      dcZkDraw(j); setTimeout(()=>{ wrap.scrollIntoView({behavior:"smooth", block:"nearest"}); const f=wrap.querySelector(".dzs"); if(f && matchMedia("(hover:hover)").matches) f.focus(); }, 260); }
-    return; }
+/* ---------- закупка — отдельной страницей в окне (13.11.2026): «Закупка» в окне накладной/комплекта открывает широкое окно закупки,
+   «‹ Документ № …» / Esc / «Назад» телефона возвращают к документу (общий путь NAV); значок в журнале и ссылки «Заполнить» открывают её сразу ---------- */
+function zkNavPrep(entry){ /* открываем страницу закупки не из окна документа: в путь кладём то, что было открыто, и сам документ */
+  const p=NAV.pend&&Date.now()-NAV.pend.at<1500?NAV.pend:null, cur=p||navInfo(navDlg()); NAV.pend=null;
+  if(cur && cur.re && cur.key!==entry.key && !NAV.st.some(x=>x.key===cur.key)){ NAV.st.push(cur); if(NAV.st.length>12) NAV.st.shift(); }
+  if(!cur && !NAV.back) NAV.st=[];
+  NAV.pend=Object.assign(entry,{at:Date.now()}); }
+const zkDocEntry = j => { const k="Документ № "+j.number+" · "+fd(j.date), m=jWho(j).main; return {re:()=>{ const x=D.journal.find(y=>y.id===j.id); if(x) docCard(x,false); else toast("info","Документа уже нет"); }, key:k+"|"+m, label:"Документ № "+j.number, full:k+" — "+m, scroll:0}; };
+function zkPageOpen(j, fromDoc){ if(!j) return;
+  if(!fromDoc) zkNavPrep(zkDocEntry(j));
+  CARD_RE=()=>{ const x=D.journal.find(y=>y.id===j.id); if(x) zkPageOpen(x, true); else toast("info","Документа уже нет"); };
+  openCard(`<div class="dc-head"><div><div class="dc-kicker">Закупка · Документ № ${esc(j.number)} · ${fd(j.date)}</div><h3>${esc(jWho(j).main)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+    <div class="dc-zk open zkpg" id="dc-zk" data-doc="${j.id}"><div class="dc-zki" id="dc-zki"><p class="muted">Открываю закупку…</p></div></div>`, "zk", ()=>{});
+  dcZkBoot(j); }
+async function dcZkBoot(j){ const box=()=>$("#dc-zki");
+  if(!pfLoaded){ if(box()) box().innerHTML=`<p class="muted">Загружаю данные о прибыли…</p>`; await loadProfit(true); }
+  if(SK_READY && skCan() && skSrv!==false && (!SK || !SK.at || Date.now()-new Date(SK.at).getTime()>120000)){ if(box()) box().innerHTML=`<p class="muted">Сверяю склад…</p>`; await skLoad(true); }
+  const w=$("#dc-zk"); if(!w || w.dataset.doc!==j.id) return; const x=D.journal.find(y=>y.id===j.id)||j; dcZkDraw(x);
+  setTimeout(()=>{ const f=w.querySelector(".dzs"); if(f && matchMedia("(hover:hover)").matches) f.focus({preventScroll:true}); }, 260); }
+document.addEventListener("click", async e=>{ const b=e.target.closest("#fd-dcard [data-zkc], #zkp [data-zkc]"); if(!b) return;
+  if(b.dataset.zkc==="toggle"){ const j=D.journal.find(x=>x.id===b.dataset.doc); if(j) zkPageOpen(j, true); return; }
+  const wrap=$("#dc-zk"); if(!wrap) return; let j=D.journal.find(x=>x.id===wrap.dataset.doc); if(!j) return; const a=b.dataset.zkc;
   const box=$("#dc-zki");
   if(a==="said"){ DZS.doc=j.id; DZS.open=!DZS.open; const w=box.querySelector(".dzsaid"), bb=w&&w.querySelector(".dzsaid-b"); if(w&&bb){ w.classList.toggle("open", DZS.open); bb.hidden=!DZS.open; b.setAttribute("aria-expanded", DZS.open); if(DZS.open){ const t=bb.querySelector(".dzst"); t.focus(); } } return; }
   if(a==="saidgo"){ dzSaidFill(j, box); return; }
@@ -6802,13 +6816,25 @@ function bzChanges(){ const out=[];
       if(e.short>0) return {err:"«"+o.name+"»: на складе свободно только "+skQf(e.avail,o.unit)+" — не хватает "+skQf(e.short,o.unit)}; }
     out.push({o, s, sq}); }
   return {list:out}; }
-document.addEventListener("click", async e=>{ const b=e.target.closest&&e.target.closest("#fd-dcard [data-bzk], #zkp [data-bzk]"); if(!b) return; const wrap=$("#bz-zk"); if(!wrap) return; const a=b.dataset.bzk;
-  if(a==="toggle"){ const on=!wrap.classList.contains("open"); wrap.classList.toggle("open", on); b.setAttribute("aria-expanded", on); b.classList.toggle("on", on);
-    if(on){ BZ={ids:wrap.dataset.ids.split(","), touched:{}, expT:false, rows:[], s:null, ship:null};
-      if(!pfLoaded){ $("#bz-zki").innerHTML=`<p class="muted">Загружаю данные о прибыли…</p>`; await loadProfit(true); }
-      if(SK_READY && skCan() && skSrv!==false && (!SK || !SK.at || Date.now()-new Date(SK.at).getTime()>120000)){ $("#bz-zki").innerHTML=`<p class="muted">Сверяю склад…</p>`; await skLoad(true); }
-      bzDraw(); setTimeout(()=>{ wrap.scrollIntoView({behavior:"smooth", block:"nearest"}); const f=wrap.querySelector(".bzs"); if(f && matchMedia("(hover:hover)").matches) f.focus(); }, 260); }
-    return; }
+/* закупка комплекта — так же отдельной страницей (zkPageOpen выше) */
+const bzGrp = ids => ids.map(id=>D.journal.find(y=>y.id===id)).filter(Boolean);
+const bzEntry = g => { const k="Комплект · "+g.length+" "+docsWord(g.length)+" · "+fd(g[0].date), m=gTitle(g), ids=g.map(x=>x.id);
+  return {re:()=>{ const gg=bzGrp(ids); if(gg.length) bundleCard(gg,false); else toast("info","Комплекта уже нет"); }, key:k+"|"+m, label:"Комплект", full:k+" — "+m, scroll:0}; };
+function bzPageOpen(g, fromBundle){ if(!g||!g.length) return; const ids=g.map(x=>x.id);
+  if(!fromBundle) zkNavPrep(bzEntry(g));
+  CARD_RE=()=>{ const gg=bzGrp(ids); if(gg.length) bzPageOpen(gg, true); else toast("info","Комплекта уже нет"); };
+  const nums=g.map(x=>x.number);
+  openCard(`<div class="dc-head"><div><div class="dc-kicker">Закупка · Комплект № ${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))} · ${fd(g[0].date)}</div><h3>${esc(gTitle(g))}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+    <div class="dc-zk open zkpg" id="bz-zk" data-ids="${esc(ids.join(","))}"><div class="dc-zki" id="bz-zki"><p class="muted">Открываю закупку…</p></div></div>`, "zk", ()=>{});
+  bzBoot(ids); }
+async function bzBoot(ids){ BZ={ids, touched:{}, expT:false, rows:[], s:null, ship:null}; const box=()=>$("#bz-zki");
+  if(!pfLoaded){ if(box()) box().innerHTML=`<p class="muted">Загружаю данные о прибыли…</p>`; await loadProfit(true); }
+  if(SK_READY && skCan() && skSrv!==false && (!SK || !SK.at || Date.now()-new Date(SK.at).getTime()>120000)){ if(box()) box().innerHTML=`<p class="muted">Сверяю склад…</p>`; await skLoad(true); }
+  const w=$("#bz-zk"); if(!w || w.dataset.ids!==ids.join(",")) return; bzDraw();
+  setTimeout(()=>{ const f=w.querySelector(".bzs"); if(f && matchMedia("(hover:hover)").matches) f.focus({preventScroll:true}); }, 260); }
+document.addEventListener("click", async e=>{ const b=e.target.closest&&e.target.closest("#fd-dcard [data-bzk], #zkp [data-bzk]"); if(!b) return;
+  if(b.dataset.bzk==="toggle" && b.dataset.ids){ bzPageOpen(bzGrp(b.dataset.ids.split(",")), true); return; }
+  const wrap=$("#bz-zk"); if(!wrap) return; const a=b.dataset.bzk;
   const box=$("#bz-zki"); if(!BZ||!box) return; let G=bzDocs();
   if(a==="one"||a==="oneoff"){ const after=()=>{ saveLocal(); bzDraw(); const tb=$('#fd-dcard [data-bzk="toggle"]'); if(tb) tb.textContent=bzHas(G); if(curTab==="profit") drawProfit(); if(curTab==="journal") renderJournal(); zkpAfter(); };
     if(a==="oneoff"){ let n=0; G.forEach(j=>{ if(oneClear(j)) n++; }); if(n){ logEv("Прибыль","Убрана закупка одной суммой: комплект № "+G.map(j=>j.number).join(", ")+" — "+jWho(G[0]).main); after(); toast("ok","Закупка одной суммой убрана","Снова считается по товарам."); } return; }
@@ -6903,14 +6929,13 @@ function bundleCard(g, arch){
   const info=[["Поставщик",g[0].snap.s.name||""],["Основание",g[0].snap.dr.basis||""],["Документы","№ "+(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))]].filter(x=>x[1]);
   const docs=g.map((j,i)=>{ const k=ks[i]; return `<section class="dc-doc" style="animation-delay:${Math.min(i,8)*0.04}s"><button class="dc-dh" data-dc="doc" data-id="${j.id}" title="Открыть документ"><span><b>№ ${esc(j.number)}</b> · ${esc(kLbl(j)||stLabel(k.dr.ship||k.c.address||"", k.c.address))}</span><span class="s">${fm(k.t.sum)} ₽ ›</span></button>${linesTable(k)}</section>`; }).join("");
   const acts = arch ? `<button class="btn" data-dc="close">Закрыть</button>`
-    : `<button class="btn" data-dc="decl">Декларации</button><button class="btn" data-dc="gpdf" data-k="invoice,torg12">Счета+ТОРГ</button><button class="btn" data-dc="gpdf" data-k="upd">Все УПД</button>`+(me().admin?`<button class="btn" data-bzk="toggle" aria-expanded="false">${bzHas(g)}</button>`:"")+(lim?"":`<button class="btn pri" data-dc="gedit">Редактировать комплект</button>`);
+    : `<button class="btn" data-dc="decl">Декларации</button><button class="btn" data-dc="gpdf" data-k="invoice,torg12">Счета+ТОРГ</button><button class="btn" data-dc="gpdf" data-k="upd">Все УПД</button>`+(me().admin?`<button class="btn" data-bzk="toggle" data-ids="${esc(g.map(j=>j.id).join(","))}">${bzHas(g)}</button>`:"")+(lim?"":`<button class="btn pri" data-dc="gedit">Редактировать комплект</button>`);
   { const ids=g.map(x=>x.id); CARD_RE=()=>{ const gg=ids.map(id=>D.journal.find(y=>y.id===id)).filter(Boolean); if(gg.length) bundleCard(gg, arch); else toast("info","Комплекта уже нет"); }; }
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Комплект · ${g.length} ${docsWord(g.length)} · ${fd(g[0].date)}</div><h3>${esc(w.main)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <dl class="dc-info">${info.map(([a,b])=>`<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>
     <div class="dc-docs">${docs}</div>
     <div class="dc-total"><span>${g.length} ${docsWord(g.length)}${kg?" · "+nq3(kg)+" кг":""}</span><b>${fm(sum)} ₽</b></div>
     ${histHtml(hist)}
-    ${!arch&&me().admin?`<div class="dc-zk" id="bz-zk" data-ids="${esc(g.map(j=>j.id).join(","))}"><div class="dc-zki" id="bz-zki"></div></div>`:""}
     <div class="dc-acts">${acts}</div>`, true, (a,b)=>{
       if(a==="doc"){ const j=D.journal.find(x=>x.id===b.dataset.id); if(j) docCard(j, arch); return; }
       if(a==="gedit"){ bundleEdit(g); return; }
