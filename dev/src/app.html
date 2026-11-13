@@ -454,7 +454,6 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 html.mailapp #fd-app nav.tabs, html.mailapp #mbar, html.mailapp #tsheet, html.mailapp #tab-bar, html.mailapp #fd-app .brand>b{display:none!important}
 html.mailapp.mlhere #fd-app header.top{display:none}
 html.mailapp #fd-app{--mbh:0px}
-html.mailapp #fd-login h2::after{content:" в почту"}
 #fd-app .mldrapp{margin-top:6px;border-top:1px solid var(--line);padding-top:6px}
 #fd-app .mldi.armed{color:var(--bad,#b3261e)}
 /* ===== Почта на телефоне (mail_seg.js: mlMobDraw, #ml-ov) ===== */
@@ -3019,6 +3018,7 @@ const API_URL = "";
 /* приложение «Почта ФД» (13.11.2026): сайт открыт с ?app=mail — только вкладка «Почта», без шапки и разделов */
 const MAILAPP = /[?&]app=mail(&|$)/.test(location.search||"");
 if(MAILAPP) document.documentElement.classList.add("mailapp","mlhere");
+if(MAILAPP){ const h=document.querySelector("#fd-login h2"); if(h && h.firstChild && h.firstChild.nodeType===3) h.firstChild.nodeValue="Вход в почту"; }
 const KEY = "frudom-docs-v1", PKEY = "frudom-docs-pass", UKEY = "frudom-docs-user", MKEY = "frudom-docs-me", EKEY = "frudom-docs-evq";
 const USERS_LIST = ["Даниил", "Наталья", "Гриша", "Склад"];
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -8939,7 +8939,8 @@ async function appQuick(k){
 }
 /* приложение «Почта ФД»: открыть письмо по нажатию на уведомление (how = reply — сразу ответ) */
 const APPM={id:"", n:0, sync:0};
-function appMail(id, how){ if(!pass() || !$("#fd-login").hidden) return "login";
+function appMail(id, how){ if(how==="logout"){ if(pass() && $("#fd-login").hidden) logout(); return "ok"; }   /* «Выйти» в настоящем приложении */
+  if(!pass() || !$("#fd-login").hidden) return "login";
   if(curTab!=="mail") showTab("mail");
   if(!id){ if(!how) return "ok"; if(!ML.loaded) return "wait";   /* ярлыки на значке: «Написать письмо», «Заявки»; сводка уведомлений — «Входящие» */
     if(ML.layer) mlLayerOff();
@@ -8952,7 +8953,8 @@ function appMail(id, how){ if(!pass() || !$("#fd-login").hidden) return "login";
   if(!r){ if(!APPM.sync){ APPM.sync=1; mlLoad(true, true); return "wait"; } return ++APPM.n>8 ? "nf" : "wait"; }
   APPM.id=""; ML.f = mlSpam(r) ? "spam" : mlMinor(r) ? "minor" : r.dir==="sent" ? "sent" : mlFld(r) ? "u:"+mlFld(r) : "in"; ML.box="";
   if(ML.layer==="d") mlLayerOff();
-  mlDraw(); mlOpen(id); if(how==="reply" && !mlRO()) setTimeout(()=>{ try{ mlCompose("reply"); }catch(e){} }, 450);
+  mlDraw(); const op=mlOpen(id);   /* ответ / всем / переслать — после того как письмо загрузилось (нужен его текст) */
+  if(/^(reply|replyall|fwd)$/.test(how||"") && !mlRO()) Promise.resolve(op).catch(()=>{}).then(()=>{ if(ML.sel===id) try{ mlCompose(how); }catch(e){} });
   return "ok"; }
 /* что сейчас не прочитано — приложение убирает уведомления о прочитанных письмах (прочитали здесь или на компьютере) */
 const appMailState = () => ({loaded:!!(ML&&ML.loaded), ro:mlRO(), unread:ML&&ML.loaded&&!mlRO() ? ML.rows.filter(mlUnread).map(r=>r.id) : null});

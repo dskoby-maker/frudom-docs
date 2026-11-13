@@ -2,12 +2,12 @@
 <!-- долгое нажатие на значок «Почты ФД» -->
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
   <shortcut android:shortcutId="new" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/sc_new">
-    <intent android:action="ru.frudom.mail.NEW" android:targetPackage="ru.frudom.mail" android:targetClass="ru.frudom.mail.MainActivity">
+    <intent android:action="ru.frudom.mail.NEW" android:targetPackage="ru.frudom.mail" android:targetClass="ru.frudom.mail.WebActivity">
       <extra android:name="how" android:value="new"/></intent>
   </shortcut>
   <shortcut android:shortcutId="ord" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/sc_ord">
     <intent android:action="ru.frudom.mail.ORD" android:targetPackage="ru.frudom.mail" android:targetClass="ru.frudom.mail.MainActivity">
-      <extra android:name="how" android:value="ord"/></intent>
+      <extra android:name="folder" android:value="ord"/></intent>
   </shortcut>
   <shortcut android:shortcutId="ntf" android:enabled="true" android:icon="@mipmap/ic_launcher" android:shortcutShortLabel="@string/sc_ntf">
     <intent android:action="android.intent.action.VIEW" android:targetPackage="ru.frudom.mail" android:targetClass="ru.frudom.mail.MailSettingsActivity"/>

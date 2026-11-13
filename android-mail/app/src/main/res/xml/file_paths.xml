@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
   <cache-path name="cam" path="cam/"/>
+  <cache-path name="att" path="att/"/>
   <external-path name="dl" path="Download/"/>
+  <external-files-path name="upd" path="Download/"/>
 </paths>
