@@ -423,6 +423,18 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 #fd-app .mlvifr{width:100%;height:68vh;border:0;background:#fff;border-radius:8px}
 #fd-app .mldbadge{display:inline-flex;align-items:center;gap:4px;font:600 11.5px/1 var(--ui);color:#fff;padding:4px 8px 4px 6px;border-radius:99px;background:linear-gradient(135deg,#3f9a63,#2f7d4f);box-shadow:0 2px 6px -2px rgba(47,125,79,.55)}
 #fd-app .mldbadge.big{font-size:13px;padding:7px 13px 7px 10px}
+#fd-app .mll.calm .mlr{animation:none}#fd-app .mlr.leave{opacity:0;transform:translateX(12px);transition:opacity .25s,transform .25s}
+#fd-app .mltbadge{display:inline-flex;align-items:center;gap:4px;font:600 11.5px/1 var(--ui);color:#7a5a00;padding:4px 8px 4px 6px;border-radius:99px;background:linear-gradient(135deg,#ffe58a,#f6c945);box-shadow:0 2px 6px -2px rgba(180,140,20,.5)}
+#fd-app .mltbadge.big{font-size:13px;padding:7px 13px 7px 10px}
+#fd-app .mlr.istodo{background:rgba(255,248,220,.8)}#fd-app .mlr.istodo::before{background:#d4a52a;opacity:.9}
+#fd-app .mltodo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:8px 10px;border-radius:12px;background:rgba(246,201,69,.14);border:1px solid rgba(212,165,42,.35)}#fd-app .mltodo small{font-size:12px;color:var(--muted)}#fd-app .mltodo .btn{margin-left:0}
+#fd-app .mltodo.pop .mltbadge,#fd-app .mldone.pop .mldbadge{animation:mldpop .45s cubic-bezier(.2,1.4,.4,1)}
+#fd-app .mlmk{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:6px;font:600 13px/1 var(--ui);padding:8px 13px 8px 10px;border-radius:99px;cursor:pointer;border:1.5px solid;transition:background-color .2s,transform .15s,box-shadow .2s}
+#fd-app .mlmk.mkto{color:#8a6500;border-color:#e2b93b;background:rgba(255,229,138,.25)}#fd-app .mlmk.mkto:hover{background:linear-gradient(135deg,#ffe58a,#f6c945);box-shadow:0 4px 12px -6px rgba(180,140,20,.7)}
+#fd-app .mlmk.mkok{color:#2f7d4f;border-color:rgba(47,125,79,.45);background:rgba(47,125,79,.06)}#fd-app .mlmk.mkok:hover{background:#2f7d4f;color:#fff;box-shadow:0 4px 12px -6px rgba(47,125,79,.7)}
+#fd-app .mlmk:active{transform:scale(.97)}#fd-app .mlmk:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#fd-app .mlqa button.ontodo{color:#b8860b}.mlmenu button.todo i{color:#b8860b}
+#fd-app .mlocus label.mlrem{display:inline-flex!important;flex-direction:row!important;align-items:center;gap:6px;width:auto;margin:0;font-size:12.5px;color:var(--muted)}#fd-app .mlocus label.mlrem input{width:auto;height:auto;margin:0;flex:none}
 #fd-app .mlst{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px}#fd-app .mlst small{font-size:12px;color:var(--muted)}
 #fd-app .mlundone{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:7px;font:600 13px/1 var(--ui);color:#7a5a00;padding:8px 14px 8px 11px;border-radius:99px;background:linear-gradient(135deg,#ffe58a,#f6c945);box-shadow:0 2px 8px -3px rgba(180,140,20,.55);cursor:pointer;transition:transform .15s,box-shadow .2s,filter .2s}
 #fd-app .mlundone::before{content:"";width:8px;height:8px;border-radius:50%;background:#b8860b;box-shadow:0 0 0 3px rgba(255,255,255,.55)}
