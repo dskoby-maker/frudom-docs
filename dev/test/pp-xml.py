@@ -6,13 +6,14 @@ fails=[]
 def ok(c,m): print(('OK  ' if c else 'FAIL'),m); (None if c else fails.append(m))
 BASE='http://localhost:8787'; XSD=os.environ.get('PPXSD','')
 def portalXsd(src):
-    """Сокращённая схема, по которой Портал проверял файл 13.11.2026 (по его ошибкам): у СвСчФакт нет ДокПодтвОтгр, у СведТов нет Акциз, у СвПер — ДатаНачПер/ДатаОконПер."""
+    """Сокращённая схема, по которой Портал проверял файл 13.11.2026 (по его ошибкам): у СвСчФакт нет ДокПодтвОтгр, у СведТов нет Акциз, у СвПер — ДатаНачПер/ДатаОконПер, страна — элемент СвДТ (не СвТД)."""
     if not src: return ''
     t=open(src,encoding='cp1251').read()
     t=re.sub(r'<xs:element maxOccurs="unbounded" minOccurs="0" name="ДокПодтвОтгр">.*?</xs:element>\s*(?=<xs:element|</xs:sequence>)', '', t, count=1, flags=re.S)
     t=re.sub(r'<xs:element name="Акциз" type="СумАкцизТип">.*?</xs:element>', '', t, count=1, flags=re.S)
     i=t.index('name="СвПер"'); j=t.index('</xs:element>', t.index('name="ДатаОкон"', i))
     t=t[:i]+t[i:j].replace('name="ДатаНач"','name="ДатаНачПер"').replace('name="ДатаОкон"','name="ДатаОконПер"')+t[j:]
+    t=t.replace('name="СвТД"','name="СвДТ"',1)
     out='/tmp/pp-portal.xsd'; open(out,'w',encoding='cp1251').write(t); return out
 XSD=portalXsd(XSD)
 HTML=re.sub(r'\}\)\(\);\s*</script>', 'window.T={ev:s=>eval(s)};})();</script>', urllib.request.urlopen(BASE+'/page').read().decode(), count=1)
@@ -48,7 +49,7 @@ async def main():
             ok('Идентиф="ИдСпецификации" Значен="5080332-1"' in x and 'АртикулТов="ART-2"' in x and 'АртикулТов=""' not in x and 'Идентиф="ИдСТЕ" Значен="1234567"' in x, f'{W}: ID спецификации, артикул, СТЕ по строкам')
             ok('КолТов="12.5"' in x and 'ЦенаТов="133.95"' in x and 'СтТовБезНДС="1674.38"' in x and 'КодПроисх="860"' in x, f'{W}: количество, цена, сумма строки (12,5 × 133,95 = 1674,38), страна')
             ok('<БезНДС>без НДС</БезНДС>' in x and 'АдрТекст="г. Москва, ул. Полбина, д. 72, стр. 1"' in x , f'{W}: без НДС, адрес доставки')
-            ok('Акциз' not in x and 'ДокПодтвОтгр' not in x and 'ДатаНачПер="12.11.2026" ДатаОконПер="12.11.2026"' in x, f'{W}: как требует Портал сейчас: без «Акциз» и «ДокПодтвОтгр», ДатаНачПер/ДатаОконПер')
+            ok('Акциз' not in x and '<СвДТ КодПроисх=' in x and 'ДокПодтвОтгр' not in x and 'ДатаНачПер="12.11.2026" ДатаОконПер="12.11.2026"' in x, f'{W}: как требует Портал сейчас: без «Акциз» и «ДокПодтвОтгр», ДатаНачПер/ДатаОконПер')
             if XSD:
                 r=subprocess.run(['xmllint','--noout','--schema',XSD,path],capture_output=True,text=True)
                 ok(r.returncode==0, f'{W}: файл проходит схему Портала ({(r.stderr or r.stdout).strip()[:300]})')
