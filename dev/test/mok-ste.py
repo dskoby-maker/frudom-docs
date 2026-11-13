@@ -32,6 +32,16 @@ async def main():
           patchMokSpec(); const m=D.specs[cid]; return ['ms1','ms2','ms3','ms4'].map(k=>(m[k]||{}).spec||''); })()""")
         ok(r==['905837023','905837034','905837035','905837017'], f'ID спецификации: айсберг, яблоки поз. 42/43/25 — {r}')
         ok(await ev("(()=>{ const x=D.specs['i2sssar0']; x.ms1.spec='999'; patchMokSpec(); return x.ms1.spec; })()")=='999', 'вписанное руками ID спецификации не затирается')
+        # СТЕ из отправленного УПД № 196 заменяют старые; ID ЭДО МОК
+        r=await ev("""(()=>{ const cid='i2sssar0', m=D.specs[cid]; m.ms5={spec:'905836998', ste:'36058953', art:''}; m.ms6={spec:'905837003', ste:'777', art:''}; m.ms7={spec:'905837001', ste:'', art:''};
+          D.customers.find(c=>c.id===cid).edo=''; patchMokSte2(); return [m.ms5.ste, m.ms6.ste, m.ms7.ste, D.customers.find(c=>c.id===cid).edo]; })()""")
+        ok(r==['36056516','777','46376107','2AEC5B4501D-A896-446B-B5D0-BB545760B939'], f'СТЕ из УПД № 196: старый заменён, вписанный руками не тронут, пустой заполнен; ID ЭДО МОК — {r}')
+        SENT=os.environ.get('PPSENT','')
+        if SENT:
+            b64=__import__('base64').b64encode(open(SENT,'rb').read()).decode()
+            r=await ev("""(async()=>{ const cid='i2sssar0', m=D.specs[cid]; m.ms6.ste='1'; m.ms8={spec:'905837008', ste:'', art:''};
+              const f=new File([Uint8Array.from(atob('%s'),c=>c.charCodeAt(0))],'upd.xml'); const x=await learnFromSentXml(cid,f); return [m.ms6.ste, m.ms8.ste, x.msg]; })()""" % b64)
+            ok(r[0]=='39123587' and r[1]=='35235034', f'«Сопоставить с Порталом» → XML отправленного УПД 5.03: СТЕ записаны ({r})')
         ok(not errs, f'без ошибок {errs[:2]}')
         await b.close()
     print('ИТОГ:', 'всё прошло' if not fails else f'ошибок {len(fails)}')

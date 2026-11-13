@@ -6239,7 +6239,7 @@ function ppXml(k, opt){ opt=opt||{}; const dr=k.dr, c=k.c||{}, s=k.s||{}, m=(D.s
       +`<ДопСведТов ПрТовРаб="1" АртикулТов="${ppA(art)}"${/^\d{1,20}$/.test(ste)?` КодТов="${ste}"`:""}/>`
       +`<Акциз><БезАкциз>без акциза</БезАкциз></Акциз><СумНал>${tax(l.vat)}</СумНал>`
       +`<ИнфПолФХЖ2 Идентиф="ИдСпецификации" Значен="${ppA(sp.spec)}"/>${/^\d{1,10}$/.test(ste)?`<ИнфПолФХЖ2 Идентиф="ИдСТЕ" Значен="${ste}"/>`:""}`
-      +`${COUNTRIES[cty]&&cty?`<ИнфПолФХЖ2 Идентиф="СтранаПроисх" Значен="${ppA(COUNTRIES[cty].toUpperCase())}"/>`:""}</СведТов>`; }).join("");
+      +`${COUNTRIES[cty]&&cty?`<ИнфПолФХЖ2 Идентиф="СтранаПроисх" Значен="${ppA(COUNTRIES[cty].toUpperCase())}"/><ИнфПолФХЖ2 Идентиф="СтранаПроизв" Значен="${ppA(COUNTRIES[cty].toUpperCase())}"/>`:""}</СведТов>`; }).join("");
   const id="ON_NSCHFDOPPR_"+(String(c.edo||"").trim()||"0")+"_"+(String(s.edo||"").trim()||"0")+"_"+date.split(".").reverse().join("")+"_"+guid().toUpperCase()+"_0_0_0_0_0_00";
   const dn="Документ об отгрузке товаров (выполнении работ), передаче имущественных прав (документ об оказании услуг)";
   return `<?xml version="1.0" encoding="windows-1251"?>\n<Файл ИдФайл="${id}" ВерсФорм="5.03" ВерсПрог="Frudom 1.0">`
@@ -7519,6 +7519,15 @@ async function learnFromSentXml(cid, f){
   txt=txt.replace(/^[^<]*/,"");
   const doc=new DOMParser().parseFromString(txt,"application/xml"); if(doc.getElementsByTagName("parsererror").length) return {msg:"Файл не читается как XML."};
   const m=D.specs[cid]=D.specs[cid]||{}; let found=0, learned=0, unknown=0;
+  /* полный УПД 5.03 (как собирает Портал): ИнфПолФХЖ2 Идентиф="ИдСпецификации"/"ИдСТЕ", КодТов; заодно ID ЭДО из имени файла */
+  [...doc.getElementsByTagName("СведТов")].forEach(st=>{ const inf={}; [...st.children].filter(x=>x.tagName==="ИнфПолФХЖ2").forEach(x=>{ inf[x.getAttribute("Идентиф")]=String(x.getAttribute("Значен")||"").trim(); });
+    const dop=[...st.children].find(x=>x.tagName==="ДопСведТов"), sp=inf["ИдСпецификации"], ste=inf["ИдСТЕ"]||String((dop&&dop.getAttribute("КодТов"))||"").trim();
+    if(!sp || !ste) return; found++; const pid=Object.keys(m).find(k=>String(m[k].spec||"")===sp); if(!pid){ unknown++; return; }
+    if(String(m[pid].ste||"")!==ste){ m[pid].ste=ste; dirtySpec(cid,pid); learned++; } });
+  const fid=(doc.documentElement.getAttribute("ИдФайл")||"").match(/^ON_NSCHFDOPPR_([^_]+)_([^_]+)_/);
+  if(fid){ const c=cus(cid), sv=doc.getElementsByTagName("СвПрод")[0], sinn=sv?((sv.querySelector("СвИП")||{}).getAttribute?.("ИННФЛ")||(sv.querySelector("СвЮЛУч")||{}).getAttribute?.("ИННЮЛ")||""):"", s=D.suppliers.find(x=>sinn && String(x.inn||"")===sinn);
+    if(c && !String(c.edo||"").trim() && fid[1]!=="0"){ c.edo=fid[1]; dirty("customers",c.id); }
+    if(s && !String(s.edo||"").trim() && fid[2]!=="0"){ s.edo=fid[2]; dirty("suppliers",s.id); } }
   [...doc.getElementsByTagName("ИдСпецификации")].forEach(el=>{ const par=el.parentNode, sp=el.textContent.trim(); const steEl=[...par.children].find(x=>x.tagName==="ИдСТЕ"); if(!steEl) return; found++;
     const ste=steEl.textContent.trim(); const pid=Object.keys(m).find(k=>m[k].spec===sp); if(!pid){ unknown++; return; }
     if(m[pid].ste!==ste){ m[pid].ste=ste; dirtySpec(cid,pid); learned++; } });
@@ -7628,6 +7637,15 @@ function patchMokSpec(){
   MOK_SPEC.forEach(([nm,pr,sp])=>{ const pid=Object.keys(pl).find(id=>{ const p=prod(id); return p && Math.abs(+pl[id]-pr)<0.006 && base(p.name)===norm(nm); }); if(!pid) return;
     if(Object.keys(m).some(k=>k!==pid && String(m[k].spec||"")===sp)) return;
     const x=m[pid]=m[pid]||{}; if(String(x.spec||"").trim()) return; x.spec=sp; if(x.ste==null) x.ste=""; if(x.art==null) x.art=""; dirtySpec(c.id,pid); });
+}
+/* СТЕ, выбранные на Портале в отправленном УПД № 196 (13.11.2026), — вместо старых номеров; ID ЭДО МОК и ИП Суховерховой (из имени файла УПД) */
+const MOK_STE2 = [["905836998","36056516",["36058953"]],["905837001","46376107",[]],["905837003","39123587",["46374195"]],["905837008","35235034",[]]];
+function patchMokSte2(){
+  const c=D.customers.find(x=>String(x.inn||"")==="7723920242"); if(!c) return; const m=D.specs[c.id]=D.specs[c.id]||{};
+  MOK_STE2.forEach(([sp,ste,old])=>{ const pid=Object.keys(m).find(k=>String(m[k].spec||"")===sp); if(!pid) return; const cur=String(m[pid].ste||"").trim();
+    if(cur===ste || (cur && !old.includes(cur))) return; m[pid].ste=ste; dirtySpec(c.id,pid); });
+  if(!String(c.edo||"").trim()){ c.edo="2AEC5B4501D-A896-446B-B5D0-BB545760B939"; dirty("customers",c.id); }
+  const s=D.suppliers.find(x=>String(x.inn||"")==="772148337370"); if(s && !String(s.edo||"").trim()){ s.edo="2AE73B6AF83-A265-44AD-92A5-DC29FD5576F8"; dirty("suppliers",s.id); }
 }
 function patchMokSte(){
   const c=D.customers.find(x=>String(x.inn||"")==="7723920242")||D.customers.find(x=>/Талалихин/i.test(x.name||"")); if(!c) return;
@@ -7840,7 +7858,7 @@ function patchMguPoints2(){
   all.forEach(a=>{ const m=U.find(([re])=>re.test(a)); if(!m) return; const k=ptKey(a); o[k]=Object.assign(o[k]||{addr:a}, m[1]); });
   o.__v=2; c.points=JSON.stringify(o); dirty("customers",c.id);
 }
-function patchAll(){ patchPrivate(); patchKigm(); patchSuppliers(); if(!serverOld){ patchContracts(); patchKigmSpecs(); patchMokSte(); patchMokSpec(); patchMgu(); patchMguSklad(); patchMguNames(); patchCircus(); patchKb1(); patchKb1Countries(); patchCircusSigns(); patchCircusCelery(); patchNiir(); patchNiirAliases(); patchNmic(); patchMguPoints(); patchMguPoints2(); } }
+function patchAll(){ patchPrivate(); patchKigm(); patchSuppliers(); if(!serverOld){ patchContracts(); patchKigmSpecs(); patchMokSte(); patchMokSpec(); patchMokSte2(); patchMgu(); patchMguSklad(); patchMguNames(); patchCircus(); patchKb1(); patchKb1Countries(); patchCircusSigns(); patchCircusCelery(); patchNiir(); patchNiirAliases(); patchNmic(); patchMguPoints(); patchMguPoints2(); } }
 
 /* ---------- товары: список — dev/src/pdl_seg.js (renderProducts) ---------- */
 
