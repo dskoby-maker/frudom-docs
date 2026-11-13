@@ -47,6 +47,7 @@
 #fd-app .dcard .dc-back{display:flex;width:fit-content;max-width:100%;align-items:center;gap:2px;border:0;background:transparent;color:var(--accent);font:600 13px/1.2 var(--ui);padding:5px 10px 5px 4px;margin:-4px 0 8px -6px;border-radius:99px;cursor:pointer;transition:background-color .15s,transform .15s}#fd-app .dcard .dc-back svg{width:18px;height:18px;flex:none;transition:transform .18s cubic-bezier(.2,.8,.2,1)}#fd-app .dcard .dc-back span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fd-app .dcard .dc-back:hover{background:var(--accent-soft)}#fd-app .dcard .dc-back:hover svg{transform:translateX(-3px)}#fd-app .dcard .dc-back:active{transform:scale(.97)}#fd-app .dcard .dc-back:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #fd-app dialog.dcard.nav{opacity:1;transform:none;transition:none}#fd-app dialog.dcard.nav::backdrop{animation:none}#fd-app dialog.dcard.nav.out{opacity:0;transform:translateY(10px) scale(.98);transition:opacity .2s ease,transform .2s ease}
 #fd-app dialog.dcard.nav.fwd>*{animation:dcnavf .3s cubic-bezier(.2,.8,.2,1) backwards}#fd-app dialog.dcard.nav.back>*{animation:dcnavb .3s cubic-bezier(.2,.8,.2,1) backwards}
+#fd-app dialog.dcard.morph::backdrop{opacity:0}#fd-app dialog.dcard.morph{box-shadow:none}
 @keyframes dcnavf{from{opacity:0;transform:translateX(32px)}}@keyframes dcnavb{from{opacity:0;transform:translateX(-32px)}}
 @media (prefers-reduced-motion:reduce){#fd-app dialog.dcard.nav.fwd>*,#fd-app dialog.dcard.nav.back>*{animation:none}}
 #fd-app .dcard .dc-head{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
@@ -932,7 +933,7 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .skpackb{border-radius:14px;padding:10px 12px 12px;background:linear-gradient(160deg,rgba(31,95,122,.07),rgba(31,95,122,.02));border:1px dashed rgba(31,95,122,.28)}
 #fd-app .skpackh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}#fd-app .skpackh b{display:inline-flex;align-items:center;gap:6px;font-size:13.5px}#fd-app .skpackh small{font-size:12px;color:var(--muted)}
 #fd-app .skpackg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}#fd-app .skpackg .f{margin:0}#fd-app .skpackg.sk2{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:10px}
-#fd-app dialog.dcard.wide.xwide{width:min(1100px,calc(100vw - 24px))}#fd-app dialog.dcard.zkpage{width:min(1180px,calc(100vw - 32px));max-height:min(94vh,1200px)}#fd-app dialog.dcard.zkpage .dc-zk.zkpg{margin-top:4px}#fd-app dialog.dcard.zkpage .dzl{max-height:none;overflow:visible}@media (max-width:600px){#fd-app dialog.dcard.zkpage{max-height:96vh;width:100vw;max-width:100vw}}
+#fd-app dialog.dcard.wide.xwide{width:min(1100px,calc(100vw - 24px))}#fd-app dialog.dcard.zkpage{width:min(1180px,calc(100vw - 32px));max-height:min(94vh,1200px);min-height:min(78vh,720px)}#fd-app dialog.dcard.zkpage .dc-zk.zkpg{margin-top:4px}#fd-app dialog.dcard.zkpage .dzl{max-height:none;overflow:visible}@media (max-width:600px){#fd-app dialog.dcard.zkpage{max-height:96vh;min-height:min(88vh,96vh);width:100vw;max-width:100vw}}
 #fd-app .mi-head{display:grid;grid-template-columns:1.4fr 1fr 1.2fr 1fr;gap:10px;margin-top:12px}#fd-app .mi-head .f{margin:0}#fd-app .mi-head small{font-size:11px}
 #fd-app .mi-rest{margin-top:10px;padding:8px 12px;border-radius:12px;background:rgba(179,134,0,.10);font-size:13px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;animation:fdin .3s ease}#fd-app .mi-rest.ok{background:rgba(46,125,50,.10)}
 #fd-app .mi-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 8px}#fd-app .mi-ai{cursor:pointer;background:linear-gradient(135deg,rgba(31,95,122,.14),rgba(31,95,122,.05));border-color:rgba(31,95,122,.25)}#fd-app .mi-ai.busy{pointer-events:none;opacity:.85}
@@ -6364,10 +6365,11 @@ function navDecorate(d){ const h=d.querySelector(".dc-head>div"); if(!h) return;
   h.insertAdjacentHTML("afterbegin",`<button type="button" class="dc-back" data-navback title="Вернуться: ${esc(t.full)} (Esc)" aria-label="Назад: ${esc(t.full)}">${IC_BACK}<span>${esc(t.label)}</span></button>`); }
 function navBack(){ const t=NAV.st.pop(); if(!t) return false;
   if(document.querySelector("#dc-cm.dirty")) cmSave();
-  NAV.back={scroll:t.scroll};
-  document.querySelectorAll("#fd-app dialog.dcard[data-nav]").forEach(x=>{ x._bye=1; try{ x.close(); }catch(e){} x.remove(); });
+  NAV.back={scroll:t.scroll}; const keep=document.getElementById("fd-dcard"); MORPH.from=keep&&keep.open&&morphOk()?keep:null;
+  document.querySelectorAll("#fd-app dialog.dcard[data-nav]").forEach(x=>{ x._bye=1; if(x===MORPH.from) return; try{ x.close(); }catch(e){} x.remove(); });
   if(typeof SKM!=="undefined") SKM=null;
   try{ t.re(); }catch(e){ console.error(e); }
+  if(MORPH.from){ const o=MORPH.from; MORPH.from=null; try{ o.close(); }catch(e){} o.remove(); }
   if(NAV.back){ NAV.back=null; navReset(); }                     /* окно не открылось (например, документ удалили) */
   return true; }
 document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("[data-navback]"); if(b){ e.preventDefault(); e.stopPropagation(); navBack(); } }, true);
@@ -6399,23 +6401,47 @@ function lastDocsCard(cid, keep){ const c=cus(cid); if(!c) return; const all=ldD
       if(a==="ldmore"){ const sc=(document.getElementById("fd-dcard")||{}).scrollTop||0; LD.more+=30; lastDocsCard(cid, true); const d=document.getElementById("fd-dcard"); if(d) d.scrollTop=sc; return; } });
 }
 document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("#d-lastdocs"); if(!b) return; e.preventDefault(); const cid=D.draft&&D.draft.customerId; if(cid) lastDocsCard(cid); });
+/* ---------- окно плавно меняет размер (13.11.2026): переход между окнами разного размера (документ → закупка и назад) —
+   одно окно «перетекает» из старого размера в новый: старое и новое обрезаются одним и тем же прямоугольником, который едет
+   от старого места к новому; содержимое старого гаснет, нового — проявляется. Старое окно живёт до конца анимации, без id ---------- */
+const MORPH={from:null, ms:420, ease:"cubic-bezier(.22,.9,.24,1)", until:0};
+const morphWait=()=>{ const w=MORPH.until-Date.now(); return w>0 ? new Promise(r=>setTimeout(r, w)) : Promise.resolve(); };   /* тяжёлую отрисовку — после анимации, иначе она «съедает» кадры */
+const morphOk=()=>typeof Element.prototype.animate==="function" && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+function morphRun(old, d, mode){
+  const A=old.getBoundingClientRect(), B=d.getBoundingClientRect();
+  if(!A.width||!B.width||(Math.abs(A.width-B.width)<24&&Math.abs(A.height-B.height)<48)) return false;
+  const rad=el=>parseFloat(getComputedStyle(el).borderTopLeftRadius)||0, rA=rad(old), rB=rad(d);
+  const ins=(R,box,r)=>`inset(${R.top-box.top}px ${box.right-R.right}px ${box.bottom-R.bottom}px ${R.left-box.left}px round ${r}px)`;
+  const T={duration:MORPH.ms, easing:MORPH.ease}; MORPH.until=Date.now()+MORPH.ms+40;
+  old._morph=1; old.removeAttribute("id"); d.classList.remove("fwd","back"); d.classList.add("morph");
+  const dx=mode==="back"?-14:14;
+  old.animate([{clipPath:ins(A,A,rA),opacity:1},{opacity:1,offset:.22},{opacity:0,offset:.55},{clipPath:ins(B,A,rB),opacity:0}], Object.assign({fill:"forwards"},T));   /* у окна полупрозрачный фон — старое гасим целиком, чтобы не просвечивало */
+  [...old.children].forEach(c=>c.animate([{opacity:1,transform:"none"},{opacity:0,transform:`translateX(${-dx}px) scale(.985)`}], {duration:170, easing:"ease-in", fill:"forwards"}));
+  const an=d.animate([{clipPath:ins(A,B,rA),opacity:0},{opacity:1,offset:.2},{clipPath:ins(B,B,rB),opacity:1}], T);
+  [...d.children].forEach(c=>c.animate([{opacity:0,transform:`translateX(${dx}px)`},{opacity:1,transform:"none"}], {duration:300, delay:Math.round(MORPH.ms*.62), easing:"cubic-bezier(.2,.8,.2,1)", fill:"backwards"}));
+  let done=0; const fin=()=>{ if(done) return; done=1; try{ old.close(); }catch(e){} old.remove(); if(!d.isConnected) return; d.classList.remove("morph");
+    d.animate([{boxShadow:"0 0 0 rgba(28,34,32,0)"},{boxShadow:getComputedStyle(d).boxShadow}], {duration:220, easing:"ease-out"}); };
+  an.finished.then(fin, fin); setTimeout(fin, MORPH.ms+900);   /* запасной выход, если анимацию отменили */
+  return true; }
 function openCard(html, wide, onAct){
   if(typeof zkpCollapse==="function" && ZKP.open) zkpCollapse();   /* редактор закупки на вкладке «Закупка» — у него те же id, что в окне */
   const re=CARD_RE; CARD_RE=null; const prev=navPrev();
-  const old=document.getElementById("fd-dcard"); if(old){ old._bye=1; old.remove(); }
+  const old=document.getElementById("fd-dcard"), keep=old&&old.open&&old.isConnected&&morphOk()&&(!old._bye||old===MORPH.from); if(old){ old._bye=1; if(!keep) old.remove(); else old.removeAttribute("id"); }
+  if(old===MORPH.from) MORPH.from=null;
   const d=document.createElement("dialog"); d.id="fd-dcard"; d.className="dcard"+(wide==="zk"?" wide xwide zkpage":wide?" wide":""); d.innerHTML=html;
-  document.getElementById("fd-app").appendChild(d);
+  const app=document.getElementById("fd-app"); if(keep) app.insertBefore(d, old); else app.appendChild(d);   /* новое — раньше старого: поиск по id находит новое */
   /* go — переход в другое окно: старое гасим чуть позже, чтобы новое успело встать на его место без мигания */
   const close=go=>{ if(d.classList.contains("out")) return; const cmb=d.querySelector("#dc-cm.dirty"); if(cmb) cmSave(); if(!go) d._bye=1; const rm=matchMedia("(prefers-reduced-motion: reduce)").matches;
-    setTimeout(()=>{ if(!d.isConnected) return; d.classList.add("out"); setTimeout(()=>{ d._bye=1; try{ d.close(); }catch(x){} d.remove(); }, rm?0:200); }, go?90:0); };
+    setTimeout(()=>{ if(!d.isConnected||d._morph) return; d.classList.add("out"); setTimeout(()=>{ d._bye=1; try{ d.close(); }catch(x){} d.remove(); }, rm?0:200); }, go?90:0); };
   const closeAll=()=>{ navReset(); close(); };
   d.addEventListener("cancel", e=>{ e.preventDefault(); if(document.getElementById("fd-help")){ closeHelp(); return; } if(NAV.st.length) navBack(); else closeAll(); });
   d.addEventListener("close", ()=>{ if(d._bye) return; d._bye=1; if(NAV.st.length&&navBack()) return; if(d.querySelector("#dc-cm.dirty")) cmSave(); navReset(); d.remove(); });   /* закрыли снаружи (кнопка «Назад» в приложении) */
   d.addEventListener("click", e=>{
     if(e.target===d){ const r=d.getBoundingClientRect(); if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom) closeAll(); return; }
     const b=e.target.closest("[data-dc]"); if(!b) return; const a=b.dataset.dc; if(a==="close"){ closeAll(); return; } close(true); setTimeout(()=>onAct(a, b), 0); });
-  navOpen(d, re, prev);
-  d.showModal(); requestAnimationFrame(()=>d.classList.add("in")); navAfter(d); const ct=d.querySelector("#dc-cmt"); if(ct) cmGrow(ct);
+  const mode=navOpen(d, re, prev);
+  d.showModal(); requestAnimationFrame(()=>d.classList.add("in")); navAfter(d);
+  if(keep && !(mode && morphRun(old, d, mode))){ old._morph=0; try{ old.close(); }catch(e){} old.remove(); } const ct=d.querySelector("#dc-cmt"); if(ct) cmGrow(ct);
 }
 function docCard(j, arch){
   const k=calc(j.snap.dr, j.snap), dr=j.snap.dr, m=j.snap.meta||{}, w=jWho(j), lim=docLimited(), inG=!arch && jKey(j) && D.journal.filter(x=>x.snap&&!isArch(x)&&jKey(x)===jKey(j)).length>1;
@@ -6693,7 +6719,7 @@ function zkPageOpen(j, fromDoc){ if(!j) return;
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Закупка · Документ № ${esc(j.number)} · ${fd(j.date)}</div><h3>${esc(jWho(j).main)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <div class="dc-zk open zkpg" id="dc-zk" data-doc="${j.id}"><div class="dc-zki" id="dc-zki"><p class="muted">Открываю закупку…</p></div></div>`, "zk", ()=>{});
   dcZkBoot(j); }
-async function dcZkBoot(j){ const box=()=>$("#dc-zki");
+async function dcZkBoot(j){ const box=()=>$("#dc-zki"); await morphWait();
   if(!pfLoaded){ if(box()) box().innerHTML=`<p class="muted">Загружаю данные о прибыли…</p>`; await loadProfit(true); }
   if(SK_READY && skCan() && skSrv!==false && (!SK || !SK.at || Date.now()-new Date(SK.at).getTime()>120000)){ if(box()) box().innerHTML=`<p class="muted">Сверяю склад…</p>`; await skLoad(true); }
   const w=$("#dc-zk"); if(!w || w.dataset.doc!==j.id) return; const x=D.journal.find(y=>y.id===j.id)||j; dcZkDraw(x);
@@ -6916,7 +6942,7 @@ function bzPageOpen(g, fromBundle){ if(!g||!g.length) return; const ids=g.map(x=
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Закупка · Комплект № ${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))} · ${fd(g[0].date)}</div><h3>${esc(gTitle(g))}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <div class="dc-zk open zkpg" id="bz-zk" data-ids="${esc(ids.join(","))}"><div class="dc-zki" id="bz-zki"><p class="muted">Открываю закупку…</p></div></div>`, "zk", ()=>{});
   bzBoot(ids); }
-async function bzBoot(ids){ BZ={ids, touched:{}, expT:false, rows:[], s:null, ship:null}; const box=()=>$("#bz-zki");
+async function bzBoot(ids){ BZ={ids, touched:{}, expT:false, rows:[], s:null, ship:null}; const box=()=>$("#bz-zki"); await morphWait();
   if(!pfLoaded){ if(box()) box().innerHTML=`<p class="muted">Загружаю данные о прибыли…</p>`; await loadProfit(true); }
   if(SK_READY && skCan() && skSrv!==false && (!SK || !SK.at || Date.now()-new Date(SK.at).getTime()>120000)){ if(box()) box().innerHTML=`<p class="muted">Сверяю склад…</p>`; await skLoad(true); }
   const w=$("#bz-zk"); if(!w || w.dataset.ids!==ids.join(",")) return; bzDraw();
