@@ -3,357 +3,362 @@ package ru.frudom.mail;
 import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.DownloadManager;
-import android.content.ActivityNotFoundException;
-import android.content.ClipData;
-import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.media.MediaScannerConnection;
-import android.net.Uri;
+import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
-import android.provider.MediaStore;
-import android.print.PrintAttributes;
-import android.print.PrintDocumentAdapter;
-import android.print.PrintManager;
-import android.util.Base64;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.Gravity;
 import android.view.View;
-import android.webkit.CookieManager;
-import android.webkit.JavascriptInterface;
-import android.webkit.MimeTypeMap;
-import android.webkit.ValueCallback;
-import android.webkit.WebChromeClient;
-import android.webkit.WebResourceError;
-import android.webkit.WebResourceRequest;
-import android.webkit.WebSettings;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
+import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
+import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.PopupMenu;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.core.content.FileProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
-/** «Почта ФД»: окно с вкладкой «Почта» сайта dskoby-maker.github.io/frudom-docs (?app=mail — без остальных разделов).
- *  Сайт обновляется сам — приложение переустанавливать не нужно. Уведомления о новых письмах — MailNotifier. */
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+/** «Почта ФД» — настоящий экран Android со списком писем (средний вариант, 13.11.2026).
+ *  Папки как на сайте (Входящие, Заявки, Непрочитанные, …, свои папки), ящики, поиск, «потянуть вниз» — проверить почту.
+ *  Нажатие — письмо (LetterActivity), долгое нажатие — прочитано / обработано / неважные / спам.
+ *  Новое письмо, ответ и редкие функции — сайтом (WebActivity). */
 public class MainActivity extends Activity {
-    static final String HOST = "dskoby-maker.github.io";
-    static final String PATH = "/frudom-docs";
-    static final String START = "https://" + HOST + PATH + "/?source=apk&app=mail";
-    static final String AUTH = "ru.frudom.mail.files";
-    static final String FOLDER = "Почта ФД";
-    static final int REQ_FILE = 1, REQ_PERM = 2, REQ_NTF = 3;
+    static final ExecutorService IO = Executors.newSingleThreadExecutor();
+    final Handler ui = new Handler(Looper.getMainLooper());
+    String folder = "in", box = "", query = "";
+    boolean syncing;
 
-    WebView web, printWeb;
-    ValueCallback<Uri[]> fileCb;
-    Uri cameraUri;
-    String bridgeJs = "";
-    Object[] pendingSave;
-    boolean offline;
+    LinearLayout root, chips, searchRow, banner;
+    TextView title, sub, upd;
+    EditText search;
+    SwipeRefreshLayout swipe;
+    RecyclerView listView;
+    Adapter adapter;
+    TextView fab;
 
-    @Override protected void onCreate(Bundle state) {
-        super.onCreate(state);
-        bridgeJs = readAsset("bridge.js");
-        web = new WebView(this);
-        web.setBackgroundColor(0xFFF4F2EE);
-        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
-        setContentView(web);
-
-        WebSettings s = web.getSettings();
-        s.setJavaScriptEnabled(true);
-        s.setDomStorageEnabled(true);
-        s.setDatabaseEnabled(true);
-        s.setAllowFileAccess(false);
-        s.setAllowContentAccess(true);
-        s.setLoadWithOverviewMode(true);
-        s.setUseWideViewPort(true);
-        s.setSupportZoom(true);
-        s.setBuiltInZoomControls(true);
-        s.setDisplayZoomControls(false);
-        s.setMediaPlaybackRequiresUserGesture(true);
-        s.setUserAgentString(s.getUserAgentString() + " FrudomMailApp/1");
-        CookieManager.getInstance().setAcceptCookie(true);
-        CookieManager.getInstance().setAcceptThirdPartyCookies(web, true);
-
-        web.addJavascriptInterface(new Bridge(), "FrudomApp");
-        web.setWebViewClient(new WebViewClient() {
-            @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) { return route(r.getUrl()); }
-            @SuppressWarnings("deprecation")
-            @Override public boolean shouldOverrideUrlLoading(WebView v, String url) { return route(Uri.parse(url)); }
-            @Override public void onPageFinished(WebView v, String url) { inject(); }
-            @Override public void onReceivedError(WebView v, WebResourceRequest r, WebResourceError e) {
-                if (r.isForMainFrame()) showOffline();
-            }
-        });
-        web.setWebChromeClient(new WebChromeClient() {
-            @Override public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> cb, FileChooserParams p) { return chooseFile(cb, p); }
-        });
-        web.setDownloadListener((url, ua, cd, mime, len) -> {
-            if (url.startsWith("http")) download(url, android.webkit.URLUtil.guessFileName(url, cd, mime));
-        });
-        web.loadUrl(START);
-        takeIntent(getIntent());
+    @Override protected void onCreate(Bundle b) {
+        super.onCreate(b);
+        if (b != null) { folder = b.getString("f", "in"); box = b.getString("b", ""); }
+        String f = getIntent().getStringExtra("folder"); if (f != null && !f.isEmpty()) folder = f;
+        if (Build.VERSION.SDK_INT >= 23) getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | (Build.VERSION.SDK_INT >= 26 ? View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR : 0));
+        build();
+        if (getIntent().getBooleanExtra("demo", false)) MailApi.demo(this); else
+        MailApi.loadCache(this);
+        render();
         MailNotifier.schedule(this, false);
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED
+            && MailNotifier.hasAccount(this) && !MailNotifier.prefs(this).getBoolean("askedPerm", false)) {
+            MailNotifier.prefs(this).edit().putBoolean("askedPerm", true).apply();
+            requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 3);
+        }
     }
 
-    /* ---------- нажатие на уведомление (открыть письмо / ответить) и ярлыки на значке («Написать», «Заявки») ---------- */
-    String wantMail, wantHow; int tries;
-    @Override protected void onNewIntent(Intent i) { super.onNewIntent(i); setIntent(i); takeIntent(i); if (!offline) runWanted(); }
-    void takeIntent(Intent i) {
-        if (i == null) return;
-        String m = i.getStringExtra("mail"), h = i.getStringExtra("how");
-        if ((m != null && !m.isEmpty()) || (h != null && !h.isEmpty())) { wantMail = m == null ? "" : m; wantHow = h == null ? "" : h; tries = 0; }
-        if (m != null && !m.isEmpty()) MailNotifier.dismiss(this, m);
-        i.removeExtra("mail"); i.removeExtra("how");
+    @Override protected void onSaveInstanceState(Bundle o) { super.onSaveInstanceState(o); o.putString("f", folder); o.putString("b", box); }
+
+    @Override protected void onNewIntent(Intent i) {
+        super.onNewIntent(i); setIntent(i);
+        String f = i.getStringExtra("folder"); if (f != null && !f.isEmpty()) { folder = f; render(); }
     }
-    static String js(String v) { return v == null ? "" : v.replace("\\", "\\\\").replace("'", "\\'").replace("\n", " ").replace("<", "\\x3c"); }
-    /* сайт загружается не сразу: пробуем раз в 0,7 с, пока не будет готов (до ~45 с); не вошли — ждём входа */
-    void runWanted() {
-        if (wantMail == null) return;
-        if (++tries > 65) { wantMail = null; return; }
-        final String m = wantMail, h = wantHow;
-        web.evaluateJavascript("(function(){return (window.__fd&&__fd.mailOpen)?__fd.mailOpen('" + js(m) + "','" + js(h) + "'):'wait'})()", r -> {
-            String v = r == null ? "" : r.replace("\"", "");
-            if (!m.equals(wantMail)) return;
-            if (v.equals("wait")) { web.postDelayed(this::runWanted, 700); return; }
-            if (v.equals("login")) { tries = 0; return; }            // откроем, когда войдут (setAccount)
-            wantMail = null;
-            if (v.equals("nf")) toast("Письмо не нашлось — возможно, его уже переложили или удалили");
+
+    @Override protected void onResume() {
+        super.onResume();
+        if (MailApi.demo) { render(); String o = getIntent().getStringExtra("open"), q = getIntent().getStringExtra("acts"); getIntent().removeExtra("open"); getIntent().removeExtra("acts");
+            if (o != null) ui.postDelayed(() -> openLetter(MailApi.find(o)), 600); if (q != null) ui.postDelayed(() -> actions(MailApi.find(q)), 600); return; }
+        if (!MailNotifier.hasAccount(this)) {   // не вошли — вход сайтом, потом сюда
+            MailApi.forget(this); render();
+            startActivity(new Intent(this, WebActivity.class).putExtra("login", true));
+            return;
+        }
+        render();
+        if (MailApi.dirty || MailApi.at == 0 || System.currentTimeMillis() - MailApi.at > 120_000) refresh(MailApi.at == 0 || System.currentTimeMillis() - MailApi.at > 600_000);
+        Updater.check(this, this::showUpdate);
+    }
+
+    /* ---------- разметка ---------- */
+    void build() {
+        FrameLayout frame = new FrameLayout(this); frame.setBackgroundColor(Ui.BG);
+        root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL);
+        frame.addView(root, new FrameLayout.LayoutParams(-1, -1));
+
+        /* шапка: название папки, число непрочитанных, ящики · время; поиск и «⋮» */
+        LinearLayout bar = new LinearLayout(this); bar.setGravity(Gravity.CENTER_VERTICAL); bar.setPadding(Ui.dp(this, 16), Ui.dp(this, 6), Ui.dp(this, 4), 0);
+        LinearLayout tt = new LinearLayout(this); tt.setOrientation(LinearLayout.VERTICAL);
+        title = Ui.line(this, "Входящие", 22, Ui.INK, true, 1);
+        sub = Ui.line(this, "", 13, Ui.MUTED, false, 1);
+        tt.addView(title); tt.addView(sub);
+        tt.setOnClickListener(v -> pickBox()); tt.setBackground(Ui.press(this, null));
+        bar.addView(tt, new LinearLayout.LayoutParams(0, -2, 1));
+        bar.addView(Ui.icon(this, R.drawable.ic_search, "Поиск", v -> openSearch(true)));
+        bar.addView(Ui.icon(this, R.drawable.ic_more, "Ещё", this::menu));
+        root.addView(bar);
+
+        searchRow = new LinearLayout(this); searchRow.setGravity(Gravity.CENTER_VERTICAL); searchRow.setVisibility(View.GONE);
+        searchRow.setPadding(Ui.dp(this, 12), Ui.dp(this, 4), Ui.dp(this, 4), Ui.dp(this, 4));
+        search = new EditText(this); search.setHint("Искать в письмах: тема, отправитель, текст…"); search.setSingleLine(); search.setTextSize(16);
+        search.setBackground(Ui.round(Ui.CARD, Ui.dp(this, 14))); search.setPadding(Ui.dp(this, 14), Ui.dp(this, 10), Ui.dp(this, 14), Ui.dp(this, 10));
+        search.addTextChangedListener(new TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int a, int b, int c) {} public void onTextChanged(CharSequence s, int a, int b, int c) {}
+            public void afterTextChanged(Editable e) { query = e.toString(); render(); }
+        });
+        searchRow.addView(search, new LinearLayout.LayoutParams(0, -2, 1));
+        searchRow.addView(Ui.icon(this, R.drawable.ic_close, "Закрыть поиск", v -> openSearch(false)));
+        root.addView(searchRow);
+
+        HorizontalScrollView hs = new HorizontalScrollView(this); hs.setHorizontalScrollBarEnabled(false);
+        chips = new LinearLayout(this); chips.setPadding(Ui.dp(this, 12), Ui.dp(this, 6), Ui.dp(this, 12), Ui.dp(this, 8));
+        hs.addView(chips); root.addView(hs);
+
+        upd = Ui.text(this, "", 14, Color.WHITE, true); upd.setVisibility(View.GONE); upd.setGravity(Gravity.CENTER_VERTICAL);
+        upd.setBackground(Ui.press(this, Ui.round(Ui.BRAND, Ui.dp(this, 14)))); upd.setPadding(Ui.dp(this, 16), Ui.dp(this, 12), Ui.dp(this, 16), Ui.dp(this, 12));
+        LinearLayout.LayoutParams ulp = new LinearLayout.LayoutParams(-1, -2); ulp.setMargins(Ui.dp(this, 12), 0, Ui.dp(this, 12), Ui.dp(this, 8)); root.addView(upd, ulp);
+
+        banner = new LinearLayout(this); banner.setVisibility(View.GONE); banner.setPadding(Ui.dp(this, 14), Ui.dp(this, 10), Ui.dp(this, 14), Ui.dp(this, 10));
+        banner.setBackground(Ui.round(0xFFFBEAE7, Ui.dp(this, 14)));
+        LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(-1, -2); blp.setMargins(Ui.dp(this, 12), 0, Ui.dp(this, 12), Ui.dp(this, 8)); root.addView(banner, blp);
+
+        swipe = new SwipeRefreshLayout(this); swipe.setColorSchemeColors(Ui.BRAND); swipe.setOnRefreshListener(() -> refresh(true));
+        listView = new RecyclerView(this); listView.setLayoutManager(new LinearLayoutManager(this)); listView.setClipToPadding(false);
+        listView.setPadding(0, 0, 0, Ui.dp(this, 96));
+        adapter = new Adapter(); listView.setAdapter(adapter);
+        swipe.addView(listView, new ViewGroup.LayoutParams(-1, -1));
+        root.addView(swipe, new LinearLayout.LayoutParams(-1, 0, 1));
+
+        /* «Написать» — внизу справа, как в почтовых приложениях */
+        fab = Ui.text(this, "  Написать", 16, Color.WHITE, true); fab.setGravity(Gravity.CENTER);
+        fab.setCompoundDrawablesRelativeWithIntrinsicBounds(tint(R.drawable.ic_pen, Color.WHITE), null, null, null);
+        fab.setBackground(Ui.press(this, Ui.round(0xFF6A2C4E, Ui.dp(this, 18)))); fab.setElevation(Ui.dp(this, 6));
+        fab.setPadding(Ui.dp(this, 20), 0, Ui.dp(this, 22), 0); fab.setMinHeight(Ui.dp(this, 56)); fab.setClickable(true);
+        fab.setOnClickListener(v -> web("", "new"));
+        FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(-2, Ui.dp(this, 56), Gravity.BOTTOM | Gravity.END); flp.setMargins(0, 0, Ui.dp(this, 18), Ui.dp(this, 22));
+        frame.addView(fab, flp);
+        listView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override public void onScrolled(RecyclerView rv, int dx, int dy) { if (dy > 6) fab.setText(""); else if (dy < -6) fab.setText("  Написать"); }
+        });
+
+        setContentView(frame);
+    }
+
+    android.graphics.drawable.Drawable tint(int res, int color) { android.graphics.drawable.Drawable d = getDrawable(res).mutate(); d.setTint(color); return d; }
+
+    void openSearch(boolean on) {
+        searchRow.setVisibility(on ? View.VISIBLE : View.GONE);
+        InputMethodManager im = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        if (on) { search.requestFocus(); if (im != null) im.showSoftInput(search, 0); }
+        else { search.setText(""); query = ""; if (im != null) im.hideSoftInputFromWindow(search.getWindowToken(), 0); render(); }
+    }
+
+    /* ---------- данные ---------- */
+    void refresh(boolean sync) {
+        if (syncing) return; syncing = true; swipe.setRefreshing(true); render();
+        IO.execute(() -> {
+            String e = null;
+            try { if (MailApi.rows.length() == 0 || !sync) MailApi.load(this, false); ui.post(this::render); if (sync) MailApi.load(this, true); }
+            catch (Exception x) { e = x.getMessage(); }
+            final String err = e;
+            ui.post(() -> {
+                syncing = false; swipe.setRefreshing(false);
+                if (err != null && err.contains("Пароль")) { MailNotifier.setAccount(this, "{\"url\":\"\",\"user\":\"\",\"key\":\"\"}"); onResume(); return; }
+                showBanner(err != null ? (MailApi.rows.length() > 0 ? "Нет связи с таблицей — показаны письма, загруженные раньше. " : "Не получилось загрузить письма: ") + err : MailApi.err);
+                render(); readSync();
+            });
         });
     }
 
-    /* свои страницы — внутри приложения, всё остальное (телефон, почта, карты, другие сайты) — в своих приложениях */
-    boolean route(Uri u) {
-        String sc = u.getScheme() == null ? "" : u.getScheme();
-        if ((sc.equals("https") || sc.equals("http")) && HOST.equalsIgnoreCase(u.getHost()) && u.getPath() != null && u.getPath().startsWith(PATH)) return false;
-        if (sc.equals("blob") || sc.equals("data") || sc.equals("about") || sc.equals("javascript")) return false;
-        try { startActivity(new Intent(Intent.ACTION_VIEW, u)); } catch (Exception e) { toast("Нет приложения, чтобы открыть эту ссылку"); }
-        return true;
+    /** уведомления о письмах, которые уже прочитаны, убрать */
+    void readSync() {
+        if (MailApi.ro(this) || MailApi.rows.length() == 0) return;
+        JSONArray u = new JSONArray(); for (int i = 0; i < MailApi.rows.length(); i++) { JSONObject r = MailApi.rows.optJSONObject(i); if (r != null && MailApi.unread(this, r)) u.put(r.optString("id")); }
+        try { MailNotifier.syncRead(this, new JSONObject().put("loaded", true).put("unread", u).toString()); } catch (Exception ignored) {}
     }
 
-    void inject() { if (!offline && bridgeJs.length() > 0) web.evaluateJavascript(bridgeJs, null); if (!offline) { tries = 0; runWanted(); } }
+    void showBanner(String t) {
+        banner.removeAllViews();
+        if (t == null || t.isEmpty()) { banner.setVisibility(View.GONE); return; }
+        banner.addView(Ui.text(this, t, 14, Ui.BAD, false)); banner.setVisibility(View.VISIBLE);
+    }
 
-    void showOffline() {
-        offline = true;
-        String html = "<!doctype html><html lang=ru><head><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>"
-            + "<style>body{margin:0;font:16px system-ui,sans-serif;background:#F4F2EE;color:#1f1d1a;display:flex;min-height:100vh;align-items:center;justify-content:center;text-align:center;padding:24px;box-sizing:border-box}"
-            + "b{display:block;font-size:20px;margin-bottom:8px}button{margin-top:20px;border:0;border-radius:12px;background:#6A2C4E;color:#fff;font:600 16px system-ui;padding:14px 28px}</style></head>"
-            + "<body><div><b>Нет связи с интернетом</b>Проверьте интернет и нажмите «Повторить».<br><button onclick='FrudomApp.reload()'>Повторить</button></div></body></html>";
-        web.loadDataWithBaseURL(null, html, "text/html", "utf-8", null);
+    void showUpdate(Updater.Info inf) {
+        if (inf == null) { upd.setVisibility(View.GONE); return; }
+        upd.setText("Есть новая версия «Почты ФД» (" + inf.name + ") — нажмите, чтобы обновить");
+        upd.setVisibility(View.VISIBLE); upd.setOnClickListener(v -> Updater.install(this, inf));
+    }
+
+    /* ---------- отрисовка ---------- */
+    void render() {
+        boolean ro = MailApi.ro(this);
+        String bx = box.isEmpty() ? (MailApi.acc.length() > 1 ? "все ящики" : MailApi.acc.length() == 1 ? MailApi.acc.optJSONObject(0).optString("email") : "") : (MailApi.accOf(box) == null ? "" : MailApi.accOf(box).optString("email"));
+        int un = MailApi.count(this, folder.equals("unread") ? "unread" : folder.startsWith("u:") ? folder : "in");
+        title.setText(MailApi.folderName(folder) + ((folder.equals("in") || folder.equals("unread")) && un > 0 ? "  " + un : ""));
+        String when = syncing ? "проверяю ящики…" : MailApi.at > 0 ? "обновлено в " + new java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(new Date(MailApi.at)) : "";
+        sub.setText(bx + (bx.isEmpty() || when.isEmpty() ? "" : " · ") + when + (ro ? " · только чтение" : ""));
+        fab.setVisibility(ro ? View.GONE : View.VISIBLE);
+
+        chips.removeAllViews();
+        List<String[]> F = new ArrayList<>();
+        for (String[] x : MailApi.FOLDERS) F.add(x);
+        for (int i = 0; i < MailApi.folders.length(); i++) { JSONObject x = MailApi.folders.optJSONObject(i); if (x != null) F.add(new String[]{"u:" + x.optString("id"), x.optString("name")}); }
+        for (String[] x : F) {
+            int n = x[0].equals("in") || x[0].equals("unread") || x[0].startsWith("u:") ? MailApi.count(this, x[0]) : 0;
+            boolean on = x[0].equals(folder);
+            TextView ch = Ui.text(this, x[1] + (n > 0 ? "  " + n : ""), 14, on ? Color.WHITE : Ui.INK, on);
+            ch.setBackground(Ui.press(this, Ui.round(on ? Ui.BRAND : Ui.CARD, Ui.dp(this, 99))));
+            ch.setPadding(Ui.dp(this, 14), Ui.dp(this, 8), Ui.dp(this, 14), Ui.dp(this, 8)); ch.setClickable(true);
+            ch.setOnClickListener(v -> { folder = x[0]; render(); listView.scrollToPosition(0); });
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2); lp.rightMargin = Ui.dp(this, 8); chips.addView(ch, lp);
+        }
+
+        List<JSONObject> L = MailApi.list(this, folder, box, query);
+        List<Object> items = new ArrayList<>(); String lastDay = null;
+        for (JSONObject r : L) { String d = MailApi.day(MailApi.date(r.optString("date"))); if (!d.equals(lastDay)) { items.add(d); lastDay = d; } items.add(r); }
+        if (items.isEmpty()) items.add(MailApi.at == 0 && MailApi.rows.length() == 0 ? (syncing ? "@Загружаю письма…" : "@Писем пока нет") : query.isEmpty() ? "@В папке «" + MailApi.folderName(folder) + "» писем нет" : "@Ничего не нашлось");
+        adapter.set(items);
+    }
+
+    /* ---------- список ---------- */
+    class Adapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+        List<Object> items = new ArrayList<>();
+        void set(List<Object> L) { items = L; notifyDataSetChanged(); }
+        @Override public int getItemCount() { return items.size(); }
+        @Override public int getItemViewType(int i) { Object o = items.get(i); return o instanceof JSONObject ? 1 : String.valueOf(o).startsWith("@") ? 2 : 0; }
+        @Override public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup p, int t) {
+            View v;
+            if (t == 1) v = new Row(MainActivity.this);
+            else { TextView h = Ui.text(MainActivity.this, "", t == 2 ? 15 : 13, Ui.MUTED, t == 0);
+                h.setPadding(Ui.dp(MainActivity.this, 20), Ui.dp(MainActivity.this, t == 2 ? 48 : 14), Ui.dp(MainActivity.this, 20), Ui.dp(MainActivity.this, 6));
+                if (t == 2) h.setGravity(Gravity.CENTER); v = h; }
+            v.setLayoutParams(new RecyclerView.LayoutParams(-1, -2));
+            return new RecyclerView.ViewHolder(v) {};
+        }
+        @Override public void onBindViewHolder(RecyclerView.ViewHolder h, int i) {
+            Object o = items.get(i);
+            if (h.itemView instanceof Row) ((Row) h.itemView).bind((JSONObject) o);
+            else ((TextView) h.itemView).setText(String.valueOf(o).replaceFirst("^@", ""));
+        }
+    }
+
+    /** строка письма: кружок, отправитель, время, тема, начало письма, метки */
+    class Row extends LinearLayout {
+        TextView av, who, time, subj, snip; LinearLayout tags; View dotNew; JSONObject r;
+        Row(Context c) {
+            super(c); setOrientation(HORIZONTAL); setPadding(Ui.dp(c, 16), Ui.dp(c, 10), Ui.dp(c, 16), Ui.dp(c, 10));
+            setBackground(Ui.press(c, null)); setClickable(true);
+            av = Ui.avatar(c, "", "", 42); LayoutParams alp = (LayoutParams) av.getLayoutParams(); alp.rightMargin = Ui.dp(c, 12); alp.topMargin = Ui.dp(c, 2); addView(av, alp);
+            LinearLayout col = new LinearLayout(c); col.setOrientation(VERTICAL);
+            LinearLayout l1 = new LinearLayout(c); l1.setGravity(Gravity.CENTER_VERTICAL);
+            who = Ui.line(c, "", 16, Ui.INK, false, 1); l1.addView(who, new LayoutParams(0, -2, 1));
+            dotNew = Ui.dot(c, Ui.BLUE, 8); ((LayoutParams) dotNew.getLayoutParams()).rightMargin = Ui.dp(c, 6); l1.addView(dotNew);
+            time = Ui.line(c, "", 13, Ui.MUTED, false, 1); l1.addView(time);
+            subj = Ui.line(c, "", 15, Ui.INK, false, 1);
+            snip = Ui.line(c, "", 14, Ui.MUTED, false, 2);
+            tags = new LinearLayout(c); tags.setGravity(Gravity.CENTER_VERTICAL);
+            col.addView(l1); col.addView(subj); col.addView(snip); col.addView(tags);
+            addView(col, new LayoutParams(0, -2, 1));
+            setOnClickListener(v -> openLetter(r));
+            setOnLongClickListener(v -> { actions(r); return true; });
+        }
+        void bind(JSONObject x) {
+            r = x; Context c = getContext(); boolean un = MailApi.unread(c, x), sent = MailApi.sent(x);
+            String name = sent ? "Кому: " + x.optString("to").replaceAll("<[^>]*>", "").trim() : x.optString("fromName").isEmpty() ? x.optString("from") : x.optString("fromName");
+            TextView a2 = Ui.avatar(c, sent ? x.optString("to") : x.optString("fromName"), sent ? x.optString("to") : x.optString("from"), 42);
+            av.setText(a2.getText()); av.setTextColor(a2.getCurrentTextColor()); av.setBackground(a2.getBackground());
+            who.setText(name); who.setTypeface(Typeface.create(un ? "sans-serif-medium" : "sans-serif", Typeface.NORMAL)); who.setTextColor(un ? Ui.INK : 0xFF3A3632);
+            subj.setText(x.optString("subject").isEmpty() ? "(без темы)" : x.optString("subject")); subj.setTypeface(Typeface.create(un ? "sans-serif-medium" : "sans-serif", Typeface.NORMAL));
+            snip.setText(x.optString("snippet")); snip.setVisibility(x.optString("snippet").isEmpty() ? GONE : VISIBLE);
+            time.setText(MailApi.shortTime(MailApi.date(x.optString("date")))); time.setTextColor(un ? Ui.BLUE : Ui.MUTED);
+            dotNew.setVisibility(un ? VISIBLE : GONE);
+            tags.removeAllViews();
+            if (MailApi.acc.length() > 1) { View d = Ui.dot(c, Ui.boxColor(x.optString("acc")), 7); ((LayoutParams) d.getLayoutParams()).rightMargin = Ui.dp(c, 6); tags.addView(d); }
+            if (MailApi.isOrd(x)) addTag(Ui.chip(c, "Заявка", Ui.ORD, Ui.ORD_BG));
+            if (MailApi.done(x)) addTag(Ui.chip(c, "✓ Обработано", Ui.OK, Ui.OK_BG));
+            else if (MailApi.todo(x)) addTag(Ui.chip(c, "Не обработано", Ui.TODO, Ui.TODO_BG));
+            if (folder.equals("all")) { String w = MailApi.spam(x) ? "Спам" : MailApi.minor(x) ? "Неважные" : sent ? "Отправленные" : !MailApi.fld(x).isEmpty() ? MailApi.folderName("u:" + MailApi.fld(x)) : ""; if (!w.isEmpty()) addTag(Ui.chip(c, w, Ui.MUTED, 0xFFECE8E2)); }
+            if (MailApi.atts(x).length() > 0) { ImageView cl = new ImageView(c); cl.setImageDrawable(tint(R.drawable.ic_clip, Ui.MUTED)); LayoutParams lp = new LayoutParams(Ui.dp(c, 16), Ui.dp(c, 16)); lp.rightMargin = Ui.dp(c, 4); tags.addView(cl, lp);
+                tags.addView(Ui.line(c, x.optString("attsText"), 12, Ui.MUTED, false, 1), new LayoutParams(0, -2, 1)); }
+            tags.setVisibility(tags.getChildCount() > 0 ? VISIBLE : GONE);
+            ((LayoutParams) tags.getLayoutParams()).topMargin = Ui.dp(c, 4);
+            setAlpha(MailApi.spam(x) || MailApi.minor(x) ? 0.72f : 1f);
+        }
+        void addTag(View v) { LayoutParams lp = new LayoutParams(-2, -2); lp.rightMargin = Ui.dp(getContext(), 6); tags.addView(v, lp); }
+    }
+
+    void openLetter(JSONObject r) { if (r != null) startActivity(new Intent(this, LetterActivity.class).putExtra("id", r.optString("id"))); }
+
+    /* долгое нажатие на письмо */
+    void actions(JSONObject r) {
+        if (r == null) return;
+        List<String> L = new ArrayList<>(); List<Runnable> A = new ArrayList<>();
+        L.add("Открыть"); A.add(() -> openLetter(r));
+        if (!MailApi.ro(this) && !MailApi.sent(r)) {
+            boolean un = MailApi.unread(this, r);
+            L.add(un ? "Отметить прочитанным" : "Отметить непрочитанным"); A.add(() -> Act.read(this, r, un, this::render));
+            L.add(MailApi.done(r) ? "Снять «Обработано»" : "Обработано"); A.add(() -> Act.done(this, r, !MailApi.done(r), this::render));
+            L.add(MailApi.minor(r) ? "Вернуть во «Входящие»" : "В «Неважные»"); A.add(() -> Act.minor(this, r, !MailApi.minor(r), this::render));
+            L.add(MailApi.spam(r) ? "Не спам" : "Это спам"); A.add(() -> Act.spam(this, r, !MailApi.spam(r), this::render));
+            L.add("Ответить"); A.add(() -> web(r.optString("id"), "reply"));
+        }
+        L.add("Открыть на сайте"); A.add(() -> web(r.optString("id"), ""));
+        String head = (r.optString("fromName").isEmpty() ? r.optString("from") : r.optString("fromName")) + " — " + r.optString("subject");
+        new AlertDialog.Builder(this).setTitle(head).setItems(L.toArray(new String[0]), (d, w) -> A.get(w).run()).show();
+    }
+
+    void web(String id, String how) { startActivity(new Intent(this, WebActivity.class).putExtra("mail", id).putExtra("how", how)); }
+
+    void pickBox() {
+        if (MailApi.acc.length() < 2) return;
+        List<String> L = new ArrayList<>(); List<String> ids = new ArrayList<>();
+        L.add("Все ящики"); ids.add("");
+        for (int i = 0; i < MailApi.acc.length(); i++) { JSONObject a = MailApi.acc.optJSONObject(i); L.add(a.optString("email") + (a.optString("err").isEmpty() ? "" : "  ⚠")); ids.add(a.optString("id")); }
+        new AlertDialog.Builder(this).setTitle("Какой ящик показать").setItems(L.toArray(new String[0]), (d, w) -> { box = ids.get(w); render(); }).show();
+    }
+
+    void menu(View anchor) {
+        PopupMenu m = new PopupMenu(this, anchor);
+        m.getMenu().add(0, 1, 0, "Проверить почту");
+        if (MailApi.acc.length() > 1) m.getMenu().add(0, 2, 0, "Ящик: " + (box.isEmpty() ? "все" : MailApi.accOf(box) == null ? "" : MailApi.accOf(box).optString("email")));
+        m.getMenu().add(0, 3, 0, "Открыть почту сайтом (всё остальное)");
+        m.getMenu().add(0, 4, 0, "Уведомления о письмах");
+        m.getMenu().add(0, 5, 0, "Выйти из «" + MailApi.user(this) + "»");
+        m.setOnMenuItemClickListener(it -> {
+            switch (it.getItemId()) {
+                case 1: refresh(true); break;
+                case 2: pickBox(); break;
+                case 3: web("", "in"); break;
+                case 4: startActivity(new Intent(this, MailSettingsActivity.class)); break;
+                case 5: new AlertDialog.Builder(this).setMessage("Выйти из «Почты ФД»? Уведомления о письмах перестанут приходить, пока не войдёте снова.")
+                    .setPositiveButton("Выйти", (d, w) -> { MailApi.forget(this); startActivity(new Intent(this, WebActivity.class).putExtra("login", true).putExtra("how", "logout")); })
+                    .setNegativeButton("Отмена", null).show(); break;
+            }
+            return true;
+        });
+        m.show();
     }
 
     @Override public void onBackPressed() {
-        if (offline) { super.onBackPressed(); return; }
-        web.evaluateJavascript("(window.__fdBack&&window.__fdBack())?'1':'0'", r -> {
-            if (r != null && r.contains("1")) return;
-            if (web.canGoBack()) web.goBack(); else moveTaskToBack(true);
-        });
-    }
-
-    @Override protected void onPause() { super.onPause(); web.onPause(); CookieManager.getInstance().flush(); }
-    @Override protected void onResume() { super.onResume(); web.onResume(); MailNotifier.schedule(this, false); }
-
-    /* ---------- выбор файла: заявка, фото к задаче (камера или галерея) ---------- */
-    boolean chooseFile(ValueCallback<Uri[]> cb, WebChromeClient.FileChooserParams p) {
-        if (fileCb != null) fileCb.onReceiveValue(null);
-        fileCb = cb; cameraUri = null;
-        boolean img = false, onlyImg = true, any = false;
-        for (String a : p.getAcceptTypes()) {
-            for (String t : a.split(",")) {
-                t = t.trim().toLowerCase(); if (t.isEmpty()) continue; any = true;
-                if (t.startsWith("image/") || t.matches("\\.(jpe?g|png|webp|heic)")) img = true; else onlyImg = false;
-            }
-        }
-        if (!any) { onlyImg = false; img = true; }
-        Intent pick = new Intent(Intent.ACTION_GET_CONTENT);
-        pick.addCategory(Intent.CATEGORY_OPENABLE);
-        pick.setType(onlyImg ? "image/*" : "*/*");
-        pick.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, p.getMode() == WebChromeClient.FileChooserParams.MODE_OPEN_MULTIPLE);
-        Intent chooser = Intent.createChooser(pick, onlyImg ? "Фото" : "Выберите файл");
-        if (img) {
-            try {
-                File dir = new File(getCacheDir(), "cam"); dir.mkdirs();
-                File f = new File(dir, "foto-" + System.currentTimeMillis() + ".jpg");
-                cameraUri = FileProvider.getUriForFile(this, AUTH, f);
-                Intent cam = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                cam.putExtra(MediaStore.EXTRA_OUTPUT, cameraUri);
-                cam.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                cam.setClipData(ClipData.newRawUri("", cameraUri));
-                chooser.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{cam});
-            } catch (Exception e) { cameraUri = null; }
-        }
-        try { startActivityForResult(chooser, REQ_FILE); return true; }
-        catch (ActivityNotFoundException e) { fileCb = null; toast("Нет приложения для выбора файла"); return false; }
-    }
-
-    @Override protected void onActivityResult(int req, int res, Intent data) {
-        if (req != REQ_FILE) { super.onActivityResult(req, res, data); return; }
-        Uri[] out = null;
-        if (res == RESULT_OK) {
-            if (data != null && data.getClipData() != null && data.getData() == null) {
-                ClipData c = data.getClipData(); out = new Uri[c.getItemCount()];
-                for (int i = 0; i < c.getItemCount(); i++) out[i] = c.getItemAt(i).getUri();
-                if (out.length == 1 && cameraUri != null && cameraUri.equals(out[0]) && !cameraOk()) out = null;
-            } else if (data != null && data.getData() != null) out = new Uri[]{data.getData()};
-            else if (cameraUri != null && cameraOk()) out = new Uri[]{cameraUri};
-        }
-        if (fileCb != null) fileCb.onReceiveValue(out);
-        fileCb = null; cameraUri = null;
-    }
-
-    boolean cameraOk() {
-        try (InputStream in = getContentResolver().openInputStream(cameraUri)) { return in != null && in.read() != -1; } catch (Exception e) { return false; }
-    }
-
-    /* ---------- скачивание: PDF, Excel, XML для ЕИС — в «Загрузки/Документы ФД» ---------- */
-    void saveFile(byte[] bytes, String name, String mime) {
-        name = name.replaceAll("[\\\\/:*?\"<>|\\n\\r]+", " ").trim();
-        if (name.isEmpty()) name = "файл";
-        String ext = MimeTypeMap.getFileExtensionFromUrl(Uri.encode(name)).toLowerCase();
-        if (ext.isEmpty() && name.contains(".")) ext = name.substring(name.lastIndexOf('.') + 1).toLowerCase();
-        if (mime == null || mime.isEmpty() || mime.equals("application/octet-stream")) {
-            String m = MimeTypeMap.getSingleton().getMimeTypeFromExtension(ext);
-            mime = m != null ? m : (ext.equals("xml") ? "application/xml" : "application/octet-stream");
-        }
-        Uri uri;
-        try {
-            if (Build.VERSION.SDK_INT >= 29) {
-                ContentResolver cr = getContentResolver();
-                ContentValues v = new ContentValues();
-                v.put(MediaStore.Downloads.DISPLAY_NAME, name);
-                v.put(MediaStore.Downloads.MIME_TYPE, mime);
-                v.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/" + FOLDER);
-                v.put(MediaStore.Downloads.IS_PENDING, 1);
-                uri = cr.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
-                if (uri == null) throw new Exception("нет доступа к папке «Загрузки»");
-                try (OutputStream o = cr.openOutputStream(uri)) { o.write(bytes); }
-                v.clear(); v.put(MediaStore.Downloads.IS_PENDING, 0); cr.update(uri, v, null, null);
-            } else {
-                if (checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                    pendingSave = new Object[]{bytes, name, mime};
-                    requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, REQ_PERM);
-                    return;
-                }
-                File dir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), FOLDER); dir.mkdirs();
-                File f = new File(dir, name);
-                String base = name.contains(".") ? name.substring(0, name.lastIndexOf('.')) : name, ex = name.contains(".") ? name.substring(name.lastIndexOf('.')) : "";
-                for (int i = 1; f.exists(); i++) f = new File(dir, base + " (" + i + ")" + ex);
-                try (OutputStream o = new FileOutputStream(f)) { o.write(bytes); }
-                MediaScannerConnection.scanFile(this, new String[]{f.getAbsolutePath()}, new String[]{mime}, null);
-                uri = FileProvider.getUriForFile(this, AUTH, f);
-                name = f.getName();
-            }
-        } catch (Exception e) { toast("Не получилось сохранить файл: " + e.getMessage()); return; }
-        saved(uri, name, mime);
-    }
-
-    @Override public void onRequestPermissionsResult(int req, String[] perms, int[] res) {
-        if (req == REQ_PERM && pendingSave != null) {
-            Object[] p = pendingSave; pendingSave = null;
-            if (res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED) saveFile((byte[]) p[0], (String) p[1], (String) p[2]);
-            else toast("Без разрешения файл не сохранить");
-        }
-    }
-
-    void saved(Uri uri, String name, String mime) {
-        new AlertDialog.Builder(this)
-            .setTitle("Файл сохранён")
-            .setMessage(name + "\n\nПапка «Загрузки» → «" + FOLDER + "»")
-            .setPositiveButton("Открыть", (d, w) -> {
-                Intent i = new Intent(Intent.ACTION_VIEW).setDataAndType(uri, mime).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                try { startActivity(i); } catch (ActivityNotFoundException e) { toast("Нет приложения, чтобы открыть этот файл"); }
-            })
-            .setNeutralButton("Отправить", (d, w) -> {
-                Intent i = new Intent(Intent.ACTION_SEND).setType(mime).putExtra(Intent.EXTRA_STREAM, uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                i.setClipData(ClipData.newRawUri(name, uri));
-                try { startActivity(Intent.createChooser(i, "Отправить файл")); } catch (Exception e) { toast("Нет приложения для отправки"); }
-            })
-            .setNegativeButton("Готово", null)
-            .show();
-    }
-
-    void download(String url, String name) {
-        try {
-            DownloadManager.Request r = new DownloadManager.Request(Uri.parse(url));
-            r.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-            r.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, FOLDER + "/" + name);
-            String c = CookieManager.getInstance().getCookie(url); if (c != null) r.addRequestHeader("Cookie", c);
-            ((DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE)).enqueue(r);
-            toast("Скачиваю: " + name);
-        } catch (Exception e) {
-            try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); } catch (Exception x) { toast("Не получилось скачать файл"); }
-        }
-    }
-
-    /* ---------- печать (A4, без полей — как на компьютере) ---------- */
-    void print(WebView v, String title) {
-        PrintManager pm = (PrintManager) getSystemService(Context.PRINT_SERVICE);
-        PrintDocumentAdapter ad = v.createPrintDocumentAdapter(title);
-        PrintAttributes a = new PrintAttributes.Builder().setMediaSize(PrintAttributes.MediaSize.ISO_A4)
-            .setMinMargins(PrintAttributes.Margins.NO_MARGINS).setColorMode(PrintAttributes.COLOR_MODE_COLOR).build();
-        try { pm.print(title, ad, a); } catch (Exception e) { toast("Печать недоступна на этом телефоне"); }
-    }
-
-    void printHtml(String html, String title) {
-        printWeb = new WebView(this);
-        printWeb.getSettings().setJavaScriptEnabled(false);
-        printWeb.setWebViewClient(new WebViewClient() {
-            boolean done;
-            @Override public void onPageFinished(WebView v, String url) { if (done) return; done = true; v.postDelayed(() -> print(v, title), 300); }
-        });
-        printWeb.loadDataWithBaseURL(START, html, "text/html", "utf-8", null);
-    }
-
-    /* ---------- что сайт может попросить у приложения ---------- */
-    class Bridge {
-        @JavascriptInterface public void saveFile(String b64, String name, String mime) {
-            final byte[] bytes;
-            try { bytes = Base64.decode(b64, Base64.DEFAULT); } catch (Exception e) { toast("Файл повреждён"); return; }
-            runOnUiThread(() -> MainActivity.this.saveFile(bytes, name, mime));
-        }
-        @JavascriptInterface public void download(String url, String name) { runOnUiThread(() -> MainActivity.this.download(url, name)); }
-        @JavascriptInterface public void printPage(String title) { runOnUiThread(() -> print(web, title)); }
-        @JavascriptInterface public void printHtml(String html, String title) { runOnUiThread(() -> MainActivity.this.printHtml(html, title)); }
-        @JavascriptInterface public void toast(String t) { MainActivity.this.toast(t); }
-        @JavascriptInterface public void reload() { runOnUiThread(() -> { offline = false; web.loadUrl(START); }); }
-        /* кто вошёл на сайте — чтобы приложение само проверяло новые письма (уведомления) */
-        @JavascriptInterface public void setAccount(String json) {
-            MailNotifier.setAccount(getApplicationContext(), json);
-            if (json != null && json.contains("\"user\":\"") && !json.contains("\"user\":\"\"")) runOnUiThread(() -> { askNotify(); if (wantMail != null) { tries = 0; runWanted(); } });
-        }
-        /* что сейчас не прочитано — убрать уведомления о прочитанных письмах */
-        @JavascriptInterface public void mailState(String json) { MailNotifier.syncRead(getApplicationContext(), json); }
-        @JavascriptInterface public void openNotify() { runOnUiThread(() -> startActivity(new Intent(MainActivity.this, MailSettingsActivity.class))); }
-        @JavascriptInterface public String version() { try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; } catch (Exception e) { return ""; } }
-        @JavascriptInterface public String app() { return "mail"; }
-    }
-
-    /* Android 13+: один раз спросить разрешение на уведомления (после входа) */
-    void askNotify() {
-        if (Build.VERSION.SDK_INT < 33) return;
-        android.content.SharedPreferences p = MailNotifier.prefs(this);
-        if (p.getBoolean("askedPerm", false) || checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return;
-        p.edit().putBoolean("askedPerm", true).apply();
-        requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_NTF);
-    }
-
-    void toast(String t) { runOnUiThread(() -> Toast.makeText(this, t, Toast.LENGTH_LONG).show()); }
-
-    String readAsset(String n) {
-        try (InputStream in = getAssets().open(n)) {
-            ByteArrayOutputStream b = new ByteArrayOutputStream(); byte[] buf = new byte[8192]; int k;
-            while ((k = in.read(buf)) > 0) b.write(buf, 0, k);
-            return b.toString(StandardCharsets.UTF_8.name());
-        } catch (Exception e) { return ""; }
+        if (searchRow.getVisibility() == View.VISIBLE) { openSearch(false); return; }
+        if (!folder.equals("in")) { folder = "in"; render(); return; }
+        super.onBackPressed();
     }
 }
