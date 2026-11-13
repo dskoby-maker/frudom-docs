@@ -33,6 +33,7 @@ async def main():
         ok(await pg.input_value('#d-num')=='5', 'форма: договор «Перчатки» → № 5')
         await ev("(()=>{ D.draft.contractId='kMilk'; D.draft.basis='Договор № 1-МОЛ от 01.12.2025'; renderDoc(); })()"); await pg.wait_for_timeout(300)
         ok(await pg.input_value('#d-num')=='4', 'форма: сменили на «Молоко» → № 4')
+        ok('Последний по этому договору: № 3' in (await pg.text_content('#d-numinfo')), 'подпись: «Последний по этому договору: № 3»')
         # номер, который есть в другом договоре, не задваивается
         await ev("(()=>{ D.draft.numManual=true; D.draft.number='2'; renderDoc(); })()"); await pg.wait_for_timeout(300)
         ok(not await pg.evaluate("document.querySelector('#d-num').classList.contains('numdup')"), '№ 2 есть только у «Перчаток» — для «Молока» не помечен как повтор')
