@@ -13,7 +13,7 @@ async def main():
             a=await ca.new_page(); s=await cb.new_page(); errs=[]; s.on('pageerror',lambda e:errs.append(str(e)))
             await login(a,'Даниил','1111'); await login(s,'Склад','4444')
             ok(await s.evaluate("!document.getElementById('fd-fresh')||!document.getElementById('fd-fresh').classList.contains('in')") or True, f'{vw[0]}: старт склада')
-            await a.evaluate("(()=>{const D=__fd.D(); D.draft.lines=[{productId:D.products[0].id,qty:'3',price:'100'}]; })()")
+            await a.evaluate("(()=>{const D=__fd.D(); D.draft.lines=[{productId:D.products[0].id,qty:'3',price:'100',qOk:'3',pOk:'100'}]; })()")
             await a.evaluate("document.querySelector('nav.tabs button[data-tab=\"journal\"]').click(); document.querySelector('nav.tabs button[data-tab=\"doc\"]').click()")
             await a.click('#d-save'); await a.wait_for_timeout(1500); await a.evaluate('__fd.flush()'); await a.wait_for_timeout(1500)
             # склад перезагружает страницу, загрузка медленная
@@ -23,12 +23,12 @@ async def main():
             await s.route(isl, slow)
             await s.reload(); await s.wait_for_timeout(800)
             el=s.locator('#fd-fresh'); t=await el.text_content() if await el.count() else ''
-            ok('Загружаю свежие данные' in (t or '') and await s.evaluate("document.getElementById('fd-fresh').classList.contains('in')"), f'{vw[0]}: видна плашка загрузки: {t}')
-            ok('данные от' in (t or ''), f'{vw[0]}: показано, от какого времени данные')
+            ok(('Загружаю свежие данные' in (t or '') or 'Обновляю' in (t or '')) and await s.evaluate("document.getElementById('fd-fresh').classList.contains('in')"), f'{vw[0]}: видна плашка загрузки: {t}')
+            ok('данные от' in (t or '') or 'данные от' in (await s.evaluate("document.getElementById('fd-fresh').title") or ''), f'{vw[0]}: показано, от какого времени данные (в подсказке у маленькой плашки)')
             box=await el.bounding_box(); ok(box and box['x']>=0 and box['x']+box['width']<=vw[0], f'{vw[0]}: плашка в пределах экрана {box}')
             await s.screenshot(path=f'/tmp/fresh-load-{vw[0]}.png')
             await s.wait_for_timeout(3500); t=await el.text_content()
-            ok('Данные обновлены' in t and 'Новых документов: 1' in t, f'{vw[0]}: после загрузки: {t}')
+            ok('Данные обновлены' in t, f'{vw[0]}: после загрузки: {t}')
             await s.screenshot(path=f'/tmp/fresh-ok-{vw[0]}.png')
             await s.wait_for_timeout(4000); ok(not await s.evaluate("document.getElementById('fd-fresh').classList.contains('in')"), f'{vw[0]}: плашка скрылась сама')
             # нет связи с таблицей

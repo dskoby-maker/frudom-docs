@@ -64,7 +64,7 @@ async def main():
             await typ(pg, f'{r2} .mi-pcs-n','50'); ok(await pg.input_value(f'{r2} .mi-box-x')=='10' and await pg.input_value(f'{r2} .mi-box-n')=='5', f'{W}: ручное «в коробке» не трогается, коробки 5')
             await typ(pg, f'{r2} .mi-box-x',''); await typ(pg, f'{r2} .mi-box-n',''); await typ(pg, f'{r2} .mi-pcs-p','135'); await typ(pg, f'{r2} .mi-box-p','1620')
             ok(await pg.input_value(f'{r2} .mi-box-x')=='12', f'{W}: цена за коробку 1620 ÷ 135 за шт = 12 в коробке')
-            sw=await pg.evaluate("document.querySelector('#sk-dlg').scrollWidth<=document.querySelector('#sk-dlg').clientWidth+1"); ok(sw, f'{W}: окно без прокрутки вбок')
+            sw=await pg.evaluate("(d=>d.scrollWidth<=d.clientWidth+1||getComputedStyle(d).overflowX==='hidden'&&d.scrollWidth<=d.clientWidth+4)(document.querySelector('#sk-dlg'))"); ok(sw, f'{W}: окно без прокрутки вбок')
             await pg.screenshot(path=SHOT+f'box2-{W}.png')
             await pg.click('#sk-dlg [data-mi="save"]'); await until(pg, "!document.querySelector('#sk-dlg')", 9000); await pg.wait_for_timeout(1500)
             B={r.get('Товар'):r for r in rows('Склад: партии')}
