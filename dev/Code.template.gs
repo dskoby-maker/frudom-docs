@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 33;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 34;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -741,6 +741,28 @@ function notes_(p, me) {
   return out;
 }
 
+/* состояние сервисов, на которых держится сайт: таблица, Диск, резервная копия, посредник в Яндекс Облаке, банк, почта, ИИ.
+   Пароли и токены не отдаются — только «есть / нет», время последней удачной работы и текст последней ошибки. */
+function status_(p, me) {
+  const pr = PropertiesService.getScriptProperties(), out = { ok: true, ver: CODE_VER, at: new Date().toISOString() };
+  const T = f => { const t0 = Date.now(); try { return Object.assign({ ok: true }, f() || {}, { ms: Date.now() - t0 }); } catch (e) { return { ok: false, err: String(e.message || e).slice(0, 200), ms: Date.now() - t0 }; } };
+  out.sheet = T(() => ({ sheets: SpreadsheetApp.getActive().getSheets().length }));
+  out.drive = T(() => { const u = DriveApp.getStorageUsed(), l = DriveApp.getStorageLimit(); return { used: u, limit: l }; });
+  out.backup = { last: pr.getProperty('bkLast') || '' };
+  if (me.role === 'staff') return out;
+  const px = tbProxy_();
+  out.proxy = !px || !px.url ? { none: 1 } : T(() => { const r = UrlFetchApp.fetch(px.url, { method: 'post', contentType: 'application/json', headers: { 'X-Proxy-Key': px.key }, payload: JSON.stringify({ path: '/ping' }), muteHttpExceptions: true });
+    let j = {}; try { j = JSON.parse(r.getContentText()) || {}; } catch (e) {} const code = r.getResponseCode();
+    if (code !== 200 || !j.proxy) throw new Error('посредник ответил ' + code + (j.error ? ': ' + j.error : '')); return { proxy: j.proxy || 0, mail: j.mail || 0 }; });
+  out.mail = mailAcc_().map(a => ({ email: a.email, at: a.at || '', err: a.err || '' }));
+  out.mailSync = +(pr.getProperty('MAIL_SYNC_AT') || 0);
+  if (me.admin) {
+    const K = tbKeys_(); out.bank = Object.keys(K).map(sid => ({ sid: sid, last: K[sid].last || '', err: K[sid].err || '' }));
+    const st = aiStatGet_(), lg = st.log || [], lok = lg.find(x => x.ok), lerr = lg.find(x => !x.ok && !x.x);
+    out.ai = { g: !!pr.getProperty('GEMINI_KEY'), c: !!pr.getProperty('CLAUDE_KEY'), ok: lok ? lok.at : '', err: lerr ? { at: lerr.at, e: lerr.e } : null, today: st.n || 0, errs: st.err || 0 };
+  }
+  return out;
+}
 function handle_(p) {
   if (typeof USERS === 'undefined') return { ok: false, error: 'в Apps Script нет файла «Пароли» — создайте его по инструкции (dev/Passwords.template.gs)' };
   const me = auth_(p);
@@ -748,6 +770,7 @@ function handle_(p) {
   if (/^backup(Tick|List|Now)$/.test(p.action || '')) return backup_(p, me);   // без общей блокировки: копия таблицы делается несколько секунд
   if (p.action === 'aiRead') return aiRead_(p, me);        // без блокировки: ИИ думает до минуты, остальные в это время работают
   if (p.action === 'aiCfg') return aiCfg_(p, me);
+  if (p.action === 'status') return status_(p, me);  // «Данные» → «Состояние сервисов» (Code.gs ≥ 34): только чтение, без общей блокировки
   if (p.action === 'notes') return notes_(p, me);    // уведомления для приложения Android (раз в час), только чтение, без общей блокировки
   if (p.action === 'drafts') return drafts_(p, me);   // черновики документов: свой лист, своя короткая блокировка, без общей синхронизации
   if (p.action === 'mail') return mail_(p, me);         // почта (Code.gs ≥ 30): ящики через посредника в Яндекс Облаке, своя короткая блокировка
