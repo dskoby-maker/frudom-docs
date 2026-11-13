@@ -8,7 +8,9 @@ adb install -r test.apk
 adb logcat -c
 adb shell pm grant ru.frudom.mail android.permission.POST_NOTIFICATIONS || true
 adb shell am start -W -n ru.frudom.mail/.MainActivity
-sleep 35
+sleep 25
+adb shell pidof ru.frudom.mail >/dev/null || { adb shell am start -W -n ru.frudom.mail/.MainActivity; sleep 25; }   # эмулятор иногда убивает приложения, пока догружает сервисы Google
+adb shell am start -W -n ru.frudom.mail/.MainActivity; sleep 5
 adb exec-out screencap -p > shot1.png
 adb shell am start -W -n ru.frudom.mail/.MailSettingsActivity --ez ndemo true; sleep 5
 adb exec-out screencap -p > shot2.png
@@ -17,7 +19,7 @@ adb exec-out screencap -p > shot3.png
 adb shell cmd statusbar expand-notifications; sleep 3
 adb exec-out screencap -p > shot4.png
 adb shell cmd statusbar collapse; sleep 1
-adb shell am start -W -n ru.frudom.mail/.MainActivity --es mail "demo:1"; sleep 6
+adb shell am start -W -n ru.frudom.mail/.MainActivity --es mail "demo:1"; sleep 20
 adb exec-out screencap -p > shot5.png
 adb shell input keyevent 4; sleep 2
 adb shell pidof ru.frudom.mail > pid.txt || echo "НЕ ЗАПУЩЕНО" > pid.txt
