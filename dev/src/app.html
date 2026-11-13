@@ -414,13 +414,27 @@ body.fd-undo-on #fd-app main.wrap{padding-bottom:84px}
 .mlmenu button{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border-radius:9px;font:500 13.5px var(--ui,system-ui);color:#1c2220;cursor:pointer}
 .mlmenu button i{width:16px;display:grid;place-items:center;color:#7a807c}.mlmenu button:hover,.mlmenu button:focus{background:rgba(106,44,78,.08)}.mlmenu button.ok i{color:#2f7d4f}.mlmenu button.bad{color:#b3261e}.mlmenu button.bad i{color:#b3261e}
 .mlmenu hr{border:0;border-top:1px solid rgba(28,34,32,.08);margin:4px 2px}
-#fd-app .mlvw .mlvb{min-height:200px;max-height:72vh;overflow:auto;border-radius:10px;background:#f4f3f0;padding:10px}
-#fd-app .mlvl{padding:30px 10px;text-align:center;color:var(--muted);display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap}
-#fd-app .mlvpdf{display:grid;gap:10px}#fd-app .mlvpdf canvas{background:#fff;box-shadow:0 2px 10px -4px rgba(0,0,0,.25);border-radius:4px}#fd-app .mlvpn{text-align:center;font-size:12px;margin:6px 0 0}
-#fd-app .mlvimg{display:grid;place-items:center}#fd-app .mlvimg img{max-width:100%;max-height:68vh;cursor:zoom-in;border-radius:6px;background:#fff}#fd-app .mlvimg.zoom img{max-width:none;max-height:none;cursor:zoom-out}
-#fd-app .mlvtxt{white-space:pre-wrap;word-break:break-word;font:13px/1.5 ui-monospace,monospace;background:#fff;padding:12px;border-radius:8px;margin:0}
-#fd-app .mlvsheet{overflow:auto;background:#fff;border-radius:8px}#fd-app .mlvsheet table{border-collapse:collapse;font-size:12.5px}#fd-app .mlvsheet td,#fd-app .mlvsheet th{border:1px solid #e3e1dc;padding:4px 7px;white-space:nowrap;vertical-align:top}#fd-app .mlvtabs{margin-bottom:8px}
-#fd-app .mlvifr{width:100%;height:68vh;border:0;background:#fff;border-radius:8px}
+#fd-app dialog.mlvw{position:fixed;inset:0;width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;background:#161817;color:#fff;display:flex;flex-direction:column;opacity:0;transition:opacity .2s ease;overscroll-behavior:contain}
+#fd-app dialog.mlvw.in{opacity:1}#fd-app dialog.mlvw::backdrop{background:transparent}
+#fd-app .mlvbar{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:10px max(14px,env(safe-area-inset-right,0px)) 10px max(14px,env(safe-area-inset-left,0px));padding-top:calc(10px + env(safe-area-inset-top,0px));background:#fff;color:var(--ink);box-shadow:0 1px 0 rgba(0,0,0,.08)}
+#fd-app .mlvt{flex:1 1 220px;min-width:0;display:flex;flex-direction:column;gap:2px}#fd-app .mlvt b{font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#fd-app .mlvt small{font-size:12px;color:var(--muted)}
+#fd-app .mlvtools{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-left:auto}
+#fd-app .mlvgrp{display:inline-flex;align-items:center;gap:2px;padding:2px;border-radius:11px;background:rgba(28,34,32,.06)}
+#fd-app .mlvbt{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:36px;height:36px;padding:0 9px;border-radius:9px;font:500 13.5px var(--ui);color:var(--ink);cursor:pointer;white-space:nowrap;transition:background .15s}
+#fd-app .mlvbt:hover{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.1)}#fd-app .mlvbt:focus-visible{outline:2px solid var(--accent);outline-offset:1px}#fd-app .mlvbt:active{transform:scale(.96)}
+#fd-app .mlvbt svg{flex:none}#fd-app .mlvzp{min-width:56px;font-variant-numeric:tabular-nums}#fd-app .mlvx{font-size:24px;line-height:1;font-weight:400}
+#fd-app .mlvw .mlvb{flex:1;min-height:0;overflow:auto;padding:20px 0 40px;outline:none;touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch}
+#fd-app .mlvpdf{display:flex;flex-direction:column;align-items:center;gap:18px;width:max-content;min-width:100%;margin:0 auto;padding:0 24px;box-sizing:border-box}
+#fd-app .mlvpg{position:relative;flex:none;transition:width .18s ease,height .18s ease}
+#fd-app .mlvel{position:absolute;left:50%;top:50%;display:block;background:#fff;box-shadow:0 8px 30px -8px rgba(0,0,0,.6);transition:transform .25s ease,width .18s ease,height .18s ease;user-select:none;-webkit-user-drag:none}
+#fd-app dialog.mlvw.zm .mlvpg{cursor:zoom-out}#fd-app dialog.mlvw:not(.zm) .mlvpg{cursor:zoom-in}
+#fd-app .mlvl{padding:40px 10px;text-align:center;color:rgba(255,255,255,.75);display:flex;gap:8px;justify-content:center;align-items:center;flex-wrap:wrap}#fd-app .mlvl b{color:#fff}
+#fd-app .mlvmore{text-align:center;color:rgba(255,255,255,.7);font-size:13px;margin:16px}
+#fd-app dialog.mlvw.doc .mlvb{padding:16px}
+#fd-app .mlvtxt{white-space:pre-wrap;word-break:break-word;font:13px/1.5 ui-monospace,monospace;background:#fff;color:#1c2220;padding:16px;border-radius:8px;margin:0 auto;max-width:1100px}
+#fd-app .mlvsheet{overflow:auto;background:#fff;color:#1c2220;border-radius:8px;font-size:12.5px}#fd-app .mlvsheet table{border-collapse:collapse;font-size:inherit}#fd-app .mlvsheet td,#fd-app .mlvsheet th{border:1px solid #e3e1dc;padding:.32em .56em;white-space:nowrap;vertical-align:top}#fd-app .mlvtabs{margin-bottom:10px}#fd-app .mlvw .mlvtabs button{background:rgba(255,255,255,.12);color:#fff;border-color:transparent}#fd-app .mlvw .mlvtabs button.on{background:#fff;color:#1c2220}
+#fd-app .mlvifr{display:block;width:calc(100% - 32px);height:calc(100% - 8px);margin:0 auto;border:0;background:#fff;border-radius:6px}
+@media (max-width:600px){#fd-app .mlvbar{gap:6px}#fd-app .mlvt{flex-basis:100%}#fd-app .mlvtools{margin-left:0;width:100%;justify-content:space-between;gap:6px}#fd-app .mlvbt span{display:none}#fd-app .mlvbt{min-width:38px;height:38px;padding:0 7px}#fd-app .mlvpdf{padding:0 8px;gap:12px}#fd-app .mlvw .mlvb{padding:12px 0 30px}}
 #fd-app .mldbadge{display:inline-flex;align-items:center;gap:4px;font:600 11.5px/1 var(--ui);color:#fff;padding:4px 8px 4px 6px;border-radius:99px;background:linear-gradient(135deg,#3f9a63,#2f7d4f);box-shadow:0 2px 6px -2px rgba(47,125,79,.55)}
 #fd-app .mldbadge.big{font-size:13px;padding:7px 13px 7px 10px}
 #fd-app .mll.calm .mlr{animation:none}#fd-app .mlr.leave{opacity:0;transform:translateX(12px);transition:opacity .25s,transform .25s}
@@ -1181,7 +1195,7 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .sggrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:8px}
 #fd-app .sgprev{height:150px;border:1px dashed var(--line);border-radius:10px;display:grid;place-items:center;margin-bottom:8px;background:repeating-conic-gradient(#f4f1ec 0 25%,#fff 0 50%) 0 0/16px 16px}
 #fd-app .sgprev img{max-width:90%;max-height:130px}
-#fd-app .bar .pvsign{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;padding:0 8px;cursor:pointer;white-space:nowrap}
+#fd-app .bar .pvsign{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;padding:0 8px;cursor:pointer;white-space:nowrap}#fd-app .modal .bar>*{flex:none}#fd-app .modal .bar>b{flex:1 1 260px;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}#fd-app .bar .pvsign{width:auto;min-height:36px;margin:0;line-height:1.2}@media(max-width:700px){#fd-app .modal .bar>b{flex-basis:100%}}#fd-app .bar .pvsign input[type=checkbox]{width:16px;height:16px;min-width:16px;min-height:0;flex:none;margin:0;padding:0;box-shadow:none;accent-color:var(--accent)}
 #fd-app .signopt{margin:8px 0 2px}
 /* «Сформировать»: главное — «Сохранить в журнал», печать рядом, остальное мелкой строкой */
 #fd-app .dmk{gap:10px}
