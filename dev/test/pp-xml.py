@@ -24,7 +24,7 @@ async def main():
             await ev(f"document.querySelector('[data-ppx=\"{jid}\"]').click()"); await pg.wait_for_timeout(400)
             t=await pg.text_content('.ppdlg')
             n1=await ev('__ps[1].name')
-            ok('Не хватает данных у 1' in t and n1 in t and 'ID спецификации' in t and 'артикул' in t, f'{W}: без сопоставления — понятный список, чего не хватает')
+            ok('Не хватает данных у 1' in t and n1 in t and 'ID спецификации' in t, f'{W}: без сопоставления — понятный список, чего не хватает')
             ok(await pg.locator('.ppdlg [data-ppgo="dl"]').count()==0, f'{W}: скачать нельзя, пока не хватает')
             await pg.click('.ppdlg [data-ppgo="x"]')
             await ev("(()=>{const c=D.customers.find(x=>!x.priv&&x.id!=='private-buyer'); D.specs[c.id][__ps[1].id]={spec:'5080332-2', ste:'', art:'ART-2'};})()")
@@ -35,7 +35,7 @@ async def main():
             raw=open(path,'rb').read(); x=raw.decode('cp1251')
             ok(d.suggested_filename.startswith('УПД № 77 от 12.11.2026'), f'{W}: имя файла «УПД № 77 от 12.11.2026 — Портал поставщиков.xml»')
             ok('encoding="windows-1251"' in x and 'НомерСчФ="77"' in x and 'ДатаСчФ="12.11.2026"' in x, f'{W}: номер и дата документа')
-            ok('Идентиф="ИдСпецификации" Значен="5080332-1"' in x and 'АртикулТов="ART-2"' in x and 'Идентиф="ИдСТЕ" Значен="1234567"' in x, f'{W}: ID спецификации, артикул, СТЕ по строкам')
+            ok('Идентиф="ИдСпецификации" Значен="5080332-1"' in x and 'АртикулТов="ART-2"' in x and 'АртикулТов=""' not in x and 'Идентиф="ИдСТЕ" Значен="1234567"' in x, f'{W}: ID спецификации, артикул, СТЕ по строкам')
             ok('КолТов="12.5"' in x and 'ЦенаТов="133.95"' in x and 'СтТовБезНДС="1674.38"' in x and 'КодПроисх="860"' in x, f'{W}: количество, цена, сумма строки (12,5 × 133,95 = 1674,38), страна')
             ok('<БезНДС>без НДС</БезНДС>' in x and 'АдрТекст="г. Москва, ул. Полбина, д. 72, стр. 1"' in x , f'{W}: без НДС, адрес доставки')
             if XSD:
