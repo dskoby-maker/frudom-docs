@@ -6220,7 +6220,7 @@ function ppXml(k, opt){ opt=opt||{}; const dr=k.dr, c=k.c||{}, s=k.s||{}, m=(D.s
   const items=k.lines.map(l=>{ const sp=m[l.pid]||{};
     return `<СведТов КолТов="${ppQ(l.qty)}" ЦенаТов="${ppN(l.priceNet)}" СтТовБезНДС="${ppN(l.net)}" СтТовУчНал="${ppN(l.sum)}"><СвДТ КодПроисх="${ppA(l.country)}"/><ДопСведТов АртикулТов="${ppA(ppArt(l.pid, sp))}"/><ИнфПолФХЖ2 Идентиф="ИдСпецификации" Значен="${ppA(sp.spec)}"/>${/^\d{1,10}$/.test(String(sp.ste||"").trim())?`<ИнфПолФХЖ2 Идентиф="ИдСТЕ" Значен="${String(sp.ste).trim()}"/>`:""}</СведТов>`; }).join("");
   const nds = k.rate ? `<СумНал>${ppN(k.t.vat)}</СумНал>` : `<БезНДС>без НДС</БезНДС>`;
-  return `<?xml version="1.0" encoding="windows-1251"?>\n<Файл><Документ><СвСчФакт НомерСчФ="${num}" ДатаСчФ="${date}"><ГрузОт><ГрузОтпр><Адрес><АдрИнф АдрТекст="${ppA(s.address||"")}"/></Адрес></ГрузОтпр></ГрузОт>${cons}</СвСчФакт><ТаблСчФакт>${items}<ВсегоОпл СтТовБезНДСВсего="${ppN(k.t.net)}" СтТовУчНалВсего="${ppN(k.t.sum)}"><СумНалВсего>${nds}</СумНалВсего></ВсегоОпл></ТаблСчФакт><СвПродПер><СвПер${ship!==date?` ДатаПер="${ship}"`:""} ДатаНачПер="${date}" ДатаОконПер="${date}"/></СвПродПер></Документ></Файл>\n`; }
+  return `<?xml version="1.0" encoding="windows-1251"?>\n<Файл><Документ><СвСчФакт НомерСчФ="${num}" ДатаСчФ="${date}"><ГрузОт><ГрузОтпр><Адрес><АдрИнф АдрТекст="${ppA(s.address||"")}"/></Адрес></ГрузОтпр></ГрузОт>${cons}</СвСчФакт><ТаблСчФакт>${items}<ВсегоОпл СтТовБезНДСВсего="${ppN(k.t.net)}" СтТовУчНалВсего="${ppN(k.t.sum)}"><СумНалВсего>${nds}</СумНалВсего></ВсегоОпл></ТаблСчФакт><СвПродПер><СвПер ДатаПер="${ship}" ДатаНачПер="${ship}" ДатаОконПер="${ship}"/></СвПродПер></Документ></Файл>\n`; }
 /* окно: что не хватает / скачать */
 function ppOpen(j){ const k=calc(j.snap.dr, j.snap), miss=ppMissing(k), cid=k.dr.customerId, d=document.createElement("dialog"); d.className="ppdlg";
   const nm=shortCus(k)||cusNm(cid)||"";
@@ -6229,7 +6229,7 @@ function ppOpen(j){ const k=calc(j.snap.dr, j.snap), miss=ppMissing(k), cid=k.dr
     ${miss.length?`<div class="ppbad"><b>Не хватает данных у ${miss.length} ${plural(miss.length,["товара","товаров","товаров"])}:</b><ul>${miss.map(x=>`<li>${esc(x.name)} — <span>${x.why.join(", ")}</span></li>`).join("")}</ul>
       <p>ID спецификации: «Заказчики и цены» → ${esc(nm)} → «Сопоставить с Порталом поставщиков» → загрузите выгрузку «Сведения о спецификациях» (на Портале: контракт → «Выгрузить в xls»). Страна — во вкладке «Товары».</p>
       <div class="ppbt"><button type="button" class="btn pri" data-ppgo="cus">Открыть сопоставление ›</button><button type="button" class="btn ghost" data-ppgo="x">Закрыть</button></div></div>`
-    :`<label class="ppf">Дата документа <input type="date" id="pp-d" value="${esc(j.date)}"></label><label class="ppf">Дата отгрузки <input type="date" id="pp-s" value="${esc(j.date)}"></label>
+    :`<label class="ppf">Дата документа — день отправки на Портал <input type="date" id="pp-d" value="${esc(j.date>todayISO()?j.date:todayISO())}"></label><label class="ppf">Дата отгрузки — как в накладной <input type="date" id="pp-s" value="${esc(j.date)}"></label>
       <ol class="pphow"><li>Скачайте файл.</li><li>На Портале поставщиков откройте исполнение контракта (УПД, черновик).</li><li>«Доступные действия» → «Импортировать XML УПД в текущее исполнение» → выберите файл.</li><li>Проверьте товары, количество, суммы и адрес, дозаполните пустое, подпишите ЭП и отправьте.</li></ol>
       <div class="ppbt"><button type="button" class="btn pri" data-ppgo="dl">Скачать XML</button><button type="button" class="btn ghost" data-ppgo="x">Отмена</button></div>`}`;
   (document.getElementById("fd-app")||document.body).appendChild(d); const close=()=>{ try{ d.close(); }catch(e){} d.remove(); };
@@ -6237,7 +6237,7 @@ function ppOpen(j){ const k=calc(j.snap.dr, j.snap), miss=ppMissing(k), cid=k.dr
   d.addEventListener("click", e=>{ const b=e.target.closest("[data-ppgo]"); if(!b) return; const g=b.dataset.ppgo;
     if(g==="x"){ close(); return; }
     if(g==="cus"){ close(); editorSel.customers=cid; showTab("customers"); setTimeout(()=>{ const c=document.getElementById("pp-file"); if(c) c.closest(".card").scrollIntoView({behavior:"smooth", block:"start"}); }, 300); return; }
-    if(g==="dl"){ const dd=(d.querySelector("#pp-d")||{}).value||j.date, ss=(d.querySelector("#pp-s")||{}).value||dd;
+    if(g==="dl"){ const dd=(d.querySelector("#pp-d")||{}).value||todayISO(), ss=(d.querySelector("#pp-s")||{}).value||j.date;
       try{ const xml=ppXml(k, {date:dd, ship:ss}), bytes=Eis.encode(xml), a=document.createElement("a"), url=URL.createObjectURL(new Blob([bytes],{type:"application/xml"}));
         a.href=url; a.download="УПД № "+String(j.number).replace(/[\\/:*?"<>|]/g,"-")+" от "+fd(dd)+" — Портал поставщиков.xml"; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 30000);
         logEv("XML", "Скачан XML для Портала поставщиков: УПД № "+j.number+" от "+fd(dd)+" — "+nm, j.id); close();
