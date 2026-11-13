@@ -24,7 +24,7 @@ module.exports.handler = async (event) => {
   let p = {};
   try { p = JSON.parse(event.isBase64Encoded ? Buffer.from(event.body || '', 'base64').toString('utf8') : (event.body || '{}')); } catch (e) { return out(400, { error: 'bad json' }); }
   const path = String(p.path || '');
-  if (path === '/ping') return out(200, { ok: true, proxy: 2, mail: 1 });
+  if (path === '/ping') return out(200, { ok: true, proxy: 2, mail: 2 });
   if (/^\/mail\//.test(path)) { try { return out(200, await mailOp(path, p)); } catch (e) { return out(200, { error: String(e && e.message || e).slice(0, 300) }); } }
   if (!ALLOWED.some(r => r.test(path))) return out(400, { error: 'path not allowed' });
   try {
@@ -42,6 +42,9 @@ module.exports.handler = async (event) => {
    /mail/send  {acc, msg}                    — отправить письмо и положить копию в «Отправленные»
    acc = {user, pass, ih, ip, sh, sp}: логин, пароль (для внешних приложений), IMAP-сервер и порт (993), SMTP-сервер и порт (465). */
 const MAIL_TMO = 25000, MAIL_BUDGET = 2400000;
+/* большие письма (импорт старой почты с тяжёлыми вложениями): больше MAIL_BIG читаем только начало — текст и заголовки,
+   за один раз забираем не больше MAIL_BATCH байт писем, иначе функции не хватает памяти и она падает («user code crashed») */
+const MAIL_BIG = 12 * 1048576, MAIL_HEAD = 600000, MAIL_BATCH = 24 * 1048576;
 const tlsOpt = h => ({ host: h, servername: h, rejectUnauthorized: process.env.MAIL_INSECURE !== '1' });
 async function mailOp(path, p) {
   const a = p.acc || {};
@@ -62,10 +65,17 @@ async function mailOp(path, p) {
       else { const d = new Date(Date.now() - (Math.min(+p.days || 30, 365)) * 864e5), M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
         uids = await c.search('SINCE ' + d.getUTCDate() + '-' + M[d.getUTCMonth()] + '-' + d.getUTCFullYear()); }
       uids.sort((x, y) => x - y); const max = Math.min(+p.max || 15, 40), want = since ? uids.slice(0, max) : uids.slice(-max);
-      const msgs = []; let budget = MAIL_BUDGET, more = since ? uids.length > want.length : false, last = since;
+      const msgs = []; let budget = MAIL_BUDGET, more = since ? uids.length > want.length : false, last = since, took = 0;
+      const sizes = want.length ? await c.sizes(want) : {};
       for (const uid of want) {
-        const raw = await c.fetchRaw(uid); if (!raw) { last = uid; continue; }
-        const m = mimeMsg(raw); m.uid = uid; m.size = raw.length;
+        const sz = sizes[uid] || 0, big = sz > MAIL_BIG;
+        if (msgs.length && took + Math.min(sz, MAIL_BIG) > MAIL_BATCH) { more = true; break; }
+        const raw = big ? await c.fetchHead(uid, MAIL_HEAD) : await c.fetchRaw(uid); if (!raw) { last = uid; continue; }
+        took += raw.length;
+        let m; try { m = mimeMsg(raw); } catch (e) { m = { date: new Date().toISOString(), from: { n: '', a: '' }, to: [], cc: [], replyTo: '', subject: '(письмо не разобрано)', msgid: '', inReply: '', refs: '', text: 'Письмо не удалось разобрать — откройте его в обычной почте.', html: '', atts: [] }; }
+        m.uid = uid; m.size = sz || raw.length;
+        if (big) { m.big = 1;
+          m.text = 'Письмо очень большое (' + (sz / 1048576).toFixed(1).replace('.', ',') + ' МБ) — на сайт пришёл только текст. Вложения откройте в обычной почте.\n\n' + m.text; }
         let cost = Buffer.byteLength(m.text) + Buffer.byteLength(m.html || '');
         if (cost > budget && msgs.length) { more = true; break; }
         m.atts.forEach(x => { const b64 = x.buf.toString('base64'); if (b64.length <= budget - cost && b64.length < 1800000) { x.data = b64; cost += b64.length; } delete x.buf; });
@@ -76,7 +86,9 @@ async function mailOp(path, p) {
   }
   if (path === '/mail/att') {
     const c = await imapOpen(a);
-    try { await c.select('INBOX'); const raw = await c.fetchRaw(+p.uid); if (!raw) throw new Error('письмо не найдено в ящике (удалено?)');
+    try { await c.select('INBOX'); const sz = (await c.sizes([+p.uid]))[+p.uid] || 0;
+      if (sz > 40 * 1048576) throw new Error('письмо больше 40 МБ — откройте вложение в обычной почте');
+      const raw = await c.fetchRaw(+p.uid); if (!raw) throw new Error('письмо не найдено в ящике (удалено?)');
       const x = mimeMsg(raw).atts[+p.idx || 0]; if (!x) throw new Error('вложение не найдено');
       if (x.buf.length > 2500000) throw new Error('файл больше 2,5 МБ — откройте его в обычной почте');
       return { name: x.name, mime: x.mime, size: x.buf.length, data: x.buf.toString('base64') };
@@ -107,9 +119,12 @@ function imapOpen(a) {
       if (r.text.startsWith(wait.tag + ' ')) { const w = wait; wait = null; if (/^\S+ OK/i.test(r.text)) w.res(w.un); else w.rej(new Error(r.text.replace(/^\S+ (NO|BAD) ?/i, '').replace(/\[[^\]]*\]\s*/, '') || 'ошибка IMAP')); return; }
       wait.un.push(r);
     };
-    sock.on('data', d => { buf = Buffer.concat([buf, d]);
+    let parts = [], plen = 0;   // кусочки большого письма копим списком и склеиваем один раз (иначе память и время растут квадратично)
+    sock.on('data', d => {
+      if (need != null && buf.length + plen + d.length < need) { if (buf.length) { parts.push(buf); plen += buf.length; buf = Buffer.alloc(0); } parts.push(d); plen += d.length; return; }
+      if (parts.length) { parts.push(buf, d); buf = Buffer.concat(parts); parts = []; plen = 0; } else buf = buf.length ? Buffer.concat([buf, d]) : d;
       for (;;) {
-        if (need != null) { if (buf.length < need) return; cur.lits.push(buf.subarray(0, need)); buf = buf.subarray(need); need = null; continue; }
+        if (need != null) { if (buf.length < need) return; cur.lits.push(Buffer.from(buf.subarray(0, need))); buf = buf.subarray(need); need = null; continue; }
         const i = buf.indexOf('\r\n'); if (i < 0) return;
         const line = buf.subarray(0, i).toString('utf8'); buf = buf.subarray(i + 2);
         if (!cur) cur = { text: '', lits: [] }; cur.text += line;
@@ -122,6 +137,9 @@ function imapOpen(a) {
         return { uidv: +((t.match(/UIDVALIDITY (\d+)/i) || [])[1] || 0), exists: +((t.match(/\* (\d+) EXISTS/i) || [])[1] || 0) }; },
       async search(crit) { const un = await cmd('UID SEARCH ' + crit); const L = [];
         un.forEach(x => { const m = x.text.match(/^\* SEARCH ?(.*)$/i); if (m) m[1].trim().split(/\s+/).filter(Boolean).forEach(v => L.push(+v)); }); return L; },
+      async sizes(L) { const un = await cmd('UID FETCH ' + L.join(',') + ' (UID RFC822.SIZE)'), o = {};
+        un.forEach(x => { const u = x.text.match(/UID (\d+)/i), z = x.text.match(/RFC822\.SIZE (\d+)/i); if (u && z) o[+u[1]] = +z[1]; }); return o; },
+      async fetchHead(uid, n) { const un = await cmd('UID FETCH ' + uid + ' (UID BODY.PEEK[]<0.' + n + '>)'); const r = un.find(x => x.lits.length && new RegExp('UID ' + uid + '\\b').test(x.text)) || un.find(x => x.lits.length); return r ? r.lits[0] : null; },
       async fetchRaw(uid) { const un = await cmd('UID FETCH ' + uid + ' (UID BODY.PEEK[])'); const r = un.find(x => x.lits.length && new RegExp('UID ' + uid + '\\b').test(x.text)) || un.find(x => x.lits.length); return r ? r.lits[0] : null; },
       async appendSent(raw) { const un = await cmd('LIST "" "*"'); let box = '';
         for (const x of un) { const m = x.text.match(/^\* LIST \(([^)]*)\) (?:"[^"]*"|NIL) (.+)$/i); if (!m) continue; const nm = m[2].replace(/^"|"$/g, '');
