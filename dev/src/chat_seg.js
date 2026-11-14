@@ -41,6 +41,7 @@ const AC_TOOLS=[
      items:{type:"array", items:{type:"object", properties:{name:{type:"string"}, qty:{type:"number"}, unit:{type:"string"}, price:{type:"number", description:"только если цена указана в заявке"}, qtys:{type:"object", description:"количества по columns"}}, required:["name"]}}}, required:["customer","items"]}},
   {name:"remember", description:"Запомнить для Даниила заметку, правило или напоминание (сохраняется между разговорами). date — когда напомнить (ГГГГ-ММ-ДД), если это напоминание.", input_schema:{type:"object", properties:{text:{type:"string"}, date:{type:"string"}}, required:["text"]}},
   {name:"forget", description:"Удалить заметку/напоминание из памяти по id.", input_schema:{type:"object", properties:{id:{type:"string"}}, required:["id"]}},
+  {name:"events", description:"Журнал «События» — кто из сотрудников что делал на сайте: создал/изменил/удалил накладную, отправил в архив, печатал, вошёл, правил заказчиков, цены, склад, закупку, почту и т. д. Ищи по датам, человеку (Даниил, Наталья, Гриша — водитель, Склад), действию и тексту (номер накладной, заказчик, товар). Для «кто создал накладную № N» — text: номер. Даты — ГГГГ-ММ-ДД.", input_schema:{type:"object", properties:{date_from:{type:"string"}, date_to:{type:"string"}, who:{type:"string"}, action:{type:"string", description:"вид действия: Документ (создан/изменён/удалён — подробность в тексте), Архив, Печать, Просмотр, Скачивание, Почта, Заявка, Склад, Закупка, Прибыль, Банк, Счета, Товары, Справочники, Задача на день, Вход, Выход, Отмена"}, text:{type:"string"}, limit:{type:"number"}}}},
   {name:"site_checks", description:"Что сайт сам нашёл: забытое и возможные ошибки (долги старше 30 дней, накладные без закупки или в минус, без договора, поставки без документов, остаток по договорам, склад, реквизиты, товары без единицы). Используй, когда спрашивают «что я забыл», «где ошибки», «что важно сегодня».", input_schema:{type:"object", properties:{}}}
 ];
 /* память помощника — в личных настройках (prefs.acMem: [{id, t, d, at}]) */
@@ -48,6 +49,9 @@ const acMem = () => { const m=getPrefs().acMem; return Array.isArray(m)?m:[]; };
 function acMemSet(L){ const p=getPrefs(); p.acMem=L.slice(-80); setPrefs(p, true); }
 const acDue = () => acMem().filter(x=>x.d && x.d<=todayISO());
 
+/* история правок накладной: кто создал и кто что менял (snap.meta.hist) */
+function acHist(j){ const h=((j.snap||{}).meta||{}).hist; if(!Array.isArray(h)||!h.length) return undefined;
+  return h.slice(-8).map(x=>({at:x.at, who:x.by||"", what:(x.w||[]).join("; ").slice(0,200)})); }
 const AC_RUN={
   async search_docs(a){ const L=acDocs(a), lim=Math.min(+a.limit||40, 120), tot={}; let sum=0, n=0; const out=[];
     for(const j of L){ const k=calc(j.snap.dr, j.snap); let lines=k.lines;
@@ -55,7 +59,7 @@ const AC_RUN={
       n++; lines.forEach(l=>{ const key=l.name+"|"+l.unit, t=tot[key]||(tot[key]={name:l.name, unit:l.unit, qty:0, sum:0, docs:0}); t.qty=acN(t.qty+(+l.qty||0)); t.sum=acN(t.sum+(+l.sum||0)); t.docs++; });
       sum+=a.product ? lines.reduce((s,l)=>s+(+l.sum||0),0) : (+k.t.sum||0);
       if(out.length<lim) out.push({id:j.id, number:j.number, date:j.date, customer_id:j.customerId, customer:cusNm(j.customerId)||j.customerName||"", point:acPoint(j)||undefined, supplier:(sup(j.supplierId)||{}).name||"", contract:acCtr(j)||undefined,
-        doc_sum:acN(k.t.sum), payment:acPay(j), archived:isArch(j)||undefined, lines:lines.slice(0,40).map(l=>({name:l.name, qty:+l.qty||0, unit:l.unit, price:acN(l.price), sum:acN(l.sum)}))}); }
+        doc_sum:acN(k.t.sum), payment:acPay(j), archived:isArch(j)||undefined, history:acHist(j), lines:lines.slice(0,40).map(l=>({name:l.name, qty:+l.qty||0, unit:l.unit, price:acN(l.price), sum:acN(l.sum)}))}); }
     const note=[out.length<n?"показаны "+out.length+" из "+n+" — сузь даты или заказчика":"", D.journal.length>=2000?"на устройстве последние 2000 накладных":""].filter(Boolean).join("; ");
     return {found_docs:n, total_sum:acN(sum), product_totals:a.product?Object.values(tot).slice(0,40):undefined, docs:out, note:note||undefined}; },
   async debts(a){ if(!await acProfitReady()) return {error:"не удалось загрузить оплаты"}; const cs=acCus(a.customer), M={};
@@ -96,6 +100,18 @@ const AC_RUN={
       documents:(r.groups||[]).map(g=>({address:g.ship||g.addr||"", lines:(g.items||[]).length, sum:acN(g.sum), not_found:(g.miss||[]).map(l=>l.name), warnings:(g.warn||[]).map(w=>w.m).slice(0,8)})), warnings:(r.warn||[]).map(w=>w.m||w).slice(0,8)}; },
   async remember(a){ const t=String(a.text||"").trim(); if(!t) return {error:"пустая заметка"}; const L=acMem(), x={id:Date.now().toString(36), t:t.slice(0,500), d:acD(a.date)||"", at:todayISO()}; L.push(x); acMemSet(L); return {ok:true, saved:x}; },
   async forget(a){ const L=acMem(), n=L.length, M=L.filter(x=>x.id!==String(a.id)); if(M.length===n) return {error:"нет заметки с таким id"}; acMemSet(M); return {ok:true}; },
+  async events(a){
+    if(!evCache){ try{ const j=await api({action:"events", limit:3200}); evCache=j.events||[]; }catch(e){ return {error:/unknown action/.test(e.message||"")?"журнал событий недоступен — нужен новый Code.gs":"не загрузился журнал событий: "+(e.message||e)}; } }
+    const day=e=>{ const d=evParse(e.at); return d ? d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0") : ""; };
+    const low=x=>String(x||"").toLowerCase().replace(/ё/g,"е"), lim=Math.min(+a.limit||60, 200);
+    let L=evCache.filter(e=>{ const d=day(e);
+      if(a.date_from && d && d<a.date_from) return false; if(a.date_to && d && d>a.date_to) return false;
+      if(a.who && !low(e.user).includes(low(a.who))) return false; if(a.action && !low(e.action).includes(low(a.action))) return false;
+      if(a.text){ const t=low(e.text); if(!low(a.text).split(/\s+/).filter(Boolean).every(w=>t.includes(w) || (w.length>4 && acHit(w, e.text)))) return false; }
+      return true; });
+    L=L.slice().sort((x,y)=>(evParse(y.at)||0)-(evParse(x.at)||0));
+    return {found:L.length, events:L.slice(0,lim).map(e=>({at:e.at, who:e.user, action:e.action, text:String(e.text||"").slice(0,300)})),
+      note:[L.length>lim?"показаны последние "+lim+" из "+L.length+" — сузь даты/человека":"", "в журнале последние "+evCache.length+" событий"].filter(Boolean).join("; ")}; },
   async site_checks(){ let T=[]; try{ T=autoTasks(); }catch(e){ return {error:"не получилось: "+(e.message||e)}; }
     const hid=(getPrefs().tkHide)||{}; T=T.filter(x=>!hid[x.key]); const o={err:0,warn:1,info:2}; T.sort((a,b)=>(o[a.lvl]??3)-(o[b.lvl]??3));
     return {count:T.length, items:T.slice(0,40).map(x=>({level:x.lvl==="err"?"важно":x.lvl==="warn"?"внимание":"к сведению", group:x.g, title:x.title, text:String(x.text||"").replace(/<[^>]+>/g,"").slice(0,300)}))}; },
@@ -113,6 +129,7 @@ function acSystem(){ const d=new Date(), dn=["воскресенье","поне�
 - Дата без года — ближайшая прошедшая (или сегодняшняя). «12 числа» — 12-е текущего месяца, если оно уже было.
 - Отвечай по-русски, коротко и по-человечески: сначала ответ, потом 1–5 строк подробностей. Деньги — «1 234,50 ₽», количество с единицей («85 кг»).
 - Накладные называй ссылками ровно в таком виде: [[doc:ID|№ 69 от 12.11]] (ID — поле id из инструмента). Заказчика можно ссылкой [[cus:ID|Цирк]] (ID — customer_id или id).
+- Кто что сделал на сайте (кто создал, изменил, удалил, напечатал накладную, кто заходил, что делали Наталья, Гриша, Склад) — смотри инструмент events (журнал «События») и поле history у накладных из search_docs (кто создал и что менял). Пользователи: Даниил (владелец), Наталья (менеджер), Гриша (водитель), Склад.
 - Если вопрос неоднозначный (несколько заказчиков с похожим названием) — коротко уточни.
 - Ты только читаешь данные: изменить, удалить или создать документ не можешь — подскажи, где это сделать на сайте.
 - Данные — те, что загружены на этом устройстве (журнал — последние 2000 накладных).
@@ -128,7 +145,7 @@ function acNoThink(){ AC.msgs.forEach(m=>{ if(m.role==="assistant" && Array.isAr
 function acSquash(){ acNoThink(); let q=0; for(let i=AC.msgs.length-1;i>=0;i--){ const m=AC.msgs[i]; if(acIsQ(m)) q++;
     if(m.role==="user" && Array.isArray(m.content)) m.content=m.content.map(c=>{ if(c.type==="tool_result" && String(c.content||"").length>200) return Object.assign({},c,{content:"(старые данные — при необходимости запроси заново)"}); return q>2?acNoFile(c):c; }); } }
 function acTrim(){ let n=0; for(let i=AC.msgs.length-1;i>=0;i--){ if(acIsQ(AC.msgs[i])){ n++; if(n>12){ AC.msgs=AC.msgs.slice(i+1); while(AC.msgs.length && !acIsQ(AC.msgs[0])) AC.msgs.shift(); break; } } } }
-const AC_STEP={search_docs:"Ищу в накладных…", debts:"Считаю долги…", prices:"Смотрю цены…", profit:"Считаю прибыль…", expenses:"Смотрю расходы…", customers:"Смотрю заказчиков…", stock:"Смотрю склад…"};
+const AC_STEP={events:"Смотрю журнал событий…", search_docs:"Ищу в накладных…", debts:"Считаю долги…", prices:"Смотрю цены…", profit:"Считаю прибыль…", expenses:"Смотрю расходы…", customers:"Смотрю заказчиков…", stock:"Смотрю склад…"};
 async function acAsk(text){ text=String(text||"").trim(); const F=AC.files.filter(f=>f.block); if((!text&&!F.length)||AC.busy) return; if(AC.files.some(f=>f.busy)){ toast("info","Подождите","Файл ещё готовится."); return; } if(!online()){ toast("warn","Нет связи","Помощнику нужен интернет."); return; }
   if(!text) text="Посмотри файл.";
   AC.busy=true; acSquash(); AC.view.push({r:"u", t:text, f:F.map(f=>f.name)}); AC.msgs.push({role:"user", content: F.length ? F.map(f=>f.block).concat([{type:"text", text}]) : text}); AC.files=[]; acTrim(); AC.step=F.length?"Читаю файл…":"Думаю…"; acDraw(true);
@@ -169,7 +186,7 @@ const AC_IC=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-w
 const AC_SUG=["Кто сколько мне должен?","Куда уходила картошка 12 числа?","Сколько заработали в этом месяце?","По какой цене продавали помидоры Цирку в октябре?","Что Гриша везёт завтра?","Сколько осталось по договорам МОК?"];
 function acEl(){ let b=document.getElementById("ac-fab"); if(b) return;
   const st=document.createElement("style"); st.textContent=`
-#ac-fab{position:fixed;right:16px;bottom:16px;z-index:60;display:flex;align-items:center;gap:7px;height:40px;padding:0 15px 0 12px;border:0;border-radius:20px;background:#5b2a4e;color:#fff;font:600 14px/1 inherit;font-family:inherit;box-shadow:0 5px 18px rgba(60,20,50,.26);cursor:pointer}
+#ac-fab{font-family:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif!important;position:fixed;right:16px;bottom:16px;z-index:60;display:flex;align-items:center;gap:7px;height:40px;padding:0 15px 0 12px;border:0;border-radius:20px;background:#5b2a4e;color:#fff;font:600 14px/1 inherit;font-family:inherit;box-shadow:0 5px 18px rgba(60,20,50,.26);cursor:pointer}
 #ac-fab svg{width:19px;height:19px}#ac-fab b{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;border-radius:9px;background:#d9534f;color:#fff;font-size:11px;line-height:18px;text-align:center;padding:0 4px}
 #ac-pan .acrm{margin:0 0 4px;padding:10px 12px;border-radius:12px;background:#fff8e6;border:1px solid #f0dfb0;font-size:14px}#ac-pan .acrm b{display:block;margin-bottom:4px}
 #ac-pan .acrm div{display:flex;gap:8px;align-items:flex-start;margin:4px 0}#ac-pan .acrm div span{flex:1}#ac-pan .acrm button{border:1px solid #e6d29c;background:#fff;border-radius:8px;padding:3px 8px;font:inherit;font-size:12.5px;cursor:pointer}
@@ -178,7 +195,7 @@ function acEl(){ let b=document.getElementById("ac-fab"); if(b) return;
 #ac-pan .acfs span i{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}#ac-pan .acfs span.err{background:#fdecea;color:#a3322a}#ac-pan .acfs button{border:0;background:none;font-size:16px;color:inherit;cursor:pointer;padding:0}
 #ac-att{width:44px;height:44px;flex:none;align-self:flex-end;border:1px solid #e0d7dd;border-radius:12px;background:#fff;color:#5b2a4e;cursor:pointer}#ac-att svg{width:20px;height:20px}
 #ac-list .am .acfn{display:block;font-size:12.5px;opacity:.85;margin-bottom:4px}#ac-fab[hidden],#ac-pan[hidden]{display:none}
-#ac-pan{position:fixed;right:16px;bottom:16px;z-index:61;width:min(440px,calc(100vw - 32px));height:min(680px,calc(100vh - 32px));display:flex;flex-direction:column;background:#fbfaf8;border-radius:18px;box-shadow:0 18px 60px rgba(40,20,40,.3);overflow:hidden;font-size:15px;color:#29232a}
+#ac-pan{font-family:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;position:fixed;right:16px;bottom:16px;z-index:61;width:min(440px,calc(100vw - 32px));height:min(680px,calc(100vh - 32px));display:flex;flex-direction:column;background:#fbfaf8;border-radius:18px;box-shadow:0 18px 60px rgba(40,20,40,.3);overflow:hidden;font-size:15px;color:#29232a}
 #ac-pan .ach0{display:flex;align-items:center;gap:10px;padding:14px 14px 12px 16px;border-bottom:1px solid #ece6ea;background:#fff}
 #ac-pan .ach0 b{font-size:16px;flex:1}#ac-pan .ach0 small{display:block;font-weight:400;color:#8a7f87;font-size:12px;margin-top:2px}
 #ac-pan .acx{border:0;background:none;width:34px;height:34px;border-radius:10px;font-size:22px;color:#6c6068;cursor:pointer}#ac-pan .acx:hover{background:#f3eef1}
