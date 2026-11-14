@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 37;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 38;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -263,6 +263,31 @@ function aiRead_(p, me) {
   const r = aiCall_(models, txt ? { prompt: prompt + (p.src === 'file' ? '\n\nЗаявка — содержимое файла «' + String(p.fname || '').slice(0, 120) + '», сайт перевёл его в текст (таблицы — через табуляцию). Текст файла:\n' : '\n\nЗаявка пришла текстом письма (файла нет). Текст письма:\n') + txt, json: true } : { prompt: prompt, mime: mime, data: data, json: true });
   aiStatAdd_({ at: new Date().toISOString(), u: me ? me.name : '', k: kind, m: r.model || models[0], ok: !!r.ok, e: r.ok ? '' : String(r.error).slice(0, 120), t: r.tokens || 0, ms: Date.now() - t0 });
   return r;
+}
+/* «Помощник» (Code.gs ≥ 38): один шаг разговора с Claude. Сайт присылает историю (msgs), описание инструментов (tools) и инструкцию (system);
+   если Claude просит данные (tool_use) — сайт сам ищет их в своих данных и присылает следующий шаг с tool_result. Ключ — CLAUDE_KEY. */
+function aiChat_(p, me) {
+  if (!me.admin) return { ok: false, error: 'forbidden' };
+  const key = PropertiesService.getScriptProperties().getProperty('CLAUDE_KEY');
+  if (!key) return { ok: false, error: 'nokey' };
+  let msgs, tools; try { msgs = JSON.parse(p.msgs || '[]'); tools = JSON.parse(p.tools || '[]'); } catch (e) { return { ok: false, error: 'bad request' }; }
+  if (!Array.isArray(msgs) || !msgs.length) return { ok: false, error: 'bad request' };
+  const model = /^claude-[\w.\-]+$/.test(String(p.model || '')) ? String(p.model) : AI_CLAUDE_DEF_[0], t0 = Date.now();
+  const body = { model: model, max_tokens: 4000, system: String(p.system || '').slice(0, 60000), messages: msgs };
+  if (Array.isArray(tools) && tools.length) body.tools = tools;
+  const r = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', { method: 'post', contentType: 'application/json', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' }, payload: JSON.stringify(body), muteHttpExceptions: true });
+  const code = r.getResponseCode(), t = r.getContentText();
+  if (code === 200) { let j; try { j = JSON.parse(t); } catch (x) { return { ok: false, error: 'Claude вернул непонятный ответ' }; }
+    const u = j.usage || {}, tok = (u.input_tokens || 0) + (u.output_tokens || 0);
+    if (j.stop_reason !== 'tool_use') aiStatAdd_({ at: new Date().toISOString(), u: me.name, k: 'chat', m: model, ok: true, e: '', t: tok, ms: Date.now() - t0 });
+    return { ok: true, content: j.content || [], stop: j.stop_reason || '', model: model, tokens: tok }; }
+  let e = 'Claude не ответил (' + code + ' ' + t.slice(0, 150) + ')';
+  if (code === 404) e = 'модель «' + model + '» не найдена';
+  else if (/credit balance/i.test(t)) e = 'на балансе Claude закончились деньги — пополните на console.anthropic.com';
+  else if (code === 401) e = 'badkey';
+  else if (code === 429 || code === 529) e = 'Claude сейчас перегружен — спросите ещё раз через минуту';
+  aiStatAdd_({ at: new Date().toISOString(), u: me.name, k: 'chat', m: model, ok: false, e: e.slice(0, 120), t: 0, ms: Date.now() - t0 });
+  return { ok: false, error: e };
 }
 function aiCfg_(p, me) {
   if (!me.admin) return { ok: false, error: 'forbidden' };
@@ -796,6 +821,7 @@ function handle_(p) {
   if (/^backup(Tick|List|Now)$/.test(p.action || '')) return backup_(p, me);   // без общей блокировки: копия таблицы делается несколько секунд
   if (p.action === 'aiRead') return aiRead_(p, me);        // без блокировки: ИИ думает до минуты, остальные в это время работают
   if (p.action === 'aiCfg') return aiCfg_(p, me);
+  if (p.action === 'aiChat') return aiChat_(p, me);  // «Помощник» на сайте (Code.gs ≥ 38): только Даниил, Claude с инструментами; данные ищет сам сайт, без общей блокировки
   if (p.action === 'status') return status_(p, me);  // «Данные» → «Состояние сервисов» (Code.gs ≥ 34): только чтение, без общей блокировки
   if (p.action === 'notes') return notes_(p, me);    // уведомления для приложения Android (раз в час), только чтение, без общей блокировки
   if (p.action === 'drafts') return drafts_(p, me);   // черновики документов: свой лист, своя короткая блокировка, без общей синхронизации
