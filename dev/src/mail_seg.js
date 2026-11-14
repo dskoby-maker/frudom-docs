@@ -38,7 +38,17 @@ function mlMark(r, k){ const now={by:curUser(), at:new Date().toISOString()}; ml
   if(ML.f==="undone" && k!=="todo"){ const b=document.querySelector(`#ml-list .mlr[data-mlid="${CSS.escape(r.id)}"]`); if(b){ b.classList.add("leave"); setTimeout(()=>{ b.remove(); }, 260); } }
   toast(k==="done"?"ok":"info", k==="done"?"Обработано":k==="todo"?"Отмечено: не обработано":"Пометка снята", ""); }
 const mlDoneTxt = d => { const x=new Date(d.at); return esc(d.by||"")+(isNaN(x)?"":" · "+(jIso(x)===todayISO()?"сегодня в "+x.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}):x.toLocaleString("ru-RU",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}).replace(".",""))); };
-function mlOrdPatch(r, patch, read){ const o=Object.assign({}, mlOrdSt(r)||{}, patch); Object.keys(o).forEach(k=>{ if(o[k]==null) delete o[k]; }); r.order=Object.keys(o).length?JSON.stringify(o):""; const x={id:r.id, order:r.order}; if(read) x.read=1; mlSet([x]); }
+/* события «Почта» (14.11.2026): кто что делал с письмами — тихо, вместе с ближайшим сохранением (logEvSoft) */
+const mlEvW = r => "«"+String(r.subject||"без темы").replace(/\s+/g," ").trim().slice(0,90)+"» "+(r.dir==="sent"?"кому "+String(r.to||"").slice(0,60):"от "+String(r.fromName||r.from||"").slice(0,60));
+function mlEv(t, key, ms){ if(typeof logEvSoft==="function") logEvSoft("Почта", t, key, ms); }
+function mlEvDiff(r, a, b){ const w=[], on=k=>!!b[k]&&!a[k], off=k=>!!a[k]&&!b[k];
+  if(on("done")) w.push("отмечено «Обработано»"); else if(off("done") && !on("todo")) w.push("снята пометка «Обработано»");
+  if(on("todo")) w.push("отмечено «Не обработано»"); else if(off("todo") && !on("done")) w.push("снята пометка «Не обработано»");
+  if(b.spam===1 && a.spam!==1) w.push("в спам"); else if(b.spam===0 && a.spam===1) w.push("не спам");
+  if(on("minor")) w.push("в «Неважные»"); else if(off("minor")) w.push("снова во «Входящих»");
+  if(b.st!==a.st){ if(b.st==="taken") w.push("сделаны документы по заявке"+(b.cid&&typeof cusNm==="function"?" ("+cusNm(b.cid)+")":"")); else if(b.st==="no") w.push("отмечено: не заявка"); else if(b.st) w.push("отмечено: заявка"); }
+  if(w.length) mlEv(w.join(", ").replace(/^./,c=>c.toUpperCase())+" — "+mlEvW(r)); }
+function mlOrdPatch(r, patch, read){ const o0=Object.assign({}, mlOrdSt(r)||{}), o=Object.assign({}, mlOrdSt(r)||{}, patch); Object.keys(o).forEach(k=>{ if(o[k]==null) delete o[k]; }); r.order=Object.keys(o).length?JSON.stringify(o):""; const x={id:r.id, order:r.order}; if(read) x.read=1; mlSet([x]); try{ mlEvDiff(r, o0, o); }catch(e){} }
 const ML_IC_OK='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const mlDate = iso => { const d=new Date(iso); if(isNaN(d)) return ""; const t=todayISO(), x=jIso(d); return x===t ? d.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}) : x.slice(0,4)===t.slice(0,4) ? d.toLocaleDateString("ru-RU",{day:"numeric",month:"short"}).replace(".","") : fd(x); };
 const mlFull = iso => { const d=new Date(iso); return isNaN(d) ? "" : d.toLocaleString("ru-RU",{day:"numeric",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"}); };
@@ -167,6 +177,7 @@ function mlSrcdoc(h){ const csp=`default-src 'none'; style-src 'unsafe-inline'; 
 /* ---------- открыть письмо ---------- */
 async function mlOpen(id){ if(mlMob()) mlLayer("v"); ML.sel=id; ML.comp=null; ML.html=false; ML.imgs=false; const r=ML.rows.find(x=>x.id===id); if(!r) return;
   if(ML.view && ML.view.id!==id) ML.view=null; const vw=$("#ml-view"); if(vw && $("#ml-list")){ vw.innerHTML=mlViewHtml(); mlListMark(); } else mlDraw(); mlScrollView();
+  mlEv("Открыто письмо "+mlEvW(r)+(r.box?" · "+r.box:""), "mo:"+id);
   if(mlUnread(r) && !mlRO()){ r.read="1"; mlSet([{id, read:1}]); }
   try{ const j=await api({action:"mail", op:"get", id}); if(ML.sel!==id) return; ML.view={id, text:j.text||"", html:j.html||"", err:j.err||""}; }
   catch(e){ if(ML.sel!==id) return; ML.view={id, text:r.snippet||"", html:"", err:"Полный текст не загрузился: "+e.message}; }
@@ -178,7 +189,7 @@ async function mlSet(L){ try{ await api({action:"mail", op:"set", rows:L}); }cat
 /* ---------- вложения ---------- */
 async function mlAttGet(r, i){ const x=mlAtts(r)[i]; const j=await api({action:"mail", op:"att", id:r.id, i}); if(!x.f){ x.f="1"; r.atts=JSON.stringify(mlAtts(r).map((y,k)=>k===i?Object.assign(y,{f:"1"}):y)); }
   const bin=atob(j.data), u8=new Uint8Array(bin.length); for(let k=0;k<bin.length;k++) u8[k]=bin.charCodeAt(k); return new File([u8], j.name||x.n, {type:j.mime||x.m||"application/octet-stream"}); }
-async function mlAtt(r, i, how){ const t=toast("info","Загружаю файл…","",{sticky:true});
+async function mlAtt(r, i, how){ mlEv((how==="view"?"Открыто вложение":"Скачано вложение")+" «"+((mlAtts(r)[i]||{}).n||"файл")+"» — "+mlEvW(r), "ma:"+how+r.id+":"+i, 600000); const t=toast("info","Загружаю файл…","",{sticky:true});
   try{ const f=await mlAttGet(r,i); if(typeof t==="function") t(); const url=URL.createObjectURL(f);
     if(how==="view" && /pdf|image\//.test(f.type)){ const v=document.createElement("dialog"); v.className="dcard wide skview"; const im=/^image\//.test(f.type);
       v.innerHTML=`<div class="dc-head"><div><div class="dc-kicker">Вложение</div><h3>${esc(f.name)}</h3></div><button class="dc-x" autofocus aria-label="Закрыть">×</button></div>${im?`<img src="${url}" alt="${esc(f.name)}">`:`<iframe src="${url}" title="${esc(f.name)}"></iframe>`}<div class="dc-acts"><a class="btn" href="${url}" download="${esc(f.name)}">Скачать</a></div>`;
@@ -320,7 +331,7 @@ document.addEventListener("click", e=>{ const root=e.target.closest&&e.target.cl
   if(a==="reply"||a==="replyall"||a==="fwd"){ mlCompose(a); return; }
   if(a==="cclose"){ if(mlMob() && !ML.sel){ mlLayerOff(); return; } ML.comp=null; mlDraw(); return; }
   if(a==="send"){ mlSend(); return; }
-  if(a==="unread" && r){ const un=!mlUnread(r); r.read=un?"":"1"; mlSet([{id:r.id, read:!un}]); const v=$("#ml-view"); if(v) v.innerHTML=mlViewHtml(); mlListMark(); mlBadge(); return; }
+  if(a==="unread" && r){ const un=!mlUnread(r); r.read=un?"":"1"; mlSet([{id:r.id, read:!un}]); mlEv((un?"Отмечено непрочитанным":"Отмечено прочитанным")+" — "+mlEvW(r)); const v=$("#ml-view"); if(v) v.innerHTML=mlViewHtml(); mlListMark(); mlBadge(); return; }
   if(a==="html"){ ML.html=!ML.html; $("#ml-view").innerHTML=mlViewHtml(); return; }
   if(a==="imgs"){ ML.imgs=true; $("#ml-view").innerHTML=mlViewHtml(); return; }
   if(r && /^(spam|nospam|minor|major|tagno|tagcus|untag|tagsave|tagx)$/.test(a)){ mlAct(r, a, b); return; }
@@ -356,6 +367,7 @@ function mlTagLine(r){ const em=mlAddr(r), t=mlTag(em), ed=ML.tagEd===r.id;
   if(mlRO() || (t && t.kind==="spam")) return "";
   return `<div class="mltl"><span class="muted">Кто отправитель?</span><button type="button" class="btn ghost sm" data-ml="tagcus">Это заказчик…</button><button type="button" class="btn ghost sm" data-ml="tagno">Не заказчик</button></div>`; }
 async function mlTagSet(email, kind, cid, quiet){ email=String(email||"").toLowerCase(); if(!email) return;
+  if(!quiet) mlEv((kind==="cus"?"Отправитель отмечен заказчиком"+(cid&&typeof cusNm==="function"?" «"+cusNm(cid)+"»":""):kind==="no"?"Отправитель отмечен: не заказчик":kind==="spam"?"Отправитель — в спам":"Снята пометка отправителя")+": "+email);
   ML.tags=ML.tags||{}; if(kind) ML.tags[email]={kind, customerId:cid||"", by:curUser(), at:new Date().toISOString()}; else delete ML.tags[email];
   const local=()=>{ const p=getPrefs(); p.mlTags=Object.assign({}, p.mlTags||{}); if(kind) p.mlTags[email]=ML.tags[email]; else delete p.mlTags[email]; setPrefs(p, true); };
   if(ML.tagSrv===false){ local(); if(!quiet) toast("warn","Пометка сохранена только у вас","Чтобы её видели все — обновите Code.gs."); return; }
@@ -375,7 +387,7 @@ function mlAct(r, a, el){ const em=mlAddr(r);
   if(a==="tagsave"){ const cid=($("#ml-tcus")||{}).value||""; if(!cid){ toast("warn","Выберите заказчика",""); return; } ML.tagEd=""; mlTagSet(em, "cus", cid); mlDraw(); toast("ok","Отмечено: заказчик — "+cusNm(cid), "Письма от "+em+" будут с этой пометкой."); return; } }
 /* ---------- быстрые кнопки и меню по правой кнопке ---------- */
 function mlQuick(r, q, ev){ if(q==="menu"){ const b=ev.target.closest("button").getBoundingClientRect(); mlMenu(r, b.left, b.bottom+4); return; }
-  if(q==="read"){ const un=!!r.read; r.read=un?"":"1"; mlSet([{id:r.id, read:!un}]); mlRowSync(r); mlListMark(); mlBadge(); if(ML.sel===r.id){ const v=$("#ml-view"); if(v) v.innerHTML=mlViewHtml(); } return; }
+  if(q==="read"){ const un=!!r.read; r.read=un?"":"1"; mlSet([{id:r.id, read:!un}]); mlEv((un?"Отмечено непрочитанным":"Отмечено прочитанным")+" — "+mlEvW(r)); mlRowSync(r); mlListMark(); mlBadge(); if(ML.sel===r.id){ const v=$("#ml-view"); if(v) v.innerHTML=mlViewHtml(); } return; }
   if(q==="done"||q==="todo"){ mlMark(r, (q==="done"?mlDone(r):mlTodo(r)) ? "" : q); return; }
   if(q==="done"){ const on=!mlDone(r); mlOrdPatch(r, {done: on?{by:curUser(), at:new Date().toISOString()}:null}, on); if(on) r.read="1"; mlRowSync(r); mlCounts(); mlBadge(); if(ML.sel===r.id){ const v=$("#ml-view"); if(v) v.innerHTML=mlViewHtml(); } toast(on?"ok":"info", on?"Письмо обработано":"Пометка снята",""); return; }
   if(q==="spam"||q==="nospam"||q==="minor"||q==="major") mlAct(r, q); }
@@ -415,7 +427,7 @@ const MLV_I={zo:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" str
   rr:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4v5h-5"/><path d="M20.5 9A9 9 0 1 0 18 18.5"/></svg>',
   dl:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>'};
 const MLV_Z=[0.25,0.33,0.5,0.67,0.75,0.9,1,1.25,1.5,1.75,2,2.5,3,4,5];
-async function mlViewer(r, i){ const x=mlAtts(r)[i]; if(!x) return; const kind=mlKind(x.n, x.m||"");
+async function mlViewer(r, i){ const x=mlAtts(r)[i]; if(!x) return; mlEv("Открыто вложение «"+(x.n||"файл")+"» — "+mlEvW(r), "mav"+r.id+":"+i, 600000); const kind=mlKind(x.n, x.m||"");
   if(!kind){ toast("info","Этот файл на сайте не посмотреть","Нажмите «⤓», чтобы скачать."); return; }
   const pages=kind==="pdf"||kind==="office"||kind==="img", V={z:1, rot:0, items:[], fs:kind==="text"||kind==="sheet"||kind==="csv"};
   const v=document.createElement("dialog"); v.className="mlvw"+(pages?" pg":" doc"); v.setAttribute("aria-label", x.n);
@@ -657,9 +669,11 @@ function mlBulk(L, act){ const S=L.map(r=>({id:r.id, read:r.read||"", order:r.or
     else if(act==="nospam"){ o.spam=0; const em=mlAddr(r); if(em && (mlTag(em)||{}).kind==="spam" && !untag.includes(em)) untag.push(em); }
     if(ord){ Object.keys(o).forEach(k=>{ if(o[k]==null) delete o[k]; }); r.order=Object.keys(o).length?JSON.stringify(o):""; }
     const x={id:r.id}; if(rd!=null) x.read=rd; if(ord) x.order=r.order; out.push(x); });
-  if(out.length) mlSetMany(out); tags.forEach(em=>mlTagSet(em,"spam","",true)); untag.forEach(em=>mlTagSet(em,"","",true));
+  if(out.length){ mlSetMany(out); try{ const fl=act.startsWith("fld:")?act.slice(4):null, nm=fl!=null?(fl?"В папку «"+((mlFldOf(fl)||{}).name||"")+"»":"Снова во «Входящих»"):(ML_BT[act]||act), lst=L.filter(r=>out.some(x=>x.id===r.id));
+      mlEv(nm+(lst.length===1?" — "+mlEvW(lst[0]):": "+lst.length+" "+plural(lst.length,["письмо","письма","писем"])+" ("+lst.slice(0,3).map(r=>"«"+String(r.subject||"без темы").slice(0,40)+"»").join(", ")+(lst.length>3?"…":"")+")")); }catch(e){} }
+  tags.forEach(em=>mlTagSet(em,"spam","",true)); untag.forEach(em=>mlTagSet(em,"","",true));
   return {S, tags, untag, n:out.length}; }
-function mlRestore(R){ R.S.forEach(x=>{ const r=ML.rows.find(y=>y.id===x.id); if(r){ r.read=x.read; r.order=x.order; } }); mlSetMany(R.S.map(x=>({id:x.id, read:x.read?1:0, order:x.order})));
+function mlRestore(R){ mlEv("Отменена отметка писем ("+R.S.length+")"); R.S.forEach(x=>{ const r=ML.rows.find(y=>y.id===x.id); if(r){ r.read=x.read; r.order=x.order; } }); mlSetMany(R.S.map(x=>({id:x.id, read:x.read?1:0, order:x.order})));
   R.tags.forEach(em=>mlTagSet(em,"","",true)); R.untag.forEach(em=>mlTagSet(em,"spam","",true)); mlDraw(); mlBadge(); }
 const ML_BT={read:"Отмечено прочитанным", unread:"Отмечено непрочитанным", done:"Обработано", minor:"В «Неважных»", major:"Снова во «Входящих»", spam:"В спаме", nospam:"Не спам — снова во «Входящих»"};
 function mlBulkUi(L, a){ if(mlRO() || !L.length) return; const R=mlBulk(L, a); if(!R.n){ toast("info","Нечего отмечать",""); return; }
@@ -760,13 +774,13 @@ function mlFldCheck(n, skip){ if(!n) return "Напишите название";
   if(mlFlds().some(f=>f.id!==skip && f.name.toLowerCase()===n.toLowerCase())) return "Такая папка уже есть"; if(mlFlds().length>=60) return "Папок слишком много (до 60)"; return ""; }
 function mlFldNew(then){ if(mlRO()) return; mlFldAsk("Новая папка", "", "Создать", n=>{ const m=mlFldCheck(n); if(m) return m;
     const f={id:"f"+Date.now().toString(36)+Math.random().toString(36).slice(2,5), name:n, color:""};
-    mlFldSave(mlFlds().concat(f)).then(ok=>{ if(!ok){ ML.folders=mlFlds().filter(x=>x.id!==f.id); mlDraw(); } });
+    mlEv("Создана папка «"+n+"»"); mlFldSave(mlFlds().concat(f)).then(ok=>{ if(!ok){ ML.folders=mlFlds().filter(x=>x.id!==f.id); mlDraw(); } });
     if(then) then(f); else { ML.f="u:"+f.id; ML.more=0; ML.sel=""; ML.view=null; mlDraw(); toast("ok","Папка «"+n+"» создана","Переложить письмо: «В папку» у письма"+(mlMob()?"":" или правая кнопка мыши")+"."); }
     return ""; }); }
 function mlFldRen(){ const f=mlFldOf(ML.f.slice(2)); if(!f || mlRO()) return; mlFldAsk("Переименовать папку", f.name, "Сохранить", n=>{ const m=n===f.name?"":mlFldCheck(n, f.id); if(m) return m;
-    mlFldSave(mlFlds().map(x=>x.id===f.id?Object.assign({}, x, {name:n}):x), true); mlDraw(); return ""; }); }
+    if(n!==f.name) mlEv("Папка «"+f.name+"» переименована в «"+n+"»"); mlFldSave(mlFlds().map(x=>x.id===f.id?Object.assign({}, x, {name:n}):x), true); mlDraw(); return ""; }); }
 function mlFldDel(){ const f=mlFldOf(ML.f.slice(2)); if(!f || mlRO()) return; const n=ML.rows.filter(r=>mlFld(r)===f.id).length, before=mlFlds();
-  mlFldSave(before.filter(x=>x.id!==f.id), true); ML.f="in"; ML.sel=""; ML.view=null; mlDraw(); mlBadge();
+  mlEv("Удалена папка «"+f.name+"»"); mlFldSave(before.filter(x=>x.id!==f.id), true); ML.f="in"; ML.sel=""; ML.view=null; mlDraw(); mlBadge();
   toast("info","Папка «"+f.name+"» удалена", n?n+" "+plural(n,["письмо","письма","писем"])+" снова во «Входящих».":"", {action:{label:"Отменить", fn:()=>{ mlFldSave(before, true).then(()=>{ ML.f="u:"+f.id; mlDraw(); mlBadge(); }); }}}); }
 /* меню «В папку»: свои папки, «Во входящие», «+ Новая папка…» */
 function mlFldMenu(L, x, y, before){ mlMenuClose(); if(mlRO() || !L.length) return; const cur=L.length===1?mlFld(L[0]):"";
