@@ -134,7 +134,9 @@ async function acAsk(text){ text=String(text||"").trim(); const F=AC.files.filte
   AC.busy=true; acSquash(); AC.view.push({r:"u", t:text, f:F.map(f=>f.name)}); AC.msgs.push({role:"user", content: F.length ? F.map(f=>f.block).concat([{type:"text", text}]) : text}); AC.files=[]; acTrim(); AC.step=F.length?"Читаю файл…":"Думаю…"; acDraw(true);
   try{
     for(let round=0; round<10; round++){
-      const j=await apiFetch(API_URL,{method:"POST", tmo:120000, body:JSON.stringify({key:pass(), user:curUser(), action:"aiChat", system:acSystem(), tools:JSON.stringify(AC_TOOLS), msgs:JSON.stringify(AC.msgs, (k,v)=>k==="_n"?undefined:v)})});
+      const send=()=>apiFetch(API_URL,{method:"POST", tmo:120000, body:JSON.stringify({key:pass(), user:curUser(), action:"aiChat", system:acSystem(), tools:JSON.stringify(AC_TOOLS), msgs:JSON.stringify(AC.msgs, (k,v)=>k==="_n"?undefined:v)})});
+      let j; try{ j=await send(); }
+      catch(e){ if(!/signature|thinking/i.test(e.message||"")) throw e; acNoThink(); j=await send(); }   /* страховка: Claude не принял свои прошлые «размышления» — убираем все и повторяем */
       const content=j.content||[]; AC.msgs.push({role:"assistant", content}); if(j.use){ AC.use=j.use; acUseDraw(); }
       const uses=content.filter(c=>c.type==="tool_use");
       if(j.stop!=="tool_use" || !uses.length){ const t=content.filter(c=>c.type==="text").map(c=>c.text).join("\n").trim(); AC.view.push({r:"a", t:t||"(пустой ответ)"}); break; }
