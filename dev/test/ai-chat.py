@@ -12,6 +12,11 @@ def srv(js):
         x=json.loads(r); return x if isinstance(x,str) else r
     except Exception: return r
 FAKE = r"""__chatLog=[]; __chat=function(bd){ const last=bd.messages[bd.messages.length-1];
+  if(Array.isArray(last.content) && last.content[0].type==='text' && /Файл «/.test(last.content[0].text)){ const cn=(bd.system.match(/__CN=([^\n]+)/)||[])[1];
+    return {content:[{type:'tool_use',id:'t3',name:'make_document',input:{customer:'Цирк', date:'2026-11-20', items:[{name:'Картофель',qty:10,unit:'кг'}]}}],stop_reason:'tool_use'}; }
+  if(Array.isArray(last.content) && last.content[0].type==='tool_result' && /opened/.test(last.content[0].content)) return {content:[{type:'text',text:'Открыл «Новый документ», проверьте и сохраните.'}],stop_reason:'end_turn'};
+  if(typeof last.content==='string' && /запомни/i.test(last.content)) return {content:[{type:'tool_use',id:'t4',name:'remember',input:{text:'Позвонить в Цирк про акт', date:'2026-11-01'}}],stop_reason:'tool_use'};
+  if(Array.isArray(last.content) && last.content[0].type==='tool_result' && /saved/.test(last.content[0].content)) return {content:[{type:'text',text:'Запомнил.'}],stop_reason:'end_turn'};
   if(typeof last.content==='string'){ if(/долж/i.test(last.content)) return {content:[{type:'tool_use',id:'t2',name:'debts',input:{}}],stop_reason:'tool_use'};
     return {content:[{type:'text',text:'Смотрю.'},{type:'tool_use',id:'t1',name:'search_docs',input:{product:'картошка',date_from:'2026-11-12',date_to:'2026-11-12'}}],stop_reason:'tool_use'}; }
   const r=JSON.parse(last.content[0].content);
@@ -57,7 +62,30 @@ async def main():
             if W==390:
                 bb=await pg.evaluate("(()=>{const r=document.getElementById('ac-pan').getBoundingClientRect(); return [r.width, r.height, innerWidth, innerHeight, document.documentElement.scrollWidth]})()")
                 ok(bb[0]>=bb[2]-1 and bb[1]>=bb[3]-1 and bb[4]<=bb[2], f'телефон: помощник во весь экран, без прокрутки вбок ({bb})')
+            u=await pg.text_content('#ac-use'); ok('Потрачено' in u and '$' in u, f'{W}: расход в шапке ({u})')
+            await pg.fill('#ac-in', 'Запомни: позвонить в Цирк про акт'); await pg.press('#ac-in','Enter')
+            await pg.wait_for_function("document.querySelectorAll('#ac-list .am.a').length>=3", timeout=15000)
+            ok(await pg.locator('#ac-list .acrm').count()==1 and 'Цирк' in await pg.text_content('#ac-list .acrm'), f'{W}: напоминание в памяти и показано сверху')
+            ok('Позвонить в Цирк' in json.loads(srv("JSON.stringify(__chatLog)"))[-1]['system'], f'{W}: память уходит в инструкцию')
             await pg.click('[data-acnew]'); ok(await pg.locator('#ac-list .am').count()==0, f'{W}: «Новый разговор» очищает')
+            ok(await pg.locator('#ac-list .acrm').count()==1, f'{W}: напоминание остаётся после нового разговора')
+            await pg.click('#ac-list [data-acrm]'); await pg.wait_for_timeout(200); ok(await pg.locator('#ac-list .acrm').count()==0, f'{W}: «Готово» убирает напоминание')
+            # файл → накладная
+            fp='/tmp/claude-0/zayavka.txt'; open(fp,'w').write('Заявка на поставку\nКартофель 10 кг\n')
+            await pg.set_input_files('#ac-fin', fp); await pg.wait_for_timeout(500)
+            ok('zayavka.txt' in await pg.text_content('#ac-fs'), f'{W}: файл приложен')
+            await pg.fill('#ac-in', 'Сделай накладную'); await pg.press('#ac-in','Enter')
+            await pg.wait_for_function("document.getElementById('ac-pan').hidden", timeout=15000)
+            ok(await ev("curTab")=='doc' and await ev("!!(IMP&&IMP.r&&IMP.r.groups.length)"), f'{W}: открыт «Новый документ» с заполненной накладной')
+            g=await ev("JSON.stringify(IMP.r.groups[0].items.map(x=>[x.name||x.productId, x.qty]))"); ok('10' in g, f'{W}: строки накладной ({g[:80]})')
+            m=json.loads(srv("JSON.stringify(__chatLog)"))[-1]['messages']; ok(any(isinstance(x['content'],list) and any(c.get('type')=='text' and 'Картофель 10 кг' in c.get('text','') for c in x['content']) for x in m), f'{W}: содержимое файла ушло в Claude')
+            await pg.click('#ac-fab'); await pg.wait_for_selector('#ac-pan:not([hidden])')
+            await pg.wait_for_function("/проверьте/.test(document.getElementById('ac-list').textContent)", timeout=10000)
+            ok(True, f'{W}: ответ про накладную виден после возврата в чат')
+            if W==390:
+                fb=await pg.evaluate("(()=>{document.querySelector('[data-acx]').click(); const f=document.getElementById('ac-fab').getBoundingClientRect(), m=document.getElementById('mbar').getBoundingClientRect(); return [f.bottom, m.top, f.width]})()")
+                ok(fb[0]<=fb[1]+0.5 and fb[2]<=44, f'телефон: кнопка маленькая и над нижним меню ({fb})')
+                await pg.click('#ac-fab'); await pg.wait_for_selector('#ac-pan:not([hidden])')
             await pg.click('[data-acx]'); ok(await pg.is_visible('#ac-fab'), f'{W}: закрыли — снова кнопка')
             ok(not errs, f'{W}: без ошибок {errs[:2]}')
             await ctx.close()

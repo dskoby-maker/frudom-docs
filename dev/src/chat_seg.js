@@ -1,10 +1,13 @@
 /* ---------- «Помощник» — встроенный Claude (только Даниил; Code.gs ≥ 38, действие aiChat) ----------
    Claude понимает вопрос и сам просит у сайта данные (инструменты ниже); цифры считает сайт по своим данным
    (журнал, оплаты, закупка, цены, склад, расходы) — Claude их не выдумывает, а пересказывает. */
-const AC={open:false, busy:false, msgs:[], view:[], step:""};
+const AC={open:false, busy:false, msgs:[], view:[], step:"", files:[], use:null, useAt:0};
 const AC_KEY = () => "frudom-ac:"+(curUser()||"");
 function acLoad(){ try{ const x=JSON.parse(localStorage.getItem(AC_KEY())||"null"); if(x&&Array.isArray(x.view)){ AC.view=x.view.slice(-60); AC.msgs=Array.isArray(x.msgs)?x.msgs:[]; } }catch(e){} }
-function acSave(){ try{ localStorage.setItem(AC_KEY(), JSON.stringify({view:AC.view.slice(-60), msgs:AC.msgs.slice(-40)})); }catch(e){} }
+const acIsQ = m => m && m.role==="user" && (typeof m.content==="string" || (Array.isArray(m.content) && !m.content.some(c=>c.type==="tool_result")));
+const acNoFile = c => (c.type==="document"||c.type==="image") ? {type:"text", text:"(здесь был приложен файл"+(c._n?" «"+c._n+"»":"")+" — если он снова нужен, попроси приложить)"} : c;
+const acClean = m => Array.isArray(m.content) ? Object.assign({}, m, {content:m.content.map(c=>{ const x=acNoFile(c); if(x!==c) return x; const y=Object.assign({},c); delete y._n; return y; })}) : m;
+function acSave(){ try{ localStorage.setItem(AC_KEY(), JSON.stringify({view:AC.view.slice(-60), msgs:AC.msgs.slice(-40).map(acClean)})); }catch(e){} }
 const acOk = () => { try{ return typeof MAILAPP!=="undefined" && MAILAPP ? false : !!(me() && me().admin && pass()); }catch(e){ return false; } };
 
 /* ---------- поиск по данным сайта ---------- */
@@ -31,8 +34,19 @@ const AC_TOOLS=[
   {name:"profit", description:"Выручка, закупка, налог 8%, расходы и прибыль по накладным за период (можно по заказчику), плюс прочие расходы/доходы и личные траты за период.", input_schema:{type:"object", properties:{date_from:{type:"string"}, date_to:{type:"string"}, customer:{type:"string"}}}},
   {name:"expenses", description:"Прочие расходы, доходы и личные траты (раздел «Расходы и доходы»): по датам, виду и тексту.", input_schema:{type:"object", properties:{date_from:{type:"string"}, date_to:{type:"string"}, kind:{type:"string", description:"Расход / Доход / Личное"}, text:{type:"string"}}}},
   {name:"customers", description:"Заказчики: короткое и полное название, ИНН, договоры (основание, ИП, цена договора, срок, сколько уже поставлено), подразделения и адреса.", input_schema:{type:"object", properties:{query:{type:"string"}}}},
-  {name:"stock", description:"Остатки на складе: что есть, сколько, в резерве.", input_schema:{type:"object", properties:{product:{type:"string"}}}}
+  {name:"stock", description:"Остатки на складе: что есть, сколько, в резерве.", input_schema:{type:"object", properties:{product:{type:"string"}}}},
+  {name:"make_document", description:"Заполнить накладную(ые) на вкладке «Новый документ» — как «Заказ из файла»: сайт сам подберёт товары заказчика, цены прайса, адрес/подразделение, договор и номер. Даниил проверит и сам нажмёт «Сохранить». Используй, когда просят сделать накладную/документ (например, по приложенной заявке). Несколько адресов или подразделений — передай address у каждого вызова отдельно или columns + qtys.",
+   input_schema:{type:"object", properties:{customer:{type:"string", description:"заказчик (как на сайте или ИНН)"}, supplier:{type:"string", description:"ИП, если известен"}, contract:{type:"string", description:"номер договора, если есть в заявке"}, date:{type:"string", description:"дата поставки ГГГГ-ММ-ДД"}, address:{type:"string", description:"адрес доставки или название подразделения"},
+     columns:{type:"array", items:{type:"string"}, description:"если в заявке количества по подразделениям/адресам столбцами — их названия"},
+     items:{type:"array", items:{type:"object", properties:{name:{type:"string"}, qty:{type:"number"}, unit:{type:"string"}, price:{type:"number", description:"только если цена указана в заявке"}, qtys:{type:"object", description:"количества по columns"}}, required:["name"]}}}, required:["customer","items"]}},
+  {name:"remember", description:"Запомнить для Даниила заметку, правило или напоминание (сохраняется между разговорами). date — когда напомнить (ГГГГ-ММ-ДД), если это напоминание.", input_schema:{type:"object", properties:{text:{type:"string"}, date:{type:"string"}}, required:["text"]}},
+  {name:"forget", description:"Удалить заметку/напоминание из памяти по id.", input_schema:{type:"object", properties:{id:{type:"string"}}, required:["id"]}},
+  {name:"site_checks", description:"Что сайт сам нашёл: забытое и возможные ошибки (долги старше 30 дней, накладные без закупки или в минус, без договора, поставки без документов, остаток по договорам, склад, реквизиты, товары без единицы). Используй, когда спрашивают «что я забыл», «где ошибки», «что важно сегодня».", input_schema:{type:"object", properties:{}}}
 ];
+/* память помощника — в личных настройках (prefs.acMem: [{id, t, d, at}]) */
+const acMem = () => { const m=getPrefs().acMem; return Array.isArray(m)?m:[]; };
+function acMemSet(L){ const p=getPrefs(); p.acMem=L.slice(-80); setPrefs(p, true); }
+const acDue = () => acMem().filter(x=>x.d && x.d<=todayISO());
 
 const AC_RUN={
   async search_docs(a){ const L=acDocs(a), lim=Math.min(+a.limit||40, 120), tot={}; let sum=0, n=0; const out=[];
@@ -71,6 +85,20 @@ const AC_RUN={
       branches:(typeof branches==="function"?branches(c):[]).map(b=>b.label).filter(Boolean),
       contracts:(D.contracts||[]).filter(x=>x.customerId===c.id).map(x=>{ const sh=D.journal.filter(j=>!isArch(j)&&j.snap&&j.snap.dr.contractId===x.id).reduce((s,j)=>s+(+j.sum||0),0);
         return {basis:x.basis, short:x.short||undefined, supplier:(sup(x.supplierId)||{}).name||"", max_sum:x.maxSum?acN(x.maxSum):undefined, until:x.dateTo||undefined, shipped_sum:acN(sh)}; })}))}; },
+  async make_document(a){ const cs=acCus(a.customer||"")||[];
+    if(!cs.length) return {error:"заказчик «"+(a.customer||"")+"» не найден на сайте — уточни название"}; if(cs.length>1) return {error:"подходят несколько заказчиков — уточни", candidates:cs.map(c=>cusNm(c.id))};
+    const c=cs[0], x={customer:c.name, inn:c.inn||"", contract:a.contract||"", supplier:a.supplier||"", date:acD(a.date)||"", address:a.address||"", columns:Array.isArray(a.columns)?a.columns:undefined,
+      items:(Array.isArray(a.items)?a.items:[]).filter(i=>i&&i.name).map(i=>({name:i.name, unit:i.unit||"", qty:i.qty, price:i.price, qtys:i.qtys}))};
+    if(!x.items.length) return {error:"нет ни одной строки товара"};
+    let r; try{ showTab("doc"); IMP={file:"Помощник"}; IMP.r=r=impResolve(ftParse(aiSrc(x))); impShow(); }catch(e){ return {error:String(e.message||e)}; }
+    AC.made=1; setTimeout(()=>{ acShow(false); toast("ok","Помощник заполнил накладную","Проверьте строки, цены и адрес и нажмите «Сохранить»."); }, 300);
+    return {ok:true, opened:"вкладка «Новый документ» — накладные заполнены, Даниил проверит и нажмёт «Сохранить»", customer:cusNm(c.id), date:r.date||undefined,
+      documents:(r.groups||[]).map(g=>({address:g.ship||g.addr||"", lines:(g.items||[]).length, sum:acN(g.sum), not_found:(g.miss||[]).map(l=>l.name), warnings:(g.warn||[]).map(w=>w.m).slice(0,8)})), warnings:(r.warn||[]).map(w=>w.m||w).slice(0,8)}; },
+  async remember(a){ const t=String(a.text||"").trim(); if(!t) return {error:"пустая заметка"}; const L=acMem(), x={id:Date.now().toString(36), t:t.slice(0,500), d:acD(a.date)||"", at:todayISO()}; L.push(x); acMemSet(L); return {ok:true, saved:x}; },
+  async forget(a){ const L=acMem(), n=L.length, M=L.filter(x=>x.id!==String(a.id)); if(M.length===n) return {error:"нет заметки с таким id"}; acMemSet(M); return {ok:true}; },
+  async site_checks(){ let T=[]; try{ T=autoTasks(); }catch(e){ return {error:"не получилось: "+(e.message||e)}; }
+    const hid=(getPrefs().tkHide)||{}; T=T.filter(x=>!hid[x.key]); const o={err:0,warn:1,info:2}; T.sort((a,b)=>(o[a.lvl]??3)-(o[b.lvl]??3));
+    return {count:T.length, items:T.slice(0,40).map(x=>({level:x.lvl==="err"?"важно":x.lvl==="warn"?"внимание":"к сведению", group:x.g, title:x.title, text:String(x.text||"").replace(/<[^>]+>/g,"").slice(0,300)}))}; },
   async stock(a){ if(typeof SK_READY==="undefined" || !SK_READY) return {error:"склад ещё не загружен — откройте вкладку «Склад» и спросите снова"};
     const X=skIdx(), L=X.S.items.filter(i=>!a.product || acHit(a.product, [i.name, i.alt||""].join(" ")));
     return {items:L.slice(0,60).map(i=>({name:i.name, units:skUnitsOf(i.id).map(u=>({unit:u.unit, on_hand:u.fact, reserved:u.res}))})).filter(i=>!a.product ? i.units.some(u=>u.on_hand>0) : true)}; }
@@ -87,18 +115,24 @@ function acSystem(){ const d=new Date(), dn=["воскресенье","поне�
 - Накладные называй ссылками ровно в таком виде: [[doc:ID|№ 69 от 12.11]] (ID — поле id из инструмента). Заказчика можно ссылкой [[cus:ID|Цирк]] (ID — customer_id или id).
 - Если вопрос неоднозначный (несколько заказчиков с похожим названием) — коротко уточни.
 - Ты только читаешь данные: изменить, удалить или создать документ не можешь — подскажи, где это сделать на сайте.
-- Данные — те, что загружены на этом устройстве (журнал — последние 2000 накладных).`; }
+- Данные — те, что загружены на этом устройстве (журнал — последние 2000 накладных).
+- Если Даниил прислал файл (заявку, накладную, фото) и просит сделать документ — прочитай файл, уточни заказчика (при сомнении — инструментом customers) и вызови make_document с товарами как в заявке (названия как в заявке, количество, единица; цену — только если она есть в заявке). Потом коротко скажи, что открыл «Новый документ», что не нашлось или вызвало сомнения — и что нужно проверить и нажать «Сохранить».
+- Ты помощник: если видишь в данных возможную ошибку (цена не как в прайсе или договоре, повтор накладной, дата не та, долг давно висит, превышение по договору) — коротко скажи об этом, даже если не спрашивали.
+- Память: важное, что Даниил просит запомнить (правила, предпочтения, договорённости, напоминания), сохраняй инструментом remember (у напоминания — date). Не запоминай то, что и так есть в данных сайта. Удалить — forget.${acMemTxt()}`; }
+function acMemTxt(){ const L=acMem(); if(!L.length) return ""; return "\nТвоя память (заметки Даниила, id в скобках):\n"+L.map(x=>"- ("+x.id+") "+(x.d?"[напомнить "+x.d+"] ":"")+x.t).join("\n"); }
 
 /* ---------- разговор ---------- */
-function acSquash(){ AC.msgs.forEach(m=>{ if(m.role==="user" && Array.isArray(m.content)) m.content.forEach(c=>{ if(c.type==="tool_result" && String(c.content||"").length>200) c.content="(старые данные — при необходимости запроси заново)"; }); }); }
-function acTrim(){ let n=0; for(let i=AC.msgs.length-1;i>=0;i--){ const m=AC.msgs[i]; if(m.role==="user" && typeof m.content==="string"){ n++; if(n>12){ AC.msgs=AC.msgs.slice(i+1); while(AC.msgs.length && !(AC.msgs[0].role==="user" && typeof AC.msgs[0].content==="string")) AC.msgs.shift(); break; } } } }
+function acSquash(){ let q=0; for(let i=AC.msgs.length-1;i>=0;i--){ const m=AC.msgs[i]; if(acIsQ(m)) q++;
+    if(m.role==="user" && Array.isArray(m.content)) m.content=m.content.map(c=>{ if(c.type==="tool_result" && String(c.content||"").length>200) return Object.assign({},c,{content:"(старые данные — при необходимости запроси заново)"}); return q>2?acNoFile(c):c; }); } }
+function acTrim(){ let n=0; for(let i=AC.msgs.length-1;i>=0;i--){ if(acIsQ(AC.msgs[i])){ n++; if(n>12){ AC.msgs=AC.msgs.slice(i+1); while(AC.msgs.length && !acIsQ(AC.msgs[0])) AC.msgs.shift(); break; } } } }
 const AC_STEP={search_docs:"Ищу в накладных…", debts:"Считаю долги…", prices:"Смотрю цены…", profit:"Считаю прибыль…", expenses:"Смотрю расходы…", customers:"Смотрю заказчиков…", stock:"Смотрю склад…"};
-async function acAsk(text){ text=String(text||"").trim(); if(!text||AC.busy) return; if(!online()){ toast("warn","Нет связи","Помощнику нужен интернет."); return; }
-  AC.busy=true; acSquash(); AC.view.push({r:"u", t:text}); AC.msgs.push({role:"user", content:text}); acTrim(); AC.step="Думаю…"; acDraw(true);
+async function acAsk(text){ text=String(text||"").trim(); const F=AC.files.filter(f=>f.block); if((!text&&!F.length)||AC.busy) return; if(AC.files.some(f=>f.busy)){ toast("info","Подождите","Файл ещё готовится."); return; } if(!online()){ toast("warn","Нет связи","Помощнику нужен интернет."); return; }
+  if(!text) text="Посмотри файл.";
+  AC.busy=true; acSquash(); AC.view.push({r:"u", t:text, f:F.map(f=>f.name)}); AC.msgs.push({role:"user", content: F.length ? F.map(f=>f.block).concat([{type:"text", text}]) : text}); AC.files=[]; acTrim(); AC.step=F.length?"Читаю файл…":"Думаю…"; acDraw(true);
   try{
     for(let round=0; round<10; round++){
-      const j=await apiFetch(API_URL,{method:"POST", tmo:120000, body:JSON.stringify({key:pass(), user:curUser(), action:"aiChat", system:acSystem(), tools:JSON.stringify(AC_TOOLS), msgs:JSON.stringify(AC.msgs)})});
-      const content=j.content||[]; AC.msgs.push({role:"assistant", content});
+      const j=await apiFetch(API_URL,{method:"POST", tmo:120000, body:JSON.stringify({key:pass(), user:curUser(), action:"aiChat", system:acSystem(), tools:JSON.stringify(AC_TOOLS), msgs:JSON.stringify(AC.msgs, (k,v)=>k==="_n"?undefined:v)})});
+      const content=j.content||[]; AC.msgs.push({role:"assistant", content}); if(j.use){ AC.use=j.use; acUseDraw(); }
       const uses=content.filter(c=>c.type==="tool_use");
       if(j.stop!=="tool_use" || !uses.length){ const t=content.filter(c=>c.type==="text").map(c=>c.text).join("\n").trim(); AC.view.push({r:"a", t:t||"(пустой ответ)"}); break; }
       const res=[]; for(const u of uses){ AC.step=AC_STEP[u.name]||"Ищу…"; acDraw(); let out; try{ const f=AC_RUN[u.name]; out=f ? await f(u.input||{}) : {error:"нет такого инструмента"}; }catch(e){ out={error:String(e.message||e)}; }
@@ -107,9 +141,10 @@ async function acAsk(text){ text=String(text||"").trim(); if(!text||AC.busy) ret
       if(round===9) AC.view.push({r:"a", t:"Не успел разобраться — уточните вопрос, пожалуйста."});
     }
   }catch(e){ const m=e.message||String(e);
+    AC.msgs=AC.msgs.map(acClean);
     const t = m==="unknown action" ? "Скрипт таблицы старый — обновите Code.gs (нужна версия 38), тогда я заработаю." : m==="nokey" ? "Не вставлен ключ Claude: «Данные» → «ИИ» → ключ Claude." : m==="badkey" ? "Ключ Claude не подходит — проверьте его в «Данные» → «ИИ»." : m==="forbidden" ? "Помощник доступен только Даниилу." : "Не получилось: "+m;
     AC.view.push({r:"a", t, err:1});
-    while(AC.msgs.length && !(AC.msgs[AC.msgs.length-1].role==="user" && typeof AC.msgs[AC.msgs.length-1].content==="string")) AC.msgs.pop(); AC.msgs.pop(); }
+    while(AC.msgs.length && !acIsQ(AC.msgs[AC.msgs.length-1])) AC.msgs.pop(); AC.msgs.pop(); }
   AC.busy=false; AC.step=""; acSave(); acDraw(true); }
 
 /* ---------- оформление ответа ---------- */
@@ -129,8 +164,15 @@ const AC_IC=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-w
 const AC_SUG=["Кто сколько мне должен?","Куда уходила картошка 12 числа?","Сколько заработали в этом месяце?","По какой цене продавали помидоры Цирку в октябре?","Что Гриша везёт завтра?","Сколько осталось по договорам МОК?"];
 function acEl(){ let b=document.getElementById("ac-fab"); if(b) return;
   const st=document.createElement("style"); st.textContent=`
-#ac-fab{position:fixed;right:18px;bottom:calc(var(--mbh,0px) + 18px);z-index:60;display:flex;align-items:center;gap:8px;height:46px;padding:0 18px 0 14px;border:0;border-radius:23px;background:#5b2a4e;color:#fff;font:600 15px/1 inherit;font-family:inherit;box-shadow:0 6px 22px rgba(60,20,50,.28);cursor:pointer}
-#ac-fab svg{width:22px;height:22px}#ac-fab[hidden],#ac-pan[hidden]{display:none}
+#ac-fab{position:fixed;right:16px;bottom:16px;z-index:60;display:flex;align-items:center;gap:7px;height:40px;padding:0 15px 0 12px;border:0;border-radius:20px;background:#5b2a4e;color:#fff;font:600 14px/1 inherit;font-family:inherit;box-shadow:0 5px 18px rgba(60,20,50,.26);cursor:pointer}
+#ac-fab svg{width:19px;height:19px}#ac-fab b{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;border-radius:9px;background:#d9534f;color:#fff;font-size:11px;line-height:18px;text-align:center;padding:0 4px}
+#ac-pan .acrm{margin:0 0 4px;padding:10px 12px;border-radius:12px;background:#fff8e6;border:1px solid #f0dfb0;font-size:14px}#ac-pan .acrm b{display:block;margin-bottom:4px}
+#ac-pan .acrm div{display:flex;gap:8px;align-items:flex-start;margin:4px 0}#ac-pan .acrm div span{flex:1}#ac-pan .acrm button{border:1px solid #e6d29c;background:#fff;border-radius:8px;padding:3px 8px;font:inherit;font-size:12.5px;cursor:pointer}
+#ac-pan .acchk{border:1px dashed #d8c8d2;background:#fff;border-radius:12px;padding:8px 12px;font:inherit;font-size:13.5px;color:#5b2a4e;cursor:pointer;text-align:left}
+#ac-pan .acfs{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px}#ac-pan .acfs:empty{display:none}#ac-pan .acfs span{display:inline-flex;align-items:center;gap:6px;background:#f3e9ef;color:#5b2a4e;border-radius:8px;padding:4px 8px;font-size:13px;max-width:100%}
+#ac-pan .acfs span i{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}#ac-pan .acfs span.err{background:#fdecea;color:#a3322a}#ac-pan .acfs button{border:0;background:none;font-size:16px;color:inherit;cursor:pointer;padding:0}
+#ac-att{width:44px;height:44px;flex:none;align-self:flex-end;border:1px solid #e0d7dd;border-radius:12px;background:#fff;color:#5b2a4e;cursor:pointer}#ac-att svg{width:20px;height:20px}
+#ac-list .am .acfn{display:block;font-size:12.5px;opacity:.85;margin-bottom:4px}#ac-fab[hidden],#ac-pan[hidden]{display:none}
 #ac-pan{position:fixed;right:16px;bottom:16px;z-index:61;width:min(440px,calc(100vw - 32px));height:min(680px,calc(100vh - 32px));display:flex;flex-direction:column;background:#fbfaf8;border-radius:18px;box-shadow:0 18px 60px rgba(40,20,40,.3);overflow:hidden;font-size:15px;color:#29232a}
 #ac-pan .ach0{display:flex;align-items:center;gap:10px;padding:14px 14px 12px 16px;border-bottom:1px solid #ece6ea;background:#fff}
 #ac-pan .ach0 b{font-size:16px;flex:1}#ac-pan .ach0 small{display:block;font-weight:400;color:#8a7f87;font-size:12px;margin-top:2px}
@@ -152,31 +194,57 @@ function acEl(){ let b=document.getElementById("ac-fab"); if(b) return;
 #ac-in{flex:1;resize:none;min-height:42px;max-height:140px;border:1px solid #e0d7dd;border-radius:12px;padding:10px 12px;font:inherit;font-size:16px;line-height:1.35}
 #ac-in:focus{outline:none;border-color:#5b2a4e}
 #ac-go{width:44px;height:44px;flex:none;align-self:flex-end;border:0;border-radius:12px;background:#5b2a4e;color:#fff;font-size:20px;cursor:pointer}#ac-go:disabled{opacity:.45;cursor:default}
-@media (max-width:640px){#ac-pan{right:0;bottom:0;width:100vw;height:100dvh;border-radius:0}#ac-fab{right:14px;height:44px;padding:0 14px}#ac-fab span{display:none}}
+@media (max-width:640px){#ac-pan{right:0;bottom:0;width:100vw;height:100dvh;border-radius:0}#ac-fab{right:12px;width:42px;height:42px;padding:0;justify-content:center;border-radius:21px}#ac-fab span{display:none}}
 @media print{#ac-fab,#ac-pan{display:none!important}}`;
   document.head.appendChild(st);
   b=document.createElement("button"); b.type="button"; b.id="ac-fab"; b.hidden=true; b.innerHTML=AC_IC+"<span>Спросить</span>"; b.title="Помощник: спросите о накладных, ценах, долгах"; b.onclick=()=>acShow(true);
   const p=document.createElement("section"); p.id="ac-pan"; p.hidden=true; p.setAttribute("aria-label","Помощник");
-  p.innerHTML=`<div class="ach0"><b>Помощник<small>Claude · отвечает по данным сайта</small></b><button type="button" class="acnew" data-acnew>Новый разговор</button><button type="button" class="acx" data-acx aria-label="Закрыть">×</button></div>
-    <div id="ac-list"></div><form id="ac-f"><textarea id="ac-in" rows="1" placeholder="Спросите: куда уходила картошка 12 числа?" autocomplete="off"></textarea><button id="ac-go" type="submit" aria-label="Отправить">➤</button></form>`;
+  p.innerHTML=`<div class="ach0"><b>Помощник<small id="ac-use">Claude · отвечает по данным сайта</small></b><button type="button" class="acnew" data-acnew>Новый разговор</button><button type="button" class="acx" data-acx aria-label="Закрыть">×</button></div>
+    <div id="ac-list"></div><div class="acfs" id="ac-fs"></div><form id="ac-f"><button type="button" id="ac-att" aria-label="Приложить файл" title="Приложить файл: заявку, накладную, фото, Excel, Word"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9"/></svg></button><input type="file" id="ac-fin" multiple hidden><textarea id="ac-in" rows="1" placeholder="Спросите: куда уходила картошка 12 числа?" autocomplete="off"></textarea><button id="ac-go" type="submit" aria-label="Отправить">➤</button></form>`;
   document.body.appendChild(b); document.body.appendChild(p);
   const inp=p.querySelector("#ac-in"), grow=()=>{ inp.style.height="auto"; inp.style.height=Math.min(140,inp.scrollHeight)+"px"; };
   inp.addEventListener("input",grow);
   inp.addEventListener("keydown",e=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); p.querySelector("#ac-f").requestSubmit(); } if(e.key==="Escape") acShow(false); });
-  p.querySelector("#ac-f").addEventListener("submit",e=>{ e.preventDefault(); const t=inp.value; if(!t.trim()||AC.busy) return; inp.value=""; grow(); acAsk(t); });
-  p.addEventListener("click",e=>{ const t=e.target.closest("[data-acx],[data-acnew],[data-acdoc],[data-accus],[data-acsug]"); if(!t) return;
+  p.querySelector("#ac-f").addEventListener("submit",e=>{ e.preventDefault(); const t=inp.value; if((!t.trim()&&!AC.files.length)||AC.busy) return; inp.value=""; grow(); acAsk(t); });
+  p.querySelector("#ac-att").onclick=()=>p.querySelector("#ac-fin").click();
+  p.querySelector("#ac-fin").onchange=e=>{ [...e.target.files].forEach(acAddFile); e.target.value=""; };
+  p.addEventListener("dragover",e=>{ if(e.dataTransfer && [...e.dataTransfer.types].includes("Files")) e.preventDefault(); });
+  p.addEventListener("drop",e=>{ if(!e.dataTransfer||!e.dataTransfer.files.length) return; e.preventDefault(); [...e.dataTransfer.files].forEach(acAddFile); });
+  p.addEventListener("paste",e=>{ const F=[...((e.clipboardData||{}).files||[])]; if(F.length){ e.preventDefault(); F.forEach(acAddFile); } });
+  p.addEventListener("click",e=>{ const t=e.target.closest("[data-acx],[data-acnew],[data-acdoc],[data-accus],[data-acsug],[data-acfx],[data-acrm],[data-acchk]"); if(!t) return;
+    if(t.dataset.acfx!==undefined){ AC.files.splice(+t.dataset.acfx,1); acFilesDraw(); return; }
+    if(t.dataset.acrm){ acMemSet(acMem().filter(x=>x.id!==t.dataset.acrm)); acDraw(false); acFab(); return; }
+    if(t.dataset.acchk!==undefined){ acAsk("Что я забыл и где могут быть ошибки? Кратко, по важности."); return; }
     if(t.dataset.acx!==undefined) acShow(false);
-    else if(t.dataset.acnew!==undefined){ if(AC.busy) return; AC.view=[]; AC.msgs=[]; acSave(); acDraw(true); inp.focus(); }
+    else if(t.dataset.acnew!==undefined){ if(AC.busy) return; AC.view=[]; AC.msgs=[]; AC.files=[]; acFilesDraw(); acSave(); acDraw(true); inp.focus(); }
     else if(t.dataset.acsug!==undefined) acAsk(t.textContent);
     else if(t.dataset.acdoc){ const j=D.journal.find(x=>x.id===t.dataset.acdoc); if(j) docCard(j, isArch(j)); else toast("warn","Накладной нет на этом устройстве",""); }
     else if(t.dataset.accus){ if(typeof pvLedger==="function"){ acProfitReady().then(()=>pvLedger(t.dataset.accus)); } } });
 }
-function acShow(on){ acEl(); AC.open=!!on; const p=document.getElementById("ac-pan"); p.hidden=!on; document.getElementById("ac-fab").hidden=on||!acOk();
-  if(on){ if(!AC.view.length) acLoad(); acDraw(true); setTimeout(()=>{ const i=document.getElementById("ac-in"); if(i && matchMedia("(hover:hover)").matches) i.focus(); },50); } }
+function acShow(on){ acEl(); AC.open=!!on; const p=document.getElementById("ac-pan"); p.hidden=!on; document.getElementById("ac-fab").hidden=on||!acOk(); acFab();
+  if(on){ if(!AC.view.length) acLoad(); acDraw(true); acFilesDraw(); acUseDraw(); if(Date.now()-AC.useAt>60000){ AC.useAt=Date.now(); apiFetch(API_URL,{method:"POST", body:JSON.stringify({key:pass(), user:curUser(), action:"aiChat", op:"use"})}).then(j=>{ if(j.use){ AC.use=j.use; acUseDraw(); } }).catch(()=>{}); } setTimeout(()=>{ const i=document.getElementById("ac-in"); if(i && matchMedia("(hover:hover)").matches) i.focus(); },50); } }
 function acDraw(down){ const box=document.getElementById("ac-list"); if(!box) return;
-  let h = AC.view.length ? "" : `<div class="achello">Здравствуйте! Я знаю ваши накладные, цены, оплаты, закупку, расходы и склад. Спросите своими словами — например:<div class="acsug">${AC_SUG.map(s=>`<button type="button" data-acsug>${esc(s)}</button>`).join("")}</div></div>`;
-  h += AC.view.map(m=>m.r==="u" ? `<div class="am u">${esc(m.t)}</div>` : `<div class="am a${m.err?" err":""}">${acMd(m.t)}</div>`).join("");
+  const due=acDue(); let h = due.length ? `<div class="acrm"><b>Напоминания</b>${due.map(x=>`<div><span>${esc(x.t)}${x.d<todayISO()?` <small>(${esc(fd(x.d))})</small>`:""}</span><button type="button" data-acrm="${esc(x.id)}">Готово</button></div>`).join("")}</div>` : "";
+  if(!AC.view.length) h += `<button type="button" class="acchk" data-acchk>Что я забыл и где могут быть ошибки? — проверить</button>`;
+  h += AC.view.length ? "" : `<div class="achello">Здравствуйте! Я знаю ваши накладные, цены, оплаты, закупку, расходы и склад. Спросите своими словами — например:<div class="acsug">${AC_SUG.map(s=>`<button type="button" data-acsug>${esc(s)}</button>`).join("")}</div></div>`;
+  h += AC.view.map(m=>m.r==="u" ? `<div class="am u">${(m.f||[]).map(n=>`<span class="acfn">📎 ${esc(n)}</span>`).join("")}${esc(m.t)}</div>` : `<div class="am a${m.err?" err":""}">${acMd(m.t)}</div>`).join("");
   if(AC.busy) h += `<div class="acstep"><i></i>${esc(AC.step||"Думаю…")}</div>`;
   box.innerHTML=h; const go=document.getElementById("ac-go"); if(go) go.disabled=AC.busy; if(down!==false) box.scrollTop=box.scrollHeight; }
-/* кнопка — только у Даниила, после входа; в «Почте ФД» нет */
-setInterval(()=>{ try{ const ok=acOk(); if(!ok && !document.getElementById("ac-fab")) return; acEl(); const f=document.getElementById("ac-fab"); f.hidden=!ok||AC.open; if(!ok && AC.open) acShow(false); }catch(e){} }, 1500);
+/* расход на Claude — в шапке окна */
+function acUseDraw(){ const el=document.getElementById("ac-use"); if(!el) return; const u=AC.use; if(!u){ el.textContent="Claude · отвечает по данным сайта"; return; }
+  const $$ = v => "$"+(+v||0).toFixed(v>=1?2:3).replace(".",","); const mon=["январь","февраль","март","апрель","май","июнь","июль","август","сентябрь","октябрь","ноябрь","декабрь"][(+String(u.m||"").slice(5,7)||1)-1];
+  el.textContent="Потрачено: сегодня "+$$(u.dusd)+" · "+mon+" "+$$(u.usd)+" ("+(u.n||0)+" "+plural(u.n||0,["вопрос","вопроса","вопросов"])+")"; el.title="Цены Anthropic: Sonnet 5.5 — $2 за 1 млн токенов вопроса, $10 — ответа. Всего с начала: $"+(u.all||0); }
+/* файлы к вопросу: PDF и фото — как есть, Excel/Word/текст — сайт переводит в текст (как «Распознать с ИИ») */
+async function acAddFile(f){ if(AC.files.length>=5){ toast("warn","Не больше 5 файлов",""); return; } const x={name:f.name, busy:1}; AC.files.push(x); acFilesDraw();
+  try{ const d=await aiInput(f);
+    if(d.text) x.block={type:"text", text:"Файл «"+f.name+"»"+(d.cut?" (начало)":"")+":\n"+d.text, _n:f.name};
+    else if(d.mime==="application/pdf"){ if(d.data.length>27e6) throw new Error("PDF больше 20 МБ"); x.block={type:"document", source:{type:"base64", media_type:"application/pdf", data:d.data}, _n:f.name}; }
+    else if(/^image\/(jpeg|png|webp|gif)$/.test(d.mime)){ if(d.data.length>6.9e6) throw new Error("фото больше 5 МБ — уменьшите"); x.block={type:"image", source:{type:"base64", media_type:d.mime, data:d.data}, _n:f.name}; }
+    else throw new Error(/heic|heif/.test(d.mime)?"фото HEIC Claude не читает — сохраните как JPG":"такой файл помощник не читает");
+  }catch(e){ x.err=String(e.message||e); }
+  x.busy=0; acFilesDraw(); if(x.err){ toast("warn","Файл «"+f.name+"» не приложен", x.err); AC.files.splice(AC.files.indexOf(x),1); setTimeout(acFilesDraw,2500); } }
+function acFilesDraw(){ const b=document.getElementById("ac-fs"); if(!b) return; b.innerHTML=AC.files.map((f,i)=>`<span class="${f.err?"err":""}">📎 <i>${esc(f.name)}</i>${f.busy?" …":""}<button type="button" data-acfx="${i}" aria-label="Убрать">×</button></span>`).join(""); }
+/* кнопка — только у Даниила, после входа; в «Почте ФД» нет; на телефоне — над нижним меню */
+function acFab(){ const f=document.getElementById("ac-fab"); if(!f) return; const n=acDue().length; let b=f.querySelector("b"); if(n){ if(!b){ b=document.createElement("b"); f.appendChild(b); } b.textContent=n; } else if(b) b.remove();
+  const mb=document.getElementById("mbar"), h=mb && !mb.hidden && getComputedStyle(mb).display!=="none" ? mb.getBoundingClientRect().height : 0; f.style.bottom=(h ? h+12 : 16)+"px"; }
+setInterval(()=>{ try{ const ok=acOk(); if(!ok && !document.getElementById("ac-fab")) return; acEl(); const f=document.getElementById("ac-fab"); f.hidden=!ok||AC.open; if(!ok && AC.open) acShow(false); if(ok) acFab(); }catch(e){} }, 1500);
