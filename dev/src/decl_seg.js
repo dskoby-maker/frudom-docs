@@ -246,7 +246,7 @@ window.__decl = { form: dForm, docs: skDeclDocs, st: () => ({F:SKDF, M:SKDD}), m
 const D_PRN='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/></svg>';
 let DPRN=false;
 async function dPrint(id){ if(DPRN) return; DPRN=true; const t=toast("info","Готовлю к печати…","", {sticky:true});
-  try{ let F=await dFetch(id); if(!dDirect(F.mime, F.name)) F=await dPdfOf({id});
+  try{ let F=await dFetch(id); logEvSoft("Склад","Напечатана декларация «"+(F.name||"")+"»"); if(!dDirect(F.mime, F.name)) F=await dPdfOf({id});
     let pages=[];
     if(/^image\//.test(F.mime||"") && !/heic|heif/i.test(F.mime)) pages=[URL.createObjectURL(new Blob([F.u8],{type:F.mime}))];
     else if(/^image\//.test(F.mime||"")) throw new Error("фото HEIC браузер не печатает — скачайте файл");
