@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 38;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 39;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -82,6 +82,9 @@ const S = {
     ['cc','Копия'],['replyTo','Ответ на адрес'],['atts','Вложения (не редактировать)'],['body','Файл письма на Диске'],['order','Заявка (не редактировать)'],['by','Кто'],['at','Когда']]},
   mailtags: { title: 'Почта: отправители', key: 'id', cols: [
     ['id','Адрес отправителя'],['kind','Кто это (cus — заказчик, no — не заказчик, spam — спам)'],['customerName','Заказчик'],['customerId','ID заказчика'],['by','Кто отметил'],['at','Когда']]},
+  vprices: { title: 'Цены поставщиков', key: 'id', cols: [
+    ['date','Дата прайса'],['vendor','Поставщик'],['name','Товар как в прайсе'],['unit','Ед.'],['price','Цена'],['productName','Товар на сайте'],
+    ['id','ID (не менять)'],['listId','ID прайса'],['productId','ID товара'],['note','Примечание'],['by','Кто загрузил'],['at','Когда']]},
   drafts: { title: 'Черновики', key: 'id', cols: [
     ['updated','Изменён'],['kind','Вид'],['title','Что'],['sum','Сумма'],['byName','Кто начал'],['lastBy','Кто изменил последним'],['created','Создан'],
     ['id','ID (не менять)'],['data','Данные черновика (не редактировать)']]},
@@ -165,6 +168,12 @@ const AI_PROMPT_IN_ = [
   '"items":[{"name":"наименование как написано","unit":"единица (кг, шт, уп…)","qty":количество числом,"price":цена за единицу числом или null,"sum":сумма строки числом или null,"unsure":true если плохо видно или исправлено от руки}]}',
   'Правила: строки «Итого», «Всего», «НДС» не включай; «Мест» — это не количество; десятичные числа с точкой; пробелы и апострофы в числах убери (2\'500.00 → 2500).'
 ].join('\n');
+/* прайс-лист другого поставщика (Code.gs ≥ 39) — коротко, массивами, чтобы влезали длинные прайсы */
+const AI_PROMPT_PRICE_ = [
+  'Это прайс-лист поставщика продуктов (фрукты, овощи, сухофрукты, бакалея и т. п.) — файл, скан или фото. Перепиши товары и цены в JSON строго по тексту, ничего не придумывай.',
+  'Формат: {"supplier":"название поставщика как написано (если есть)","date":"дата прайса ДД.ММ.ГГГГ или пусто","items":[["наименование как написано","единица (кг, шт, уп, ящ…)",цена за единицу числом]]}',
+  'Правила: каждая позиция — массив из трёх значений; если цен несколько (опт/розница, нал/безнал) — бери самую первую оптовую; без цены не включай; заголовки разделов, «Итого» и пустые строки не включай; десятичные числа с точкой; пробелы в числах убери; страну/сорт/калибр оставь в названии.'
+].join('\n');
 /* декларация о соответствии / сертификат */
 const AI_PROMPT_DECL_ = [
   'Это декларация о соответствии ЕАЭС (или сертификат) на пищевую продукцию — скан или фото. Перепиши в JSON строго по тексту, ничего не придумывай.',
@@ -175,9 +184,9 @@ const AI_PROMPT_DECL_ = [
 /* Настройки ИИ — свойство скрипта AI_CFG (JSON), меняет Даниил на сайте: «Данные» → «ИИ».
    model / fallback — модели Gemini; extra — дополнительные указания к каждой инструкции; off — что выключено;
    who — кто может пользоваться (all / nodriver / office); maxMb — размер файла; limit — запросов в день (0 — без лимита). */
-const AI_KINDS_ = { order: 'Заявки заказчиков', in: 'Накладные прихода на склад', decl: 'Декларации' };
+const AI_KINDS_ = { order: 'Заявки заказчиков', in: 'Накладные прихода на склад', decl: 'Декларации', price: 'Прайсы поставщиков' };
 const AI_DEF_ = { model: 'gemini-flash-latest', fallback: 'gemini-3.8-flash', who: 'all', maxMb: 13, limit: 0 };
-function aiPrompt_(k) { return k === 'in' ? AI_PROMPT_IN_ : k === 'decl' ? AI_PROMPT_DECL_ : AI_PROMPT_; }
+function aiPrompt_(k) { return k === 'in' ? AI_PROMPT_IN_ : k === 'decl' ? AI_PROMPT_DECL_ : k === 'price' ? AI_PROMPT_PRICE_ : AI_PROMPT_; }
 function aiCfgGet_() {
   const pr = PropertiesService.getScriptProperties(); let c = {};
   try { c = JSON.parse(pr.getProperty('AI_CFG') || '{}') || {}; } catch (e) { c = {}; }
@@ -260,7 +269,7 @@ function aiRead_(p, me) {
   if (data.length > c.maxMb * 1.37e6) return { ok: false, error: 'файл больше ' + c.maxMb + ' МБ — для ИИ слишком большой' };
   const prompt = aiPrompt_(kind) + (c.extra[kind].trim() ? '\nДополнительные указания владельца (соблюдай, но формат JSON не меняй): ' + c.extra[kind].trim() : '');
   const models = [c.model].concat(c.fallback && c.fallback !== c.model ? [c.fallback] : []), t0 = Date.now();
-  const r = aiCall_(models, txt ? { prompt: prompt + (p.src === 'file' ? '\n\nЗаявка — содержимое файла «' + String(p.fname || '').slice(0, 120) + '», сайт перевёл его в текст (таблицы — через табуляцию). Текст файла:\n' : '\n\nЗаявка пришла текстом письма (файла нет). Текст письма:\n') + txt, json: true } : { prompt: prompt, mime: mime, data: data, json: true });
+  const r = aiCall_(models, txt ? { prompt: prompt + (p.src === 'file' ? '\n\n' + (kind === 'price' ? 'Прайс' : 'Заявка') + ' — содержимое файла «' + String(p.fname || '').slice(0, 120) + '», сайт перевёл его в текст (таблицы — через табуляцию). Текст файла:\n' : '\n\nЗаявка пришла текстом письма (файла нет). Текст письма:\n') + txt, json: true } : { prompt: prompt, mime: mime, data: data, json: true });
   aiStatAdd_({ at: new Date().toISOString(), u: me ? me.name : '', k: kind, m: r.model || models[0], ok: !!r.ok, e: r.ok ? '' : String(r.error).slice(0, 120), t: r.tokens || 0, ms: Date.now() - t0 });
   return r;
 }
@@ -341,7 +350,7 @@ function aiCfg_(p, me) {
   }
   const key = pr.getProperty('GEMINI_KEY') || '', ck = pr.getProperty('CLAUDE_KEY') || '', s = aiStatGet_();
   return { ok: true, hasKey: !!key, mask: key ? '…' + key.slice(-4) : '', cKey: !!ck, cMask: ck ? '…' + ck.slice(-4) : '', claudeDef: AI_CLAUDE_DEF_, cfg: aiCfgGet_(), def: AI_DEF_, kinds: AI_KINDS_,
-    prompts: { order: AI_PROMPT_, in: AI_PROMPT_IN_, decl: AI_PROMPT_DECL_ }, stat: { d: s.d, n: s.n, tok: s.tok, err: s.err, m: s.m, mn: s.mn, mtok: s.mtok }, log: s.log };
+    prompts: { order: AI_PROMPT_, in: AI_PROMPT_IN_, decl: AI_PROMPT_DECL_, price: AI_PROMPT_PRICE_ }, stat: { d: s.d, n: s.n, tok: s.tok, err: s.err, m: s.m, mn: s.mn, mtok: s.mtok }, log: s.log };
 }
 
 function doGet(e)  { return out_(handle_(Object.assign({}, e && e.parameter))); }
@@ -376,6 +385,32 @@ function prefsMerge_(oldS, newS) {
   B.filter(x => x && x.id && !A.some(y => y && y.id === x.id)).forEach(x => ord.push(x.id)); A.forEach(x => { if (x && x.id && ord.indexOf(x.id) < 0) ord.push(x.id); });
   a.tasks = ord.map(id => m[id]).filter(x => x && !((del[x.id] || 0) > (+x.u || 0))); a.tdel = del;
   return JSON.stringify(a).slice(0, 45000);
+}
+/* «Цены поставщиков» (Code.gs ≥ 39): прайсы других поставщиков — строка на позицию, прайс = listId. Только admin и manager.
+   op: list / put {rows} (дописать или заменить по id) / del {listId}. На закупку и прибыль не влияет — только для сравнения цен. */
+function vprices_(p, me) {
+  if (me.role === 'staff') return { ok: false, error: 'forbidden' };
+  const op = String(p.op || 'list');
+  if (op === 'list') return { ok: true, rows: read_('vprices') };
+  if (op !== 'put' && op !== 'del') return { ok: false, error: 'unknown op' };
+  let rows; try { rows = op === 'put' ? JSON.parse(p.rows || '[]') : []; } catch (e) { return { ok: false, error: 'bad request' }; }
+  if (op === 'put' && (!Array.isArray(rows) || !rows.length || rows.length > 3000)) return { ok: false, error: 'bad rows' };
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    let cur = read_('vprices');
+    if (op === 'del') { const lid = String(p.listId || ''); if (!lid) return { ok: false, error: 'bad id' }; const n = cur.length, gone = cur.filter(r => r.listId === lid);
+      cur = cur.filter(r => r.listId !== lid); if (cur.length !== n) { write_('vprices', cur); log_(me, [{ action: 'Цены поставщиков', text: 'Удалён прайс ' + (gone[0] ? gone[0].vendor + ' от ' + gone[0].date : lid) + ' (' + gone.length + ' поз.)' }]); } return { ok: true, n: n - cur.length }; }
+    const pn = {}, now = new Date().toISOString(), idx = {}; read_('products').forEach(x => pn[x.id] = x.name);
+    cur.forEach((r, i) => idx[r.id] = i);
+    rows.forEach(r => { const id = String(r.id || ''); if (!/^[\w:\-]{3,80}$/.test(id)) return;
+      const o = { id: id, listId: String(r.listId || '').slice(0, 80), date: String(r.date || '').slice(0, 10), vendor: String(r.vendor || '').slice(0, 120), name: String(r.name || '').slice(0, 300),
+        unit: String(r.unit || '').slice(0, 20), price: String(r.price == null ? '' : r.price).slice(0, 20), productId: String(r.productId || '').slice(0, 80), productName: pn[r.productId] || '',
+        note: String(r.note || '').slice(0, 300), by: me.name, at: now };
+      if (idx[id] != null) cur[idx[id]] = o; else { idx[id] = cur.length; cur.push(o); } });
+    write_('vprices', cur);
+    const f = rows[0] || {}; log_(me, [{ action: 'Цены поставщиков', text: 'Прайс ' + (f.vendor || '') + ' от ' + (f.date || '') + ': ' + rows.length + ' поз.' }]);
+    return { ok: true, n: rows.length };
+  } finally { lock.releaseLock(); }
 }
 function drafts_(p, me) {
   const op = String(p.op || 'list'), all = !lim_(me), mine = r => r.byName === me.name;
@@ -835,6 +870,7 @@ function handle_(p) {
   if (p.action === 'aiChat') return aiChat_(p, me);  // «Помощник» на сайте (Code.gs ≥ 38): только Даниил, Claude с инструментами; данные ищет сам сайт, без общей блокировки
   if (p.action === 'status') return status_(p, me);  // «Данные» → «Состояние сервисов» (Code.gs ≥ 34): только чтение, без общей блокировки
   if (p.action === 'notes') return notes_(p, me);    // уведомления для приложения Android (раз в час), только чтение, без общей блокировки
+  if (p.action === 'vprices') return vprices_(p, me);   // цены других поставщиков: свой лист, своя короткая блокировка
   if (p.action === 'drafts') return drafts_(p, me);   // черновики документов: свой лист, своя короткая блокировка, без общей синхронизации
   if (p.action === 'mail') return mail_(p, me);         // почта (Code.gs ≥ 30): ящики через посредника в Яндекс Облаке, своя короткая блокировка
   if (p.action === 'bank') return bank_(p, me);         // Т-Бизнес: поступления на счёт (только Даниил), блокировка — только на запись в лист      // настройки ИИ («Данные» → «ИИ»), только Даниил, без общей блокировки

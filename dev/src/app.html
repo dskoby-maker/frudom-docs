@@ -2898,7 +2898,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
     </div>
   </section>
 
-  <section class="tab" id="tab-suppliers" hidden><div class="card" id="sup-editor"></div><div class="card" id="sup-sign"></div></section>
+  <section class="tab" id="tab-suppliers" hidden><div class="card" id="sup-editor"></div><div class="card" id="sup-sign"></div><div class="card" id="vp-card" hidden></div></section>
 
   <section class="tab" id="tab-data" hidden>
     <div class="card" id="sv-card">
@@ -3256,7 +3256,7 @@ function handleErr(e){ if(e.message==="auth"){ showLogin("Неверный па�
   else if(e && !e.net){ setStatus("err","Ошибка таблицы, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Таблица ответила ошибкой","«"+String(e.message||e).slice(0,160)+"». Всё сохранено на этом устройстве, повторю сам. Если повторяется — пришлите этот текст Claude."); } }
   else { setStatus("err","Не сохранено — нет связи, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Нет связи с Google Таблицей",(e&&e.message?"Причина: "+e.message+". ":"")+"Всё сохранено на этом устройстве и отправится автоматически, когда связь появится. Ничего делать не нужно."); } } }
 
-const NEED_VER=37;   /* «Состояние сервисов» само просит Code.gs ≥ 34, остальное работает и с 33 */   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
+const NEED_VER=39;   /* «Состояние сервисов» само просит Code.gs ≥ 34, остальное работает и с 33 */   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
 function srvVerCheck(v){ const el=$("#srvOld"); if(!el) return; const old=(+v||0)<NEED_VER; el.hidden=!old || docLimited(); D.srvVer=+v||0; }
 document.addEventListener("click",e=>{ if(!e.target.closest || !e.target.closest("#srvOldHow")) return; openCard(`<div class="dc-head"><div><div class="dc-kicker">Code.gs</div><h3>Как обновить скрипт таблицы</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
   <ol class="srvsteps"><li>GitHub → файл <b>dev/Code.template.gs</b> → кнопка «Copy raw file» (два квадратика).</li><li>Таблица «Документы ФД» → «Расширения» → «Apps Script» → файл <b>Код.gs</b> → Ctrl+A → Ctrl+V → «Сохранить». Файл «Пароли.gs» не трогать.</li><li>«Начать развёртывание» → «Управление развёртываниями» → карандаш → «Версия: новая версия» → «Развернуть».</li><li>Обновите эту страницу — жёлтая плашка исчезнет.</li></ol>
@@ -7290,6 +7290,7 @@ function renderSuppliers(){
       {k:"inn",l:"ИНН",num:1},{k:"kpp",l:"КПП (у ИП нет)",num:1},{k:"ogrn",l:"ОГРНИП / ОГРН",num:1},{k:"ogrnDate",l:"Дата присвоения ОГРНИП (для УПД)",type:"date"},
       {k:"address",l:"Адрес",wide:true},{k:"phone",l:"Телефон"},{k:"bank",l:"Банк",wide:true,ph:"АО «ТБанк», г. Москва"},{k:"bik",l:"БИК",num:1},{k:"rs",l:"Расчётный счёт",num:1},{k:"ks",l:"Корр. счёт",num:1},
       {k:"vat",l:"НДС",opts:VATS},{k:"accountant",l:"Главный бухгалтер (для ООО)"},{k:"eisLogin",l:"Логин ЕИС подписанта (для XML в ЕИС)",ph:"1084913317"}], onSelect:id=>renderSignBox(id)});
+  if(typeof vpRender==="function") vpRender();
 }
 function renderSignBox(sid){ const s=sup(sid), box=$("#sup-sign"); if(!box) return; if(!s||!s.id||isStaff()){ box.innerHTML=""; return; }
   const cell=(k,title,hint)=>`<div class="sgcell"><div class="sgprev${k==="stamp"?" st":""}">${s[k]?`<img src="${s[k]}" alt="">`:`<span class="muted">${hint}</span>`}</div>
@@ -8637,7 +8638,7 @@ const aiRtfTxt = t => t.replace(/\\par[d]?/g,"\n").replace(/\\tab/g,"\t").replac
 const aiHtmlTxt = t => { const d=new DOMParser().parseFromString(t,"text/html"); d.querySelectorAll("script,style").forEach(x=>x.remove()); d.querySelectorAll("br").forEach(x=>x.replaceWith("\n")); d.querySelectorAll("p,div,tr,li,h1,h2,h3,h4").forEach(x=>x.append("\n")); d.querySelectorAll("td,th").forEach(x=>x.append("\t")); return (d.body?d.body.textContent:"").replace(/[ \t]+\n/g,"\n").replace(/\n{3,}/g,"\n\n").trim(); };
 async function aiImgJpeg(f){ return new Promise((ok,bad)=>{ const im=new Image(), url=URL.createObjectURL(f); im.onload=()=>{ URL.revokeObjectURL(url); const k=Math.min(1, 2400/Math.max(im.width||1,im.height||1)), c=document.createElement("canvas"); c.width=Math.max(1,Math.round((im.width||800)*k)); c.height=Math.max(1,Math.round((im.height||800)*k)); const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,c.width,c.height); g.drawImage(im,0,0,c.width,c.height); const u=c.toDataURL("image/jpeg",0.9); ok({mime:"image/jpeg", data:u.slice(u.indexOf(",")+1)}); };
   im.onerror=()=>{ URL.revokeObjectURL(url); bad(new Error("эту картинку браузер не открывает — сохраните её как JPG или PNG")); }; im.src=url; }); }
-async function aiInput(f){ const ext=aiExt(f), t=(f.type||"").toLowerCase();
+async function aiInput(f, full){ const ext=aiExt(f), t=(f.type||"").toLowerCase();
   if(ext==="pdf"||t==="application/pdf") return aiPrep(f);
   if(/^(jpe?g|png|webp)$/.test(ext)||/^image\/(jpeg|png|webp)$/.test(t)) return aiPrep(f);
   if(/^(heic|heif)$/.test(ext)||/^image\/hei[cf]$/.test(t)) return {mime:"image/"+(ext==="heif"||t==="image/heif"?"heif":"heic"), data:await aiB64(f)};
@@ -8653,7 +8654,7 @@ async function aiInput(f){ const ext=aiExt(f), t=(f.type||"").toLowerCase();
   else { const j=await api({action:"stock", op:"toPdf", d:{name:f.name, mime:t||"application/octet-stream", data:await aiB64(f)}}).catch(e=>{ throw new Error(e.message==="unknown action"?"этот тип файла ИИ напрямую не читает, а Code.gs слишком старый, чтобы перевести его в PDF":"этот тип файла ИИ не читает, и Google Диск не смог перевести его в PDF ("+e.message+")"); });
     if(!j||!j.data) throw new Error("этот тип файла ИИ не читает"); return {mime:"application/pdf", data:j.data, conv:1}; }
   txt=String(txt||"").trim(); if(!txt) throw new Error("в файле нет текста — если это скан, сохраните его как PDF или фото");
-  return {text:txt.slice(0,40000), cut:txt.length>40000}; }
+  return {text:full?txt:txt.slice(0,40000), cut:!full&&txt.length>40000}; }
 async function aiGo(){ if(!IMP||!IMP.scan) return; const f=IMP.scan; IMP.busy=1; drawImp();
   try{ const d=await aiInput(f); if(d.data&&d.data.length>18e6) throw new Error("файл больше 13 МБ — для ИИ слишком большой");
     const body=d.text ? {key:pass(), user:curUser(), action:"aiRead", text:d.text, src:"file", fname:f.name} : {key:pass(), user:curUser(), action:"aiRead", mime:d.mime, data:d.data, fname:f.name};

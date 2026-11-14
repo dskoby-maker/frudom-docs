@@ -32,7 +32,7 @@ function pdHint(p){ const s=pdSortOf(), o=pdSales()[p.id];
   if(s==="top") return o&&o.n ? o.n+" "+plural(o.n,["накладная","накладные","накладных"])+" · "+skQf(o.q,p.unit) : "за 3 мес. не продавали";
   return ""; }
 function pdRowHead(p){ const c=catOf(p), a=pArt(p), n=pgCount(p.id), pr=+p.price>0, h=pdHint(p);
-  const meta=[c?`<i class="nmcd" style="--cc:${esc(c.color||"#bbb")}"></i>${esc(c.name)}`:"", esc(p.unit||""), n>1?`<span class="nmlk" title="Связанные названия одного товара">${IC_LINK}${n}</span>`:"", h?esc(h):""].filter(Boolean).join(" · ");
+  const meta=[c?`<i class="nmcd" style="--cc:${esc(c.color||"#bbb")}"></i>${esc(c.name)}`:"", esc(p.unit||""), n>1?`<span class="nmlk" title="Связанные названия одного товара">${IC_LINK}${n}</span>`:"", h?esc(h):"", typeof vpTag==="function"?vpTag(p.id):""].filter(Boolean).join(" · ");
   return `<span class="nma${a?"":" new"}" title="${a?"Внутренний артикул":"Артикул появится после сохранения в таблицу"}">${a?esc(a):pdArtSrv()?"новый":"—"}</span>
     <span class="nmn"><b>${p.name?esc(p.name):`<em>Без названия</em>`}</b><small>${meta}</small></span>
     <span class="nmp${pr?"":" no"}">${pr?`<b>${fm(p.price).replace(/,00$/,"")} ₽</b><small>/${esc(p.unit||"")}</small>`:`<small>нет цены</small>`}</span><span class="nmv">${IC_PDV}</span>`; }
@@ -46,7 +46,7 @@ function pdEditor(p){ const a=pArt(p), M=pgMembers(p.id), packs=Object.entries(p
     <label><span title="Печатается в УПД в колонке «Код товара». У КИГМ — коды из их спецификации">Код в УПД</span><input data-k="code" value="${esc(p.code)}"></label>
     <label><span>Страна</span><select data-k="country">${Object.entries(COUNTRIES).map(([k,v])=>`<option value="${k}"${k===p.country?" selected":""}>${v}</option>`).join("")}</select></label></div>
     <div class="nmart"><b>Артикул ${a?esc(a):"—"}</b><span>${a?"присвоен автоматически, не меняется":pdArtSrv()?"присвоится сам после сохранения в таблицу":"появится после обновления Code.gs"}${M.length>1?` · общий для ${M.length} ${plural(M.length,["названия","названий","названий"])}: ${M.filter(x=>x.id!==p.id).map(x=>"«"+esc(x.name)+"»").join(", ")}`:""}</span></div>
-    <div class="nmacts"><button type="button" class="btn sm" data-pcard="${p.id}">${IC_PCARD}Карточка товара</button><button type="button" class="btn ghost sm" data-pdo="${p.id}">Свернуть</button><span style="flex:1"></span><button type="button" class="btn ghost danger sm" data-del>Удалить</button></div></div>`; }
+    ${typeof vpEdHtml==="function"?vpEdHtml(p.id):""}<div class="nmacts"><button type="button" class="btn sm" data-pcard="${p.id}">${IC_PCARD}Карточка товара</button><button type="button" class="btn ghost sm" data-pdo="${p.id}">Свернуть</button><span style="flex:1"></span><button type="button" class="btn ghost danger sm" data-del>Удалить</button></div></div>`; }
 const pdRow = p => `<div class="nmr${PDL.open===p.id?" open":""}" data-id="${p.id}" role="listitem"><button type="button" class="nmh" data-pdo="${p.id}" aria-expanded="${PDL.open===p.id}">${pdRowHead(p)}</button>${PDL.open===p.id?pdEditor(p):""}</div>`;
 function renderProducts(){
   pdToolbar(); const L=pdSorted(pdFiltered()), box=$("#pd-body"); if(!box) return;
