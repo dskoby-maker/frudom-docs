@@ -219,7 +219,7 @@ async function mlAi(o, cid){ IMP={file:o.name, busy:1, msg:"читаю чере�
     let x; try{ x=JSON.parse(String(j.text).replace(/^```(json)?|```$/g,"").trim()); }catch(e){ throw new Error("ИИ ответил не по форме — попробуйте ещё раз"); }
     const src=aiSrc(x); src.how="Заявка из письма прочитана ИИ ("+(/^claude/i.test(j.model||"")?"Claude":"Gemini")+(j.model?", "+j.model:"")+"). Сверьте количество и товары с письмом.";
     logEv("Документ","Заявка из письма «"+o.name+"» прочитана ИИ");
-    IMP={file:o.name}; IMP.r=impResolve(ftParse(src, cid||undefined)); impShow();
+    IMP={file:o.name}; IMP.r=impResolve(ftParse(src, cid||undefined)); impShow(); aiWarn();
   }catch(e){ IMP={file:o.name, err:e.message||String(e)}; drawImp(); toast("err","ИИ не прочитал заявку", IMP.err+"."); } }
 /* ---------- написать / ответить ---------- */
 function mlCompose(kind){ const r=ML.rows.find(x=>x.id===ML.sel), V=ML.view&&r&&ML.view.id===r.id?ML.view:null, mine=new Set(ML.acc.map(a=>a.email.toLowerCase()));

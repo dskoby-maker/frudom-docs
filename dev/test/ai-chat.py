@@ -84,6 +84,7 @@ async def main():
             ok(await ev("curTab")=='doc' and await ev("!!(IMP&&IMP.r&&IMP.r.groups.length)"), f'{W}: открыт «Новый документ» с заполненной накладной')
             g=await ev("JSON.stringify(IMP.r.groups[0].items.map(x=>[x.name||x.productId, x.qty]))"); ok('10' in g, f'{W}: строки накладной ({g[:80]})')
             m=json.loads(srv("JSON.stringify(__chatLog)"))[-1]['messages']; ok(any(isinstance(x['content'],list) and any(c.get('type')=='text' and 'Картофель 10 кг' in c.get('text','') for c in x['content']) for x in m), f'{W}: содержимое файла ушло в Claude')
+            await pg.wait_for_selector('#aiw[open]', timeout=5000); ok(True, f'{W}: после накладной от помощника — окно «ИИ может ошибаться»'); await pg.click('#aiw .aiwok'); await pg.wait_for_timeout(300)
             await pg.click('#ac-fab'); await pg.wait_for_selector('#ac-pan:not([hidden])')
             await pg.wait_for_function("/проверьте/.test(document.getElementById('ac-list').textContent)", timeout=10000)
             ok(True, f'{W}: ответ про накладную виден после возврата в чат')
