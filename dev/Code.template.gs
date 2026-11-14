@@ -266,8 +266,19 @@ function aiRead_(p, me) {
 }
 /* «Помощник» (Code.gs ≥ 38): один шаг разговора с Claude. Сайт присылает историю (msgs), описание инструментов (tools) и инструкцию (system);
    если Claude просит данные (tool_use) — сайт сам ищет их в своих данных и присылает следующий шаг с tool_result. Ключ — CLAUDE_KEY. */
+/* сколько потрачено на «Помощника»: доллары по ценам Anthropic за 1 млн токенов (вход / выход), по месяцам и за сегодня; свойство AI_CHAT_USE */
+const AI_PRICE_ = { 'claude-sonnet-5-5': [2, 10], 'claude-sonnet-5': [2, 10], 'claude-opus-5-5': [4, 20], 'claude-haiku-5-5': [0.1, 0.5], 'claude-fable-5-2': [8, 40] };
+function aiChatUse_(model, u, q) {
+  const pr = PropertiesService.getScriptProperties(); let s = {}; try { s = JSON.parse(pr.getProperty('AI_CHAT_USE') || '{}') || {}; } catch (e) { s = {}; }
+  const d = aiDay_(), m = d.slice(0, 7); if (s.m !== m) { s.m = m; s.usd = 0; s.n = 0; s.tin = 0; s.tout = 0; } if (s.d !== d) { s.d = d; s.dusd = 0; s.dn = 0; }
+  if (model && u) { const P = AI_PRICE_[model] || [2, 10], inp = (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0) * 1.25 + (u.cache_read_input_tokens || 0) * 0.1, usd = (inp * P[0] + (u.output_tokens || 0) * P[1]) / 1e6;
+    s.usd = (+s.usd || 0) + usd; s.dusd = (+s.dusd || 0) + usd; s.tin = (s.tin || 0) + (u.input_tokens || 0); s.tout = (s.tout || 0) + (u.output_tokens || 0); if (q) { s.n = (s.n || 0) + 1; s.dn = (s.dn || 0) + 1; }
+    s.all = (+s.all || 0) + usd; pr.setProperty('AI_CHAT_USE', JSON.stringify(s)); }
+  return { m: s.m, usd: Math.round((+s.usd || 0) * 10000) / 10000, n: s.n || 0, dusd: Math.round((+s.dusd || 0) * 10000) / 10000, dn: s.dn || 0, all: Math.round((+s.all || 0) * 100) / 100 };
+}
 function aiChat_(p, me) {
   if (!me.admin) return { ok: false, error: 'forbidden' };
+  if (p.op === 'use') return { ok: true, use: aiChatUse_() };
   const key = PropertiesService.getScriptProperties().getProperty('CLAUDE_KEY');
   if (!key) return { ok: false, error: 'nokey' };
   let msgs, tools; try { msgs = JSON.parse(p.msgs || '[]'); tools = JSON.parse(p.tools || '[]'); } catch (e) { return { ok: false, error: 'bad request' }; }
@@ -278,9 +289,9 @@ function aiChat_(p, me) {
   const r = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', { method: 'post', contentType: 'application/json', headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01' }, payload: JSON.stringify(body), muteHttpExceptions: true });
   const code = r.getResponseCode(), t = r.getContentText();
   if (code === 200) { let j; try { j = JSON.parse(t); } catch (x) { return { ok: false, error: 'Claude вернул непонятный ответ' }; }
-    const u = j.usage || {}, tok = (u.input_tokens || 0) + (u.output_tokens || 0);
+    const u = j.usage || {}, tok = (u.input_tokens || 0) + (u.output_tokens || 0), use = aiChatUse_(model, u, j.stop_reason !== 'tool_use');
     if (j.stop_reason !== 'tool_use') aiStatAdd_({ at: new Date().toISOString(), u: me.name, k: 'chat', m: model, ok: true, e: '', t: tok, ms: Date.now() - t0 });
-    return { ok: true, content: j.content || [], stop: j.stop_reason || '', model: model, tokens: tok }; }
+    return { ok: true, content: j.content || [], stop: j.stop_reason || '', model: model, tokens: tok, use: use }; }
   let e = 'Claude не ответил (' + code + ' ' + t.slice(0, 150) + ')';
   if (code === 404) e = 'модель «' + model + '» не найдена';
   else if (/credit balance/i.test(t)) e = 'на балансе Claude закончились деньги — пополните на console.anthropic.com';
