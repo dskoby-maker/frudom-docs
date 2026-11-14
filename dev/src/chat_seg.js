@@ -26,6 +26,88 @@ const acN = x => Math.round((+x||0)*100)/100;
 function acPay(j){ if(!pfLoaded) return undefined; const p=payOf(j); return p.st==="paid" ? "оплачена"+(p.d?" "+p.d:"") : p.st==="part" ? "оплачено "+acN(p.s)+" из "+acN(p.tot) : "не оплачена"; }
 async function acProfitReady(){ if(!pfLoaded){ AC.step="Загружаю оплаты и закупку…"; acDraw(); await loadProfit(true); } return pfLoaded; }
 
+/* ---------- «видит весь сайт»: любой раздел данных, текущий экран, справка по сайту, разбор бизнеса ---------- */
+const AC_LONG={data:1500, spec:1500, text:1000, note:600, state:1200, lines:1500, branches:1500, contacts:1200, addrs:1200};
+function acRow(o){ const r={}; if(!o||typeof o!=="object") return o; for(const k in o){ if(k[0]==="_"||/^(snap|photo|photos|img|html|sig|seal|stamp|sign|pass|token|key)$/i.test(k)) continue; let v=o[k];
+    if(v==null||v===""||(Array.isArray(v)&&!v.length)) continue; const lim=AC_LONG[k]||400;
+    if(typeof v==="string"){ if(/^data:/.test(v)) continue; if(v.length>lim) v=v.slice(0,lim)+"…"; }
+    else if(typeof v==="object"){ let s; try{ s=JSON.stringify(v); }catch(e){ continue; } if(/"data:/.test(s)) s=s.replace(/"data:[^"]*"/g,'"(картинка)"'); if(s==="{}") continue; v=s.length>lim?s.slice(0,lim)+"…":JSON.parse(s); }
+    r[k]=v; } return r; }
+const acPname = pid => { const p=D.products.find(x=>x.id===pid); return p?p.name:pid; };
+async function acStock(){ if(typeof SK_READY==="undefined"||!SK_READY) return null; try{ const S=skD(); if(!S.items||!S.items.length) await skLoad(true); return skD(); }catch(e){ return null; } }
+const AC_COLL={
+  customers:["Заказчики: реквизиты, адреса, подразделения (ОП), контакты точек, условия приёмки", ()=>D.customers],
+  suppliers:["Поставщики — три ИП: реквизиты, банк, ID ЭДО", ()=>D.suppliers],
+  products:["Товары (справочник): название, ед., базовая цена, категория, артикул, страна, вес упаковки, другие названия из заявок", ()=>D.products],
+  prices:["Цены для заказчиков (прайсы)", ()=>{ const R=[]; for(const c in D.prices||{}) for(const p in D.prices[c]) R.push({customer:cusNm(c)||c, product:acPname(p), price:D.prices[c][p]}); return R; }],
+  contracts:["Договоры/контракты: основание, ИП, цена договора, срок, ИКЗ, товары по договору (spec), ссылка", ()=>D.contracts||[]],
+  portal_specs:["Сопоставление с Порталом поставщиков: ID спецификации, СТЕ, артикул по заказчику и товару", ()=>{ const R=[]; for(const c in D.specs||{}) for(const p in D.specs[c]) R.push(Object.assign({customer:cusNm(c)||c, product:acPname(p)}, D.specs[c][p])); return R; }],
+  day_tasks:["Задачи на день (календарь, для водителя и команды): дата, заказчик, точка, текст, кто прочитал, нужны ли документы", ()=>D.daytasks||[]],
+  my_tasks:["Мои личные задачи Даниила (вкладка «Задачи»)", ()=>(getPrefs().tasks||[])],
+  invoices:["Отдельные счета на оплату (не накладные)", ()=>D.invoices||[]],
+  drafts:["Черновики — незаконченные документы и заявки", ()=>D.drafts||[]],
+  other_money:["Прочие расходы, доходы и личные траты", ()=>D.pother||[], 1],
+  debts_book:["Книжка долгов «Мне должны / Я должен»", ()=>D.debts||[], 1],
+  purchases_said:["Закупки Саида из сообщений MAX (текст, дата, по каким накладным)", ()=>D.purchases||[], 1],
+  purchase_prices:["Закупочные цены (список цен закупки по товарам)", ()=>(D.costs||[]).map(x=>Object.assign({product:acPname(x.productId)}, x)), 1],
+  doc_costs:["Себестоимость накладных — закупка по каждой накладной (lines: цены за ед., _pay оплата, _src одной суммой, _bq куплено)", ()=>D.doccosts||[], 1],
+  bank:["Поступления из банка (Т-Бизнес и вручную): плательщик, сумма, назначение, статус, на какие накладные разнесено", ()=>(typeof BNK==="function"?BNK().ops:[])||[], 1],
+  mail:["Почта: письма (от кого, тема, начало текста, ящик, прочитано, заявка, обработано)", ()=>(typeof ML!=="undefined"?ML.rows:[])||[], 2],
+  stock_items:["Склад: товары склада", async()=>((await acStock())||{}).items||[]],
+  stock_batches:["Склад: партии (приходы, цена, срок годности, поставщик)", async()=>((await acStock())||{}).batches||[]],
+  stock_moves:["Склад: движения (приход, отгрузка, списание…) за 180 дней", async()=>((await acStock())||{}).moves||[]],
+  categories:["Категории товаров", ()=>D.cats||[]]
+};
+function acDay(o){ for(const k of ["date","at","created","updated","d"]){ const v=String(o[k]||""); let m=v.match(/^(\d{4}-\d\d-\d\d)/); if(m) return m[1]; m=v.match(/^(\d\d)\.(\d\d)\.(\d{4})/); if(m) return m[3]+"-"+m[2]+"-"+m[1]; } return ""; }
+function acScreen(){ const sq=s=>String(s||"").replace(/[ \t]+/g," ").replace(/\n\s*\n+/g,"\n").trim();
+  const tabBtn=document.querySelector('nav.tabs [data-tab="'+curTab+'"]'), sec=document.getElementById("tab-"+curTab);
+  const dlg=[...document.querySelectorAll("dialog[open]")].filter(d=>!d.closest("#ac-pan")).pop();
+  const o={tab:curTab, tab_title:tabBtn?sq(tabBtn.textContent):undefined, screen_text:sec?sq(sec.innerText).slice(0,6000):undefined, open_window:dlg?sq(dlg.innerText).slice(0,4000):undefined};
+  if(curTab==="doc"&&D.draft){ try{ const k=calc(D.draft, makeSnap(D.draft)); o.new_document_form={customer:cusNm(D.draft.customerId)||"", supplier:(sup(D.draft.supplierId)||{}).name||"", number:D.draft.number, date:D.draft.date, sum:acN(k.t.sum), lines:k.lines.slice(0,40).map(l=>({name:l.name, qty:+l.qty||0, unit:l.unit, price:acN(l.price), sum:acN(l.sum)}))}; }catch(e){} }
+  return o; }
+const AC_HELP=[
+ ["Новый документ","Вкладка «Новый документ»: поставщик (ИП), заказчик, подразделение (ОП), договор, номер, дата, адрес. Товар ищется по мере ввода (сначала прайс заказчика), «+ Создать новый товар». Кнопки: «Сохранить в журнал», Счёт / ТОРГ‑12 / УПД (сохраняют и открывают печатную форму), «Одним PDF» — отмеченные документы одним файлом, «Печать». «Умная проверка» переспрашивает необычное количество или цену. Номер — своя серия у каждого договора. Строки можно переставлять за номер."],
+ ["Заказ из файла","На «Новом документе»: загрузить заявку (PDF, Word, Excel, текст) — сайт сам найдёт заказчика, дату, товары, адреса; несколько адресов — несколько накладных. Сканы и фото — «Распознать с ИИ». Ненайденные товары — красным, выбрать из подсказок. Можно загрузить несколько файлов сразу. После ИИ — проверить товары, количество, дату, заказчика."],
+ ["Заявка","Вкладка «Заявка» — для заказчиков с многими точками (МГУ и др.): таблица точки × товары, на каждую точку своя накладная. Выбор договора задаёт товары и цены. «Создать документы и скачать PDF» или «Сохранить в журнал без PDF»."],
+ ["Журнал","Вкладка «Журнал»: все накладные, фильтры, поиск (и по комментариям), комплекты (накладные одной заявки), Счёт+ТОРГ / Счёт / ТОРГ / УПД, «Изменить», «Ещё» → XML для ЕИС, XML для Портала поставщиков, архив. Значок тележки — закупка заполнена/нет. Нажатие на заказчика — окно накладной с историей правок, комментарием, закупкой, декларациями."],
+ ["Календарь и водитель","Вкладка «Календарь»: накладные и задачи по дням, «Маршрут для водителя» (точки, товары, вес), текст для MAX, «Без документов: N» — поставки без накладных. Задачи на день: текст, фото, кто прочитал, галочка «Сделать документы»."],
+ ["Заказчики и цены","Вкладка «Заказчики»: реквизиты, подразделения, адреса и контакты точек, договоры (товары по договору, короткое название, ссылка), цены для заказчика, нумерация, акты, «Аналитика покупок» (что и сколько берёт, сравнение с прошлым периодом), сопоставление с Порталом поставщиков (СТЕ)."],
+ ["Прибыль","Вкладка «Прибыль» (только Даниил): «Обзор» (выручка, закупка, налог 8%, прибыль, оплачено/ждём, кто сколько должен, товары в минус), «По заказчикам» (по месяцам, оплата у каждой накладной), «Расходы и доходы» (прочие и личные траты, категории, календарь, поиск), «Поступления» (банк), «Долги» (книжка). Все плитки нажимаются и показывают подробности."],
+ ["Закупка","Закупка накладной: в окне накладной «Добавить закупку» — цена по товарам, «Куплено фактически», сумма под ценой, «₽/шт», «Бесплатно», «Записать одной суммой», «Вставить сообщение Саида», прочие расходы (телега). Вкладка «Закупка» — «Закупка по накладным» списком/календарём, фильтр «Нужно заполнить», Excel; ниже — разбор сообщений Саида из MAX."],
+ ["Банк","«Прибыль» → «Поступления»: платежи из Т-Бизнеса (Скобёлкин, Суховерхова) сами разносятся по накладным по номерам из назначения и сумме; иначе «Подтвердить» / «Выбрать накладные…» / «Это не оплата накладных». Байдаров — «+ Приход вручную». Если в платеже накладные, которых нет на сайте, — «Создать накладные»."],
+ ["Склад","Вкладка «Склад»: остатки по партиям, «+ Приход» (по накладной, фото → ИИ), резерв под накладные, «Отгрузить» в окне документа, списание, инвентаризация, возврат, перевзвешивание (шт → кг), история товара, декларации (загрузить, срок, привязка к товарам, скачать одним PDF, печать)."],
+ ["Почта","Вкладка «Почта»: ящики frudom.ru@mail.ru и info@frudom.ru, входящие, заявки (сайт сам находит — перепроверять), не обработаны, неважные, спам, свои папки; ответ и пересылка; «Сделать документы» из заявки в письме. Есть отдельное приложение «Почта ФД» с уведомлениями."],
+ ["Счета на оплату","Внизу «Нового документа» — «Отдельный счёт на оплату» (например, за месяц по ОП): накладные за период галочками или строки вручную, загрузка по шаблону Excel, оплата по счёту. Это не накладная — не влияет на прибыль и договор."],
+ ["Портал поставщиков и ЕИС","Журнал → «Ещё» → «XML для Портала поставщиков» (УПД 5.03; нужны ID спецификации и страна у каждого товара — «Сопоставить с Порталом поставщиков» в «Заказчиках»), на Портале — «Импортировать XML УПД», проверить, подписать. «XML для ЕИС» — для 44-ФЗ (НИИР, НМИЦ), документ о приёмке в ЕИС в день поставки. Дата документа — день отправки, дата отгрузки — из накладной."],
+ ["Акты","Карточка заказчика → «Акты»: загрузка актов, папка на Google Диске с актами и письмами — «С печатью и подписью» (ставит сам, место запоминается), «Всё одним PDF». Месячный акт для цирка собирается сам по накладным."],
+ ["Товары","Вкладка «Товары»: справочник, категории, артикулы, карточка товара (продажи, закупка, наценка, движение цен), связанные названия (один товар под разными названиями), «Одинаковые товары…», каталог в Excel."],
+ ["События","Вкладка «События» (только Даниил): кто что делал — создал/изменил накладную, печать, входы, просмотры, почта, склад; фильтр по людям, действиям, периоду."],
+ ["Задачи и Сайт нашёл сам","Вкладка «Задачи»: «Сайт нашёл сам» — долги старше 30 дней, накладные без закупки или в минус, без договора, поставки без документов, остаток договора, реквизиты, склад; и «Мои задачи» Даниила."],
+ ["Данные","Вкладка «Данные»: состояние сервисов (таблица, Диск, посредник, банк, почта, ИИ) и «Если что-то сломалось», резервные копии, ИИ (ключи Gemini и Claude, модели, расход), уведомления приложения."],
+ ["Отмена и черновики","Кнопка «Отменить» внизу слева и Ctrl+Z — отмена последних действий на вкладке. Незаконченные документы и заявки сами сохраняются в «Черновики» вверху формы — «Продолжить»."],
+ ["Пользователи","Даниил — всё; Наталья (менеджер) — всё, кроме «Прибыли», «Событий», «Задач»; Гриша (водитель) — календарь, документы только по прайсу и количество; Склад — журнал, документы, склад. Все действия видны в «Событиях»."],
+ ["Без связи и сохранение","Всё сохраняется на устройстве и уходит в Google Таблицу, когда есть связь. Окно «Эту запись уже изменили» — выбрать «как в таблице» или «мой вариант». «Скрипт таблицы старый» — обновить Code.gs по инструкции."]
+];
+async function acBizReview(a){ if(!await acProfitReady()) return {error:"не удалось загрузить закупку"};
+  const t=todayISO(), m=/^\d{4}-\d\d$/.test(a.month||"")?a.month:t.slice(0,7), y=+m.slice(0,4), mo=+m.slice(5,7);
+  const last=new Date(y,mo,0).getDate(), cur=m===t.slice(0,7), dd=cur?+t.slice(8,10):last;
+  const pm=new Date(y,mo-2,1), pms=pm.getFullYear()+"-"+String(pm.getMonth()+1).padStart(2,"0"), pdd=Math.min(dd,new Date(pm.getFullYear(),pm.getMonth()+1,0).getDate());
+  const inR=(j,ms,d)=>j.date&&j.date.slice(0,7)===ms&&+j.date.slice(8,10)<=d;
+  const live=D.journal.filter(j=>j.snap&&!isArch(j)), P={}, R0={rev:0,cost:0,profit:0,docs:0,miss:0}, R1={rev:0,cost:0,profit:0,docs:0,miss:0}, C={}, G={};
+  live.forEach(j=>{ const a0=inR(j,m,dd), a1=inR(j,pms,pdd); if(!a0&&!a1) return; let p; try{ p=docProfit(j); }catch(e){ return; } const R=a0?R0:R1;
+    R.rev=acN(R.rev+p.rev); R.cost=acN(R.cost+p.cost); R.profit=acN(R.profit+p.profit); R.docs++; if(p.miss) R.miss++;
+    const c=C[j.customerId]||(C[j.customerId]={customer:cusNm(j.customerId)||"", rev:0, rev_prev:0, profit:0}); if(a0){ c.rev=acN(c.rev+p.rev); c.profit=acN(c.profit+p.profit); } else c.rev_prev=acN(c.rev_prev+p.rev);
+    if(a0) p.lines.forEach(x=>{ const l=x.l, cu=x.cu!=null?x.cu:x.c, g=G[l.name+"|"+l.unit]||(G[l.name+"|"+l.unit]={product:l.name, unit:l.unit, qty:0, rev:0, cost:0, no_cost_qty:0}); g.qty=acN(g.qty+(+l.qty||0)); g.rev=acN(g.rev+(+l.sum||0)); if(cu==null) g.no_cost_qty=acN(g.no_cost_qty+(+l.qty||0)); else g.cost=acN(g.cost+cu*(+l.qty||0)); }); });
+  const Gl=Object.values(G).map(g=>Object.assign(g,{margin_pct:g.cost&&g.rev&&!g.no_cost_qty?Math.round((g.rev-g.cost)/g.rev*1000)/10:undefined}));
+  const since=d=>{ const x=new Date(t); x.setDate(x.getDate()-d); return x.toISOString().slice(0,10); }, lastBy={};
+  live.forEach(j=>{ if(!lastBy[j.customerId]||j.date>lastBy[j.customerId].d) lastBy[j.customerId]={d:j.date, n:0}; if(j.date>=since(90)) lastBy[j.customerId].n++; });
+  const quiet=Object.entries(lastBy).filter(([c,x])=>x.d<since(14)&&x.d>=since(120)).map(([c,x])=>({customer:cusNm(c)||"", last_doc:x.d, days:daysSince(x.d)})).sort((a,b)=>a.days-b.days);
+  let debt=0, old=0; live.forEach(j=>{ const p=payOf(j); if(p.left>0.005){ debt+=p.left; if(daysSince(j.date)>30) old+=p.left; } });
+  return {period:m+" (1–"+dd+")", compare_with:pms+" (1–"+pdd+")", this:R0, previous:R1, by_customer:Object.values(C).sort((a,b)=>b.rev-a.rev),
+    top_products:Gl.sort((a,b)=>b.rev-a.rev).slice(0,15), low_margin:Gl.filter(g=>g.margin_pct!=null&&g.margin_pct<12).sort((a,b)=>a.margin_pct-b.margin_pct).slice(0,12),
+    customers_quiet_14d:quiet.slice(0,12), unpaid_total:acN(debt), unpaid_older_30d:acN(old),
+    note:R0.miss?"у "+R0.miss+" накладных нет закупки — прибыль и наценка завышены":undefined}; }
+
 const AC_TOOLS=[
   {name:"search_docs", description:"Найти накладные (документы) в журнале сайта: по датам, заказчику, товару, поставщику (ИП), номеру. Возвращает накладные со строками (товар, количество, единица, цена, сумма), точку/адрес, договор, оплату и итоги по найденным товарам. Товар и заказчик ищутся по началу слов (картошка = «карт…», помидоры могут называться «томаты» — тогда ищи ещё раз). Даты — ГГГГ-ММ-ДД.",
    input_schema:{type:"object", properties:{date_from:{type:"string"}, date_to:{type:"string"}, customer:{type:"string", description:"название, короткое название или ИНН заказчика"}, product:{type:"string"}, supplier:{type:"string", description:"ИП: Скобёлкин / Суховерхова / Байдаров"}, number:{type:"string"}, include_archived:{type:"boolean"}, limit:{type:"integer", description:"сколько накладных вернуть, по умолчанию 40"}}}},
@@ -42,6 +124,10 @@ const AC_TOOLS=[
   {name:"remember", description:"Запомнить для Даниила заметку, правило или напоминание (сохраняется между разговорами). date — когда напомнить (ГГГГ-ММ-ДД), если это напоминание.", input_schema:{type:"object", properties:{text:{type:"string"}, date:{type:"string"}}, required:["text"]}},
   {name:"forget", description:"Удалить заметку/напоминание из памяти по id.", input_schema:{type:"object", properties:{id:{type:"string"}}, required:["id"]}},
   {name:"events", description:"Журнал «События» — кто из сотрудников что делал на сайте: создал/изменил/удалил накладную, отправил в архив, печатал, вошёл, правил заказчиков, цены, склад, закупку, почту и т. д. Ищи по датам, человеку (Даниил, Наталья, Гриша — водитель, Склад), действию и тексту (номер накладной, заказчик, товар). Для «кто создал накладную № N» — text: номер. Даты — ГГГГ-ММ-ДД.", input_schema:{type:"object", properties:{date_from:{type:"string"}, date_to:{type:"string"}, who:{type:"string"}, action:{type:"string", description:"вид действия: Документ (создан/изменён/удалён — подробность в тексте), Архив, Печать, Просмотр, Скачивание, Почта, Заявка, Склад, Закупка, Прибыль, Банк, Счета, Товары, Справочники, Задача на день, Вход, Выход, Отмена"}, text:{type:"string"}, limit:{type:"number"}}}},
+  {name:"site_data", description:"Любой раздел данных сайта (всё, что есть в Google Таблице и на сайте). Без collection — список разделов с количеством записей. С collection — записи раздела с фильтром по тексту и датам. Накладные — через search_docs, события — через events.", input_schema:{type:"object", properties:{collection:{type:"string", enum:Object.keys(AC_COLL)}, text:{type:"string", description:"слова для поиска по записи"}, date_from:{type:"string"}, date_to:{type:"string"}, limit:{type:"number"}}}},
+  {name:"screen", description:"Что сейчас на экране у Даниила: открытая вкладка, её текст, открытое окно (например, накладная), заполняемый «Новый документ». Используй, когда спрашивают «что здесь», «проверь это», «что не так на экране», «объясни эту страницу».", input_schema:{type:"object", properties:{}}},
+  {name:"site_help", description:"Справка: как устроен сайт и как в нём что-то сделать (вкладки, кнопки, порядок действий). Без topic — список тем.", input_schema:{type:"object", properties:{topic:{type:"string"}}}},
+  {name:"business_review", description:"Разбор бизнеса за месяц для советов: выручка, закупка, прибыль против того же числа прошлого месяца, по заказчикам, топ товаров, товары с низкой наценкой, заказчики, которые давно не заказывали, неоплаченные долги. month — ГГГГ-ММ (по умолчанию текущий).", input_schema:{type:"object", properties:{month:{type:"string"}}}},
   {name:"site_checks", description:"Что сайт сам нашёл: забытое и возможные ошибки (долги старше 30 дней, накладные без закупки или в минус, без договора, поставки без документов, остаток по договорам, склад, реквизиты, товары без единицы). Используй, когда спрашивают «что я забыл», «где ошибки», «что важно сегодня».", input_schema:{type:"object", properties:{}}}
 ];
 /* память помощника — в личных настройках (prefs.acMem: [{id, t, d, at}]) */
@@ -112,6 +198,19 @@ const AC_RUN={
     L=L.slice().sort((x,y)=>(evParse(y.at)||0)-(evParse(x.at)||0));
     return {found:L.length, events:L.slice(0,lim).map(e=>({at:e.at, who:e.user, action:e.action, text:String(e.text||"").slice(0,300)})),
       note:[L.length>lim?"показаны последние "+lim+" из "+L.length+" — сузь даты/человека":"", "в журнале последние "+evCache.length+" событий"].filter(Boolean).join("; ")}; },
+  async site_data(a){ if(!a.collection){ const L=[]; for(const k in AC_COLL){ let n; try{ const v=AC_COLL[k][2]?null:await AC_COLL[k][1](); n=v?v.length:"загружается по запросу"; }catch(e){ n="?"; } L.push({collection:k, what:AC_COLL[k][0], count:n}); } return {collections:L}; }
+    const C=AC_COLL[a.collection]; if(!C) return {error:"нет такого раздела", collections:Object.keys(AC_COLL)};
+    if(C[2]===1) await acProfitReady(); if(C[2]===2 && typeof ML!=="undefined" && !ML.loaded){ try{ AC.step="Загружаю почту…"; acDraw(); await mlLoad(false,true); }catch(e){} }
+    if(a.collection==="bank" && typeof BNK==="function" && !BNK().ops.length && typeof bnSync==="function"){ try{ await bnSync(true); }catch(e){} }
+    let L; try{ L=(await C[1]())||[]; }catch(e){ return {error:"не загрузилось: "+(e.message||e)}; }
+    const from=acD(a.date_from), to=acD(a.date_to), lim=Math.min(+a.limit||30, 100);
+    let R=L.filter(o=>{ if(from||to){ const d=acDay(o); if(d&&((from&&d<from)||(to&&d>to))) return false; } if(a.text){ let s=""; try{ s=JSON.stringify(o); }catch(e){} if(!acHit(a.text, s)) return false; } return true; });
+    if(R.some(o=>acDay(o))) R=R.slice().sort((x,y)=>acDay(y).localeCompare(acDay(x)));
+    return {collection:a.collection, found:R.length, total:L.length, rows:R.slice(0,lim).map(acRow), note:R.length>lim?"показаны "+lim+" из "+R.length+" — уточни текст или даты":undefined}; },
+  async screen(){ try{ return acScreen(); }catch(e){ return {error:String(e.message||e)}; } },
+  async site_help(a){ if(!a.topic) return {topics:AC_HELP.map(h=>h[0])}; const W=acTk(a.topic), sc=h=>W.reduce((n,w)=>n+(acHit(w,h[0])?3:0)+(acHit(w,h[1])?1:0),0);
+    return {help:AC_HELP.map(h=>[sc(h),h]).filter(x=>x[0]>0).sort((x,y)=>y[0]-x[0]).slice(0,4).map(x=>({topic:x[1][0], text:x[1][1]}))}; },
+  async business_review(a){ return acBizReview(a); },
   async site_checks(){ let T=[]; try{ T=autoTasks(); }catch(e){ return {error:"не получилось: "+(e.message||e)}; }
     const hid=(getPrefs().tkHide)||{}; T=T.filter(x=>!hid[x.key]); const o={err:0,warn:1,info:2}; T.sort((a,b)=>(o[a.lvl]??3)-(o[b.lvl]??3));
     return {count:T.length, items:T.slice(0,40).map(x=>({level:x.lvl==="err"?"важно":x.lvl==="warn"?"внимание":"к сведению", group:x.g, title:x.title, text:String(x.text||"").replace(/<[^>]+>/g,"").slice(0,300)}))}; },
@@ -130,6 +229,8 @@ function acSystem(){ const d=new Date(), dn=["воскресенье","поне�
 - Отвечай по-русски, коротко и по-человечески: сначала ответ, потом 1–5 строк подробностей. Деньги — «1 234,50 ₽», количество с единицей («85 кг»).
 - Накладные называй ссылками ровно в таком виде: [[doc:ID|№ 69 от 12.11]] (ID — поле id из инструмента). Заказчика можно ссылкой [[cus:ID|Цирк]] (ID — customer_id или id).
 - Кто что сделал на сайте (кто создал, изменил, удалил, напечатал накладную, кто заходил, что делали Наталья, Гриша, Склад) — смотри инструмент events (журнал «События») и поле history у накладных из search_docs (кто создал и что менял). Пользователи: Даниил (владелец), Наталья (менеджер), Гриша (водитель), Склад.
+- Ты видишь весь сайт: site_data — любой раздел (заказчики, товары, цены, договоры, задачи на день, мои задачи, счета, черновики, расходы, долги, закупки Саида, закупочные цены, банк, почта, склад); screen — что сейчас открыто у Даниила на экране; site_help — как пользоваться сайтом (объясняй по шагам: какая вкладка, какая кнопка); business_review — разбор месяца.
+- Ты советник по бизнесу: когда уместно (вопрос «как дела», «что улучшить», разбор месяца, прибыль, цены), давай 2–4 конкретных совета по цифрам: где низкая наценка, кто давно не заказывал, какие долги висят, где не заполнена закупка, что растёт или падает по сравнению с прошлым месяцем. Советы — коротко, с цифрами и ссылками на накладные/заказчиков. Без воды.
 - Если вопрос неоднозначный (несколько заказчиков с похожим названием) — коротко уточни.
 - Ты только читаешь данные: изменить, удалить или создать документ не можешь — подскажи, где это сделать на сайте.
 - Данные — те, что загружены на этом устройстве (журнал — последние 2000 накладных).
@@ -145,7 +246,7 @@ function acNoThink(){ AC.msgs.forEach(m=>{ if(m.role==="assistant" && Array.isAr
 function acSquash(){ acNoThink(); let q=0; for(let i=AC.msgs.length-1;i>=0;i--){ const m=AC.msgs[i]; if(acIsQ(m)) q++;
     if(m.role==="user" && Array.isArray(m.content)) m.content=m.content.map(c=>{ if(c.type==="tool_result" && String(c.content||"").length>200) return Object.assign({},c,{content:"(старые данные — при необходимости запроси заново)"}); return q>2?acNoFile(c):c; }); } }
 function acTrim(){ let n=0; for(let i=AC.msgs.length-1;i>=0;i--){ if(acIsQ(AC.msgs[i])){ n++; if(n>12){ AC.msgs=AC.msgs.slice(i+1); while(AC.msgs.length && !acIsQ(AC.msgs[0])) AC.msgs.shift(); break; } } } }
-const AC_STEP={events:"Смотрю журнал событий…", search_docs:"Ищу в накладных…", debts:"Считаю долги…", prices:"Смотрю цены…", profit:"Считаю прибыль…", expenses:"Смотрю расходы…", customers:"Смотрю заказчиков…", stock:"Смотрю склад…"};
+const AC_STEP={site_data:"Смотрю данные сайта…", screen:"Смотрю экран…", site_help:"Смотрю справку…", business_review:"Разбираю месяц…", events:"Смотрю журнал событий…", search_docs:"Ищу в накладных…", debts:"Считаю долги…", prices:"Смотрю цены…", profit:"Считаю прибыль…", expenses:"Смотрю расходы…", customers:"Смотрю заказчиков…", stock:"Смотрю склад…"};
 async function acAsk(text){ text=String(text||"").trim(); const F=AC.files.filter(f=>f.block); if((!text&&!F.length)||AC.busy) return; if(AC.files.some(f=>f.busy)){ toast("info","Подождите","Файл ещё готовится."); return; } if(!online()){ toast("warn","Нет связи","Помощнику нужен интернет."); return; }
   if(!text) text="Посмотри файл.";
   AC.busy=true; acSquash(); AC.view.push({r:"u", t:text, f:F.map(f=>f.name)}); AC.msgs.push({role:"user", content: F.length ? F.map(f=>f.block).concat([{type:"text", text}]) : text}); AC.files=[]; acTrim(); AC.step=F.length?"Читаю файл…":"Думаю…"; acDraw(true);
