@@ -18,7 +18,7 @@ FAKE = r"""__chatLog=[]; __chat=function(bd){ const last=bd.messages[bd.messages
   if(typeof last.content==='string' && /запомни/i.test(last.content)) return {content:[{type:'tool_use',id:'t4',name:'remember',input:{text:'Позвонить в Цирк про акт', date:'2026-11-01'}}],stop_reason:'tool_use'};
   if(Array.isArray(last.content) && last.content[0].type==='tool_result' && /saved/.test(last.content[0].content)) return {content:[{type:'text',text:'Запомнил.'}],stop_reason:'end_turn'};
   if(typeof last.content==='string'){ if(/долж/i.test(last.content)) return {content:[{type:'tool_use',id:'t2',name:'debts',input:{}}],stop_reason:'tool_use'};
-    return {content:[{type:'text',text:'Смотрю.'},{type:'tool_use',id:'t1',name:'search_docs',input:{product:'картошка',date_from:'2026-11-12',date_to:'2026-11-12'}}],stop_reason:'tool_use'}; }
+    return {content:[{type:'thinking',thinking:'',signature:'sig1'},{type:'text',text:'Смотрю.'},{type:'tool_use',id:'t1',name:'search_docs',input:{product:'картошка',date_from:'2026-11-12',date_to:'2026-11-12'}}],stop_reason:'tool_use'}; }
   const r=JSON.parse(last.content[0].content);
   if(r.customers) return {content:[{type:'text',text:'Всего должны **'+r.total_debt+' ₽**.'}],stop_reason:'end_turn'};
   const d=r.docs[0], t=r.product_totals[0];
@@ -59,6 +59,8 @@ async def main():
             await pg.fill('#ac-in', 'Кто сколько мне должен?'); await pg.press('#ac-in','Enter')
             await pg.wait_for_function("document.querySelectorAll('#ac-list .am.a').length>=2", timeout=15000)
             t=await pg.text_content('#ac-list .am.a:last-child'); ok('должны' in t and '₽' in t, f'{W}: долги ({t[:80]})')
+            lg=json.loads(srv("JSON.stringify(__chatLog)"))[-1]['messages']
+            ok(not any(m['role']=='assistant' and isinstance(m['content'],list) and any(c.get('type')=='thinking' for c in m['content']) for m in lg), f'{W}: прошлые размышления Claude не пересылаются в новом вопросе')
             if W==390:
                 bb=await pg.evaluate("(()=>{const r=document.getElementById('ac-pan').getBoundingClientRect(); return [r.width, r.height, innerWidth, innerHeight, document.documentElement.scrollWidth]})()")
                 ok(bb[0]>=bb[2]-1 and bb[1]>=bb[3]-1 and bb[4]<=bb[2], f'телефон: помощник во весь экран, без прокрутки вбок ({bb})')
