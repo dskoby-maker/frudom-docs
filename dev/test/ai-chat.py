@@ -59,6 +59,9 @@ async def main():
             await pg.fill('#ac-in', 'Кто сколько мне должен?'); await pg.press('#ac-in','Enter')
             await pg.wait_for_function("document.querySelectorAll('#ac-list .am.a').length>=2", timeout=15000)
             t=await pg.text_content('#ac-list .am.a:last-child'); ok('должны' in t and '₽' in t, f'{W}: долги ({t[:80]})')
+            srv("__sigFail=1; 'ok'"); await pg.fill('#ac-in', 'Куда уходила картошка 12 числа?'); await pg.press('#ac-in','Enter')
+            await pg.wait_for_function("document.querySelectorAll('#ac-list .am.a').length>=3 && !document.querySelector('#ac-list .acstep')", timeout=15000)
+            t=await pg.text_content('#ac-list .am.a:last-child'); ok('85' in t and srv("String(__sigFail)")=='0', f'{W}: Claude не принял размышления — сайт сам повторил без них ({t[:60]})')
             lg=json.loads(srv("JSON.stringify(__chatLog)"))[-1]['messages']
             ok(not any(m['role']=='assistant' and isinstance(m['content'],list) and any(c.get('type')=='thinking' for c in m['content']) for m in lg), f'{W}: прошлые размышления Claude не пересылаются в новом вопросе')
             if W==390:
@@ -66,7 +69,7 @@ async def main():
                 ok(bb[0]>=bb[2]-1 and bb[1]>=bb[3]-1 and bb[4]<=bb[2], f'телефон: помощник во весь экран, без прокрутки вбок ({bb})')
             u=await pg.text_content('#ac-use'); ok('Потрачено' in u and '$' in u, f'{W}: расход в шапке ({u})')
             await pg.fill('#ac-in', 'Запомни: позвонить в Цирк про акт'); await pg.press('#ac-in','Enter')
-            await pg.wait_for_function("document.querySelectorAll('#ac-list .am.a').length>=3", timeout=15000)
+            await pg.wait_for_function("[...document.querySelectorAll('#ac-list .am.a')].some(e=>/Запомнил/.test(e.textContent))", timeout=15000)
             ok(await pg.locator('#ac-list .acrm').count()==1 and 'Цирк' in await pg.text_content('#ac-list .acrm'), f'{W}: напоминание в памяти и показано сверху')
             ok('Позвонить в Цирк' in json.loads(srv("JSON.stringify(__chatLog)"))[-1]['system'], f'{W}: память уходит в инструкцию')
             await pg.click('[data-acnew]'); ok(await pg.locator('#ac-list .am').count()==0, f'{W}: «Новый разговор» очищает')
