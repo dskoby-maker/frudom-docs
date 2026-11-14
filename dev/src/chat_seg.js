@@ -122,7 +122,10 @@ function acSystem(){ const d=new Date(), dn=["воскресенье","поне�
 function acMemTxt(){ const L=acMem(); if(!L.length) return ""; return "\nТвоя память (заметки Даниила, id в скобках):\n"+L.map(x=>"- ("+x.id+") "+(x.d?"[напомнить "+x.d+"] ":"")+x.t).join("\n"); }
 
 /* ---------- разговор ---------- */
-function acSquash(){ let q=0; for(let i=AC.msgs.length-1;i>=0;i--){ const m=AC.msgs[i]; if(acIsQ(m)) q++;
+/* перед новым вопросом: прошлые «размышления» Claude (thinking) убираем целиком — они привязаны к неизменной истории,
+   а сайт историю сжимает (старые данные, файлы); внутри одного вопроса (цепочка инструментов) они идут без изменений */
+function acNoThink(){ AC.msgs.forEach(m=>{ if(m.role==="assistant" && Array.isArray(m.content)){ const c=m.content.filter(x=>x.type!=="thinking" && x.type!=="redacted_thinking"); m.content=c.length?c:[{type:"text", text:"…"}]; } }); }
+function acSquash(){ acNoThink(); let q=0; for(let i=AC.msgs.length-1;i>=0;i--){ const m=AC.msgs[i]; if(acIsQ(m)) q++;
     if(m.role==="user" && Array.isArray(m.content)) m.content=m.content.map(c=>{ if(c.type==="tool_result" && String(c.content||"").length>200) return Object.assign({},c,{content:"(старые данные — при необходимости запроси заново)"}); return q>2?acNoFile(c):c; }); } }
 function acTrim(){ let n=0; for(let i=AC.msgs.length-1;i>=0;i--){ if(acIsQ(AC.msgs[i])){ n++; if(n>12){ AC.msgs=AC.msgs.slice(i+1); while(AC.msgs.length && !acIsQ(AC.msgs[0])) AC.msgs.shift(); break; } } } }
 const AC_STEP={search_docs:"Ищу в накладных…", debts:"Считаю долги…", prices:"Смотрю цены…", profit:"Считаю прибыль…", expenses:"Смотрю расходы…", customers:"Смотрю заказчиков…", stock:"Смотрю склад…"};
