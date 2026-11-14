@@ -8663,8 +8663,34 @@ async function aiGo(){ if(!IMP||!IMP.scan) return; const f=IMP.scan; IMP.busy=1;
     const src=aiSrc(x), who=(/^claude/i.test(j.model||"")?"Claude":"Gemini")+(j.model?", "+j.model:"");
     src.how=(d.media?"Голосовое/видео":d.text?"Файл («"+aiExt(f).toUpperCase()+"», переведён в текст"+(d.cut?", слишком длинный — прочитано начало":"")+")":d.conv?"Файл («"+aiExt(f).toUpperCase()+"», переведён в PDF)":"Скан")+" прочитан ИИ ("+who+"). Сверьте количество и товары с оригиналом.";
     logEv("Документ","Заявка «"+f.name+"» прочитана ИИ ("+who+")");
-    const file=f.name; IMP={file}; IMP.r=impResolve(ftParse(src)); impShow();
+    const file=f.name; IMP={file}; IMP.r=impResolve(ftParse(src)); impShow(); aiWarn();
   }catch(e){ IMP={file:f.name, err:e.message||String(e)}; drawImp(); toast("err","ИИ не прочитал заявку", IMP.err+"."); } }
+/* окно «ИИ может ошибаться» после распознавания заявки (14.11.2026): «Понятно», крестик, Esc, нажатие мимо; плавное появление и исчезновение */
+function aiWarn(){ let d=document.getElementById("aiw"); if(d && d.open) return;
+  if(!document.getElementById("aiw-css")){ const st=document.createElement("style"); st.id="aiw-css"; st.textContent=`
+#aiw{border:0;padding:0;background:transparent;max-width:calc(100vw - 32px);width:420px;overflow:visible;color:#29232a;font-family:inherit}
+#aiw::backdrop{background:rgba(30,18,28,.42);animation:aiwFade .22s ease both}
+#aiw .aiwb{position:relative;background:#fff;border-radius:18px;padding:22px 22px 18px;box-shadow:0 24px 70px rgba(40,15,35,.28);animation:aiwIn .26s cubic-bezier(.2,.8,.2,1) both}
+#aiw.out .aiwb{animation:aiwOut .18s ease-in both}#aiw.out::backdrop{animation:aiwFadeOut .18s ease-in both}
+#aiw .aiwi{width:44px;height:44px;border-radius:50%;background:#fff4e0;color:#b26a00;display:flex;align-items:center;justify-content:center;margin-bottom:12px}#aiw .aiwi svg{width:24px;height:24px}
+#aiw h3{margin:0 0 8px;font-size:18px;line-height:1.3;padding-right:30px}#aiw p{margin:0 0 10px;font-size:15px;line-height:1.45;color:#4a3f47}
+#aiw ul{margin:0 0 16px;padding:0;list-style:none;display:grid;gap:6px}#aiw li{display:flex;gap:8px;align-items:center;font-size:15px}#aiw li:before{content:"";width:7px;height:7px;border-radius:50%;background:#5b2a4e;flex:none}
+#aiw .aiwx{position:absolute;top:12px;right:12px;width:34px;height:34px;border:0;background:none;border-radius:10px;font-size:22px;line-height:1;color:#7a6e76;cursor:pointer}#aiw .aiwx:hover{background:#f3eef1}
+#aiw .aiwok{width:100%;height:46px;border:0;border-radius:12px;background:#5b2a4e;color:#fff;font:inherit;font-size:16px;font-weight:600;cursor:pointer}#aiw .aiwok:active{transform:scale(.98)}
+@keyframes aiwIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}@keyframes aiwOut{to{opacity:0;transform:translateY(8px) scale(.97)}}
+@keyframes aiwFade{from{opacity:0}}@keyframes aiwFadeOut{to{opacity:0}}
+#fd-toasts{transition:opacity .2s}html.aiwon #fd-toasts{opacity:0;pointer-events:none}
+@media (prefers-reduced-motion:reduce){#aiw .aiwb,#aiw::backdrop{animation:none!important}}`; document.head.appendChild(st); }
+  if(!d){ d=document.createElement("dialog"); d.id="aiw"; d.setAttribute("aria-labelledby","aiw-t");
+    d.innerHTML=`<div class="aiwb"><button type="button" class="aiwx" aria-label="Закрыть">×</button><div class="aiwi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9.5 17h-19z"/><path d="M12 10v4.5M12 17.5v.01"/></svg></div>
+      <h3 id="aiw-t">Внимание: ИИ может ошибаться</h3><p>Перед тем как формировать документ, проверьте:</p><ul><li>наименования товаров</li><li>количество</li><li>дату поставки</li><li>заказчика</li></ul><button type="button" class="aiwok">Понятно</button></div>`;
+    (document.getElementById("fd-app")||document.body).appendChild(d);
+    const shut=()=>{ if(!d.open || d.classList.contains("out")) return; if(matchMedia("(prefers-reduced-motion:reduce)").matches){ d.close(); return; } d.classList.add("out"); setTimeout(()=>{ d.classList.remove("out"); if(d.open) d.close(); }, 180); };
+    d.addEventListener("close",()=>document.documentElement.classList.remove("aiwon"));
+    d.querySelector(".aiwok").onclick=shut; d.querySelector(".aiwx").onclick=shut;
+    d.addEventListener("cancel",e=>{ e.preventDefault(); shut(); });
+    d.addEventListener("click",e=>{ if(e.target===d) shut(); }); }
+  d.classList.remove("out"); document.documentElement.classList.add("aiwon"); try{ d.showModal(); }catch(e){ d.setAttribute("open",""); } setTimeout(()=>{ const b=d.querySelector(".aiwok"); if(b) b.focus(); },30); }
 async function aiKeySave(){ const k=($("#imp-gkey")||{}).value||""; if(!k.trim()){ toast("warn","Вставьте ключ"); return; }
   try{ await api({action:"aiKey", gkey:k.trim()}); toast("ok","Ключ Gemini сохранён","Он хранится только в скрипте вашей таблицы."); IMP.key=0; aiGo(); }
   catch(e){ toast("err","Ключ не сохранён", e.message==="unknown action"?"Сначала обновите Code.gs в таблице.":e.message); } }

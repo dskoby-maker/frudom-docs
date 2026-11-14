@@ -131,6 +131,7 @@ async def main():
         await pg.select_option('#ml-ocus', cid)
         await pg.click('#ml-view [data-mlmk="text"]')
         ok(await until(pg,"!document.querySelector('#tab-doc').hidden && /Позиций: 2/.test((document.querySelector('#imp-res')||{}).textContent||'') && __fd.D().draft.lines.some(l=>l.productId==='ml-p1' && +l.qty===10) && __fd.D().draft.customerId==='"+cid+"'", 120), 'текст письма прочитан ИИ → «Новый документ»: заказчик и товары (10 кг помидоров)')
+        ok(await until(pg,"!!(document.getElementById('aiw')||{}).open"), 'окно «ИИ может ошибаться» после распознавания письма'); await pg.click('#aiw .aiwok'); await pg.wait_for_timeout(300)
         ok(await pg.locator('#fd-tback').is_visible(), 'сверху «‹ Назад: Почта»')
         pr=await pg.evaluate("JSON.parse(localStorage.getItem('frudom-docs-prefs:Даниил')||'{}').mlCus||{}"); ok(pr.get('zakaz@msu.ru')==cid, 'отправитель запомнен как этот заказчик')
         await pg.click('#fd-tback'); await pg.wait_for_timeout(800)

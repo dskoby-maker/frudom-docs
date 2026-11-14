@@ -91,7 +91,7 @@ const AC_RUN={
       items:(Array.isArray(a.items)?a.items:[]).filter(i=>i&&i.name).map(i=>({name:i.name, unit:i.unit||"", qty:i.qty, price:i.price, qtys:i.qtys}))};
     if(!x.items.length) return {error:"нет ни одной строки товара"};
     let r; try{ showTab("doc"); IMP={file:"Помощник"}; IMP.r=r=impResolve(ftParse(aiSrc(x))); impShow(); }catch(e){ return {error:String(e.message||e)}; }
-    AC.made=1; setTimeout(()=>{ acShow(false); toast("ok","Помощник заполнил накладную","Проверьте строки, цены и адрес и нажмите «Сохранить»."); }, 300);
+    AC.made=1; setTimeout(()=>{ acShow(false); aiWarn(); }, 300);
     return {ok:true, opened:"вкладка «Новый документ» — накладные заполнены, Даниил проверит и нажмёт «Сохранить»", customer:cusNm(c.id), date:r.date||undefined,
       documents:(r.groups||[]).map(g=>({address:g.ship||g.addr||"", lines:(g.items||[]).length, sum:acN(g.sum), not_found:(g.miss||[]).map(l=>l.name), warnings:(g.warn||[]).map(w=>w.m).slice(0,8)})), warnings:(r.warn||[]).map(w=>w.m||w).slice(0,8)}; },
   async remember(a){ const t=String(a.text||"").trim(); if(!t) return {error:"пустая заметка"}; const L=acMem(), x={id:Date.now().toString(36), t:t.slice(0,500), d:acD(a.date)||"", at:todayISO()}; L.push(x); acMemSet(L); return {ok:true, saved:x}; },
