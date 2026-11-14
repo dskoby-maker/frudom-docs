@@ -90,7 +90,7 @@ const skQSet = L => { try{ lsSet(SKQKEY(), L.length?JSON.stringify(L):null); }ca
 async function skRun(q){
   const d = q.op==="file" ? Object.assign({}, q.d, {data:SKQF[q.rid]}) : q.d;
   if(q.op==="file" && !SKQF[q.rid]){ skQSet(skQ().filter(x=>x.rid!==q.rid)); throw new Error("файл не сохранился на устройстве после перезагрузки — прикрепите его ещё раз"); }
-  try{ const j=await api({action:"stock", op:q.op, rid:q.rid, d}); skQSet(skQ().filter(x=>x.rid!==q.rid)); delete SKQF[q.rid]; skApply(j.stock); return j; }
+  try{ const j=await api({action:"stock", op:q.op, rid:q.rid, d}); skQSet(skQ().filter(x=>x.rid!==q.rid)); delete SKQF[q.rid]; skApply(j.stock); if(q.label && typeof logEvSoft==="function") logEvSoft("Склад", q.label); return j; }
   catch(e){ if(e.net){ const L=skQ(), x=L.find(y=>y.rid===q.rid); if(x){ x.err=e.message; x.tries=(x.tries||0)+1; skQSet(L); } e.queued=true; throw e; }
     skQSet(skQ().filter(x=>x.rid!==q.rid)); delete SKQF[q.rid]; if(/unknown action/.test(e.message)){ skSrv=false; e.message="складу нужен новый скрипт таблицы (Code.gs)"; } throw e; } }
 /* операция: сразу в очередь (переживёт перезагрузку), затем отправка. Подтверждение — только после ответа таблицы */

@@ -2811,7 +2811,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
         <select id="ev-type" aria-label="Действие"><option value="">Все действия</option></select>
         <label class="evq"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="ev-q" type="search" placeholder="Поиск: номер, заказчик, товар"></label>
       </div>
-      <div class="evsum"><span id="ev-sum" class="muted"></span><label class="evhide"><input type="checkbox" id="ev-nologin"> Скрыть входы</label></div>
+      <div class="evsum"><span id="ev-sum" class="muted"></span><label class="evhide"><input type="checkbox" id="ev-nologin"> Скрыть входы и просмотры</label></div>
       <div class="evfeed" id="ev-body"></div>
       <div class="row evmore" id="ev-more" hidden><span class="muted" id="ev-shown"></span><span style="flex:1"></span><button class="btn sm" id="ev-next">Показать ещё 50</button><button class="btn ghost sm" id="ev-all">Показать все</button></div>
     </div>
@@ -3137,6 +3137,16 @@ if(pass() && !curUser()){ lsSet(UKEY,"Даниил"); lsSet(MKEY, JSON.stringify
 /* журнал событий: очередь отправки (переживает перезагрузку и отсутствие связи) */
 let evq=[]; try{ evq=JSON.parse(lsGet(EKEY)||"[]")||[]; }catch(e){ evq=[]; }
 function logEv(action, text, docId){ if(!curUser()) return; evq.push({at:new Date().toISOString(), action, text, docId:docId||""}); evq=evq.slice(-300); lsSet(EKEY, JSON.stringify(evq)); changed(); }
+/* «тихие» события — просмотры, переходы по вкладкам, почта, склад (14.11.2026): копятся на устройстве и уходят в таблицу вместе с ближайшим сохранением
+   или раз в 2 минуты одним запросом — без отдельного запроса на каждое нажатие. key — не записывать одно и то же чаще, чем раз в ms (по умолчанию 30 мин). */
+let evs=[]; try{ evs=JSON.parse(lsGet(EKEY+"-s")||"[]")||[]; }catch(e){ evs=[]; }
+const EVS_SEEN={}; let evsT=0;
+function logEvSoft(action, text, key, ms){ try{ if(!curUser()) return; const now=Date.now();
+  if(key){ if(EVS_SEEN[key] && now-EVS_SEEN[key]<(ms||1800000)) return; EVS_SEEN[key]=now; }
+  evs.push({at:new Date().toISOString(), action, text:String(text||"").replace(/\s+/g," ").trim().slice(0,400), docId:""}); evs=evs.slice(-200); lsSet(EKEY+"-s", JSON.stringify(evs)); evsArm(); }catch(e){} }
+function evsArm(){ if(evsT || !evs.length) return; evsT=setTimeout(()=>{ evsT=0; if(!evs.length || !curUser()) return; evsTake(); changed(); }, 120000); }
+function evsTake(){ if(!evs.length) return; evq=evq.concat(evs).sort((a,b)=>String(a.at).localeCompare(String(b.at))).slice(-300); evs=[]; lsSet(EKEY, JSON.stringify(evq)); lsSet(EKEY+"-s","[]"); }
+setTimeout(evsArm, 5000);
 const jDesc = j => "№ "+j.number+" от "+fd(j.date)+" — "+shortCus(calc(j.snap.dr, j.snap));
 function deviceName(){ const u=navigator.userAgent||""; return /Android/i.test(u)?"Android":/iPhone|iPad/i.test(u)?"iPhone/iPad":/Windows/i.test(u)?"Windows":/Mac OS/i.test(u)?"Mac":"браузер"; }
 const online = () => !!(API_URL && pass());
@@ -3167,6 +3177,7 @@ async function api(payload){
 }
 /*__SYNC_GUARD__*/
 function buildChanges(){
+  if(evs.length && (Object.keys(pend).some(t=>pend[t].size) || evq.length)) evsTake();   /* тихие события — заодно с настоящим сохранением */
   const ch={}, sent={};
   ["suppliers","customers","cats","products","contracts","journal","costs","doccosts","psettings","daytasks","purchases","pother","debts","invoices"].forEach(t=>{
     if(!pend[t].size || (t==="pother" && !D.poSrv) || (t==="debts" && !D.dbSrv) || (t==="cats" && !D.catSrv) || (t==="invoices" && !D.invSrv)) return;   /* старый скрипт таблицы не знает этот лист — держим на устройстве */ const up=[], del=[]; sent[t]=new Map(pend[t]);
@@ -3447,6 +3458,7 @@ function showTab(t){
   if(t!=="mail" && typeof mlTabOff==="function") mlTabOff();
   if(TBACK && !tbLock && t!==TBACK.to){ TBACK=null; tbDraw(); }
   curTab=t; tabRemember(t);
+  { const tb=document.querySelector(`#fd-app nav.tabs button[data-tab="${t}"]`); logEvSoft("Вкладка","Открыта вкладка «"+((tb&&tb.textContent.trim())||t)+"»","tab:"+t); }
   document.querySelectorAll("#fd-app nav.tabs button[data-tab]").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t));
   const ab=document.querySelector(`#fd-app nav.tabs button[data-tab="${t}"]`); if(ab && ab.parentElement.scrollWidth>ab.parentElement.clientWidth){ try{ ab.scrollIntoView({inline:"nearest", block:"nearest"}); }catch(e){} }
   document.querySelectorAll("#fd-app section.tab").forEach(s=>s.hidden = s.id!=="tab-"+t);
@@ -4230,6 +4242,7 @@ $("#pv-print").onclick=()=>{
     M.forEach((kinds,id)=>{ const j=D.journal.find(x=>x.id===id); if(!j||!j.snap) return; const m=j.snap.meta=j.snap.meta||{}; m.pr=new Date().toISOString(); m.prn=(+m.prn||0)+1; m.prk=[...new Set([...(m.prk||[]), ...kinds])];
       dirty("journal", j.id); logEv("Печать","Распечатан со склада ("+kinds.map(x=>KSHORT[x]).join(" + ")+"): "+jDesc(j), j.id); });
     if(curTab==="journal") renderJournal(); }
+  else if(cur && cur.k && cur.k.dr){ const M=cur.set?setDocs(cur.set):new Map([[cur.k.dr.id,[cur.kind]]]); M.forEach((kinds,id)=>{ const j=D.journal.find(x=>x.id===id); if(j&&j.snap) logEvSoft("Печать","Отправлен на печать ("+kinds.map(x=>KSHORT[x]).join(" + ")+"): "+jDesc(j)); }); }
   /* СТРОГАЯ ПЕЧАТЬ: каждый лист — ровно A4 книжный (210×297 мм, поля браузера 0).
      Альбомные листы (ТОРГ‑12, УПД) поворачиваются на нём целиком — так принтер не может ничего сжать или перенести.
      Если содержимое не влезает в лист — оно уменьшается целиком, без переноса строк на другой лист. */
@@ -4775,7 +4788,8 @@ function dtgToggle(el){ const g=el.closest(".dtg"); if(!g) return; const on=!g.c
 $("#dt-list").addEventListener("click", e=>{ const t=e.target.closest("[data-dtgt]"); if(t){ e.stopPropagation(); dtgToggle(t); } });
 /* отмечаем «видел» за текущего пользователя — только когда задачи дня реально показаны на экране */
 function dtMarkSeen(L){ const me=curUser(); if(!me) return; const now=new Date().toISOString();
-  L.forEach(x=>{ if(x.by===me) return; const sn=dtSeen(x); if(sn[me]) return; x._new=1; sn[me]=now; x.seen=JSON.stringify(sn); dirty("daytasks", x.id); }); }
+  const rd=[]; L.forEach(x=>{ if(x.by===me) return; const sn=dtSeen(x); if(sn[me]) return; x._new=1; sn[me]=now; x.seen=JSON.stringify(sn); dirty("daytasks", x.id); rd.push(x); });
+  if(rd.length) logEvSoft("Задача на день", rd.length===1 ? "Прочитана задача на "+fd(rd[0].date)+": "+fmtPlain(String(rd[0].text||"")).slice(0,150) : "Прочитаны задачи на "+[...new Set(rd.map(x=>fd(x.date)))].join(", ")+" ("+rd.length+")"); }
 function drawDayTasks(){
   const c=CAL(), sel=c.sel, all=DTS().filter(x=>!c.cus||!x.customerId||x.customerId===c.cus);
   const L=all.filter(x=>x.date===sel).sort((a,b)=>String(a.created).localeCompare(String(b.created)));
@@ -6012,7 +6026,8 @@ function renderEvents(){ if(!me().admin) return; const us=$("#ev-user"); if(us.o
   try{ $("#ev-nologin").checked = localStorage.getItem("frudom-evnl")==="1"; }catch(x){}
   if(!evCache) loadEvents(); else drawEvents(); }
 /* лента событий: по дням, у человека свой цвет кружка, действие — цветной чип, время справа */
-const EV_ACT = ["Вход","Выход","Документ","Заявка","Скачивание","XML","Архив","Справочники","Водителю","Прибыль","Склад","Закупка","Счета","Банк","Отмена","Данные"];
+const EV_ACT = ["Вход","Выход","Документ","Просмотр","Печать","Скачивание","Почта","Заявка","Задача на день","Водителю","Склад","Вкладка","XML","Архив","Справочники","Товары","Прибыль","Закупка","Счета","Банк","Отмена","Данные"];
+const EV_QUIET=/^(Вход|Выход|Вкладка|Просмотр)$/;   /* «Скрыть входы и просмотры» */
 const evHue = n => { let h=0; for(const c of String(n)) h=(h*31+c.charCodeAt(0))%360; return ({"Даниил":330,"Наталья":200,"Гриша":140,"Склад":35})[n] ?? h; };
 function evDay(d){ if(!d) return "Без даты"; const t=new Date(); t.setHours(0,0,0,0); const x=new Date(d); x.setHours(0,0,0,0); const k=Math.round((t-x)/864e5);
   const s=x.toLocaleDateString("ru-RU",{day:"numeric",month:"long"})+(x.getFullYear()!==t.getFullYear()?" "+x.getFullYear():"");
@@ -6023,13 +6038,14 @@ function evRow(e){ const d=evParse(e.at), tm=d?String(d.getHours()).padStart(2,"
     <button type="button" class="evx">${esc(e.text)}</button></div></div>`; }
 let evShow=50;   /* сначала последние 50, дальше — по 50 или все сразу */
 function drawEvents(keepMsg){
+  if(evCache && !evCache._srt){ const t=e=>{ const d=evParse(e.at); return d?d.getTime():0; }; evCache=evCache.map((e,i)=>[t(e),i,e]).sort((a,b)=>b[0]-a[0]||a[1]-b[1]).map(x=>x[2]); evCache._srt=1; }   /* тихие события приходят пачкой — по времени */
   const L=evCache||[], u=$("#ev-user").value, ty=$("#ev-type").value, per=$("#ev-per").value, q=($("#ev-q").value||"").toLowerCase().trim();
   const since = per ? (()=>{ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-(+per-1)); return d; })() : null;
   const tySel=$("#ev-type"); if(tySel.options.length<2 || tySel._n!==L.length){ const have=[...new Set(L.map(e=>e.action).filter(Boolean))], all=EV_ACT.filter(a=>have.includes(a)).concat(have.filter(a=>!EV_ACT.includes(a)));
     tySel.innerHTML=`<option value="">Все действия</option>`+all.map(a=>`<option${a===ty?" selected":""}>${esc(a)}</option>`).join(""); tySel._n=L.length; }
   document.querySelectorAll("#ev-perseg [data-evp]").forEach(b=>b.classList.toggle("on", b.dataset.evp===per));
   const nl=$("#ev-nologin").checked;
-  const rows=L.filter(e=>(!nl||!/^(Вход|Выход)$/.test(e.action)) && (!u||e.user===u) && (!ty||e.action===ty) && (!since||((evParse(e.at)||new Date())>=since)) && (!q||(e.text+" "+e.user+" "+e.action).toLowerCase().includes(q)));
+  const rows=L.filter(e=>(!nl||!EV_QUIET.test(e.action)) && (!u||e.user===u) && (!ty||e.action===ty) && (!since||((evParse(e.at)||new Date())>=since)) && (!q||(e.text+" "+e.user+" "+e.action).toLowerCase().includes(q)));
   $("#ev-count").textContent=L.length?L.length+" шт.":"";
   const n=Math.min(evShow, rows.length), left=rows.length-n;
   if(!keepMsg) $("#ev-sum").textContent = rows.length ? (rows.length===L.length ? "Всего "+L.length : "Найдено "+rows.length+" из "+L.length) : "";
@@ -6546,6 +6562,7 @@ function openCard(html, wide, onAct){
   if(keep && !(mode && morphRun(old, d, mode))){ old._morph=0; try{ old.close(); }catch(e){} old.remove(); } const ct=d.querySelector("#dc-cmt"); if(ct) cmGrow(ct);
 }
 function docCard(j, arch){
+  logEvSoft("Просмотр","Открыта накладная: "+jDesc(j),"doc:"+j.id,900000);
   const k=calc(j.snap.dr, j.snap), dr=j.snap.dr, m=j.snap.meta||{}, w=jWho(j), lim=docLimited(), inG=!arch && jKey(j) && D.journal.filter(x=>x.snap&&!isArch(x)&&jKey(x)===jKey(j)).length>1;
   const info=[["Поставщик",j.snap.s.name||""],["Адрес доставки",dr.ship||j.snap.c.address||""],["Основание",dr.basis||""]].concat(whoLine(j)).filter(x=>x[1]);
   const acts = arch ? `<button class="btn" data-dc="close">Закрыть</button>`
@@ -7141,7 +7158,7 @@ document.addEventListener("keydown", e=>{ const el=e.target; if(!el.classList||!
   if(e.key==="ArrowDown"||e.key==="ArrowUp"){ e.preventDefault(); e.stopPropagation(); L.forEach(x=>x.classList.remove("act")); i=(i+(e.key==="ArrowDown"?1:-1)+L.length)%L.length; L[i].classList.add("act"); L[i].scrollIntoView({block:"nearest"}); return; }
   if(e.key==="Enter"){ e.preventDefault(); e.stopPropagation(); (L[i]||L[0]).click(); return; } }, true);
 function bundleCard(g, arch){
-  if(!g.length) return; const ks=g.map(j=>calc(j.snap.dr, j.snap)), w={main:gTitle(g)}, lim=docLimited(), sum=r2(ks.reduce((a,k)=>a+k.t.sum,0)), kg=ks.reduce((a,k)=>a+k.t.kg,0);
+  if(!g.length) return; logEvSoft("Просмотр","Открыт комплект «"+gTitle(g)+"»: "+g.length+" док., № "+g.map(j=>j.number).join(", "),"bun:"+g.map(j=>j.id).join(","),900000); const ks=g.map(j=>calc(j.snap.dr, j.snap)), w={main:gTitle(g)}, lim=docLimited(), sum=r2(ks.reduce((a,k)=>a+k.t.sum,0)), kg=ks.reduce((a,k)=>a+k.t.kg,0);
   const nums=g.map(j=>j.number), hist=[].concat(...g.map(j=>histOf(j).map(x=>Object.assign(x,{num:j.number}))));
   const info=[["Поставщик",g[0].snap.s.name||""],["Основание",g[0].snap.dr.basis||""],["Документы","№ "+(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))]].filter(x=>x[1]);
   const docs=g.map((j,i)=>{ const k=ks[i]; return `<section class="dc-doc" style="animation-delay:${Math.min(i,8)*0.04}s"><button class="dc-dh" data-dc="doc" data-id="${j.id}" title="Открыть документ"><span><b>№ ${esc(j.number)}</b> · ${esc(kLbl(j)||stLabel(k.dr.ship||k.c.address||"", k.c.address))}</span><span class="s">${fm(k.t.sum)} ₽ ›</span></button>${linesTable(k)}</section>`; }).join("");
@@ -9050,7 +9067,7 @@ function appGo(t){ const nav=document.querySelector("#fd-app nav.tabs"); if(!nav
   if(A || /Android/i.test(navigator.userAgent||"")){ c.hidden=false; g.hidden=false;
     t.textContent = A ? "У вас старая версия приложения — в ней нет уведомлений и виджета. Скачайте новую и установите поверх старой (входить заново не нужно), потом откройте её и зайдите сюда снова."
       : "Уведомления на телефон и виджет «Расход · Доход · Личное» работают в приложении «Документы ФД». Скачайте его и установите."; } })();
-window.__fd = {prNorm:v=>prNorm(v), getPrice:(c,p)=>getPrice(c,p), shipSim:(a,b)=>shipSim(a,b), shipElsewhere:(c,b,a)=>shipElsewhere(c,b,a), acct:()=>({url:API_URL, user:curUser()||"", key:pass()||"", admin:!!me().admin, staff:!!(curUser()&&isStaff())}), quick:appQuick, go:appGo, mailOpen:appMail, mailState:appMailState, mailApp:MAILAPP, D:()=>D, undo:(r)=>unApply(curTab,!!r), undoState:()=>UNDO, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, ftPdf, aiSrc, IMP:()=>IMP, patchNmic, docProfit, payOf, setPay, calm:fdCalm, zkJState:j=>zkJState(j), pcdData:id=>pcdData(id), mail:()=>({draw:mlDraw, compose:mlCompose, ML, fname:mlFName, fld:mlFld})};
+window.__fd = {prNorm:v=>prNorm(v), getPrice:(c,p)=>getPrice(c,p), shipSim:(a,b)=>shipSim(a,b), shipElsewhere:(c,b,a)=>shipElsewhere(c,b,a), acct:()=>({url:API_URL, user:curUser()||"", key:pass()||"", admin:!!me().admin, staff:!!(curUser()&&isStaff())}), quick:appQuick, go:appGo, mailOpen:appMail, mailState:appMailState, mailApp:MAILAPP, D:()=>D, undo:(r)=>unApply(curTab,!!r), undoState:()=>UNDO, calc, layout, KINDS, showPreview, flush, pull, pend, ftParse, ftTable, ftLines, ftPdf, aiSrc, IMP:()=>IMP, patchNmic, docProfit, payOf, setPay, calm:fdCalm, zkJState:j=>zkJState(j), pcdData:id=>pcdData(id), mail:()=>({draw:mlDraw, compose:mlCompose, ML, fname:mlFName, fld:mlFld}), evSoft:()=>({evs, evq, now:()=>{ evsTake(); changed(); }})};
 })();
 </script>
 <!-- ============ конец блока ============ -->
