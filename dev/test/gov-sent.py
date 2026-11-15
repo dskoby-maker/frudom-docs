@@ -44,6 +44,16 @@ async def run(b, vw, tag):
     ok(((sn or {}).get('meta') or {}).get('sent',{}).get('k')=='eis', f'{tag}: отметка сохранена в таблице')
     await pg.keyboard.press('Escape'); await pg.wait_for_timeout(600)
     on=await pg.locator('#jr-body .jgov.on').count(); ok(on>=1, f'{tag}: в журнале значок стал зелёным')
+    # фильтр «ЕИС / ПП»
+    ok(await pg.locator('#jr-govw').is_visible(), f'{tag}: в журнале есть фильтр «ЕИС / ПП»')
+    await pg.select_option('#jr-gov','yes'); await pg.wait_for_timeout(400)
+    ids=await pg.evaluate("[...document.querySelectorAll('#jr-body [data-card]')].map(e=>e.dataset.card)")
+    ok(ids==[await pg.evaluate("window.__jid")], f'{tag}: «Отправлено» — только отмеченная накладная ({len(ids)})')
+    await pg.select_option('#jr-gov','no'); await pg.wait_for_timeout(400)
+    nos=await pg.evaluate("[...document.querySelectorAll('#jr-body .jgov')].map(e=>e.classList.contains('on'))")
+    ok(len(nos)>=1 and not any(nos), f'{tag}: «Не отправлено» — только серые значки ({nos})')
+    t=await pg.evaluate("[...document.querySelectorAll('#jr-gov option')].map(o=>o.textContent)"); ok(any('· ' in x for x in t), f'{tag}: в списке есть счётчики {t}')
+    await pg.click('#jr-reset'); await pg.wait_for_timeout(400); ok(await pg.evaluate("document.querySelector('#jr-gov').value")=='', f'{tag}: «Сбросить фильтры» снимает фильтр')
     # снять
     await pg.evaluate("()=>document.querySelector('#jr-body [data-card=\"'+window.__jid+'\"]').click()"); await pg.wait_for_timeout(900)
     await pg.click('#fd-dcard .dgov'); await pg.wait_for_timeout(400)
