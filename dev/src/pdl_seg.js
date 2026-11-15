@@ -31,11 +31,11 @@ function pdHint(p){ const s=pdSortOf(), o=pdSales()[p.id];
   if(s==="sold") return o&&o.last ? "продавали "+fd(o.last) : "ещё не продавали";
   if(s==="top") return o&&o.n ? o.n+" "+plural(o.n,["накладная","накладные","накладных"])+" · "+skQf(o.q,p.unit) : "за 3 мес. не продавали";
   return ""; }
-function pdRowHead(p){ const c=catOf(p), a=pArt(p), n=pgCount(p.id), pr=+p.price>0, h=pdHint(p);
-  const meta=[c?`<i class="nmcd" style="--cc:${esc(c.color||"#bbb")}"></i>${esc(c.name)}`:"", esc(p.unit||""), n>1?`<span class="nmlk" title="Связанные названия одного товара">${IC_LINK}${n}</span>`:"", h?esc(h):"", typeof vpTag==="function"?vpTag(p.id):""].filter(Boolean).join(" · ");
+function pdRowHead(p){ const c=catOf(p), a=pArt(p), n=pgCount(p.id), pr=+p.price>0, h=pdHint(p), vp=typeof pdVpPrice==="function"?pdVpPrice(p):null;
+  const meta=[c?`<i class="nmcd" style="--cc:${esc(c.color||"#bbb")}"></i>${esc(c.name)}`:"", esc(p.unit||""), n>1?`<span class="nmlk" title="Связанные названия одного товара">${IC_LINK}${n}</span>`:"", h?esc(h):"", typeof vpTag==="function"&&typeof pdSrcGet==="function"&&pdSrcGet()==="all"?vpTag(p.id):"", vp&&pr?"ваша цена "+fm(p.price).replace(/,00$/,"")+" ₽":""].filter(Boolean).join(" · ");
   return `<span class="nma${a?"":" new"}" title="${a?"Внутренний артикул":"Артикул появится после сохранения в таблицу"}">${a?esc(a):pdArtSrv()?"новый":"—"}</span>
     <span class="nmn"><b>${p.name?esc(p.name):`<em>Без названия</em>`}</b><small>${meta}</small></span>
-    <span class="nmp${pr?"":" no"}">${pr?`<b>${fm(p.price).replace(/,00$/,"")} ₽</b><small>/${esc(p.unit||"")}</small>`:`<small>нет цены</small>`}</span><span class="nmv">${IC_PDV}</span>`; }
+    ${vp?`<span class="nmp vpp" style="--h:${vpHue(vp.vendor)}" title="Цена из прайса ${esc(vp.vendor)} от ${fd(vp.date)}"><b>${vpMoney(vp.price)}</b><small>/${esc(vp.unit||p.unit||"")} · от ${fd(vp.date).slice(0,5)}</small></span>`:`<span class="nmp${pr?"":" no"}">${pr?`<b>${fm(p.price).replace(/,00$/,"")} ₽</b><small>/${esc(p.unit||"")}</small>`:`<small>нет цены</small>`}</span>`}<span class="nmv">${IC_PDV}</span>`; }
 function pdEditor(p){ const a=pArt(p), M=pgMembers(p.id), packs=Object.entries(packsOf(p)).map(([u,f])=>u+" = "+qtxt(f)).join("; ");
   return `<div class="nme"><div class="nmg">
     <label class="w2"><span>Наименование <small>печатается в документах — пишите как в контракте</small></span><input data-k="name" value="${esc(p.name)}" placeholder="Например, Изюм Малаяр"></label>

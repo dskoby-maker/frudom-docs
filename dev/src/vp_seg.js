@@ -36,16 +36,16 @@ function vpDraw(){ const box=$("#vp-card"); if(!box||box.hidden) return; const L
   else if(VP.busy==="load" && VP.rows==null) body=`<div class="vpempty"><span class="vpspin"></span><span>Загружаю прайсы…</span></div>`;
   else { body=(VP.err?`<p class="vperr">${esc(VP.err)} <button type="button" class="btn ghost sm" data-vp="reload">Повторить</button></p>`:"")+
       (L.length?`<div class="vpsearch">${VP_IC.find}<input id="vp-q" type="search" placeholder="Найти товар во всех прайсах…" value="${esc(VP.q)}" autocomplete="off">${q?`<button type="button" class="vpx" data-vp="clear" aria-label="Очистить">×</button>`:""}</div>`:"")+
-      (q ? vpFindHtml(q) : L.length ? `<div class="vplists">${L.map(vpListHtml).join("")}</div>` :
+      (q ? vpFindHtml(q) : L.length ? `<div class="vplt"><b>Загруженные прайсы</b><span>${L.length}</span></div><div class="vplists">${L.map(vpListHtml).join("")}</div>` :
         `<label class="vpempty vpdrop">${VP_IC.box}<b>Пока нет ни одного прайса</b><span>Нажмите «Загрузить прайс» или перетащите файл сюда — Excel, PDF, Word или фото.</span></label>`); }
   const foc=document.activeElement&&document.activeElement.id, pos=foc==="vp-q"?document.activeElement.selectionStart:null;
   box.innerHTML=head+`<div class="vpbody">${body}</div>`;
   if(foc==="vp-q"){ const i=$("#vp-q"); if(i){ i.focus(); try{ i.setSelectionRange(pos,pos); }catch(e){} } } }
 function vpListHtml(l){ const open=!!VP.open[l.id], iq=(VP.iq[l.id]||"").trim(), R=l.rows.filter(r=>!iq||acHit(iq, r.name+" "+(r.productName||""))), nn=l.rows.length;
   return `<div class="vpl${open?" open":""}" data-lid="${esc(l.id)}" style="--h:${vpHue(l.vendor)}">
-    <button type="button" class="vplh" data-vp="tog" aria-expanded="${open}"><i class="vpav">${esc(String(l.vendor||"?").trim()[0]||"?")}</i>
+    <div class="vplhw"><button type="button" class="vplh" data-vp="tog" aria-expanded="${open}"><i class="vpav">${esc(String(l.vendor||"?").trim()[0]||"?")}</i>
       <span class="vpln"><b>${esc(l.vendor||"Без названия")}</b><small>прайс от ${fd(l.date)} · ${nn} ${plural(nn,["позиция","позиции","позиций"])}${l.by?" · загрузил"+(/а$/.test(l.by)?"а":"")+" "+esc(l.by):""}</small></span>
-      <span class="vpchev">${VP_IC.chev}</span></button>
+      <span class="vpchev">${VP_IC.chev}</span></button><button type="button" class="btn sm vpopen" data-vp="win" title="Открыть весь прайс в отдельном окне">Открыть прайс</button></div>
     <div class="vplb"><div class="vplbi">${open?`<div class="vpsearch sm">${VP_IC.find}<input data-vpiq="${esc(l.id)}" type="search" placeholder="Поиск в этом прайсе" value="${esc(VP.iq[l.id]||"")}" autocomplete="off"></div>
       <div class="vprows">${R.slice(0,300).map(r=>vpRowHtml(r)).join("")||`<p class="muted">Ничего не нашлось</p>`}</div>${R.length>300?`<p class="muted">Показаны первые 300 — уточните поиск</p>`:""}
       <div class="vplf"><span class="muted">Цены для сравнения — в прибыль и закупку не идут</span><button type="button" class="btn ghost danger sm" data-vp="del">Удалить прайс</button></div>`:""}</div></div></div>`; }
@@ -165,6 +165,7 @@ document.addEventListener("click", e=>{ const box=e.target.closest("#vp-card"); 
   if(b.dataset.vpf){ VP.up.f=b.dataset.vpf; vpDraw(); return; }
   if(b.dataset.vpun){ e.preventDefault(); const it=VP.up.items[+b.dataset.vpun]; it.pid=""; vpDraw(); return; }
   const k=b.dataset.vp, l=b.closest(".vpl");
+  if(k==="win"){ vpWin(l.dataset.lid); return; }
   if(k==="tog"){ const id=l.dataset.lid; VP.open[id]=!VP.open[id]; const was=VP.open[id];
     if(was){ vpDraw(); } else { l.classList.remove("open"); b.setAttribute("aria-expanded","false"); setTimeout(()=>{ if(!VP.open[id]) vpDraw(); }, 320); } return; }
   if(k==="del"){ if(!armed(b,"Точно удалить прайс?")) return; const id=l.dataset.lid; b.disabled=true;
@@ -189,6 +190,73 @@ document.addEventListener("keydown", e=>{ if(e.key==="Escape" && e.target.id==="
   e.preventDefault(); if(ev==="dragover"){ box.classList.add("vpdrag"); return; } box.classList.remove("vpdrag"); const f=e.dataTransfer.files&&e.dataTransfer.files[0]; f&&vpFile(f); }));
 document.addEventListener("dragleave", e=>{ if(e.target.id==="vp-card") e.target.classList.remove("vpdrag"); });
 
+/* ---------- окно одного прайса: всё по этому поставщику и дате ---------- */
+const VPW={lid:"", q:"", cat:"", sort:"cat"};
+const vpCatOf = r => { const P=String(r.note||"").split(" · ").filter(x=>!/ндс/i.test(x)); return P.join(" · "); };
+const vpVatOf = l => { const r=l.rows.find(x=>/ндс/i.test(x.note||"")); return r ? (String(r.note).split(" · ").find(x=>/ндс/i.test(x))||"") : ""; };
+function vpWinRows(l){ const q=VPW.q.trim(); let R=l.rows.filter(r=>(!VPW.cat||vpCatOf(r)===VPW.cat)&&(!q||acHit(q, r.name+" "+(r.productName||"")+" "+vpCatOf(r))));
+  const col=new Intl.Collator("ru",{numeric:true});
+  if(VPW.sort==="name") R=R.slice().sort((a,b)=>col.compare(a.name,b.name)); else if(VPW.sort==="price") R=R.slice().sort((a,b)=>(vpN(a.price)??1e12)-(vpN(b.price)??1e12)); else if(VPW.sort==="price-d") R=R.slice().sort((a,b)=>(vpN(b.price)??-1)-(vpN(a.price)??-1));
+  return R; }
+function vpWinList(l){ const R=vpWinRows(l), lim=400; let cat=null, h="";
+  R.slice(0,lim).forEach(r=>{ const c=vpCatOf(r); if(VPW.sort==="cat" && !VPW.cat && c!==cat){ cat=c; h+=`<div class="vpwc">${esc(c||"Без раздела")}</div>`; }
+    const p=r.productId&&prod(r.productId), own=p&&(+p.price>0);
+    h+=`<div class="vpr vpwr"><span class="vprn"><b>${esc(r.name)}</b><small>${VPW.sort!=="cat"&&c?esc(c)+" · ":""}${p?`<button type="button" class="vpwl" data-vpwp="${esc(p.id)}">на сайте: ${esc(p.name)}${own?" · ваша цена "+vpMoney(p.price):""} ›</button>`:"нет на сайте"}</small></span>
+      <span class="vprp"><b>${vpMoney(r.price)}</b><small>/${esc(r.unit||"")}</small></span></div>`; });
+  return `<p class="vpfh">${R.length===l.rows.length?"Все "+R.length:"Найдено "+R.length+" из "+l.rows.length}${R.length>lim?" — показаны первые "+lim:""}</p>`+(h||`<div class="vpempty sm"><span>Ничего не нашлось</span></div>`); }
+function vpWin(lid, keep){ const l=vpLists().find(x=>x.id===lid); if(!l) return; if(!keep||VPW.lid!==lid) Object.assign(VPW,{lid, q:"", cat:"", sort:"cat"}); vpCss();
+  const cats=[...new Set(l.rows.map(vpCatOf))].filter(Boolean), vat=vpVatOf(l), have=l.rows.filter(r=>r.productId&&prod(r.productId)).length;
+  CARD_RE=()=>vpWin(lid, true);
+  openCard(`<div class="dc-head" style="--h:${vpHue(l.vendor)}"><div><div class="dc-kicker">Прайс поставщика</div><h3>${esc(l.vendor||"Без названия")}</h3>
+      <div class="vpwsub">от ${fd(l.date)} · ${l.rows.length} ${plural(l.rows.length,["позиция","позиции","позиций"])}${vat?" · цены "+esc(vat):""}${l.by?" · загрузил"+(/а$/.test(l.by)?"а":"")+" "+esc(l.by):""}</div></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+    <div class="vpw">
+      <div class="vpwt"><div class="vpsearch sm">${VP_IC.find}<input id="vpw-q" type="search" placeholder="Поиск в этом прайсе" value="${esc(VPW.q)}" autocomplete="off"></div>
+        <select id="vpw-sort" aria-label="Порядок">${[["cat","По разделам"],["name","По алфавиту"],["price","Сначала дешевле"],["price-d","Сначала дороже"]].map(([k,t])=>`<option value="${k}"${VPW.sort===k?" selected":""}>${t}</option>`).join("")}</select></div>
+      ${cats.length>1?`<div class="vpchips vpwcats"><button type="button" class="vpchip${VPW.cat?"":" on"}" data-vpwc="">Все разделы <b>${l.rows.length}</b></button>${cats.map(c=>`<button type="button" class="vpchip${VPW.cat===c?" on":""}" data-vpwc="${esc(c)}">${esc(c)} <b>${l.rows.filter(r=>vpCatOf(r)===c).length}</b></button>`).join("")}</div>`:""}
+      <div class="vpwk"><span><b>${have}</b> уже есть во «Товарах»</span><span>Цены только для сравнения — не ваша закупка</span></div>
+      <div id="vpw-list" class="vprows vpwlist">${vpWinList(l)}</div>
+      <div class="vpwf"><button type="button" class="btn sm" data-vpw="prod">Показать в «Товарах» ›</button><button type="button" class="btn ghost sm" data-vpw="xls">Скачать Excel</button><span style="flex:1"></span><button type="button" class="btn ghost danger sm" data-vpw="del">Удалить прайс</button></div>
+    </div>`, true); }
+async function vpWinXls(l){ try{ const X=await loadXLSX(), vat=vpVatOf(l);
+    const aoa=[["Прайс поставщика — шаблон для сайта «Фруктовый Дом · документы»"],["Выгружено с сайта. Можно поправить и загрузить снова кнопкой «Загрузить прайс»."],[],["Поставщик",l.vendor],["Дата прайса",fd(l.date)],["Цены",vat||""],[],["Наименование","Ед.","Цена, ₽","Категория","Примечание"]];
+    l.rows.forEach(r=>aoa.push([r.name, r.unit||"", vpN(r.price), vpCatOf(r), ""]));
+    const ws=X.utils.aoa_to_sheet(aoa); ws["!cols"]=[{wch:58},{wch:7},{wch:12},{wch:28},{wch:20}];
+    const wb=X.utils.book_new(); X.utils.book_append_sheet(wb,ws,"Прайс"); X.writeFile(wb,"Прайс "+(l.vendor||"")+" "+fd(l.date)+".xlsx");
+  }catch(e){ toast("err","Не получилось выгрузить", e.message||String(e)); } }
+document.addEventListener("click", e=>{ const d=e.target.closest&&e.target.closest("#fd-dcard"); if(!d||!VPW.lid) return; const l=vpLists().find(x=>x.id===VPW.lid); if(!l) return;
+  const c=e.target.closest("[data-vpwc]"); if(c){ VPW.cat=c.dataset.vpwc; d.querySelectorAll("[data-vpwc]").forEach(x=>x.classList.toggle("on", x===c)); $("#vpw-list").innerHTML=vpWinList(l); return; }
+  const pp=e.target.closest("[data-vpwp]"); if(pp){ if(typeof pdCard==="function"){ navStash(d); pdCard(pp.dataset.vpwp); } return; }
+  const b=e.target.closest("[data-vpw]"); if(!b) return; const k=b.dataset.vpw;
+  if(k==="xls"){ vpWinXls(l); return; }
+  if(k==="prod"){ d.close(); pdSrcSet("v:"+l.vendor); tabBackFrom("Поставщики", ()=>showTab("products")); return; }
+  if(k==="del"){ if(!armed(b,"Точно удалить прайс?")) return; b.disabled=true;
+    api({action:"vprices", op:"del", listId:l.id}).then(()=>{ VP.rows=D.vprices=vpRows().filter(r=>r.listId!==l.id); VPW.lid=""; d.close(); toast("ok","Прайс удалён","Товары во «Товарах» остались."); vpDraw(); }).catch(er=>{ b.disabled=false; toast("err","Не удалилось", er.message||String(er)); }); } });
+document.addEventListener("input", e=>{ if(e.target.id!=="vpw-q") return; VPW.q=e.target.value; const l=vpLists().find(x=>x.id===VPW.lid); if(l) $("#vpw-list").innerHTML=vpWinList(l); });
+document.addEventListener("change", e=>{ if(e.target.id!=="vpw-sort") return; VPW.sort=e.target.value; const l=vpLists().find(x=>x.id===VPW.lid); if(l) $("#vpw-list").innerHTML=vpWinList(l); });
+
+/* ---------- «Товары»: отдельно мои товары и товары из прайсов поставщиков ---------- */
+let VPIX=null;
+function vpIdx(){ const R=vpRows(), key=R.length+"|"+D.products.length+"|"+(D.journal||[]).length; if(VPIX&&VPIX.key===key) return VPIX;
+  const inV={}, byV={}; R.forEach(r=>{ if(!r.productId) return; inV[r.productId]=1; (byV[r.vendor]=byV[r.vendor]||{})[r.productId]=1; });
+  const cp={}; for(const c in D.prices||{}) for(const p in D.prices[c]){ const v=D.prices[c][p]; if(v!=null&&v!=="") cp[p]=1; }
+  const S=typeof pdSales==="function"?pdSales():{}, only={}; Object.keys(inV).forEach(id=>{ const p=prod(id); if(p && !(+p.price>0) && !cp[id] && !S[id]) only[id]=1; });
+  return VPIX={key, inV, byV, only}; }
+const pdSrcGet = () => { if(!vpRows().length) return "all"; const v=(typeof PDV!=="undefined"&&PDV.src)||(()=>{ try{ return localStorage.getItem("frudom-pdsrc"); }catch(e){ return ""; } })()||"mine";
+  return v.startsWith("v:") && !vpIdx().byV[v.slice(2)] ? "mine" : v; };
+function pdSrcSet(v){ PDV.src=v; try{ localStorage.setItem("frudom-pdsrc", v); }catch(e){} PDL.lim=100; }
+function pdSrcOk(p){ const s=pdSrcGet(); if(s==="all") return true; const X=vpIdx(); if(s==="mine") return !X.only[p.id]; return !!(X.byV[s.slice(2)]||{})[p.id]; }
+function pdVpPrice(p){ const s=pdSrcGet(); if(!s.startsWith("v:")) return null; return vpOf(p.id).find(r=>r.vendor===s.slice(2))||null; }
+function pdSrcBar(){ const cats=$("#pd-cats"); if(!cats) return; let bar=$("#pd-src"); if(!bar){ bar=document.createElement("div"); bar.id="pd-src"; bar.className="pdsrc"; cats.parentNode.insertBefore(bar, cats); }
+  if(!vpRows().length){ bar.hidden=true; return; } vpCss(); bar.hidden=false; const X=vpIdx(), s=pdSrcGet(), only=Object.keys(X.only).length;
+  const V=Object.keys(X.byV).sort((a,b)=>a.localeCompare(b,"ru"));
+  bar.innerHTML=`<span class="pdsrcl">Показать</span><div class="pdsrcs" role="tablist">`+
+    `<button type="button" role="tab" data-pdsrc="mine" class="${s==="mine"?"on":""}" title="Ваши товары: с вашей ценой, в прайсах заказчиков или в накладных">Мои товары <em>${D.products.length-only}</em></button>`+
+    V.map(v=>`<button type="button" role="tab" data-pdsrc="v:${esc(v)}" class="${s==="v:"+v?"on":""}" style="--h:${vpHue(v)}" title="Товары из прайса ${esc(v)} — с его ценами"><i></i>${esc(v)} <em>${Object.keys(X.byV[v]).length}</em></button>`).join("")+
+    `<button type="button" role="tab" data-pdsrc="all" class="${s==="all"?"on":""}">Все <em>${D.products.length}</em></button></div>`+
+    (s.startsWith("v:")?`<p class="pdsrch">Цены поставщика «${esc(s.slice(2))}» из его прайса — только для сравнения. Ваша цена — в раскрытой строке.</p>`:s==="mine"&&only?`<p class="pdsrch">Скрыто ${only} ${plural(only,["товар","товара","товаров"])} только из прайсов поставщиков — их видно в переключателе выше.</p>`:"");
+  if(VP.rows==null && VP.busy!=="load" && !isStaff()) vpLoad(true).then(()=>{ if(curTab==="products") renderProducts(); }); }
+document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-pdsrc]"); if(!b) return; pdSrcSet(b.dataset.pdsrc); renderProducts(); });
+
 const VP_IC={
   up:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>',
   find:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg>',
@@ -211,6 +279,22 @@ function vpCss(){ if(document.getElementById("vp-css")) return; const st=documen
 .vpsearch.sm{margin:2px 0 8px}.vpsearch.sm input{padding:8px 12px 8px 34px;font-size:14px}
 .vpx{position:absolute;right:6px;border:0;background:none;font-size:20px;line-height:1;color:var(--muted);cursor:pointer;padding:4px 8px}
 .vplists{display:grid;gap:8px}
+.vplt{display:flex;align-items:baseline;gap:8px;margin:4px 2px 8px}.vplt b{font-size:14px}.vplt span{color:var(--muted);font-size:13px}
+.vplhw{display:flex;align-items:center;gap:8px;padding-right:12px}.vplhw .vplh{flex:1;min-width:0}.vpopen{flex:none}
+.vpwsub{color:var(--muted);font-size:13px;margin-top:3px}
+.vpw{display:grid;gap:10px}.vpwt{display:flex;gap:8px;align-items:center}.vpwt .vpsearch{flex:1;margin:0}.vpwt select{width:auto;flex:none}
+.vpwk{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;font-size:12.5px;color:var(--muted)}.vpwk b{color:var(--ink)}
+.vpwlist{max-height:none;overflow:visible}.vpwc{position:sticky;top:0;z-index:1;background:var(--surface,#fff);padding:10px 4px 4px;font-size:12px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line)}
+.vpwr{animation:vpfade .25s ease both}.vpwl{border:0;background:none;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-align:left}.vpwl:hover{text-decoration:underline}
+.vpwf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-top:6px;border-top:1px solid var(--line)}
+.vpwcats{max-height:96px;overflow:auto}
+.pdsrc{display:grid;gap:6px;margin:0 0 10px}.pdsrcl{font-size:12px;color:var(--muted)}
+.pdsrcs{display:flex;flex-wrap:wrap;gap:4px;padding:4px;border-radius:14px;background:color-mix(in srgb,var(--line) 45%,transparent);width:fit-content;max-width:100%}
+.pdsrcs button{display:inline-flex;align-items:center;gap:6px;border:0;background:none;border-radius:10px;padding:7px 12px;font:inherit;font-size:13.5px;color:var(--ink);cursor:pointer;transition:background .2s,box-shadow .2s,color .2s}
+.pdsrcs button em{font-style:normal;color:var(--muted);font-size:12px}.pdsrcs button i{width:8px;height:8px;border-radius:50%;background:hsl(var(--h) 55% 55%)}
+.pdsrcs button.on{background:var(--surface);box-shadow:0 1px 4px rgba(30,30,40,.12);font-weight:600}
+.pdsrch{margin:0;font-size:12.5px;color:var(--muted)}
+.nmp.vpp b{color:hsl(var(--h,300) 45% 38%)}
 .vpl{border:1px solid var(--line);border-radius:14px;background:var(--surface);overflow:hidden;transition:box-shadow .25s, border-color .25s;animation:vpin .35s ease both}
 .vpl:hover{border-color:hsl(var(--h) 30% 78%)}.vpl.open{box-shadow:0 6px 22px rgba(30,30,40,.07)}
 .vplh{width:100%;display:flex;align-items:center;gap:12px;padding:12px 14px;border:0;background:none;text-align:left;cursor:pointer;font:inherit;color:inherit}
@@ -254,5 +338,5 @@ function vpCss(){ if(document.getElementById("vp-css")) return; const st=documen
 @keyframes vpin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @keyframes vpfade{from{opacity:0}to{opacity:1}}
 @keyframes vpsp{to{transform:rotate(360deg)}}
-@media (max-width:620px){.vph{flex-direction:column}.vpbtns{width:100%}.vpbtns>*{flex:1;justify-content:center}.vpadd{justify-content:center}.vpugrid{grid-template-columns:1fr}.vpubar{flex-wrap:wrap}.vpubar span{flex-basis:100%}.vpubar .btn{flex:1}}
+@media (max-width:620px){.vplhw{flex-wrap:wrap;padding:0 12px 10px}.vplhw .vplh{flex-basis:100%;padding:12px 2px 6px}.vpopen{width:100%}.vpwt{flex-wrap:wrap}.vpwt select{width:100%}.vph{flex-direction:column}.vpbtns{width:100%}.vpbtns>*{flex:1;justify-content:center}.vpadd{justify-content:center}.vpugrid{grid-template-columns:1fr}.vpubar{flex-wrap:wrap}.vpubar span{flex-basis:100%}.vpubar .btn{flex:1}}
 @media (prefers-reduced-motion:reduce){.vpl,.vpup,.vplbi{animation:none!important}.vplb,.vpchev{transition:none}}`; document.head.appendChild(st); }
