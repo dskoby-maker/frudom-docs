@@ -723,7 +723,7 @@ html.mailapp #fd-app{--mbh:0px}
 .zkn>b{display:block;margin-bottom:3px;color:#8a6d2a}.zkn ul{margin:0;padding-left:18px;display:grid;gap:2px}.zkn li b{color:#5b4a22}
 .zkn.ok{background:#e9f2eb;color:#4f7a5c;animation:fdglass .3s ease}
 .zkloss{display:block;margin:8px 2px 0;font-size:12.5px;line-height:1.45;color:#a15d52;overflow-wrap:anywhere}.zkloss i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#c97a6c;margin-right:7px;vertical-align:1px}.zkloss span{color:var(--muted)}
-#fd-app .jzk{position:relative}#fd-app .jzk .jzk-l{position:absolute;top:-2px;right:-2px;width:7px;height:7px;border-radius:50%;background:#c97a6c;box-shadow:0 0 0 2px var(--surface,#fff)}
+#fd-app .jzk{position:relative}#fd-app .jzk .jzk-l{position:absolute;top:3px;right:6px;width:7px;height:7px;border-radius:50%;background:#c97a6c;box-shadow:0 0 0 2px var(--surface,#fff)}
 .dc-zk{display:grid;grid-template-rows:0fr;transition:grid-template-rows .38s var(--ease,ease),margin .38s var(--ease,ease);margin-top:0}
 #fd-app .dcard .dc-zk.open{grid-template-rows:1fr;margin-top:14px}#fd-app .dcard .dc-zki{overflow:hidden;min-height:0}
 #fd-app .dcard .dc-zk.open .dc-zki{border-radius:16px;padding:14px;background:rgba(242,231,237,.45);border:1px solid rgba(106,44,78,.1)}
@@ -1288,6 +1288,8 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
   #fd-app .jf select{-webkit-appearance:none;appearance:none;padding-right:34px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238a8f8c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:16px}
   #fd-app .jf .fh{display:flex;align-items:center;gap:6px;min-height:0}
   #fd-app .jsum{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 4px}
+  /* карточки журнала на телефоне — без прокрутки вбок: ничего не торчит за край (красная точка у значка закупки сдвигала всё на пару пикселей, 15.11.2026) */
+  #fd-app .tbl:has(>table>:is(#jr-body,#cal-body,#ar-body)){overflow-x:hidden;touch-action:pan-y}
   #fd-app .jsum #jr-sum{flex:1 1 100%;font-size:14px}#fd-app .jsum>span[style*="flex:1"]{display:none}
   #fd-app .jsum #jr-msg:empty{display:none}
   #fd-app .jsum .btn,#fd-app .jsum .btn.ghost{flex:1 1 0;justify-content:center;background:rgba(28,34,32,.04);color:var(--ink)}
