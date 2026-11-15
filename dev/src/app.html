@@ -2738,6 +2738,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
         <label class="f">Заказчик<select id="jr-cus"></select></label>
         <label class="f" id="jr-brw" hidden>Подразделение<select id="jr-br"></select></label>
         <label class="f" id="jr-skw"><span class="fh">Склад<button type="button" class="hq" data-hq="Склад в журнале" aria-label="Подсказка: склад в журнале">?</button></span><select id="jr-sk"><option value="">Все</option><option value="any">Со склада</option><option value="wait">Ждут отгрузки</option><option value="short">С нехваткой</option></select></label>
+        <label class="f" id="jr-govw" hidden>ЕИС / ПП<select id="jr-gov" aria-label="Отправлено в ЕИС / на Портал поставщиков"></select></label>
         <label class="f jq">Поиск<input id="jr-q" placeholder="номер, адрес, товар…"></label>
         <label class="f jso">Порядок<select id="jr-sort"><option value="cr_d">Сначала новые (по созданию)</option><option value="cr_a">Сначала старые (по созданию)</option><option value="dt_d">Дата документа: новые сверху</option><option value="dt_a">Дата документа: старые сверху</option><option value="nm_d">Номер: по убыванию</option><option value="nm_a">Номер: по возрастанию</option><option value="sm_d">Сумма: больше сверху</option><option value="sm_a">Сумма: меньше сверху</option><option value="cu_a">Заказчик: А–Я</option></select></label>
       </div>
@@ -6275,8 +6276,8 @@ function renderJournal(){
   const live=D.journal.filter(j=>j.snap && !isArch(j));
   $("#jr-sk").value=f.sk||""; $("#jr-skw").hidden=!(SK_READY && SK && skSrv!==false);
   const skOk=j=>{ if(!f.sk) return true; const st=skJState(j); return f.sk==="any"?!!st:f.sk==="wait"?(st==="wait"||st==="short"):st==="short"; };
-  const rows=live.filter(j=>j.date>=d1 && j.date<=d2 && (!f.sup||j.supplierId===f.sup) && (!f.cus||j.customerId===f.cus) && (!f.br||j.snap.dr.branchId===f.br) && jMatch(j,q) && skOk(j))
-    .sort(jSorter(f.sort||"cr_d"));
+  const base=live.filter(j=>j.date>=d1 && j.date<=d2 && (!f.sup||j.supplierId===f.sup) && (!f.cus||j.customerId===f.cus) && (!f.br||j.snap.dr.branchId===f.br) && jMatch(j,q) && skOk(j));
+  const rows=jGovFilter(base, f).sort(jSorter(f.sort||"cr_d"));
   $("#jr-sort").value=f.sort||"cr_d";
   document.querySelectorAll("#jr-head th[data-js]").forEach(th=>{ const k=th.dataset.js, s=f.sort||"cr_d"; th.classList.toggle("sorted", s.startsWith(k)); th.dataset.dir = s.startsWith(k) ? (s.endsWith("_a")?"▲":"▼") : ""; });
   const out=jBuild(rows,false,jOpen,(f.sort||"cr_d").startsWith("dt")), tot=r2(rows.reduce((a,j)=>a+(+j.sum||0),0)), na=D.journal.length-live.length;
@@ -6334,6 +6335,15 @@ $("#jr-sort").onchange=e=>jfSet("sort",e.target.value);
 $("#jr-head").addEventListener("click",e=>{ const th=e.target.closest("th[data-js]"); if(!th) return; const k=th.dataset.js, cur=JF().sort||"cr_d";
   jfSet("sort", cur===k+"_d" ? k+"_a" : cur===k+"_a" ? "cr_d" : (k==="cu"?"cu_a":k+"_d")); });
 $("#ar-q").addEventListener("input",renderArchive);
+/* фильтр «ЕИС / ПП»: отправлено / не отправлено (отметка в окне накладной — govToggle); счётчики — по остальным фильтрам */
+const JGOV=[["","Все"],["no","Не отправлено"],["yes","Отправлено"],["eis:no","ЕИС — не отправлено"],["eis:yes","ЕИС — отправлено"],["pp:no","ПП — не отправлено"],["pp:yes","ПП — отправлено"]];
+const jGovOk = (j, v) => { if(!v) return true; const k=govKind(j); if(!k) return false; const [kk,st]=v.includes(":")?v.split(":"):["",v]; if(kk && k!==kk) return false; return (st==="yes")===!!govSent(j); };
+function jGovFilter(base, f){ const sel=$("#jr-gov"), w=$("#jr-govw"), any=D.journal.some(j=>j.snap && !isArch(j) && govKind(j));
+  if(!any){ if(w) w.hidden=true; if(f.gov){ f.gov=""; } return base; }
+  const has=new Set(base.map(govKind).filter(Boolean)); if(f.gov && f.gov.includes(":") && !JGOV.some(([v])=>v===f.gov)) f.gov="";
+  if(sel){ sel.innerHTML=JGOV.filter(([v])=>!v.includes(":") || has.has(v.split(":")[0]) || v===f.gov).map(([v,t])=>{ const n=v?base.filter(j=>jGovOk(j,v)).length:0; return `<option value="${v}"${v===(f.gov||"")?" selected":""}>${t}${v?" · "+n:""}</option>`; }).join(""); }
+  if(w) w.hidden=false; return f.gov ? base.filter(j=>jGovOk(j,f.gov)) : base; }
+$("#jr-gov").onchange=e=>jfSet("gov",e.target.value);
 $("#jr-reset").onclick=()=>{ D.jf={per:"all",sup:"",cus:"",br:"",q:"",from:"",to:"",sort:"cr_d"}; saveLocal(); $("#jr-q").value=""; renderJournal(); };
 /* ================= XML УПД для Портала поставщиков (zakupki.mos.ru) — 13.11.2026 =================
    Схема «mini ON_NSCHFDOPPR_1_997_01_05_01_02» из руководства Портала «Импорт сведений электронного исполнения контракта на форму УПД».
