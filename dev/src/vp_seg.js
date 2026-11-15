@@ -147,17 +147,25 @@ async function vpSave(){ const u=VP.up, vendor=($("#vp-vendor").value||"").trim(
   if(!vendor){ toast("warn","Укажите поставщика","Например, «Роспродукт» — чтобы было понятно, чьи это цены."); $("#vp-vendor").focus(); return; }
   const on=u.items.filter(i=>i.on); if(!on.length) return;
   const old=vpLists().find(l=>l.vendor.toLowerCase()===vendor.toLowerCase()&&l.date===date), lid=uid();
-  u.busy="Сохраняю…"; vpDraw(); let made=0;
-  try{ const rows=on.map(it=>{ let pid=it.pid;
-      if(!pid){ const p={id:uid(), name:it.name, code:"", unit:vpUnit(it.unit), country:"", price:""}; D.products.push(p); dirty("products",p.id); pid=p.id; it.pid=pid; made++; }
-      return {id:uid(), listId:lid, vendor, date, name:it.name, unit:it.unit, price:String(it.price), productId:pid, note:[u.vat, it.cat].filter(Boolean).join(" · ")}; });
-    for(let i=0;i<rows.length;i+=800) await api({action:"vprices", op:"put", rows:JSON.stringify(rows.slice(i,i+800))});
+  /* сначала цены уходят в таблицу, и только после её ответа новые товары появляются во «Товарах»:
+     если связь оборвалась или приложение закрыли посреди сохранения — не остаётся товаров без цен (15.11.2026) */
+  u.busy="Сохраняю прайс в таблицу… не закрывайте страницу"; vpDraw();
+  const newP=[], rows=on.map(it=>{ let pid=it.pid;
+      if(!pid){ const p={id:uid()+uid().slice(0,4), name:it.name, code:"", unit:vpUnit(it.unit), country:"", price:""}; newP.push(p); pid=p.id; }
+      return {id:uid()+uid().slice(0,4), listId:lid, vendor, date, name:it.name, unit:it.unit, price:String(it.price), productId:pid, note:[u.vat, it.cat].filter(Boolean).join(" · ")}; });
+  const put=async part=>{ for(let k=0;;k++){ try{ return await api({action:"vprices", op:"put", rows:JSON.stringify(part)}); }catch(e){ if(k>=1||!online()) throw e; await new Promise(r=>setTimeout(r,1500)); } } };
+  let made=0;
+  try{ const N=Math.ceil(rows.length/300);
+    for(let i=0,n=1;i<rows.length;i+=300,n++){ if(N>1){ u.busy="Сохраняю прайс в таблицу — часть "+n+" из "+N+"… не закрывайте страницу"; vpDraw(); } await put(rows.slice(i,i+300)); }
     if(old) await api({action:"vprices", op:"del", listId:old.id}).catch(()=>{});
+    newP.forEach(p=>{ if(D.products.some(x=>x.id===p.id)) return; D.products.push(p); dirty("products",p.id); made++; });
+    on.forEach((it,i)=>{ it.pid=rows[i].productId; });
     if(made){ saveLocal(); flush().catch(()=>{}); }
     VP.rows=D.vprices=vpRows().filter(r=>!old||r.listId!==old.id).concat(rows.map(r=>Object.assign({by:curUser(), at:new Date().toISOString()}, r)));
     VP.up=null; VP.open={[lid]:true};
     toast("ok","Прайс сохранён", vendor+" от "+fd(date)+": "+rows.length+" "+plural(rows.length,["позиция","позиции","позиций"])+(made?", "+made+" "+plural(made,["новый товар","новых товара","новых товаров"])+" во «Товарах»":"")+(old?" (старый прайс за эту дату заменён)":"")+".");
-  }catch(e){ u.busy=""; toast("err","Прайс не сохранился", e.message||String(e)); }
+  }catch(e){ u.busy=""; if(rows.length) api({action:"vprices", op:"del", listId:lid}).catch(()=>{});   /* часть могла записаться — убираем, чтобы не было половины прайса */
+    toast("err","Прайс не сохранился", (e.message||String(e))+". Ничего не добавлено — нажмите «Сохранить прайс» ещё раз."); }
   vpDraw(); }
 
 /* ---------- нажатия ---------- */
@@ -245,8 +253,10 @@ const pdSrcGet = () => { if(!vpRows().length) return "all"; const v=(typeof PDV!
   return v.startsWith("v:") && !vpIdx().byV[v.slice(2)] ? "mine" : v; };
 function pdSrcSet(v){ PDV.src=v; try{ localStorage.setItem("frudom-pdsrc", v); }catch(e){} PDL.lim=100; }
 function pdSrcOk(p){ const s=pdSrcGet(); if(s==="all") return true; const X=vpIdx(); if(s==="mine") return !X.only[p.id]; return !!(X.byV[s.slice(2)]||{})[p.id]; }
-function pdVpPrice(p){ const s=pdSrcGet(); if(!s.startsWith("v:")) return null; return vpOf(p.id).find(r=>r.vendor===s.slice(2))||null; }
+function pdVpPrice(p){ const s=pdSrcGet(); if(s.startsWith("v:")) return vpOf(p.id).find(r=>r.vendor===s.slice(2))||null;
+  return +p.price>0 ? null : (vpOf(p.id)[0]||null); }   /* своей цены нет — показываем цену из прайса поставщика (с его именем) */
 function pdSrcBar(){ const cats=$("#pd-cats"); if(!cats) return; let bar=$("#pd-src"); if(!bar){ bar=document.createElement("div"); bar.id="pd-src"; bar.className="pdsrc"; cats.parentNode.insertBefore(bar, cats); }
+  if(VP.rows==null && VP.busy!=="load" && !isStaff()) vpLoad(true).then(()=>{ if(curTab==="products") renderProducts(); });
   if(!vpRows().length){ bar.hidden=true; return; } vpCss(); bar.hidden=false; const X=vpIdx(), s=pdSrcGet(), only=Object.keys(X.only).length;
   const V=Object.keys(X.byV).sort((a,b)=>a.localeCompare(b,"ru"));
   bar.innerHTML=`<span class="pdsrcl">Показать</span><div class="pdsrcs" role="tablist">`+
@@ -254,7 +264,7 @@ function pdSrcBar(){ const cats=$("#pd-cats"); if(!cats) return; let bar=$("#pd-
     V.map(v=>`<button type="button" role="tab" data-pdsrc="v:${esc(v)}" class="${s==="v:"+v?"on":""}" style="--h:${vpHue(v)}" title="Товары из прайса ${esc(v)} — с его ценами"><i></i>${esc(v)} <em>${Object.keys(X.byV[v]).length}</em></button>`).join("")+
     `<button type="button" role="tab" data-pdsrc="all" class="${s==="all"?"on":""}">Все <em>${D.products.length}</em></button></div>`+
     (s.startsWith("v:")?`<p class="pdsrch">Цены поставщика «${esc(s.slice(2))}» из его прайса — только для сравнения. Ваша цена — в раскрытой строке.</p>`:s==="mine"&&only?`<p class="pdsrch">Скрыто ${only} ${plural(only,["товар","товара","товаров"])} только из прайсов поставщиков — их видно в переключателе выше.</p>`:"");
-  if(VP.rows==null && VP.busy!=="load" && !isStaff()) vpLoad(true).then(()=>{ if(curTab==="products") renderProducts(); }); }
+}
 document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-pdsrc]"); if(!b) return; pdSrcSet(b.dataset.pdsrc); renderProducts(); });
 
 const VP_IC={
