@@ -138,14 +138,14 @@ const pvCusName = cid => cid==="-" ? "Без заказчика" : (cusNm(cid) |
 const pvAva = cid => { const h=dtHue(cid), n=pvCusName(cid).replace(/[«»"']/g,"").replace(/^(ФГБУ|ФГБНУ|ГБПОУ|ГАПОУ|ГУП|АО|ООО|ИП|ФГУП|МБОУ|ГБУ)\s+/i,"").trim();
   return `<span class="pvava" style="--h:${h==null?200:h}">${esc((n[0]||"?").toUpperCase())}</span>`; };
 function pvCusDraw(keepInput){
-  const box=$("#pv-cus"), f=PV(), [d1,d2]=pvRange(), all=pvCusData(d1,d2), q=(f.q||"").trim().toLowerCase();
+  const box=$("#pv-cus"), f=PV(), R=pvCusR(), d1=R.a, d2=R.b, all=pvCusData(d1,d2), q=(f.q||"").trim().toLowerCase();
   const L=q ? all.filter(g=>pvCusName(g.cid).toLowerCase().includes(q)) : all;
   const T=all.reduce((a,g)=>({rev:a.rev+g.rev, rs:a.rs+g.rs, cost:a.cost+g.cost+g.exp, profit:a.profit+g.profit, n:a.n+g.docs.length, miss:a.miss+g.miss}),{rev:0,rs:0,cost:0,profit:0,n:0,miss:0});
   /* не оплачено: накладные месяца с неоплаченным остатком — те же, что в окне «Ждём оплату» */
   const U=all.reduce((a,g)=>{ g.docs.forEach(x=>{ const p=payOf(x.j); if(p.st!=="paid" && p.left>0.004){ a.n++; a.s=r2(a.s+p.left); } }); return a; },{n:0,s:0});
-  const act=L.filter(g=>!g.idle), idl=L.filter(g=>g.idle), mon=pvMonth(), mName=mon==="all"?"":["январе","феврале","марте","апреле","мае","июне","июле","августе","сентябре","октябре","ноябре","декабре"][+mon.slice(5,7)-1]||"";
+  const act=L.filter(g=>!g.idle), idl=L.filter(g=>g.idle), mon=R.cr?"":pvMonth(), mName=!mon||mon==="all"?"":["январе","феврале","марте","апреле","мае","июне","июле","августе","сентябре","октябре","ноябре","декабре"][+mon.slice(5,7)-1]||"";
   const idleT = g => `<button type="button" class="pvcus idle" data-pvc="${esc(g.cid)}"><div class="pvch">${pvAva(g.cid)}<div class="pvcn"><b>${esc(pvCusName(g.cid))}</b><small>${g.nAll?`последняя накладная ${fd(g.lastAll)} · всего ${g.nAll}`:"накладных пока нет"}</small></div></div><span class="pvgo">Открыть ›</span></button>`;
-  const idleH = idl.length ? `<div class="pvidle-h"><span>${mon==="all"?"Без накладных":"Без накладных"+(mName?" в "+mName:" за этот месяц")}</span><i>${idl.length}</i></div>` : "";
+  const idleH = idl.length ? `<div class="pvidle-h"><span>${mon==="all"?"Без накладных":"Без накладных"+(mName?" в "+mName:" за этот период")}</span><i>${idl.length}</i></div>` : "";
   const tiles = (act.length || idl.length) ? act.map((g,i)=>{ const mg=g.rev>0?Math.max(0,Math.min(100,g.profit/g.rev*100)):0;
     return `<button type="button" class="pvcus" data-pvc="${esc(g.cid)}" style="--d:${Math.min(i,12)*30}ms">
       <div class="pvch">${pvAva(g.cid)}<div class="pvcn"><b>${esc(pvCusName(g.cid))}</b><small>${g.fresh?"накладных пока нет":`${g.docs.length} ${plural(g.docs.length,["накладная","накладные","накладных"])} · последняя ${fd(g.last).slice(0,5)}`}</small></div>${g.miss?`<span class="pvwarn" title="Нет закупки у ${g.miss} ${plural(g.miss,["накладной","накладных","накладных"])}"><i></i>${g.miss}</span>`:""}</div>
@@ -153,10 +153,10 @@ function pvCusDraw(keepInput){
       <div class="pvbar"><i style="width:${mg}%"></i></div>
       <dl class="pvcs"><div><dt>Сумма</dt><dd>${fm(g.rev)}</dd></div><div><dt>На р/с</dt><dd>${fm(g.rs)}</dd></div><div><dt>Закупка</dt><dd>${fm(r2(g.cost+g.exp))}</dd></div></dl>
       <span class="pvgo">Открыть ›</span></button>`; }).join("")
-      + (!act.length ? `<div class="pvempty sm">${pvIco("folder","big")}<b>${all.some(g=>!g.idle)?"Никого не нашлось":"За этот месяц накладных нет"}</b></div>` : "")
+      + (!act.length ? `<div class="pvempty sm">${pvIco("folder","big")}<b>${all.some(g=>!g.idle)?"Никого не нашлось":"За этот период накладных нет"}</b></div>` : "")
       + idleH + idl.map(idleT).join("")
-    : `<div class="pvempty">${pvIco("folder","big")}<b>${all.length?"Никого не нашлось":"За этот месяц накладных нет"}</b><small>${all.length?"Попробуйте другое название.":"Выберите другой месяц стрелками сверху."}</small></div>`;
-  const head = `<div class="pvhead"><div><h2>По заказчикам</h2><small class="muted">Нажмите на заказчика — накладные, «на р/с», закупка и прибыль, как в вашей таблице</small></div>${pvMonBar()}</div>
+    : `<div class="pvempty">${pvIco("folder","big")}<b>${all.length?"Никого не нашлось":"За этот период накладных нет"}</b><small>${all.length?"Попробуйте другое название.":"Выберите другой период сверху."}</small></div>`;
+  const head = `<div class="pvhead"><div><h2>По заказчикам</h2><small class="muted">Нажмите на заказчика — накладные, «на р/с», закупка и прибыль, как в вашей таблице</small></div>${pvCusBar()}</div>
     <div class="pvkpi"><div><small>Сумма накладных</small><b>${fm(r2(T.rev))}</b><span>${T.n} ${plural(T.n,["накладная","накладные","накладных"])}</span></div>
       <div><small>На р/с (после налога)</small><b>${fm(r2(T.rs))}</b></div><div><small>Закупка</small><b>${fm(r2(T.cost))}</b>${T.miss?`<button type="button" class="pvmiss" data-pvmiss title="Открыть эти накладные во вкладке «Закупка» и заполнить">без закупки: ${T.miss} ›</button>`:""}</div>
       <div class="pos"><small>Прибыль</small><b class="${T.profit<0?"neg":""}">${fm(r2(T.profit))}</b><span>маржа ${pct(T.profit,T.rev)}</span>${U.n?`<button type="button" class="pvmiss pvunp" data-pvunp title="Не оплачено ${fm(U.s)} ₽ — открыть эти накладные">не оплачено: ${U.n} ›</button>`:""}</div></div>
@@ -165,19 +165,99 @@ function pvCusDraw(keepInput){
   box.innerHTML = head + `<div class="pvgrid">${tiles}</div>`;
 }
 function pvCusClick(e){
-  const m=e.target.closest("[data-pvm]"); if(m){ pvMonClick(m); return; }
-  if(e.target.closest("[data-pvmiss]")){ const mm=pvMonth(), [a,b]=pvRange(); tabBackFrom("Прибыль", ()=>zkpGoMiss(a, b, mm==="all"?"за всё время":"за "+pvMon(mm).toLowerCase())); return; }
-  if(e.target.closest("[data-pvunp]")){ const mm=pvMonth(), [a,b]=pvRange(); pfDetail("due", "", [a, b, mm==="all"?"Все месяцы":pvMon(mm)]); return; }
+  if(pvRpClick(e)) return;
+  if(e.target.closest("[data-pvmiss]")){ const R=pvCusR(); tabBackFrom("Прибыль", ()=>zkpGoMiss(R.a, R.b, R.all?"за всё время":"за "+(R.cr?R.lab:R.lab.toLowerCase()))); return; }
+  if(e.target.closest("[data-pvunp]")){ const R=pvCusR(); pfDetail("due", "", [R.a, R.b, R.all?"Все месяцы":R.lab]); return; }
   const t=e.target.closest("[data-pvc]"); if(t) pvLedger(t.dataset.pvc);
 }
+
+/* ---------- период «По заказчикам»: месяц (как раньше) или любые даты из календаря ---------- */
+const PV_MS=["янв","фев","мар","апр","мая","июн","июл","авг","сен","окт","ноя","дек"];
+const pvIsoD = s => { const [y,m,d]=s.split("-").map(Number); return new Date(y,m-1,d); };
+const pvAddD = (s, n) => { const d=pvIsoD(s); d.setDate(d.getDate()+n); return jIso(d); };
+const pvMEnd = ym => { const [y,m]=ym.split("-").map(Number); return jIso(new Date(y,m,0)); };
+const pvWhole = (a, b) => a.slice(8)==="01" && b===pvMEnd(b.slice(0,7));   /* с 1-го по последний день месяцев */
+function pvRLab(a, b){ const Y=todayISO().slice(0,4), p=s=>({d:+s.slice(8), m:PV_MS[+s.slice(5,7)-1], y:s.slice(0,4)});
+  const A=p(a), B=p(b), yr=y=>y===Y?"":" "+y;
+  if(pvWhole(a,b)){ if(a.slice(0,4)===b.slice(0,4) && a.slice(5,7)==="01" && b.slice(5,7)==="12") return a.slice(0,4)+" год";
+    const ma=PV_MON[+a.slice(5,7)-1], mb=PV_MON[+b.slice(5,7)-1]; return a.slice(0,4)===b.slice(0,4) ? ma+" – "+mb+" "+a.slice(0,4) : ma+" "+a.slice(0,4)+" – "+mb+" "+b.slice(0,4); }
+  if(a===b) return A.d+" "+A.m+yr(A.y);
+  if(a.slice(0,7)===b.slice(0,7)) return A.d+"–"+B.d+" "+A.m+yr(A.y);
+  if(A.y===B.y) return A.d+" "+A.m+" – "+B.d+" "+B.m+yr(A.y);
+  return A.d+" "+A.m+" "+A.y+" – "+B.d+" "+B.m+" "+B.y; }
+function pvCusR(){ const f=PV(), c=f.cr;
+  if(c && c.a && c.b) return {a:c.a, b:c.b, cr:1, lab:pvRLab(c.a,c.b)};
+  const m=pvMonth(), [a,b]=pvRange(); return {a, b, m, all:m==="all", lab:m==="all"?"Всё время":pvMon(m)}; }
+/* выбранный период: целый один месяц — обычный месяц (его же видят «Расходы и доходы»), иначе — свои даты */
+function pvSetR(a, b){ const f=PV(); if(a>b) [a,b]=[b,a];
+  if(a==="all"){ f.cr=null; f.m="all"; } else if(pvWhole(a,b) && a.slice(0,7)===b.slice(0,7)){ f.cr=null; f.m=a.slice(0,7); } else f.cr={a,b};
+  saveLocal(); }
+function pvCusShift(k){ const R=pvCusR(); if(R.all) return;
+  if(!R.cr){ PV().m=pvShift(R.m, k); saveLocal(); return; }
+  let a=R.a, b=R.b;
+  if(pvWhole(a,b)){ const n=(+b.slice(0,4)-+a.slice(0,4))*12 + (+b.slice(5,7)-+a.slice(5,7)) + 1, ma=pvShift(a.slice(0,7), k*n), mb=pvShift(b.slice(0,7), k*n); a=ma+"-01"; b=pvMEnd(mb); }
+  else { const n=Math.round((pvIsoD(b)-pvIsoD(a))/864e5)+1; a=pvAddD(a, k*n); b=pvAddD(b, k*n); }
+  pvSetR(a, b); }
+const PVRP={open:false, ym:"", pick:"", hov:"", dir:0};
+const pvRpN = () => matchMedia("(max-width:600px)").matches ? 1 : 2;
+function pvRpPresets(){ const t=todayISO(), y=t.slice(0,4), m=+t.slice(5,7), q=Math.floor((m-1)/3)*3+1, h=m<=6?1:7, pm=pvShift(t.slice(0,7),-1), z=n=>String(n).padStart(2,"0");
+  return [["Текущий месяц", t.slice(0,7)+"-01", pvMEnd(t.slice(0,7))], ["Предыдущий месяц", pm+"-01", pvMEnd(pm)], ["Квартал", y+"-"+z(q)+"-01", pvMEnd(y+"-"+z(q+2))],
+    ["Полугодие", y+"-"+z(h)+"-01", pvMEnd(y+"-"+z(h+5))], ["Год", y+"-01-01", y+"-12-31"], ["Всё время", "all", "all"]]; }
+function pvCusBar(){ const R=pvCusR();
+  return `<div class="pvrpw${PVRP.open?" op":""}"><div class="pvmon"><button type="button" class="pvarr" data-pvrp="-1" aria-label="Предыдущий период" ${R.all?"disabled":""}>‹</button>
+    <button type="button" class="pvrpb" data-pvrp="open" aria-haspopup="dialog" aria-expanded="${PVRP.open}"><span class="pvrpk">Период:</span> <b>${esc(R.lab)}</b><i aria-hidden="true"></i></button>
+    <button type="button" class="pvarr" data-pvrp="1" aria-label="Следующий период" ${R.all?"disabled":""}>›</button></div>
+    <div class="pvrp${PVRP.open?" on":""}" role="dialog" aria-label="Выбор периода">${PVRP.open?pvRpHtml():""}</div></div>`; }
+function pvRpHtml(){ const R=pvCusR(), n=pvRpN(), t=todayISO();
+  const pre=pvRpPresets().map(([l,a,b])=>`<button type="button" class="pvrpc${(a==="all"?R.all:(!R.all && R.a===a && R.b===b))?" on":""}" data-pvrpp="${a}|${b}">${l}</button>`).join("");
+  const has=new Set(D.journal.filter(j=>j.snap && !isArch(j)).map(j=>j.date));
+  const mon=ym=>{ const [y,m]=ym.split("-").map(Number), f=(new Date(y,m-1,1).getDay()+6)%7, last=+pvMEnd(ym).slice(8);
+    let c=""; for(let i=0;i<f;i++) c+=`<span></span>`;
+    for(let d=1; d<=last; d++){ const iso=ym+"-"+String(d).padStart(2,"0"), wd=(f+d-1)%7;
+      c+=`<button type="button" class="pvrd${wd>4?" we":""}${iso===t?" td":""}${has.has(iso)?" hd":""}" data-pvd="${iso}" aria-label="${fd(iso)}">${d}${has.has(iso)?'<i class="pvdot"></i>':""}</button>`; }
+    return `<div class="pvrm"><div class="pvrmh"><b>${PV_MON[m-1]}</b> <span>${y}</span></div><div class="pvrw">${["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].map(x=>`<span>${x}</span>`).join("")}</div><div class="pvrg">${c}</div></div>`; };
+  const ms=[]; for(let i=0;i<n;i++) ms.push(pvShift(PVRP.ym, i));
+  return `<div class="pvrpp">${pre}</div>
+    <div class="pvrpc2"><button type="button" class="pvarr pvrpn l" data-pvrpm="-1" aria-label="Раньше">‹</button><button type="button" class="pvarr pvrpn r" data-pvrpm="1" aria-label="Позже">›</button>
+      <div class="pvrms${PVRP.dir?(PVRP.dir<0?" sl-l":" sl-r"):""}" style="--n:${n}">${ms.map(mon).join("")}</div></div>
+    <div class="pvrpf"><span class="muted" id="pvrp-h">${PVRP.pick?"Теперь нажмите последний день":"Нажмите первый и последний день — или один день дважды"}</span><span class="pvrpl" id="pvrp-l">${R.all?"Всё время":esc(R.lab)}</span></div>`; }
+/* подсветка выбранного (и того, что будет выбрано при наведении) — без перерисовки календаря */
+function pvRpMark(){ const box=document.querySelector("#pv-cus .pvrp"); if(!box) return; const R=pvCusR();
+  let a=R.all?"":R.a, b=R.all?"":R.b; if(PVRP.pick){ a=PVRP.pick; b=PVRP.hov||PVRP.pick; if(a>b) [a,b]=[b,a]; }
+  box.querySelectorAll("[data-pvd]").forEach(el=>{ const d=el.dataset.pvd, st=a&&d===a, en=b&&d===b, inn=a&&d>a&&d<b;
+    el.classList.toggle("st", !!st); el.classList.toggle("en", !!en); el.classList.toggle("in", !!inn); el.classList.toggle("one", !!(st&&en)); el.classList.toggle("pk", !!(PVRP.pick && d===PVRP.pick)); });
+  const h=$("#pvrp-h"); if(h) h.textContent=PVRP.pick?"Теперь нажмите последний день":"Нажмите первый и последний день — или один день дважды";
+  const l=$("#pvrp-l"); if(l) l.textContent=PVRP.pick?pvRLab(a,b):(R.all?"Всё время":R.lab); }
+function pvRpBody(){ const box=document.querySelector("#pv-cus .pvrp"); if(!box) return; box.innerHTML=pvRpHtml(); pvRpMark(); PVRP.dir=0; }
+function pvRpOpen(){ const R=pvCusR(), n=pvRpN(); PVRP.pick=""; PVRP.hov=""; PVRP.dir=0;
+  PVRP.ym = R.all ? pvShift(todayISO().slice(0,7), 1-n) : (n>1 && R.b.slice(0,7)!==R.a.slice(0,7) ? pvShift(R.b.slice(0,7), -1) : (n>1 ? pvShift(R.a.slice(0,7), R.a.slice(0,7)===todayISO().slice(0,7)?-1:0) : R.a.slice(0,7)));
+  PVRP.open=true; const w=document.querySelector("#pv-cus .pvrpw"), box=w&&w.querySelector(".pvrp"); if(!box){ pvCusDraw(); return; }
+  box.innerHTML=pvRpHtml(); pvRpMark(); w.classList.add("op"); w.querySelector(".pvrpb").setAttribute("aria-expanded","true");
+  requestAnimationFrame(()=>box.classList.add("on")); }
+function pvRpClose(then){ if(!PVRP.open){ if(then) then(); return; } PVRP.open=false; PVRP.pick=""; const w=document.querySelector("#pv-cus .pvrpw"), box=w&&w.querySelector(".pvrp");
+  if(!box){ if(then) then(); return; } box.classList.remove("on"); w.classList.remove("op"); w.querySelector(".pvrpb").setAttribute("aria-expanded","false");
+  const fast=matchMedia("(prefers-reduced-motion:reduce)").matches; setTimeout(()=>{ if(!PVRP.open) box.innerHTML=""; if(then) then(); }, fast?0:170); }
+function pvRpApply(a, b){ pvSetR(a, b); pvRpClose(()=>pvDraw()); }
+function pvRpClick(e){
+  const p=e.target.closest("[data-pvrpp]"); if(p){ const [a,b]=p.dataset.pvrpp.split("|"); pvRpApply(a, b); return true; }
+  const d=e.target.closest("[data-pvd]"); if(d){ const v=d.dataset.pvd; if(!PVRP.pick){ PVRP.pick=v; PVRP.hov=v; pvRpMark(); } else pvRpApply(PVRP.pick, v); return true; }
+  const m=e.target.closest("[data-pvrpm]"); if(m){ PVRP.ym=pvShift(PVRP.ym, +m.dataset.pvrpm); PVRP.dir=+m.dataset.pvrpm; pvRpBody(); return true; }
+  const b=e.target.closest("[data-pvrp]"); if(b){ const k=b.dataset.pvrp; if(k==="open"){ PVRP.open?pvRpClose():pvRpOpen(); } else { pvCusShift(+k); PVRP.open=false; pvDraw(); } return true; }
+  if(e.target.closest(".pvrp")) return true;
+  return false; }
+document.addEventListener("pointerover", e=>{ if(!PVRP.open || !PVRP.pick) return; const d=e.target.closest && e.target.closest("#pv-cus [data-pvd]"); if(d && d.dataset.pvd!==PVRP.hov){ PVRP.hov=d.dataset.pvd; pvRpMark(); } });
+document.addEventListener("pointerdown", e=>{ if(PVRP.open && !(e.target.closest && e.target.closest("#pv-cus .pvrpw"))) pvRpClose(); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape" && PVRP.open){ e.stopPropagation(); if(PVRP.pick){ PVRP.pick=""; PVRP.hov=""; pvRpMark(); } else { pvRpClose(); const b=document.querySelector("#pv-cus .pvrpb"); if(b) b.focus(); } } }, true);
 
 /* окно заказчика — «таблица цирка» по месяцам */
 let PVL={cid:"", open:new Set(), ed:""};
 function pvLedger(cid){
-  PVL={cid, open:new Set([pvMonth()==="all" ? "" : pvMonth()]), ed:""};
-  const c=cus(cid), docs=D.journal.filter(j=>j.snap && !isArch(j) && (j.customerId||"-")===cid);
+  const R=pvCusR(), c=cus(cid), docs=D.journal.filter(j=>j.snap && !isArch(j) && (j.customerId||"-")===cid);
+  /* раскрыты месяцы выбранного периода, где у заказчика есть накладные; нет таких — последний месяц */
+  const om=R.all?[]:[...new Set(docs.filter(j=>j.date>=R.a && j.date<=R.b).map(j=>j.date.slice(0,7)))];
+  PVL={cid, open:new Set(om), ed:""};
   if(!docs.length){ openCard(`<div class="dc-head"><div><div class="dc-kicker">Заказчик · прибыль</div><h3>${esc(pvCusName(cid))}</h3>${c.inn?`<div class="dc-sub">ИНН ${esc(c.inn)}</div>`:""}</div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div><p class="muted">Накладных пока нет. Когда появится первая, здесь будут сумма, закупка и прибыль.</p>`, true, ()=>{}); return; }
-  if(!PVL.open.has(pvMonth())||pvMonth()==="all"){ const lm=docs.map(j=>j.date.slice(0,7)).sort().pop(); PVL.open=new Set([lm]); }
+  if(!PVL.open.size){ const lm=docs.map(j=>j.date.slice(0,7)).sort().pop(); PVL.open=new Set([lm]); }
   CARD_RE=()=>pvLedger(cid);
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Заказчик · прибыль</div><h3>${esc(pvCusName(cid))}</h3>${c.inn?`<div class="dc-sub">ИНН ${esc(c.inn)}</div>`:""}</div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div><div id="pvl"></div>
     <datalist id="pv-srcn"></datalist>`, true, ()=>{});
@@ -196,10 +276,14 @@ function pvLedgerDraw(){
   box.innerHTML = `<div class="pvkpi sm"><div><small>Сумма за всё время</small><b>${fm(all.rev)}</b><span>${docs.length} ${plural(docs.length,["накладная","накладные","накладных"])}</span></div><div><small>На р/с</small><b>${fm(all.rs)}</b></div><div><small>Закупка</small><b>${fm(all.cost)}</b></div><div class="pos"><small>Прибыль</small><b class="${all.profit<0?"neg":""}">${fm(all.profit)}</b><span>маржа ${pct(all.profit,all.rev)}</span></div>
       <div class="${due>0.005?"due":""}"><small>Ждём оплату</small><b>${fm(due)}</b><span>${nDue?nDue+" "+plural(nDue,["накладная","накладные","накладных"]):"всё оплачено"}${avg!=null?" · платят в среднем за "+dnum(avg):""}</span></div></div>
     <div class="pvlh"><span>Дата</span><span>№</span><span class="num">Сумма</span><span class="num">На р/с</span><span>Закупка</span><span>Оплата</span><span class="num">Прибыль</span></div>`
-    + [...M.entries()].map(([m,L])=>{ const op=PVL.open.has(m), p=sum(L,x=>x.profit), miss=L.filter(x=>x.miss).length, pd=L.filter(x=>payOf(x.j).st==="paid").length;
+    + [...M.entries()].map(([m,L])=>{ pvCum(L); const op=PVL.open.has(m), p=sum(L,x=>x.profit), miss=L.filter(x=>x.miss).length, pd=L.filter(x=>payOf(x.j).st==="paid").length;
       return `<section class="pvm ${op?"op":""}"><button type="button" class="pvmh" data-pvo="${m}" aria-expanded="${op}"><b>${pvMon(m)}</b><span>${L.length} ${plural(L.length,["накл.","накл.","накл."])} · ${fm(sum(L,x=>x.rev))} ₽</span>${miss?`<em class="pvwarn"><i></i>без закупки ${miss}</em>`:""}<em class="pvpm ${pd===L.length?"all":""}">${pvIco("check")}оплачено ${pd}/${L.length}</em><strong class="${p<0?"neg":""}">${pvMoney(p)} ₽</strong><i></i></button>
         <div class="pvmb"><div>${L.map(pvLedgerRow).join("")}</div></div></section>`; }).join("");
 }
+/* прибыль нарастающим итогом с 1-го числа месяца: по порядку накладных (дата, потом номер); у последней накладной дня — итог дня */
+function pvCum(L){ let c=0, prev=""; [...L].reverse().forEach(x=>{ c=r2(c+x.profit); x._cum=c; x._de=0; });
+  L.forEach(x=>{ if(x.j.date!==prev){ x._de=1; prev=x.j.date; } });
+  L.forEach(x=>{ const d=fd(x.j.date); x._ct=x._de?`Прибыль с 1-го числа по ${d} включительно — итог на конец дня`:`Прибыль с 1-го числа по эту накладную (${d})`; }); }
 /* оплата накладной: одно нажатие — «оплачена сегодня» (дата нажатия запоминается), ещё одно — снять отметку */
 const pvDiff = (a, b) => Math.round((new Date(b+"T12:00:00")-new Date(a+"T12:00:00"))/864e5);
 const pvPayDays = (j, p) => Math.max(0, pvDiff(j.date, p.d));
@@ -211,7 +295,7 @@ function pvLedgerRow(x){ const j=x.j, src=pvSrc(j), ed=PVL.ed===j.id, rs=r2(x.re
   const chips = (src ? src.map(s=>`<span class="pvchip">${esc(s.n||"—")} <b>${fm(+s.s||0)}</b></span>`).join("")
     : x.miss ? `<span class="pvchip miss">+ вписать закупку</span>` : `<span class="pvchip prod" title="Закупка посчитана по товарам">по товарам <b>${fm(x.cost)}</b></span>`)+(x.exp?`<span class="pvchip" title="Прочие расходы: доставка, грузчики, телега">расходы <b>${fm(x.exp)}</b></span>`:"");
   return `<div class="pvr ${ed?"ed":""}" data-pvr="${j.id}"><div class="pvrl" role="button" tabindex="0" data-pve="${j.id}" aria-expanded="${ed}">
-      <span class="pvd">${fd(j.date).slice(0,5)}</span><span class="pvn">№ ${esc(j.number)}</span><span class="num">${fm(x.rev)}</span><span class="num muted">${fm(rs)}</span><span class="pvsrcs">${chips}</span>${pvPayBtn(j)}<span class="num pvp ${x.profit<0?"neg":""}">${fm(x.profit)}</span></div>
+      <span class="pvd">${fd(j.date).slice(0,5)}</span><span class="pvn">№ ${esc(j.number)}</span><span class="num">${fm(x.rev)}</span><span class="num muted">${fm(rs)}</span><span class="pvsrcs">${chips}</span>${pvPayBtn(j)}<span class="num pvp ${x.profit<0?"neg":""}"><span>${fm(x.profit)}</span>${x._cum!=null?`<small class="pvcum${x._de?" de":""}${x._cum<0?" neg":""}" title="${esc(x._ct)}">с 1.${x.j.date.slice(5,7)} · ${fm(x._cum)}</small>`:""}</span></div>
     <div class="pvrx"><div>${ed?pvEditor(x):""}</div></div></div>`; }
 function pvEditor(x){ const j=x.j, src=pvSrc(j)||[], rows=src.length?src:[{n:"",s:""}];
   return `<div class="pvedit"><div class="pvet"><b>Закупка по накладной № ${esc(j.number)}</b><span class="muted">от кого купили — и на какую сумму</span></div>
