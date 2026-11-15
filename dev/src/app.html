@@ -95,6 +95,19 @@
 #fd-app .dcard .dc-total{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:14px 2px 4px;color:var(--muted);font-size:13px}#fd-app .dcard .dc-total b{font-size:22px;color:var(--ink);letter-spacing:-.01em}
 #fd-app .dcard .dc-note{font-size:12px;color:var(--muted);margin:2px 2px 0}
 #fd-app .jcm{display:inline-flex;align-items:center;justify-content:center;gap:3px;vertical-align:middle;margin-left:6px;height:20px;min-width:20px;padding:0 5px;border-radius:99px;background:rgba(106,44,78,.1);color:var(--accent);font-size:11px;font-weight:600;cursor:pointer;animation:jcmIn .35s cubic-bezier(.2,.9,.3,1.4) both;transition:background .15s,transform .15s}
+#fd-app .jgov{display:inline-flex;align-items:center;gap:3px;vertical-align:middle;margin-left:6px;height:18px;padding:0 6px;border-radius:5px;border:1px solid var(--line);color:var(--muted);font:600 10.5px/1 var(--ui);letter-spacing:.03em;white-space:nowrap}
+#fd-app .jgov.on{border-color:transparent;background:rgba(47,107,69,.1);color:#2f6b45}
+#fd-app .dgov{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:7px;margin-top:8px;padding:5px 11px 5px 6px;border-radius:99px;border:1px dashed color-mix(in srgb,var(--muted) 45%,transparent);color:var(--muted);font:500 13px var(--ui);cursor:pointer;transition:background .2s,border-color .2s,color .2s}
+#fd-app .dgov i{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;border:1.5px solid currentColor;box-sizing:border-box;transition:background .2s,border-color .2s}
+#fd-app .dgov i svg{opacity:0;transform:scale(.4);transition:opacity .2s,transform .25s cubic-bezier(.2,.8,.2,1)}
+#fd-app .dgov:hover:not([disabled]){border-color:var(--accent);color:var(--accent)}
+#fd-app .dgov:focus-visible{box-shadow:0 0 0 2px var(--accent)}
+#fd-app .dgov.on{border-style:solid;border-color:transparent;background:rgba(47,107,69,.1);color:#2f6b45}
+#fd-app .dgov.on i{background:#2f6b45;border-color:#2f6b45;color:#fff}#fd-app .dgov.on i svg{opacity:1;transform:none}
+#fd-app .dgov small{font-size:11.5px;opacity:.75;font-weight:400}
+#fd-app .dgov[disabled]{cursor:default}
+#fd-app .dgov.pop i{animation:dgovp .35s cubic-bezier(.2,.8,.2,1)}@keyframes dgovp{50%{transform:scale(1.25)}}
+@media (prefers-reduced-motion:reduce){#fd-app .dgov,#fd-app .dgov i,#fd-app .dgov i svg{transition:none;animation:none}}
 #fd-app .jcm svg{width:14px;height:14px}#fd-app .jcm:hover{background:rgba(106,44,78,.2);transform:scale(1.08)}
 #fd-app .jzk{display:flex;align-items:center;justify-content:center;gap:4px;margin:5px 0 0 auto;min-width:58px;height:24px;padding:0 9px;border:0;border-radius:99px;font:600 11.5px var(--ui);cursor:pointer;white-space:nowrap;animation:jcmIn .35s ease both;transition:transform .15s,box-shadow .15s,filter .15s}
 #fd-app .jzk svg{width:13px;height:13px;flex:none}#fd-app .jzk:hover{transform:translateY(-1px);box-shadow:0 3px 8px -4px rgba(0,0,0,.3);filter:saturate(1.15)}#fd-app .jzk:active{transform:scale(.96)}#fd-app .jzk:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -6208,9 +6221,9 @@ function jRowHtml(j, kid, arch){ const w=jWho(j), pv=!!(j.snap.c&&j.snap.c.priv)
     : `<span class="jdocs">${cj}${view}</span> <button class="btn ghost sm" data-edit="${j.id}" title="Изменить" aria-label="Изменить"><span class="jmt">Изменить</span><span class="jmi">${IC_EDIT}</span></button>
     <details class="more"><summary class="btn ghost sm" aria-label="Ещё действия"><span class="jmt">Ещё ▾</span><span class="jmi">${IC_DOTS}</span></summary><div class="menu"><button class="btn sm jmed" data-edit="${j.id}">Изменить</button><button class="btn sm" data-x="${j.id}">XML для ЕИС</button>${pv?"":`<button class="btn sm" data-ppx="${j.id}">XML для Портала поставщиков</button>`}<button class="btn sm" data-copy="${j.id}">Сделать копию</button><button class="btn sm danger" data-arch="${j.id}">В архив</button></div></details>`;
   const ad = arch ? `<span class="muted" title="Убран в архив">в архиве с ${dtShort(j.snap.meta.arch)}</span>` : jDl(j);
-  if(kid) return `<div class="kd"><div class="kd-n">№ ${esc(j.number)}</div><div class="kd-w jcard" data-card="${j.id}" title="Подробнее о документе"><span>${esc(kLbl(j)||w.main)}</span>${jCmIcon(j)}${skJBadge(j)}</div><div class="kd-s">${fm(j.sum)}${arch?"":zkJBadge(j)}</div><div class="kd-p">${ad}</div><div class="kd-a acts">${acts}</div></div>`;
+  if(kid) return `<div class="kd"><div class="kd-n">№ ${esc(j.number)}</div><div class="kd-w jcard" data-card="${j.id}" title="Подробнее о документе"><span>${esc(kLbl(j)||w.main)}</span>${jCmIcon(j)}${arch?"":govChip(j)}${skJBadge(j)}</div><div class="kd-s">${fm(j.sum)}${arch?"":zkJBadge(j)}</div><div class="kd-p">${ad}</div><div class="kd-a acts">${acts}</div></div>`;
   const prNo=!arch&&!((j.snap.meta||{}).pr);
-  return `<tr class="${kid?"kid":""}"><td class="jdt">${fd(j.date)}</td><td class="jnm">${esc(j.number)}</td><td class="jcard jwho" data-card="${j.id}" title="Подробнее о документе"><div class="who">${esc(kid&&kLbl(j)?kLbl(j):w.main)}${jCmIcon(j)}</div>${kid?"":jCtrHtml(jCtrTxt(j))}${skJBadge(j)}</td><td class="num jsm">${fm(j.sum)}${arch?"":zkJBadge(j)}</td><td class="jpr${prNo?" none":""}">${ad}</td><td class="acts">${acts}</td></tr>`; }
+  return `<tr class="${kid?"kid":""}"><td class="jdt">${fd(j.date)}</td><td class="jnm">${esc(j.number)}</td><td class="jcard jwho" data-card="${j.id}" title="Подробнее о документе"><div class="who">${esc(kid&&kLbl(j)?kLbl(j):w.main)}${jCmIcon(j)}${arch?"":govChip(j)}</div>${kid?"":jCtrHtml(jCtrTxt(j))}${skJBadge(j)}</td><td class="num jsm">${fm(j.sum)}${arch?"":zkJBadge(j)}</td><td class="jpr${prNo?" none":""}">${ad}</td><td class="acts">${acts}</td></tr>`; }
 /* строки журнала с комплектами; arch — показываем архив */
 /* разделитель дня в журнале (при сортировке по дате документа) */
 function jDaySep(iso, st){ const d=new Date(iso+"T12:00:00"), t=todayISO(), tm=new Date(); tm.setDate(tm.getDate()+1); const tmIso=tm.getFullYear()+"-"+String(tm.getMonth()+1).padStart(2,"0")+"-"+String(tm.getDate()).padStart(2,"0");
@@ -6230,7 +6243,7 @@ function jBuild(rows, arch, openSet, daySep){
     const gacts = arch ? `<button class="btn sm" data-gunarch>Вернуть комплект</button>`
       : docLimited() ? `<span class="jdocs"><button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button></span>`
       : `<span class="jdocs"><button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button></span> <button class="btn ghost sm ic" data-gedit title="Изменить комплект (откроется во вкладке «Заявка»)" aria-label="Изменить комплект">${IC_EDIT}</button><button class="btn ghost sm ic del" data-garch title="Убрать комплект в архив" aria-label="Убрать комплект в архив">${IC_TRASH}</button>`;
-    out.push(`<tr class="grp${open?" gopen":""}" data-g="${esc(k)}"><td class="jdt">${fd(g[0].date)}</td><td class="jnm">${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))}</td><td class="jcard jwho" data-gcard="1" title="Подробнее о комплекте"><div class="who"><span class="tag">Комплект · ${g.length}</span>${esc(w.main)}${jCmGroup(g)}</div>${jCtrHtml([...new Set(g.map(jCtrTxt).filter(Boolean))].join(" · "))}</td><td class="num jsm"><b>${fm(sum)}</b>${arch?"":zkJGroup(g, k)}</td><td class="jpr${!arch&&!dls.length?" none":""}">${arch?`<span class="muted">в архиве</span>`:dls.length?`<span class="dl">${dtShort(dls[dls.length-1])}</span>`:`<span class="muted">—</span>`}</td>
+    out.push(`<tr class="grp${open?" gopen":""}" data-g="${esc(k)}"><td class="jdt">${fd(g[0].date)}</td><td class="jnm">${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))}</td><td class="jcard jwho" data-gcard="1" title="Подробнее о комплекте"><div class="who"><span class="tag">Комплект · ${g.length}</span>${esc(w.main)}${jCmGroup(g)}${arch?"":govGroup(g)}</div>${jCtrHtml([...new Set(g.map(jCtrTxt).filter(Boolean))].join(" · "))}</td><td class="num jsm"><b>${fm(sum)}</b>${arch?"":zkJGroup(g, k)}</td><td class="jpr${!arch&&!dls.length?" none":""}">${arch?`<span class="muted">в архиве</span>`:dls.length?`<span class="dl">${dtShort(dls[dls.length-1])}</span>`:`<span class="muted">—</span>`}</td>
       <td class="acts">${gacts} <button class="btn ghost sm gt${open?" on":""}" data-gt title="${open?"Скрыть документы комплекта":"Показать документы комплекта"}" aria-label="${open?"Скрыть документы комплекта":"Показать документы комплекта"}" aria-expanded="${open}"><span class="chev"></span></button></td></tr>`);
     out.push(`<tr class="kids${open?" open":""}" data-gk="${esc(k)}"><td colspan="6" class="full"><div class="kw"><div class="ki">${g.map(x=>jRowHtml(x,true,arch)).join("")}</div></div></td></tr>`);
   });
@@ -6677,7 +6690,7 @@ function docCard(j, arch){
   const acts = arch ? `<button class="btn" data-dc="close">Закрыть</button>`
     : `<button class="btn" data-dc="decl" title="Скачать декларации на товары документа">Декларации</button>`+(j.snap.c&&j.snap.c.priv?`<button class="btn" data-dc="nakl">Накладная</button>`:`<button class="btn" data-dc="combo">Счёт+ТОРГ</button><button class="btn" data-dc="upd">УПД</button>`)+(inG&&!lim?`<button class="btn" data-dc="gedit">Редактировать комплект</button>`:"")+(me().admin?`<button class="btn" data-zkc="toggle" data-doc="${j.id}">${dcZkHas(j)?"Закупка ✓":"Добавить закупку"}</button>`:"")+(lim?`<button class="btn pri" data-dc="qty">Изменить количество</button>`:`<button class="btn pri" data-dc="edit">Изменить</button>`);
   CARD_RE=()=>{ const x=D.journal.find(y=>y.id===j.id); if(x) docCard(x, arch); else toast("info","Документа уже нет"); };
-  openCard(`<div class="dc-head"><div><div class="dc-kicker">Документ № ${esc(j.number)} · ${fd(j.date)}</div><h3>${esc(w.main)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+  openCard(`<div class="dc-head"><div><div class="dc-kicker">Документ № ${esc(j.number)} · ${fd(j.date)}</div><h3>${esc(w.main)}</h3>${arch?"":govPill(j)}</div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <dl class="dc-info">${info.map(([a,b])=>`<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>
     ${linesTable(k)}
     <div class="dc-total"><span>${k.lines.length} ${posWord(k.lines.length)}${k.t.kg?" · "+nq3(k.t.kg)+" кг":""}${k.rate?" · в т.ч. НДС "+fm(k.t.vat)+" ₽":""}</span><b>${fm(k.t.sum)} ₽</b></div>
@@ -6726,6 +6739,28 @@ let zkJLoading=false;
 document.addEventListener("click", e=>{ const z=e.target.closest&&e.target.closest("#fd-app [data-zkj],#fd-app [data-zkjg]"); if(!z) return; e.preventDefault(); e.stopPropagation();
   if(z.dataset.zkj){ const j=D.journal.find(x=>x.id===z.dataset.zkj); if(j) zkPageOpen(j); }
   else { const g=D.journal.filter(x=>x.snap && !isArch(x) && jKey(x)===z.dataset.zkjg).sort(jNumSort); if(g.length) bzPageOpen(g); } }, true);
+/* ---------- «Отправлено в ЕИС / ПП»: у заказчика c.gov = eis | pp (настройка в «Заказчики и цены»), у накладной snap.meta.sent = {k, by, at} — ставят вручную ---------- */
+const GOV={eis:"ЕИС", pp:"ПП"}, GOV_FULL={eis:"ЕИС", pp:"Портал поставщиков"};
+const govSrv = () => (D.srvVer||0)>=40 || (D.customers||[]).some(c=>"gov" in c);
+const govOf = cid => { const v=(cus(cid)||{}).gov; return GOV[v] ? v : ""; };
+const govSent = j => { const s=j&&j.snap&&j.snap.meta&&j.snap.meta.sent; return s&&GOV[s.k] ? s : null; };
+const govKind = j => { if(!j||!j.snap||(j.snap.c&&j.snap.c.priv)) return ""; const s=govSent(j); return s ? s.k : govOf(j.customerId); };
+const govTip = (j,s) => s ? "Отправлено в "+GOV_FULL[s.k]+(s.by?" · "+s.by:"")+(s.at?" · "+dtShort(s.at):"") : "Ещё не отправлено в "+GOV_FULL[govKind(j)];
+const IC_GOVOK=`<svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>`;
+function govChip(j){ const k=govKind(j); if(!k) return ""; const s=govSent(j);
+  return `<span class="jgov${s?" on":""}" title="${esc(govTip(j,s))}">${GOV[k]}${s?IC_GOVOK:""}</span>`; }
+function govGroup(g){ const L=g.filter(govKind); if(!L.length) return ""; const n=L.filter(govSent).length, k=govKind(L[0]);
+  return `<span class="jgov${n===L.length?" on":""}" title="${esc("Отправлено в "+GOV_FULL[k]+": "+n+" из "+L.length)}">${GOV[k]}${n===L.length?IC_GOVOK:" "+n+"/"+L.length}</span>`; }
+function govPill(j){ const k=govKind(j); if(!k) return ""; const s=govSent(j), ro=docLimited();
+  return `<button type="button" class="dgov${s?" on":""}" data-gov="${j.id}" aria-pressed="${!!s}"${ro?" disabled":""} title="${esc(ro?govTip(j,s):s?"Нажмите, чтобы снять отметку":"Нажмите, когда отправите документ в "+GOV_FULL[k])}"><i>${IC_GOVOK}</i><span>${s?"Отправлено в "+GOV[k]:"Не отправлено в "+GOV[k]}</span>${s?`<small>${esc([s.by, s.at?dtShort(s.at):""].filter(Boolean).join(" · "))}</small>`:""}</button>`; }
+function govToggle(id){ const j=D.journal.find(x=>x.id===id); if(!j||!j.snap||docLimited()) return; const k=govKind(j); if(!k) return;
+  const m=j.snap.meta=j.snap.meta||{}, was=govSent(j);
+  if(was) delete m.sent; else m.sent={k, by:curUser()||"", at:new Date().toISOString()};
+  dirty("journal", j.id); saveLocal();
+  logEv("Журнал",(was?"Снята отметка «Отправлено в ":"Отмечено «Отправлено в ")+GOV_FULL[k]+"»: № "+j.number+" от "+fd(j.date)+" — "+jWho(j).main, j.id);
+  const b=document.querySelector(`#fd-dcard [data-gov="${id}"]`); if(b){ const n=document.createElement("div"); n.innerHTML=govPill(j); const nb=n.firstElementChild; b.replaceWith(nb); nb.classList.add("pop"); nb.focus({preventScroll:true}); }
+  if(curTab==="journal") renderJournal(); }
+document.addEventListener("click", e=>{ const b=e.target.closest("#fd-dcard [data-gov]"); if(b){ e.preventDefault(); govToggle(b.dataset.gov); } });
 function jCmIcon(j){ const c=cmOf(j); return c.t ? `<span class="jcm" title="${esc(cmTip(c))}" aria-label="Есть комментарий">${IC_CM}</span>` : ""; }
 function jCmGroup(g){ const n=g.filter(j=>cmOf(j).t).length; if(!n) return ""; const L=g.filter(j=>cmOf(j).t).map(j=>"№ "+j.number+": "+cmTip(cmOf(j))).join("\n\n");
   return `<span class="jcm" title="${esc(L)}" aria-label="Комментарии: ${n}">${IC_CM}${n>1?n:""}</span>`; }
@@ -7378,7 +7413,7 @@ function cardEditor({root, type, title, fields, make, onSelect, onChange}){
   function draw(){
     const it=list.find(x=>x.id===sel);
     root.innerHTML=`<h2>${title}</h2><div class="row"><select class="pick" style="flex:1;min-width:200px">${opts(list,sel)}</select><button class="btn add">+ Новый</button>${list.length>1?'<button class="btn ghost danger del">Удалить</button>':""}</div>
-      ${it?`<div class="grid">${fields.map(f=>`<label class="f${f.wide?" wide":""}">${f.l}${f.opts?`<select data-k="${f.k}">${Object.entries(f.opts).map(([v,t])=>`<option value="${v}"${String(it[f.k])===v?" selected":""}>${t}</option>`).join("")}</select>`
+      ${it?`<div class="grid">${fields.map(f=>`<label class="f${f.wide?" wide":""}">${f.l}${f.opts?`<select data-k="${f.k}"${f.dis?" disabled":""}${f.tip?` title="${esc(f.tip)}"`:""}>${Object.entries(f.opts).map(([v,t])=>`<option value="${v}"${String(it[f.k])===v?" selected":""}>${t}</option>`).join("")}</select>`
         :f.area?`<textarea data-k="${f.k}" rows="5" placeholder="${esc(f.ph||"")}">${esc(it[f.k])}</textarea>`:`<input data-k="${f.k}"${f.type?` type="${f.type}"`:""} value="${esc(it[f.k])}" placeholder="${esc(f.ph||"")}"${f.num?' inputmode="numeric"':""}${f.dis?" disabled":""}>`}</label>`).join("")}</div>`:""}`;
     root.querySelector("select.pick").onchange=e=>{ sel=editorSel[type]=e.target.value; draw(); onSelect&&onSelect(sel); };
     root.querySelector(".add").onclick=()=>{ const n=make(); list.push(n); sel=editorSel[type]=n.id; dirty(type,n.id); draw(); onSelect&&onSelect(sel); root.querySelector('[data-k="name"]').focus(); };
@@ -7462,9 +7497,10 @@ function renderCustomers(){
       {k:"signs",l:"Подписи поставщика (с печатью и подписью)",opts:{"":"Одна — основная","3":"Во всех графах (ТОРГ‑12: разрешил, бухгалтер, произвёл; УПД: все)"}},
       {k:"plist",l:"Цены",opts:{"":"Свои цены — заполняю вручную ниже","1":"Из моего прайса — подставляются и обновляются сами"}},
       {k:"vat",l:"НДС в документах",opts:{"":"Без НДС (как у поставщика)","10+":"НДС 10% сверху цены прайса","22+":"НДС 22% сверху цены прайса","10":"НДС 10% — уже в цене прайса","22":"НДС 22% — уже в цене прайса"}},
+      {k:"gov",l:"Документы отправляем в ЕИС / Портал поставщиков",opts:{"":"Нет — обычные накладные","eis":"ЕИС — документ о приёмке","pp":"Портал поставщиков (ПП)"},dis:!govSrv(),tip:govSrv()?"У накладных этого заказчика появится отметка «Отправлено в ЕИС/ПП» — её ставите вы сами":"Сначала обновите Code.gs в таблице — иначе настройка не сохранится"},
       {k:"t12c",l:"Страна происхождения в документах",opts:{"":"Как обычно (в УПД — только у импортных)","1":"Всегда: в ТОРГ‑12 и УПД, включая Россию (если требует договор)"}},
 ],
-    onChange:(c,k)=>{ if(k==="plist"){ if(c.plist==="1") plSync({cid:c.id, force:true}); else { renderPrices(c.id); toast("info","Цены — вручную","Текущие цены остались, дальше меняются только вручную."); } } },
+    onChange:(c,k)=>{ if(k==="gov"){ if(!c.gov) c.gov="no"; if(curTab==="journal") renderJournal(); toast("ok", govOf(c.id)?"Отметка «Отправлено в "+GOV[govOf(c.id)]+"»":"Без отметки ЕИС / ПП", govOf(c.id)?"Теперь у накладных «"+cusNm(c.id)+"» её можно ставить — в окне документа.":"У накладных «"+cusNm(c.id)+"» отметки больше не будет."); return; } if(k==="plist"){ if(c.plist==="1") plSync({cid:c.id, force:true}); else { renderPrices(c.id); toast("info","Цены — вручную","Текущие цены остались, дальше меняются только вручную."); } } },
     onSelect:id=>{ renderPrices(id); renderContracts(id); renderAkt(id); renderBranches(id); renderPoints(id); renderNums(id); customerAnalytics(id); }});
 }
 function renderNums(cid){
@@ -8001,7 +8037,11 @@ function patchAstoria(){
   D.contracts=D.contracts||[]; D.contracts.push(x); dirty("contracts",x.id);
   logEv("Справочники","Добавлен заказчик «Астория» (ООО «АСТОРИЯ», ИНН 5012099201) и договор поставки № 121126 от 12.11.2026");
 }
-function patchAll(){ patchPrivate(); patchKigm(); patchSuppliers(); if(!serverOld){ patchContracts(); patchKigmSpecs(); patchMokSte(); patchMokSpec(); patchMokSte2(); patchMgu(); patchMguSklad(); patchMguNames(); patchCircus(); patchKb1(); patchKb1Countries(); patchCircusSigns(); patchCircusCelery(); patchNiir(); patchNiirAliases(); patchNmic(); patchMguPoints(); patchMguPoints2(); patchAstoria(); } }
+/* кому отправляем документы в ЕИС / на Портал поставщиков — ставится один раз (просьба Даниила, 15.11.2026); снятое вручную («no») не трогаем */
+const GOV_SEED={"7724085040":"eis","7714061756":"eis","7718261509":"eis","7710031380":"pp","7723920242":"pp"};
+function patchGov(){ if(!govSrv() || !me().admin) return; const p=getPrefs(); if(p.govSeed) return;
+  D.customers.forEach(c=>{ const v=GOV_SEED[c.inn]; if(v && !c.gov){ c.gov=v; dirty("customers",c.id); } }); p.govSeed=1; setPrefs(p, true); }
+function patchAll(){ patchPrivate(); patchKigm(); patchSuppliers(); if(!serverOld){ patchContracts(); patchKigmSpecs(); patchMokSte(); patchMokSpec(); patchMokSte2(); patchMgu(); patchMguSklad(); patchMguNames(); patchCircus(); patchKb1(); patchKb1Countries(); patchCircusSigns(); patchCircusCelery(); patchNiir(); patchNiirAliases(); patchNmic(); patchMguPoints(); patchMguPoints2(); patchAstoria(); patchGov(); } }
 
 /* ---------- товары: список — dev/src/pdl_seg.js (renderProducts) ---------- */
 
