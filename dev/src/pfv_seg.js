@@ -144,15 +144,15 @@ function pvCusDraw(keepInput){
   /* не оплачено: накладные месяца с неоплаченным остатком — те же, что в окне «Ждём оплату» */
   const U=all.reduce((a,g)=>{ g.docs.forEach(x=>{ const p=payOf(x.j); if(p.st!=="paid" && p.left>0.004){ a.n++; a.s=r2(a.s+p.left); } }); return a; },{n:0,s:0});
   const act=L.filter(g=>!g.idle), idl=L.filter(g=>g.idle), mon=R.cr?"":pvMonth(), mName=!mon||mon==="all"?"":["январе","феврале","марте","апреле","мае","июне","июле","августе","сентябре","октябре","ноябре","декабре"][+mon.slice(5,7)-1]||"";
-  const idleT = g => `<button type="button" class="pvcus idle" data-pvc="${esc(g.cid)}"><div class="pvch">${pvAva(g.cid)}<div class="pvcn"><b>${esc(pvCusName(g.cid))}</b><small>${g.nAll?`последняя накладная ${fd(g.lastAll)} · всего ${g.nAll}`:"накладных пока нет"}</small></div></div><span class="pvgo">Открыть ›</span></button>`;
+  const idleT = g => `<button type="button" class="pvcus idle" data-pvc="${esc(g.cid)}"><div class="pvch">${pvAva(g.cid)}<div class="pvcn"><b>${esc(pvCusName(g.cid))}</b><small>${g.nAll?`последняя накладная ${fd(g.lastAll)} · всего ${g.nAll}`:"накладных пока нет"}</small></div><span class="pvgo" aria-hidden="true">›</span></div></button>`;
   const idleH = idl.length ? `<div class="pvidle-h"><span>${mon==="all"?"Без накладных":"Без накладных"+(mName?" в "+mName:" за этот период")}</span><i>${idl.length}</i></div>` : "";
   const tiles = (act.length || idl.length) ? act.map((g,i)=>{ const mg=g.rev>0?Math.max(0,Math.min(100,g.profit/g.rev*100)):0;
     return `<button type="button" class="pvcus" data-pvc="${esc(g.cid)}" style="--d:${Math.min(i,12)*30}ms">
-      <div class="pvch">${pvAva(g.cid)}<div class="pvcn"><b>${esc(pvCusName(g.cid))}</b><small>${g.fresh?"накладных пока нет":`${g.docs.length} ${plural(g.docs.length,["накладная","накладные","накладных"])} · последняя ${fd(g.last).slice(0,5)}`}</small></div>${g.miss?`<span class="pvwarn" title="Нет закупки у ${g.miss} ${plural(g.miss,["накладной","накладных","накладных"])}"><i></i>${g.miss}</span>`:""}</div>
+      <div class="pvch">${pvAva(g.cid)}<div class="pvcn"><b>${esc(pvCusName(g.cid))}</b><small>${g.fresh?"накладных пока нет":`${g.docs.length} ${plural(g.docs.length,["накладная","накладные","накладных"])} · последняя ${fd(g.last).slice(0,5)}`}</small></div>${g.miss?`<span class="pvwarn" title="Нет закупки у ${g.miss} ${plural(g.miss,["накладной","накладных","накладных"])}"><i></i>${g.miss}</span>`:""}<span class="pvgo" aria-hidden="true">›</span></div>
       <div class="pvcp"><small>Прибыль</small><b class="${g.profit<0?"neg":""}">${fm(g.profit)} ₽</b><span>${pct(g.profit,g.rev)}</span></div>
       <div class="pvbar"><i style="width:${mg}%"></i></div>
       <dl class="pvcs"><div><dt>Сумма</dt><dd>${fm(g.rev)}</dd></div><div><dt>На р/с</dt><dd>${fm(g.rs)}</dd></div><div><dt>Закупка</dt><dd>${fm(r2(g.cost+g.exp))}</dd></div></dl>
-      <span class="pvgo">Открыть ›</span></button>`; }).join("")
+      </button>`; }).join("")
       + (!act.length ? `<div class="pvempty sm">${pvIco("folder","big")}<b>${all.some(g=>!g.idle)?"Никого не нашлось":"За этот период накладных нет"}</b></div>` : "")
       + idleH + idl.map(idleT).join("")
     : `<div class="pvempty">${pvIco("folder","big")}<b>${all.length?"Никого не нашлось":"За этот период накладных нет"}</b><small>${all.length?"Попробуйте другое название.":"Выберите другой период сверху."}</small></div>`;
