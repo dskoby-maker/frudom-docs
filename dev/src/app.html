@@ -1965,7 +1965,10 @@ dialog .ndr-a{display:flex;gap:6px;flex:none}
 #fd-app .pvidle-h{grid-column:1/-1;display:flex;align-items:center;gap:8px;margin:10px 2px 0;font-size:13px;color:var(--muted);font-weight:600}#fd-app .pvidle-h::after{content:"";flex:1;height:1px;background:var(--line)}#fd-app .pvidle-h i{font-style:normal;font-weight:600;font-size:11.5px;padding:1px 8px;border-radius:99px;background:rgba(28,34,32,.06)}
 #fd-app .pvcus.idle{padding:11px 14px;gap:0;background:rgba(255,255,255,.55);animation:none}#fd-app .pvcus.idle .pvcn b{font-weight:600}#fd-app .pvcus.idle .pvava{opacity:.7}
 #fd-app .pvempty.sm{grid-column:1/-1;padding:14px}
-#fd-app .pvgo{position:absolute;right:14px;bottom:12px;font-size:12px;color:var(--accent);opacity:0;transform:translateX(-4px);transition:opacity .18s,transform .18s}#fd-app .pvcus:hover .pvgo{opacity:1;transform:none}
+/* «открыть» — круглая стрелка в шапке плитки, в общем ряду: ни на что не наезжает */
+#fd-app .pvgo{flex:none;width:26px;height:26px;display:grid;place-items:center;border-radius:50%;font-size:17px;line-height:1;padding-bottom:2px;box-sizing:border-box;color:var(--muted);background:transparent;transition:background .18s,color .18s,transform .18s}
+#fd-app .pvch .pvwarn{margin-left:auto}#fd-app .pvch .pvwarn+.pvgo{margin-left:0}#fd-app .pvch .pvcn+.pvgo{margin-left:auto}
+#fd-app .pvcus:hover .pvgo,#fd-app .pvcus:focus-visible .pvgo{background:var(--accent-soft);color:var(--accent);transform:translateX(2px)}
 #fd-app .pvempty{grid-column:1/-1;display:grid;justify-items:center;gap:4px;padding:30px 10px;color:var(--muted);text-align:center;animation:fdin .3s ease}#fd-app .pvempty .pvi.big{width:34px;height:34px;color:var(--muted);opacity:.7}#fd-app .pvempty b{color:var(--ink)}
 /* окно заказчика */
 #fd-app .pvl-d .pvkpi{margin:4px 0 14px}
