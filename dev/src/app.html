@@ -7876,7 +7876,23 @@ function patchMguPoints2(){
   all.forEach(a=>{ const m=U.find(([re])=>re.test(a)); if(!m) return; const k=ptKey(a); o[k]=Object.assign(o[k]||{addr:a}, m[1]); });
   o.__v=2; c.points=JSON.stringify(o); dirty("customers",c.id);
 }
-function patchAll(){ patchPrivate(); patchKigm(); patchSuppliers(); if(!serverOld){ patchContracts(); patchKigmSpecs(); patchMokSte(); patchMokSpec(); patchMokSte2(); patchMgu(); patchMguSklad(); patchMguNames(); patchCircus(); patchKb1(); patchKb1Countries(); patchCircusSigns(); patchCircusCelery(); patchNiir(); patchNiirAliases(); patchNmic(); patchMguPoints(); patchMguPoints2(); } }
+/* ООО «АСТОРИЯ» (на сайте «Астория») — договор поставки № 121126 от 12.11.2026 с ИП Скобёлкиным, самовывоз, 100% предоплата, бессрочный (15.11.2026).
+   Заводится один раз: заказчик по ИНН, договор — если у заказчика ещё нет договора № 121126. Заполняет только пустые поля. */
+function patchAstoria(){
+  if(typeof isStaff==="function" && isStaff()) return;
+  let c=D.customers.find(x=>x.inn==="5012099201");
+  if(c && ctrs(c.id).some(x=>/121126/.test(x.basis||""))) return;
+  if(!c){ c={id:uid(), name:"", inn:"", kpp:"", address:"", ship:"", contract:"", ikz:"", acct:"bank", bank:"", bik:"", rs:"", ks:""}; D.customers.push(c); }
+  const F={name:"ООО «АСТОРИЯ»", short:"Астория", inn:"5012099201", kpp:"501201001", address:"143987, Московская обл., г. Балашиха, мкр. Железнодорожный, ул. Колхозная, д. 11, кв. 22",
+    acct:"bank", bank:"АО «АЛЬФА-БАНК»", bik:"044525593", rs:"40702810902860008565", ks:"30101810200000000593"};
+  Object.entries(F).forEach(([k,v])=>{ if(!c[k] || (k==="acct" && !c.rs)) c[k]=v; });
+  dirty("customers",c.id);
+  const s=D.suppliers.find(x=>/Скоб[её]лкин/i.test(x.name));
+  const x={id:uid(), customerId:c.id, supplierId:s?s.id:"", basis:"Договор поставки № 121126 от 12.11.2026", ikz:"", maxSum:"", dateTo:""};
+  D.contracts=D.contracts||[]; D.contracts.push(x); dirty("contracts",x.id);
+  logEv("Справочники","Добавлен заказчик «Астория» (ООО «АСТОРИЯ», ИНН 5012099201) и договор поставки № 121126 от 12.11.2026");
+}
+function patchAll(){ patchPrivate(); patchKigm(); patchSuppliers(); if(!serverOld){ patchContracts(); patchKigmSpecs(); patchMokSte(); patchMokSpec(); patchMokSte2(); patchMgu(); patchMguSklad(); patchMguNames(); patchCircus(); patchKb1(); patchKb1Countries(); patchCircusSigns(); patchCircusCelery(); patchNiir(); patchNiirAliases(); patchNmic(); patchMguPoints(); patchMguPoints2(); patchAstoria(); } }
 
 /* ---------- товары: список — dev/src/pdl_seg.js (renderProducts) ---------- */
 
