@@ -308,36 +308,75 @@ document.addEventListener("pointerdown", e=>{ if(PVRP.open && !(e.target.closest
 document.addEventListener("keydown", e=>{ if(e.key==="Escape" && PVRP.open){ e.stopPropagation(); if(PVRP.pick){ PVRP.pick=""; PVRP.hov=""; pvRpMark(); } else { pvRpClose(); const b=document.querySelector("#pv-cus .pvrpb"); if(b) b.focus(); } } }, true);
 
 /* окно заказчика — «таблица цирка» по месяцам */
-let PVL={cid:"", open:new Set(), ed:""};
-function pvLedger(cid){
+let PVL={cid:"", open:new Set(), ed:"", per:"all", a:"0000", b:"9999", f:"", bd:false, cst:false};
+function pvLedger(cid, keep){
   const R=pvCusR(), c=cus(cid), docs=D.journal.filter(j=>j.snap && !isArch(j) && (j.customerId||"-")===cid);
   /* раскрыты месяцы выбранного периода, где у заказчика есть накладные; нет таких — последний месяц */
   const om=R.all?[]:[...new Set(docs.filter(j=>j.date>=R.a && j.date<=R.b).map(j=>j.date.slice(0,7)))];
-  PVL={cid, open:new Set(om), ed:""};
+  if(keep && PVL.cid===cid) PVL.ed=""; else PVL={cid, open:new Set(om), ed:"", per:"all", a:"0000", b:"9999", f:"", bd:false, cst:false};
   if(!docs.length){ openCard(`<div class="dc-head"><div><div class="dc-kicker">Заказчик · прибыль</div><h3>${esc(pvCusName(cid))}</h3>${c.inn?`<div class="dc-sub">ИНН ${esc(c.inn)}</div>`:""}</div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div><p class="muted">Накладных пока нет. Когда появится первая, здесь будут сумма, закупка и прибыль.</p>`, true, ()=>{}); return; }
   if(!PVL.open.size){ const lm=docs.map(j=>j.date.slice(0,7)).sort().pop(); PVL.open=new Set([lm]); }
-  CARD_RE=()=>pvLedger(cid);
+  CARD_RE=()=>pvLedger(cid, true);
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Заказчик · прибыль</div><h3>${esc(pvCusName(cid))}</h3>${c.inn?`<div class="dc-sub">ИНН ${esc(c.inn)}</div>`:""}</div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div><div id="pvl"></div>
     <datalist id="pv-srcn"></datalist>`, true, ()=>{});
-  const d=$("#fd-dcard"); d.classList.add("xwide","pvl-d"); d.addEventListener("click", pvLedgerClick); d.addEventListener("input", pvLedgerInput); d.addEventListener("keydown", e=>{ if((e.key==="Enter"||e.key===" ") && e.target.classList && e.target.classList.contains("pvrl")){ e.preventDefault(); e.target.click(); return; } if(e.key==="Enter" && e.target.closest(".pvsrc")){ e.preventDefault(); const b=d.querySelector("[data-pvs='save']"); if(b) b.click(); } });
+  const d=$("#fd-dcard"); d.classList.add("xwide","pvl-d"); d.addEventListener("click", pvLedgerClick); d.addEventListener("input", pvLedgerInput); d.addEventListener("change", pvLedgerChange); d.addEventListener("keydown", e=>{ if((e.key==="Enter"||e.key===" ") && e.target.classList && e.target.classList.contains("pvrl")){ e.preventDefault(); e.target.click(); return; } if(e.key==="Enter" && e.target.closest(".pvsrc")){ e.preventDefault(); const b=d.querySelector("[data-pvs='save']"); if(b) b.click(); } });
   pvLedgerDraw();
 }
 function pvSrcNames(){ const s=new Set(["Саид","Склад"]); pfArr("doccosts").forEach(dc=>{ const L=dcLines(dc); (Array.isArray(L._src)?L._src:[]).forEach(x=>x.n&&s.add(x.n)); }); return [...s]; }
 function pvLedgerDraw(){
   const box=$("#pvl"); if(!box) return; const cid=PVL.cid;
-  const docs=D.journal.filter(j=>j.snap && !isArch(j) && (j.customerId||"-")===cid).sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:-jNumSort(a,b)).map(docProfit);
-  const M=new Map(); docs.forEach(x=>{ const k=x.j.date.slice(0,7); if(!M.has(k)) M.set(k,[]); M.get(k).push(x); });
-  const sum=(L,f)=>r2(L.reduce((a,x)=>a+f(x),0));
-  const all={rev:sum(docs,x=>x.rev), rs:sum(docs,x=>x.rev-x.tax), cost:sum(docs,x=>x.cost+(x.exp||0)), profit:sum(docs,x=>x.profit)};
+  const every=D.journal.filter(j=>j.snap && !isArch(j) && (j.customerId||"-")===cid);
+  const docs=every.filter(j=>j.date>=PVL.a && j.date<=PVL.b).sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:-jNumSort(a,b)).map(docProfit);
+  const sum=(L,f)=>r2(L.reduce((a,x)=>a+f(x),0)), nk=n=>n+" "+plural(n,["накладная","накладные","накладных"]);
+  const all={rev:sum(docs,x=>x.rev), rs:sum(docs,x=>x.rev-x.tax), tax:sum(docs,x=>x.tax), cost:sum(docs,x=>x.cost+(x.exp||0)), profit:sum(docs,x=>x.profit)};
   const P=docs.map(x=>({x, p:payOf(x.j)})), due=r2(P.reduce((a,o)=>a+o.p.left,0)), nDue=P.filter(o=>o.p.left>0.005).length, PD=P.filter(o=>o.p.st==="paid"&&o.p.d), avg=PD.length?Math.round(PD.reduce((a,o)=>a+pvPayDays(o.x.j,o.p),0)/PD.length):null;
+  const old=P.filter(o=>o.p.left>0.005 && o.x.j.date<=todayISO() && daysSince(o.x.j.date)>30).length;
+  const nMiss=docs.filter(x=>x.miss).length, nLoss=docs.filter(x=>!x.miss && x.profit<0).length;
+  /* «на р/с»: уже пришло — оплаченная часть каждой накладной за вычетом её налога */
+  const got=r2(P.reduce((a,o)=>a+(o.x.rev>0?(o.p.tot-o.p.left)*(o.x.rev-o.x.tax)/o.x.rev:0),0)), wait=r2(all.rs-got);
+  if(PVL.f && !PVL_F[PVL.f]) PVL.f="";
+  const L=PVL.f ? docs.filter(PVL_F[PVL.f].ok) : docs;
+  const M=new Map(); L.forEach(x=>{ const k=x.j.date.slice(0,7); if(!M.has(k)) M.set(k,[]); M.get(k).push(x); });
+  if(PVL.auto){ PVL.auto=0; M.forEach((v,k)=>PVL.open.add(k)); }
+  const lab=pvLgLab(), tiles=`<div class="pvkpi sm pvlk">
+      <button type="button" class="pvt" data-pvlt="all" title="${PVL.f?"Показать все накладные":"Развернуть или свернуть все месяцы"}"><small>Сумма · ${esc(lab.toLowerCase())}</small><b>${fm(all.rev)}</b><span>${nk(docs.length)}${docs.length?" · средняя "+fm(r2(all.rev/docs.length)):""}</span><em>${PVL.f?"показать все ›":"развернуть все ›"}</em></button>
+      <button type="button" class="pvt ${PVL.bd?"on":""}" data-pvlt="rs" aria-expanded="${PVL.bd}" title="Из чего складывается и сколько уже пришло"><small>На р/с</small><b>${fm(all.rs)}</b><span>пришло ${fm(got)}</span><em>${PVL.bd?"скрыть ›":"подробнее ›"}</em></button>
+      ${nMiss?`<button type="button" class="pvt ${PVL.f==="miss"?"on":""}" data-pvlt="miss" title="Показать накладные без закупки"><small>Закупка</small><b>${fm(all.cost)}</b><span class="warn">без закупки: ${nMiss}</span><em>показать ›</em></button>`:`<div><small>Закупка</small><b>${fm(all.cost)}</b><span>${all.cost>0?"наценка "+pct(all.rev-all.cost,all.cost):"&nbsp;"}</span></div>`}
+      <div class="pos pvt2"><small>Прибыль</small><b class="${all.profit<0?"neg":""}">${fm(all.profit)}</b><button type="button" class="pvtl" data-pvlt="mg" title="Все накладные этого заказчика по % маржи — найти ошибку в закупке">маржа ${pct(all.profit,all.rev)} · по марже ›</button>${nLoss?`<button type="button" class="pvtl neg ${PVL.f==="loss"?"on":""}" data-pvlt="loss">в минус: ${nLoss} ›</button>`:""}</div>
+      <button type="button" class="pvt ${due>0.005?"due":""} ${PVL.f==="due"?"on":""}" data-pvlt="due" ${nDue?"":"disabled"} title="Показать только не оплаченные"><small>Ждём оплату</small><b>${fm(due)}</b><span>${nDue?nk(nDue):"всё оплачено"}${avg!=null?" · платят в среднем за "+dnum(avg):""}</span>${nDue?`<em>${old?`<i class="pvold">дольше 30 дней: ${old}</i> · `:""}показать ›</em>`:""}</button></div>
+    ${PVL.bd?`<div class="pvlbd"><span>Сумма <b>${fm(all.rev)}</b></span><span>− налог <b>${fm(all.tax)}</b></span><span>= на р/с <b>${fm(all.rs)}</b></span><span class="ok">уже пришло <b>${fm(got)}</b></span><span>ещё придёт <b>${fm(wait)}</b></span></div>`:""}
+    ${PVL.f?`<div class="pvlf"><span>Показаны: <b>${PVL_F[PVL.f].n}</b> · ${nk(L.length)}${PVL.f==="due"?" на "+fm(due)+" ₽":""}</span><button type="button" class="btn ghost sm" data-pvlt="clear">Показать все ×</button></div>`:""}`;
   $("#pv-srcn").innerHTML=pvSrcNames().map(n=>`<option value="${esc(n)}">`).join("");
-  box.innerHTML = `<div class="pvkpi sm"><div><small>Сумма за всё время</small><b>${fm(all.rev)}</b><span>${docs.length} ${plural(docs.length,["накладная","накладные","накладных"])}</span></div><div><small>На р/с</small><b>${fm(all.rs)}</b></div><div><small>Закупка</small><b>${fm(all.cost)}</b></div><div class="pos"><small>Прибыль</small><b class="${all.profit<0?"neg":""}">${fm(all.profit)}</b><span>маржа ${pct(all.profit,all.rev)}</span></div>
-      <div class="${due>0.005?"due":""}"><small>Ждём оплату</small><b>${fm(due)}</b><span>${nDue?nDue+" "+plural(nDue,["накладная","накладные","накладных"]):"всё оплачено"}${avg!=null?" · платят в среднем за "+dnum(avg):""}</span></div></div>
+  if(!docs.length || !L.length){ box.innerHTML = pvLgPer() + tiles + `<div class="pvempty">${pvIco("folder","big")}<b>${docs.length?"Таких накладных нет":"За этот период накладных нет"}</b><small>${docs.length?"Нажмите «Показать все».":"Выберите другой период выше. Всего у заказчика "+nk(every.length)+"."}</small></div>`; return; }
+  box.innerHTML = pvLgPer() + tiles + `
     <div class="pvlh"><span>Дата</span><span>№</span><span class="num">Сумма</span><span class="num">На р/с</span><span>Закупка</span><span>Оплата</span><span class="num">Прибыль</span></div>`
     + [...M.entries()].map(([m,L])=>{ pvCum(L); const op=PVL.open.has(m), p=sum(L,x=>x.profit), miss=L.filter(x=>x.miss).length, pd=L.filter(x=>payOf(x.j).st==="paid").length;
       return `<section class="pvm ${op?"op":""}"><button type="button" class="pvmh" data-pvo="${m}" aria-expanded="${op}"><b>${pvMon(m)}</b><span>${L.length} ${plural(L.length,["накл.","накл.","накл."])} · ${fm(sum(L,x=>x.rev))} ₽</span>${miss?`<em class="pvwarn"><i></i>без закупки ${miss}</em>`:""}<em class="pvpm ${pd===L.length?"all":""}">${pvIco("check")}оплачено ${pd}/${L.length}</em><strong class="${p<0?"neg":""}">${pvMoney(p)} ₽</strong><i></i></button>
         <div class="pvmb"><div>${L.map(pvLedgerRow).join("")}</div></div></section>`; }).join("");
 }
+/* окно заказчика: период (чипы + свои даты) и фильтр списка из плиток */
+const PVL_F={due:{n:"не оплаченные", ok:x=>payOf(x.j).left>0.005}, miss:{n:"без закупки", ok:x=>x.miss}, loss:{n:"в минус", ok:x=>!x.miss && x.profit<0}};
+function pvLgPresets(){ const t=todayISO(), y=t.slice(0,4), m=t.slice(0,7), pm=pvShift(m,-1), q=Math.floor((+t.slice(5,7)-1)/3)*3+1, R=pvCusR(), end=k=>jIso(new Date(+k.slice(0,4), +k.slice(5,7), 0));
+  const L=[{k:"all", n:"Всё время", a:"0000", b:"9999"}];
+  if(!R.all) L.push({k:"list", n:R.lab, a:R.a, b:R.b, t:"Как в списке заказчиков"});
+  L.push({k:"m0", n:"Этот месяц", a:m+"-01", b:end(m)}, {k:"m1", n:"Прошлый месяц", a:pm+"-01", b:end(pm)}, {k:"q", n:"Квартал", a:y+"-"+String(q).padStart(2,"0")+"-01", b:t}, {k:"y", n:"Год", a:y+"-01-01", b:t});
+  const seen=new Set(); return L.filter(x=>{ const key=x.a+"|"+x.b; if(seen.has(key)) return false; seen.add(key); return true; }); }
+function pvLgLab(){ if(PVL.per==="c") return pvRLab(PVL.a, PVL.b); const p=pvLgPresets().find(x=>x.k===PVL.per); return p?p.n:"Всё время"; }
+function pvLgPer(){ const P=pvLgPresets(), c=PVL.per==="c"||PVL.cst;
+  return `<div class="pvlper" role="group" aria-label="Период">${P.map(p=>`<button type="button" class="${PVL.per===p.k?"on":""}" data-pvlp="${p.k}" ${p.t?`title="${esc(p.t)}"`:""}>${esc(p.n)}</button>`).join("")}<button type="button" class="${PVL.per==="c"?"on":""}" data-pvlp="c">Свои даты</button>
+    ${c?`<span class="pvlc"><input type="date" id="pvl-a" value="${PVL.a>"0000"?PVL.a:""}" aria-label="С"><i>—</i><input type="date" id="pvl-b" value="${PVL.b<"9999"?PVL.b:""}" aria-label="По"></span>`:""}</div>`; }
+function pvLgSet(k){ if(k==="c"){ PVL.cst=true; if(PVL.per==="all"){ const t=todayISO(); PVL.per="c"; PVL.a=t.slice(0,7)+"-01"; PVL.b=t; PVL.auto=1; } pvLedgerDraw(); const i=$("#pvl-a"); if(i) i.focus(); return; }
+  const p=pvLgPresets().find(x=>x.k===k); if(!p) return; PVL.per=k; PVL.a=p.a; PVL.b=p.b; PVL.cst=false; PVL.open=new Set(); PVL.auto=k!=="all"; pvLedgerDraw();
+  if(k==="all"){ const lm=D.journal.filter(j=>j.snap && !isArch(j) && (j.customerId||"-")===PVL.cid).map(j=>j.date.slice(0,7)).sort().pop(); if(lm){ PVL.open.add(lm); pvLedgerDraw(); } } }
+function pvLgDates(src){ let a=($("#pvl-a")||{}).value||"", b=($("#pvl-b")||{}).value||""; if(!a && !b) return; if(!a) a=b; if(!b) b=a; if(a>b){ if(src==="pvl-b") a=b; else b=a; } PVL.per="c"; PVL.a=a; PVL.b=b; PVL.open=new Set(); PVL.auto=1; pvLedgerDraw(); }
+function pvLgTile(k){
+  if(k==="all"){ if(PVL.f){ PVL.f=""; pvLedgerDraw(); return; } const ms=[...document.querySelectorAll("#pvl [data-pvo]")].map(b=>b.dataset.pvo), allOpen=ms.every(m=>PVL.open.has(m)); ms.forEach(m=>allOpen?PVL.open.delete(m):PVL.open.add(m)); pvLedgerDraw(); return; }
+  if(k==="rs"){ PVL.bd=!PVL.bd; pvLedgerDraw(); return; }
+  if(k==="clear"){ PVL.f=""; pvLedgerDraw(); return; }
+  if(k==="mg"){ const f=PV(); f.v="cus"; f.cv="docs"; f.mf="all"; f.ms="lo"; f.q=pvCusName(PVL.cid); pvSetR(PVL.per==="all"?"all":PVL.a, PVL.per==="all"?"all":PVL.b); PVMG.n=50; saveLocal();
+    const d=$("#fd-dcard"); if(d){ d.classList.add("out"); setTimeout(()=>{ try{ d.close(); }catch(x){} d.remove(); }, 200); } if(curTab!=="profit") showTab("profit"); pvDraw(); setTimeout(()=>{ const w=$("#pv-cus .pvtools"); if(w) w.scrollIntoView({behavior:"smooth", block:"start"}); }, 250); return; }
+  if(PVL_F[k]){ PVL.f = PVL.f===k ? "" : k; PVL.auto=!!PVL.f; pvLedgerDraw(); const l=$("#pvl .pvlh"); if(l && PVL.f) l.scrollIntoView({behavior:"smooth", block:"nearest"}); } }
+
 /* прибыль нарастающим итогом с 1-го числа месяца: по порядку накладных (дата, потом номер); у последней накладной дня — итог дня */
 function pvCum(L){ let c=0, prev=""; [...L].reverse().forEach(x=>{ c=r2(c+x.profit); x._cum=c; x._de=0; });
   L.forEach(x=>{ if(x.j.date!==prev){ x._de=1; prev=x.j.date; } });
@@ -369,7 +408,10 @@ function pvCalc(){ const el=$("#pvcalc"); if(!el) return; const j=D.journal.find
   const c=r2(pvEdRows().reduce((a,r)=>a+(+r.s||0),0)), p=r2(x.rev-x.tax-c-x.exp);
   el.innerHTML=`<div><small>Сумма</small><b>${fm(x.rev)}</b></div><div><small>На р/с</small><b>${fm(r2(x.rev-x.tax))}</b></div><div><small>Закупка${x.exp?" с расходами":""}</small><b>${fm(r2(c+x.exp))}</b>${x.exp?`<span>+ расходы ${fm(x.exp)}</span>`:""}</div><div class="pos"><small>Прибыль</small><b class="${p<0?"neg":""}">${fm(p)}</b><span>${pct(p,x.rev)}</span></div>`; }
 function pvLedgerInput(e){ if(e.target.closest("#pvsrc")) pvCalc(); }
+function pvLedgerChange(e){ if(e.target.id==="pvl-a" || e.target.id==="pvl-b") pvLgDates(e.target.id); }
 function pvLedgerClick(e){
+  const lp=e.target.closest("[data-pvlp]"); if(lp){ pvLgSet(lp.dataset.pvlp); return; }
+  const lt=e.target.closest("[data-pvlt]"); if(lt){ pvLgTile(lt.dataset.pvlt); return; }
   const pb=e.target.closest("[data-pvpay]"); if(pb){ e.stopPropagation(); const j=D.journal.find(x=>x.id===pb.dataset.pvpay); if(!j) return; const p=payOf(j);
     if(p.st==="paid"){ setPay(j, 0); toast("info","Отметка об оплате снята","№ "+j.number+" снова ждёт оплату."); }
     else { setPay(j, p.tot, todayISO()); const d=Math.max(0,pvDiff(j.date,todayISO())); toast("ok","Оплачена","№ "+j.number+" · "+fm(p.tot)+" ₽ · "+(d?"через "+dnum(d)+" после накладной":"в день накладной")); }
