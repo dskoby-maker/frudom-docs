@@ -60,29 +60,35 @@ function vpFindHtml(q){ const R=vpRows().filter(r=>acHit(q, r.name+" "+(r.produc
 
 /* ---------- загрузка прайса ---------- */
 async function vpFile(f){ if(!f) return; if(VP.srv===false){ toast("warn","Нужно обновить Code.gs","Прайсы хранятся на новом листе таблицы."); return; }
-  VP.up={file:f.name, busy:"Читаю файл…", items:[]}; vpDraw();
-  try{ const T=await vpSheet(f);   /* шаблон или любая таблица «Наименование … Цена» — читается сам, без ИИ */
-    if(T && T.items.length>=2){ vpUpSet(f, T.items, T.vendor, T.date, {how:T.tpl?"шаблон":"таблица", skip:T.skip, vat:T.vat}); logEv("Справочники","Прайс «"+f.name+"» прочитан без ИИ ("+(T.tpl?"шаблон":"таблица")+"): "+VP.up.items.length+" поз."); vpDraw(); return; }
+  VP.up={file:f.name, busy:"Загружаю прайс", items:[], t0:Date.now(), steps:["Открываю файл","Читаю товары и цены","Сверяю с товарами сайта","Готовлю список для проверки"], st:0, sub:"", pct:null}; vpDraw();
+  try{ await vpIdle(); vpStep(0, f.size>1e6?(f.size/1048576).toFixed(1).replace(".",",")+" МБ":"", 5);
+    const T=await vpSheet(f);   /* шаблон или любая таблица «Наименование … Цена» — читается сам, без ИИ */
+    if(T && T.items.length>=2){ vpStep(1, "без ИИ · строк: "+T.items.length, 30); await vpIdle();
+      await vpUpSet(f, T.items, T.vendor, T.date, {how:T.tpl?"шаблон":"таблица", skip:T.skip, vat:T.vat}); logEv("Справочники","Прайс «"+f.name+"» прочитан без ИИ ("+(T.tpl?"шаблон":"таблица")+"): "+VP.up.items.length+" поз."); vpDraw(); return; }
+    vpStep(1, "ИИ читает прайс", null); await vpIdle();
     const d=await aiInput(f, true); let chunks=[];
     if(d.text){ const lines=d.text.split(/\r?\n/), head=lines.slice(0,3).join("\n"); let cur="";
       lines.forEach(l=>{ if(cur.length+l.length>30000){ chunks.push(cur); cur=head+"\n"; } cur+=l+"\n"; }); if(cur.trim()) chunks.push(cur); chunks=chunks.slice(0,8); }
     const parts=[]; let vendor="", date="";
-    for(let i=0;i<(chunks.length||1);i++){ VP.up.busy="ИИ читает прайс"+(chunks.length>1?" — часть "+(i+1)+" из "+chunks.length:"")+"…"; vpDraw();
+    for(let i=0;i<(chunks.length||1);i++){ const n=chunks.length||1; vpStep(1, "ИИ читает прайс"+(n>1?" — часть "+(i+1)+" из "+n:"")+" · обычно 10–40 секунд", n>1?10+Math.round(i/n*50):null);
       const body=chunks.length ? {action:"aiRead", kind:"price", text:chunks[i], src:"file", fname:f.name} : {action:"aiRead", kind:"price", mime:d.mime, data:d.data, fname:f.name};
       let j; try{ j=await apiFetch(API_URL,{method:"POST", tmo:150000, body:JSON.stringify(Object.assign({key:pass(), user:curUser()}, body))}); }
       catch(e){ const m=e.message||""; throw new Error(m==="nokey"||m==="badkey"?"не настроен ключ ИИ — «Данные» → «ИИ»":m==="unknown action"?"скрипт таблицы старый — обновите Code.gs":m); }
       let x; try{ x=JSON.parse(String(j.text).replace(/^```(json)?|```$/g,"").trim()); }catch(e){ throw new Error("ИИ ответил не по форме — попробуйте ещё раз"); }
       vendor=vendor||String(x.supplier||"").trim(); date=date||String(x.date||"").trim(); (x.items||[]).forEach(it=>parts.push(Array.isArray(it)?{name:it[0], unit:it[1], price:it[2]}:it)); }
-    vpUpSet(f, parts, vendor, date, {how:"ИИ"});
+    await vpUpSet(f, parts, vendor, date, {how:"ИИ"});
     logEv("Справочники","Прайс «"+f.name+"» прочитан ИИ: "+VP.up.items.length+" поз.");
   }catch(e){ VP.up={file:f.name, err:e.message||String(e), items:[]}; }
   vpDraw(); }
 /* позиции → окно проверки (общая часть для шаблона, таблицы и ИИ) */
-function vpUpSet(f, parts, vendor, date, o){ o=o||{}; const seen={}, items=[]; let skip=o.skip||0;
-  parts.forEach(it=>{ const name=String(it.name||"").replace(/\s+/g," ").trim(), price=vpN(it.price); if(!name) return; if(price==null||price<=0){ skip++; return; }
-    const unit=String(it.unit||"").toLowerCase().replace(/\.$/,"").trim()||"кг", k=norm(name)+"|"+unit; if(seen[k]) return; seen[k]=1;
-    const p=vpMatch(name); items.push({name, unit, price, cat:String(it.cat||"").trim(), pid:p?p.id:"", on:true}); });
+async function vpUpSet(f, parts, vendor, date, o){ o=o||{}; const seen={}, items=[]; let skip=o.skip||0, n=0; VPM=null;
+  vpStep(2, parts.length+" "+plural(parts.length,["строка","строки","строк"]), 60); await vpIdle();
+  for(const it of parts){ if(++n%40===0){ vpStep(2, n+" из "+parts.length, 60+Math.round(n/parts.length*35)); await vpIdle(); }
+    const name=String(it.name||"").replace(/\s+/g," ").trim(), price=vpN(it.price); if(!name) continue; if(price==null||price<=0){ skip++; continue; }
+    const unit=String(it.unit||"").toLowerCase().replace(/\.$/,"").trim()||"кг", k=norm(name)+"|"+unit; if(seen[k]) continue; seen[k]=1;
+    const p=vpMatch(name); items.push({name, unit, price, cat:String(it.cat||"").trim(), pid:p?p.id:"", on:true}); }
   if(!items.length) throw new Error("в прайсе не нашлось товаров с ценами");
+  vpStep(3, items.length+" "+plural(items.length,["позиция","позиции","позиций"]), 100); await vpIdle(); await new Promise(r=>setTimeout(r,250));
   VP.up={file:f.name, vendor:vpVendorGuess(vendor, f.name), date:vpDateIso(date)||todayISO(), items, f:"all", how:o.how||"", skip, vat:o.vat||""}; }
 const VP_MON={"январ":1,"феврал":2,"март":3,"апрел":4,"ма":5,"июн":6,"июл":7,"август":8,"сентябр":9,"октябр":10,"ноябр":11,"декабр":12};
 function vpDateIso(t){ t=String(t==null?"":t).trim(); let m=t.match(/(\d{4})-(\d\d)-(\d\d)/); if(m) return m[0];
@@ -123,12 +129,34 @@ async function vpTpl(){ try{ const X=await loadXLSX();
   }catch(e){ toast("err","Не получилось сделать шаблон", e.message||String(e)); } }
 function vpVendorGuess(v, fname){ const V=vpVendors(), t=(v||fname||"").toLowerCase();
   const hit=V.find(x=>t.includes(x.toLowerCase())); return hit || v || ""; }
-function vpMatch(name){ const clean=s=>norm(s).replace(/[«»"]/g,"").replace(/\s+/g," ").trim(), n=clean(name);
-  let p=D.products.find(x=>clean(x.name)===n) || D.products.find(x=>aliasesOf(x).some(a=>clean(a)===n)); if(p) return p;
+/* указатель товаров сайта для сверки — строится один раз на весь прайс (раньше на каждую позицию заново: 485 × все товары — страница зависала) */
+let VPM=null;
+const vpClean = s => norm(s).replace(/[«»"]/g,"").replace(/\s+/g," ").trim();
+function vpMIdx(){ if(VPM && VPM.n===D.products.length && VPM.p===D.products) return VPM; const ex=new Map(), al=new Map(), st=[];
+  D.products.forEach(x=>{ const c=vpClean(x.name); if(!ex.has(c)) ex.set(c,x); });
+  D.products.forEach(x=>{ (aliasesOf(x)||[]).forEach(a=>{ const c=vpClean(a); if(!al.has(c)) al.set(c,x); }); const U=stems(x.name); if(U.length>=2) st.push([x,U]); });
+  return VPM={n:D.products.length, p:D.products, ex, al, st}; }
+function vpMatch(name){ const M=vpMIdx(), n=vpClean(name);
+  let p=M.ex.get(n) || M.al.get(n); if(p) return p;
   const T=stems(name); if(T.length<2) return null;
-  p=D.products.find(x=>{ const U=stems(x.name); return U.length>=2 && U.length===T.length && U.every(w=>T.includes(w)); }); return p||null; }
+  const nums=t=>(norm(t).match(/\d+([.,]\d+)?/g)||[]).sort().join(" "), N=nums(name);   /* «280 г» и «3100 г» — разные товары */
+  p=M.st.find(([x,U])=>U.length===T.length && U.every(w=>T.includes(w)) && nums(x.name)===N); return p?p[0]:null; }
+/* дать браузеру перерисовать экран (крутилка и полоса не замирают) */
+const vpIdle = () => new Promise(r=>requestAnimationFrame(()=>setTimeout(r,0)));
+/* шаг загрузки: меняем только полосу и подписи, без перерисовки всего блока */
+function vpStep(i, sub, pct){ const u=VP.up; if(!u||!u.busy) return; u.st=i; u.sub=sub||""; u.pct=pct; const el=document.querySelector("#vp-card .vpprog"); if(!el){ vpDraw(); return; }
+  el.querySelectorAll(".vpst li").forEach((li,k)=>{ li.className=k<i?"ok":k===i?"cur":""; const sm=li.querySelector("small"); if(sm) sm.textContent=k===i?u.sub:""; });
+  const bar=el.querySelector(".vpbar"); bar.classList.toggle("ind", pct==null); bar.firstElementChild.style.width=(pct==null?30:pct)+"%";
+  const t=el.querySelector(".vpptl"); if(t) t.textContent=u.busy; }
+function vpProgHtml(u){ const st=u.st||0, pct=u.pct;
+  return `<div class="vpup vpprog" role="status" aria-live="polite"><div class="vppic"><svg viewBox="0 0 48 56" width="48" height="56" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M30 3H9a5 5 0 0 0-5 5v40a5 5 0 0 0 5 5h30a5 5 0 0 0 5-5V17z"/><path d="M30 3v14h14"/><path class="l1" d="M13 26h22"/><path class="l2" d="M13 33h22"/><path class="l3" d="M13 40h14"/></svg><i class="vpscan"></i></div>
+    <b class="vpptl">${esc(u.busy)}</b><span class="vppf">«${esc(u.file)}» · <span class="vppt">${vpEl(u)}</span></span>
+    <div class="vpbar${pct==null?" ind":""}"><i style="width:${pct==null?30:pct}%"></i></div>
+    <ol class="vpst">${(u.steps||[]).map((t,k)=>`<li class="${k<st?"ok":k===st?"cur":""}"><span class="vpsd"></span><span>${esc(t)}<small>${k===st?esc(u.sub||""):""}</small></span></li>`).join("")}</ol></div>`; }
+const vpEl = u => { const s=Math.max(0,Math.round((Date.now()-(u.t0||Date.now()))/1000)); return s<60?s+" с":Math.floor(s/60)+" мин "+String(s%60).padStart(2,"0")+" с"; };
+setInterval(()=>{ const u=VP.up; if(!u||!u.busy) return; const el=document.querySelector("#vp-card .vppt"); if(el) el.textContent=vpEl(u); }, 1000);
 function vpUpHtml(){ const u=VP.up;
-  if(u.busy) return `<div class="vpup"><div class="vpempty"><span class="vpspin"></span><b>${esc(u.busy)}</b><span>«${esc(u.file)}» — обычно 10–40 секунд</span></div></div>`;
+  if(u.busy) return vpProgHtml(u);
   if(u.err) return `<div class="vpup"><div class="vpempty"><b>Не получилось прочитать «${esc(u.file)}»</b><span>${esc(u.err)}</span><span class="row"><label class="btn sm">Выбрать другой файл<input type="file" id="vp-file2" hidden></label><button type="button" class="btn ghost sm" data-vp="cancel">Закрыть</button></span></div></div>`;
   const I=u.items, nw=I.filter(i=>!i.pid).length, on=I.filter(i=>i.on), onNew=on.filter(i=>!i.pid).length;
   const F=I.map((it,i)=>[it,i]).filter(([it])=>u.f==="all"||(u.f==="new"?!it.pid:!!it.pid));
@@ -149,16 +177,21 @@ async function vpSave(){ const u=VP.up, vendor=($("#vp-vendor").value||"").trim(
   const old=vpLists().find(l=>l.vendor.toLowerCase()===vendor.toLowerCase()&&l.date===date), lid=uid();
   /* сначала цены уходят в таблицу, и только после её ответа новые товары появляются во «Товарах»:
      если связь оборвалась или приложение закрыли посреди сохранения — не остаётся товаров без цен (15.11.2026) */
-  u.busy="Сохраняю прайс в таблицу… не закрывайте страницу"; vpDraw();
+  Object.assign(u,{busy:"Сохраняю прайс — не закрывайте страницу", t0:Date.now(), steps:["Записываю цены в таблицу","Добавляю новые товары во «Товары»","Готово"], st:0, sub:"", pct:3}); vpDraw(); await vpIdle();
   const newP=[], rows=on.map(it=>{ let pid=it.pid;
       if(!pid){ const p={id:uid()+uid().slice(0,4), name:it.name, code:"", unit:vpUnit(it.unit), country:"", price:""}; newP.push(p); pid=p.id; }
       return {id:uid()+uid().slice(0,4), listId:lid, vendor, date, name:it.name, unit:it.unit, price:String(it.price), productId:pid, note:[u.vat, it.cat].filter(Boolean).join(" · ")}; });
   const put=async part=>{ for(let k=0;;k++){ try{ return await api({action:"vprices", op:"put", rows:JSON.stringify(part)}); }catch(e){ if(k>=1||!online()) throw e; await new Promise(r=>setTimeout(r,1500)); } } };
   let made=0;
   try{ const N=Math.ceil(rows.length/300);
-    for(let i=0,n=1;i<rows.length;i+=300,n++){ if(N>1){ u.busy="Сохраняю прайс в таблицу — часть "+n+" из "+N+"… не закрывайте страницу"; vpDraw(); } await put(rows.slice(i,i+300)); }
+    for(let i=0,n=1;i<rows.length;i+=300,n++){ vpStep(0, N>1?"часть "+n+" из "+N:rows.length+" "+plural(rows.length,["позиция","позиции","позиций"]), 5+Math.round((n-1)/N*75)); await put(rows.slice(i,i+300)); }
     if(old) await api({action:"vprices", op:"del", listId:old.id}).catch(()=>{});
-    newP.forEach(p=>{ if(D.products.some(x=>x.id===p.id)) return; D.products.push(p); dirty("products",p.id); made++; });
+    vpStep(1, newP.length?newP.length+" "+plural(newP.length,["товар","товара","товаров"]):"новых нет", 85); await vpIdle();
+    /* новые товары — часть сохранения прайса, а не отдельные шаги «Отменить: добавление товара …» (их отмена оставила бы цены без товаров) */
+    const un=typeof UNDO!=="undefined"&&UNDO; if(un) un.paused++;
+    try{ const have=new Set(D.products.map(x=>x.id)); newP.forEach(p=>{ if(have.has(p.id)) return; D.products.push(p); dirty("products",p.id); made++; }); }
+    finally{ if(un){ un.paused--; try{ unResync(); }catch(e){} } }
+    vpStep(2, "", 100); await vpIdle();
     on.forEach((it,i)=>{ it.pid=rows[i].productId; });
     if(made){ saveLocal(); flush().catch(()=>{}); }
     VP.rows=D.vprices=vpRows().filter(r=>!old||r.listId!==old.id).concat(rows.map(r=>Object.assign({by:curUser(), at:new Date().toISOString()}, r)));
@@ -281,6 +314,27 @@ function vpCss(){ if(document.getElementById("vp-css")) return; const st=documen
 .vph h2{margin:0 0 4px}.vph p{margin:0;font-size:13.5px;max-width:560px}
 .vpbtns{flex:none;display:flex;gap:8px}.vptpl{display:inline-flex;align-items:center;gap:7px}
 .vprn small.cat{color:var(--muted)}
+#fd-app .vpsearch input[type=search],.vpsearch input[type=search]{padding-left:38px!important;padding-right:34px}
+#fd-app .vpsearch.sm input[type=search],.vpsearch.sm input[type=search]{padding-left:36px!important}
+#fd-app label.vpu,label.vpu{display:flex;flex-direction:row;align-items:center;gap:12px;width:auto;margin:0}
+#fd-app .vpu>input[type=checkbox],.vpu>input[type=checkbox]{flex:none;width:20px!important;height:20px;min-width:20px;min-height:0;padding:0!important;margin:0;border:0;background:none;accent-color:var(--accent);cursor:pointer}
+.vpprog{display:grid;justify-items:center;gap:8px;text-align:center;padding:26px 18px 20px;border:1.5px dashed color-mix(in srgb,var(--accent) 35%,var(--line));border-radius:16px;background:linear-gradient(180deg,var(--accent-soft),transparent 70%)}
+.vppic{position:relative;color:var(--accent);width:48px;height:56px;margin-bottom:4px;animation:vpfloat 2.4s ease-in-out infinite}
+.vppic path.l1,.vppic path.l2,.vppic path.l3{stroke-dasharray:24;stroke-dashoffset:24;animation:vpline 1.8s ease-in-out infinite}
+.vppic path.l2{animation-delay:.25s}.vppic path.l3{animation-delay:.5s}
+.vpscan{position:absolute;left:4px;right:4px;height:3px;border-radius:3px;background:var(--accent);opacity:.55;box-shadow:0 0 10px var(--accent);animation:vpscan 1.8s ease-in-out infinite}
+.vpptl{font-size:15.5px;color:var(--ink)}.vppf{font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}.vppt{font-variant-numeric:tabular-nums}
+.vpbar{position:relative;width:min(360px,100%);height:6px;border-radius:6px;background:color-mix(in srgb,var(--line) 70%,transparent);overflow:hidden;margin:4px 0 6px}
+.vpbar i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:linear-gradient(90deg,var(--accent),color-mix(in srgb,var(--accent) 60%,#fff));transition:width .45s cubic-bezier(.2,.8,.2,1)}
+.vpbar.ind i{width:30%!important;animation:vpind 1.3s ease-in-out infinite}
+.vpst{list-style:none;margin:0;padding:0;display:grid;gap:6px;text-align:left;width:min(360px,100%)}
+#fd-app .vpst li,.vpst li{display:flex;flex-direction:row;margin:0;align-items:flex-start;gap:10px;font-size:13.5px;color:var(--muted);transition:color .3s}
+.vpst li>span:last-child{display:grid}.vpst small{font-size:12px;color:var(--muted)}
+.vpst li.cur{color:var(--ink);font-weight:600}.vpst li.cur small{font-weight:400}.vpst li.ok{color:var(--ok)}
+.vpsd{flex:none;width:16px;height:16px;margin-top:1px;border-radius:50%;border:2px solid var(--line);box-sizing:border-box;position:relative;transition:border-color .3s,background .3s}
+.vpst li.cur .vpsd{border-color:var(--accent-soft);border-top-color:var(--accent);animation:vpsp .8s linear infinite}
+.vpst li.ok .vpsd{border-color:var(--ok);background:var(--ok)}
+.vpst li.ok .vpsd::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:7px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
 .vpadd{flex:none;display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;border-color:var(--accent);cursor:pointer}
 .vpadd:hover{filter:brightness(1.08)}.vpadd.dis{opacity:.45;pointer-events:none}
 .vpsearch{position:relative;display:flex;align-items:center;margin:0 0 12px}
@@ -348,5 +402,9 @@ function vpCss(){ if(document.getElementById("vp-css")) return; const st=documen
 @keyframes vpin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @keyframes vpfade{from{opacity:0}to{opacity:1}}
 @keyframes vpsp{to{transform:rotate(360deg)}}
+@keyframes vpind{0%{left:-30%}100%{left:100%}}
+@keyframes vpscan{0%,100%{top:16px}50%{top:44px}}
+@keyframes vpline{0%{stroke-dashoffset:24}45%,70%{stroke-dashoffset:0}100%{stroke-dashoffset:-24}}
+@keyframes vpfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 @media (max-width:620px){.vplhw{flex-wrap:wrap;padding:0 12px 10px}.vplhw .vplh{flex-basis:100%;padding:12px 2px 6px}.vpopen{width:100%}.vpwt{flex-wrap:wrap}.vpwt select{width:100%}.vph{flex-direction:column}.vpbtns{width:100%}.vpbtns>*{flex:1;justify-content:center}.vpadd{justify-content:center}.vpugrid{grid-template-columns:1fr}.vpubar{flex-wrap:wrap}.vpubar span{flex-basis:100%}.vpubar .btn{flex:1}}
-@media (prefers-reduced-motion:reduce){.vpl,.vpup,.vplbi{animation:none!important}.vplb,.vpchev{transition:none}}`; document.head.appendChild(st); }
+@media (prefers-reduced-motion:reduce){.vpl,.vpup,.vplbi,.vppic,.vppic path,.vpscan{animation:none!important}.vppic path{stroke-dashoffset:0}.vplb,.vpchev{transition:none}}`; document.head.appendChild(st); }
