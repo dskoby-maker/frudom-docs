@@ -723,7 +723,7 @@ html.mailapp #fd-app{--mbh:0px}
 .zkn>b{display:block;margin-bottom:3px;color:#8a6d2a}.zkn ul{margin:0;padding-left:18px;display:grid;gap:2px}.zkn li b{color:#5b4a22}
 .zkn.ok{background:#e9f2eb;color:#4f7a5c;animation:fdglass .3s ease}
 .zkloss{display:block;margin:8px 2px 0;font-size:12.5px;line-height:1.45;color:#a15d52;overflow-wrap:anywhere}.zkloss i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#c97a6c;margin-right:7px;vertical-align:1px}.zkloss span{color:var(--muted)}
-#fd-app .jzk{position:relative}#fd-app .jzk .jzk-l{position:absolute;top:-2px;right:-2px;width:7px;height:7px;border-radius:50%;background:#c97a6c;box-shadow:0 0 0 2px var(--surface,#fff)}
+#fd-app .jzk{position:relative}#fd-app .jzk .jzk-l{position:absolute;top:3px;right:6px;width:7px;height:7px;border-radius:50%;background:#c97a6c;box-shadow:0 0 0 2px var(--surface,#fff)}
 .dc-zk{display:grid;grid-template-rows:0fr;transition:grid-template-rows .38s var(--ease,ease),margin .38s var(--ease,ease);margin-top:0}
 #fd-app .dcard .dc-zk.open{grid-template-rows:1fr;margin-top:14px}#fd-app .dcard .dc-zki{overflow:hidden;min-height:0}
 #fd-app .dcard .dc-zk.open .dc-zki{border-radius:16px;padding:14px;background:rgba(242,231,237,.45);border:1px solid rgba(106,44,78,.1)}
@@ -1250,6 +1250,8 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app tr.dsep .ds b{font-weight:600;color:var(--ink);letter-spacing:-.005em}
 #fd-app tr.dsep .ds em{font-style:normal;font-size:12px;font-weight:600;color:var(--accent);background:var(--accent-soft);padding:2px 9px;border-radius:99px}
 #fd-app tr.dsep .ds span{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}
+#fd-app .jtoday{display:inline-flex;align-items:center;gap:5px;background:var(--accent-soft);color:var(--accent);border:0;font-weight:600}#fd-app .jtoday:hover{filter:brightness(.97)}#fd-app .jtoday svg{flex:none}
+#fd-app tr.dsep.jflash .ds b{animation:jflash 1.6s ease}@keyframes jflash{0%,60%{color:var(--accent)}100%{color:var(--ink)}}#fd-app tr.dsep.jflash .ds i{animation:jflashd 1.6s ease}@keyframes jflashd{0%{box-shadow:0 0 0 4px var(--accent-soft)}30%{box-shadow:0 0 0 9px var(--accent-soft)}100%{box-shadow:0 0 0 4px var(--accent-soft)}}
 #fd-app tr.dsep .ds::after{content:"";order:5;flex-basis:100%;height:1px;background:linear-gradient(90deg,rgba(106,44,78,.35),var(--line) 40%,transparent);margin-top:2px}
 @media (max-width:700px){#fd-app table.stack tbody tr.dsep{display:block;padding:16px 0 4px;border-bottom:0}#fd-app table.stack tbody tr.dsep td{padding:0!important}}
 @media (prefers-reduced-motion:reduce){#fd-app tr.dsep .ds{animation:none}}
@@ -1288,9 +1290,12 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
   #fd-app .jf select{-webkit-appearance:none;appearance:none;padding-right:34px;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238a8f8c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;background-size:16px}
   #fd-app .jf .fh{display:flex;align-items:center;gap:6px;min-height:0}
   #fd-app .jsum{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 4px}
+  /* карточки журнала на телефоне — без прокрутки вбок: ничего не торчит за край (красная точка у значка закупки сдвигала всё на пару пикселей, 15.11.2026) */
+  #fd-app .tbl:has(>table>:is(#jr-body,#cal-body,#ar-body)){overflow-x:hidden;touch-action:pan-y}
   #fd-app .jsum #jr-sum{flex:1 1 100%;font-size:14px}#fd-app .jsum>span[style*="flex:1"]{display:none}
   #fd-app .jsum #jr-msg:empty{display:none}
   #fd-app .jsum .btn,#fd-app .jsum .btn.ghost{flex:1 1 0;justify-content:center;background:rgba(28,34,32,.04);color:var(--ink)}
+  #fd-app .jsum .btn.jtoday{flex:1 1 100%;background:var(--accent-soft);color:var(--accent)}
   #fd-app tr.dsep .ds{flex-wrap:wrap;row-gap:2px}
   #fd-app tr.dsep .ds span{order:4;flex-basis:100%;margin-left:19px}
   #fd-app :is(#jr-body,#cal-body,#ar-body)>tr:not(.dsep):not(.kids){grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"nm dt sm" "who who sm" "pr pr pr" "acts acts acts";gap:2px 10px;align-items:start;padding-top:14px;padding-bottom:14px}
@@ -2632,7 +2637,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
         <label class="f jq">Поиск<input id="jr-q" placeholder="номер, адрес, товар…"></label>
         <label class="f jso">Порядок<select id="jr-sort"><option value="cr_d">Сначала новые (по созданию)</option><option value="cr_a">Сначала старые (по созданию)</option><option value="dt_d">Дата документа: новые сверху</option><option value="dt_a">Дата документа: старые сверху</option><option value="nm_d">Номер: по убыванию</option><option value="nm_a">Номер: по возрастанию</option><option value="sm_d">Сумма: больше сверху</option><option value="sm_a">Сумма: меньше сверху</option><option value="cu_a">Заказчик: А–Я</option></select></label>
       </div>
-      <div class="row jsum"><span id="jr-sum" class="muted"></span><span class="muted" id="jr-msg" style="color:var(--accent)"></span><span style="flex:1"></span><button class="btn ghost sm" id="jr-reset">Сбросить фильтры</button><button class="btn ghost sm" id="jr-refresh">Обновить</button></div>
+      <div class="row jsum"><span id="jr-sum" class="muted"></span><span class="muted" id="jr-msg" style="color:var(--accent)"></span><span style="flex:1"></span><button class="btn sm jtoday" id="jr-today" title="Плавно прокрутить к документам на сегодня"><span>Сегодня</span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button><button class="btn ghost sm" id="jr-reset">Сбросить фильтры</button><button class="btn ghost sm" id="jr-refresh">Обновить</button></div>
       <div class="tbl"><table class="stack jt" data-full="2,5"><thead id="jr-head"><tr><th data-js="dt">Дата</th><th data-js="nm">№</th><th data-js="cu">Заказчик и точка</th><th class="num" data-js="sm">Сумма</th><th>Распечатан со склада</th><th class="acts"></th></tr></thead><tbody id="jr-body"></tbody></table></div>
       <p class="muted" style="font-size:12px">Документ открывается ровно в том виде, в каком был создан. Нажмите на название заказчика — откроется карточка документа или комплекта. «Комплект» — документы одной заявки: стрелка справа показывает каждый документ, карандаш открывает комплект на правку во вкладке «Заявка», корзина убирает комплект в архив.</p>
     </div>
@@ -6120,7 +6125,7 @@ function jRowHtml(j, kid, arch){ const w=jWho(j), pv=!!(j.snap.c&&j.snap.c.priv)
 function jDaySep(iso, st){ const d=new Date(iso+"T12:00:00"), t=todayISO(), tm=new Date(); tm.setDate(tm.getDate()+1); const tmIso=tm.getFullYear()+"-"+String(tm.getMonth()+1).padStart(2,"0")+"-"+String(tm.getDate()).padStart(2,"0");
   let lbl=isNaN(d)?fd(iso):d.toLocaleDateString("ru-RU",{weekday:"long", day:"numeric", month:"long"}); lbl=lbl.charAt(0).toUpperCase()+lbl.slice(1);
   const tag=iso===t?"сегодня":iso===tmIso?"завтра":"";
-  return `<tr class="dsep${iso===t?" today":""}"><td colspan="6" class="full"><div class="ds"><i></i><b>${esc(lbl)}</b>${tag?`<em>${tag}</em>`:""}<span>${st.n} ${docsWord(st.n)} · ${fm(r2(st.sum))} ₽</span></div></td></tr>`; }
+  return `<tr class="dsep${iso===t?" today":""}" data-iso="${iso}"><td colspan="6" class="full"><div class="ds"><i></i><b>${esc(lbl)}</b>${tag?`<em>${tag}</em>`:""}<span>${st.n} ${docsWord(st.n)} · ${fm(r2(st.sum))} ₽</span></div></td></tr>`; }
 function jBuild(rows, arch, openSet, daySep){
   const cnt={}; D.journal.forEach(j=>{ if(!j.snap || isArch(j)!==arch) return; const k=jKey(j); if(k) cnt[k]=(cnt[k]||0)+1; });
   const groups={}; rows.forEach(j=>{ const k=jKey(j); if(k && cnt[k]>1) (groups[k]=groups[k]||[]).push(j); });
@@ -6141,6 +6146,19 @@ function jBuild(rows, arch, openSet, daySep){
   return out;
 }
 const docsWord = n => n%10===1&&n%100!==11?"документ":[2,3,4].includes(n%10)&&![12,13,14].includes(n%100)?"документа":"документов";
+/* «Сегодня ↓» (15.11.2026): плавно к документам на сегодня; сегодня документов нет — к ближайшему дню */
+function jrToday(){ const body=$("#jr-body"); if(!body) return; const t=todayISO();
+  let el=body.querySelector('tr.dsep[data-iso="'+t+'"]'), near=false;
+  if(!el){ const S=[...body.querySelectorAll("tr.dsep[data-iso]")];
+    if(S.length){ el=S.slice().sort((a,b)=>Math.abs(new Date(a.dataset.iso)-new Date(t))-Math.abs(new Date(b.dataset.iso)-new Date(t)))[0]; near=true; }
+    else { const R=[...body.querySelectorAll("tr")].filter(r=>{ const d=r.querySelector("td.jdt"); return d && d.textContent.trim()===fd(t); }); el=R[0]||null; } }
+  if(!el){ toast("info","На сегодня документов нет"); return; }
+  if(near) toast("info","На сегодня документов нет","Показан ближайший день: "+fd(el.dataset.iso));
+  const top=$("header.top"), off=(top?top.getBoundingClientRect().bottom:0)+8;
+  const y=el.getBoundingClientRect().top+window.scrollY-off;
+  window.scrollTo({top:Math.max(0,y), behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+  el.classList.remove("jflash"); void el.offsetWidth; el.classList.add("jflash"); setTimeout(()=>el.classList.remove("jflash"),1800); }
+document.addEventListener("click", e=>{ if(e.target.closest && e.target.closest("#jr-today")) jrToday(); });
 function renderJournal(){
   if(me().admin && !pfLoaded && !zkJLoading && online()){ zkJLoading=true; loadProfit(true).then(()=>{ if(curTab==="journal") renderJournal(); }); }   /* значки закупки — по данным прибыли */
   const f=JF();
@@ -7876,7 +7894,23 @@ function patchMguPoints2(){
   all.forEach(a=>{ const m=U.find(([re])=>re.test(a)); if(!m) return; const k=ptKey(a); o[k]=Object.assign(o[k]||{addr:a}, m[1]); });
   o.__v=2; c.points=JSON.stringify(o); dirty("customers",c.id);
 }
-function patchAll(){ patchPrivate(); patchKigm(); patchSuppliers(); if(!serverOld){ patchContracts(); patchKigmSpecs(); patchMokSte(); patchMokSpec(); patchMokSte2(); patchMgu(); patchMguSklad(); patchMguNames(); patchCircus(); patchKb1(); patchKb1Countries(); patchCircusSigns(); patchCircusCelery(); patchNiir(); patchNiirAliases(); patchNmic(); patchMguPoints(); patchMguPoints2(); } }
+/* ООО «АСТОРИЯ» (на сайте «Астория») — договор поставки № 121126 от 12.11.2026 с ИП Скобёлкиным, самовывоз, 100% предоплата, бессрочный (15.11.2026).
+   Заводится один раз: заказчик по ИНН, договор — если у заказчика ещё нет договора № 121126. Заполняет только пустые поля. */
+function patchAstoria(){
+  if(typeof isStaff==="function" && isStaff()) return;
+  let c=D.customers.find(x=>x.inn==="5012099201");
+  if(c && ctrs(c.id).some(x=>/121126/.test(x.basis||""))) return;
+  if(!c){ c={id:uid(), name:"", inn:"", kpp:"", address:"", ship:"", contract:"", ikz:"", acct:"bank", bank:"", bik:"", rs:"", ks:""}; D.customers.push(c); }
+  const F={name:"ООО «АСТОРИЯ»", short:"Астория", inn:"5012099201", kpp:"501201001", address:"143987, Московская обл., г. Балашиха, мкр. Железнодорожный, ул. Колхозная, д. 11, кв. 22",
+    acct:"bank", bank:"АО «АЛЬФА-БАНК»", bik:"044525593", rs:"40702810902860008565", ks:"30101810200000000593"};
+  Object.entries(F).forEach(([k,v])=>{ if(!c[k] || (k==="acct" && !c.rs)) c[k]=v; });
+  dirty("customers",c.id);
+  const s=D.suppliers.find(x=>/Скоб[её]лкин/i.test(x.name));
+  const x={id:uid(), customerId:c.id, supplierId:s?s.id:"", basis:"Договор поставки № 121126 от 12.11.2026", ikz:"", maxSum:"", dateTo:""};
+  D.contracts=D.contracts||[]; D.contracts.push(x); dirty("contracts",x.id);
+  logEv("Справочники","Добавлен заказчик «Астория» (ООО «АСТОРИЯ», ИНН 5012099201) и договор поставки № 121126 от 12.11.2026");
+}
+function patchAll(){ patchPrivate(); patchKigm(); patchSuppliers(); if(!serverOld){ patchContracts(); patchKigmSpecs(); patchMokSte(); patchMokSpec(); patchMokSte2(); patchMgu(); patchMguSklad(); patchMguNames(); patchCircus(); patchKb1(); patchKb1Countries(); patchCircusSigns(); patchCircusCelery(); patchNiir(); patchNiirAliases(); patchNmic(); patchMguPoints(); patchMguPoints2(); patchAstoria(); } }
 
 /* ---------- товары: список — dev/src/pdl_seg.js (renderProducts) ---------- */
 
