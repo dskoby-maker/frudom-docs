@@ -28,7 +28,8 @@ function vpRender(){ const box=$("#vp-card"); if(!box) return; if(isStaff()){ bo
 /* ---------- рисование ---------- */
 function vpDraw(){ const box=$("#vp-card"); if(!box||box.hidden) return; const L=vpLists(), q=VP.q.trim();
   const head=`<div class="vph"><div><h2>Цены других поставщиков</h2><p class="muted">Загрузите прайс — ИИ перепишет товары и цены, а новые товары появятся во «Товарах». Это цены для сравнения, а не ваша закупка.</p></div>
-    <label class="btn vpadd${VP.srv===false?" dis":""}">${VP_IC.up}<span>Загрузить прайс</span><input type="file" id="vp-file" hidden${VP.srv===false?" disabled":""}></label></div>`;
+    <div class="vpbtns"><button type="button" class="btn ghost vptpl" data-vp="tpl">${VP_IC.dl}<span>Скачать шаблон</span></button>
+    <label class="btn vpadd${VP.srv===false?" dis":""}">${VP_IC.up}<span>Загрузить прайс</span><input type="file" id="vp-file" hidden${VP.srv===false?" disabled":""}></label></div></div>`;
   let body="";
   if(VP.srv===false) body=`<div class="vpempty">${VP_IC.box}<b>Нужно обновить скрипт таблицы</b><span>Чтобы хранить прайсы поставщиков, вставьте новый Code.gs (версия 39) — инструкция в «Данные».</span></div>`;
   else if(VP.up) body=vpUpHtml();
@@ -49,7 +50,7 @@ function vpListHtml(l){ const open=!!VP.open[l.id], iq=(VP.iq[l.id]||"").trim(),
       <div class="vprows">${R.slice(0,300).map(r=>vpRowHtml(r)).join("")||`<p class="muted">Ничего не нашлось</p>`}</div>${R.length>300?`<p class="muted">Показаны первые 300 — уточните поиск</p>`:""}
       <div class="vplf"><span class="muted">Цены для сравнения — в прибыль и закупку не идут</span><button type="button" class="btn ghost danger sm" data-vp="del">Удалить прайс</button></div>`:""}</div></div></div>`; }
 function vpRowHtml(r, vendor){ const p=r.productId&&prod(r.productId);
-  return `<div class="vpr"><span class="vprn"><b>${vendor?`<i class="vpdot" style="--h:${vpHue(r.vendor)}"></i>`:""}${esc(r.name)}</b>${p&&norm(p.name)!==norm(r.name)?`<small>на сайте: ${esc(p.name)}</small>`:""}${vendor?`<small>${esc(r.vendor)} · от ${fd(r.date)}</small>`:""}</span>
+  return `<div class="vpr"><span class="vprn"><b>${vendor?`<i class="vpdot" style="--h:${vpHue(r.vendor)}"></i>`:""}${esc(r.name)}</b>${r.note&&!vendor?`<small>${esc(r.note)}</small>`:""}${p&&norm(p.name)!==norm(r.name)?`<small>на сайте: ${esc(p.name)}</small>`:""}${vendor?`<small>${esc(r.vendor)} · от ${fd(r.date)}</small>`:""}</span>
     <span class="vprp"><b>${vpMoney(r.price)}</b><small>/${esc(r.unit||"")}</small></span></div>`; }
 function vpFindHtml(q){ const R=vpRows().filter(r=>acHit(q, r.name+" "+(r.productName||"")+" "+r.vendor)).sort((a,b)=>(vpN(a.price)??1e12)-(vpN(b.price)??1e12));
   if(!R.length) return `<div class="vpempty sm"><span>По «${esc(q)}» ничего нет ни в одном прайсе</span></div>`;
@@ -60,7 +61,9 @@ function vpFindHtml(q){ const R=vpRows().filter(r=>acHit(q, r.name+" "+(r.produc
 /* ---------- загрузка прайса ---------- */
 async function vpFile(f){ if(!f) return; if(VP.srv===false){ toast("warn","Нужно обновить Code.gs","Прайсы хранятся на новом листе таблицы."); return; }
   VP.up={file:f.name, busy:"Читаю файл…", items:[]}; vpDraw();
-  try{ const d=await aiInput(f, true); let chunks=[];
+  try{ const T=await vpSheet(f);   /* шаблон или любая таблица «Наименование … Цена» — читается сам, без ИИ */
+    if(T && T.items.length>=2){ vpUpSet(f, T.items, T.vendor, T.date, {how:T.tpl?"шаблон":"таблица", skip:T.skip, vat:T.vat}); logEv("Справочники","Прайс «"+f.name+"» прочитан без ИИ ("+(T.tpl?"шаблон":"таблица")+"): "+VP.up.items.length+" поз."); vpDraw(); return; }
+    const d=await aiInput(f, true); let chunks=[];
     if(d.text){ const lines=d.text.split(/\r?\n/), head=lines.slice(0,3).join("\n"); let cur="";
       lines.forEach(l=>{ if(cur.length+l.length>30000){ chunks.push(cur); cur=head+"\n"; } cur+=l+"\n"; }); if(cur.trim()) chunks.push(cur); chunks=chunks.slice(0,8); }
     const parts=[]; let vendor="", date="";
@@ -70,16 +73,54 @@ async function vpFile(f){ if(!f) return; if(VP.srv===false){ toast("warn","Ну�
       catch(e){ const m=e.message||""; throw new Error(m==="nokey"||m==="badkey"?"не настроен ключ ИИ — «Данные» → «ИИ»":m==="unknown action"?"скрипт таблицы старый — обновите Code.gs":m); }
       let x; try{ x=JSON.parse(String(j.text).replace(/^```(json)?|```$/g,"").trim()); }catch(e){ throw new Error("ИИ ответил не по форме — попробуйте ещё раз"); }
       vendor=vendor||String(x.supplier||"").trim(); date=date||String(x.date||"").trim(); (x.items||[]).forEach(it=>parts.push(Array.isArray(it)?{name:it[0], unit:it[1], price:it[2]}:it)); }
-    const seen={}, items=[];
-    parts.forEach(it=>{ const name=String(it.name||"").replace(/\s+/g," ").trim(), price=vpN(it.price); if(!name||price==null||price<=0) return;
-      const unit=String(it.unit||"").toLowerCase().replace(/\.$/,"").trim()||"кг", k=norm(name)+"|"+unit; if(seen[k]) return; seen[k]=1;
-      const p=vpMatch(name); items.push({name, unit, price, pid:p?p.id:"", on:true}); });
-    if(!items.length) throw new Error("в прайсе не нашлось товаров с ценами");
-    const m=date.match(/^(\d\d)\.(\d\d)\.(\d{4})$/);
-    VP.up={file:f.name, vendor:vpVendorGuess(vendor, f.name), date:m?m[3]+"-"+m[2]+"-"+m[1]:todayISO(), items, f:"all"};
-    logEv("Справочники","Прайс «"+f.name+"» прочитан ИИ: "+items.length+" поз.");
+    vpUpSet(f, parts, vendor, date, {how:"ИИ"});
+    logEv("Справочники","Прайс «"+f.name+"» прочитан ИИ: "+VP.up.items.length+" поз.");
   }catch(e){ VP.up={file:f.name, err:e.message||String(e), items:[]}; }
   vpDraw(); }
+/* позиции → окно проверки (общая часть для шаблона, таблицы и ИИ) */
+function vpUpSet(f, parts, vendor, date, o){ o=o||{}; const seen={}, items=[]; let skip=o.skip||0;
+  parts.forEach(it=>{ const name=String(it.name||"").replace(/\s+/g," ").trim(), price=vpN(it.price); if(!name) return; if(price==null||price<=0){ skip++; return; }
+    const unit=String(it.unit||"").toLowerCase().replace(/\.$/,"").trim()||"кг", k=norm(name)+"|"+unit; if(seen[k]) return; seen[k]=1;
+    const p=vpMatch(name); items.push({name, unit, price, cat:String(it.cat||"").trim(), pid:p?p.id:"", on:true}); });
+  if(!items.length) throw new Error("в прайсе не нашлось товаров с ценами");
+  VP.up={file:f.name, vendor:vpVendorGuess(vendor, f.name), date:vpDateIso(date)||todayISO(), items, f:"all", how:o.how||"", skip, vat:o.vat||""}; }
+const VP_MON={"январ":1,"феврал":2,"март":3,"апрел":4,"ма":5,"июн":6,"июл":7,"август":8,"сентябр":9,"октябр":10,"ноябр":11,"декабр":12};
+function vpDateIso(t){ t=String(t==null?"":t).trim(); let m=t.match(/(\d{4})-(\d\d)-(\d\d)/); if(m) return m[0];
+  m=t.match(/(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})/); if(m){ const y=m[3].length===2?"20"+m[3]:m[3]; return y+"-"+m[2].padStart(2,"0")+"-"+m[1].padStart(2,"0"); }
+  m=t.toLowerCase().match(/(\d{1,2})\s+([а-яё]+)\s+(\d{4})/); if(m){ const k=Object.keys(VP_MON).sort((a,b)=>b.length-a.length).find(k=>m[2].startsWith(k)); if(k) return m[3]+"-"+String(VP_MON[k]).padStart(2,"0")+"-"+m[1].padStart(2,"0"); }
+  if(typeof t==="number"||/^\d{5}$/.test(t)){ const d=new Date(Math.round((+t-25569)*864e5)); if(!isNaN(d)) return d.toISOString().slice(0,10); }
+  return ""; }
+/* таблица прайса: строка заголовка «Наименование/Номенклатура … Цена … Ед.»; ниже товары; строка без цены и без единицы — раздел (категория);
+   «Поставщик:» и «Дата прайса:» в шапке шаблона, иначе дата из «Прайс-лист на 9 ноября 2026 г.» и ООО «…» из шапки */
+async function vpSheet(f){ const ext=aiExt(f); if(!/^(xlsx|xlsm|xls|ods|csv|tsv)$/.test(ext)) return null;
+  const X=await loadXLSX(), wb=X.read(await f.arrayBuffer(),{type:"array"}); let best=null;
+  for(const sn of wb.SheetNames){ const A=X.utils.sheet_to_json(wb.Sheets[sn],{header:1, raw:true, defval:""}), r=vpTable(A); if(r && (!best||r.items.length>best.items.length)) best=r; }
+  return best; }
+function vpTable(A){ const low=v=>String(v==null?"":v).toLowerCase().replace(/\s+/g," ").trim(); let h=-1, cn=-1, cp=-1, cu=-1, cc=-1, cnote=-1;
+  for(let i=0;i<Math.min(A.length,40)&&h<0;i++){ const R=A[i]||[]; const n=R.findIndex(v=>/^(наименование|номенклатура|товар|продукт|название)/.test(low(v))), p=R.findIndex(v=>/цена|стоимость/.test(low(v)));
+    if(n>=0&&p>=0){ h=i; cn=n; cp=p; cu=R.findIndex(v=>/^ед/.test(low(v))); cc=R.findIndex(v=>/категор|раздел|групп/.test(low(v))); cnote=R.findIndex(v=>/примеч/.test(low(v))); } }
+  if(h<0) return null;
+  let vendor="", date="", vat="", tpl=false; const head=A.slice(0,h);
+  head.forEach(R=>{ const a=low(R[0]), b=R.slice(1).find(v=>String(v).trim()!=="");
+    if(/^поставщик/.test(a)){ vendor=String(b||"").trim(); tpl=true; } else if(/^дата/.test(a)){ date=vpDateIso(b); tpl=true; } else if(/^цены?(\s|:|$)/.test(a)&&b!=null){ vat=String(b).trim(); }
+    R.forEach(v=>{ const t=String(v||""); if(!date){ const d=/прайс|на\s+\d/i.test(t)?vpDateIso(t):""; if(d) date=d; } if(!vendor){ const m=t.match(/(ООО|ИП|АО|ЗАО|ОАО)\s*[«"]([^»"]+)[»"]/); if(m) vendor=m[2].trim(); } }); });
+  if(!vat && /с\s*ндс/.test(low((A[h]||[])[cp]))) vat="с НДС";
+  const items=[]; let cat="", skip=0;
+  for(let i=h+1;i<A.length;i++){ const R=A[i]||[], name=String(R[cn]==null?"":R[cn]).replace(/\s+/g," ").trim(); if(!name) continue;
+    const pr=R[cp], unit=cu>=0?String(R[cu]||"").trim():"", c=cc>=0?String(R[cc]||"").trim():"";
+    const num=typeof pr==="number"?pr:vpN(pr);
+    if(num==null){ if(String(pr||"").trim()==="" && !unit){ cat=name.replace(/[:：]\s*$/,""); continue; } skip++; continue; }
+    items.push({name, unit:unit||"кг", price:num, cat:c||cat, note:cnote>=0?String(R[cnote]||"").trim():""}); }
+  return {items, vendor, date, vat, skip, tpl}; }
+/* «Скачать шаблон»: шапка (поставщик, дата, с НДС или без) + таблица «Наименование | Ед. | Цена, ₽ | Категория | Примечание» */
+async function vpTpl(){ try{ const X=await loadXLSX();
+    const aoa=[["Прайс поставщика — шаблон для сайта «Фруктовый Дом · документы»"],["Заполните поставщика, дату и строки товаров. Строка без цены — пропускается. Строка только с названием (без цены и ед.) — раздел, он станет категорией товаров ниже."],[],
+      ["Поставщик",""],["Дата прайса",fd(todayISO())],["Цены","с НДС"],[],["Наименование","Ед.","Цена, ₽","Категория","Примечание"]];
+    for(let i=0;i<30;i++) aoa.push(["","кг","","",""]);
+    const ws=X.utils.aoa_to_sheet(aoa); ws["!cols"]=[{wch:58},{wch:7},{wch:12},{wch:24},{wch:24}];
+    const wb=X.utils.book_new(); X.utils.book_append_sheet(wb,ws,"Прайс"); X.writeFile(wb,"Шаблон прайса поставщика.xlsx");
+    toast("ok","Шаблон скачан","Заполните его и загрузите кнопкой «Загрузить прайс» — сайт прочитает без ИИ.");
+  }catch(e){ toast("err","Не получилось сделать шаблон", e.message||String(e)); } }
 function vpVendorGuess(v, fname){ const V=vpVendors(), t=(v||fname||"").toLowerCase();
   const hit=V.find(x=>t.includes(x.toLowerCase())); return hit || v || ""; }
 function vpMatch(name){ const clean=s=>norm(s).replace(/[«»"]/g,"").replace(/\s+/g," ").trim(), n=clean(name);
@@ -91,13 +132,13 @@ function vpUpHtml(){ const u=VP.up;
   if(u.err) return `<div class="vpup"><div class="vpempty"><b>Не получилось прочитать «${esc(u.file)}»</b><span>${esc(u.err)}</span><span class="row"><label class="btn sm">Выбрать другой файл<input type="file" id="vp-file2" hidden></label><button type="button" class="btn ghost sm" data-vp="cancel">Закрыть</button></span></div></div>`;
   const I=u.items, nw=I.filter(i=>!i.pid).length, on=I.filter(i=>i.on), onNew=on.filter(i=>!i.pid).length;
   const F=I.map((it,i)=>[it,i]).filter(([it])=>u.f==="all"||(u.f==="new"?!it.pid:!!it.pid));
-  return `<div class="vpup"><div class="vpuph"><b>Прайс прочитан · ${I.length} ${plural(I.length,["позиция","позиции","позиций"])}</b><small>«${esc(u.file)}» — проверьте названия и цены</small></div>
+  return `<div class="vpup"><div class="vpuph"><b>Прайс прочитан · ${I.length} ${plural(I.length,["позиция","позиции","позиций"])}</b><small>«${esc(u.file)}» · ${u.how==="ИИ"?"прочитан ИИ — проверьте названия и цены":u.how==="шаблон"?"прочитан по шаблону, без ИИ":"таблица прочитана без ИИ"}${u.vat?" · цены "+esc(u.vat):""}${u.skip?` · без цены пропущено: ${u.skip}`:""}</small></div>
     <div class="vpugrid"><label><span>Поставщик</span><input id="vp-vendor" value="${esc(u.vendor)}" placeholder="Например, Роспродукт" list="vp-vlist"><datalist id="vp-vlist">${vpVendors().map(v=>`<option value="${esc(v)}">`).join("")}</datalist></label>
       <label><span>Дата прайса</span><input id="vp-date" type="date" value="${esc(u.date)}"></label></div>
     <div class="vpchips">${[["all","Все",I.length],["new","Новые товары",nw],["have","Уже есть на сайте",I.length-nw]].map(([k,t,n])=>`<button type="button" class="vpchip${u.f===k?" on":""}" data-vpf="${k}">${t} <b>${n}</b></button>`).join("")}
       <span style="flex:1"></span><button type="button" class="btn ghost sm" data-vp="allon">${on.length===I.length?"Снять все":"Отметить все"}</button></div>
     <div class="vprows up">${F.map(([it,i])=>`<label class="vpr vpu${it.on?"":" off"}"><input type="checkbox" data-vpi="${i}"${it.on?" checked":""}>
-      <span class="vprn"><b>${esc(it.name)}</b>${it.pid?`<small class="have">есть на сайте: ${esc((prod(it.pid)||{}).name||"")} <button type="button" class="vpun" data-vpun="${i}" title="Это другой товар — создать новый">×</button></small>`:`<small class="nw">новый товар — появится во «Товарах»</small>`}</span>
+      <span class="vprn"><b>${esc(it.name)}</b>${it.cat?`<small class="cat">${esc(it.cat)}</small>`:""}${it.pid?`<small class="have">есть на сайте: ${esc((prod(it.pid)||{}).name||"")} <button type="button" class="vpun" data-vpun="${i}" title="Это другой товар — создать новый">×</button></small>`:`<small class="nw">новый товар — появится во «Товарах»</small>`}</span>
       <span class="vprp"><b>${vpMoney(it.price)}</b><small>/${esc(it.unit)}</small></span></label>`).join("")}</div>
     <div class="vpubar"><span>${on.length} ${plural(on.length,["позиция","позиции","позиций"])}${onNew?` · ${onNew} ${plural(onNew,["новый товар","новых товара","новых товаров"])}`:""}</span>
       <button type="button" class="btn ghost" data-vp="cancel">Отмена</button><button type="button" class="btn primary" data-vp="save"${on.length?"":" disabled"}>Сохранить прайс</button></div></div>`; }
@@ -109,7 +150,7 @@ async function vpSave(){ const u=VP.up, vendor=($("#vp-vendor").value||"").trim(
   u.busy="Сохраняю…"; vpDraw(); let made=0;
   try{ const rows=on.map(it=>{ let pid=it.pid;
       if(!pid){ const p={id:uid(), name:it.name, code:"", unit:vpUnit(it.unit), country:"", price:""}; D.products.push(p); dirty("products",p.id); pid=p.id; it.pid=pid; made++; }
-      return {id:uid(), listId:lid, vendor, date, name:it.name, unit:it.unit, price:String(it.price), productId:pid}; });
+      return {id:uid(), listId:lid, vendor, date, name:it.name, unit:it.unit, price:String(it.price), productId:pid, note:[u.vat, it.cat].filter(Boolean).join(" · ")}; });
     for(let i=0;i<rows.length;i+=800) await api({action:"vprices", op:"put", rows:JSON.stringify(rows.slice(i,i+800))});
     if(old) await api({action:"vprices", op:"del", listId:old.id}).catch(()=>{});
     if(made){ saveLocal(); flush().catch(()=>{}); }
@@ -132,7 +173,8 @@ document.addEventListener("click", e=>{ const box=e.target.closest("#vp-card"); 
   if(k==="reload"){ vpLoad(); return; }
   if(k==="cancel"){ VP.up=null; vpDraw(); return; }
   if(k==="allon"){ const all=VP.up.items.every(i=>i.on); VP.up.items.forEach(i=>i.on=!all); vpDraw(); return; }
-  if(k==="save"){ vpSave(); return; } });
+  if(k==="save"){ vpSave(); return; }
+  if(k==="tpl"){ vpTpl(); return; } });
 document.addEventListener("change", e=>{ const t=e.target; if(!t.closest||!t.closest("#vp-card")) return;
   if(t.id==="vp-file"||t.id==="vp-file2"){ const f=t.files&&t.files[0]; t.value=""; vpFile(f); return; }
   if(t.dataset.vpi!=null){ VP.up.items[+t.dataset.vpi].on=t.checked; const r=t.closest(".vpu"); r&&r.classList.toggle("off",!t.checked);
@@ -150,6 +192,7 @@ document.addEventListener("dragleave", e=>{ if(e.target.id==="vp-card") e.target
 const VP_IC={
   up:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>',
   find:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg>',
+  dl:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>',
   chev:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>',
   box:'<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>'
 };
@@ -158,6 +201,8 @@ function vpCss(){ if(document.getElementById("vp-css")) return; const st=documen
 #vp-card.vpdrag{outline-color:var(--accent)}
 .vph{display:flex;gap:14px;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
 .vph h2{margin:0 0 4px}.vph p{margin:0;font-size:13.5px;max-width:560px}
+.vpbtns{flex:none;display:flex;gap:8px}.vptpl{display:inline-flex;align-items:center;gap:7px}
+.vprn small.cat{color:var(--muted)}
 .vpadd{flex:none;display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;border-color:var(--accent);cursor:pointer}
 .vpadd:hover{filter:brightness(1.08)}.vpadd.dis{opacity:.45;pointer-events:none}
 .vpsearch{position:relative;display:flex;align-items:center;margin:0 0 12px}
@@ -209,5 +254,5 @@ function vpCss(){ if(document.getElementById("vp-css")) return; const st=documen
 @keyframes vpin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @keyframes vpfade{from{opacity:0}to{opacity:1}}
 @keyframes vpsp{to{transform:rotate(360deg)}}
-@media (max-width:620px){.vph{flex-direction:column}.vpadd{width:100%;justify-content:center}.vpugrid{grid-template-columns:1fr}.vpubar{flex-wrap:wrap}.vpubar span{flex-basis:100%}.vpubar .btn{flex:1}}
+@media (max-width:620px){.vph{flex-direction:column}.vpbtns{width:100%}.vpbtns>*{flex:1;justify-content:center}.vpadd{justify-content:center}.vpugrid{grid-template-columns:1fr}.vpubar{flex-wrap:wrap}.vpubar span{flex-basis:100%}.vpubar .btn{flex:1}}
 @media (prefers-reduced-motion:reduce){.vpl,.vpup,.vplbi{animation:none!important}.vplb,.vpchev{transition:none}}`; document.head.appendChild(st); }

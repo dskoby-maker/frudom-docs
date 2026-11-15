@@ -56,6 +56,37 @@ async def main():
         pg=await b.new_page(); await pg.goto(B+'/page'); await pg.click('#fd-who [data-who="Гриша"]'); await pg.fill('#fd-pass','3333'); await pg.click('#fd-enter'); await pg.wait_for_timeout(2000)
         r=await pg.evaluate("fetch(location.origin+'/',{method:'POST',body:JSON.stringify({key:'3333',user:'Гриша',action:'vprices',op:'list'})}).then(r=>r.text()).catch(e=>String(e))")
         ok('forbidden' in r or 'error' in r, f'водителю прайсы недоступны: {r[:80]}')
+
+        # ---- таблица без ИИ: прайс как у поставщиков (шапка, «Номенклатура | Цена с НДС | Валюта | Ед-ца», разделы, «цена по запросу») ----
+        import openpyxl
+        X=os.environ.get('XLSXJS','/tmp/xlsx/package/dist/xlsx.full.min.js')
+        pg=await b.new_page(viewport={'width':1300,'height':900}); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
+        await pg.route('**/xlsx.full.min.js', lambda r: r.fulfill(path=X, content_type='application/javascript'))
+        await pg.goto(B+'/page'); await pg.click('#fd-who [data-who="Даниил"]'); await pg.fill('#fd-pass','1111'); await pg.click('#fd-enter'); await pg.wait_for_timeout(2500)
+        await pg.click('nav.tabs [data-tab="suppliers"]'); await pg.wait_for_selector('#vp-card .vph', timeout=8000)
+        wb=openpyxl.Workbook(); ws=wb.active
+        for r in [['Прайс-лист на 9 ноября 2026\xa0г.',None,None,None,None,'менеджер\nООО «ТестПродукт»\nТел'],['Номенклатура','Цена с НДС','Валюта','Ед-ца измерения','Бланк заказа'],
+                  ['Маслины бренды'],['Маслины Тест б/к 2950 г х 6 ж/б',706.2,'руб.','шт.'],['ОВОЩИ:'],['Тыква кг ком','*цена по запросу',None,'кг.'],['Морковь мытая',55.5,'руб.','кг.']]: ws.append(r)
+        T='/tmp/claude-0/vp-table.xlsx'; wb.save(T)
+        await pg.set_input_files('#vp-file', T); await pg.wait_for_selector('#vp-card .vpuph', timeout=15000); t=await pg.inner_text('#vp-card')
+        ok('2 позиции' in t and 'без ИИ' in t and 'без цены пропущено: 1' in t and 'с НДС' in t, f'таблица поставщика читается без ИИ: {t[:220]}')
+        ok(await pg.input_value('#vp-vendor')=='ТестПродукт' and await pg.input_value('#vp-date')=='2026-11-09', 'поставщик и дата из шапки таблицы')
+        ok('Маслины бренды' in t and 'ОВОЩИ' in t, 'разделы стали категориями')
+        await pg.click('#vp-card [data-vp="cancel"]'); await pg.wait_for_timeout(200)
+        async with pg.expect_download() as dl: await pg.click('#vp-card [data-vp="tpl"]')
+        D2='/tmp/claude-0/vp-tpl.xlsx'; await (await dl.value).save_as(D2)
+        wb=openpyxl.load_workbook(D2); ws=wb.active; hr=[i for i,r in enumerate(ws.iter_rows(values_only=True),1) if r and r[0]=='Наименование'][0]
+        ok(ws.cell(hr,3).value=='Цена, ₽', 'шаблон скачивается: «Наименование | Ед. | Цена, ₽ | Категория»')
+        ws.cell(4,2).value='Овощебаза'; ws.cell(5,2).value='12.11.2026'; ws.cell(6,2).value='без НДС'
+        for i,(n,u,pr,c) in enumerate([('Капуста белокочанная','кг',32,'Овощи'),('Лимоны','кг',180.5,'Фрукты'),('Пустая без цены','кг',None,'')]): ws.cell(hr+1+i,1).value=n; ws.cell(hr+1+i,2).value=u; ws.cell(hr+1+i,3).value=pr; ws.cell(hr+1+i,4).value=c
+        wb.save(D2)
+        await pg.set_input_files('#vp-file', D2); await pg.wait_for_selector('#vp-card .vpuph', timeout=15000); t=await pg.inner_text('#vp-card')
+        ok('2 позиции' in t and 'по шаблону' in t and 'без НДС' in t, f'заполненный шаблон читается идеально: {t[-700:]}')
+        ok(await pg.input_value('#vp-vendor')=='Овощебаза' and await pg.input_value('#vp-date')=='2026-11-12', 'поставщик и дата из шаблона')
+        await pg.click('#vp-card [data-vp="save"]'); await pg.wait_for_selector('#vp-card .vpl', timeout=10000); await pg.wait_for_timeout(800)
+        rows=json.loads(urllib.request.urlopen(B+'/dump').read().decode()).get('Цены поставщиков',[])
+        ok(any('Фрукты' in str(r) and 'без НДС' in str(r) for r in rows), 'категория и НДС сохранены в примечании')
+        ok(not errs, f'без ошибок {errs[:2]}'); await pg.close()
         await b.close()
     print('ИТОГ:', 'всё прошло' if not fails else f'ошибок {len(fails)}')
     if fails: raise SystemExit(1)
