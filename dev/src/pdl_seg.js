@@ -80,11 +80,13 @@ document.addEventListener("click", e=>{ const t=e.target; if(!t.closest) return;
   const o=t.closest("[data-pdo]"); if(o){ pdToggle(o.dataset.pdo); return; }
   const b=t.closest("[data-del]"); if(!b) return;
   if(!b.dataset.armed){ b.dataset.armed=1; b.textContent="Точно удалить?"; b.classList.add("armed"); return; }
-  const id=b.closest(".nmr").dataset.id, p=prod(id), M=pgMembers(id);
+  pdDelete(b.closest(".nmr").dataset.id);
+});
+/* удалить товар (кнопка «Удалить» в строке и меню правой кнопкой) */
+function pdDelete(id){ const p=prod(id), M=pgMembers(id); if(!p) return;
   if(M.length>1 && pgRoot(p)===id) pgMain(M.find(x=>x.id!==id).id);   /* удаляем основной товар группы — основным становится следующий, артикул группы переходит к нему */
   D.products=D.products.filter(x=>x.id!==id); Object.keys(D.prices).forEach(c=>{ if(id in D.prices[c]){ delete D.prices[c][id]; dirtyPrice(c,id); } });
-  dirty("products",id,true); if(PDL.open===id) PDL.open=""; logEv("Товары","Удалён товар «"+((p||{}).name||"")+"»"); renderProducts(); toast("ok","Товар удалён","«"+((p||{}).name||"")+"». Отменить — кнопкой «Отменить» внизу.");
-});
+  dirty("products",id,true); if(PDL.open===id) PDL.open=""; logEv("Товары","Удалён товар «"+((p||{}).name||"")+"»"); renderProducts(); toast("ok","Товар удалён","«"+((p||{}).name||"")+"». Отменить — кнопкой «Отменить» внизу."); }
 function pdAdd(){ const c=PDV.cat!=="all"&&PDV.cat!=="none"?PDV.cat:""; PDV.q=""; const q=$("#pd-q"); if(q) q.value=""; if(!c) PDV.cat="all";
   const p={id:uid(), name:"", code:"", unit:"кг", country:"", price:""}; if(c) p.cat=c; D.products.push(p); dirty("products",p.id);
   PDL.open=p.id; PDL.fresh=p.id; renderProducts(); const r=document.querySelector(`#pd-body .nmr[data-id="${p.id}"]`); if(r){ r.scrollIntoView({block:"center"}); const i=r.querySelector('input[data-k="name"]'); i&&i.focus(); } }
