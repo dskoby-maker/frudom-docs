@@ -1,0 +1,50 @@
+"""Маршрут и текст для MAX по водителю: у точки — выбор водителя (пишется в её автозадачу), над маршрутом и текстом — «Все / Гриша / … / Без водителя»."""
+import asyncio, os
+from playwright.async_api import async_playwright
+fails=[]
+def ok(c,m): print(('OK  ' if c else 'FAIL'),m); (None if c else fails.append(m))
+TAB="(t=>{document.querySelector('nav.tabs button[data-tab=\"journal\"]').click(); document.querySelector('nav.tabs button[data-tab=\"'+t+'\"]').click()})"
+async def save_doc(pg, ship, cidx):
+    await pg.evaluate("(([ship,ci])=>{const D=__fd.D(); const c=D.customers[ci]; D.draft.customerId=c.id; D.draft.lines=[{productId:D.products[0].id,qty:'5',price:'100'}]; D.draft.ship=ship; D.draft.number=''; })", [ship, cidx])
+    await pg.evaluate(TAB+"('doc')"); await pg.wait_for_timeout(300); await pg.click('#d-save'); await pg.wait_for_timeout(1500)
+    await pg.evaluate("(()=>{ const n=document.querySelector('#d-new'); if(n) n.click(); })()"); await pg.wait_for_timeout(300)
+async def main():
+    async with async_playwright() as p:
+        b=await p.chromium.launch(executable_path=os.environ.get("BROWSER_EXECUTABLE_PATH"))
+        for W,H in [(1300,900),(390,844)]:
+            pg=await b.new_page(viewport={'width':W,'height':H}); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
+            await pg.goto('http://localhost:8787/page'); await pg.click('#fd-who [data-who="Даниил"]'); await pg.fill('#fd-pass','1111'); await pg.click('#fd-enter'); await pg.wait_for_timeout(2500)
+            await pg.evaluate("(()=>{const D=__fd.D(); D.journal.forEach(j=>{ if(j.date>='2000') j.date='2001-01-01'; }); D.daytasks=[]; D.dv={}; })()")
+            await save_doc(pg, 'г. Москва, ул. Первая, д. 1', 0)
+            await pg.evaluate("(()=>{const D=__fd.D(), j=D.journal[D.journal.length-1], k=JSON.parse(JSON.stringify(j)); k.id=j.id+'b'; k.number=String((+j.number||1)+1); k.snap.dr.ship='г. Москва, ул. Вторая, д. 2'; k.snap.dr.number=k.number; D.journal.push(k); })()")
+            await pg.evaluate(TAB+"('calendar')"); await pg.wait_for_timeout(700)
+            t=await pg.input_value('#dv-text'); ok('Первая' in t and 'Вторая' in t, f'{W}: в тексте обе точки')
+            ok(await pg.locator('#dv-drvt .dvdc').count()==0, f'{W}: пока водителей нет — без переключателя')
+            if not await pg.evaluate("document.querySelector('#dv-card').classList.contains('open')"): await pg.click('#dv-h .dvfx'); await pg.wait_for_timeout(500)
+            if await pg.locator('#dv-points .dvg:not(.open) [data-dvgt]').count(): await pg.click('#dv-points .dvg [data-dvgt]'); await pg.wait_for_timeout(500)
+            ok(await pg.locator('#dv-points .dvdr [data-drvb]').count()==2, f'{W}: у каждой точки кнопка «Водитель»')
+            bt=pg.locator('#dv-points .dvp').filter(has_text='Первая').locator('[data-drvb]')
+            await bt.click(); await pg.wait_for_timeout(300); await pg.click('.drp .drp-o[data-drpo="Гриша"]'); await pg.wait_for_timeout(600)
+            bt=pg.locator('#dv-points .dvp').filter(has_text='Вторая').locator('[data-drvb]')
+            await bt.click(); await pg.wait_for_timeout(300); await pg.fill('.drp .drp-add input','Михаил'); await pg.keyboard.press('Enter'); await pg.wait_for_timeout(600)
+            drv=await pg.evaluate("__fd.D().daytasks.filter(x=>x.id.startsWith('auto')||x.text.startsWith('Отвезти')).map(x=>x.drv).sort()")
+            ok(drv==['Гриша','Михаил'], f'{W}: водители записаны в автозадачи точек {drv}')
+            chips=await pg.evaluate("[...document.querySelectorAll('#dv-drvt .dvdc')].map(b=>b.textContent.trim())")
+            ok(chips==['Все2','ГГриша1','ММихаил1'], f'{W}: переключатель над текстом {chips}')
+            await pg.click('#dv-drvt .dvdc[data-dvdrv="Гриша"]'); await pg.wait_for_timeout(400)
+            t=await pg.input_value('#dv-text'); ok('Первая' in t and 'Вторая' not in t and 'Водитель: Гриша' in t, f'{W}: текст только для Гриши')
+            ok(await pg.locator('#dv-points .dvp').count()==1 and await pg.locator('#dv-points .dvg').count()==0, f'{W}: маршрут только Гриши')
+            ok(await pg.locator('#dv-drvs .dvdc.on[data-dvdrv="Гриша"]').count()==1, f'{W}: переключатель в маршруте тоже на Грише')
+            await pg.click('#dv-drvs .dvdc[data-dvdrv="Михаил"]'); await pg.wait_for_timeout(400)
+            t=await pg.input_value('#dv-text'); ok('Вторая' in t and 'Первая' not in t, f'{W}: текст для Михаила')
+            await pg.click('#dv-drvs .dvdc[data-dvdrv=""]'); await pg.wait_for_timeout(400)
+            t=await pg.input_value('#dv-text'); ok('Первая' in t and 'Вторая' in t and 'Водитель:' not in t, f'{W}: «Все» — снова весь маршрут')
+            sw=await pg.evaluate("document.documentElement.scrollWidth"); ok(sw<=W, f'{W}: нет прокрутки вбок ({sw})')
+            await pg.click('#dv-drvs .dvdc[data-dvdrv="Гриша"]'); await pg.wait_for_timeout(300)
+            await pg.evaluate("document.querySelector('#dv-card').scrollIntoView({block:'start'})"); await pg.wait_for_timeout(300); await pg.screenshot(path=f'/tmp/claude-0/dvdrv-{W}.png')
+            await pg.locator('#dv-points [data-drvb]').first.click(); await pg.wait_for_timeout(350); await pg.screenshot(path=f'/tmp/claude-0/dvdrv-pop-{W}.png')
+            await pg.keyboard.press('Escape'); await pg.evaluate("__fd.D().dv={}")
+            ok(not errs, f'{W}: нет ошибок JS {errs[:2]}'); await pg.close()
+        await b.close()
+    print('ИТОГ:', 'всё прошло' if not fails else f'провалов {len(fails)}')
+asyncio.run(main())

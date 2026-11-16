@@ -1836,15 +1836,52 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .dtdoc-a{display:flex;gap:6px;margin-left:auto;flex-wrap:wrap}
 #fd-app .dtdoc-j{all:unset;cursor:pointer;font-weight:600;color:var(--ok);padding:1px 6px;border-radius:6px}#fd-app .dtdoc-j:hover{background:rgba(47,107,69,.12)}
 #fd-app .dt-docs{display:inline-flex;align-items:center;gap:6px;cursor:pointer;padding:5px 10px;border-radius:999px;font-size:13px;color:#5d574f;background:rgba(28,34,32,.04);box-shadow:inset 0 0 0 1px var(--line);user-select:none;transition:background .15s,color .15s}
-#fd-app .dt-drvw{position:relative;display:inline-flex;align-items:center;gap:5px;flex:none;max-width:100%;padding:0 4px 0 9px;height:28px;border-radius:999px;font-size:13px;color:#6f6a63;background:rgba(28,34,32,.04);box-shadow:inset 0 0 0 1px var(--line);transition:background .15s,color .15s,box-shadow .15s}
-#fd-app .dt-drvw svg,#fd-app .dtg-drv svg{width:15px;height:15px;flex:none}
-#fd-app .dt-drvw.on{color:#1e4a5c;background:#e3ecef;box-shadow:inset 0 0 0 1px rgba(30,74,92,.25);font-weight:600}
-#fd-app .dt-drvw.ro{padding-right:10px}
-#fd-app .dt-drvw select.dt-drv,#fd-app select#dt-drv{width:auto;min-width:0;min-height:0;height:26px;margin:0;padding:0 22px 0 2px;border:0;background-color:transparent;box-shadow:none;font:inherit;color:inherit;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236f6a63' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 4px center;background-size:13px}
-#fd-app select#dt-drv{height:32px;padding:0 26px 0 12px;border-radius:999px;font-size:13px;color:#5d574f;background-color:rgba(28,34,32,.04);box-shadow:inset 0 0 0 1px var(--line);flex:none}
-#fd-app select#dt-drv.on{color:#1e4a5c;background-color:#e3ecef;font-weight:600}
-#fd-app .dt-drvw .cpkw.ov,#fd-app .dt-cbar .cpkw.ov:has(#dt-drv){display:inline-block;width:auto;flex:none}
-#fd-app .dt-drvw .cpkw.ov>select.dt-drv,#fd-app .cpkw.ov>select#dt-drv{width:auto}
+#fd-app .drvb{display:inline-flex;align-items:center;gap:6px;flex:none;max-width:100%;height:28px;padding:0 9px 0 8px;border:0;border-radius:999px;font:500 13px var(--ui);color:#77716a;background:transparent;box-shadow:inset 0 0 0 1px rgba(28,34,32,.14);cursor:pointer;white-space:nowrap;transition:background .15s,box-shadow .15s,color .15s,transform .12s}
+#fd-app .drvb svg{width:15px;height:15px;flex:none;opacity:.8}
+#fd-app .drvb .drv-n{overflow:hidden;text-overflow:ellipsis;min-width:0}
+#fd-app .drvb .drv-ch{width:6px;height:6px;margin:0 2px 2px 1px;border-right:1.6px solid currentColor;border-bottom:1.6px solid currentColor;transform:rotate(45deg);opacity:.5;flex:none;transition:transform .2s}
+#fd-app .drvb[aria-expanded="true"] .drv-ch{transform:translateY(2px) rotate(-135deg)}
+@media (hover:hover){#fd-app .drvb:hover{color:#2c2925;background:rgba(28,34,32,.04)}}
+#fd-app .drvb:active{transform:scale(.97)}
+#fd-app .drvb.on{padding-left:3px;color:hsl(var(--h) 32% 26%);background:hsl(var(--h) 40% 95%);box-shadow:inset 0 0 0 1px hsl(var(--h) 30% 82%);font-weight:600}
+@media (hover:hover){#fd-app .drvb.on:hover{background:hsl(var(--h) 42% 92%)}}
+#fd-app .drvb.ro{cursor:default;padding-right:10px}
+#fd-app .drv-av{display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:50%;font:700 10.5px/1 var(--ui);font-style:normal;letter-spacing:.02em;color:#fff;background:hsl(var(--h,200) 34% 48%)}
+#fd-app .drv-av svg{width:13px;height:13px;opacity:1}
+#fd-app #dt-drvw:empty{display:none}
+.drp{position:fixed;inset:auto;margin:0;z-index:2147483000;width:256px;max-height:min(440px,calc(100vh - 20px));display:flex;flex-direction:column;padding:6px;border:0;border-radius:14px;background:#fff;color:#2c2925;font:14px var(--ui,system-ui);box-shadow:0 1px 2px rgba(0,0,0,.06),0 14px 40px -8px rgba(30,25,20,.28),0 0 0 1px rgba(28,34,32,.08);opacity:0;transform:translateY(-4px) scale(.98);transition:opacity .16s,transform .18s cubic-bezier(.3,.9,.3,1);overflow:hidden}
+.drp.on{opacity:1;transform:none}
+.drp-h{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 6px 10px}.drp-h b{font:600 11.5px var(--ui,system-ui);letter-spacing:.06em;text-transform:uppercase;color:#8a847c}
+.drp-x{display:none;width:30px;height:30px;border:0;border-radius:50%;background:rgba(28,34,32,.05);font-size:20px;line-height:1;color:#6f6a63;cursor:pointer}
+.drp-l{overflow:auto;display:grid;gap:1px;padding:0 0 4px;overscroll-behavior:contain}
+.drp-r{position:relative;display:flex}
+.drp-o{flex:1;min-width:0;display:flex;align-items:center;gap:10px;width:100%;min-height:38px;padding:6px 10px 6px 8px;border:0;border-radius:9px;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.drp-o span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drp-o .drp-av{display:grid;place-items:center;flex:none;width:24px;height:24px;border-radius:50%;font:700 11px/1 var(--ui,system-ui);font-style:normal;color:#fff;background:hsl(var(--h,200) 34% 48%)}
+.drp-o.none{color:#77716a}.drp-o.none .drp-av{background:rgba(28,34,32,.06);color:#77716a}.drp-o.none .drp-av svg{width:14px;height:14px}
+.drp-o:hover,.drp-o:focus-visible{background:rgba(28,34,32,.05);outline:none}
+.drp-o.sel{font-weight:600}.drp-ok{width:17px;height:17px;flex:none;color:#6A2C4E}
+.drp-del{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:26px;height:26px;border:0;border-radius:50%;background:transparent;color:#a39d95;font-size:17px;line-height:1;cursor:pointer;opacity:0;transition:opacity .12s}
+.drp-r:hover .drp-del,.drp-del:focus-visible{opacity:1}.drp-del:hover{background:rgba(160,40,40,.08);color:#a33}
+.drp-r .drp-o.sel~.drp-del{right:30px}
+.drp-add{display:flex;gap:6px;padding:6px 2px 2px;border-top:1px solid rgba(28,34,32,.08);margin:2px 0 0}
+.drp-add input{flex:1;min-width:0;width:auto!important;height:36px;padding:0 10px;border:0;border-radius:9px;background:rgba(28,34,32,.045);font:inherit;color:inherit;outline:none;box-shadow:none}
+.drp-add input:focus{background:#fff;box-shadow:inset 0 0 0 1.5px #6A2C4E}
+.drp-add .btn{height:36px;min-height:0;padding:0 12px;width:auto;flex:none}
+.drp-add .btn:disabled{opacity:.4}
+@media (max-width:600px){.drp{left:8px!important;right:8px;top:auto!important;bottom:calc(8px + env(safe-area-inset-bottom));width:auto;max-height:72vh;padding:8px;border-radius:18px;transform:translateY(16px)}.drp.on{transform:none}.drp-x{display:block}.drp-o{min-height:46px;font-size:15px}.drp-del{opacity:1}.drp-add input,.drp-add .btn{height:42px;font-size:16px}}
+@media (prefers-reduced-motion:reduce){.drp{transition:none}}
+#fd-app .dvdr{margin:6px 0 2px}
+#fd-app .dvdb{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+#fd-app .dvdc{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 11px;border:0;border-radius:999px;background:transparent;box-shadow:inset 0 0 0 1px rgba(28,34,32,.14);font:500 13.5px var(--ui);color:#5d574f;cursor:pointer;transition:background .15s,box-shadow .15s,color .15s}
+#fd-app .dvdc:has(.drv-av){padding-left:4px}
+#fd-app .dvdc em{font-style:normal;font-size:12px;color:#a39d95;font-variant-numeric:tabular-nums}
+@media (hover:hover){#fd-app .dvdc:hover{background:rgba(28,34,32,.04)}}
+#fd-app .dvdc.on{background:#2c2925;color:#fff;box-shadow:none}#fd-app .dvdc.on em{color:rgba(255,255,255,.65)}
+#fd-app .dvdc.on .drv-av{box-shadow:0 0 0 1.5px #2c2925,0 0 0 2.5px rgba(255,255,255,.5)}
+#fd-app .dvdh{margin:0 0 12px;font-size:13px;color:#8a847c;display:flex;align-items:center;gap:4px;flex-wrap:wrap}#fd-app .dvdh svg{width:14px;height:14px}
+#fd-app #dv-text.dvflash{animation:dvfl .5s ease}@keyframes dvfl{from{background:#f4edf1}to{background:inherit}}
+#fd-app .dvlnk{border:0;background:none;padding:0;font:inherit;color:#6A2C4E;text-decoration:underline;cursor:pointer;width:auto}
 #fd-app .dtg-drv{display:inline-flex;align-items:center;gap:4px;margin-left:8px;padding:1px 8px;border-radius:999px;font-size:12.5px;font-weight:600;color:#1e4a5c;background:#e3ecef;white-space:nowrap}
 #fd-app .dt-docs svg{width:15px;height:15px;flex:none}#fd-app label.dt-docs input[type=checkbox]{margin:0;accent-color:#c27a0e;width:15px;height:15px;min-width:0;min-height:0;flex:none;padding:0;box-shadow:none}#fd-app .dt-docs span{white-space:nowrap}#fd-app label.dt-docs{flex:none;width:auto;min-height:0;line-height:1.2}
 #fd-app .dt-docs:has(input:checked){background:#FFF1D6;color:#7a4a00;box-shadow:inset 0 0 0 1px rgba(194,122,14,.4)}
@@ -2829,7 +2866,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
               <select id="dt-cus" aria-label="Заказчик"></select>
               <select id="dt-pt" aria-label="Точка доставки" hidden></select>
               <span id="dt-docsw"></span>
-              <select id="dt-drv" class="dt-drv" aria-label="Водитель"></select>
+              <span id="dt-drvw"></span>
               <label class="dt-pbtn" title="Прикрепить фото"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8.5A2.5 2.5 0 0 1 6.5 6h1.3l1.4-2h5.6l1.4 2h1.3A2.5 2.5 0 0 1 20 8.5v8A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5z"/><circle cx="12" cy="12.5" r="3.4"/></svg><span>Фото</span><input type="file" accept="image/*" multiple hidden data-phfile></label>
               <span class="dt-hint">Shift+Enter — новая строка</span>
               <button class="btn pri" type="submit">Добавить</button>
@@ -2850,6 +2887,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
     <div class="card" id="dv-card">
       <h2 class="dvfh" id="dv-h" tabindex="0" role="button" aria-expanded="false" aria-controls="dv-body">Маршрут для водителя <small id="dv-date-lbl"></small><span class="dvfx"><span class="dvft">Развернуть</span><span class="dvfc" aria-hidden="true"></span></span></h2>
       <div class="dvfb" id="dv-body"><div class="dvfi">
+      <div id="dv-drvs"></div>
       <div class="jf">
         <label class="f">Поставщик<select id="dv-sup"></select></label>
       </div>
@@ -2860,6 +2898,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
     </div>
     <div class="card">
       <h2>Текстом для копирования <small id="dv-count"></small></h2>
+      <div id="dv-drvt"></div>
       <textarea id="dv-text" rows="14" readonly style="font:14px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap"></textarea>
       <div class="row dvbtns"><button class="btn pri" id="dv-copy">Скопировать текст</button></div>
     </div>
@@ -4849,10 +4888,11 @@ const cusShort = n => { n=String(n||""); const sc=n&&D.customers.find(x=>x.name=
 const ptName = (p) => { const l=stLabel(p.addr,p.c.address), m=l.match(/^ст ([\d, ]+)$/); const s = m ? "Столовая №"+m[1] : l; return s.charAt(0).toUpperCase()+s.slice(1); };
 const itemShort = n => String(n||"").replace(/\s*\([^)]*\)/g,"").replace(/\s+(свеж\S*|продовольственн\S*|столов\S*)(?=\s|$)/gi,"").replace(/\s+/g," ").trim();
 function dvText(P){
-  const f=DV(), TK=DTS().filter(x=>x.date===f.date && !isAuto(x)); if(!P.length && !TK.length) return "";
+  const f=DV(), TK=DTS().filter(x=>x.date===f.date && !isAuto(x) && dvDrvOk(f.drv||"", x.drv?[String(x.drv).trim()]:[])); if(!P.length && !TK.length) return "";
   const tkLines = TK.length ? ["Задачи на день:", ...TK.map(x=>"• "+(x.customerId?cusShort(cus(x.customerId).name)+(x.addr?" ("+x.addr+")":"")+": ":"")+fmtPlain(x.text).replace(/\n/g,"\n   ")+(x.photos&&x.photos.length?" (фото на сайте: "+x.photos.length+")":"")), ""] : [];
   const short=a=>a.replace(/^\d{6},\s*/,"").replace(/^г\.\s*Москва,\s*/i,"").replace(/\s*\([^)]*\)\s*$/,"");
   const L=[], groups=[]; P.forEach(p=>{ const g=cusShort(cusNm(p.cid)||p.c.name); let G=groups.find(x=>x.g===g); if(!G){ G={g, P:[]}; groups.push(G); } G.P.push(p); });
+  if(f.drv && f.drv!=="-"){ L.push("Водитель: "+f.drv+(f.full?"":" · "+fd(f.date))); if(!f.full) L.push(""); }
   if(f.full){ const d=new Date(f.date+"T12:00:00"); L.push("Доставка "+fd(f.date)+" ("+wdays[d.getDay()]+")"); L.push(""); }
   L.push(...tkLines); if(!P.length) return L.join("\n").trim();
   groups.forEach((G,gi)=>{ if(gi) L.push(""); L.push(G.g+":");
@@ -4876,12 +4916,14 @@ function renderDriver(){
   const f=DV(); f.date=CAL().sel||todayISO();
   { const d=new Date(f.date+"T12:00:00"); $("#dv-date-lbl").textContent="на "+d.getDate()+" "+MONG[d.getMonth()]; }
   $("#dv-sup").innerHTML=`<option value="">Все</option>`+opts(D.suppliers,f.sup); $("#dv-full").checked=!!f.full; $("#dv-load").checked=!!f.ld;
-  const P=dvPoints();
-  $("#dv-count").textContent=P.length?P.length+" "+(P.length===1?"точка":P.length<5?"точки":"точек"):"";
-  if(P.length) $("#dv-date-lbl").textContent+=" · "+P.length+" "+plural(P.length,["точка","точки","точек"]); dvFold();
+  const Pall=dvPoints(), fdv=f.drv||"", P=Pall.filter(p=>dvDrvOk(fdv, dvDrvOf(p))), TKd=DTS().filter(x=>x.date===f.date && !isAuto(x));
+  { const bar=dvDrvBar(Pall, TKd); $("#dv-drvs").innerHTML=bar; $("#dv-drvt").innerHTML=bar.replace('class="dvdh"','class="dvdh" hidden'); }
+  $("#dv-count").textContent=(P.length?P.length+" "+(P.length===1?"точка":P.length<5?"точки":"точек"):"")+(fdv?(P.length?" · ":"")+(fdv==="-"?"без водителя":"для "+fdv):"");
+  if(Pall.length) $("#dv-date-lbl").textContent+=" · "+(fdv?P.length+" из "+Pall.length:P.length)+" "+plural(fdv?Pall.length:P.length,["точка","точки","точек"])+(fdv?" · "+(fdv==="-"?"без водителя":fdv):""); dvFold();
   const card=(p,i,ing)=>{ const pi=ptInfo(p.cid,p.addr), has=pi.phone||pi.contact||ptTime(pi)||pi.note||pi.phone2||pi.tag, hu=dtHue(p.cid), br=p.c.branchLabel?dvWho(p):"";
       return `<div class="dvp${hu!=null?" hc":""}"${hu!=null?` style="--h:${hu}"`:""}><h3><i>${i+1}</i>${ing?esc(ptName(p))+(br?`<span class="muted" style="font-weight:400">${esc(br)}</span>`:""):esc(dvWho(p))+`<span class="muted" style="font-weight:400">${esc(stLabel(p.addr,p.c.address))}</span>`}</h3>
         <div class="ad">${esc(pi.daddr||p.addr)} · накладн. № ${esc(p.docs.map(j=>j.number).join(", "))}</div>
+        ${(()=>{ const d=dvDrvOf(p); return dtDrvCan()||d.length ? `<div class="dvdr">${drvBtn(d.join(", "), "p:"+dvKey(p), !dtDrvCan())}</div>` : ""; })()}
         ${(()=>{ const IT=Object.values(p.items), k=p.cid+"|"+p.addr, op=dvOpen.has(k), more=IT.length-DV_SHOW;
           return `<ul>${IT.map((it,n)=>`<li${n>=DV_SHOW&&!op?" hidden":""}>${esc(it.name)} — <b>${esc(qfmt(it.qty,it.unit))}</b>${it.st>0?` <em class="dvst" title="Взять со склада">${skIcon}склад ${esc(qfmt(it.st,it.unit))}</em>`:""}</li>`).join("")}</ul>`
             + (more>0?`<button type="button" class="dv-more" data-dvmore="${esc(k)}" aria-expanded="${op}">${op?"Свернуть список":"Раскрыть весь список (ещё "+more+")"}</button>`:""); })()}
@@ -4889,6 +4931,7 @@ function renderDriver(){
         ${isStaff()?"":`<details><summary>${has?"Изменить контакты точки":"Заполнить контакты точки"}</summary>${ptFields(p.cid,p.addr)}</details>`}</div>`; };
   const G=[]; P.forEach((p,i)=>{ let g=G.find(x=>x.cid===p.cid); if(!g){ g={cid:p.cid, L:[]}; G.push(g); } g.L.push({p,i}); });
   $("#dv-points").innerHTML = P.length ? G.map(g=>g.L.length>1 ? dvGroupHtml(g, f.date, card) : card(g.L[0].p, g.L[0].i)).join("")
+    : Pall.length ? `<p class="muted">${fdv==="-"?"У всех точек на "+fd(f.date)+" выбран водитель.":"У водителя «"+esc(fdv)+"» на "+fd(f.date)+" точек нет."} <button type="button" class="dvlnk" data-dvdrv="">Показать все точки</button></p>`
     : `<p class="muted">На ${fd(f.date)} накладных нет. Маршрут собирается из накладных с этой датой — создайте их во вкладках «Заявка» или «Новый документ», или выберите другую дату.</p>`;
   $("#dv-text").value=dvText(P);
 }
@@ -4916,6 +4959,8 @@ function dvFoldToggle(){ dvFoldV=!dvFoldOn(); try{ localStorage.setItem("frudom-
 $("#dv-h").addEventListener("click",e=>{ if(e.target.closest(".hq")) return; dvFoldToggle(); });
 $("#dv-h").addEventListener("keydown",e=>{ if(e.target!==e.currentTarget||(e.key!=="Enter"&&e.key!==" ")) return; e.preventDefault(); dvFoldToggle(); });
 const dvSet=(k,v)=>{ DV()[k]=v; saveLocal(); renderDriver(); };
+["#dv-drvs","#dv-drvt","#dv-points"].forEach(q=>$(q).addEventListener("click",e=>{ const b=e.target.closest("[data-dvdrv]"); if(!b) return; const v=b.dataset.dvdrv; dvSet("drv", (DV().drv||"")===v && v ? "" : v);
+  const t=$("#dv-text"); if(t){ t.classList.remove("dvflash"); void t.offsetWidth; t.classList.add("dvflash"); } }));
 $("#dv-points").addEventListener("click",e=>{ const b=e.target.closest("[data-dvmore]"); if(!b) return; const k=b.dataset.dvmore, op=!dvOpen.has(k);
   if(op) dvOpen.add(k); else dvOpen.delete(k);
   b.closest(".dvp").querySelectorAll("li").forEach((li,n)=>{ if(n>=DV_SHOW) li.hidden=!op; });
@@ -4928,7 +4973,7 @@ $("#dv-points").addEventListener("change",e=>{ const el=e.target; if(!el.dataset
   toast("ok","Контакты точки сохранены", stLabel(r.addr,r.c.address)+" — будут подставляться в каждый маршрут."); });
 const dvMsg = () => { const t2=$("#dv-text").value; if(!t2){ toast("err","Нечего отправлять","На выбранную дату нет накладных."); return ""; } return t2; };
 $("#dv-copy").onclick=async()=>{ const t2=dvMsg(); if(!t2) return; try{ await navigator.clipboard.writeText(t2); } catch(e){ const ta=$("#dv-text"); ta.removeAttribute("readonly"); ta.select(); document.execCommand("copy"); ta.setAttribute("readonly",""); }
-  toast("ok","Текст скопирован","Вставьте его в рабочую группу в MAX."); logEv("Водителю","Скопирован маршрут на "+fd(DV().date)+(DV().full?" (подробно)":"")); };
+  toast("ok", DV().drv&&DV().drv!=="-" ? "Текст для «"+DV().drv+"» скопирован" : "Текст скопирован","Вставьте его в рабочую группу в MAX."); logEv("Водителю","Скопирован маршрут на "+fd(DV().date)+(DV().drv?(DV().drv==="-"?" — без водителя":" — для "+DV().drv):"")+(DV().full?" (подробно)":"")); };
 
 /* ================= календарь заказов ================= */
 const CAL = () => (D.cal = D.cal || {ym:"", sel:"", cus:""});
@@ -4982,10 +5027,83 @@ const DT_DRV=["Гриша","Саша","Достависта","Яндекс до�
 const ITRUCK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6.5h11v9H3zM14 9.5h3.6l3.4 3.4v2.6H14"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg>';
 const dtDrvSrv = () => (D.srvVer||0)>=42 || DTS().some(x=>"drv" in x);
 const dtDrvCan = () => dtDrvSrv() && !docLimited();
-const dtDrvOpts = v => `<option value="">Водитель не выбран</option>`+DT_DRV.concat(v && !DT_DRV.includes(v)?[v]:[]).map(n=>`<option value="${esc(n)}"${n===v?" selected":""}>${esc(n)}</option>`).join("");
-function dtDrvHtml(x){ const v=x.drv||"";
-  if(dtDrvCan()) return `<span class="dt-drvw${v?" on":""}" title="Кто везёт">${ITRUCK}<select class="dt-drv" data-dtdrv aria-label="Водитель">${dtDrvOpts(v)}</select></span>`;
-  return v ? `<span class="dt-drvw on ro" title="Водитель">${ITRUCK}<span>${esc(v)}</span></span>` : ""; }
+/* ---- выбор водителя (16.11.2026): своя кнопка-плашка и список вместо стандартного; можно вписать любое имя.
+   Свои имена — в личных настройках (prefs.drvX), плюс все имена, что уже стоят в задачах — их видно всем. ---- */
+const drvHue = n => { n=String(n||"").trim(); const f={"Гриша":150,"Саша":210,"Достависта":25,"Яндекс доставка":45}[n]; if(f!=null) return f; let h=0; for(const c of n.toLowerCase()) h=(h*31+c.charCodeAt(0))%360; return h; };
+const drvIni = n => { const w=String(n||"").trim().split(/\s+/); return ((w[0]||"?").charAt(0)+(w[1]&&w.length<3?w[1].charAt(0):"")).toUpperCase(); };
+const drvMine = () => { const a=getPrefs().drvX; return Array.isArray(a)?a.filter(x=>typeof x==="string"&&x.trim()):[]; };
+function drvList(extra){ const seen=new Set(), out=[], add=n=>{ n=String(n||"").trim(); if(!n) return; const k=n.toLowerCase(); if(seen.has(k)) return; seen.add(k); out.push(n); };
+  DT_DRV.forEach(add); drvMine().forEach(add); DTS().forEach(x=>add(x.drv)); (extra||[]).forEach(add); return out; }
+function drvBtn(v, ctx, ro){ v=String(v||"").trim(); const st=v?` style="--h:${drvHue(v)}"`:"";
+  const in_=v?`<i class="drv-av" aria-hidden="true">${esc(drvIni(v))}</i><span class="drv-n">${esc(v)}</span>`:`${ITRUCK}<span class="drv-n">Водитель</span>`;
+  if(ro) return v?`<span class="drvb on ro"${st} title="Водитель">${in_}</span>`:"";
+  return `<button type="button" class="drvb${v?" on":""}"${st} data-drvb="${esc(ctx)}" data-v="${esc(v)}" aria-haspopup="listbox" aria-expanded="false" title="${v?"Водитель: "+esc(v)+" — сменить":"Выбрать водителя"}">${in_}<span class="drv-ch" aria-hidden="true"></span></button>`; }
+function dtDrvNew(){ const w=$("#dt-drvw"); if(!w) return; const v=DRf().drv||"", st=(dtDrvCan()?"1":"0")+v; if(w.dataset.st!==st){ w.innerHTML=dtDrvCan()?drvBtn(v,"new").replace('<button ','<button id="dt-drv" '):""; w.dataset.st=st; } }
+function dtDrvHtml(x){ return drvBtn(x.drv, "t:"+x.id, !dtDrvCan()); }
+const DRP={el:null, btn:null, i:-1};
+function drpHtml(cur){ const L=drvList(cur?[cur]:[]), mine=new Set(drvMine().map(s=>s.toLowerCase())), ck='<svg class="drp-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  return `<div class="drp-h"><b>Кто везёт</b><button type="button" class="drp-x" data-drpx aria-label="Закрыть">×</button></div>
+  <div class="drp-l" role="listbox">
+    <button type="button" class="drp-o none${cur?"":" sel"}" role="option" aria-selected="${!cur}" data-drpo=""><i class="drp-av" aria-hidden="true">${ITRUCK}</i><span>Без водителя</span>${cur?"":ck}</button>
+    ${L.map(n=>`<div class="drp-r"><button type="button" class="drp-o${n===cur?" sel":""}" role="option" aria-selected="${n===cur}" data-drpo="${esc(n)}" style="--h:${drvHue(n)}"><i class="drp-av" aria-hidden="true">${esc(drvIni(n))}</i><span>${esc(n)}</span>${n===cur?ck:""}</button>${mine.has(n.toLowerCase())&&!DT_DRV.includes(n)?`<button type="button" class="drp-del" data-drpdel="${esc(n)}" title="Убрать «${esc(n)}» из списка" aria-label="Убрать из списка">×</button>`:""}</div>`).join("")}
+  </div>
+  <form class="drp-add" data-drpadd><input type="text" maxlength="40" placeholder="Вписать другое имя…" aria-label="Имя водителя" autocomplete="off" enterkeyhint="done"><button type="submit" class="btn pri sm" disabled>Готово</button></form>`; }
+const drpPhone = () => matchMedia("(max-width:600px)").matches;
+function drpPlace(){ const el=DRP.el, b=DRP.btn; if(!el||!b) return; if(drpPhone()){ el.style.left=el.style.top=""; return; } if(!b.isConnected){ drpClose(); return; }
+  const r=b.getBoundingClientRect(), W=innerWidth, H=innerHeight, w=el.offsetWidth, h=el.offsetHeight, pad=10;
+  let left=Math.min(Math.max(pad, r.left), W-w-pad), top=r.bottom+6; if(top+h>H-pad && r.top-6-h>=pad) top=r.top-6-h; else if(top+h>H-pad) top=Math.max(pad, H-pad-h);
+  el.style.left=Math.round(left)+"px"; el.style.top=Math.round(top)+"px"; el.style.transformOrigin=(top<r.top?"bottom":"top")+" left"; }
+function drpOpen(b){ if(DRP.el && DRP.btn===b){ drpClose(); return; } drpClose(true);
+  const top=typeof HTMLElement.prototype.showPopover==="function", host=b.closest("dialog")||document.getElementById("fd-app")||document.body, el=document.createElement("div");
+  el.className="drp"; el.setAttribute("role","dialog"); el.setAttribute("aria-label","Выбор водителя"); if(top) el.setAttribute("popover","manual"); host.appendChild(el); DRP.el=el; DRP.btn=b; DRP.i=-1;
+  if(top) try{ el.showPopover(); }catch(e){}
+  el.innerHTML=drpHtml(b.dataset.v||""); drpPlace(); b.setAttribute("aria-expanded","true");
+  requestAnimationFrame(()=>{ if(DRP.el===el){ el.classList.add("on"); const s=el.querySelector(".drp-o.sel")||el.querySelector(".drp-o"); if(s && !drpPhone()) s.focus({preventScroll:true}); } }); }
+function drpClose(now){ const el=DRP.el, b=DRP.btn; DRP.el=null; DRP.btn=null; if(b) b.setAttribute("aria-expanded","false"); if(!el) return; el.classList.remove("on");
+  const fast=now||matchMedia("(prefers-reduced-motion:reduce)").matches; setTimeout(()=>{ try{ if(el.matches(":popover-open")) el.hidePopover(); }catch(e){} el.remove(); }, fast?0:160); }
+function drvRemember(n){ n=String(n||"").trim(); if(!n || drvList().some(x=>x.toLowerCase()===n.toLowerCase()&&(DT_DRV.includes(x)||drvMine().includes(x)))) return; const p=getPrefs(); p.drvX=drvMine().concat([n]).slice(-30); setPrefs(p,true); }
+/* что делать с выбором — по месту кнопки: t:<задача>, new — новая задача, p:<точка маршрута> */
+function drvApply(ctx, v){ v=String(v||"").trim();
+  if(ctx==="new"){ DRf().drv=v; drSave(); dtDrvNew(); return; }
+  if(ctx.startsWith("t:")){ const x=DTS().find(y=>y.id===ctx.slice(2)); if(!x || !dtDrvCan()) return; const was=x.drv||""; if(v===was) return; x.drv=v;
+    dtSave(x, (v?"Водитель: "+v:"Водитель снят")+(was&&v?" (был "+was+")":"")+" — "+fd(x.date)+": "+fmtPlain(String(x.text||"")).slice(0,120));
+    toast("ok", v?"Водитель: "+v:"Водитель не выбран", fmtPlain(String(x.text||"")).slice(0,80)); return; }
+  if(ctx.startsWith("p:")){ if(!dtDrvCan()) return; const k=ctx.slice(2), date=DV().date; docTasks([date], true);
+    const p=dvPoints().find(q=>dvKey(q)===k); if(!p) return; const T=dvTasksOf(p); if(!T.length) return; let n=0;
+    T.forEach(x=>{ if((x.drv||"")!==v){ x.drv=v; dirty("daytasks", x.id); n++; } }); if(!n) return; saveLocal();
+    logEv("Задача на день", (v?"Водитель: "+v:"Водитель снят")+" — "+fd(date)+": "+dvWho(p)+" ("+ptName(p)+")"); renderCalendar();
+    toast("ok", v?"Водитель: "+v:"Водитель не выбран", dvWho(p)+" · "+ptName(p)+(T.some(x=>dvPoints().filter(q=>dvTasksOf(q).includes(x)).length>1)?" — вместе с другими точками этого комплекта":"")); } }
+document.addEventListener("click", e=>{ const t=e.target; if(!t.closest) return;
+  const b=t.closest("[data-drvb]"); if(b){ e.preventDefault(); e.stopPropagation(); drpOpen(b); return; }
+  if(!DRP.el || !DRP.el.contains(t)) return; e.stopPropagation();
+  if(t.closest("[data-drpx]")){ drpClose(); return; }
+  const d=t.closest("[data-drpdel]"); if(d){ const n=d.dataset.drpdel, p=getPrefs(); p.drvX=drvMine().filter(x=>x!==n); setPrefs(p,true); const cur=DRP.btn&&DRP.btn.dataset.v||""; DRP.el.innerHTML=drpHtml(cur); drpPlace(); return; }
+  const o=t.closest("[data-drpo]"); if(o){ const ctx=DRP.btn.dataset.drvb, v=o.dataset.drpo, bb=DRP.btn; drpClose(); drvApply(ctx, v); try{ const nb=document.querySelector(`[data-drvb="${CSS.escape(ctx)}"]`)||bb; if(nb && nb.isConnected) nb.focus({preventScroll:true}); }catch(_){} } }, true);
+document.addEventListener("submit", e=>{ const f=e.target.closest&&e.target.closest("[data-drpadd]"); if(!f) return; e.preventDefault(); e.stopPropagation();
+  const v=f.querySelector("input").value.replace(/\s+/g," ").trim(); if(!v || !DRP.btn) return; const ctx=DRP.btn.dataset.drvb; drvRemember(v); drpClose(); drvApply(ctx, v); }, true);
+document.addEventListener("input", e=>{ const f=e.target.closest&&e.target.closest("[data-drpadd]"); if(f) f.querySelector("button").disabled=!e.target.value.trim(); }, true);
+document.addEventListener("pointerdown", e=>{ if(!DRP.el) return; const t=e.target; if(DRP.el.contains(t) || (t.closest && t.closest("[data-drvb]"))) return; drpClose(); }, true);
+addEventListener("keydown", e=>{ if(!DRP.el) return;
+  if(e.key==="Escape"){ e.preventDefault(); e.stopImmediatePropagation(); const b=DRP.btn; drpClose(); if(b && b.isConnected) try{ b.focus({preventScroll:true}); }catch(_){} return; }
+  if((e.key==="ArrowDown"||e.key==="ArrowUp") && !(e.target.closest&&e.target.closest("[data-drpadd]"))){ e.preventDefault(); const L=[...DRP.el.querySelectorAll(".drp-o")]; let i=L.indexOf(document.activeElement); i=e.key==="ArrowDown"?Math.min(L.length-1,i+1):Math.max(0,i-1); if(L[i]) L[i].focus(); } }, true);
+addEventListener("scroll", e=>{ if(DRP.el && !(e.target && e.target.nodeType===1 && DRP.el.contains(e.target))) drpPlace(); }, true);
+addEventListener("resize", ()=>{ if(DRP.el) drpPlace(); });
+/* маршрут по водителям: водитель точки = водитель её автозадачи («Отвезти товар на …») */
+const dvKey = p => p.cid+"|"+ptKey(p.addr);
+function dvAutoIds(date){ const day=D.journal.filter(j=>j.snap && !isArch(j) && j.date===date), bc={}, m={};
+  day.forEach(j=>{ const k=jKey(j); if(k && k[0]==="B") bc[k]=(bc[k]||0)+1; });
+  day.forEach(j=>{ const k=jKey(j), isB=!!(k && bc[k]>1); m[j.id]=AUTO_T+hsh(isB ? date+"|"+j.customerId+"|"+k : date+"|"+j.customerId+"||"+(j.snap.dr.ship||"")); }); return m; }
+let DVA=null; function dvTasksOf(p){ const date=DV().date; if(!DVA || DVA.d!==date || DVA.n!==D.journal.length) DVA={d:date, n:D.journal.length, m:dvAutoIds(date)};
+  const ids=new Set(p.docs.map(j=>DVA.m[j.id]).filter(Boolean)); return DTS().filter(x=>ids.has(x.id)); }
+function dvDrvOf(p){ const s=[...new Set(dvTasksOf(p).map(x=>String(x.drv||"").trim()))]; return s.filter(Boolean); }
+const dvDrvOk = (f, list) => !f ? true : f==="-" ? !list.length : list.includes(f);
+function dvDrvBar(Pall, TK){ const f=DV().drv||"", n={}, none={n:0};
+  Pall.forEach(p=>{ const d=dvDrvOf(p); if(!d.length) none.n++; d.forEach(x=>n[x]=(n[x]||0)+1); });
+  TK.forEach(x=>{ const d=String(x.drv||"").trim(); if(d && !(d in n)) n[d]=0; });
+  const names=drvList(Object.keys(n)).filter(x=>x in n); if(f && f!=="-" && !names.includes(f)) names.push(f);
+  if(!names.length && !f) return Pall.length && dtDrvCan() ? `<p class="dvdh">Чтобы разделить маршрут, выберите водителя у точки — нажмите «${ITRUCK} Водитель» в карточке точки.</p>` : "";
+  const chip=(v,lab,c,hu)=>`<button type="button" class="dvdc${f===v?" on":""}" data-dvdrv="${esc(v)}" aria-pressed="${f===v}"${hu!=null?` style="--h:${hu}"`:""}>${hu!=null?`<i class="drv-av" aria-hidden="true">${esc(drvIni(lab))}</i>`:""}<span>${esc(lab)}</span>${c!=null?`<em>${c}</em>`:""}</button>`;
+  return `<div class="dvdb" role="group" aria-label="Чей маршрут">${chip("","Все",Pall.length)}${names.map(x=>chip(x,x,n[x]||0,drvHue(x))).join("")}${none.n||f==="-"?chip("-","Без водителя",none.n):""}</div>`; }
 function dtEdRow(x){ const e=EDf();
   return `<div class="dt dt-ed" data-dt="${esc(x.id)}"><div class="dt-comp">
     <div class="fmtbar" role="toolbar" aria-label="Оформление текста">${FMT_BTNS}</div>
@@ -5063,7 +5181,7 @@ function drawDayTasks(){
     dtKeys(ta, ()=>dtEdFinish(true), ()=>dtEdFinish(false));
     if(hadFocus || E.focus){ delete E.focus; edSave(); ta.focus({preventScroll:hadFocus}); const a=Math.min(E.a==null?ta.value.length:E.a, ta.value.length); ta.setSelectionRange(a,a); } }
   $("#dt-count").textContent = L.length ? L.length+" "+plural(L.length,["задача","задачи","задач"]) : "";
-  { const ds=$("#dt-drv"), v=DRf().drv||""; ds.hidden=!dtDrvCan(); if(ds.dataset.v!==v || !ds.options.length){ ds.innerHTML=dtDrvOpts(v); ds.dataset.v=v; } ds.value=v; ds.classList.toggle("on", !!v); }
+  dtDrvNew();
   { const w=$("#dt-docsw"), on=!!DRf().docs; if(w && (!w.firstElementChild || w.dataset.st!==String(on)+dtDocSrv())){ w.innerHTML=dtDocChk(on,'id="dt-docs"'); w.dataset.st=String(on)+dtDocSrv(); } }
   const cs=$("#dt-cus"), keep=cs.value, D0=DRf(); const ids=new Set(calDocs(sel,"").map(j=>j.customerId));
   const first=D.customers.filter(x=>ids.has(x.id)), rest=D.customers.filter(x=>!ids.has(x.id));
@@ -5269,11 +5387,6 @@ $("#dt-text").addEventListener("input",()=>{ DRf().text=$("#dt-text").value; drS
 $("#dt-cus").addEventListener("change",()=>{ DRf().cus=$("#dt-cus").value; DRf().pt=""; $("#dt-pt").value=""; dtPtFill(); drSave(); });
 $("#dt-pt").addEventListener("change",()=>{ DRf().pt=$("#dt-pt").value; drSave(); });
 $("#dt-box").addEventListener("change",e=>{ if(e.target.id==="dt-docs"){ DRf().docs=e.target.checked; drSave(); return; }
-  if(e.target.id==="dt-drv"){ DRf().drv=e.target.value; drSave(); e.target.classList.toggle("on", !!e.target.value); e.target.dataset.v=e.target.value; return; }
-  if(e.target.matches && e.target.matches("select[data-dtdrv]")){ const row=e.target.closest("[data-dt]"), x=row&&DTS().find(y=>y.id===row.dataset.dt); if(!x || !dtDrvCan()) return;
-    const was=x.drv||"", v=e.target.value; if(v===was) return; x.drv=v;
-    dtSave(x, (v?"Водитель: "+v:"Водитель снят")+(was&&v?" (был "+was+")":"")+" — "+fd(x.date)+": "+fmtPlain(String(x.text||"")).slice(0,120));
-    toast("ok", v?"Водитель: "+v:"Водитель не выбран", fmtPlain(String(x.text||"")).slice(0,80)); return; }
   const ef=e.target.dataset&&e.target.dataset.edf; if(ef){ const E=EDf(); if(!E) return; E[ef]=e.target.type==="checkbox"?e.target.checked:e.target.value; if(ef==="cus") E.addr=""; edSave(); if(ef==="cus"){ E.text=($("#dt-list .dt-edit")||{}).value||E.text; drawDayTasks(); } return; }
   const f=e.target.closest("[data-phfile]"); if(!f) return; const row=e.target.closest("[data-dt]"), files=[...f.files]; f.value="";
   if(files.length) phAdd(row ? row.dataset.dt : DRf().id, files); });
