@@ -35,11 +35,13 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-/** «Почта ФД» — настоящий экран письма: тема, отправитель, кому, дата, ящик, текст (или «Как в письме»), вложения.
- *  Сверху — прочитано, неважные, спам, «⋮» (обработано, открыть на сайте). Снизу — «Ответить / Всем / Переслать» (сайтом). */
+/** «Почта ФД» — экран письма: тема, отправитель, кому, дата, ящик, текст (или «Как в письме»), вложения (просмотр — ViewerActivity).
+ *  Пометка «Обработано / Не обработано» (как на сайте), заявка / не заявка, «не заказчик», папки, неважные, спам.
+ *  Ответ, ответ всем, пересылка — свой экран (ComposeActivity). Отметки Натальи и сайта появляются сами (Live). */
 public class LetterActivity extends Activity {
     static final Map<String, JSONObject> BODY = new HashMap<>();   // полный текст уже открытых писем
     JSONObject r;
@@ -49,6 +51,20 @@ public class LetterActivity extends Activity {
     WebView html;
     boolean asHtml, imgs;
     ImageButton bRead, bMinor, bSpam;
+    LinearLayout status, ordBox;
+    String sig0 = "";
+    final Live.L live = () -> { JSONObject x = MailApi.find(id); if (x != null && x != r) r = x; if (r != null && body != null && !sig0.equals(sig())) marks(); };
+
+    String sig() { return r == null ? "" : r.optString("read") + r.optString("order") + MailApi.tagKind(r) + MailApi.folders.toString(); }
+    @Override protected void onResume() { super.onResume(); Live.on(this, live); if (body != null) marks(); }
+    @Override protected void onPause() { super.onPause(); Live.off(live); }
+
+    /** отметка из экрана письма; уходит из папки — закрыть, «Отменить» покажет список */
+    void act(String a, boolean leave) {
+        Act.Undo u = Act.one(this, r, a, this::marks);
+        if (u.n == 0) return;
+        if (leave) { Act.last = u; finish(); } else Toast.makeText(this, u.text, Toast.LENGTH_SHORT).show();
+    }
 
     @Override protected void onCreate(Bundle b) {
         super.onCreate(b);
@@ -72,17 +88,17 @@ public class LetterActivity extends Activity {
 
     void build() {
         boolean ro = MailApi.ro(this), sent = MailApi.sent(r);
-        if (MailApi.unread(this, r)) Act.read(this, r, true, () -> {});
+        if (MailApi.unread(this, r)) Act.one(this, r, "read", () -> {});
 
         LinearLayout root = new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setBackgroundColor(Ui.BG);
         top = new LinearLayout(this); top.setGravity(Gravity.CENTER_VERTICAL); top.setPadding(Ui.dp(this, 4), Ui.dp(this, 4), Ui.dp(this, 4), 0);
         top.addView(Ui.icon(this, R.drawable.ic_back, "Назад", v -> finish()));
         top.addView(new View(this), new LinearLayout.LayoutParams(0, 1, 1));
         if (!ro && !sent) {
-            bRead = Ui.icon(this, R.drawable.ic_mail, "Не прочитано", v -> { boolean un = MailApi.unread(this, r); Act.read(this, r, un, this::marks); if (!un) { Toast.makeText(this, "Отмечено непрочитанным", Toast.LENGTH_SHORT).show(); finish(); } });
-            bMinor = Ui.icon(this, R.drawable.ic_archive, "В «Неважные»", v -> { boolean on = !MailApi.minor(r); Act.minor(this, r, on, this::marks); if (on) finish(); });
-            bSpam = Ui.icon(this, R.drawable.ic_spam, "Это спам", v -> { boolean on = !MailApi.spam(r); Act.spam(this, r, on, this::marks); if (on) finish(); });
-            top.addView(bRead); top.addView(bMinor); top.addView(bSpam);
+            bRead = Ui.icon(this, R.drawable.ic_mail, "Не прочитано", v -> act(MailApi.unread(this, r) ? "read" : "unread", !MailApi.unread(this, r)));
+            bMinor = Ui.icon(this, R.drawable.ic_archive, "В «Неважные»", v -> act(MailApi.minor(r) ? "major" : "minor", !MailApi.minor(r)));
+            bSpam = Ui.icon(this, R.drawable.ic_spam, "Это спам", v -> act(MailApi.spam(r) ? "nospam" : "spam", !MailApi.spam(r)));
+            top.addView(bRead); top.addView(bMinor); top.addView(Ui.icon(this, R.drawable.ic_folder, "В папку", v -> pickFolder())); top.addView(bSpam);
         }
         top.addView(Ui.icon(this, R.drawable.ic_more, "Ещё", this::menu));
         root.addView(top);
@@ -95,6 +111,7 @@ public class LetterActivity extends Activity {
         TextView subj = Ui.text(this, r.optString("subject").isEmpty() ? "(без темы)" : r.optString("subject"), 22, Ui.INK, true);
         subj.setTextIsSelectable(true); subj.setLineSpacing(0, 1.1f); body.addView(subj);
         LinearLayout marks = new LinearLayout(this); marks.setId(View.generateViewId()); marks.setTag("marks"); body.addView(marks);
+        status = new LinearLayout(this); status.setGravity(Gravity.CENTER_VERTICAL); body.addView(status, new LinearLayout.LayoutParams(-1, -2));
 
         /* отправитель */
         LinearLayout from = new LinearLayout(this); from.setGravity(Gravity.CENTER_VERTICAL); from.setPadding(0, Ui.dp(this, 14), 0, Ui.dp(this, 6));
@@ -121,14 +138,8 @@ public class LetterActivity extends Activity {
         }
 
         /* заявка — документы делаются на сайте */
-        if (MailApi.isOrd(r) && !ro) {
-            LinearLayout o = new LinearLayout(this); o.setOrientation(LinearLayout.VERTICAL); o.setBackground(Ui.round(Ui.ORD_BG, Ui.dp(this, 14)));
-            o.setPadding(Ui.dp(this, 14), Ui.dp(this, 10), Ui.dp(this, 14), Ui.dp(this, 12));
-            o.addView(Ui.text(this, "Похоже на заявку", 15, Ui.ORD, true));
-            o.addView(Ui.text(this, "Документы из этого письма сайт сделает сам — выберет заказчика и прочитает вложение.", 13, Ui.ORD, false));
-            TextView go = Ui.button(this, "Сделать документы на сайте", true, v -> web("")); LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(-2, -2); glp.topMargin = Ui.dp(this, 8); o.addView(go, glp);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2); lp.topMargin = Ui.dp(this, 14); body.addView(o, lp);
-        }
+        ordBox = new LinearLayout(this); ordBox.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams olp = new LinearLayout.LayoutParams(-1, -2); olp.topMargin = Ui.dp(this, 14); body.addView(ordBox, olp);
 
         /* текст письма */
         View sep = new View(this); sep.setBackgroundColor(Ui.LINE); LinearLayout.LayoutParams slp = new LinearLayout.LayoutParams(-1, 1); slp.setMargins(0, Ui.dp(this, 16), 0, Ui.dp(this, 12)); body.addView(sep, slp);
@@ -156,9 +167,9 @@ public class LetterActivity extends Activity {
                 ImageView ic = new ImageView(this); Drawable_tint(ic, R.drawable.ic_file); row.addView(ic, new LinearLayout.LayoutParams(Ui.dp(this, 26), Ui.dp(this, 26)));
                 LinearLayout c = new LinearLayout(this); c.setOrientation(LinearLayout.VERTICAL); c.setPadding(Ui.dp(this, 12), 0, 0, 0);
                 c.addView(Ui.line(this, x.optString("n"), 15, Ui.INK, true, 2));
-                c.addView(Ui.line(this, (x.optLong("s") > 0 ? MailApi.size(x.optLong("s")) + " · " : "") + "нажмите, чтобы открыть", 12, Ui.MUTED, false, 1));
+                c.addView(Ui.line(this, (x.optLong("s") > 0 ? MailApi.size(x.optLong("s")) + " · " : "") + "нажмите — посмотреть, долгое нажатие — отправить", 12, Ui.MUTED, false, 1));
                 row.addView(c, new LinearLayout.LayoutParams(0, -2, 1));
-                row.setOnClickListener(v -> attachment(k, x, false));
+                row.setOnClickListener(v -> startActivity(new Intent(this, ViewerActivity.class).putExtra("id", id).putExtra("i", k)));
                 row.setOnLongClickListener(v -> { attachment(k, x, true); return true; });
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2); lp.topMargin = Ui.dp(this, 8); body.addView(row, lp);
             }
@@ -167,10 +178,10 @@ public class LetterActivity extends Activity {
         /* ответить / всем / переслать — сайтом, в том же окне */
         if (!ro && !sent) {
             LinearLayout bot = new LinearLayout(this); bot.setPadding(Ui.dp(this, 12), Ui.dp(this, 8), Ui.dp(this, 12), Ui.dp(this, 12)); bot.setBackgroundColor(Ui.BG);
-            TextView rep = Ui.button(this, "Ответить", true, v -> web("reply")); rep.setCompoundDrawablesRelativeWithIntrinsicBounds(tinted(R.drawable.ic_reply, Color.WHITE), null, null, null); rep.setCompoundDrawablePadding(Ui.dp(this, 6));
+            TextView rep = Ui.button(this, "Ответить", true, v -> compose("reply")); rep.setCompoundDrawablesRelativeWithIntrinsicBounds(tinted(R.drawable.ic_reply, Color.WHITE), null, null, null); rep.setCompoundDrawablePadding(Ui.dp(this, 6));
             bot.addView(rep, new LinearLayout.LayoutParams(0, -2, 1.3f));
-            if (!r.optString("cc").isEmpty() || r.optString("to").contains(",")) { TextView all = Ui.button(this, "Всем", false, v -> web("replyall")); LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1); lp.leftMargin = Ui.dp(this, 8); bot.addView(all, lp); }
-            TextView fw = Ui.button(this, "Переслать", false, v -> web("fwd")); LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1); lp.leftMargin = Ui.dp(this, 8); bot.addView(fw, lp);
+            if (!r.optString("cc").isEmpty() || r.optString("to").contains(",")) { TextView all = Ui.button(this, "Всем", false, v -> compose("replyall")); LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1); lp.leftMargin = Ui.dp(this, 8); bot.addView(all, lp); }
+            TextView fw = Ui.button(this, "Переслать", false, v -> compose("fwd")); LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1); lp.leftMargin = Ui.dp(this, 8); bot.addView(fw, lp);
             root.addView(bot);
         }
         setContentView(root);
@@ -184,14 +195,13 @@ public class LetterActivity extends Activity {
     /** метки под темой и состояние кнопок сверху */
     void marks() {
         LinearLayout m = body.findViewWithTag("marks"); if (m == null) return; m.removeAllViews();
-        if (MailApi.isOrd(r)) add(m, Ui.chip(this, "Заявка", Ui.ORD, Ui.ORD_BG));
-        JSONObject o = MailApi.ord(r);
-        if (MailApi.done(r)) add(m, Ui.chip(this, "✓ Обработано · " + o.optJSONObject("done").optString("by"), Ui.OK, Ui.OK_BG));
-        else if (MailApi.todo(r)) add(m, Ui.chip(this, "Не обработано · " + o.optJSONObject("todo").optString("by"), Ui.TODO, Ui.TODO_BG));
+        if (MailApi.isOrd(r)) add(m, Ui.chip(this, "taken".equals(MailApi.ord(r).optString("st")) ? "Документы сделаны" : "Заявка", Ui.ORD, Ui.ORD_BG));
+        if ("no".equals(MailApi.tagKind(r)) && !MailApi.sent(r)) add(m, Ui.chip(this, "Отправитель — не заказчик", Ui.MUTED, 0xFFECE8E2));
         if (MailApi.spam(r)) add(m, Ui.chip(this, "Спам", Ui.BAD, 0xFFFBEAE7));
         if (MailApi.minor(r)) add(m, Ui.chip(this, "Неважные", Ui.MUTED, 0xFFECE8E2));
         if (!MailApi.fld(r).isEmpty()) add(m, Ui.chip(this, "Папка: " + MailApi.folderName("u:" + MailApi.fld(r)), Ui.BRAND, Ui.BRAND_SOFT));
         m.setPadding(0, m.getChildCount() > 0 ? Ui.dp(this, 8) : 0, 0, 0);
+        sig0 = sig(); statusDraw(); ordDraw();
         if (bRead != null) { boolean un = MailApi.unread(this, r); bRead.setImageResource(un ? R.drawable.ic_mail_open : R.drawable.ic_mail); bRead.setContentDescription(un ? "Прочитано" : "Не прочитано"); }
         if (bMinor != null) bMinor.setContentDescription(MailApi.minor(r) ? "Во «Входящие»" : "В «Неважные»");
         if (bSpam != null) bSpam.setContentDescription(MailApi.spam(r) ? "Не спам" : "Это спам");
@@ -254,18 +264,100 @@ public class LetterActivity extends Activity {
         });
     }
 
+    /** «Обработано / Не обработано» — как на сайте: по умолчанию пометки нет, ставят руками, видно кто и когда */
+    void statusDraw() {
+        if (status == null) return; status.removeAllViews();
+        boolean ro = MailApi.ro(this); if (MailApi.sent(r)) { status.setVisibility(View.GONE); return; }
+        JSONObject o = MailApi.ord(r), d = o.optJSONObject("done"), t = o.optJSONObject("todo");
+        status.setVisibility(View.VISIBLE); status.setPadding(0, Ui.dp(this, 10), 0, 0);
+        if (d != null || t != null) {
+            JSONObject x = d != null ? d : t; boolean ok = d != null;
+            LinearLayout b = new LinearLayout(this); b.setGravity(Gravity.CENTER_VERTICAL); b.setBackground(Ui.round(ok ? Ui.OK_BG : Ui.TODO_BG, Ui.dp(this, 14)));
+            b.setPadding(Ui.dp(this, 14), Ui.dp(this, 6), Ui.dp(this, 6), Ui.dp(this, 6));
+            LinearLayout c = new LinearLayout(this); c.setOrientation(LinearLayout.VERTICAL);
+            c.addView(Ui.text(this, ok ? "✓ Обработано" : "Не обработано", 15, ok ? Ui.OK : Ui.TODO, true));
+            String who = x.optString("by"), when = MailApi.shortTime(MailApi.date(x.optString("at")));
+            c.addView(Ui.line(this, who + (who.isEmpty() || when.isEmpty() ? "" : " · ") + when, 12, ok ? Ui.OK : Ui.TODO, false, 1));
+            b.addView(c, new LinearLayout.LayoutParams(0, -2, 1));
+            if (!ro) {
+                if (!ok) b.addView(small("Обработано", Ui.OK, v -> act("done", false)));
+                b.addView(small("Снять", ok ? Ui.OK : Ui.TODO, v -> act("unmark", false)));
+            }
+            status.addView(b, new LinearLayout.LayoutParams(-1, -2));
+        } else if (!ro) {
+            TextView a1 = Ui.button(this, "Не обработано", false, v -> act("todo", false)); a1.setTextColor(Ui.TODO); a1.setBackground(Ui.press(this, Ui.round(Ui.TODO_BG, Ui.dp(this, 14)))); a1.setMinHeight(Ui.dp(this, 40));
+            TextView a2 = Ui.button(this, "✓ Обработано", false, v -> act("done", false)); a2.setTextColor(Ui.OK); a2.setBackground(Ui.press(this, Ui.round(Ui.OK_BG, Ui.dp(this, 14)))); a2.setMinHeight(Ui.dp(this, 40));
+            status.addView(a1, new LinearLayout.LayoutParams(0, -2, 1));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1); lp.leftMargin = Ui.dp(this, 8); status.addView(a2, lp);
+        } else status.setVisibility(View.GONE);
+    }
+    TextView small(String t, int color, View.OnClickListener l) {
+        TextView v = Ui.text(this, t, 14, color, true); v.setPadding(Ui.dp(this, 12), Ui.dp(this, 8), Ui.dp(this, 12), Ui.dp(this, 8));
+        v.setBackground(Ui.press(this, null)); v.setClickable(true); v.setOnClickListener(l); return v;
+    }
+
+    void ordDraw() {
+        if (ordBox == null) return; ordBox.removeAllViews();
+        if (!MailApi.isOrd(r) || MailApi.ro(this)) { ordBox.setVisibility(View.GONE); return; }
+        ordBox.setVisibility(View.VISIBLE); ordBox.setBackground(Ui.round(Ui.ORD_BG, Ui.dp(this, 14)));
+        ordBox.setPadding(Ui.dp(this, 14), Ui.dp(this, 10), Ui.dp(this, 14), Ui.dp(this, 12));
+        boolean taken = "taken".equals(MailApi.ord(r).optString("st"));
+        ordBox.addView(Ui.text(this, taken ? "Документы по этой заявке сделаны" : "Похоже на заявку", 15, Ui.ORD, true));
+        if (!taken) ordBox.addView(Ui.text(this, "Сайт сам определяет заявки — перепроверяйте. Документы сайт сделает сам: выберет заказчика и прочитает вложение.", 13, Ui.ORD, false));
+        LinearLayout row = new LinearLayout(this); row.setGravity(Gravity.CENTER_VERTICAL);
+        TextView go = Ui.button(this, taken ? "Открыть на сайте" : "Сделать документы на сайте", true, v -> web("")); row.addView(go, new LinearLayout.LayoutParams(-2, -2));
+        if (!taken) row.addView(small("Это не заявка", Ui.ORD, v -> act("notord", false)));
+        LinearLayout.LayoutParams glp = new LinearLayout.LayoutParams(-1, -2); glp.topMargin = Ui.dp(this, 8); ordBox.addView(row, glp);
+    }
+
+    void pickFolder() {
+        java.util.List<String> names = new java.util.ArrayList<>(), ids = new java.util.ArrayList<>();
+        String cur = MailApi.fld(r);
+        for (int i = 0; i < MailApi.folders.length(); i++) { JSONObject f = MailApi.folders.optJSONObject(i); if (f != null) { names.add((f.optString("id").equals(cur) ? "✓ " : "") + f.optString("name")); ids.add(f.optString("id")); } }
+        if (!cur.isEmpty()) { names.add("Во «Входящие» (убрать из папки)"); ids.add(""); }
+        if (names.isEmpty()) { Toast.makeText(this, "Своих папок пока нет — создайте в списке писем: «+ Папка»", Toast.LENGTH_LONG).show(); return; }
+        new AlertDialog.Builder(this).setTitle("Переложить в папку").setItems(names.toArray(new String[0]), (d, w) -> {
+            String f = ids.get(w); if (f.equals(cur)) return; act("fld:" + f, true);
+        }).show();
+    }
+
+    /** отправитель — «не заказчик»: его письма больше не считаются заявками (у всех) */
+    void tagNo(boolean on) {
+        String em = MailApi.addr(r); if (em.isEmpty()) return;
+        try { if (on) MailApi.tags.put(em, new JSONObject().put("id", em).put("kind", "no")); else MailApi.tags.remove(em); } catch (Exception ignored) {}
+        marks(); if (MailApi.demo) return;
+        MainActivity.SAVE.execute(() -> {
+            String e = null; try { MailApi.tag(this, em, on ? "no" : ""); MailApi.saveCache(this); } catch (Exception x) { e = x.getMessage(); }
+            final String err = e;
+            runOnUiThread(() -> { if (err != null) Toast.makeText(this, "Не сохранилось: " + err, Toast.LENGTH_LONG).show(); marks(); });
+        });
+    }
+
+    void compose(String kind) { startActivity(new Intent(this, ComposeActivity.class).putExtra("kind", kind).putExtra("id", id)); }
+
     void menu(View anchor) {
         PopupMenu m = new PopupMenu(this, anchor); boolean ro = MailApi.ro(this), sent = MailApi.sent(r);
         if (!ro && !sent) {
-            m.getMenu().add(0, 1, 0, MailApi.done(r) ? "Снять «Обработано»" : "Обработано");
             m.getMenu().add(0, 2, 0, MailApi.unread(this, r) ? "Отметить прочитанным" : "Отметить непрочитанным");
+            if (MailApi.done(r) || MailApi.todo(r)) m.getMenu().add(0, 5, 0, "Снять пометку «" + (MailApi.done(r) ? "Обработано" : "Не обработано") + "»");
+            else { m.getMenu().add(0, 1, 0, "Обработано"); m.getMenu().add(0, 6, 0, "Не обработано"); }
+            m.getMenu().add(0, 7, 0, MailApi.isOrd(r) ? "Это не заявка" : "Это заявка");
+            m.getMenu().add(0, 8, 0, "no".equals(MailApi.tagKind(r)) ? "Отправитель — заказчик (снять «не заказчик»)" : "Отправитель — не заказчик");
+            m.getMenu().add(0, 9, 0, "В папку…");
+            m.getMenu().add(0, 10, 0, "Переслать");
         }
-        m.getMenu().add(0, 3, 0, "Открыть на сайте (папки, заказчик, документы)");
+        m.getMenu().add(0, 3, 0, "Открыть на сайте");
         m.getMenu().add(0, 4, 0, "Скопировать адрес отправителя");
         m.setOnMenuItemClickListener(it -> {
             switch (it.getItemId()) {
-                case 1: Act.done(this, r, !MailApi.done(r), this::marks); break;
-                case 2: { boolean un = MailApi.unread(this, r); Act.read(this, r, un, this::marks); if (!un) finish(); break; }
+                case 1: act("done", false); break;
+                case 6: act("todo", false); break;
+                case 5: act("unmark", false); break;
+                case 2: { boolean un = MailApi.unread(this, r); act(un ? "read" : "unread", !un); break; }
+                case 7: act(MailApi.isOrd(r) ? "notord" : "isord", false); break;
+                case 8: tagNo(!"no".equals(MailApi.tagKind(r))); break;
+                case 9: pickFolder(); break;
+                case 10: compose("fwd"); break;
                 case 3: web(""); break;
                 case 4: { android.content.ClipboardManager cm = (android.content.ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
                     if (cm != null) cm.setPrimaryClip(ClipData.newPlainText("адрес", r.optString("from"))); Toast.makeText(this, "Скопировано: " + r.optString("from"), Toast.LENGTH_SHORT).show(); break; }

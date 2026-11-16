@@ -37,10 +37,11 @@ final class MailApi {
     static String user(Context c) { return p(c).getString("user", ""); }
 
     /* ---------- запросы к таблице ---------- */
-    static JSONObject call(Context c, JSONObject body) throws Exception {
+    static JSONObject call(Context c, JSONObject body) throws Exception { return call(c, body, 60000); }
+    static JSONObject call(Context c, JSONObject body, int readMs) throws Exception {
         SharedPreferences s = p(c);
         body.put("action", "mail").put("user", s.getString("user", "")).put("key", s.getString("key", ""));
-        JSONObject r = new JSONObject(MailNotifier.post(s.getString("url", ""), body.toString()));
+        JSONObject r = new JSONObject(MailNotifier.post(s.getString("url", ""), body.toString(), readMs));
         if (!r.optBoolean("ok")) {
             String e = r.optString("error");
             throw new Exception("auth".equals(e) ? "Пароль не подошёл — войдите заново" : e.contains("unknown action") ? "Скрипт таблицы старый — обновите Code.gs" : e.isEmpty() ? "таблица ответила ошибкой" : e);
@@ -50,15 +51,26 @@ final class MailApi {
 
     /** список писем; sync — сначала забрать новые из ящиков (до минуты) */
     static void load(Context c, boolean sync) throws Exception {
-        JSONObject r = call(c, new JSONObject().put("op", sync ? "sync" : "list"));
-        take(r); at = System.currentTimeMillis(); dirty = false;
-        try (FileOutputStream o = new FileOutputStream(cache(c))) { o.write(new JSONObject().put("rows", rows).put("acc", acc).put("folders", folders).put("tags", new JSONArray(tags.values())).put("at", at).toString().getBytes(StandardCharsets.UTF_8)); } catch (Exception ignored) {}
+        JSONObject r = call(c, new JSONObject().put("op", sync ? "sync" : "list"), sync ? 290000 : 60000);
+        synchronized (MailApi.class) {
+            JSONArray old = rows; take(r);
+            /* свои отметки, которые ещё не дошли до таблицы, не перетираются пришедшим списком */
+            if (!pend.isEmpty()) for (int i = 0; i < rows.length(); i++) { JSONObject x = rows.optJSONObject(i); if (x == null || !pend.containsKey(x.optString("id"))) continue;
+                for (int k = 0; k < old.length(); k++) { JSONObject y = old.optJSONObject(k); if (y != null && y.optString("id").equals(x.optString("id"))) { try { rows.put(i, y); } catch (Exception ignored) {} break; } } }
+            at = System.currentTimeMillis(); dirty = false;
+        }
+        saveCache(c);
         JSONObject e = r.optJSONObject("errs"); err = "";
         if (e != null && e.length() > 0) err = "Ящик не ответил: " + e.optString(e.keys().next());
     }
 
+    static void saveCache(Context c) {
+        try (FileOutputStream o = new FileOutputStream(cache(c))) { o.write(new JSONObject().put("rows", rows).put("acc", acc).put("folders", folders).put("tags", new JSONArray(tags.values())).put("at", at).put("chAt", chAt).toString().getBytes(StandardCharsets.UTF_8)); } catch (Exception ignored) {}
+    }
+
     static void take(JSONObject r) {
-        if (r.optJSONArray("rows") != null) rows = r.optJSONArray("rows");
+        if (r.optJSONArray("rows") != null) { rows = r.optJSONArray("rows"); if (!r.optString("now").isEmpty()) chAt = r.optString("now"); }
+        if (r.optInt("ver") > 0) ver = r.optInt("ver");
         if (r.optJSONArray("acc") != null) acc = r.optJSONArray("acc");
         if (r.optJSONArray("folders") != null) folders = r.optJSONArray("folders");
         JSONArray t = r.optJSONArray("tags");
@@ -72,23 +84,83 @@ final class MailApi {
         try {
             File f = cache(c); if (!f.exists()) return false;
             JSONObject o = new JSONObject(new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8));
-            take(o); at = o.optLong("at"); return rows.length() > 0;
+            take(o); at = o.optLong("at"); chAt = o.optString("chAt"); return rows.length() > 0;
         } catch (Exception e) { return false; }
     }
 
-    static void forget(Context c) { rows = new JSONArray(); acc = new JSONArray(); folders = new JSONArray(); tags.clear(); at = 0; cache(c).delete(); }
+    static void forget(Context c) { rows = new JSONArray(); acc = new JSONArray(); folders = new JSONArray(); tags.clear(); at = 0; chAt = ""; pend.clear(); cache(c).delete(); }
+
+    /* ---------- живое обновление (Code.gs ≥ 41): только письма, изменённые после прошлого раза ---------- */
+    static volatile String chAt = "";            // время таблицы, когда пришёл прошлый список
+    static volatile int ver;
+    static volatile boolean noChanges;            // старый Code.gs — изменения забираются полным списком
+    static final Map<String, Long> pend = new java.util.concurrent.ConcurrentHashMap<>();   // свои отметки, ещё не дошедшие до таблицы
+
+    /** забрать изменения; true — что-то поменялось (письмо отметили, пришло новое, папки, отправители) */
+    static boolean changes(Context c) throws Exception {
+        if (noChanges || chAt.isEmpty()) { String before = sig(); load(c, false); return !before.equals(sig()); }
+        String after;
+        try { SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US); f.setTimeZone(TimeZone.getTimeZone("UTC")); after = f.format(new Date(f.parse(chAt).getTime() - 30000)); }
+        catch (Exception e) { after = chAt; }
+        JSONObject r;
+        try { r = call(c, new JSONObject().put("op", "changes").put("after", after)); }
+        catch (Exception e) { if (String.valueOf(e.getMessage()).contains("unknown op")) { noChanges = true; return changes(c); } throw e; }
+        boolean ch = false;
+        synchronized (MailApi.class) {
+            JSONArray L = r.optJSONArray("rows"); List<JSONObject> fresh = new ArrayList<>();
+            if (L != null) for (int i = 0; i < L.length(); i++) {
+                JSONObject x = L.optJSONObject(i); if (x == null) continue; String id = x.optString("id");
+                if (id.isEmpty() || pend.containsKey(id)) continue;
+                JSONObject y = find(id);
+                if (y == null) { fresh.add(x); ch = true; continue; }
+                /* то же письмо — поменять поля на месте: открытые экраны держат ссылку на этот объект */
+                for (String k : new String[]{"read", "order", "ans", "subject", "snippet", "atts", "attsText", "body", "by", "at"}) {
+                    if (!y.optString(k).equals(x.optString(k))) { if (!"by".equals(k) && !"at".equals(k)) ch = true; try { y.put(k, x.opt(k)); } catch (Exception ignored) {} }
+                }
+            }
+            if (!fresh.isEmpty()) { List<JSONObject> A = new ArrayList<>(fresh); for (int i = 0; i < rows.length(); i++) if (rows.optJSONObject(i) != null) A.add(rows.optJSONObject(i));
+                A.sort((a, b) -> b.optString("date").compareTo(a.optString("date"))); rows = new JSONArray(A); }
+            String s0 = sig2(); if (r.optJSONArray("folders") != null) folders = r.optJSONArray("folders"); if (r.optJSONArray("acc") != null) acc = r.optJSONArray("acc");
+            JSONArray t = r.optJSONArray("tags"); if (t != null) { tags.clear(); for (int i = 0; i < t.length(); i++) { JSONObject x = t.optJSONObject(i); if (x != null) tags.put(x.optString("id").toLowerCase(), x); } }
+            if (!s0.equals(sig2())) ch = true;
+            if (!r.optString("now").isEmpty()) chAt = r.optString("now");
+            if (r.optInt("ver") > 0) ver = r.optInt("ver");
+        }
+        if (ch) saveCache(c);
+        return ch;
+    }
+    static String sig() { StringBuilder b = new StringBuilder(); for (int i = 0; i < rows.length(); i++) { JSONObject x = rows.optJSONObject(i); if (x != null) b.append(x.optString("id")).append(x.optString("read")).append(x.optString("order")).append(x.optString("ans")).append('|'); } return b + sig2(); }
+    static String sig2() { StringBuilder b = new StringBuilder(folders.toString()); java.util.TreeMap<String, JSONObject> t = new java.util.TreeMap<>(tags); for (Map.Entry<String, JSONObject> e : t.entrySet()) b.append(e.getKey()).append(e.getValue().optString("kind")); return b.toString(); }
 
     /** полный текст письма {text, html, err} */
     static JSONObject get(Context c, String id) throws Exception { return call(c, new JSONObject().put("op", "get").put("id", id)); }
 
     /** вложение {name, mime, data (base64)} */
-    static JSONObject att(Context c, String id, int i) throws Exception { return call(c, new JSONObject().put("op", "att").put("id", id).put("i", i)); }
-
-    /** отметки письма: прочитано и поле order (заявка, обработано, неважные, спам, своя папка) */
-    static void set(Context c, JSONObject row) throws Exception {
-        JSONObject x = new JSONObject().put("id", row.optString("id")).put("read", !row.optString("read").isEmpty()).put("order", row.optString("order"));
-        call(c, new JSONObject().put("op", "set").put("rows", new JSONArray().put(x)));
+    static JSONObject att(Context c, String id, int i) throws Exception {
+        if (demo) return Demo.att(c, id, i);
+        return call(c, new JSONObject().put("op", "att").put("id", id).put("i", i), 170000);
     }
+
+    /** отметки писем: [{id, read?, order?, patch?}] — по 200 за раз; patch меняет только названные отметки (Code.gs ≥ 41), order — для старого скрипта */
+    static void setMany(Context c, List<JSONObject> L) throws Exception {
+        for (int i = 0; i < L.size(); i += 200) {
+            JSONArray a = new JSONArray(); for (int k = i; k < Math.min(L.size(), i + 200); k++) a.put(L.get(k));
+            call(c, new JSONObject().put("op", "set").put("rows", a));
+        }
+    }
+
+    /** свои папки: весь список [{id, name, color}] (Code.gs ≥ 33) */
+    static void saveFolders(Context c, JSONArray L) throws Exception {
+        JSONObject r = call(c, new JSONObject().put("op", "folders").put("folders", L));
+        if (r.optJSONArray("folders") != null) folders = r.optJSONArray("folders");
+        saveCache(c);
+    }
+
+    /** вложение Word / Excel / PowerPoint… переведённое в PDF (Google Диск) {name, data} */
+    static JSONObject attPdf(Context c, String id, int i) throws Exception { if (demo) { JSONObject r = find(id); return Demo.attPdf(r == null ? "файл" : atts(r).optJSONObject(i).optString("n")); } return call(c, new JSONObject().put("op", "attPdf").put("id", id).put("i", i), 170000); }
+
+    /** отправить письмо: {acc, reply, msg:{to[], cc[], subject, text, inReply, refs, atts[{name, mime, data}]}} → {row, saved} */
+    static JSONObject send(Context c, JSONObject body) throws Exception { return call(c, body.put("op", "send"), 170000); }
 
     static void tag(Context c, String email, String kind) throws Exception {
         JSONObject r = call(c, new JSONObject().put("op", "tag").put("email", email).put("kind", kind).put("cid", ""));
@@ -119,10 +191,11 @@ final class MailApi {
     static boolean isOrd(JSONObject r) {
         JSONObject o = ord(r);
         if ("no".equals(o.optString("st")) || spam(r) || "no".equals(tagKind(r)) || sent(r)) return false;
-        return "taken".equals(o.optString("st")) || ORD.matcher(r.optString("subject") + " " + r.optString("snippet") + " " + r.optString("attsText")).find();
+        return "taken".equals(o.optString("st")) || forceOrd.contains(r.optString("id")) || ORD.matcher(r.optString("subject") + " " + r.optString("snippet") + " " + r.optString("attsText")).find();
     }
 
     static final String[][] FOLDERS = {{"in", "Входящие"}, {"ord", "Заявки"}, {"unread", "Непрочитанные"}, {"undone", "Не обработаны"}, {"all", "Все письма"}, {"sent", "Отправленные"}, {"minor", "Неважные"}, {"spam", "Спам"}};
+    static final java.util.Set<String> forceOrd = new java.util.HashSet<>();   // «Это заявка» — до конца работы приложения, как на сайте
     static String folderName(String f) {
         for (String[] x : FOLDERS) if (x[0].equals(f)) return x[1];
         if (f.startsWith("u:")) for (int i = 0; i < folders.length(); i++) { JSONObject x = folders.optJSONObject(i); if (x != null && f.substring(2).equals(x.optString("id"))) return x.optString("name"); }
@@ -190,9 +263,10 @@ final class MailApi {
         demo = true;
         try {
             long n = System.currentTimeMillis(); SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US); f.setTimeZone(TimeZone.getTimeZone("UTC"));
+            folders = new JSONArray().put(new JSONObject().put("id", "fb").put("name", "Бухгалтерия"));
             acc = new JSONArray().put(new JSONObject().put("id", "mA").put("email", "frudom.ru@mail.ru")).put(new JSONObject().put("id", "mB").put("email", "info@frudom.ru"));
             Object[][] L = {
-                {"d1", "mB", "Цирк бухгалтерия", "buh@circus.ru", "Акт сверки за октябрь", "Добрый день! Пришлите, пожалуйста, акт сверки за октябрь, подписанный с вашей стороны.", 0.3, "", "акт.xlsx", "[{\"n\":\"акт.xlsx\",\"s\":48211}]"},
+                {"d1", "mB", "Цирк бухгалтерия", "buh@circus.ru", "Акт сверки за октябрь", "Добрый день! Пришлите, пожалуйста, акт сверки за октябрь, подписанный с вашей стороны.", 0.3, "", "акт.pdf, фото.png, акт.xlsx", "[{\"n\":\"акт.pdf\",\"s\":48211},{\"n\":\"фото.png\",\"s\":120400},{\"n\":\"акт.xlsx\",\"s\":9100}]"},
                 {"d2", "mA", "МГУ Комбинат питания", "zakaz@msu.ru", "Заявка на 14.11", "Прошу поставить: помидоры 10 кг, огурцы 5 кг, укроп 1 кг. Приёмка с 8 до 12.", 2.0, "", "", "[]"},
                 {"d3", "mA", "НИИР им. Насоновой", "snab@niir.ru", "Документ о приёмке подписан", "Документ о приёмке по контракту 142-2026 подписан в ЕИС.", 5.0, "1", "", "[]"},
                 {"d4", "mB", "Клиническая больница № 1", "pitanie@kb1.ru", "Шампиньоны на пятницу", "Добрый день, на пятницу нужно 3 коробки шампиньонов.", 26.0, "1", "", "[]"},

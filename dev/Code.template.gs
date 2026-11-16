@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 40;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 41;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -678,8 +678,12 @@ function mail_(p, me) {
       mailAccSet_(L); const r = mailSync_(true);
       return { ok: true, acc: mailAccView_(), test: t, added: r.added, errs: r.errs, rows: mailList_(), tags: read_('mailtags'), folders: mailFolders_() };
     }
-    if (op === 'sync') { const r = mailAcc_().length ? mailSync_(!!p.force) : { added: 0 }; return { ok: true, acc: mailAccView_(), proxy: !!(tbProxy_() || {}).url, added: r.added || 0, skipped: r.skipped || 0, errs: r.errs || {}, rows: mailList_(), tags: read_('mailtags'), folders: mailFolders_() }; }
-    if (op === 'list') return { ok: true, acc: mailAccView_(), proxy: !!(tbProxy_() || {}).url, rows: mailList_(), tags: read_('mailtags'), folders: mailFolders_() };
+    if (op === 'sync') { const now0 = new Date().toISOString(), r = mailAcc_().length ? mailSync_(!!p.force) : { added: 0 }; return { ok: true, ver: CODE_VER, now: now0, acc: mailAccView_(), proxy: !!(tbProxy_() || {}).url, added: r.added || 0, skipped: r.skipped || 0, errs: r.errs || {}, rows: mailList_(), tags: read_('mailtags'), folders: mailFolders_() }; }
+    if (op === 'list') return { ok: true, ver: CODE_VER, now: new Date().toISOString(), acc: mailAccView_(), proxy: !!(tbProxy_() || {}).url, rows: mailList_(), tags: read_('mailtags'), folders: mailFolders_() };
+    /* только письма, изменённые после p.after (ISO): новые, прочитанные, отмеченные кем-то другим — для живого обновления сайта и приложения (Code.gs ≥ 41) */
+    if (op === 'changes') { const now = new Date().toISOString(), after = String(p.after || '');
+      const L = after ? read_('mail').filter(r => String(r.at || '') > after) : mailList_();
+      return { ok: true, ver: CODE_VER, now: now, rows: L.slice(0, 600), tags: read_('mailtags'), folders: mailFolders_(), acc: mailAccView_() }; }
     if (op === 'folders') {   /* сохранить весь список папок: {folders:[{id, name, color, order}]} */
       const L = (Array.isArray(p.folders) ? p.folders : []).map((x, i) => ({ id: String(x.id || '').replace(/[^\w-]/g, '').slice(0, 24), name: String(x.name || '').replace(/\s+/g, ' ').trim().slice(0, 40), color: String(x.color || '').replace(/[^#\w]/g, '').slice(0, 9), order: i }))
         .filter(x => x.id && x.name).slice(0, 60);
@@ -723,9 +727,14 @@ function mail_(p, me) {
     if (op === 'set') {   /* отметки: прочитано, заявка (взята в работу / не заявка) */
       const L = (Array.isArray(p.rows) ? p.rows : []).filter(x => x && x.id).slice(0, 200); if (!L.length) return { ok: true };
       const lock = LockService.getScriptLock(); lock.waitLock(25000);
-      try { const have = {}; read_('mail').forEach(r => have[r.id] = 1);
+      try { const have = {}; delete MEMO_.mail; read_('mail').forEach(r => have[r.id] = r);
         upsertList_('mail', { upsert: L.filter(x => have[x.id]).map(x => { const o = { id: String(x.id), by: me.name, at: new Date().toISOString() };
-          if (x.read != null) o.read = x.read ? '1' : ''; if (x.order != null) o.order = String(x.order).slice(0, 500); return o; }) });
+          if (x.read != null) o.read = x.read ? '1' : '';
+          /* patch (Code.gs ≥ 41): меняются только названные отметки, остальные — как сейчас в таблице (два человека отмечают одно письмо — ничего не теряется) */
+          if (x.patch && typeof x.patch === 'object') { let cur = {}; try { cur = JSON.parse(have[x.id].order || '{}') || {}; } catch (e) {}
+            Object.keys(x.patch).forEach(k => { const v = x.patch[k]; if (v == null) delete cur[k]; else cur[k] = v; });
+            o.order = Object.keys(cur).length ? JSON.stringify(cur).slice(0, 500) : ''; }
+          else if (x.order != null) o.order = String(x.order).slice(0, 500); return o; }) });
       } finally { lock.releaseLock(); }
       return { ok: true };
     }
