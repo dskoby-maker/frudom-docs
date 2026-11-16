@@ -179,6 +179,14 @@
 #fd-app dialog.dcard.wide{width:min(760px,calc(100vw - 24px))}
 @media (max-width:600px){#fd-app dialog.dcard.wide{width:100vw;max-width:100vw}}
 #fd-app .dcard .dc-t .dc-m{display:none}
+#fd-app .dcard .dc-pn,.dcard .dc-pn{all:unset;box-sizing:border-box;display:inline;cursor:pointer;color:inherit;border-radius:5px;transition:color .15s,background .15s;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+#fd-app .dcard .dc-pn b,.dcard .dc-pn b{font-weight:inherit;background-image:linear-gradient(currentColor,currentColor);background-size:0 1px;background-repeat:no-repeat;background-position:0 100%;transition:background-size .25s ease}
+#fd-app .dcard .dc-pn svg,.dcard .dc-pn svg{display:inline-block;vertical-align:-1px;margin-left:3px;opacity:0;transform:translateX(-3px);transition:opacity .15s,transform .2s;color:var(--accent)}
+#fd-app .dcard .dc-pn:hover,.dcard .dc-pn:hover,#fd-app .dcard .dc-pn:focus-visible,.dcard .dc-pn:focus-visible{color:var(--accent)}
+#fd-app .dcard .dc-pn:hover b,.dcard .dc-pn:hover b,.dcard .dc-pn:focus-visible b{background-size:100% 1px}
+#fd-app .dcard .dc-pn:hover svg,#fd-app .dcard .dc-pn:focus-visible svg,.dcard .dc-pn:hover svg,.dcard .dc-pn:focus-visible svg{opacity:1;transform:none}
+.dcard .dc-pn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (hover:none){#fd-app .dcard .dc-pn svg,.dcard .dc-pn svg{opacity:.55;transform:none}}
 /* узкий экран: в таблице товаров два столбца — «товар, под ним количество × цена» и «сумма» */
 @media (max-width:480px){#fd-app .dcard .dc-t th:nth-child(2),#fd-app .dcard .dc-t th:nth-child(3),#fd-app .dcard .dc-t td:nth-child(2),#fd-app .dcard .dc-t td:nth-child(3){display:none}
   #fd-app .dcard .dc-t .dc-m{display:block;margin-top:2px;font-size:12.5px;color:var(--muted);white-space:nowrap}#fd-app .dcard .dc-t td:first-child{overflow-wrap:anywhere}
@@ -6550,7 +6558,10 @@ function histHtml(items, open){
 function whoLine(j){ const h=histOf(j), c=h.find(x=>(x.w||[])[0]==="создан"), last=h.filter(x=>(x.w||[])[0]!=="создан").sort((a,b)=>String(a.at).localeCompare(String(b.at))).pop();
   return [["Создан", c?(dtShort(c.at)+(c.by?" · "+c.by:"")):""], ["Изменён", last?(dtShort(last.at)+(last.by?" · "+last.by:"")):""]].filter(x=>x[1]); }
 const posWord = n => n%10===1&&n%100!==11?"позиция":(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))?"позиции":"позиций";
-const linesTable = k => `<div class="dc-tw"><table class="dc-t"><thead><tr><th>Товар</th><th class="num">Кол-во</th><th class="num">Цена, ₽</th><th class="num">Сумма, ₽</th></tr></thead><tbody>${k.lines.map(l=>`<tr><td><b>${esc(l.name)}</b><small class="dc-m">${esc(nq3(l.qty))}&nbsp;${esc(l.unit||"")} × ${fm(l.price)}</small></td><td class="num">${esc(nq3(l.qty))}&nbsp;${esc(l.unit||"")}</td><td class="num">${fm(l.price)}</td><td class="num"><b>${fm(l.sum)}</b></td></tr>`).join("")}</tbody></table></div>`;
+/* название товара в окне накладной / комплекта — нажатие открывает карточку товара (pdCard), «‹ Назад» возвращает к документу (16.11.2026) */
+const dcPName = l => (l.pid && prod(l.pid) && typeof pdCard==="function") ? `<button type="button" class="dc-pn" data-dcpd="${esc(l.pid)}" title="Карточка товара"><b>${esc(l.name)}</b><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>` : `<b>${esc(l.name)}</b>`;
+document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("#fd-dcard [data-dcpd]"); if(!b) return; e.preventDefault(); e.stopPropagation(); pdCard(b.dataset.dcpd); });
+const linesTable = k => `<div class="dc-tw"><table class="dc-t"><thead><tr><th>Товар</th><th class="num">Кол-во</th><th class="num">Цена, ₽</th><th class="num">Сумма, ₽</th></tr></thead><tbody>${k.lines.map(l=>`<tr><td>${dcPName(l)}<small class="dc-m">${esc(nq3(l.qty))}&nbsp;${esc(l.unit||"")} × ${fm(l.price)}</small></td><td class="num">${esc(nq3(l.qty))}&nbsp;${esc(l.unit||"")}</td><td class="num">${fm(l.price)}</td><td class="num"><b>${fm(l.sum)}</b></td></tr>`).join("")}</tbody></table></div>`;
 /* общий вид всплывающей карточки: плавное появление, закрытие крестиком / Esc / кликом мимо */
 // окна: тень под шапкой при прокрутке; --dch — высота шапки (для внутренних липких заголовков)
 /* сжатая шапка окна: высокая шапка (подпись + длинное название) прилипает только нижней полоской,
