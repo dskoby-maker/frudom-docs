@@ -344,9 +344,9 @@ function rpgBody(){ if(!RPG.el) return; RPG.el.innerHTML=rpgHtml(); rpgMark(); R
 const rpgPhone = () => matchMedia("(max-width:600px)").matches;
 function rpgPlace(){ const el=RPG.el, b=RPG.btn; if(!el || !b) return; if(rpgPhone()){ el.style.left=el.style.top=""; return; }
   if(!b.isConnected){ rpgClose(); return; }
-  const r=b.getBoundingClientRect(), W=innerWidth, H=innerHeight, w=el.offsetWidth, h=el.offsetHeight, pad=10;
-  let left=r.left+w<=W-pad ? r.left : Math.min(Math.max(pad, r.right-w), W-w-pad), top=r.bottom+8; if(top+h>H-pad && r.top-8-h>=pad) top=r.top-8-h; else if(top+h>H-pad) top=Math.max(pad, H-pad-h);
-  el.style.left=Math.round(left)+"px"; el.style.top=Math.round(top)+"px"; el.style.transformOrigin=(top<r.top?"bottom":"top")+" right"; }
+  const r=(b.closest(".rpgw")||b).getBoundingClientRect(), W=innerWidth, H=innerHeight, w=el.offsetWidth, h=el.offsetHeight, pad=10;   /* ровно под всем полем периода, а не под кнопкой внутри (16.11.2026) */
+  const lft=r.left+w<=W-pad; let left=lft ? r.left : Math.min(Math.max(pad, r.right-w), W-w-pad), top=r.bottom+6; if(top+h>H-pad && r.top-6-h>=pad) top=r.top-6-h; else if(top+h>H-pad) top=Math.max(pad, H-pad-h);
+  el.style.left=Math.round(left)+"px"; el.style.top=Math.round(top)+"px"; el.style.transformOrigin=(top<r.top?"bottom":"top")+(lft?" left":" right"); }
 function rpgOpen(b){ const k=b.dataset.rpg; if(!RPG.reg[k]) return; if(RPG.el && RPG.k===k){ rpgClose(); return; } rpgClose(null, true);
   const R=rpgR(k), n=pvRpN(), t=todayISO().slice(0,7); RPG.k=k; RPG.btn=b; RPG.pick=""; RPG.hov=""; RPG.dir=0;
   RPG.ym = R.all ? pvShift(t, 1-n) : (n>1 && R.b.slice(0,7)!==R.a.slice(0,7) ? pvShift(R.b.slice(0,7), -1) : (n>1 ? pvShift(R.a.slice(0,7), R.a.slice(0,7)===t?-1:0) : R.a.slice(0,7)));
