@@ -142,6 +142,35 @@
 #fd-app .dgov.pop i{animation:dgovp .35s cubic-bezier(.2,.8,.2,1)}@keyframes dgovp{50%{transform:scale(1.25)}}
 @media (prefers-reduced-motion:reduce){#fd-app .dgov,#fd-app .dgov i,#fd-app .dgov i svg{transition:none;animation:none}}
 #fd-app .jcm svg{width:14px;height:14px}#fd-app .jcm:hover{background:rgba(106,44,78,.2);transform:scale(1.08)}
+/* «Важное» (16.11.2026): комментарий с отметкой — документ мягко подсвечен красным, фильтр «Важные» в журнале */
+#fd-app .jcm.imp{background:rgba(192,57,43,.12);color:#b23a2e}#fd-app .jcm.imp:hover{background:rgba(192,57,43,.2)}
+#fd-app .jcm.imp b{font-weight:700;font-size:11px;line-height:1}
+#fd-app :is(#jr-body,#cal-body,#ar-body)>tr:is(.jimp,.grp.jimp)>td{background:rgba(192,57,43,.045);transition:background .3s ease}
+#fd-app :is(#jr-body,#cal-body,#ar-body)>tr.jimp>td:first-child{box-shadow:inset 3px 0 0 rgba(192,57,43,.55)}
+#fd-app :is(#jr-body,#cal-body,#ar-body) .kd.jimp>div{background:rgba(192,57,43,.045)}#fd-app :is(#jr-body,#cal-body,#ar-body) .kd.jimp>div:first-child{box-shadow:inset 3px 0 0 rgba(192,57,43,.55)}
+#fd-app :is(#jr-body,#cal-body,#ar-body)>tr.jimp:hover>td{background:rgba(192,57,43,.075)}
+#fd-app .jimpf{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-weight:500;transition:background .2s,color .2s,border-color .2s,box-shadow .2s}
+#fd-app .jimpf i{width:8px;height:8px;border-radius:50%;background:#d0605a;flex:none;transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s}
+#fd-app .jimpf em{font-style:normal;font-size:12px;min-width:18px;padding:0 6px;border-radius:99px;background:rgba(192,57,43,.1);color:#b23a2e;text-align:center}
+#fd-app .jimpf:hover{border-color:rgba(192,57,43,.4);color:#b23a2e}
+#fd-app .jimpf[aria-pressed="true"]{background:rgba(192,57,43,.09);border-color:rgba(192,57,43,.45);color:#b23a2e;font-weight:600}
+#fd-app .jimpf[aria-pressed="true"] i{transform:scale(1.25);box-shadow:0 0 0 4px rgba(192,57,43,.14)}
+#fd-app .jimpf.pop{animation:jimpPop .35s cubic-bezier(.2,.8,.2,1)}@keyframes jimpPop{40%{transform:scale(.95)}}
+#fd-app #jr-body.jimpon>tr:not(.dsep){animation:fdin .28s ease both}
+#fd-app .cmimp{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 4px;border-radius:99px;border:1px dashed rgba(28,34,32,.22);color:var(--muted);font:500 12.5px var(--ui);cursor:pointer;white-space:nowrap;transition:background .2s,border-color .2s,color .2s}
+#fd-app .cmimp i{display:grid;place-items:center;width:16px;height:16px;border-radius:50%;border:1.5px solid currentColor;box-sizing:border-box;transition:background .2s,border-color .2s}
+#fd-app .cmimp i svg{width:10px;height:10px;opacity:0;transform:scale(.4);transition:opacity .2s,transform .25s cubic-bezier(.2,.8,.2,1)}
+#fd-app .cmimp:hover{border-color:rgba(192,57,43,.5);color:#b23a2e}#fd-app .cmimp:focus-visible{box-shadow:0 0 0 2px rgba(192,57,43,.5)}
+#fd-app .cmimp[aria-pressed="true"]{border-style:solid;border-color:transparent;background:rgba(192,57,43,.1);color:#b23a2e;font-weight:600}
+#fd-app .cmimp[aria-pressed="true"] i{background:#c0392b;border-color:#c0392b;color:#fff}#fd-app .cmimp[aria-pressed="true"] i svg{opacity:1;transform:none}
+#fd-app .cmimp.pop i{animation:dgovp .35s cubic-bezier(.2,.8,.2,1)}
+#fd-app .cmimp.ro{cursor:default;border-style:solid;border-color:transparent}
+#fd-app .dcard .dc-cm{position:relative}#fd-app .dcard .dc-cm::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(180deg,rgba(192,57,43,.07),rgba(192,57,43,0) 75%);opacity:0;transition:opacity .3s ease}
+#fd-app .dcard .dc-cm.imp{border-color:rgba(192,57,43,.32)}#fd-app .dcard .dc-cm.imp::before{opacity:1}#fd-app .dcard .dc-cm.imp .cmh>svg{color:#b23a2e}
+#fd-app .dcard .dc-cm.imp:focus-within{border-color:rgba(192,57,43,.5);box-shadow:0 0 0 4px rgba(192,57,43,.08)}
+#fd-app .dc-cm .cmh{flex-wrap:wrap}
+@media (max-width:700px){#fd-app :is(#jr-body,#cal-body,#ar-body)>tr.jimp:not(.dsep):not(.kids){background:rgba(192,57,43,.05);box-shadow:inset 3px 0 0 rgba(192,57,43,.55)}#fd-app :is(#jr-body,#cal-body,#ar-body)>tr.jimp>td{background:transparent!important;box-shadow:none!important}}
+@media (prefers-reduced-motion:reduce){#fd-app .jimpf,#fd-app .jimpf i,#fd-app .cmimp,#fd-app .cmimp i,#fd-app .cmimp i svg,#fd-app .dcard .dc-cm::before{transition:none;animation:none}#fd-app #jr-body.jimpon>tr{animation:none}}
 #fd-app .jzk{display:flex;align-items:center;justify-content:center;gap:4px;margin:5px 0 0 auto;min-width:58px;height:24px;padding:0 9px;border:0;border-radius:99px;font:600 11.5px var(--ui);cursor:pointer;white-space:nowrap;animation:jcmIn .35s ease both;transition:transform .15s,box-shadow .15s,filter .15s}
 #fd-app .jzk svg{width:13px;height:13px;flex:none}#fd-app .jzk:hover{transform:translateY(-1px);box-shadow:0 3px 8px -4px rgba(0,0,0,.3);filter:saturate(1.15)}#fd-app .jzk:active{transform:scale(.96)}#fd-app .jzk:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #fd-app .jzk.ok{background:#e4eee6;color:#5f8b6b}#fd-app .jzk.part{background:#f4ecd6;color:#a6873f}#fd-app .jzk.none{background:#f4e3df;color:#b27165}
@@ -1374,6 +1403,8 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
   #fd-app .jsum #jr-msg:empty{display:none}
   #fd-app .jsum .btn,#fd-app .jsum .btn.ghost{flex:1 1 0;justify-content:center;background:rgba(28,34,32,.04);color:var(--ink)}
   #fd-app .jsum .btn.jtoday{flex:1 1 100%;background:var(--accent-soft);color:var(--accent)}
+  #fd-app .jsum .btn.jimpf{flex:1 1 calc(50% - 4px);background:var(--surface);color:var(--muted)}#fd-app .jsum .btn.jimpf[aria-pressed="true"]{background:rgba(192,57,43,.09);color:#b23a2e}
+  #fd-app .jsum .btn.jimpf:not([hidden])+.jtoday{flex:1 1 calc(50% - 4px)}
   #fd-app tr.dsep .ds{flex-wrap:wrap;row-gap:2px}
   #fd-app tr.dsep .ds span{order:4;flex-basis:100%;margin-left:19px}
   #fd-app :is(#jr-body,#cal-body,#ar-body)>tr:not(.dsep):not(.kids){grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"nm dt sm" "who who sm" "pr pr pr" "acts acts acts";gap:2px 10px;align-items:start;padding-top:14px;padding-bottom:14px}
@@ -2807,7 +2838,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
         <label class="f jq">Поиск<input id="jr-q" placeholder="номер, адрес, товар…"></label>
         <label class="f jso">Порядок<select id="jr-sort"><option value="cr_d">Сначала новые (по созданию)</option><option value="cr_a">Сначала старые (по созданию)</option><option value="dt_d">Дата документа: новые сверху</option><option value="dt_a">Дата документа: старые сверху</option><option value="nm_d">Номер: по убыванию</option><option value="nm_a">Номер: по возрастанию</option><option value="sm_d">Сумма: больше сверху</option><option value="sm_a">Сумма: меньше сверху</option><option value="cu_a">Заказчик: А–Я</option></select></label>
       </div>
-      <div class="row jsum"><span id="jr-sum" class="muted"></span><span class="muted" id="jr-msg" style="color:var(--accent)"></span><span style="flex:1"></span><button class="btn sm jtoday" id="jr-today" title="Плавно прокрутить к документам на сегодня"><span>Сегодня</span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button><button class="btn ghost sm" id="jr-reset">Сбросить фильтры</button><button class="btn ghost sm" id="jr-refresh">Обновить</button></div>
+      <div class="row jsum"><span id="jr-sum" class="muted"></span><span class="muted" id="jr-msg" style="color:var(--accent)"></span><span style="flex:1"></span><button type="button" class="btn sm jimpf" id="jr-imp" aria-pressed="false" hidden title="Показать только документы с важным комментарием"><i aria-hidden="true"></i><span>Важные</span><em id="jr-impn"></em></button><button class="btn sm jtoday" id="jr-today" title="Плавно прокрутить к документам на сегодня"><span>Сегодня</span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button><button class="btn ghost sm" id="jr-reset">Сбросить фильтры</button><button class="btn ghost sm" id="jr-refresh">Обновить</button></div>
       <div class="tbl"><table class="stack jt" data-full="2,5"><thead id="jr-head"><tr><th data-js="dt">Дата</th><th data-js="nm">№</th><th data-js="cu">Заказчик и точка</th><th class="num" data-js="sm">Сумма</th><th>Распечатан со склада</th><th class="acts"></th></tr></thead><tbody id="jr-body"></tbody></table></div>
       <p class="muted" style="font-size:12px">Документ открывается ровно в том виде, в каком был создан. Нажмите на название заказчика — откроется карточка документа или комплекта. «Комплект» — документы одной заявки: стрелка справа показывает каждый документ, карандаш открывает комплект на правку во вкладке «Заявка», корзина убирает комплект в архив.</p>
     </div>
@@ -6287,9 +6318,9 @@ function jRowHtml(j, kid, arch){ const w=jWho(j), pv=!!(j.snap.c&&j.snap.c.priv)
     : `<span class="jdocs">${cj}${view}</span> <button class="btn ghost sm" data-edit="${j.id}" title="Изменить" aria-label="Изменить"><span class="jmt">Изменить</span><span class="jmi">${IC_EDIT}</span></button>
     <details class="more"><summary class="btn ghost sm" aria-label="Ещё действия"><span class="jmt">Ещё ▾</span><span class="jmi">${IC_DOTS}</span></summary><div class="menu"><button class="btn sm jmed" data-edit="${j.id}">Изменить</button><button class="btn sm" data-x="${j.id}">XML для ЕИС</button>${pv?"":`<button class="btn sm" data-ppx="${j.id}">XML для Портала поставщиков</button>`}<button class="btn sm" data-copy="${j.id}">Сделать копию</button><button class="btn sm danger" data-arch="${j.id}">В архив</button></div></details>`;
   const ad = arch ? `<span class="muted" title="Убран в архив">в архиве с ${dtShort(j.snap.meta.arch)}</span>` : jDl(j);
-  if(kid) return `<div class="kd"><div class="kd-n">№ ${esc(j.number)}</div><div class="kd-w jcard" data-card="${j.id}" title="Подробнее о документе"><span>${esc(kLbl(j)||w.main)}</span>${jCmIcon(j)}${arch?"":govChip(j)}${skJBadge(j)}</div><div class="kd-s">${fm(j.sum)}${arch?"":zkJBadge(j)}</div><div class="kd-p">${ad}</div><div class="kd-a acts">${acts}</div></div>`;
+  if(kid) return `<div class="kd${cmImp(j)?" jimp":""}"><div class="kd-n">№ ${esc(j.number)}</div><div class="kd-w jcard" data-card="${j.id}" title="Подробнее о документе"><span>${esc(kLbl(j)||w.main)}</span>${jCmIcon(j)}${arch?"":govChip(j)}${skJBadge(j)}</div><div class="kd-s">${fm(j.sum)}${arch?"":zkJBadge(j)}</div><div class="kd-p">${ad}</div><div class="kd-a acts">${acts}</div></div>`;
   const prNo=!arch&&!((j.snap.meta||{}).pr);
-  return `<tr class="${kid?"kid":""}"><td class="jdt">${fd(j.date)}</td><td class="jnm">${esc(j.number)}</td><td class="jcard jwho" data-card="${j.id}" title="Подробнее о документе"><div class="who">${esc(kid&&kLbl(j)?kLbl(j):w.main)}${jCmIcon(j)}${arch?"":govChip(j)}</div>${kid?"":jCtrHtml(jCtrTxt(j))}${skJBadge(j)}</td><td class="num jsm">${fm(j.sum)}${arch?"":zkJBadge(j)}</td><td class="jpr${prNo?" none":""}">${ad}</td><td class="acts">${acts}</td></tr>`; }
+  return `<tr class="${kid?"kid":""}${cmImp(j)?" jimp":""}"><td class="jdt">${fd(j.date)}</td><td class="jnm">${esc(j.number)}</td><td class="jcard jwho" data-card="${j.id}" title="Подробнее о документе"><div class="who">${esc(kid&&kLbl(j)?kLbl(j):w.main)}${jCmIcon(j)}${arch?"":govChip(j)}</div>${kid?"":jCtrHtml(jCtrTxt(j))}${skJBadge(j)}</td><td class="num jsm">${fm(j.sum)}${arch?"":zkJBadge(j)}</td><td class="jpr${prNo?" none":""}">${ad}</td><td class="acts">${acts}</td></tr>`; }
 /* строки журнала с комплектами; arch — показываем архив */
 /* разделитель дня в журнале (при сортировке по дате документа) */
 function jDaySep(iso, st){ const d=new Date(iso+"T12:00:00"), t=todayISO(), tm=new Date(); tm.setDate(tm.getDate()+1); const tmIso=tm.getFullYear()+"-"+String(tm.getMonth()+1).padStart(2,"0")+"-"+String(tm.getDate()).padStart(2,"0");
@@ -6309,7 +6340,7 @@ function jBuild(rows, arch, openSet, daySep){
     const gacts = arch ? `<button class="btn sm" data-gunarch>Вернуть комплект</button>`
       : docLimited() ? `<span class="jdocs"><button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button></span>`
       : `<span class="jdocs"><button class="btn sm" data-gpdf="invoice,torg12">Счета+ТОРГ</button> <button class="btn sm" data-gpdf="upd">Все УПД</button></span> <button class="btn ghost sm ic" data-gedit title="Изменить комплект (откроется во вкладке «Заявка»)" aria-label="Изменить комплект">${IC_EDIT}</button><button class="btn ghost sm ic del" data-garch title="Убрать комплект в архив" aria-label="Убрать комплект в архив">${IC_TRASH}</button>`;
-    out.push(`<tr class="grp${open?" gopen":""}" data-g="${esc(k)}"><td class="jdt">${fd(g[0].date)}</td><td class="jnm">${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))}</td><td class="jcard jwho" data-gcard="1" title="Подробнее о комплекте"><div class="who"><span class="tag">Комплект · ${g.length}</span>${esc(w.main)}${jCmGroup(g)}${arch?"":govGroup(g)}</div>${jCtrHtml([...new Set(g.map(jCtrTxt).filter(Boolean))].join(" · "))}</td><td class="num jsm"><b>${fm(sum)}</b>${arch?"":zkJGroup(g, k)}</td><td class="jpr${!arch&&!dls.length?" none":""}">${arch?`<span class="muted">в архиве</span>`:dls.length?`<span class="dl">${dtShort(dls[dls.length-1])}</span>`:`<span class="muted">—</span>`}</td>
+    out.push(`<tr class="grp${open?" gopen":""}${g.some(cmImp)?" jimp":""}" data-g="${esc(k)}"><td class="jdt">${fd(g[0].date)}</td><td class="jnm">${esc(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))}</td><td class="jcard jwho" data-gcard="1" title="Подробнее о комплекте"><div class="who"><span class="tag">Комплект · ${g.length}</span>${esc(w.main)}${jCmGroup(g)}${arch?"":govGroup(g)}</div>${jCtrHtml([...new Set(g.map(jCtrTxt).filter(Boolean))].join(" · "))}</td><td class="num jsm"><b>${fm(sum)}</b>${arch?"":zkJGroup(g, k)}</td><td class="jpr${!arch&&!dls.length?" none":""}">${arch?`<span class="muted">в архиве</span>`:dls.length?`<span class="dl">${dtShort(dls[dls.length-1])}</span>`:`<span class="muted">—</span>`}</td>
       <td class="acts">${gacts} <button class="btn ghost sm gt${open?" on":""}" data-gt title="${open?"Скрыть документы комплекта":"Показать документы комплекта"}" aria-label="${open?"Скрыть документы комплекта":"Показать документы комплекта"}" aria-expanded="${open}"><span class="chev"></span></button></td></tr>`);
     out.push(`<tr class="kids${open?" open":""}" data-gk="${esc(k)}"><td colspan="6" class="full"><div class="kw"><div class="ki">${g.map(x=>jRowHtml(x,true,arch)).join("")}</div></div></td></tr>`);
   });
@@ -6342,7 +6373,7 @@ function renderJournal(){
   $("#jr-sk").value=f.sk||""; $("#jr-skw").hidden=!(SK_READY && SK && skSrv!==false);
   const skOk=j=>{ if(!f.sk) return true; const st=skJState(j); return f.sk==="any"?!!st:f.sk==="wait"?(st==="wait"||st==="short"):st==="short"; };
   const base=live.filter(j=>j.date>=d1 && j.date<=d2 && (!f.sup||j.supplierId===f.sup) && (!f.cus||j.customerId===f.cus) && (!f.br||j.snap.dr.branchId===f.br) && jMatch(j,q) && skOk(j));
-  const rows=jGovFilter(base, f).sort(jSorter(f.sort||"cr_d"));
+  const rows=jImpFilter(jGovFilter(base, f), f, live).sort(jSorter(f.sort||"cr_d"));
   $("#jr-sort").value=f.sort||"cr_d";
   document.querySelectorAll("#jr-head th[data-js]").forEach(th=>{ const k=th.dataset.js, s=f.sort||"cr_d"; th.classList.toggle("sorted", s.startsWith(k)); th.dataset.dir = s.startsWith(k) ? (s.endsWith("_a")?"▲":"▼") : ""; });
   const out=jBuild(rows,false,jOpen,(f.sort||"cr_d").startsWith("dt")), tot=r2(rows.reduce((a,j)=>a+(+j.sum||0),0)), na=D.journal.length-live.length;
@@ -6409,6 +6440,14 @@ function jGovFilter(base, f){ const sel=$("#jr-gov"), w=$("#jr-govw"), any=D.jou
   if(sel){ sel.innerHTML=JGOV.filter(([v])=>!v.includes(":") || has.has(v.split(":")[0]) || v===f.gov).map(([v,t])=>{ const n=v?base.filter(j=>jGovOk(j,v)).length:0; return `<option value="${v}"${v===(f.gov||"")?" selected":""}>${t}${v?" · "+n:""}</option>`; }).join(""); }
   if(w) w.hidden=false; return f.gov ? base.filter(j=>jGovOk(j,f.gov)) : base; }
 $("#jr-gov").onchange=e=>jfSet("gov",e.target.value);
+/* фильтр «Важные» (16.11.2026): документы с комментарием, отмеченным «Важное»; счётчик — по остальным фильтрам */
+function jImpFilter(rows, f, live){ const b=$("#jr-imp"), n=rows.filter(cmImp).length, any=live.some(cmImp);
+  if(!any && f.imp) f.imp=false;
+  if(b){ b.hidden=!any && !f.imp; b.setAttribute("aria-pressed", String(!!f.imp)); const e=$("#jr-impn"); if(e) e.textContent=n;
+    b.title=f.imp?"Показаны только важные — нажмите, чтобы показать все":"Показать только документы с важным комментарием"; }
+  return f.imp ? rows.filter(cmImp) : rows; }
+$("#jr-imp").onclick=()=>{ const b=$("#jr-imp"), f=JF(); b.classList.remove("pop"); void b.offsetWidth; b.classList.add("pop");
+  const body=$("#jr-body"); body.classList.add("jimpon"); jfSet("imp", !f.imp); setTimeout(()=>body.classList.remove("jimpon"), 450); };
 $("#jr-reset").onclick=()=>{ D.jf={per:"all",sup:"",cus:"",br:"",q:"",from:"",to:"",sort:"cr_d"}; saveLocal(); $("#jr-q").value=""; renderJournal(); };
 /* ================= XML УПД для Портала поставщиков (zakupki.mos.ru) — 13.11.2026 =================
    Схема «mini ON_NSCHFDOPPR_1_997_01_05_01_02» из руководства Портала «Импорт сведений электронного исполнения контракта на форму УПД».
@@ -6785,7 +6824,9 @@ function docCard(j, arch){
 /* ---------- комментарий к документу: snap.meta.cm = {t, by, at}; в печатные формы и XML не попадает ---------- */
 const IC_CM='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.9A8 8 0 1 1 21 12Z"/><path d="M8.5 10.5h7M8.5 13.5h4.5"/></svg>';
 const cmOf = j => { const c=j&&j.snap&&j.snap.meta&&j.snap.meta.cm; return c&&c.t ? c : {}; };
-const cmTip = c => (c.t.length>220?c.t.slice(0,220)+"…":c.t)+(c.by?"\n— "+c.by+(c.at?", "+dtShort(c.at):""):"");
+const cmImp = j => !!cmOf(j).imp;
+const IC_IMPOK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
+const cmTip = c => (c.imp?"❗ Важное\n":"")+(c.t.length>220?c.t.slice(0,220)+"…":c.t)+(c.by?"\n— "+c.by+(c.at?", "+dtShort(c.at):""):"");
 /* ---------- журнал: заполнена ли закупка (только администратор) ----------
    зелёный — у всех позиций есть закупка; жёлтый — частично или есть замечание (нехватка/не отгружено со склада); вся накладная в минус — маленькая красная точка; красный — ничего. */
 const IC_ZK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2.5l2.2 11h10.6L20.5 7H7"/><circle cx="9.5" cy="19.5" r="1.4"/><circle cx="17" cy="19.5" r="1.4"/></svg>';
@@ -6839,15 +6880,15 @@ function govToggle(id){ const j=D.journal.find(x=>x.id===id); if(!j||!j.snap||do
   const b=document.querySelector(`#fd-dcard [data-gov="${id}"]`); if(b){ const n=document.createElement("div"); n.innerHTML=govPill(j); const nb=n.firstElementChild; b.replaceWith(nb); nb.classList.add("pop"); nb.focus({preventScroll:true}); }
   if(curTab==="journal") renderJournal(); }
 document.addEventListener("click", e=>{ const b=e.target.closest("#fd-dcard [data-gov]"); if(b){ e.preventDefault(); govToggle(b.dataset.gov); } });
-function jCmIcon(j){ const c=cmOf(j); return c.t ? `<span class="jcm" title="${esc(cmTip(c))}" aria-label="Есть комментарий">${IC_CM}</span>` : ""; }
+function jCmIcon(j){ const c=cmOf(j); return c.t ? `<span class="jcm${c.imp?" imp":""}" title="${esc(cmTip(c))}" aria-label="${c.imp?"Важный комментарий":"Есть комментарий"}">${IC_CM}${c.imp?"<b>!</b>":""}</span>` : ""; }
 function jCmGroup(g){ const n=g.filter(j=>cmOf(j).t).length; if(!n) return ""; const L=g.filter(j=>cmOf(j).t).map(j=>"№ "+j.number+": "+cmTip(cmOf(j))).join("\n\n");
-  return `<span class="jcm" title="${esc(L)}" aria-label="Комментарии: ${n}">${IC_CM}${n>1?n:""}</span>`; }
+  const im=g.some(cmImp); return `<span class="jcm${im?" imp":""}" title="${esc(L)}" aria-label="Комментарии: ${n}${im?", есть важные":""}">${IC_CM}${n>1?n:""}${im?"<b>!</b>":""}</span>`; }
 function cmHtml(j, arch){ const c=cmOf(j), who=c.t?`${esc(c.by||"")}${c.at?" · "+esc(dtShort(c.at)):""}`:"";
-  if(arch) return c.t ? `<div class="dc-cm"><div class="cmh">${IC_CM}Комментарий<small>${who}</small></div><div class="cmt">${esc(c.t)}</div></div>` : "";
+  if(arch) return c.t ? `<div class="dc-cm${c.imp?" imp":""}"><div class="cmh">${IC_CM}Комментарий${c.imp?`<span class="cmimp ro" aria-pressed="true"><i>${IC_IMPOK}</i>Важное</span>`:""}<small>${who}</small></div><div class="cmt">${esc(c.t)}</div></div>` : "";
   /* свёрнут, пока комментария нет: кнопка «Оставить комментарий…» плавно раскрывает поле; есть комментарий — виден сразу */
   const op=!!c.t;
   return `<div class="dc-cmf${op?" open":""}" id="dc-cmf"><button type="button" class="dc-cmo" data-cmopen aria-expanded="${op}" aria-controls="dc-cm"${op?" hidden":""}>${IC_CM}<span>Оставить комментарий к этой накладной</span></button>
-    <div class="dc-cmc"><div class="dc-cmi"${op?"":" inert"}><div class="dc-cm" id="dc-cm" data-doc="${j.id}"><div class="cmh">${IC_CM}Комментарий<small id="dc-cmw">${who||"виден всем, в документы не печатается"}</small></div>
+    <div class="dc-cmc"><div class="dc-cmi"${op?"":" inert"}><div class="dc-cm${c.imp?" imp":""}" id="dc-cm" data-doc="${j.id}"><div class="cmh">${IC_CM}Комментарий<button type="button" class="cmimp" id="dc-cmimp" aria-pressed="${!!c.imp}" title="Важный документ подсвечивается в журнале красным, его можно найти фильтром «Важные»"><i>${IC_IMPOK}</i>Важное</button><small id="dc-cmw">${who||"виден всем, в документы не печатается"}</small></div>
     <textarea id="dc-cmt" rows="2" maxlength="2000" placeholder="Например: заказчик попросил привезти до 10:00, звонить Ольге" aria-label="Комментарий к документу">${esc(c.t||"")}</textarea>
     <div class="cma"><button type="button" class="btn pri sm" data-cm="save">Сохранить</button><button type="button" class="btn ghost sm" data-cm="cancel">Отмена</button><span>Ctrl+Enter — сохранить</span></div></div></div></div></div>`; }
 function cmOpen(on, focus){ const f=$("#dc-cmf"); if(!f) return; const b=f.querySelector(".dc-cmo"), inn=f.querySelector(".dc-cmi"), rm=matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -6857,17 +6898,26 @@ function cmOpen(on, focus){ const f=$("#dc-cmf"); if(!f) return; const b=f.query
 function cmGrow(t){ t.style.height="auto"; t.style.height=Math.min(260, t.scrollHeight+2)+"px"; }
 function cmFocus(){ cmOpen(true); setTimeout(()=>{ const t=$("#dc-cmt"), box=$("#dc-cm"); if(!box) return; box.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth", block:"center"}); box.classList.remove("flash"); void box.offsetWidth; box.classList.add("flash"); if(t){ t.focus(); t.setSelectionRange(t.value.length, t.value.length); } }, 120); }
 function cmSave(){ const box=$("#dc-cm"), t=$("#dc-cmt"); if(!box||!t) return; const j=D.journal.find(x=>x.id===box.dataset.doc); if(!j||!j.snap) return;
-  const v=t.value.replace(/\s+$/,"").replace(/^\s+/,""), old=cmOf(j).t||""; if(v===old){ box.classList.remove("dirty"); return; }
-  const m=j.snap.meta=j.snap.meta||{}; if(v) m.cm={t:v, by:curUser()||"", at:new Date().toISOString()}; else delete m.cm;
+  const v=t.value.replace(/\s+$/,"").replace(/^\s+/,""), old=cmOf(j).t||"", im=cmImpUi(), oim=cmImp(j); if(v===old && (im===oim || !v)){ box.classList.remove("dirty"); return; }
+  const m=j.snap.meta=j.snap.meta||{}; if(v){ m.cm={t:v, by:curUser()||"", at:new Date().toISOString()}; if(im) m.cm.imp=1; } else delete m.cm;
   dirty("journal", j.id); saveLocal();
-  logEv("Журнал",(v?(old?"Изменён":"Добавлен"):"Удалён")+" комментарий: № "+j.number+" от "+fd(j.date)+" — "+jWho(j).main, j.id);
+  const act=!v?"Удалён комментарий":v===old?(im?"Комментарий отмечен «Важное»":"Снята отметка «Важное» с комментария"):(old?"Изменён":"Добавлен")+(im?" важный":"")+" комментарий";
+  logEv("Журнал",act+": № "+j.number+" от "+fd(j.date)+" — "+jWho(j).main, j.id);
   t.value=v; cmGrow(t); box.classList.remove("dirty"); const w=$("#dc-cmw"); if(w) w.textContent=v?((curUser()||"")+" · "+dtShort(m.cm.at)):"виден всем, в документы не печатается";
-  toast("ok", v?"Комментарий сохранён":"Комментарий удалён", "№ "+j.number+" от "+fd(j.date)+".");
+  if(!v) cmImpSet(false); toast("ok", v?(im?"Сохранено как важное":"Комментарий сохранён"):"Комментарий удалён", "№ "+j.number+" от "+fd(j.date)+"."+(v&&im&&!oim?" Документ подсвечен в журнале.":""));
   if(curTab==="journal") renderJournal(); }
-document.addEventListener("input", e=>{ if(e.target.id!=="dc-cmt") return; const box=$("#dc-cm"), j=box&&D.journal.find(x=>x.id===box.dataset.doc); cmGrow(e.target); box.classList.toggle("dirty", e.target.value.trim()!==(cmOf(j).t||"")); });
+document.addEventListener("input", e=>{ if(e.target.id!=="dc-cmt") return; const box=$("#dc-cm"), j=box&&D.journal.find(x=>x.id===box.dataset.doc); cmGrow(e.target); cmDirty(); });
+/* «Важное» у комментария: галочка в шапке блока; меняет вид сразу, сохраняется кнопкой «Сохранить» (как текст) */
+const cmImpUi = () => { const b=$("#dc-cmimp"); return !!b && b.getAttribute("aria-pressed")==="true"; };
+function cmImpSet(on){ const b=$("#dc-cmimp"), box=$("#dc-cm"); if(b) b.setAttribute("aria-pressed", String(!!on)); if(box) box.classList.toggle("imp", !!on); }
+function cmDirty(){ const box=$("#dc-cm"), t=$("#dc-cmt"); if(!box||!t) return; const j=D.journal.find(x=>x.id===box.dataset.doc), v=t.value.trim(), c=cmOf(j);
+  box.classList.toggle("dirty", v!==(c.t||"") || (!!v && cmImpUi()!==!!c.imp)); }
+document.addEventListener("click", e=>{ const b=e.target.closest("#fd-dcard #dc-cmimp"); if(!b) return; e.preventDefault();
+  cmImpSet(!cmImpUi()); b.classList.remove("pop"); void b.offsetWidth; b.classList.add("pop"); cmDirty();
+  const t=$("#dc-cmt"); if(t && !t.value.trim()) t.focus({preventScroll:true}); });
 document.addEventListener("click", e=>{ if(e.target.closest("#fd-dcard [data-cmopen]")){ cmOpen(true, true); return; }
   const b=e.target.closest("#fd-dcard [data-cm]"); if(!b) return; if(b.dataset.cm==="save"){ cmSave(); if(!($("#dc-cmt")||{}).value) cmOpen(false); return; }
-  const box=$("#dc-cm"), t=$("#dc-cmt"), j=box&&D.journal.find(x=>x.id===box.dataset.doc); if(t){ t.value=cmOf(j).t||""; cmGrow(t); } box&&box.classList.remove("dirty"); if(!cmOf(j).t) cmOpen(false); });
+  const box=$("#dc-cm"), t=$("#dc-cmt"), j=box&&D.journal.find(x=>x.id===box.dataset.doc); if(t){ t.value=cmOf(j).t||""; cmGrow(t); } cmImpSet(cmImp(j)); box&&box.classList.remove("dirty"); if(!cmOf(j).t) cmOpen(false); });
 document.addEventListener("keydown", e=>{ if(e.target.id!=="dc-cmt") return; if(e.key==="Enter"&&(e.ctrlKey||e.metaKey)){ e.preventDefault(); cmSave(); } else if(e.key==="Escape" && $("#dc-cm").classList.contains("dirty")){ e.preventDefault(); e.stopPropagation(); $('#fd-dcard [data-cm="cancel"]').click(); } }, true);
 /* ---------- закупка за штуку (накладная и комплект): цена за 1 шт + вес 1 шт → цена за кг ----------
    Только для товаров в кг. В «Себестоимости накладных» как и раньше хранится цена за кг (lines[pid]), а как ввели —
