@@ -26,6 +26,8 @@ async def main():
             await pg.evaluate(SEED); await pg.evaluate(TAB+"('calendar')"); await pg.wait_for_timeout(1500)
             v=await pg.evaluate("document.querySelector('#dt-list > .dt [data-drvb]').dataset.v")
             ok(v=='', f'{W}: по умолчанию водитель не выбран')
+            pos=await pg.evaluate("(()=>{const r=document.querySelector('#dt-list > .dt'), l=r.querySelector('.dt-drvl'), sm=r.querySelector('.dt-b > small'); return !!l && l.textContent.includes('Задача для:') && !r.querySelector('.dt-top [data-drvb]') && l.previousElementSibling===sm})()")
+            ok(pos, f'{W}: кнопка водителя внизу под автором, с подписью «Задача для:»')
             await pg.click('#dt-drv'); await pg.wait_for_timeout(300)
             opts=await pg.evaluate("[...document.querySelectorAll('.drp .drp-o span')].map(o=>o.textContent.trim())")
             ok(opts[:5]==['Без водителя','Гриша','Саша','Достависта','Яндекс доставка'], f'{W}: варианты {opts}')
