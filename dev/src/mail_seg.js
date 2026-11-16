@@ -113,7 +113,7 @@ function mlDraw(){ const el=$("#ml"); if(!el) return; const adm=me().admin; el.c
   const ra=mlRO()?0:mlRaList().length;
   const chip=(k,t,n)=>`<button type="button" data-mlf="${k}" class="${ML.f===k?"on":""}" aria-pressed="${ML.f===k}">${t}${n?` <em>${n}</em>`:""}</button>`;
   const accs=`<div class="mlacc"><button type="button" data-mlbox="" class="${ML.box?"":"on"}">Все ящики</button>${ML.acc.map(a=>{ const n=ML.rows.filter(r=>r.acc===a.id && mlUnread(r)).length; return `<button type="button" data-mlbox="${a.id}" class="${ML.box===a.id?"on":""}" style="--c:${mlCol(a.id)}" title="${esc(a.err?"Ошибка: "+mlErrTxt(a.err):"")}"><i></i>${esc(a.email)}${n?` <em>${n}</em>`:""}${a.err?` <b class="mlwarn">!</b>`:""}</button>`; }).join("")}</div>`;
-  const lim=60+ML.more, list=L.slice(0,lim).map((r,i)=>mlRowHtml(r,i)).join("");
+  const lim=60+ML.more, list=mlDaysHtml(L.slice(0,lim), L);
   const oldL=$("#ml-list"), keepY=oldL?oldL.scrollTop:0, calm=!!oldL && ML.calmKey===ML.f+"|"+ML.box;
   el.innerHTML=`<div class="mlhd"><h2>Почта</h2><span class="muted mlsync" id="ml-sync">${mlSyncTxt()}</span><span class="grow"></span>
       <button class="btn ghost sm" type="button" data-ml="sync" ${ML.sync?"disabled":""}><span class="mlsyi">${ML_IC.ref}</span><span class="mlsyt">${ML.sync?"Проверяю…":"Проверить почту"}</span></button>${mlRO()?"":`<button class="btn sm pri" type="button" data-ml="new">${ML_IC.pen} Написать</button>`}${adm?`<button class="btn ghost sm" type="button" data-ml="set" title="Ящики и посредник">⚙ Ящики</button>`:""}</div>
@@ -127,6 +127,13 @@ function mlDraw(){ const el=$("#ml"); if(!el) return; const adm=me().admin; el.c
       <div class="mlv" id="ml-view">${mlViewHtml()}</div></div>`;
   mlSyncUi(); const nl=$("#ml-list"); if(nl){ if(calm){ nl.classList.add("calm"); nl.scrollTop=keepY; } ML.calmKey=ML.f+"|"+ML.box; }
   mlCompFocus(); mlBadge(); }
+/* разделители по дням — как в журнале: «Понедельник, 16 ноября · сегодня» и сколько писем за день (16.11.2026) */
+function mlDaySep(iso, n){ const d=new Date(iso+"T12:00:00"), t=todayISO(), y=new Date(); y.setDate(y.getDate()-1);
+  const yIso=jIso(y); let lbl=isNaN(d)?"Без даты":d.toLocaleDateString("ru-RU", iso.slice(0,4)===t.slice(0,4)?{weekday:"long",day:"numeric",month:"long"}:{weekday:"long",day:"numeric",month:"long",year:"numeric"}); lbl=lbl.charAt(0).toUpperCase()+lbl.slice(1);
+  const tag=iso===t?"сегодня":iso===yIso?"вчера":"";
+  return `<div class="mldsep${iso===t?" today":""}" data-iso="${esc(iso)}" role="presentation"><i></i><b>${esc(lbl)}</b>${tag?`<em>${tag}</em>`:""}<span>${n} ${plural(n,["письмо","письма","писем"])}</span></div>`; }
+function mlDaysHtml(S, all){ const cnt={}; all.forEach(r=>{ const k=r.date?jIso(new Date(r.date)):""; cnt[k]=(cnt[k]||0)+1; }); let day=null, h="";
+  S.forEach((r,i)=>{ const k=r.date?jIso(new Date(r.date)):""; if(k!==day){ day=k; h+=mlDaySep(k, cnt[k]||0); } h+=mlRowHtml(r,i); }); return h; }
 function mlRowHtml(r,i){ if(mlMob()) return mlRowMob(r,i); const A=mlAtts(r), o=r.dir!=="sent" && mlIsOrd(r), st=mlOrdSt(r), c=o?mlOrd(r).cus:null, who=r.dir==="sent" ? "Кому: "+(r.to||"") : (r.fromName||r.from||"без имени");
   const tg=r.dir!=="sent"?mlTag(mlAddr(r)):null, sp=mlSpam(r);
   const qa = mlRO() ? `<span class="mlqa"><button type="button" data-mlq="menu" title="Действия" aria-label="Действия">⋯</button></span>` : `<span class="mlqa">${r.dir!=="sent"?`<button type="button" data-mlq="read" title="${r.read?"Отметить непрочитанным":"Отметить прочитанным"}" aria-label="Прочитано">${r.read?ML_IC.mail1:ML_IC.mail0}</button><button type="button" data-mlq="todo" class="${mlTodo(r)?"ontodo":""}" title="${mlTodo(r)?"Снять «Не обработано»":"Не обработано"}" aria-label="Не обработано">${ML_IC_TODO}</button><button type="button" data-mlq="done" class="${mlDone(r)?"on":""}" title="${mlDone(r)?"Снять «Обработано»":"Обработано"}" aria-label="Обработано">${ML_IC_OK}</button><button type="button" data-mlq="${mlMinor(r)?"major":"minor"}" title="${mlMinor(r)?"Вернуть во входящие":"В неважные"}" aria-label="Неважные">${ML_IC.minor}</button><button type="button" data-mlq="${sp?"nospam":"spam"}" title="${sp?"Не спам":"В спам"}" aria-label="Спам">${ML_IC.spam}</button>`:""}<button type="button" data-mlq="menu" title="Ещё действия (или правая кнопка мыши)" aria-label="Ещё действия">⋯</button></span>`;

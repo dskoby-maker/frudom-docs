@@ -160,6 +160,7 @@ async def main():
         await pg.click('#ml [data-mlf="in"]'); await pg.wait_for_timeout(300)
         ok(await pg.locator('#ml-list .mlr:has-text("Скидки недели")').count()==1 and not any(t['Адрес отправителя']=='news@shop.ru' for t in rows('Почта: отправители')), '«Не спам» — письмо вернулось, пометка снята')
         # неважные: только это письмо, отправитель не запоминается
+        await pg.locator('#ml-list .mlr:has-text("Скидки недели")').evaluate("e=>e.scrollIntoView({block:'center'})"); await pg.wait_for_timeout(200)   # внизу экрана его закрывают уведомления
         await pg.locator('#ml-list .mlr:has-text("Скидки недели")').click(button='right'); await pg.wait_for_timeout(300); await pg.click('#ml-menu [data-mlm="minor"]'); await pg.wait_for_timeout(500)
         ok(await pg.locator('#ml-list .mlr:has-text("Скидки недели")').count()==0, '«В неважные» — письмо ушло из «Входящих»')
         ok(not any(t['Адрес отправителя']=='news@shop.ru' for t in rows('Почта: отправители')), 'отправитель не запомнен (в отличие от спама)')
@@ -172,7 +173,7 @@ async def main():
         await pg.click('#ml-view [data-ml="tagcus"]'); await pg.wait_for_timeout(300); await pg.select_option('#ml-tcus', cid); await pg.click('#ml-view [data-ml="tagsave"]'); await pg.wait_for_timeout(600)
         ok(await pg.locator('#ml-list .mlr:has-text("Акт сверки") .mltag.cus').count()==1, 'отправитель отмечен как заказчик — пометка в списке')
         ok(any(t['Адрес отправителя']=='buh@circus.ru' and t['ID заказчика']==cid for t in rows('Почта: отправители')), 'и записан в таблицу')
-        r2=pg.locator('#ml-list .mlr:has-text("Скидки недели")'); await r2.click(button='right'); await pg.wait_for_timeout(300); await pg.click('#ml-menu [data-mlm="tagno"]'); await pg.wait_for_timeout(500)
+        r2=pg.locator('#ml-list .mlr:has-text("Скидки недели")'); await r2.evaluate("e=>e.scrollIntoView({block:'center'})"); await pg.wait_for_timeout(200); await r2.click(button='right'); await pg.wait_for_timeout(300); await pg.click('#ml-menu [data-mlm="tagno"]'); await pg.wait_for_timeout(500)
         ok(await pg.locator('#ml-list .mlr:has-text("Скидки недели") .mltag.no').count()==1, 'через меню — «Не заказчик»')
         await pg.screenshot(path=f'{SHOT}/mail-menu.png')
         # «Не обработано» и «Обработано» — обе пометки вручную; по умолчанию у письма нет ни одной
