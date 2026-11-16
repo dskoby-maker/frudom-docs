@@ -111,6 +111,34 @@
 #fd-app .jcx-i:not(.jcx-dc):not(.jcx-ch){display:flex;align-items:center;gap:10px;width:100%;min-height:34px;padding:7px 10px}
 #fd-app .jcx-i i{display:inline-flex;width:16px;height:16px;flex:none;color:var(--muted);transition:color .12s,transform .2s}
 #fd-app .jcx-i i svg{width:16px;height:16px}
+/* окно «Объединить в комплект» (jnOpen) */
+#fd-dcard.jnwin{max-width:560px}
+#fd-dcard .jn-sub{margin-top:4px;font-size:13px;color:var(--muted)}
+#fd-dcard .jn-tip{margin:2px 0 14px;font-size:13px;line-height:1.45;color:var(--muted)}
+#fd-dcard .jn-h{display:flex;align-items:center;justify-content:space-between;margin:14px 0 6px;font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+#fd-dcard .jn-all{all:unset;cursor:pointer;font-size:12.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--accent);padding:2px 4px;border-radius:6px}
+#fd-dcard .jn-all:hover{background:var(--soft,#f4f1ee)}
+#fd-dcard .jn-l{display:flex;flex-direction:column;gap:6px}
+#fd-dcard .jnr{all:unset;box-sizing:border-box;display:grid;grid-template-columns:22px minmax(0,1fr) auto;align-items:center;gap:12px;width:100%;padding:10px 12px;border:1px solid var(--line,#e7e2dc);border-radius:12px;background:var(--card,#fff);transition:border-color .15s,background .15s,opacity .15s}
+#fd-dcard button.jnr{cursor:pointer}
+#fd-dcard button.jnr:hover{border-color:color-mix(in srgb,var(--accent) 40%,var(--line,#e7e2dc))}
+#fd-dcard button.jnr:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#fd-dcard .jnck{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line2,#cfc7bf);color:transparent;transition:background .15s,border-color .15s,color .15s,transform .15s}
+#fd-dcard .jnck svg{width:13px;height:13px}
+#fd-dcard .jnr[aria-pressed="true"],#fd-dcard .jnr.base{border-color:color-mix(in srgb,var(--accent) 45%,transparent);background:color-mix(in srgb,var(--accent) 6%,var(--card,#fff))}
+#fd-dcard .jnr[aria-pressed="true"] .jnck,#fd-dcard .jnr.base .jnck{background:var(--accent);border-color:var(--accent);color:#fff}
+#fd-dcard .jnr[aria-pressed="true"] .jnck{animation:jnck .22s ease}@keyframes jnck{50%{transform:scale(1.15)}}
+#fd-dcard .jnr.base .jnck{opacity:.55}
+#fd-dcard .jnr.off{opacity:.55}
+#fd-dcard .jnm{min-width:0;display:flex;flex-direction:column;gap:2px}
+#fd-dcard .jnm b{font-weight:600;font-size:14.5px}
+#fd-dcard .jnm small{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fd-dcard .jns{font-variant-numeric:tabular-nums;font-weight:500;font-size:14px;white-space:nowrap}
+#fd-dcard .jn-f{position:sticky;bottom:-18px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0 -18px;padding:12px 0 18px;background:var(--surface);border-top:1px solid var(--line,#e7e2dc)}
+#fd-dcard .jn-f span{font-size:13.5px;color:var(--muted)}#fd-dcard .jn-f span b{color:var(--ink);font-weight:600}
+#fd-dcard .jn-f .btn{flex:none}
+@media (max-width:480px){#fd-dcard .jn-f{flex-direction:column;align-items:stretch}#fd-dcard .jn-f .btn{width:100%}#fd-dcard .jnr{gap:10px;padding:10px}}
+#fd-app tr.grp.jnflash>td{animation:jnflash 1.6s ease}@keyframes jnflash{0%,40%{background:color-mix(in srgb,var(--accent) 12%,transparent)}100%{background:transparent}}
 #fd-app .jcx-i span{flex:1;min-width:0}
 #fd-app .jcx-i kbd{font:500 11px/1 var(--ui);color:var(--muted);opacity:.75}
 #fd-app .jcx-i:is(:hover,:focus-visible),#fd-app .jcx.mouse .jcx-i:focus{background:var(--accent-soft);color:var(--accent)}
@@ -7778,7 +7806,10 @@ const JCX_I={
   copy:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/><path d="M12 11v6M9 14h6"/>',
   arch:'<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/>',
   unarch:'<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',
-  kids:'<path d="m6 9 6 6 6-6"/>' };
+  kids:'<path d="m6 9 6 6 6-6"/>',
+  join:'<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/><path d="M15 7h2a2 2 0 0 1 2 2v2"/><path d="M9 17H7a2 2 0 0 1-2-2v-2"/>',
+  out:'<rect x="3" y="5" width="11" height="14" rx="2"/><path d="M17 12h5"/>',
+  split:'<rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="16" rx="2"/>' };
 const jcxIc = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${JCX_I[k]||""}</svg>`;
 /* что нажато: строка накладной, накладная внутри комплекта или комплект */
 function jcxTarget(t, arch){
@@ -7788,6 +7819,77 @@ function jcxTarget(t, arch){
   return null; }
 /* нажать кнопку строки (она может быть в свёрнутом «Ещё» — для обработчика это не важно) */
 const jcxPress = (row, sel) => { const b=row.isConnected && row.querySelector(sel); if(b){ b.click(); return true; } return false; };
+/* ===== Объединить накладные одного заказчика за один день в комплект (16.11.2026, просьба Даниила) =====
+   Комплект = общий snap.meta.batch. Номера, суммы, строки и печатные формы не меняются — только группировка. */
+const JN={g:null, U:[], sel:new Set()};
+const jnLive = k => k ? D.journal.filter(x=>x.snap && !isArch(x) && jKey(x)===k) : [];
+/* документ и все накладные его комплекта (не в архиве) */
+function jnGroup(j){ const g=jnLive(jKey(j)); return g.length>1 ? g.sort(jNumSort) : [j]; }
+/* что можно добавить: тот же заказчик, тот же день, не в архиве, не в этом комплекте; комплект добавляется целиком */
+function jnUnits(g){ const j0=g[0], ids=new Set(g.map(x=>x.id)), U=[], seen=new Set();
+  D.journal.filter(x=>x.snap && !isArch(x) && !ids.has(x.id) && x.customerId===j0.customerId && x.date===j0.date).sort(jNumSort).forEach(x=>{ if(seen.has(x.id)) return;
+    const gg=jnGroup(x); gg.forEach(y=>seen.add(y.id)); if(gg.some(y=>ids.has(y.id))) return;
+    U.push({docs:gg, ok:gg.every(y=>y.supplierId===j0.supplierId)}); });
+  return U; }
+const jnCan = g => !docLimited() && g.length && !isArch(g[0]) && jnUnits(g).some(u=>u.ok);
+function jnSum(L){ return r2(L.reduce((a,x)=>a+(+x.sum||0),0)); }
+function jnNums(L){ const n=L.slice().sort(jNumSort).map(x=>x.number); return n.length>2 ? n[0]+"–"+n[n.length-1] : n.join(", "); }
+function jnRow(L, i, on, off){ const one=L.length===1, j=L[0];
+  let pos=0; try{ L.forEach(x=>pos+=calc(x.snap.dr, x.snap).lines.length); }catch(e){}
+  const what = one ? (kLbl(j)||jWho(j).pt||"") : "комплект · "+L.length+" "+nklWord(L.length)+(new Set(L.map(kLbl)).size>1?" ("+[...new Set(L.map(kLbl).filter(Boolean))].join(", ")+")":"");
+  const sub = off ? "другой поставщик — "+supShort(sup(j.supplierId).name||"")+", в один комплект нельзя" : [what, pos?pos+" "+posWord(pos):""].filter(Boolean).join(" · ");
+  const inner=`<span class="jnck" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+    <span class="jnm"><b>№ ${esc(jnNums(L))}</b><small>${esc(sub)}</small></span><span class="jns">${fm(jnSum(L))} ₽</span>`;
+  if(i<0) return `<div class="jnr base">${inner}</div>`;
+  if(off) return `<div class="jnr off" aria-disabled="true">${inner}</div>`;
+  return `<button type="button" class="jnr" data-jnu="${i}" aria-pressed="${on}">${inner}</button>`; }
+function jnFoot(){ const L=JN.g.concat(...JN.U.filter((u,i)=>JN.sel.has(i)).map(u=>u.docs)), n=L.length, add=n-JN.g.length;
+  const t=$("#jn-tot"), b=$("#jn-go"); if(t) t.innerHTML=`В комплекте будет <b>${n} ${nklWord(n)}</b> · ${fm(jnSum(L))} ₽`;
+  if(b){ b.disabled=!add; b.textContent = add ? (JN.g.length>1?"Добавить в комплект":"Объединить")+" · "+n : "Отметьте накладные"; } }
+function jnOpen(g){ g=g.slice().sort(jNumSort); const U=jnUnits(g); if(!U.some(u=>u.ok)){ toast("info","Нечего объединять","У заказчика нет других накладных за "+fd(g[0].date)+" от того же поставщика"); return; }
+  JN.g=g; JN.U=U; JN.sel=new Set(U.map((u,i)=>u.ok?i:-1).filter(i=>i>=0));
+  const j0=g[0], inB=g.length>1, d=new Date(j0.date+"T00:00:00"); let dl=isNaN(d)?fd(j0.date):d.toLocaleDateString("ru-RU",{weekday:"long",day:"numeric",month:"long"}); dl=dl.charAt(0).toUpperCase()+dl.slice(1);
+  openCard(`<div class="dc-head"><div><div class="dc-kicker">${inB?"Добавить в комплект":"Объединить в комплект"}</div><h3>${esc(cusNm(j0.customerId)||j0.snap.c.name||"")}</h3><div class="jn-sub">${esc(dl)} · ${esc(supShort(sup(j0.supplierId).name||""))}</div></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+    <p class="jn-tip">Накладные комплекта идут в журнале одной строкой, печатаются вместе («Счета+ТОРГ», «Все УПД»), у водителя — одна задача. Номера, суммы и сами документы не меняются.</p>
+    <div class="jn-h">${inB?"Уже в комплекте":"Эта накладная"}</div><div class="jn-l">${jnRow(g,-1)}</div>
+    <div class="jn-h">Добавить ${U.length>1?`<button type="button" class="jn-all" data-jnall>${JN.sel.size===U.filter(u=>u.ok).length?"снять все":"отметить все"}</button>`:""}</div>
+    <div class="jn-l">${U.map((u,i)=>jnRow(u.docs, i, JN.sel.has(i), !u.ok)).join("")}</div>
+    <div class="jn-f"><span id="jn-tot"></span><button type="button" class="btn pri" id="jn-go" data-dc="jngo"></button></div>`, false, a=>{ if(a==="jngo") jnJoin(); });
+  const dd=$("#fd-dcard"); if(dd) dd.classList.add("jnwin"); jnFoot(); }
+document.addEventListener("click", e=>{ const b=e.target.closest("#fd-dcard [data-jnu], #fd-dcard [data-jnall]"); if(!b || !JN.g) return; e.preventDefault();
+  if(b.dataset.jnall!=null){ const ok=JN.U.map((u,i)=>u.ok?i:-1).filter(i=>i>=0), all=ok.every(i=>JN.sel.has(i)); JN.sel=new Set(all?[]:ok);
+    document.querySelectorAll("#fd-dcard [data-jnu]").forEach(x=>x.setAttribute("aria-pressed", JN.sel.has(+x.dataset.jnu))); b.textContent=all?"отметить все":"снять все"; }
+  else { const i=+b.dataset.jnu; if(JN.sel.has(i)) JN.sel.delete(i); else JN.sel.add(i); b.setAttribute("aria-pressed", JN.sel.has(i)); }
+  jnFoot(); });
+/* поменять комплект у документов; prev — как было (для «Отменить») */
+function jnSet(L, fn, what){ const prev=L.map(j=>[j, (j.snap.meta||{}).batch]);
+  UNDO.paused++; try{ L.forEach(j=>{ const m=j.snap.meta=j.snap.meta||{}, b=fn(j); if(b) m.batch=b; else delete m.batch; if(what) histPush(m, [what]); dirty("journal", j.id); }); }
+  finally{ UNDO.paused--; unResync(); }
+  return prev; }
+function jnAfter(dates, k){ docTasks(dates); saveLocal(); if(online()) flush().catch(handleErr);
+  if(k) jOpen.add(k); if(curTab==="journal") renderJournal(); if(curTab==="calendar") renderCalendar(); if(curTab==="archive" && typeof renderArchive==="function") renderArchive(); }
+function jnUndo(prev, msg){ return ()=>{ UNDO.paused++; try{ prev.forEach(([j,b])=>{ const m=j.snap.meta=j.snap.meta||{}; if(b) m.batch=b; else delete m.batch; histPush(m, ["отменено: "+msg]); dirty("journal", j.id); }); } finally{ UNDO.paused--; unResync(); }
+  logEv("Журнал","Отменено ("+msg+"): № "+jnNums(prev.map(p=>p[0]))+" от "+fd(prev[0][0].date)+" — "+jWho(prev[0][0]).main);
+  jnAfter([...new Set(prev.map(p=>p[0].date))]); toast("ok","Отменено",""); }; }
+/* новый (или общий) номер комплекта: берём уже существующий комплект, иначе новый */
+function jnJoin(){ const g=JN.g; if(!g) return; const add=JN.U.filter((u,i)=>JN.sel.has(i) && u.ok); if(!add.length) return;
+  const L=g.concat(...add.map(u=>u.docs)), big=[g].concat(add.map(u=>u.docs)).filter(x=>x.length>1).sort((a,b)=>b.length-a.length)[0];
+  const b0=big && (big[0].snap.meta||{}).batch, k0=big && jKey(big[0]), batch = b0 && k0===jKey(big[big.length-1]) && k0[0]==="B" ? b0 : uid()+uid();
+  const prev=jnSet(L, ()=>batch, "объединён в комплект: № "+jnNums(L));
+  JN.g=null; logEv("Журнал","Объединены в комплект: № "+jnNums(L)+" от "+fd(L[0].date)+" — "+jWho(L[0]).main+", "+L.length+" "+nklWord(L.length)+", "+fm(jnSum(L))+" ₽");
+  jnAfter([L[0].date], "B"+batch);
+  toast("ok","Комплект: "+L.length+" "+nklWord(L.length), "№ "+jnNums(L)+" · "+fm(jnSum(L))+" ₽", {action:{label:"Отменить", fn:jnUndo(prev,"объединение в комплект")}});
+  requestAnimationFrame(()=>{ const r=[...document.querySelectorAll("#jr-body tr.grp, #cal-body tr.grp")].find(x=>x.dataset.g==="B"+batch); if(r){ r.classList.add("jnflash"); r.scrollIntoView({block:"nearest", behavior:"smooth"}); setTimeout(()=>r.classList.remove("jnflash"),1600); } }); }
+/* убрать одну накладную из комплекта: у неё свой отдельный номер комплекта (иначе старый комплект «по времени скачивания» собрал бы её снова) */
+const jnSolo = j => (j.snap.meta||{}).dl ? "s"+uid() : "";
+function jnOut(j){ const g=jnGroup(j); if(g.length<2 || docLimited()) return;
+  const prev=jnSet([j], jnSolo, "убран из комплекта"); const rest=g.filter(x=>x.id!==j.id);
+  logEv("Журнал","Убрана из комплекта: № "+j.number+" от "+fd(j.date)+" — "+jWho(j).main+(rest.length>1?" (в комплекте осталось "+rest.length+")":" (комплект разделён)"));
+  jnAfter([j.date]); toast("ok","№ "+j.number+" — отдельной накладной", rest.length>1?"В комплекте осталось "+rest.length+" "+nklWord(rest.length):"Комплекта больше нет", {action:{label:"Отменить", fn:jnUndo(prev,"убрана из комплекта")}}); }
+function jnSplit(g){ g=g.filter(x=>!isArch(x)); if(g.length<2 || docLimited()) return;
+  const prev=jnSet(g, jnSolo, "комплект разделён");
+  logEv("Журнал","Комплект разделён: № "+jnNums(g)+" от "+fd(g[0].date)+" — "+jWho(g[0]).main+", "+g.length+" "+nklWord(g.length));
+  jnAfter([g[0].date]); toast("ok","Комплект разделён", g.length+" отдельных "+(g.length%10===1&&g.length%100!==11?"накладная":"накладных")+" · № "+jnNums(g), {action:{label:"Отменить", fn:jnUndo(prev,"разделение комплекта")}}); }
 function jcxItems(T){ const R=T.row, has=s=>!!R.querySelector(s), adm=me().admin, out=[];
   const it=(id,lbl,ic,fn,o)=>out.push(Object.assign({id,lbl,ic,fn},o||{})), sep=()=>out.length&&!out[out.length-1].sep&&out.push({sep:1});
   if(T.j){ const j=T.j, pv=!!(j.snap.c&&j.snap.c.priv);
@@ -7800,6 +7902,7 @@ function jcxItems(T){ const R=T.row, has=s=>!!R.querySelector(s), adm=me().admin
     else if(has("[data-qty]")) it("edit","Изменить количество",jcxIc("edit"),()=>jcxPress(R,"[data-qty]"));
     if(adm && !T.arch) it("zk",zkJState(j)&&zkJState(j).st==="ok"?"Закупка ✓":"Закупка",jcxIc("zk"),()=>zkPageOpen(j));
     const gk=!T.arch&&!docLimited()&&govKind(j); if(gk){ const s=govSent(j); it("gov", s?"Снять «Отправлено в "+GOV[gk]+"»":"Отправлено в "+GOV_FULL[gk], jcxIc(s?"govoff":"gov"), ()=>{ govToggle(j.id); toast("ok", s?"Отметка снята":"Отмечено: отправлено в "+GOV_FULL[gk], "№ "+j.number+" от "+fd(j.date)); }, {on:!!s}); }
+    if(!T.arch && !docLimited()){ const jg=jnGroup(j); if(jnCan(jg)) it("join", jg.length>1?"Добавить в комплект…":"Объединить в комплект…", jcxIc("join"), ()=>jnOpen(jg)); if(jg.length>1) it("out","Убрать из комплекта",jcxIc("out"),()=>jnOut(j)); }
     if(!T.arch) it("cm", cmOf(j).t?"Комментарий":"Добавить комментарий", jcxIc("cm"), ()=>{ docCard(j,false); cmFocus(); });
     it("num","Скопировать номер",jcxIc("num"),()=>jcxCopy("№ "+j.number+" от "+fd(j.date)));
     if(has("[data-x]")||has("[data-ppx]")||has("[data-copy]")) sep();
@@ -7816,6 +7919,7 @@ function jcxItems(T){ const R=T.row, has=s=>!!R.querySelector(s), adm=me().admin
     if(has("[data-gt]")) it("kids", op?"Скрыть накладные комплекта":"Показать накладные · "+g.length, jcxIc("kids"), ()=>jcxPress(R,"[data-gt]"), {flip:op});
     if(has("[data-gedit]")) it("edit","Изменить комплект",jcxIc("edit"),()=>jcxPress(R,"[data-gedit]"));
     if(adm && !T.arch) it("zk","Закупка комплекта",jcxIc("zk"),()=>bzPageOpen(g));
+    if(!T.arch && !docLimited()){ if(jnCan(g)) it("join","Добавить накладные в комплект…",jcxIc("join"),()=>jnOpen(g)); it("split","Разделить комплект",jcxIc("split"),()=>jnSplit(g)); }
     it("num","Скопировать номера",jcxIc("num"),()=>{ const n=g.map(x=>x.number); jcxCopy("№ "+(n.length>2?n[0]+"–"+n[n.length-1]:n.join(", "))+" от "+fd(g[0].date)); });
     if(has("[data-garch]")){ sep(); it("arch","Комплект в архив",jcxIc("arch"),()=>{ jcxPress(R,"[data-garch]"); jcxPress(R,"[data-garch]"); },{danger:1, confirm:"Точно в архив? Нажмите ещё раз"}); }
     if(has("[data-gunarch]")){ sep(); it("unarch","Вернуть комплект",jcxIc("unarch"),()=>jcxPress(R,"[data-gunarch]")); }
