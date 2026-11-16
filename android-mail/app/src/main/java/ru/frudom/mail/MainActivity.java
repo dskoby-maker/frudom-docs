@@ -149,7 +149,7 @@ public class MainActivity extends Activity {
         selBar = new LinearLayout(this); selBar.setGravity(Gravity.CENTER_VERTICAL); selBar.setVisibility(View.GONE);
         selBar.setPadding(Ui.dp(this, 4), Ui.dp(this, 6), Ui.dp(this, 4), Ui.dp(this, 2));
         selBar.addView(Ui.icon(this, R.drawable.ic_close, "Снять выбор", v -> selOff()));
-        selCount = Ui.line(this, "", 20, Ui.INK, true, 1); selBar.addView(selCount, new LinearLayout.LayoutParams(0, -2, 1));
+        selCount = Ui.line(this, "", 20, Ui.INK, true, 1); selCount.setPadding(Ui.dp(this, 4), 0, 0, 0); selBar.addView(selCount, new LinearLayout.LayoutParams(0, -2, 1));
         selRead = Ui.icon(this, R.drawable.ic_mail_open, "Прочитано", v -> selAct(selAnyUnread() ? "read" : "unread")); selBar.addView(selRead);
         selBar.addView(Ui.icon(this, R.drawable.ic_check, "Обработано", v -> selAct("done")));
         selBar.addView(Ui.icon(this, R.drawable.ic_archive, "В «Неважные»", v -> selAct(folder.equals("minor") ? "major" : "minor")));
@@ -324,7 +324,7 @@ public class MainActivity extends Activity {
     void toggle(String id) { if (sel.contains(id)) sel.remove(id); else sel.add(id); if (sel.isEmpty()) selMode = false; selSync(); adapter.notifyDataSetChanged(); }
     void selSync() {
         bar.setVisibility(selMode ? View.INVISIBLE : View.VISIBLE); selBar.setVisibility(selMode ? View.VISIBLE : View.GONE);
-        selCount.setText("Выбрано: " + sel.size());
+        selCount.setText(String.valueOf(sel.size())); selCount.setContentDescription("Выбрано писем: " + sel.size());
         boolean any = selAnyUnread(); selRead.setImageResource(any ? R.drawable.ic_mail_open : R.drawable.ic_mail); selRead.setContentDescription(any ? "Прочитано" : "Не прочитано");
         if (fab != null) fab.setVisibility(selMode || MailApi.ro(this) ? View.GONE : View.VISIBLE);
     }
