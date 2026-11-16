@@ -48,7 +48,7 @@ function mlEvDiff(r, a, b){ const w=[], on=k=>!!b[k]&&!a[k], off=k=>!!a[k]&&!b[k
   if(on("minor")) w.push("в «Неважные»"); else if(off("minor")) w.push("снова во «Входящих»");
   if(b.st!==a.st){ if(b.st==="taken") w.push("сделаны документы по заявке"+(b.cid&&typeof cusNm==="function"?" ("+cusNm(b.cid)+")":"")); else if(b.st==="no") w.push("отмечено: не заявка"); else if(b.st) w.push("отмечено: заявка"); }
   if(w.length) mlEv(w.join(", ").replace(/^./,c=>c.toUpperCase())+" — "+mlEvW(r)); }
-function mlOrdPatch(r, patch, read){ const o0=Object.assign({}, mlOrdSt(r)||{}), o=Object.assign({}, mlOrdSt(r)||{}, patch); Object.keys(o).forEach(k=>{ if(o[k]==null) delete o[k]; }); r.order=Object.keys(o).length?JSON.stringify(o):""; const x={id:r.id, order:r.order}; if(read) x.read=1; mlSet([x]); try{ mlEvDiff(r, o0, o); }catch(e){} }
+function mlOrdPatch(r, patch, read){ const o0=Object.assign({}, mlOrdSt(r)||{}), o=Object.assign({}, mlOrdSt(r)||{}, patch); Object.keys(o).forEach(k=>{ if(o[k]==null) delete o[k]; }); r.order=Object.keys(o).length?JSON.stringify(o):""; const x={id:r.id, order:r.order, patch:Object.assign({}, patch)}; if(read) x.read=1; mlSet([x]); try{ mlEvDiff(r, o0, o); }catch(e){} }
 const ML_IC_OK='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const mlDate = iso => { const d=new Date(iso); if(isNaN(d)) return ""; const t=todayISO(), x=jIso(d); return x===t ? d.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}) : x.slice(0,4)===t.slice(0,4) ? d.toLocaleDateString("ru-RU",{day:"numeric",month:"short"}).replace(".","") : fd(x); };
 const mlFull = iso => { const d=new Date(iso); return isNaN(d) ? "" : d.toLocaleString("ru-RU",{day:"numeric",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"}); };
@@ -87,7 +87,7 @@ async function mlLoad(force, quiet){ if(!online()) return; if(ML.sync) return;
   ML.sync=false; ML.loaded=true; mlBadge(); if(curTab==="mail") mlDraw(); }
 function mlTake(j){ if(Array.isArray(j.tags)){ ML.tags={}; j.tags.forEach(t=>{ if(t.id) ML.tags[String(t.id).toLowerCase()]={kind:t.kind, customerId:t.customerId, by:t.by, at:t.at}; }); ML.tagSrv=true; } else if(Array.isArray(j.rows) && (D.srvVer||0) && D.srvVer<32) ML.tagSrv=false;
   if(Array.isArray(j.folders)){ ML.folders=j.folders; ML.fldSrv=true; } else if(Array.isArray(j.rows) && ML.fldSrv!==true){ ML.fldSrv=false; ML.folders=(getPrefs().mlFolders||[]); }
-  if(Array.isArray(j.rows)) ML.rows=j.rows; if(Array.isArray(j.acc)) ML.acc=j.acc; if(j.proxy!=null) ML.proxy=!!j.proxy; }
+  if(Array.isArray(j.rows)){ ML.rows=j.rows; if(j.now) ML.chAt=j.now; } if(Array.isArray(j.acc)) ML.acc=j.acc; if(j.proxy!=null) ML.proxy=!!j.proxy; }
 function mlBadge(){ const n=ML.rows.filter(mlUnIn).length; document.querySelectorAll('#fd-app nav.tabs button[data-tab="mail"], #mbar [data-mt="mail"]').forEach(b=>{ if(n) b.dataset.n=n>99?"99+":n; else delete b.dataset.n; }); }
 function renderMail(){ if(!$("#ml")) return; mlDraw(); if(!ML.loaded || Date.now()-ML.at>120000) mlLoad(false, ML.loaded); }
 setInterval(()=>{ if(online() && ML.acc.length && !document.hidden) mlLoad(false, true); }, 300000);
@@ -185,7 +185,30 @@ async function mlOpen(id){ if(mlMob()) mlLayer("v"); ML.sel=id; ML.comp=null; ML
   const v=$("#ml-view"); if(v){ v.innerHTML=mlViewHtml(); mlCompFocus(); v.classList.add("fresh"); setTimeout(()=>v.classList.remove("fresh"),300); } mlBadge(); mlListMark(); }
 function mlListMark(){ mlPgSync(); document.querySelectorAll("#ml-list .mlr").forEach(b=>{ const r=ML.rows.find(x=>x.id===b.dataset.mlid); b.classList.toggle("sel", b.dataset.mlid===ML.sel); if(r) b.classList.toggle("un", mlUnread(r)); }); const w=$("#ml .mlw"); if(w) w.classList.toggle("vopen", !!(ML.sel||ML.comp)); }
 function mlScrollView(){ if(mlMob()) return; if(matchMedia("(max-width:899px)").matches){ const v=$("#ml .mlw"); if(v) window.scrollTo({top:v.getBoundingClientRect().top+window.scrollY-80, behavior:"smooth"}); } }
-async function mlSet(L){ try{ await api({action:"mail", op:"set", rows:L}); }catch(e){} }
+/* свои неотправленные отметки: пока таблица не ответила, живое обновление их не перетирает */
+ML.pend={};
+async function mlSet(L){ const ids=L.map(x=>x.id), t=Date.now(); ids.forEach(id=>ML.pend[id]=t);
+  try{ await api({action:"mail", op:"set", rows:L}); }catch(e){}
+  setTimeout(()=>ids.forEach(id=>{ if(ML.pend[id]===t) delete ML.pend[id]; }), 4000); }
+/* живое обновление (Code.gs ≥ 41): раз в 20 с, пока открыта «Почта», забираются только письма, изменённые после прошлого раза —
+   отметки Натальи, Даниила, приложения «Почта ФД», новые письма. Своё неотправленное не перетирается (ML.pend). */
+function mlChMerge(j){ let ch=0; if(!j) return 0;
+  if(Array.isArray(j.rows)) j.rows.forEach(x=>{ if(!x||!x.id||ML.pend[x.id]) return; const i=ML.rows.findIndex(r=>r.id===x.id);
+    if(i<0){ ML.rows.push(x); ch++; return; } const r=ML.rows[i]; if(["read","order","ans","subject","snippet","atts","attsText","body"].some(k=>String(r[k]||"")!==String(x[k]||""))){ ML.rows[i]=Object.assign(r, x); ch++; } });
+  if(ch) ML.rows.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  const ts=JSON.stringify(ML.tags||{}), fs=JSON.stringify(ML.folders||[]); mlTake({tags:j.tags, folders:j.folders, acc:j.acc}); if(ts!==JSON.stringify(ML.tags||{})||fs!==JSON.stringify(ML.folders||[])) ch++;
+  if(j.now) ML.chAt=j.now; return ch; }
+async function mlPoll(){ if(ML.noCh || ML.polling || ML.sync || !ML.loaded || !ML.chAt || document.hidden || !online()) return; if(curTab!=="mail" && !(typeof MAILAPP!=="undefined" && MAILAPP)) return;
+  ML.polling=true;
+  try{ const after=new Date(Date.parse(ML.chAt)-30000).toISOString(), j=await api({action:"mail", op:"changes", after});
+    if(mlChMerge(j)) ML.drawLater=1;
+    /* не перерисовывать, пока человек печатает (поиск, ответ) или открыто меню — дорисуется в следующий раз */
+    const ae=document.activeElement, typing=ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.closest && ae.closest("#ml,#ml-ov"), menu=document.querySelector("#ml-menu:not([hidden]), .mlfm:not([hidden])");
+    if(ML.drawLater){ mlBadge(); if(curTab==="mail" && !typing && !menu){ ML.drawLater=0; mlDraw(); } } }
+  catch(e){ if(/unknown op/.test(e.message||"")) ML.noCh=true; }
+  ML.polling=false; }
+setInterval(mlPoll, 20000);
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) setTimeout(mlPoll, 300); });
 /* ---------- вложения ---------- */
 async function mlAttGet(r, i){ const x=mlAtts(r)[i]; const j=await api({action:"mail", op:"att", id:r.id, i}); if(!x.f){ x.f="1"; r.atts=JSON.stringify(mlAtts(r).map((y,k)=>k===i?Object.assign(y,{f:"1"}):y)); }
   const bin=atob(j.data), u8=new Uint8Array(bin.length); for(let k=0;k<bin.length;k++) u8[k]=bin.charCodeAt(k); return new File([u8], j.name||x.n, {type:j.mime||x.m||"application/octet-stream"}); }
@@ -660,15 +683,15 @@ function mlSetMany(L){ const run=async()=>{ for(let i=0;i<L.length;i+=200) await
 const mlRaList = () => mlList().filter(r=>r.dir!=="sent" && !r.read);
 function mlBulk(L, act){ const S=L.map(r=>({id:r.id, read:r.read||"", order:r.order||""})), tags=[], untag=[], out=[], now={by:curUser(), at:new Date().toISOString()};
   L.forEach(r=>{ if(act!=="read"&&act!=="unread"&&r.dir==="sent") return; if((act==="read"||act==="unread")&&r.dir==="sent") return;
-    const o=Object.assign({}, mlOrdSt(r)||{}); let rd=null, ord=true;
+    const o=Object.assign({}, mlOrdSt(r)||{}); let rd=null, ord=true, P={};
     if(act==="read"){ r.read="1"; rd=1; ord=false; } else if(act==="unread"){ r.read=""; rd=0; ord=false; }
-    else if(act==="done"){ o.done=now; delete o.todo; r.read="1"; rd=1; }
-    else if(act.startsWith("fld:")){ const f=act.slice(4); if(f) o.fld=f; else delete o.fld; delete o.minor; }
-    else if(act==="minor"){ o.minor=1; r.read="1"; rd=1; } else if(act==="major"){ delete o.minor; }
-    else if(act==="spam"){ o.spam=1; delete o.minor; r.read="1"; rd=1; const em=mlAddr(r); if(em && (mlTag(em)||{}).kind!=="spam" && !tags.includes(em)) tags.push(em); }
-    else if(act==="nospam"){ o.spam=0; const em=mlAddr(r); if(em && (mlTag(em)||{}).kind==="spam" && !untag.includes(em)) untag.push(em); }
-    if(ord){ Object.keys(o).forEach(k=>{ if(o[k]==null) delete o[k]; }); r.order=Object.keys(o).length?JSON.stringify(o):""; }
-    const x={id:r.id}; if(rd!=null) x.read=rd; if(ord) x.order=r.order; out.push(x); });
+    else if(act==="done"){ P={done:now, todo:null}; r.read="1"; rd=1; }
+    else if(act.startsWith("fld:")){ const f=act.slice(4); P={fld:f||null, minor:null}; }
+    else if(act==="minor"){ P={minor:1}; r.read="1"; rd=1; } else if(act==="major"){ P={minor:null}; }
+    else if(act==="spam"){ P={spam:1, minor:null}; r.read="1"; rd=1; const em=mlAddr(r); if(em && (mlTag(em)||{}).kind!=="spam" && !tags.includes(em)) tags.push(em); }
+    else if(act==="nospam"){ P={spam:0}; const em=mlAddr(r); if(em && (mlTag(em)||{}).kind==="spam" && !untag.includes(em)) untag.push(em); }
+    if(ord){ Object.assign(o, P); Object.keys(o).forEach(k=>{ if(o[k]==null) delete o[k]; }); r.order=Object.keys(o).length?JSON.stringify(o):""; }
+    const x={id:r.id}; if(rd!=null) x.read=rd; if(ord){ x.order=r.order; x.patch=P; } out.push(x); });
   if(out.length){ mlSetMany(out); try{ const fl=act.startsWith("fld:")?act.slice(4):null, nm=fl!=null?(fl?"В папку «"+((mlFldOf(fl)||{}).name||"")+"»":"Снова во «Входящих»"):(ML_BT[act]||act), lst=L.filter(r=>out.some(x=>x.id===r.id));
       mlEv(nm+(lst.length===1?" — "+mlEvW(lst[0]):": "+lst.length+" "+plural(lst.length,["письмо","письма","писем"])+" ("+lst.slice(0,3).map(r=>"«"+String(r.subject||"без темы").slice(0,40)+"»").join(", ")+(lst.length>3?"…":"")+")")); }catch(e){} }
   tags.forEach(em=>mlTagSet(em,"spam","",true)); untag.forEach(em=>mlTagSet(em,"","",true));

@@ -9503,6 +9503,7 @@ function appMail(id, how){ if(how==="logout"){ if(pass() && $("#fd-login").hidde
   if(!id){ if(!how) return "ok"; if(!ML.loaded) return "wait";   /* ярлыки на значке: «Написать письмо», «Заявки»; сводка уведомлений — «Входящие» */
     if(ML.layer) mlLayerOff();
     if(how==="new"){ if(mlRO()) return "ok"; ML.sel=""; mlCompose("new"); return "ok"; }
+    if(how==="set"){ if(me().admin) mlSetOpen(); return "ok"; }   /* «Ящики и посредник» из приложения */
     if(ML_FN[how]){ ML.f=how; ML.box=""; ML.q=""; ML.more=0; mlDraw(); window.scrollTo({top:0}); }
     return "ok"; }
   if(APPM.id!==id){ APPM.id=id; APPM.n=0; APPM.sync=0; }

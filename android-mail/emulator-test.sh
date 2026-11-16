@@ -13,8 +13,22 @@ adb exec-out screencap -p > shot1.png
 adb shell am start -W -n ru.frudom.mail/.MainActivity --ez demo true --es open d1; sleep 5     # письмо
 adb exec-out screencap -p > shot2.png
 adb shell input keyevent 4; sleep 2
-adb shell am start -W -n ru.frudom.mail/.MainActivity --ez demo true --es acts d2; sleep 4     # долгое нажатие — действия
+adb shell am start -W -n ru.frudom.mail/.MainActivity --ez demo true --es acts d2; sleep 4     # меню письма
 adb exec-out screencap -p > shot3.png
+adb shell input keyevent 4; sleep 1
+adb shell am start -W -n ru.frudom.mail/.MainActivity --ez demo true --es pick d2; sleep 4     # выбор нескольких писем
+adb exec-out screencap -p > shot6.png
+adb shell input keyevent 4; sleep 1
+adb shell am start -W -n ru.frudom.mail/.MainActivity --ez demo true --es swipe d2; sleep 3    # «В неважные» + «Отменить»
+adb exec-out screencap -p > shot7.png
+adb shell am start -W -n ru.frudom.mail/.MainActivity --ez demo true --es compose reply; sleep 5   # ответ своим экраном
+adb exec-out screencap -p > shot8.png
+adb shell input keyevent 4; sleep 1; adb shell input keyevent 4; sleep 2
+adb shell am start -W -n ru.frudom.mail/.MainActivity --ez demo true --es att d1:0; sleep 6    # просмотр PDF
+adb exec-out screencap -p > shot9.png
+adb shell input keyevent 4; sleep 1
+adb shell am start -W -n ru.frudom.mail/.MainActivity --ez demo true --es att d1:1; sleep 5    # просмотр фото
+adb exec-out screencap -p > shot10.png
 adb shell input keyevent 4; sleep 1
 adb shell am force-stop ru.frudom.mail
 adb shell am start -W -n ru.frudom.mail/.MainActivity; sleep 25          # без входа — вход сайтом

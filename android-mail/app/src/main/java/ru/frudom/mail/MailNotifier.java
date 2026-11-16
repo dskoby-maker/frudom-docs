@@ -242,12 +242,12 @@ public final class MailNotifier {
 
     static String word(int n) { int a = n % 100, b = n % 10; return a >= 11 && a <= 14 ? "новых писем" : b == 1 ? "новое письмо" : b >= 2 && b <= 4 ? "новых письма" : "новых писем"; }
 
-    /** нажатие на уведомление: письмо — настоящим экраном (поверх списка, «Назад» — к списку), ответ — сайтом, сводка — список «Входящие» */
+    /** нажатие на уведомление: письмо — настоящим экраном (поверх списка, «Назад» — к списку), ответ — своим экраном ответа, сводка — список «Входящие» */
     static PendingIntent open(Context c, String id, String how, int req) {
         Intent list = new Intent(c, MainActivity.class).setAction("ru.frudom.mail.LIST").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP).putExtra("folder", "in");
         if (id == null || id.isEmpty()) return PendingIntent.getActivity(c, req, list, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Intent next = how != null && !how.isEmpty()
-            ? new Intent(c, WebActivity.class).putExtra("mail", id).putExtra("how", how)
+            ? new Intent(c, ComposeActivity.class).putExtra("id", id).putExtra("kind", how)
             : new Intent(c, LetterActivity.class).putExtra("id", id);
         next.setAction("ru.frudom.mail.OPEN." + req);
         return PendingIntent.getActivities(c, req, new Intent[]{list, next}, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
@@ -330,9 +330,10 @@ public final class MailNotifier {
     }
 
     /** POST JSON; после перенаправления Apps Script ответ забирается обычным GET */
-    static String post(String url, String json) throws Exception {
+    static String post(String url, String json) throws Exception { return post(url, json, 60000); }
+    static String post(String url, String json, int readMs) throws Exception {
         HttpURLConnection h = (HttpURLConnection) new URL(url).openConnection();
-        h.setInstanceFollowRedirects(false); h.setConnectTimeout(20000); h.setReadTimeout(60000);
+        h.setInstanceFollowRedirects(false); h.setConnectTimeout(20000); h.setReadTimeout(readMs);
         h.setRequestMethod("POST"); h.setDoOutput(true); h.setRequestProperty("Content-Type", "text/plain;charset=utf-8");
         h.setRequestProperty("User-Agent", "FrudomMailApp/notify");
         try (OutputStream o = h.getOutputStream()) { o.write(json.getBytes(StandardCharsets.UTF_8)); }

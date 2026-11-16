@@ -37,6 +37,16 @@
         android:exported="false"
         android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|uiMode|density|fontScale"/>
     <activity
+        android:name=".ComposeActivity"
+        android:exported="true"
+        android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|uiMode|density|fontScale"
+        android:windowSoftInputMode="adjustResize|stateVisible"/>
+    <activity
+        android:name=".ViewerActivity"
+        android:exported="false"
+        android:theme="@style/AppTheme"
+        android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|uiMode|density|fontScale"/>
+    <activity
         android:name=".WebActivity"
         android:exported="true"
         android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode|density|fontScale"
