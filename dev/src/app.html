@@ -157,6 +157,12 @@
 #fd-app .jimpf[aria-pressed="true"]{background:var(--imp-soft);border-color:rgba(192,57,43,.4);color:var(--imp-ink);font-weight:600}
 #fd-app .jimpf[aria-pressed="true"] i{transform:scale(1.15);box-shadow:0 0 0 3px rgba(192,57,43,.16)}
 #fd-app .jimpf[aria-pressed="true"] em{background:var(--imp);color:#fff}
+#fd-app .jcmf .jcmfi{display:inline-flex;width:16px;height:16px;color:var(--accent);flex:none}#fd-app .jcmf .jcmfi svg{width:16px;height:16px}
+#fd-app .jcmf .jcmfs{display:none}
+#fd-app .jcmf em{background:var(--accent-soft);color:var(--accent)}
+#fd-app .jcmf:hover{border-color:rgba(106,44,78,.35)}
+#fd-app .jcmf[aria-pressed="true"]{background:var(--accent-soft);border-color:rgba(106,44,78,.4);color:var(--accent)}
+#fd-app .jcmf[aria-pressed="true"] em{background:var(--accent);color:#fff}
 #fd-app .jimpf.pop{animation:jimpPop .35s cubic-bezier(.2,.8,.2,1)}@keyframes jimpPop{40%{transform:scale(.95)}}
 #fd-app #jr-body.jimpon>tr:not(.dsep){animation:fdin .28s ease both}
 /* переключатель «Важное» в блоке комментария: флажок */
@@ -1422,6 +1428,9 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
   #fd-app .jsum .btn.jtoday{flex:1 1 100%;background:var(--accent-soft);color:var(--accent)}
   #fd-app .jsum .btn.jimpf{flex:1 1 calc(50% - 4px);background:var(--surface);color:var(--muted)}#fd-app .jsum .btn.jimpf[aria-pressed="true"]{background:rgba(192,57,43,.09);color:#b23a2e}
   #fd-app .jsum .btn.jimpf:not([hidden])+.jtoday{flex:1 1 calc(50% - 4px)}
+#fd-app .jsum .btn.jcmf:not([hidden])+.jimpf:not([hidden])+.jtoday{flex:1 1 100%}
+#fd-app .jsum .btn.jcmf[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+#fd-app .jsum .btn.jimpf{min-width:0;padding-left:8px;padding-right:8px;white-space:nowrap}#fd-app .jcmf .jcmfl{display:none}#fd-app .jcmf .jcmfs{display:inline}
   #fd-app tr.dsep .ds{flex-wrap:wrap;row-gap:2px}
   #fd-app tr.dsep .ds span{order:4;flex-basis:100%;margin-left:19px}
   #fd-app :is(#jr-body,#cal-body,#ar-body)>tr:not(.dsep):not(.kids){grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"nm dt sm" "who who sm" "pr pr pr" "acts acts acts";gap:2px 10px;align-items:start;padding-top:14px;padding-bottom:14px}
@@ -2117,6 +2126,11 @@ dialog .ndr-a{display:flex;gap:6px;flex:none}
 #fd-app .pvrpf{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:12.5px}
 #fd-app .pvrpl{font-weight:650;color:var(--accent);font-size:13.5px}
 /* общий выбор периода (rpgBar / rpgOpen в pfv_seg.js) */
+/* фильтры журнала и др. (.jf): подпись — строка 20 px, поле — 42 px, всё на одной линии (16.11.2026) */
+#fd-app .jf>label.f:not([hidden]),#fd-app .jf>.rpgf{display:grid;grid-template-rows:20px auto;row-gap:4px;align-content:start;align-self:start}
+#fd-app .jf>label.f>.fh{min-height:20px;line-height:20px}#fd-app .jf>.rpgf>.rpgfl{line-height:20px}
+#fd-app .jf>label.f>:is(select,input:not([type=checkbox])),#fd-app .jf>label.f>.cpkw,#fd-app .jf>label.f>.cpkw>.cpk,#fd-app .jf>.rpgf .rpgw{height:42px;min-height:42px;box-sizing:border-box;margin:0}
+#fd-app .jf>.rpgf .rpgw .pvrpb{height:100%}
 #fd-app .rpgw{display:inline-flex;align-items:center;gap:2px;max-width:100%;padding:3px;border-radius:12px;background:var(--surface-2,rgba(28,34,32,.04));border:1px solid var(--line)}
 #fd-app .rpgw .pvarr{flex:none}
 #fd-app .rpgf{grid-column:span 2;display:grid;grid-template-columns:minmax(0,1fr);gap:4px;align-content:start;min-width:0}#fd-app .rpgslot{min-width:0}#fd-app .rpgfl{font-size:12px;color:var(--muted);letter-spacing:.02em}
@@ -2941,7 +2955,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
         <label class="f jq">Поиск<input id="jr-q" placeholder="номер, адрес, товар…"></label>
         <label class="f jso">Порядок<select id="jr-sort"><option value="cr_d">Сначала новые (по созданию)</option><option value="cr_a">Сначала старые (по созданию)</option><option value="dt_d">Дата документа: новые сверху</option><option value="dt_a">Дата документа: старые сверху</option><option value="nm_d">Номер: по убыванию</option><option value="nm_a">Номер: по возрастанию</option><option value="sm_d">Сумма: больше сверху</option><option value="sm_a">Сумма: меньше сверху</option><option value="cu_a">Заказчик: А–Я</option></select></label>
       </div>
-      <div class="row jsum"><span id="jr-sum" class="muted"></span><span class="muted" id="jr-msg" style="color:var(--accent)"></span><span style="flex:1"></span><button type="button" class="btn sm jimpf" id="jr-imp" aria-pressed="false" hidden title="Показать только документы с важным комментарием"><i aria-hidden="true"></i><span>Важные</span><em id="jr-impn"></em></button><button class="btn sm jtoday" id="jr-today" title="Плавно прокрутить к документам на сегодня"><span>Сегодня</span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button><button class="btn ghost sm" id="jr-reset">Сбросить фильтры</button><button class="btn ghost sm" id="jr-refresh">Обновить</button></div>
+      <div class="row jsum"><span id="jr-sum" class="muted"></span><span class="muted" id="jr-msg" style="color:var(--accent)"></span><span style="flex:1"></span><button type="button" class="btn sm jimpf jcmf" id="jr-cm" aria-pressed="false" hidden title="Показать только документы с комментарием"><b class="jcmfi" aria-hidden="true"></b><span class="jcmfl">С комментарием</span><span class="jcmfs">Комментарии</span><em id="jr-cmn"></em></button><button type="button" class="btn sm jimpf" id="jr-imp" aria-pressed="false" hidden title="Показать только документы с важным комментарием"><i aria-hidden="true"></i><span>Важные</span><em id="jr-impn"></em></button><button class="btn sm jtoday" id="jr-today" title="Плавно прокрутить к документам на сегодня"><span>Сегодня</span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button><button class="btn ghost sm" id="jr-reset">Сбросить фильтры</button><button class="btn ghost sm" id="jr-refresh">Обновить</button></div>
       <div class="tbl"><table class="stack jt" data-full="2,5"><thead id="jr-head"><tr><th data-js="dt">Дата</th><th data-js="nm">№</th><th data-js="cu">Заказчик и точка</th><th class="num" data-js="sm">Сумма</th><th>Распечатан со склада</th><th class="acts"></th></tr></thead><tbody id="jr-body"></tbody></table></div>
       <p class="muted" style="font-size:12px">Документ открывается ровно в том виде, в каком был создан. Нажмите на название заказчика — откроется карточка документа или комплекта. «Комплект» — документы одной заявки: стрелка справа показывает каждый документ, карандаш открывает комплект на правку во вкладке «Заявка», корзина убирает комплект в архив.</p>
     </div>
@@ -6596,7 +6610,7 @@ function renderJournal(){
   $("#jr-sk").value=f.sk||""; $("#jr-skw").hidden=!(SK_READY && SK && skSrv!==false);
   const skOk=j=>{ if(!f.sk) return true; const st=skJState(j); return f.sk==="any"?!!st:f.sk==="wait"?(st==="wait"||st==="short"):st==="short"; };
   const base=live.filter(j=>j.date>=d1 && j.date<=d2 && (!f.sup||j.supplierId===f.sup) && (!f.cus||j.customerId===f.cus) && (!f.br||j.snap.dr.branchId===f.br) && jMatch(j,q) && skOk(j));
-  const rows=jImpFilter(jGovFilter(base, f), f, live).sort(jSorter(f.sort||"cr_d"));
+  const rows=jCmFilter(jImpFilter(jGovFilter(base, f), f, live), f, live).sort(jSorter(f.sort||"cr_d"));
   $("#jr-sort").value=f.sort||"cr_d";
   document.querySelectorAll("#jr-head th[data-js]").forEach(th=>{ const k=th.dataset.js, s=f.sort||"cr_d"; th.classList.toggle("sorted", s.startsWith(k)); th.dataset.dir = s.startsWith(k) ? (s.endsWith("_a")?"▲":"▼") : ""; });
   const out=jBuild(rows,false,jOpen,(f.sort||"cr_d").startsWith("dt")), tot=r2(rows.reduce((a,j)=>a+(+j.sum||0),0)), na=D.journal.length-live.length;
@@ -6669,6 +6683,16 @@ function jImpFilter(rows, f, live){ const b=$("#jr-imp"), n=rows.filter(cmImp).l
   if(b){ b.hidden=!any && !f.imp; b.setAttribute("aria-pressed", String(!!f.imp)); const e=$("#jr-impn"); if(e) e.textContent=n;
     b.title=f.imp?"Показаны только важные — нажмите, чтобы показать все":"Показать только документы с важным комментарием"; }
   return f.imp ? rows.filter(cmImp) : rows; }
+/* «С комментарием · N» — только документы с комментарием (16.11.2026, просьба Даниила); вместе с «Важные» и другими фильтрами */
+const cmHas = j => !!cmOf(j).t;
+function jCmFilter(rows, f, live){ const b=$("#jr-cm"), n=rows.filter(cmHas).length, any=live.some(cmHas);
+  if(!any && f.cm) f.cm=false;
+  if(b){ b.hidden=!any && !f.cm; b.setAttribute("aria-pressed", String(!!f.cm)); const e=$("#jr-cmn"); if(e) e.textContent=n;
+    const ic=b.querySelector(".jcmfi"); if(ic && !ic.firstChild) ic.innerHTML=IC_CM;
+    b.title=f.cm?"Показаны только документы с комментарием — нажмите, чтобы показать все":"Показать только документы с комментарием"; }
+  return f.cm ? rows.filter(cmHas) : rows; }
+$("#jr-cm").onclick=()=>{ const b=$("#jr-cm"), f=JF(); b.classList.remove("pop"); void b.offsetWidth; b.classList.add("pop");
+  const body=$("#jr-body"); body.classList.add("jimpon"); jfSet("cm", !f.cm); setTimeout(()=>body.classList.remove("jimpon"), 450); };
 $("#jr-imp").onclick=()=>{ const b=$("#jr-imp"), f=JF(); b.classList.remove("pop"); void b.offsetWidth; b.classList.add("pop");
   const body=$("#jr-body"); body.classList.add("jimpon"); jfSet("imp", !f.imp); setTimeout(()=>body.classList.remove("jimpon"), 450); };
 $("#jr-reset").onclick=()=>{ D.jf={per:"all",sup:"",cus:"",br:"",q:"",from:"",to:"",sort:"cr_d"}; saveLocal(); $("#jr-q").value=""; renderJournal(); };
