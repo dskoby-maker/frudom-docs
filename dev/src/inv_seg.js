@@ -42,9 +42,9 @@ const invLineSum = x => r2((+num(x.qty)||0)*(+num(x.price)||0));
 function invRowHtml(r,i){ const d=invData(r), c=cus(r.customerId)||{}, n=(d.docs||[]).length;
     return `<div class="invr" role="button" tabindex="0" data-inv="${r.id}" style="--d:${Math.min(i,12)*22}ms">
       <span class="invd"><b>№ ${esc(r.number)}</b><small>${fd(r.date)}</small></span>
-      <span class="invw"><b>${esc(cusNm(r.customerId)||"заказчик удалён")}${r.place?` <em>${esc(r.place)}</em>`:""}</b><small>${[r.period, n?`${n} ${plural(n,["накладная","накладные","накладных"])}`:"без накладных", esc(sup(r.supplierId).name||"")].filter(Boolean).join(" · ")}${invPayChip(r)}</small></span>
-      <span class="invs">${fm(+r.sum||0)} ₽</span>
-      <span class="inva"><button type="button" class="btn sm" data-invp="${r.id}">Открыть счёт</button><button type="button" class="btn ghost sm" data-inve="${r.id}">Изменить</button></span></div>`; }
+      <span class="invw"><b>${esc(cusNm(r.customerId)||"заказчик удалён")}${r.place?` <em>${esc(r.place)}</em>`:""}</b><small>${[r.period, n?`${n} ${plural(n,["накладная","накладные","накладных"])}`:"без накладных", esc(sup(r.supplierId).name||"")].filter(Boolean).join(" · ")}</small></span>
+      <span class="invs">${fm(+r.sum||0)} ₽${invPayOk()&&!invArch(r)?invPaySub(r):""}</span>
+      <span class="inva">${invPayBtn(r)}<button type="button" class="btn sm" data-invp="${r.id}">Открыть счёт</button><button type="button" class="btn ghost sm" data-inve="${r.id}">Изменить</button></span></div>`; }
 let INVF={q:"", cus:"", per:"", arch:false, pay:"", sort:"new"};
 function renderInvoices(){ if(!invCan() || !$("#inv-list")) return;
   const old=$("#inv-old"); old.innerHTML = D.invSrv===false ? `<div class="sknoteb">Чтобы счета сохранялись в таблице и были видны всем — обновите Code.gs (версия 14). До этого создать счёт нельзя: таблица его не сохранит. <button type="button" class="btn sm" id="srvOldHow">Как обновить</button></div>` : "";
@@ -56,11 +56,12 @@ function renderInvoices(){ if(!invCan() || !$("#inv-list")) return;
 /* общий отбор и порядок счетов: поиск, заказчик, период, оплата, порядок (окно «Все счета» и блок «Последние счета») */
 const INV_SORT=[["new","Сначала новые"],["old","Сначала старые"],["sumd","Сумма: больше"],["suma","Сумма: меньше"],["num","По номеру"],["cus","По заказчику"]];
 const INV_PER=[["","Всё время"],["m0","Этот месяц"],["m1","Прошлый месяц"],["y","Этот год"]];
-const INV_PAY=[["","Все"],["due","Не оплачены"],["part","Частично"],["paid","Оплачены"]];
+const INV_PAY=[["open","К оплате"],["paid","Оплачены"],["","Все"]];   /* «папки»: к оплате (не оплачен / частично) · оплаченные · все */
+const invPayHit = (r, pay) => { const st=invPayState(r).st; return pay==="open" ? st!=="paid" : st===pay; };
 function invSel(f){ const q=String(f.q||"").toLowerCase().replace(/ё/g,"е").trim(), w=q.split(/\s+/).filter(Boolean);
   let from="", to=""; if(f.per==="m0") [from,to]=invMonth(0); else if(f.per==="m1") [from,to]=invMonth(1); else if(f.per==="y"){ from=todayISO().slice(0,4)+"-01-01"; to=todayISO().slice(0,4)+"-12-31"; }
   const pay=f.pay && invPayOk() ? f.pay : "";
-  const L=invRows().filter(r=>invArch(r)===!!f.arch && (!f.cus || r.customerId===f.cus) && (!from || (r.date>=from && r.date<=to)) && (!pay || invPayState(r).st===pay) && (!w.length || (()=>{ const d=invData(r), t=[r.number, (cus(r.customerId)||{}).name, cusNm(r.customerId), r.place, r.period, d.basis, d.note, sup(r.supplierId).name, ...(d.lines||[]).map(x=>x.name)].join(" ").toLowerCase().replace(/ё/g,"е"); return w.every(x=>t.includes(x)); })()));
+  const L=invRows().filter(r=>invArch(r)===!!f.arch && (!f.cus || r.customerId===f.cus) && (!from || (r.date>=from && r.date<=to)) && (!pay || invPayHit(r, pay)) && (!w.length || (()=>{ const d=invData(r), t=[r.number, (cus(r.customerId)||{}).name, cusNm(r.customerId), r.place, r.period, d.basis, d.note, sup(r.supplierId).name, ...(d.lines||[]).map(x=>x.name)].join(" ").toLowerCase().replace(/ё/g,"е"); return w.every(x=>t.includes(x)); })()));
   const byNew=(a,b)=>String(b.date).localeCompare(String(a.date)) || invNumN(b.number)-invNumN(a.number);
   const S={new:byNew, old:(a,b)=>-byNew(a,b), sumd:(a,b)=>(+b.sum||0)-(+a.sum||0)||byNew(a,b), suma:(a,b)=>(+a.sum||0)-(+b.sum||0)||byNew(a,b),
     num:(a,b)=>invNumN(b.number)-invNumN(a.number)||byNew(a,b), cus:(a,b)=>String(cusNm(a.customerId)||"").localeCompare(String(cusNm(b.customerId)||""),"ru")||byNew(a,b)};
@@ -109,13 +110,16 @@ function invCard(id){ const r=invRows().find(x=>x.id===id); if(!r) return; const
 const invPayOk = () => !!(me()&&me().admin) && pfLoaded;
 const invDocsOf = r => (invData(r).docs||[]).map(x=>D.journal.find(j=>j.id===x)).filter(j=>j && j.snap && !isArch(j)).sort((a,b)=>String(a.date).localeCompare(String(b.date))||jNumSort(a,b));
 function invPayState(r, docs){ docs=docs||invDocsOf(r); let tot=0, s=0, k=0, last="";
+  if(!docs.length){ const pd=invData(r).paid, t=r2(+r.sum||0); return {n:0, k:pd?1:0, tot:t, s:pd?t:0, left:pd?0:t, last:pd?pd.d||"":"", own:1, st:pd?"paid":"due"}; }
   docs.forEach(j=>{ const p=payOf(j); tot+=p.tot; s+=p.s; if(p.st==="paid") k++; if(p.d>last) last=p.d; });
   tot=r2(tot); s=r2(s); return {n:docs.length, k, tot, s, left:r2(tot-s), last, st: !docs.length ? "" : s>=tot-0.005 ? "paid" : s>0 ? "part" : "due"}; }
 function invPayChip(r){ if(!invPayOk() || invArch(r)) return ""; const p=invPayState(r); if(!p.st) return "";
   return ` <i class="invps ${p.st}">${p.st==="paid"?"оплачен"+(p.last?" "+fd(p.last).slice(0,5):""):p.st==="part"?"оплачен частично":"не оплачен"}</i>`; }
 function invPayHtml(r, docs){ if(!(me()&&me().admin)) return "";
   if(!pfLoaded){ loadProfit(true).then(()=>{ const c=$("#fd-dcard"); if(pfLoaded && c && c.open && c.querySelector(`[data-invcard="${r.id}"]`)) invCard(r.id); }); return `<div class="invpay" data-invcard="${r.id}"><span class="muted">Загружаю оплаты…</span></div>`; }
-  const L=invDocsOf(r); if(!L.length) return `<div class="invpay" data-invcard="${r.id}"><span class="muted">В счёте нет накладных — отмечайте оплату у самих накладных в «Прибыли».</span></div>`;
+  const L=invDocsOf(r); if(!L.length){ const p=invPayState(r, L);
+    return `<div class="invpay ${p.st}" data-invcard="${r.id}"><div class="invpay-h"><b>Оплата по счёту</b><i class="invps ${p.st}">${p.st==="paid"?"Оплачен"+(p.last?" "+fd(p.last):""):"Не оплачен"}</i></div>
+      <div class="invpay-t">В счёте нет накладных — отметка хранится у самого счёта, в «Прибыль» не идёт.</div>${invArch(r)?"":invPayBtn(r)}</div>`; }
   const p=invPayState(r, L), pc=p.tot>0?Math.round(p.s/p.tot*100):100, diff=Math.abs(r2((+r.sum||0)-p.tot))>0.005;
   return `<div class="invpay ${p.st}" data-invcard="${r.id}">
     <div class="invpay-h"><b>Оплата по счёту</b><i class="invps ${p.st}">${p.st==="paid"?"Оплачен":p.st==="part"?"Частично":"Не оплачен"}</i></div>
@@ -289,8 +293,8 @@ function invDocCard(){ const box=$("#inv-dc"); if(!box) return; box.hidden=!invC
   if(n && me().admin && !pfLoaded && !invDocCard.ld){ invDocCard.ld=1; loadProfit(true).then(()=>{ if(pfLoaded) invDocCard(); }).catch(()=>{}); }
   if(keepFocus) box.querySelector("#inv-recent > summary")?.focus({preventScroll:true}); }
 /* «Последние счета»: поиск, заказчик, период, оплата, порядок; по 5 + «Показать ещё» */
-let INVM=(()=>{ let o={}; try{ o=JSON.parse(localStorage.getItem("frudom-invm")||"{}")||{}; }catch(e){} return Object.assign({q:"", cus:"", per:"", pay:"", sort:"new"}, o, {q:"", n:5}); })();
-const invMSave = () => { try{ localStorage.setItem("frudom-invm", JSON.stringify({cus:INVM.cus, per:INVM.per, pay:INVM.pay, sort:INVM.sort})); }catch(e){} };
+let INVM=(()=>{ let o={}; try{ o=JSON.parse(localStorage.getItem("frudom-invm")||"{}")||{}; }catch(e){} if(o.pv!==2) o.pay="open"; if(o.pay==="due"||o.pay==="part") o.pay="open"; return Object.assign({q:"", cus:"", per:"", pay:"open", sort:"new"}, o, {q:"", n:5}); })();
+const invMSave = () => { try{ localStorage.setItem("frudom-invm", JSON.stringify({cus:INVM.cus, per:INVM.per, pay:INVM.pay, sort:INVM.sort, pv:2})); }catch(e){} };
 function invMiniTools(){ const used=[...new Set(invRows().filter(r=>!invArch(r)).map(r=>r.customerId))];
   if(INVM.cus && !used.includes(INVM.cus)) INVM.cus="";
   const chips=(L,k,attr)=>L.map(([v,t])=>`<button type="button" class="invmc${(INVM[k]||"")===v?" on":""}" ${attr}="${v}" aria-pressed="${(INVM[k]||"")===v}">${t}</button>`).join("");
@@ -298,13 +302,15 @@ function invMiniTools(){ const used=[...new Set(invRows().filter(r=>!invArch(r))
     <div class="invmt1"><input type="search" id="inv-mq" placeholder="Поиск: номер, заказчик, подразделение, товар" aria-label="Поиск счетов" value="${esc(INVM.q)}">
       <select id="inv-mcus" aria-label="Заказчик"><option value="">Все заказчики</option>${opts(D.customers.filter(c=>used.includes(c.id)), INVM.cus)}</select>
       <select id="inv-msort" aria-label="Порядок">${INV_SORT.map(([k,t])=>`<option value="${k}"${INVM.sort===k?" selected":""}>${t}</option>`).join("")}</select></div>
-    <div class="invmt2"><span class="invmg" role="group" aria-label="Период">${chips(INV_PER,"per","data-invmper")}</span>${invPayOk()?`<span class="invmg" role="group" aria-label="Оплата">${chips(INV_PAY,"pay","data-invmpay")}</span>`:""}</div></div>`; }
+    <div class="invmt2"><span class="invmg" role="group" aria-label="Период">${chips(INV_PER,"per","data-invmper")}</span>${invPayOk()?`<span class="invmg invfold" role="group" aria-label="Оплата">${INV_PAY.map(([v,t])=>`<button type="button" class="invmc${(INVM.pay||"")===v?" on":""}" data-invmpay="${v}" aria-pressed="${(INVM.pay||"")===v}">${v==="paid"?IC_INVOK:""}${t}<i class="invmn" data-invmn="${v}"></i></button>`).join("")}</span>`:""}</div></div>`; }
 function invMiniDraw(){ const box=$("#inv-mlist"); if(!box) return; const f=Object.assign({}, INVM, {arch:false}), L=invSel(f), all=invRows().filter(r=>!invArch(r)).length;
-  const tot=r2(L.reduce((a,r)=>a+(+r.sum||0),0)), on=!!(INVM.q||INVM.cus||INVM.per||(INVM.pay&&invPayOk()));
+  const tot=r2(L.reduce((a,r)=>a+(+r.sum||0),0)), on=!!(INVM.q||INVM.cus||INVM.per);
+  if(invPayOk()){ const B=invSel(Object.assign({}, f, {pay:""})), c={open:0, paid:0, "":B.length}; B.forEach(r=>{ c[invPayState(r).st==="paid"?"paid":"open"]++; });
+    document.querySelectorAll("#inv-recent [data-invmn]").forEach(x=>{ const v=String(c[x.dataset.invmn]||0); if(x.textContent!==v){ if(x.textContent) { x.classList.remove("bump"); void x.offsetWidth; x.classList.add("bump"); } x.textContent=v; } }); }
   let due=0; if(invPayOk()) L.forEach(r=>{ const p=invPayState(r); if(p.st) due+=p.left; });
   const sm=$("#inv-msum"); if(sm) sm.textContent = on ? `${L.length} из ${all}` : `${all}`;
   const head=L.length?`<div class="invmh2"><span>${on?"Найдено":"Всего"}: <b>${L.length}</b> ${plural(L.length,["счёт","счёта","счетов"])} на <b>${fm(tot)} ₽</b>${invPayOk()&&due>0.005?` · <span class="invmdue">не оплачено ${fm(r2(due))} ₽</span>`:""}</span>${on?`<button type="button" class="btn ghost sm" data-invmreset>Сбросить</button>`:""}</div>`:"";
-  if(!L.length){ box.innerHTML=`<div class="skempty"><b>Ничего не найдено</b><span>Измените поиск или фильтры.</span><button type="button" class="btn sm" data-invmreset>Сбросить фильтры</button></div>`; return; }
+  if(!L.length){ const fp=invPayOk()&&!on&&INVM.pay; box.innerHTML = fp ? `<div class="skempty invempty">${fp==="open"?`${IC_INVOK}<b>Все счета оплачены</b><span>Неоплаченных счетов нет.</span>`:`<b>Оплаченных счетов пока нет</b><span>Нажмите «Оплачен» у счёта — он переедет сюда.</span>`}</div>` : `<div class="skempty"><b>Ничего не найдено</b><span>Измените поиск или фильтры.</span><button type="button" class="btn sm" data-invmreset>Сбросить фильтры</button></div>`; return; }
   const V=L.slice(0, INVM.n), rest=L.length-V.length;
   box.innerHTML=head+`<div class="invl">${V.map(invRowHtml).join("")}</div>`+(rest>0||L.length>5?`<div class="invmmore">${rest>0?`<button type="button" class="btn sm" data-invmmore>Показать ещё ${Math.min(5,rest)}</button>`:""}${INVM.n>5?`<button type="button" class="btn ghost sm" data-invmless>Свернуть до 5</button>`:""}<button type="button" class="btn ghost sm" data-invall>Все счета ›</button></div>`:""); }
 document.addEventListener("input", e=>{ if(e.target.id==="inv-mq"){ INVM.q=e.target.value; INVM.n=5; invMiniDraw(); } });
@@ -316,7 +322,7 @@ document.addEventListener("click", e=>{ const t=e.target; if(!t.closest || !t.cl
   if(chip("[data-invmper]","per") || chip("[data-invmpay]","pay")) return;
   if(t.closest("[data-invmmore]")){ INVM.n+=5; invMiniDraw(); return; }
   if(t.closest("[data-invmless]")){ INVM.n=5; invMiniDraw(); $("#inv-recent")?.scrollIntoView({block:"nearest", behavior:"smooth"}); return; }
-  if(t.closest("[data-invmreset]")){ Object.assign(INVM,{q:"",cus:"",per:"",pay:"",n:5}); invMSave(); invDocCard(); return; } });
+  if(t.closest("[data-invmreset]")){ Object.assign(INVM,{q:"",cus:"",per:"",n:5}); invMSave(); invDocCard(); return; } });
 function invAll(){ if(!invCan()) return; CARD_RE=()=>invAll();
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Счета на оплату</div><h3>Все отдельные счета</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <div class="invh invh2"><p class="muted">Например, за месяц по каждому подразделению. На сумму контракта, журнал и прибыль не влияют.</p><button class="btn pri" type="button" id="inv-new">+ Новый счёт</button></div>
@@ -423,3 +429,49 @@ function invFileNote(N){ if(N.err) return `<div class="invfn err"><div><b>«${es
 ["dragleave","drop"].forEach(ev=>document.addEventListener(ev, e=>{ const b=e.target.closest&&e.target.closest("#inv-dlg .invlines"); if(!b) return; if(ev==="dragleave" && b.contains(e.relatedTarget)) return; b.classList.remove("over");
   if(ev==="drop" && e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]){ e.preventDefault(); invFile(e.dataTransfer.files[0]); } }));
 window.__inv.file = f => invFile(f);
+/* ---------- «Оплачен» одним нажатием прямо в списке (16.11.2026) ----------
+   Счёт с накладными — оплата ставится всем его накладным на полную сумму сегодняшней датой (как в «Прибыли»);
+   счёт без накладных — отметка у самого счёта (data.paid = {d, by, at}). Оплаченный уезжает из «К оплате» в «Оплаченные»;
+   «Отменить» в уведомлении возвращает ровно то, что было до нажатия. Повторное нажатие на «✓ Оплачен» — «Снять оплату?» (два нажатия). */
+const IC_INVOK='<svg class="invok" viewBox="0 0 16 16" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>';
+function invPaySub(r){ const p=invPayState(r); if(!p.st) return "";
+  if(p.st==="paid") return `<small class="invst paid">${IC_INVOK}оплачен${p.last?" "+fd(p.last).slice(0,5):""}</small>`;
+  if(p.st==="part") return `<small class="invst part">осталось ${fm(p.left)}</small>`;
+  const dd=daysSince(r.date); return `<small class="invst due">не оплачен${dd>0?" · "+dnum(dd):""}</small>`; }
+function invPayBtn(r){ if(!invPayOk() || invArch(r)) return ""; const p=invPayState(r);
+  return p.st==="paid" ? `<button type="button" class="btn sm invpb on" data-invpay="${r.id}" data-on="0" title="Снять отметку «оплачен»" aria-pressed="true">${IC_INVOK}<span>Оплачен</span></button>`
+    : `<button type="button" class="btn sm invpb" data-invpay="${r.id}" data-on="1" title="${p.st==="part"?"Оплачен полностью — остаток "+fm(p.left)+" ₽":"Отметить: счёт оплачен"}" aria-pressed="false">${IC_INVOK}<span>Оплачен</span></button>`; }
+/* поставить / снять оплату; возвращает функцию «как было» */
+function invPaySet(r, on){ const docs=invDocsOf(r), today=todayISO(), prev=docs.map(j=>{ const p=payOf(j); return [j, p.s, p.d]; }), d0=invData(r).paid||null; let n=0;
+  UNDO.paused++;
+  try{
+    docs.forEach(j=>{ const p=payOf(j); if(on ? p.st!=="paid" : p.s>0){ setPay(j, on?p.tot:0, on?today:"", true); n++; } });
+    const d=Object.assign({}, invData(r)); if(!docs.length){ if(on) d.paid={d:today, by:curUser()||"", at:new Date().toISOString()}; else delete d.paid; }
+    invHist(d, [on?"отмечен оплаченным"+(n?" ("+n+" накл.)":""):"оплата снята"+(n?" ("+n+" накл.)":"")]); r.data=JSON.stringify(d); r.updated=new Date().toISOString(); dirty("invoices", r.id);
+  } finally { UNDO.paused--; unResync(); }
+  logEv("Счета", (on?"Отмечен оплаченным":"Снята оплата")+": счёт № "+r.number+" от "+fd(r.date)+" — "+(cus(r.customerId).name||"")+(n?" ("+n+" накл.)":"")); saveLocal();
+  return ()=>{ UNDO.paused++;
+    try{ prev.forEach(([j,s,dt])=>setPay(j, s, dt, true)); const d=Object.assign({}, invData(r)); if(d0) d.paid=d0; else delete d.paid;
+      invHist(d, ["отменено: "+(on?"отметка «оплачен»":"снятие оплаты")]); r.data=JSON.stringify(d); r.updated=new Date().toISOString(); dirty("invoices", r.id);
+    } finally { UNDO.paused--; unResync(); }
+    logEv("Счета", "Отменено ("+(on?"оплата":"снятие оплаты")+"): счёт № "+r.number+" от "+fd(r.date)); saveLocal(); }; }
+/* перерисовать всё, где виден счёт, без повторного «въезда» строк */
+function invPayRedraw(id){ const calm=b=>{ if(b) b.querySelectorAll(".invr").forEach(x=>{ try{ x.getAnimations().forEach(a=>a.finish()); }catch(e){} }); };
+  if($("#inv-mlist")){ invMiniDraw(); calm($("#inv-mlist")); }
+  if($("#inv-list")){ invDrawList(); calm($("#inv-list")); }
+  const c=$("#fd-dcard"); if(id && c && c.open && c.querySelector(`[data-invcard="${id}"]`)) invCard(id);
+  if(curTab==="profit" && typeof drawProfit==="function") drawProfit(); }
+function invQuickPay(b){ const id=b.dataset.invpay, r=invRows().find(x=>x.id===id); if(!r || !invPayOk() || b.dataset.busy) return; const on=b.dataset.on==="1";
+  if(!on && !b.classList.contains("arm")){ b.classList.add("arm"); const sp=b.querySelector("span"); sp.textContent="Снять оплату?";
+    setTimeout(()=>{ if(b.isConnected && b.classList.contains("arm")){ b.classList.remove("arm"); sp.textContent="Оплачен"; } }, 3500); return; }
+  b.dataset.busy=1; const undo=invPaySet(r, on), row=b.closest(".invr"), box=row&&row.closest("#inv-mlist,#inv-list");
+  const pay=box ? (box.id==="inv-mlist" ? INVM.pay : INVF.pay) : "", leaves=!!(row && invPayOk() && pay && !invPayHit(r, pay)), rm=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  toast("ok", on ? "Счёт № "+r.number+" оплачен" : "Оплата по счёту № "+r.number+" снята", on ? (leaves?"Перенесён в «Оплаченные». ":"")+fm(+r.sum||0)+" ₽ · "+(cusNm(r.customerId)||"") : "Счёт снова «К оплате».",
+    {action:{label:"Отменить", fn:()=>{ undo(); invPayRedraw(id); toast("info","Отменено","Счёт № "+r.number+" — как было."); }}});
+  if(!row || rm){ invPayRedraw(id); return; }
+  if(on){ b.classList.add("pop"); b.classList.remove("arm"); }
+  setTimeout(()=>{ if(!row.isConnected){ invPayRedraw(id); return; }
+    if(!leaves){ invPayRedraw(id); const n=document.querySelector(`#${box.id} [data-inv="${id}"]`); if(n){ n.classList.remove("flash"); void n.offsetWidth; n.classList.add("flash"); } return; }
+    row.style.height=row.offsetHeight+"px"; row.style.overflow="hidden"; void row.offsetHeight; row.classList.add("invgo");
+    setTimeout(()=>invPayRedraw(id), 430); }, on?280:60); }
+document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("#fd-app [data-invpay]"); if(!b) return; e.preventDefault(); e.stopPropagation(); invQuickPay(b); }, true);

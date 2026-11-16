@@ -843,6 +843,30 @@ html.mailapp #fd-app{--mbh:0px}
 #fd-app .invdc .invbtn{display:flex;gap:8px;flex-wrap:wrap;align-items:center}#fd-app .invdc .invn{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;margin-left:4px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700}#fd-app .invmini{margin-top:14px}#fd-app .invarch input{width:18px;height:18px;flex:none;margin:0;padding:0}#fd-app .invmh{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 2px 6px}#fd-app .invh2{align-items:center;margin-top:4px}#fd-app .invh2 p{margin:0;flex:1 1 240px}
 @media (max-width:600px){#fd-app .invdc .invbtn{width:100%}#fd-app .invdc .invbtn .btn{flex:1 1 0}}
 #fd-app .invr{display:grid;grid-template-columns:96px minmax(0,1fr) 130px auto;gap:12px;align-items:center;padding:11px 14px;border-radius:14px;background:rgba(255,255,255,.6);border:1px solid rgba(28,34,32,.06);cursor:pointer;transition:background .2s,box-shadow .2s,transform .15s;animation:fdin .3s ease backwards;animation-delay:var(--d,0ms)}
+/* счёт «Оплачен» одним нажатием, папки «К оплате / Оплаченные» (16.11.2026) */
+#fd-app .invs small.invst{display:flex;justify-content:flex-end;align-items:center;gap:3px;margin-top:2px;font:500 11.5px/1.3 var(--ui);white-space:nowrap}
+#fd-app .invst.paid{color:#2f6b3d}#fd-app .invst.part{color:#8a6212}#fd-app .invst.due{color:var(--muted)}
+#fd-app .invst .invok{width:11px;height:11px}
+#fd-app .inva{flex-wrap:wrap}
+#fd-app .invpb{display:inline-flex;align-items:center;gap:5px;color:#2f6b3d;border-color:rgba(47,107,61,.28);background:#fff;transition:background .2s,color .2s,border-color .2s,transform .15s}
+#fd-app .invpb .invok{opacity:.55;transition:opacity .2s,transform .3s cubic-bezier(.3,1.6,.5,1)}
+#fd-app .invpb:hover{background:#eef6ef;border-color:rgba(47,107,61,.5)}#fd-app .invpb:hover .invok{opacity:1}
+#fd-app .invpb.on{background:#e3f1e6;border-color:transparent}#fd-app .invpb.on .invok{opacity:1}
+#fd-app .invpb.pop{background:#2f7a45;color:#fff;border-color:#2f7a45}#fd-app .invpb.pop .invok{opacity:1;animation:invokpop .35s cubic-bezier(.3,1.6,.5,1)}
+#fd-app .invpb.arm{background:#fbeceb;color:#b3261e;border-color:rgba(179,38,30,.35)}#fd-app .invpb.arm .invok{display:none}
+@keyframes invokpop{0%{transform:scale(.3)}100%{transform:scale(1)}}
+#fd-app .invr.invgo{height:0!important;padding-top:0;padding-bottom:0;margin-bottom:-6px;border-width:0;opacity:0;transform:translateX(28px);transition:height .4s cubic-bezier(.4,0,.2,1),padding .4s,margin .4s,opacity .25s,transform .35s ease}
+#fd-app .invr.flash{animation:invflash 1s ease}
+@keyframes invflash{0%{background:#e3f1e6}100%{background:rgba(255,255,255,.6)}}
+#fd-app .invfold .invmc{display:inline-flex;align-items:center;gap:4px}#fd-app .invfold .invok{width:12px;height:12px}
+#fd-app .invmn{font-style:normal;font-size:11px;font-weight:700;min-width:16px;padding:0 5px;border-radius:99px;background:rgba(28,34,32,.07);color:inherit;line-height:16px;text-align:center}
+#fd-app .invmn:empty{display:none}#fd-app .invmc.on .invmn{background:var(--accent-soft)}
+#fd-app .invmn.bump{animation:invbump .45s cubic-bezier(.3,1.6,.5,1)}
+@keyframes invbump{0%{transform:scale(1)}40%{transform:scale(1.35);background:#cfe7d5;color:#2f6b3d}100%{transform:scale(1)}}
+#fd-app .invempty .invok{width:28px;height:28px;color:#2f7a45;margin-bottom:4px;animation:invokpop .45s cubic-bezier(.3,1.6,.5,1)}
+#fd-app .invpay .invpb{margin-top:10px}
+@media (max-width:640px){#fd-app .invr .inva{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}#fd-app .invr .inva .btn{min-width:0;justify-content:center;padding-left:4px;padding-right:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#fd-app .invr .inva:not(:has(.invpb)){grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (prefers-reduced-motion: reduce){#fd-app .invr.invgo,#fd-app .invpb,#fd-app .invmn.bump{transition:none;animation:none}}
 #fd-app .invr:hover{background:#fff;box-shadow:0 8px 18px -14px rgba(48,32,44,.4)}#fd-app .invr:active{transform:scale(.995)}#fd-app .invr:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #fd-app .invd b{display:block;font-size:14.5px}#fd-app .invd small,#fd-app .invw small{display:block;font-size:12px;color:var(--muted)}
 #fd-app .invw b{display:block;font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fd-app .invw em{font-style:normal;font-weight:500;font-size:12px;color:var(--accent);background:var(--accent-soft);padding:1px 8px;border-radius:99px;margin-left:4px}
