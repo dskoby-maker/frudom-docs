@@ -37,7 +37,7 @@ async def main():
         await pg.click('#inv-dlg [data-invsave="0"]') if await pg.locator('#inv-dlg [data-invsave="0"]').count() else await pg.click('#inv-dlg [data-invsave]')
         await pg.wait_for_timeout(900); await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
         await pg.evaluate(TAB+"('doc')"); await pg.click('#inv-all'); await pg.wait_for_timeout(1500)
-        chip=await pg.text_content('#inv-list .invr .invps'); ok(chip and 'не оплачен' in chip, f'в списке статус «не оплачен»: {chip}')
+        chip=await pg.text_content('#inv-list .invr .invst'); ok(chip and 'не оплачен' in chip, f'в списке статус «не оплачен»: {chip}')
         await pg.click('#inv-list .invr'); await pg.wait_for_timeout(1200)
         tx=(await pg.text_content('#fd-dcard .invpay')).replace(' ',' ').replace(' ',' ')
         ok('Оплачено 0 из 3' in tx and '2 100' in tx, f'карточка: оплачено 0 из 3, сумма 2 100: {tx[:120]}')
