@@ -1552,6 +1552,18 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 @media (max-width:640px){#fd-app .dmk-row{flex-direction:column}#fd-app .dmk-save{flex:none;min-height:54px}#fd-app .dmk-pr{flex:none}#fd-app .dmk-pr .btn{min-height:50px}#fd-app .dmk .btn small{font-size:10.5px}}
 @media (max-width:640px){#fd-app .dmk-new{min-height:36px;border:0}#fd-app .dmk-pdf{display:grid;grid-template-columns:repeat(3,1fr);width:100%;gap:6px}#fd-app .dmk-l{grid-column:1/-1}#fd-app .pdfk{justify-content:center;min-height:40px;padding:5px 6px}#fd-app .dmk-pdf{grid-template-columns:repeat(6,1fr)}#fd-app .pdfk{grid-column:span 2}#fd-app .dmk-go{grid-column:span 3;min-height:44px;justify-content:center}}
 #fd-app .dtbox{margin:12px 0 14px;border:1px solid #f0dcb0;background:#fffaf0;border-radius:12px;padding:10px 12px}
+#fd-app .dtms{position:relative;display:grid;grid-template-columns:1fr 1fr;width:max-content;max-width:100%;margin:2px 0 10px;padding:3px;border-radius:12px;background:rgba(28,34,32,.055);isolation:isolate}
+#fd-app .dtms[hidden]{display:none}
+#fd-app .dtms-pill{position:absolute;z-index:-1;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);border-radius:9px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08),0 2px 8px -2px rgba(40,30,20,.14);transition:transform .32s cubic-bezier(.3,.9,.3,1)}
+#fd-app .dtms.all .dtms-pill{transform:translateX(100%)}
+#fd-app .dtms button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:132px;height:34px;padding:0 14px;border:0;border-radius:9px;background:none;font:500 13.5px var(--ui);color:#7a746c;cursor:pointer;white-space:nowrap;transition:color .2s}
+#fd-app .dtms button[aria-pressed="true"]{color:#2c2925;font-weight:600}
+#fd-app .dtms em{font-style:normal;min-width:20px;height:20px;padding:0 6px;border-radius:999px;display:inline-grid;place-items:center;font-size:11.5px;font-weight:600;font-variant-numeric:tabular-nums;background:rgba(28,34,32,.07);color:#8a847c;transition:background .2s,color .2s}
+#fd-app .dtms button[aria-pressed="true"] em{background:#6A2C4E;color:#fff}
+@media (max-width:600px){#fd-app .dtms{width:100%}#fd-app .dtms button{min-width:0;height:38px;font-size:14px}}
+#fd-app .dt-list.dtsw>*{animation:dtsw .34s cubic-bezier(.3,.9,.3,1) both}#fd-app .dt-list.dtsw>*:nth-child(2){animation-delay:.03s}#fd-app .dt-list.dtsw>*:nth-child(3){animation-delay:.06s}#fd-app .dt-list.dtsw>*:nth-child(n+4){animation-delay:.09s}
+@keyframes dtsw{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){#fd-app .dtms-pill,#fd-app .dtms button,#fd-app .dtms em{transition:none}}
 #fd-app .dt-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}#fd-app .dt-head b{font-size:15px}#fd-app .dt-head small{color:var(--muted);font-size:12.5px}
 #fd-app .dt-count{font-size:12.5px;color:#a3620c;font-weight:600}
 #fd-app .dt-list{display:grid;gap:6px;min-width:0}#fd-app .dt-list>*,#fd-app .card>*,#fd-app .dtbox{min-width:0}
@@ -2861,6 +2873,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
       <div class="pfcards" id="cal-sum"></div>
       <div class="dtbox" id="dt-box">
         <div class="dt-head"><b>Задачи на день</b><button class="hq" type="button" data-hq="Задачи на день" aria-label="Подсказка">?</button><small>видят все, в том числе водитель</small><span style="flex:1"></span><span class="dt-count" id="dt-count"></span></div>
+        <div id="dt-mine" class="dtms" role="group" aria-label="Какие задачи показать" hidden></div>
         <div id="dt-list" class="dt-list"></div>
                 <form class="dt-add" id="dt-add" autocomplete="off">
           <div class="dt-comp">
@@ -5172,14 +5185,28 @@ $("#dt-list").addEventListener("click", e=>{ const t=e.target.closest("[data-dtg
 function dtMarkSeen(L){ const me=curUser(); if(!me) return; const now=new Date().toISOString();
   const rd=[]; L.forEach(x=>{ if(x.by===me) return; const sn=dtSeen(x); if(sn[me]) return; x._new=1; sn[me]=now; x.seen=JSON.stringify(sn); dirty("daytasks", x.id); rd.push(x); });
   if(rd.length) logEvSoft("Задача на день", rd.length===1 ? "Прочитана задача на "+fd(rd[0].date)+": "+fmtPlain(String(rd[0].text||"")).slice(0,150) : "Прочитаны задачи на "+[...new Set(rd.map(x=>fd(x.date)))].join(", ")+" ("+rd.length+")"); }
+/* «Мои задачи / Все задачи» — только у водителя (Гриша, docLimited): мои = задачи, где он выбран водителем; выбор помнится на устройстве */
+const dtMineCan = () => docLimited() && !!curUser();
+function dtMineGet(){ try{ return localStorage.getItem("frudom-dtmine:"+curUser())==="1"; }catch(e){ return false; } }
+function dtMineSet(on){ try{ localStorage.setItem("frudom-dtmine:"+curUser(), on?"1":"0"); }catch(e){}
+  const l=$("#dt-list"); drawDayTasks(); if(l && !matchMedia("(prefers-reduced-motion:reduce)").matches){ l.classList.remove("dtsw"); void l.offsetWidth; l.classList.add("dtsw"); } }
+function dtMineBar(on, mine, nMy, nAll){ const b=$("#dt-mine"); if(!b) return; b.hidden=!on; if(!on){ b.innerHTML=""; return; }
+  const st=(mine?1:0)+"|"+nMy+"|"+nAll;
+  if(!b.firstElementChild){ b.innerHTML=`<span class="dtms-pill" aria-hidden="true"></span><button type="button" data-dtmine="1"><span>Мои задачи</span><em></em></button><button type="button" data-dtmine="0"><span>Все задачи</span><em></em></button>`; }
+  if(b.dataset.st===st) return; b.dataset.st=st;
+  const [bm, ba]=b.querySelectorAll("button"); bm.querySelector("em").textContent=nMy; ba.querySelector("em").textContent=nAll;
+  bm.setAttribute("aria-pressed", mine); ba.setAttribute("aria-pressed", !mine); b.classList.toggle("all", !mine); }
+document.addEventListener("click", e=>{ const t=e.target.closest && e.target.closest("[data-dtmine]"); if(!t || !t.closest("#dt-box")) return; const on=t.dataset.dtmine==="1"; if(on===dtMineGet() && t.closest("#dt-mine")) return; dtMineSet(on); });
 function drawDayTasks(){
   const c=CAL(), sel=c.sel, all=DTS().filter(x=>!c.cus||!x.customerId||x.customerId===c.cus);
-  const L=all.filter(x=>x.date===sel).sort((a,b)=>String(a.created).localeCompare(String(b.created)));
+  const L0=all.filter(x=>x.date===sel).sort((a,b)=>String(a.created).localeCompare(String(b.created)));
+  const me=curUser()||"", mOn=dtMineCan(), mine=mOn&&dtMineGet(), myL=L0.filter(x=>String(x.drv||"").trim()===me), L=mine?myL:L0;
+  dtMineBar(mOn, mine, myL.length, L0.length);
   const e=EDf(); if(e && !DTS().some(x=>x.id===e.id)){ ED=null; edSave(); }
   const G=dtGroups(L, sel), shown=G.flatMap(g=>!g.multi||dtgOpen(sel,g.cid)||(e&&g.items.some(x=>x.id===e.id))?g.items:[]);
   if(curTab==="calendar" && !document.hidden) dtMarkSeen(shown);
   const ae=document.activeElement, hadFocus=!!(ae && ae.classList && ae.classList.contains("dt-edit"));
-  $("#dt-list").innerHTML = L.length ? G.map(g=>g.multi?dtGroupHtml(g, sel):dtRow(g.items[0])).join("") : `<div class="dt-empty">Задач нет. Добавьте, если на этот день нужно что-то кроме заказа: заменить товар, привезти документы, забрать возврат.</div>`;
+  $("#dt-list").innerHTML = L.length ? G.map(g=>g.multi?dtGroupHtml(g, sel):dtRow(g.items[0])).join("") : mine ? `<div class="dt-empty">На этот день задач для вас нет${L0.length?` — всего задач ${L0.length}. <button type="button" class="dvlnk" data-dtmine="0">Показать все</button>`:"."}</div>` : `<div class="dt-empty">Задач нет. Добавьте, если на этот день нужно что-то кроме заказа: заменить товар, привезти документы, забрать возврат.</div>`;
   L.forEach(x=>delete x._new);
   const ta=$("#dt-list .dt-edit"); if(ta){ dtGrow(ta); const E=EDf();
     ta.addEventListener("input",()=>{ E.text=ta.value; E.a=ta.selectionStart; edSave(); });
