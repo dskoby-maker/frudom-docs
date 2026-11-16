@@ -6562,7 +6562,7 @@ function jRowHtml(j, kid, arch){ const w=jWho(j), pv=!!(j.snap.c&&j.snap.c.priv)
 function jDaySep(iso, st){ const d=new Date(iso+"T12:00:00"), t=todayISO(), tm=new Date(); tm.setDate(tm.getDate()+1); const tmIso=tm.getFullYear()+"-"+String(tm.getMonth()+1).padStart(2,"0")+"-"+String(tm.getDate()).padStart(2,"0");
   let lbl=isNaN(d)?fd(iso):d.toLocaleDateString("ru-RU",{weekday:"long", day:"numeric", month:"long"}); lbl=lbl.charAt(0).toUpperCase()+lbl.slice(1);
   const tag=iso===t?"сегодня":iso===tmIso?"завтра":"";
-  return `<tr class="dsep${iso===t?" today":""}" data-iso="${iso}"><td colspan="6" class="full"><div class="ds"><i></i><b>${esc(lbl)}</b>${tag?`<em>${tag}</em>`:""}<span>${st.n} ${docsWord(st.n)} · ${fm(r2(st.sum))} ₽</span></div></td></tr>`; }
+  return `<tr class="dsep${iso===t?" today":""}" data-iso="${iso}"><td colspan="6" class="full"><div class="ds"><i></i><b>${esc(lbl)}</b>${tag?`<em>${tag}</em>`:""}<span>${st.n} ${docsWord(st.n)}${me().admin?" · "+fm(r2(st.sum))+" ₽":""}</span></div></td></tr>`; }
 function jBuild(rows, arch, openSet, daySep){
   const cnt={}; D.journal.forEach(j=>{ if(!j.snap || isArch(j)!==arch) return; const k=jKey(j); if(k) cnt[k]=(cnt[k]||0)+1; });
   const groups={}; rows.forEach(j=>{ const k=jKey(j); if(k && cnt[k]>1) (groups[k]=groups[k]||[]).push(j); });
@@ -6615,7 +6615,7 @@ function renderJournal(){
   document.querySelectorAll("#jr-head th[data-js]").forEach(th=>{ const k=th.dataset.js, s=f.sort||"cr_d"; th.classList.toggle("sorted", s.startsWith(k)); th.dataset.dir = s.startsWith(k) ? (s.endsWith("_a")?"▲":"▼") : ""; });
   const out=jBuild(rows,false,jOpen,(f.sort||"cr_d").startsWith("dt")), tot=r2(rows.reduce((a,j)=>a+(+j.sum||0),0)), na=D.journal.length-live.length;
   $("#jr-count").textContent=live.length?live.length+" шт.":"";
-  $("#jr-sum").textContent = rows.length ? "Найдено: "+rows.length+" "+docsWord(rows.length)+" на сумму "+fm(tot)+"\u00a0₽" : "";
+  $("#jr-sum").textContent = rows.length ? "Найдено: "+rows.length+" "+docsWord(rows.length)+(me().admin?" на сумму "+fm(tot)+"\u00a0₽":"") : "";   /* сумма — только Даниилу (16.11.2026) */
  
   $("#jr-body").innerHTML = out.length ? out.join("")
     : `<tr><td colspan="6" class="muted" style="padding:16px 6px">${live.length?"По этим фильтрам ничего нет.":"Пока пусто. Документ попадает сюда, когда вы его формируете."}</td></tr>`;
