@@ -11,9 +11,16 @@ function zkpRngOff(){ if(!ZKP.rng) return; ZKP.rng=null; if(ZKP.st==="miss"||ZKP
 const zkpYm = () => ZKP.ym || (ZKP.ym=todayISO().slice(0,7));
 const zkpYmShift = (ym, d) => { const t=new Date(+ym.slice(0,4), +ym.slice(5,7)-1+d, 1); return t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0"); };
 const ZKP_MON=["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+/* период списка — общий календарь (rpgBar); «7 дней» и «30 дней» по-прежнему с накладными на завтра и позже */
+const zkpPerP = () => { const t=todayISO(), P=pvRpPresets(); return [["7 дней",pvAddD(t,-6),t,"7"],["30 дней",pvAddD(t,-29),t,"30"],[P[0][0],P[0][1],P[0][2],"m"],[P[1][0],P[1][1],P[1][2],"pm"],[P[2][0],P[2][1],P[2][2]],[P[4][0],P[4][1],P[4][2]],["Всё время","all","all","all"]]; };
+rpgReg("zkp", { presets:()=>zkpPerP().map(x=>x.slice(0,3)),
+  get:()=>{ if(ZKP.rng) return (ZKP.rng[0]>"1000" && ZKP.rng[1]<"9000") ? {a:ZKP.rng[0], b:ZKP.rng[1]} : {a:"all"}; const r=rpgDec(ZKP.per); if(r) return r; const x=zkpPerP().find(x=>x[3]===ZKP.per); return x&&x[1]!=="all" ? {a:x[1], b:x[2], lab:x[0]} : {a:"all"}; },
+  set:(a,b)=>{ zkpRngOff(); const x=zkpPerP().find(x=>x[3] && x[1]===a && x[2]===b); ZKP.per = a==="all" ? "all" : (x ? x[3] : rpgEnc(a,b)); ZKP.n=30; zkpCollapse(); zkpDraw(true); },
+  dots:()=>new Set(D.journal.filter(j=>j.snap&&!isArch(j)).map(j=>j.date)) });
 function zkpRange(){ const n=new Date(), iso=jIso;
   if(ZKP.rng) return [ZKP.rng[0], ZKP.rng[1]];
   if(ZKP.view==="cal"){ const ym=zkpYm(), y=+ym.slice(0,4), m=+ym.slice(5,7); return [ym+"-01", iso(new Date(y,m,0))]; }
+  const rr=rpgDec(ZKP.per); if(rr) return [rr.a, rr.b];
   if(ZKP.per==="7") return [iso(new Date(n.getFullYear(),n.getMonth(),n.getDate()-6)), "9999"];
   if(ZKP.per==="30") return [iso(new Date(n.getFullYear(),n.getMonth(),n.getDate()-29)), "9999"];
   if(ZKP.per==="m") return [iso(new Date(n.getFullYear(),n.getMonth(),1)), iso(new Date(n.getFullYear(),n.getMonth()+1,0))];
@@ -77,7 +84,7 @@ function zkpKpi(L){ const c=k=>L.filter(x=>x.st===k).length, rev=r2(L.reduce((a,
   $("#zkp-st").innerHTML=ch.map(([k,t,n])=>`<button type="button" class="${ZKP.st===k?"on":""} ${k}" data-zkpst="${k}">${t} <b>${n}</b></button>`).join(""); }
 /* полная перерисовка списка; если редактор открыт — только обновить строки, чтобы не потерять набранное */
 function zkpDraw(force){ const box=$("#zkp-list"); if(!box || !me().admin) return;
-  document.querySelectorAll("#zkp-per [data-zkpp]").forEach(b=>b.classList.toggle("on", !ZKP.rng && b.dataset.zkpp===ZKP.per));
+  const zp=$("#zkp-per"); if(zp) zp.innerHTML=rpgBar("zkp");
   if(ZKP.open && !force){ zkpRefresh(); return; }
   if(!pfLoaded){ box.innerHTML=`<p class="muted zkp-empty">Загружаю данные о закупке…</p>`; return; }
   ZKP.list=zkpItems(); const q=ZKP.q.trim().toLowerCase();

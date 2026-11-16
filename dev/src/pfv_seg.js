@@ -238,7 +238,7 @@ const pvWhole = (a, b) => a.slice(8)==="01" && b===pvMEnd(b.slice(0,7));   /* с
 function pvRLab(a, b){ const Y=todayISO().slice(0,4), p=s=>({d:+s.slice(8), m:PV_MS[+s.slice(5,7)-1], y:s.slice(0,4)});
   const A=p(a), B=p(b), yr=y=>y===Y?"":" "+y;
   if(pvWhole(a,b)){ if(a.slice(0,4)===b.slice(0,4) && a.slice(5,7)==="01" && b.slice(5,7)==="12") return a.slice(0,4)+" год";
-    const ma=PV_MON[+a.slice(5,7)-1], mb=PV_MON[+b.slice(5,7)-1]; return a.slice(0,4)===b.slice(0,4) ? ma+" – "+mb+" "+a.slice(0,4) : ma+" "+a.slice(0,4)+" – "+mb+" "+b.slice(0,4); }
+    const ma=PV_MON[+a.slice(5,7)-1], mb=PV_MON[+b.slice(5,7)-1]; if(a.slice(0,7)===b.slice(0,7)) return ma+" "+a.slice(0,4); return a.slice(0,4)===b.slice(0,4) ? ma+" – "+mb+" "+a.slice(0,4) : ma+" "+a.slice(0,4)+" – "+mb+" "+b.slice(0,4); }
   if(a===b) return A.d+" "+A.m+yr(A.y);
   if(a.slice(0,7)===b.slice(0,7)) return A.d+"–"+B.d+" "+A.m+yr(A.y);
   if(A.y===B.y) return A.d+" "+A.m+" – "+B.d+" "+B.m+yr(A.y);
@@ -304,6 +304,93 @@ function pvRpClick(e){
   if(e.target.closest(".pvrp")) return true;
   return false; }
 document.addEventListener("pointerover", e=>{ if(!PVRP.open || !PVRP.pick) return; const d=e.target.closest && e.target.closest("#pv-cus [data-pvd]"); if(d && d.dataset.pvd!==PVRP.hov){ PVRP.hov=d.dataset.pvd; pvRpMark(); } });
+
+/* ---------- общий выбор периода календарём (RPG, 16.11.2026) — тот же вид, что «Период» в «По заказчикам» ----------
+   rpgReg(ключ, {get:()=>({a,b}|{a:"all"}), set:(a,b)=>…, presets?:()=>[[подпись,a,b]], dots?:()=>Set дат, arrows?:false, allLab?})
+   rpgBar(ключ, {k:"Период:"}) — кнопка «‹ Период: … ⌄ ›»; окно — поверх всего (внутри открытого окна, если кнопка в нём) */
+const RPG={reg:{}, k:"", el:null, btn:null, ym:"", pick:"", hov:"", dir:0};
+const rpgReg = (k, o) => { RPG.reg[k]=o; };
+function rpgR(k){ const o=RPG.reg[k], r=(o&&o.get())||{}, all=!r.a||r.a==="all"||!r.b;
+  let lab=r.lab; if(!all && !lab){ const p=(o.presets?o.presets():pvRpPresets()).find(x=>x[1]===r.a && x[2]===r.b); lab=p?p[0]:pvRLab(r.a,r.b); }
+  return {a:all?"":r.a, b:all?"":r.b, all, lab: all?(o.allLab||"Всё время"):lab}; }
+function rpgPresets(k){ const o=RPG.reg[k]; return o.presets ? o.presets() : pvRpPresets(); }
+/* частые варианты для окон и вкладок: «7 дней / 30 дней / 3 месяца» — до сегодня */
+const rpgLast = (n, lab) => { const t=todayISO(); return [lab, pvAddD(t, -(n-1)), t]; };
+function rpgBar(k, opt){ opt=opt||{}; const R=rpgR(k), o=RPG.reg[k], arr=o.arrows!==false, op=RPG.k===k&&RPG.el;
+  return `<span class="rpgw${op?" op":""}">${arr?`<button type="button" class="pvarr" data-rpgs="${k}|-1" aria-label="Предыдущий период"${R.all?" disabled":""}>‹</button>`:""}<button type="button" class="pvrpb rpgb" data-rpg="${k}" aria-haspopup="dialog" aria-expanded="${!!op}"><span class="pvrpk">${esc(opt.k==null?"Период:":opt.k)}</span> <b>${esc(R.lab)}</b><i aria-hidden="true"></i></button>${arr?`<button type="button" class="pvarr" data-rpgs="${k}|1" aria-label="Следующий период"${R.all?" disabled":""}>›</button>`:""}</span>`; }
+function rpgShift(k, dir){ const R=rpgR(k); if(R.all) return; let a=R.a, b=R.b;
+  if(pvWhole(a,b)){ const n=(+b.slice(0,4)-+a.slice(0,4))*12 + (+b.slice(5,7)-+a.slice(5,7)) + 1; a=pvShift(a.slice(0,7), dir*n)+"-01"; b=pvMEnd(pvShift(b.slice(0,7), dir*n)); }
+  else { const n=Math.round((pvIsoD(b)-pvIsoD(a))/864e5)+1; a=pvAddD(a, dir*n); b=pvAddD(b, dir*n); }
+  RPG.reg[k].set(a, b); }
+function rpgHtml(){ const k=RPG.k, o=RPG.reg[k], R=rpgR(k), n=pvRpN(), t=todayISO(), has=o.dots?o.dots():new Set();
+  const pre=rpgPresets(k).map(([l,a,b])=>`<button type="button" class="pvrpc${(a==="all"?R.all:(!R.all && R.a===a && R.b===b))?" on":""}" data-rgp="${a}|${b}">${esc(l)}</button>`).join("");
+  const mon=ym=>{ const [y,m]=ym.split("-").map(Number), f=(new Date(y,m-1,1).getDay()+6)%7, last=+pvMEnd(ym).slice(8);
+    let c=""; for(let i=0;i<f;i++) c+=`<span></span>`;
+    for(let d=1; d<=last; d++){ const iso=ym+"-"+String(d).padStart(2,"0"), wd=(f+d-1)%7, h=has.has(iso);
+      c+=`<button type="button" class="pvrd${wd>4?" we":""}${iso===t?" td":""}${h?" hd":""}" data-rgd="${iso}" aria-label="${fd(iso)}">${d}${h?'<i class="pvdot"></i>':""}</button>`; }
+    return `<div class="pvrm"><div class="pvrmh"><b>${PV_MON[m-1]}</b> <span>${y}</span></div><div class="pvrw">${["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].map(x=>`<span>${x}</span>`).join("")}</div><div class="pvrg">${c}</div></div>`; };
+  const ms=[]; for(let i=0;i<n;i++) ms.push(pvShift(RPG.ym, i));
+  return `<div class="pvrpp">${pre}</div>
+    <div class="pvrpc2"><button type="button" class="pvarr pvrpn l" data-rgm="-1" aria-label="Раньше">‹</button><button type="button" class="pvarr pvrpn r" data-rgm="1" aria-label="Позже">›</button>
+      <div class="pvrms${RPG.dir?(RPG.dir<0?" sl-l":" sl-r"):""}" style="--n:${n}">${ms.map(mon).join("")}</div></div>
+    <div class="pvrpf"><span class="muted rgh">${RPG.pick?"Теперь нажмите последний день":"Нажмите первый и последний день — или один день дважды"}</span><span class="pvrpl rgl">${esc(R.lab)}</span></div>`; }
+function rpgMark(){ const box=RPG.el; if(!box) return; const R=rpgR(RPG.k);
+  let a=R.all?"":R.a, b=R.all?"":R.b; if(RPG.pick){ a=RPG.pick; b=RPG.hov||RPG.pick; if(a>b) [a,b]=[b,a]; }
+  box.querySelectorAll("[data-rgd]").forEach(el=>{ const d=el.dataset.rgd, st=a&&d===a, en=b&&d===b, inn=a&&b&&d>a&&d<b;
+    el.classList.toggle("st", !!st); el.classList.toggle("en", !!en); el.classList.toggle("in", !!inn); el.classList.toggle("one", !!(st&&en)); el.classList.toggle("pk", !!(RPG.pick && d===RPG.pick)); });
+  const h=box.querySelector(".rgh"); if(h) h.textContent=RPG.pick?"Теперь нажмите последний день":"Нажмите первый и последний день — или один день дважды";
+  const l=box.querySelector(".rgl"); if(l) l.textContent=RPG.pick?pvRLab(a,b):R.lab; }
+function rpgBody(){ if(!RPG.el) return; RPG.el.innerHTML=rpgHtml(); rpgMark(); RPG.dir=0; rpgPlace(); }
+const rpgPhone = () => matchMedia("(max-width:600px)").matches;
+function rpgPlace(){ const el=RPG.el, b=RPG.btn; if(!el || !b) return; if(rpgPhone()){ el.style.left=el.style.top=""; return; }
+  if(!b.isConnected){ rpgClose(); return; }
+  const r=b.getBoundingClientRect(), W=innerWidth, H=innerHeight, w=el.offsetWidth, h=el.offsetHeight, pad=10;
+  let left=r.left+w<=W-pad ? r.left : Math.min(Math.max(pad, r.right-w), W-w-pad), top=r.bottom+8; if(top+h>H-pad && r.top-8-h>=pad) top=r.top-8-h; else if(top+h>H-pad) top=Math.max(pad, H-pad-h);
+  el.style.left=Math.round(left)+"px"; el.style.top=Math.round(top)+"px"; el.style.transformOrigin=(top<r.top?"bottom":"top")+" right"; }
+function rpgOpen(b){ const k=b.dataset.rpg; if(!RPG.reg[k]) return; if(RPG.el && RPG.k===k){ rpgClose(); return; } rpgClose(null, true);
+  const R=rpgR(k), n=pvRpN(), t=todayISO().slice(0,7); RPG.k=k; RPG.btn=b; RPG.pick=""; RPG.hov=""; RPG.dir=0;
+  RPG.ym = R.all ? pvShift(t, 1-n) : (n>1 && R.b.slice(0,7)!==R.a.slice(0,7) ? pvShift(R.b.slice(0,7), -1) : (n>1 ? pvShift(R.a.slice(0,7), R.a.slice(0,7)===t?-1:0) : R.a.slice(0,7)));
+  /* поверх всего, и над открытым окном: «верхний слой» браузера (popover); старый браузер — внутри окна, где кнопка */
+  const top=typeof HTMLElement.prototype.showPopover==="function", host=b.closest("dialog")||document.getElementById("fd-app")||document.body, el=document.createElement("div");
+  el.className="pvrp rgp"; el.setAttribute("role","dialog"); el.setAttribute("aria-label","Выбор периода"); if(top) el.setAttribute("popover","manual"); host.appendChild(el); RPG.el=el;
+  if(top) try{ el.showPopover(); }catch(e){}
+  el.innerHTML=rpgHtml(); rpgMark(); rpgPlace();
+  b.setAttribute("aria-expanded","true"); const w=b.closest(".rpgw"); if(w) w.classList.add("op");
+  requestAnimationFrame(()=>{ if(RPG.el===el) el.classList.add("on"); }); }
+function rpgClose(then, now){ const el=RPG.el, b=RPG.btn; RPG.el=null; RPG.pick=""; if(b){ b.setAttribute("aria-expanded","false"); const w=b.closest(".rpgw"); if(w) w.classList.remove("op"); }
+  if(!el){ if(then) then(); return; } el.classList.remove("on");
+  const fast=now||matchMedia("(prefers-reduced-motion:reduce)").matches; setTimeout(()=>{ try{ if(el.matches(":popover-open")) el.hidePopover(); }catch(e){} el.remove(); if(then) then(); }, fast?0:170); }
+function rpgApply(a, b){ const k=RPG.k, o=RPG.reg[k]; if(a!=="all" && a>b) [a,b]=[b,a]; rpgClose(()=>o.set(a, b)); }
+document.addEventListener("click", e=>{ const t=e.target; if(!t.closest) return;
+  const s=t.closest("[data-rpgs]"); if(s){ e.preventDefault(); e.stopPropagation(); const [k,d]=s.dataset.rpgs.split("|"); rpgClose(null, true); if(RPG.reg[k]) rpgShift(k, +d); return; }
+  const b=t.closest("[data-rpg]"); if(b){ e.preventDefault(); e.stopPropagation(); rpgOpen(b); return; }
+  if(!RPG.el || !RPG.el.contains(t)) return; e.stopPropagation();
+  const p=t.closest("[data-rgp]"); if(p){ const [a,bb]=p.dataset.rgp.split("|"); rpgApply(a, bb); return; }
+  const d=t.closest("[data-rgd]"); if(d){ const v=d.dataset.rgd; if(!RPG.pick){ RPG.pick=v; RPG.hov=v; rpgMark(); } else rpgApply(RPG.pick, v); return; }
+  const m=t.closest("[data-rgm]"); if(m){ RPG.ym=pvShift(RPG.ym, +m.dataset.rgm); RPG.dir=+m.dataset.rgm; rpgBody(); } }, true);
+document.addEventListener("pointerover", e=>{ if(!RPG.el || !RPG.pick) return; const d=e.target.closest && e.target.closest(".rgp [data-rgd]"); if(d && d.dataset.rgd!==RPG.hov){ RPG.hov=d.dataset.rgd; rpgMark(); } });
+document.addEventListener("pointerdown", e=>{ if(!RPG.el) return; const t=e.target; if(RPG.el.contains(t) || (t.closest && t.closest("[data-rpg]"))) return; rpgClose(); }, true);
+addEventListener("keydown", e=>{ if(e.key==="Escape" && RPG.el){ e.preventDefault(); e.stopImmediatePropagation(); const b=RPG.btn; rpgClose(); if(b && b.isConnected) try{ b.focus({preventScroll:true}); }catch(_){} } }, true);
+addEventListener("scroll", e=>{ if(RPG.el && !(e.target && e.target.nodeType===1 && RPG.el.contains(e.target))) rpgPlace(); }, true);
+addEventListener("resize", ()=>{ if(RPG.el) rpgBody(); });
+/* период в старом поле-ключе: свои даты хранятся строкой «r:гггг-мм-дд:гггг-мм-дд» */
+const rpgEnc = (a, b) => a==="all" ? "" : "r:"+a+":"+b;
+const rpgDec = v => { const m=/^r:(\d{4}-\d\d-\d\d):(\d{4}-\d\d-\d\d)$/.exec(v||""); return m ? {a:m[1], b:m[2]} : null; };
+/* перерисовать кнопку периода на месте (после выбора) */
+function rpgSync(k){ document.querySelectorAll(`[data-rpg="${k}"]`).forEach(b=>{ const w=b.closest(".rpgw"), kk=b.querySelector(".pvrpk"); if(w) w.outerHTML=rpgBar(k, {k:kk?kk.textContent:undefined}); }); }
+/* старый выбор «Период» (<select> + «Свой период…» с двумя датами) → общий календарь. Сам <select> остаётся спрятанным (его значения — подсказки-кнопки),
+   o = {sel:"#jr-per", dates:["#jr-fromw","#jr-tow"], f:()=>состояние {per,from,to}, range:f=>[a,b], apply:(per,from,to)=>…, dots?} */
+function rpgSelect(k, o){ const sel=document.querySelector(o.sel); if(!sel) return;
+  if(!RPG.reg[k]){ const keyR=key=>{ const r=o.range({per:key}); return (!r || r[0]<"1000" || r[1]>"9000") ? ["all","all"] : r; };
+    const pres=()=>[...sel.options].filter(x=>x.value!=="custom").map(x=>{ const r=keyR(x.value); return [x.textContent.replace(/…$/,""), r[0], r[1], x.value]; });
+    rpgReg(k, { presets:()=>pres().map(x=>x.slice(0,3)), dots:o.dots,
+      get:()=>{ const f=o.f(); if(f.per==="custom") return (f.from&&f.to) ? {a:f.from, b:f.to} : {a:"all"}; const r=keyR(f.per||"all"); return r[0]==="all" ? {a:"all"} : {a:r[0], b:r[1], lab:(pres().find(x=>x[3]===f.per)||[])[0]}; },
+      set:(a,b)=>{ const x=pres().find(x=>x[1]===a && x[2]===b); if(x) o.apply(x[3]); else o.apply("custom", a, b); } }); }
+  const lab=sel.closest("label")||sel; let slot=lab.previousElementSibling;
+  if(!slot || !slot.classList.contains("rpgf")){ slot=document.createElement("div"); slot.className="f rpgf"; slot.innerHTML=`<span class="rpgfl">Период</span><span class="rpgslot"></span>`; lab.parentNode.insertBefore(slot, lab); }
+  lab.hidden=true; (o.dates||[]).forEach(s=>{ const e=document.querySelector(s); if(e) e.hidden=true; });
+  slot.querySelector(".rpgslot").innerHTML=rpgBar(k, {k:""}); }
+window.__rpg = { R:k=>rpgR(k), open:()=>RPG.el?RPG.k:"", set:(k,a,b)=>RPG.reg[k].set(a,b) };
 document.addEventListener("pointerdown", e=>{ if(PVRP.open && !(e.target.closest && e.target.closest("#pv-cus .pvrpw"))) pvRpClose(); });
 document.addEventListener("keydown", e=>{ if(e.key==="Escape" && PVRP.open){ e.stopPropagation(); if(PVRP.pick){ PVRP.pick=""; PVRP.hov=""; pvRpMark(); } else { pvRpClose(); const b=document.querySelector("#pv-cus .pvrpb"); if(b) b.focus(); } } }, true);
 
@@ -362,7 +449,13 @@ function pvLgPresets(){ const t=todayISO(), y=t.slice(0,4), m=t.slice(0,7), pm=p
   L.push({k:"m0", n:"Этот месяц", a:m+"-01", b:end(m)}, {k:"m1", n:"Прошлый месяц", a:pm+"-01", b:end(pm)}, {k:"q", n:"Квартал", a:y+"-"+String(q).padStart(2,"0")+"-01", b:t}, {k:"y", n:"Год", a:y+"-01-01", b:t});
   const seen=new Set(); return L.filter(x=>{ const key=x.a+"|"+x.b; if(seen.has(key)) return false; seen.add(key); return true; }); }
 function pvLgLab(){ if(PVL.per==="c") return pvRLab(PVL.a, PVL.b); const p=pvLgPresets().find(x=>x.k===PVL.per); return p?p.n:"Всё время"; }
-function pvLgPer(){ const P=pvLgPresets(), c=PVL.per==="c"||PVL.cst;
+/* период окна заказчика — общий календарь (rpgBar); варианты — прежние чипы */
+function pvLgPer(){ if(!RPG.reg.pvl) rpgReg("pvl", { presets:()=>pvLgPresets().map(p=>[p.n, p.k==="all"?"all":p.a, p.k==="all"?"all":p.b]),
+    get:()=>PVL.per==="all" ? {a:"all"} : {a:PVL.a, b:PVL.b, lab:pvLgLab()},
+    set:(a,b)=>{ const p=pvLgPresets().find(x=>(a==="all"?x.k==="all":(x.a===a&&x.b===b))); if(p){ pvLgSet(p.k); return; } PVL.per="c"; PVL.a=a; PVL.b=b; PVL.cst=false; PVL.open=new Set(); PVL.auto=1; pvLedgerDraw(); },
+    dots:()=>new Set(D.journal.filter(j=>j.customerId===PVL.cid && j.snap && !isArch(j)).map(j=>j.date)) });
+  return `<div class="pvlper pvlrp">${rpgBar("pvl")}</div>`; }
+function pvLgPerOld(){ const P=pvLgPresets(), c=PVL.per==="c"||PVL.cst;
   return `<div class="pvlper" role="group" aria-label="Период">${P.map(p=>`<button type="button" class="${PVL.per===p.k?"on":""}" data-pvlp="${p.k}" ${p.t?`title="${esc(p.t)}"`:""}>${esc(p.n)}</button>`).join("")}<button type="button" class="${PVL.per==="c"?"on":""}" data-pvlp="c">Свои даты</button>
     ${c?`<span class="pvlc"><input type="date" id="pvl-a" value="${PVL.a>"0000"?PVL.a:""}" aria-label="С"><i>—</i><input type="date" id="pvl-b" value="${PVL.b<"9999"?PVL.b:""}" aria-label="По"></span>`:""}</div>`; }
 function pvLgSet(k){ if(k==="c"){ PVL.cst=true; if(PVL.per==="all"){ const t=todayISO(); PVL.per="c"; PVL.a=t.slice(0,7)+"-01"; PVL.b=t; PVL.auto=1; } pvLedgerDraw(); const i=$("#pvl-a"); if(i) i.focus(); return; }

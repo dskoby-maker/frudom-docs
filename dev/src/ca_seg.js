@@ -173,6 +173,9 @@ async function caFetch(cid, range){ const [s,e]=range, local=()=>D.journal.filte
 async function renderCustomerAnalytics(){
   const request = ++analyticsRequest, cid = analyticsCustomer, status = $("#ca-status"), per = $("#ca-period").value, custom = per === "custom";
   $("#ca-perseg").querySelectorAll("button").forEach(b=>{ const on=b.dataset.per===per; b.classList.toggle("on",on); b.setAttribute("aria-pressed",on); });
+  rpgSelect("ca", {sel:"#ca-period", dates:["#ca-perseg","#ca-from-label","#ca-to-label"], f:()=>({per:$("#ca-period").value, from:$("#ca-from").value, to:$("#ca-to").value}),
+    range:f=>caRange(f.per), apply:(per,a,b)=>{ $("#ca-period").value=per; if(per==="custom"){ $("#ca-from").value=a; $("#ca-to").value=b; } CA.all=false; renderCustomerAnalytics(); },
+    dots:()=>new Set(D.journal.filter(j=>j.customerId===analyticsCustomer && j.snap && !isArch(j)).map(j=>j.date))});
   $("#ca-from-label").hidden = $("#ca-to-label").hidden = !custom;
   const from = $("#ca-from").value, to = $("#ca-to").value;
   if(!cid){ $("#ca-result").textContent=""; status.textContent = "Выберите заказчика."; return; }

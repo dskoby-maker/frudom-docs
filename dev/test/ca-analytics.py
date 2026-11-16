@@ -16,8 +16,7 @@ async def open_ca(pg, cid):
     await pg.evaluate(TAB+"('customers')"); await pg.wait_for_timeout(500)
     await pg.select_option('#cus-editor select.pick', cid); await pg.wait_for_timeout(600)
     await pg.evaluate("document.getElementById('cus-analytics').open=true"); await pg.wait_for_timeout(800)
-    await pg.click('#ca-perseg [data-per="custom"]'); await pg.fill('#ca-from', iso(A)); await pg.fill('#ca-to', iso(T))
-    await pg.dispatch_event('#ca-to','change'); await pg.wait_for_timeout(2500)
+    await pg.evaluate(f"__rpg.set('ca','{iso(A)}','{iso(T)}')"); await pg.wait_for_timeout(2500)
 async def main():
     async with async_playwright() as p:
         b=await p.chromium.launch(executable_path=os.environ.get("BROWSER_EXECUTABLE_PATH"))

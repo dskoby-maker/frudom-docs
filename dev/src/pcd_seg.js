@@ -221,7 +221,7 @@ const pcdDay = L => { const by={}; L.forEach(x=>{ const o=by[x.d]||(by[x.d]={d:x
 let PCD=null;
 const PCD_PER=[["all","Всё время"],["90","3 месяца"],["30","Месяц"]];
 function pdCard(id){ const p=prod(id); if(!p){ toast("info","Товара уже нет"); return; }
-  PCD={id, per:(PCD&&PCD.id===id&&PCD.per)||"all", f:(PCD&&PCD.id===id&&PCD.f)||"", priceDay:(PCD&&PCD.id===id&&PCD.priceDay)||"", n:15, q:"", sug:false};
+  PCD={id, per:(PCD&&PCD.id===id&&PCD.per)||"all", r:(PCD&&PCD.id===id&&PCD.r)||null, f:(PCD&&PCD.id===id&&PCD.f)||"", priceDay:(PCD&&PCD.id===id&&PCD.priceDay)||"", n:15, q:"", sug:false};
   if(me().admin && typeof pfLoaded!=="undefined" && !pfLoaded){ loadProfit(true).then(()=>pcdRedraw()).catch(()=>{}); }
   try{ if(typeof SK!=="undefined" && !SK && skCan()) skLoad(true).then(()=>pcdRedraw()).catch(()=>{}); }catch(e){}
   CARD_RE=()=>pdCard(id);
@@ -229,11 +229,15 @@ function pdCard(id){ const p=prod(id); if(!p){ toast("info","Товара уже
     if(a==="doc"){ const j=D.journal.find(x=>x.id===b.dataset.id); if(j) docCard(j); return; }
     if(a==="skh"){ skItemHist(b.dataset.id); return; }
     if(a==="go"){ pdCard(b.dataset.id); return; } }); }
+/* период карточки — общий календарь (rpgBar): «Всё время», последние 30 / 90 дней, месяцы, свои даты */
+rpgReg("pcd", { get:()=>PCD&&PCD.r?PCD.r:{a:"all"}, set:(a,b)=>{ if(!PCD) return; PCD.r = a==="all" ? null : {a,b}; PCD.n=15; pcdRedraw(); },
+  presets:()=>{ const P=pvRpPresets(); return [["Всё время","all","all"], rpgLast(30,"30 дней"), rpgLast(90,"3 месяца"), P[0], P[1], P[4]]; },
+  dots:()=>{ try{ return new Set(pcdData(PCD.id).sales.map(s=>s.d)); }catch(e){ return new Set(); } } });
 function pcdRedraw(){ const el=document.getElementById("pcd"); if(!el || !PCD) return; const d=el.closest("dialog"), st=d?d.scrollTop:0; el.innerHTML=pcdHtml(); if(d){ d.scrollTop=st; try{ navDecorate(d); }catch(e){} } }
 function pcdHtml(){ const p=prod(PCD.id); if(!p) return `<div class="dc-head"><div><h3>Товара уже нет</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>`;
   const X=pcdData(p.id), M=X.M, root=pgRoot(p), U=pcdUnit(X), can=pgCan(), srv=pgSrv();
-  const from = PCD.per==="all" ? "0000" : jIso(new Date(Date.now()-(+PCD.per)*864e5));
-  const S=X.sales.filter(s=>s.d>=from), B=X.buys.filter(b=>(b.d||"0000")>=from || (!b.d && PCD.per==="all"));
+  const pr=PCD.r, from=pr?pr.a:"0000", to=pr?pr.b:"9999";
+  const S=X.sales.filter(s=>s.d>=from && s.d<=to), B=X.buys.filter(b=>b.d ? (b.d>=from && b.d<=to) : !pr);
   const SU=S.filter(s=>s.unit===U), BU=B.filter(b=>b.u===U && b.d);
   /* итоги */
   const qty={}; S.forEach(s=>qty[s.unit]=r3((qty[s.unit]||0)+s.qty)); const rev=r2(S.reduce((a,s)=>a+s.sum,0));
@@ -259,7 +263,7 @@ function pcdHtml(){ const p=prod(PCD.id); if(!p) return `<div class="dc-head"><d
     if(AL.length) h+=`<div class="muted pcd-al">Так его пишут в заявках: ${AL.map(x=>`<span class="pcd-alc">${esc(x.a)}${can?`<button type="button" data-pcdal="${esc(x.id)}" data-a="${esc(x.a)}" title="Это не этот товар — забыть название" aria-label="Убрать «${esc(x.a)}»">×</button>`:""}</span>`).join(" ")}</div>`; }
   h+=`</div>`;
   /* период */
-  h+=`<div class="pfchips pcd-per">${PCD_PER.map(([k,t])=>`<button type="button" data-pcdper="${k}" class="${PCD.per===k?"on":""}">${t}</button>`).join("")}</div>`;
+  h+=`<div class="pcd-per">${rpgBar("pcd")}</div>`;
   /* плитки */
   h+=`<div class="skh-kpi pcd-kpi">`
     + tile("Продано", Object.keys(qty).map(u=>skQf(qty[u],u)).join(" · ")||"—", docs?docs+" "+plural(docs,["накладная","накладные","накладных"])+" · "+cuss+" "+plural(cuss,["заказчик","заказчика","заказчиков"]):"")
@@ -294,7 +298,7 @@ function pcdHtml(){ const p=prod(PCD.id); if(!p) return `<div class="dc-head"><d
           return `<button type="button" class="pcd-er s" data-dc="doc" data-id="${s.j.id}"><span class="pcd-ed">${fd(s.d)}</span><span class="pcd-et"><b>${esc(s.cus)}</b><small>№ ${esc(s.j.number)}${M.length>1?" · "+esc(s.name):""}</small></span><span class="pcd-eq"><b>${skQf(s.qty,s.unit)} × ${fm(s.price)} ₽</b><small>${fm(s.sum)} ₽${X.adm&&s.c!=null?" · закупка "+fm(s.c)+(m!=null?" ("+pcdPct(m)+")":""):""}</small></span></button>`; }
         const b=e.b; return `<button type="button" class="pcd-er b" ${b.jid?`data-dc="doc" data-id="${b.jid}"`:b.item?`data-dc="skh" data-id="${b.item}"`:"disabled"}><span class="pcd-ed">${fd(b.d)}</span><span class="pcd-et"><b>Закупка</b><small>${esc(b.src)}</small></span><span class="pcd-eq"><b>${fm(b.p)} ₽/${esc(b.u)}</b>${b.q?`<small>${skQf(b.q,b.u)}</small>`:""}</span></button>`; }).join("")}</div>`
         + (EL.length>PCD.n?`<div class="skmv-more"><span class="muted">Показано ${PCD.n} из ${EL.length}</span><button type="button" class="btn ghost sm" data-pcdmore="15">Ещё 15</button><button type="button" class="btn ghost sm" data-pcdmore="all">Все</button></div>`:"")
-      :`<div class="skempty"><b>Пока пусто</b><span>${PCD.per!=="all"?"Выберите «Всё время».":"Этот товар ещё не продавали."}</span></div>`)
+      :`<div class="skempty"><b>Пока пусто</b><span>${PCD.r?"Выберите «Всё время».":"Этот товар ещё не продавали."}</span></div>`)
     + `<p class="muted skh-note">По документам на этом устройстве (последние 2000), без архива.</p></div>`;
   return h + `<div class="dc-acts"><button class="btn pri" data-dc="close">Закрыть</button></div>`; }
 function pcdSugHtml(){ if(!PCD) return ""; const q=norm(PCD.q); if(!q) return ""; const ids=new Set(pgMembers(PCD.id).map(x=>x.id)), W=q.split(" ").filter(Boolean);

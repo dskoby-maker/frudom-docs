@@ -198,8 +198,13 @@ function skLogHtml(q, X){ const G=SKLG, pend=skQ().map(x=>({at:x.at, by:x.by, ac
   const dayLbl=d=>d===t?"Сегодня":d===back(1)?"Вчера":fd(d)+" · "+new Date(d+"T12:00:00").toLocaleDateString("ru-RU",{weekday:"long"});
   let last="", rows=""; list.forEach((l,k)=>{ const d=l.pend?"pend":skDay(l.at); if(d!==last){ last=d; rows+=`<div class="sklday">${l.pend?"Ожидает отправки":esc(dayLbl(d))}</div>`; } rows+=skLogRow(l,k); });
   const per=[["all","Всё время","Всё"],["today","Сегодня","Сегодня"],["7","7 дней","7 дн."],["30","30 дней","30 дн."],["range","Период…","Период"]];
-  return `<div class="sklg-bar"><div class="sklg-seg" role="group" aria-label="Период">${per.map(([k,v,m])=>`<button type="button" data-sklg-per="${k}" class="${G.per===k?"on":""}"><span class="mi-desk">${v}</span><span class="mi-mob">${m}</span></button>`).join("")}</div>
-      ${G.per==="range"?`<div class="sklg-range"><label>с <input type="date" class="sklg-from" value="${esc(G.from)}"></label><label>по <input type="date" class="sklg-to" value="${esc(G.to)}"></label></div>`:""}
+  if(!RPG.reg.sklg){ const K=()=>{ const t=todayISO(); return {today:[t,t], "7":[pvAddD(t,-6),t], "30":[pvAddD(t,-29),t]}; };
+    rpgReg("sklg", { presets:()=>{ const k=K(), P=pvRpPresets(); return [["Сегодня",...k.today],["7 дней",...k["7"]],["30 дней",...k["30"]],P[0],P[1],["Всё время","all","all"]]; },
+      get:()=>{ if(SKLG.per==="range") return (SKLG.from&&SKLG.to)?{a:SKLG.from,b:SKLG.to}:{a:"all"}; const k=K()[SKLG.per]; return k?{a:k[0],b:k[1]}:{a:"all"}; },
+      set:(a,b)=>{ const k=K(), x=Object.keys(k).find(z=>k[z][0]===a&&k[z][1]===b); if(a==="all") SKLG.per="all"; else if(x) SKLG.per=x; else { SKLG.per="range"; SKLG.from=a; SKLG.to=b; } SKLG.page=0; skLgRedraw(); },
+      dots:()=>{ try{ return new Set(SKLG._X.S.log.map(l=>skDay(l.at))); }catch(e){ return new Set(); } } }); }
+  SKLG._X=X;
+  return `<div class="sklg-bar">${rpgBar("sklg")}
       <div class="sklg-f"><select class="sklg-act" aria-label="Действие"><option value="">Все действия (${base.filter(l=>!G.who||l.by===G.who).length})</option>${Object.keys(acts).sort((a,b)=>a.localeCompare(b,"ru")).map(a=>`<option value="${esc(a)}"${G.act===a?" selected":""}>${esc(a)} (${acts[a]})</option>`).join("")}</select>
         <select class="sklg-who" aria-label="Кто"><option value="">Все сотрудники</option>${Object.keys(whos).sort().map(w=>`<option value="${esc(w)}"${G.who===w?" selected":""}>${esc(w)} (${whos[w]})</option>`).join("")}</select>
         <button type="button" class="btn ghost sm sklg-sort" data-sklg-sort="1" title="Порядок">${G.sort==="new"?"↓ Сначала новые":"↑ Сначала старые"}</button>

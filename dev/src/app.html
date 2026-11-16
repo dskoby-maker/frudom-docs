@@ -2034,6 +2034,18 @@ dialog .ndr-a{display:flex;gap:6px;flex:none}
 #fd-app .pvrg>span:empty{height:38px}
 #fd-app .pvrpf{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);font-size:12.5px}
 #fd-app .pvrpl{font-weight:650;color:var(--accent);font-size:13.5px}
+/* общий выбор периода (rpgBar / rpgOpen в pfv_seg.js) */
+#fd-app .rpgw{display:inline-flex;align-items:center;gap:2px;max-width:100%;padding:3px;border-radius:12px;background:var(--surface-2,rgba(28,34,32,.04));border:1px solid var(--line)}
+#fd-app .rpgw .pvarr{flex:none}
+#fd-app .rpgf{grid-column:span 2;display:grid;grid-template-columns:minmax(0,1fr);gap:4px;align-content:start;min-width:0}#fd-app .rpgslot{min-width:0}#fd-app .rpgfl{font-size:12px;color:var(--muted);letter-spacing:.02em}
+#fd-app .rpgf .rpgw{background:var(--surface);display:flex;width:100%;box-sizing:border-box;min-height:42px}
+#fd-app .rpgf .rpgw .pvrpb,#fd-app .zkp-per .rpgw .pvrpb{flex:1;min-width:0}#fd-app .rpgf .rpgw .pvrpb b{overflow:hidden;text-overflow:ellipsis}
+#fd-app .zkp-per{min-width:0}@media (max-width:600px){#fd-app .zkp-per{flex:1 1 100%}}
+#fd-app .rpgw .pvrpb{min-width:150px;height:30px}
+#fd-app .rpgw.op .pvrpb{background:var(--surface);box-shadow:0 0 0 1.5px var(--accent)}#fd-app .rpgw.op .pvrpb i{transform:translateY(2px) rotate(-135deg)}
+#fd-app .pvrp.rgp[popover]{margin:0;inset:auto;color:inherit;overflow:visible}
+@media (min-width:601px){#fd-app .pvrp.rgp{position:fixed;right:auto;top:0;left:0;z-index:9500}}
+@media (max-width:600px){#fd-app .pvrp.rgp,#fd-app .pvrp.rgp[popover]{z-index:9500;position:fixed;left:10px;right:10px;top:auto;bottom:calc(var(--mbh,0px) + 10px);overflow:auto}#fd-app .rpgw{display:flex;width:100%}#fd-app .rpgw .pvrpb{flex:1;min-width:0}#fd-app .rpgw .pvrpb b{overflow:hidden;text-overflow:ellipsis}}
 @media (max-width:600px){
  #fd-app .pvrpw{width:100%}#fd-app .pvrpb{flex:1;min-width:0}#fd-app .pvrpb b{overflow:hidden;text-overflow:ellipsis}
  #fd-app .pvrp{position:fixed;left:10px;right:10px;top:auto;bottom:calc(var(--mbh,0px) + 10px);width:auto;max-height:calc(100vh - 120px);overflow:auto;transform:translateY(16px);transform-origin:bottom center;padding:14px 14px 12px}
@@ -2115,6 +2127,7 @@ dialog .ndr-a{display:flex;gap:6px;flex:none}
 #fd-app .pvl-d .pvkpi{margin:4px 0 14px}
 /* окно заказчика: период и нажимаемые плитки (pvLgPer/pvLgTile) */
 #fd-app .pvlper{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:2px 0 12px}
+@media (max-width:600px){#fd-app .pvlper.pvlrp{overflow:visible;margin-right:0;padding-right:0}}
 #fd-app .pvlper>button{all:unset;cursor:pointer;padding:6px 12px;border:1px solid var(--line);border-radius:99px;font:500 13px var(--ui);color:var(--ink);background:var(--surface);transition:background .15s,border-color .15s}#fd-app .pvlper>button:hover{border-color:rgba(106,44,78,.4)}#fd-app .pvlper>button.on{background:var(--accent);border-color:var(--accent);color:#fff}#fd-app .pvlper>button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 #fd-app .pvlc{display:inline-flex;align-items:center;gap:6px;animation:fdin .2s ease}#fd-app .pvlc input{width:auto;padding:5px 8px;font-size:13px}#fd-app .pvlc i{font-style:normal;color:var(--muted)}
 #fd-app .pvlk .pvt{all:unset;box-sizing:border-box;cursor:pointer;background:var(--bg);border-radius:10px;padding:12px 14px;display:grid;gap:2px;align-content:start;animation:fdin .3s ease both;transition:box-shadow .15s,background .15s;min-width:0}
@@ -2956,7 +2969,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
   <section class="tab" id="tab-purchase" hidden>
     <div class="card zkp" id="zkp">
       <div class="zkp-h"><h2>Закупка по накладным <small>видно только вам</small></h2><small class="muted">Нажмите на накладную или комплект — закупка заполняется прямо здесь, без окна.</small></div>
-      <div class="zkp-bar"><div class="fdseg zkp-vw" id="zkp-vw" role="group" aria-label="Вид"><i></i><button type="button" data-zkpv="list" class="on" aria-pressed="true">Список</button><button type="button" data-zkpv="cal" aria-pressed="false">Календарь</button></div><div class="ca-per" id="zkp-per"><button type="button" data-zkpp="7" class="on">7 дней</button><button type="button" data-zkpp="30">30 дней</button><button type="button" data-zkpp="m">Этот месяц</button><button type="button" data-zkpp="pm">Прошлый месяц</button><button type="button" data-zkpp="all">Всё время</button></div><input id="zkp-q" type="search" placeholder="Поиск: заказчик, № накладной, точка" aria-label="Поиск накладной"><button type="button" class="btn ghost sm zkp-xls" data-zkxls title="Скачать закупку за день или период таблицей Excel">Excel</button></div>
+      <div class="zkp-bar"><div class="fdseg zkp-vw" id="zkp-vw" role="group" aria-label="Вид"><i></i><button type="button" data-zkpv="list" class="on" aria-pressed="true">Список</button><button type="button" data-zkpv="cal" aria-pressed="false">Календарь</button></div><div class="zkp-per" id="zkp-per"></div><input id="zkp-q" type="search" placeholder="Поиск: заказчик, № накладной, точка" aria-label="Поиск накладной"><button type="button" class="btn ghost sm zkp-xls" data-zkxls title="Скачать закупку за день или период таблицей Excel">Excel</button></div>
       <div class="zkp-cal" id="zkp-cal" hidden></div>
       <div class="zkp-rng" id="zkp-rng" hidden></div>
       <div class="zkp-kpi" id="zkp-kpi"></div>
@@ -3014,8 +3027,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
     <div class="card evc">
       <div class="evh"><h2>События <small id="ev-count"></small></h2><button type="button" class="evrf" id="ev-refresh" title="Обновить" aria-label="Обновить"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button></div>
       <p class="muted evd">Кто и что делал в системе. Видно только вам, хранятся последние 3000.</p>
-      <div class="evseg" id="ev-perseg" role="group" aria-label="Период"><button type="button" data-evp="1">Сегодня</button><button type="button" data-evp="7">7 дней</button><button type="button" data-evp="30">30 дней</button><button type="button" data-evp="">Всё</button></div>
-      <select id="ev-per" hidden><option value="1">Сегодня</option><option value="7" selected>7 дней</option><option value="30">30 дней</option><option value="">Всё</option></select>
+      <div id="ev-perseg" class="evper"></div>
       <div class="evfl">
         <select id="ev-user" aria-label="Кто"><option value="">Все люди</option></select>
         <select id="ev-type" aria-label="Действие"><option value="">Все действия</option></select>
@@ -5537,6 +5549,7 @@ function dbMerge(list){
 /* ---- главная функция вкладки ---- */
 function drawProfit(){
   const f=PF(); f.st=f.st||"all"; $("#pf-per").value=f.per; $("#pf-fromw").hidden=$("#pf-tow").hidden=f.per!=="custom"; $("#pf-from").value=f.from||""; $("#pf-to").value=f.to||"";
+  rpgSelect("pf", {sel:"#pf-per", dates:["#pf-fromw","#pf-tow"], f:PF, range:pfRange, apply:(per,a,b)=>{ const F=PF(); if(per==="custom"){ F.from=a; F.to=b; } pfSet("per", per); }, dots:()=>new Set(D.journal.filter(j=>j.snap&&!isArch(j)).map(j=>j.date))});
   $("#pf-sup").innerHTML=`<option value="">Все</option>`+opts(D.suppliers,f.sup); $("#pf-cus").innerHTML=`<option value="">Все</option>`+opts(D.customers,f.cus);
   const [d1,d2]=pfRange(f);
   const docs=D.journal.filter(j=>j.snap && !isArch(j) && j.date>=d1 && j.date<=d2 && (!f.sup||j.supplierId===f.sup) && (!f.cus||j.customerId===f.cus))
@@ -6247,15 +6260,22 @@ function evRow(e){ const d=evParse(e.at), tm=d?String(d.getHours()).padStart(2,"
     <div class="evm"><div class="evt"><b>${esc(e.user)}</b><span class="act a-${esc(e.action)}">${esc(e.action)}</span><time title="${esc(e.at)}">${tm}</time></div>
     <button type="button" class="evx">${esc(e.text)}</button></div></div>`; }
 let evShow=50;   /* сначала последние 50, дальше — по 50 или все сразу */
+/* период «Событий» — общий календарь (rpgBar); «1/7/30» — дней до сегодня, "" — всё, «r:…» — свои даты */
+let EVP="7";
+function evPerReg(){ if(RPG.reg.ev) return; const t=todayISO(), K={"1":[t,t],"7":[pvAddD(t,-6),t],"30":[pvAddD(t,-29),t]};
+  rpgReg("ev", { presets:()=>{ const P=pvRpPresets(); return [["Сегодня",t,t],["Вчера",pvAddD(t,-1),pvAddD(t,-1)],["7 дней",...K["7"]],["30 дней",...K["30"]],P[0],P[1],["Всё время","all","all"]]; },
+    get:()=>{ const r=rpgDec(EVP); if(r) return r; const k=K[EVP]; return k?{a:k[0],b:k[1]}:{a:"all"}; },
+    set:(a,b)=>{ const k=Object.keys(K).find(x=>K[x][0]===a&&K[x][1]===b); EVP = a==="all" ? "" : (k||rpgEnc(a,b)); evShow=50; drawEvents(); },
+    dots:()=>new Set((evCache||[]).map(e=>{ const d=evParse(e.at); return d?jIso(d):""; })) }); }
 function drawEvents(keepMsg){
   if(evCache && !evCache._srt){ const t=e=>{ const d=evParse(e.at); return d?d.getTime():0; }; evCache=evCache.map((e,i)=>[t(e),i,e]).sort((a,b)=>b[0]-a[0]||a[1]-b[1]).map(x=>x[2]); evCache._srt=1; }   /* тихие события приходят пачкой — по времени */
-  const L=evCache||[], u=$("#ev-user").value, ty=$("#ev-type").value, per=$("#ev-per").value, q=($("#ev-q").value||"").toLowerCase().trim();
-  const since = per ? (()=>{ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-(+per-1)); return d; })() : null;
+  const L=evCache||[], u=$("#ev-user").value, ty=$("#ev-type").value, per=EVP, q=($("#ev-q").value||"").toLowerCase().trim();
+  const rr=rpgDec(per), since = rr ? pvIsoD(rr.a) : per ? (()=>{ const d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-(+per-1)); return d; })() : null, until = rr ? pvIsoD(pvAddD(rr.b,1)) : null;
   const tySel=$("#ev-type"); if(tySel.options.length<2 || tySel._n!==L.length){ const have=[...new Set(L.map(e=>e.action).filter(Boolean))], all=EV_ACT.filter(a=>have.includes(a)).concat(have.filter(a=>!EV_ACT.includes(a)));
     tySel.innerHTML=`<option value="">Все действия</option>`+all.map(a=>`<option${a===ty?" selected":""}>${esc(a)}</option>`).join(""); tySel._n=L.length; }
-  document.querySelectorAll("#ev-perseg [data-evp]").forEach(b=>b.classList.toggle("on", b.dataset.evp===per));
+  evPerReg(); const eps=$("#ev-perseg"); if(eps) eps.innerHTML=rpgBar("ev");
   const nl=$("#ev-nologin").checked;
-  const rows=L.filter(e=>(!nl||!EV_QUIET.test(e.action)) && (!u||e.user===u) && (!ty||e.action===ty) && (!since||((evParse(e.at)||new Date())>=since)) && (!q||(e.text+" "+e.user+" "+e.action).toLowerCase().includes(q)));
+  const rows=L.filter(e=>(!nl||!EV_QUIET.test(e.action)) && (!u||e.user===u) && (!ty||e.action===ty) && (!since||((evParse(e.at)||new Date())>=since)) && (!until||((evParse(e.at)||new Date())<until)) && (!q||(e.text+" "+e.user+" "+e.action).toLowerCase().includes(q)));
   $("#ev-count").textContent=L.length?L.length+" шт.":"";
   const n=Math.min(evShow, rows.length), left=rows.length-n;
   if(!keepMsg) $("#ev-sum").textContent = rows.length ? (rows.length===L.length ? "Всего "+L.length : "Найдено "+rows.length+" из "+L.length) : "";
@@ -6265,8 +6285,7 @@ function drawEvents(keepMsg){
   let h="", last=null; rows.slice(0,n).forEach(e=>{ const d=evParse(e.at), k=d?d.toDateString():""; if(k!==last){ if(last!==null) h+=`</div>`; h+=`<div class="evg"><div class="evdh">${esc(evDay(d))}</div>`; last=k; } h+=evRow(e); });
   $("#ev-body").innerHTML = rows.length ? h+`</div>` : `<p class="muted evnone">${L.length?"По этим фильтрам событий нет.":"Событий пока нет."}</p>`;
 }
-["#ev-user","#ev-type","#ev-per"].forEach(s=>$(s).onchange=()=>{ evShow=50; drawEvents(); });
-$("#ev-perseg").addEventListener("click",e=>{ const b=e.target.closest("[data-evp]"); if(!b) return; $("#ev-per").value=b.dataset.evp; evShow=50; drawEvents(); });
+["#ev-user","#ev-type"].forEach(s=>$(s).onchange=()=>{ evShow=50; drawEvents(); });
 $("#ev-nologin").onchange=e=>{ try{ localStorage.setItem("frudom-evnl", e.target.checked?"1":"0"); }catch(x){} evShow=50; drawEvents(); };
 $("#ev-body").addEventListener("click",e=>{ const x=e.target.closest(".evx"); if(x) x.classList.toggle("full"); }); $("#ev-q").addEventListener("input",()=>{ evShow=50; drawEvents(); });
 $("#ev-next").onclick=()=>{ evShow+=50; drawEvents(true); };
@@ -6368,6 +6387,7 @@ function renderJournal(){
   if(me().admin && !pfLoaded && !zkJLoading && online()){ zkJLoading=true; loadProfit(true).then(()=>{ if(curTab==="journal") renderJournal(); }); }   /* значки закупки — по данным прибыли */
   const f=JF();
   $("#jr-per").value=f.per; $("#jr-fromw").hidden=$("#jr-tow").hidden=f.per!=="custom"; $("#jr-from").value=f.from||""; $("#jr-to").value=f.to||"";
+  rpgSelect("jr", {sel:"#jr-per", dates:["#jr-fromw","#jr-tow"], f:JF, range:jRange, apply:(per,a,b)=>{ const F=JF(); if(per==="custom"){ F.from=a; F.to=b; } jfSet("per", per); }, dots:()=>new Set(D.journal.filter(j=>j.snap).map(j=>j.date))});
   $("#jr-sup").innerHTML=`<option value="">Все</option>`+opts(D.suppliers,f.sup); $("#jr-cus").innerHTML=`<option value="">Все</option>`+opts(D.customers,f.cus);
   const bl=f.cus?branches(cus(f.cus)):[]; $("#jr-brw").hidden=!bl.length; if(!bl.some(b=>b.id===f.br)) f.br="";
   $("#jr-br").innerHTML=`<option value="">Все</option>`+bl.map(b=>`<option value="${b.id}"${b.id===f.br?" selected":""}>${esc(b.label||b.fullName||"ОП")}</option>`).join("");
