@@ -1849,6 +1849,12 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .drv-av{display:grid;place-items:center;flex:none;width:22px;height:22px;border-radius:50%;font:700 10.5px/1 var(--ui);font-style:normal;letter-spacing:.02em;color:#fff;background:hsl(var(--h,200) 34% 48%)}
 #fd-app .drv-av svg{width:13px;height:13px;opacity:1}
 #fd-app #dt-drvw:empty{display:none}
+#fd-app .dt-drvl{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:7px}
+#fd-app .dt-drvl>span{font-size:12px;color:#9a948c;letter-spacing:.01em}
+#fd-app .dt-drvl .drvb{height:24px;padding:0 8px 0 7px;font-size:12.5px;gap:5px}
+#fd-app .dt-drvl .drvb.on{padding-left:2px}
+#fd-app .dt-drvl .drvb svg{width:13px;height:13px}
+#fd-app .dt-drvl .drv-av{width:19px;height:19px;font-size:9.5px}
 .drp{position:fixed;inset:auto;margin:0;z-index:2147483000;width:256px;max-height:min(440px,calc(100vh - 20px));display:flex;flex-direction:column;padding:6px;border:0;border-radius:14px;background:#fff;color:#2c2925;font:14px var(--ui,system-ui);box-shadow:0 1px 2px rgba(0,0,0,.06),0 14px 40px -8px rgba(30,25,20,.28),0 0 0 1px rgba(28,34,32,.08);opacity:0;transform:translateY(-4px) scale(.98);transition:opacity .16s,transform .18s cubic-bezier(.3,.9,.3,1);overflow:hidden}
 .drp.on{opacity:1;transform:none}
 .drp-h{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 6px 10px}.drp-h b{font:600 11.5px var(--ui,system-ui);letter-spacing:.06em;text-transform:uppercase;color:#8a847c}
@@ -5123,10 +5129,10 @@ function dtRow(x, ing){ const e=EDf(); if(e && e.id===x.id && dtCan(x)) return d
   const who = (rd.length?`<span class="ok"><em>Прочитал:</em> ${rd.map(n=>`<b title="Увидел ${esc(fd(sn[n].slice(0,10)))} в ${hhmm(sn[n])}">${esc(n)}</b> <s>${tm(n)}</s>`).join(", ")}</span>`:"")
     + (nr.length?`<span class="no"><em>Не прочитал:</em> ${nr.map(esc).join(", ")}</span>`:"");
   return `<div class="dt${x._new?" new":""}${hu!=null?" hc":""}${dtNeed(x)?" nodoc":""}" data-dt="${esc(x.id)}"${hu!=null?` style="--h:${hu}"`:""}>
-    <div class="dt-b"><div class="dt-top">${cn?`<span class="dt-c"${ing?' title="Точка"':""}>${ing?IPIN:""}${esc(cn)}</span>`:""}${dtDrvHtml(x)}${who?`<div class="dt-rd${nr.length?"":" all"}" aria-label="Кто прочитал">${who}</div>`:""}</div>
+    <div class="dt-b"><div class="dt-top">${cn?`<span class="dt-c"${ing?' title="Точка"':""}>${ing?IPIN:""}${esc(cn)}</span>`:""}${who?`<div class="dt-rd${nr.length?"":" all"}" aria-label="Кто прочитал">${who}</div>`:""}</div>
       ${dtDocsHtml(x)}<div class="dt-t"${dtCan(x)?' data-dtedit title="Нажмите, чтобы исправить"':""}>${fmtHtml(x.text)}</div>${dtSrcHtml(x)}
       <div class="dt-phs" data-phs="${esc(x.id)}">${phItems(x.id,x.photos,false)}</div>
-      <small>${esc(x.by||"")}${x.created?" · "+(x.created.slice(0,10)===todayISO()?"сегодня ":fd(x.created.slice(0,10))+" ")+hhmm(x.created):""}</small></div>
+      <small>${esc(x.by||"")}${x.created?" · "+(x.created.slice(0,10)===todayISO()?"сегодня ":fd(x.created.slice(0,10))+" ")+hhmm(x.created):""}</small>${(()=>{ const b=dtDrvHtml(x); return b?`<div class="dt-drvl"><span>Задача для:</span>${b}</div>`:""; })()}</div>
     <div class="dt-a">${dtCan(x)?`<button type="button" class="dt-pen" data-dtpen title="Изменить задачу" aria-label="Изменить задачу">${IPEN}</button>`:""}<label class="dt-cam" title="Прикрепить фото" aria-label="Прикрепить фото">${ICAM}<input type="file" accept="image/*" multiple hidden data-phfile></label>${dtCan(x)?`<button type="button" class="dt-x" data-dtdel title="Удалить" aria-label="Удалить">×</button>`:""}</div></div>`; }
 /* цвет заказчика: мягкий оттенок, свой у каждого и всегда один и тот же (порядок в справочнике × «золотой угол») */
 function dtHue(cid){ if(!cid) return null; const i=D.customers.findIndex(c=>c.id===cid); if(i<0) return null; return Math.round((i*137.508+24)%360); }
