@@ -35,9 +35,8 @@ async def main():
             first_new=await pg.text_content('#sk-list .sklr .sklo b'); await pg.click('[data-sklg-sort]'); await pg.wait_for_timeout(300)
             first_old=await pg.text_content('#sk-list .sklr .sklo b'); ok(first_new!=first_old, f'{W}: порядок меняется ({first_new} / {first_old})')
             # период: «Сегодня» есть, период в прошлом — пусто
-            await pg.click('[data-sklg-per="today"]'); await pg.wait_for_timeout(200); ok(await pg.locator('#sk-list .sklr').count()>0, f'{W}: «Сегодня»')
-            await pg.click('[data-sklg-per="range"]'); await pg.wait_for_timeout(200)
-            await pg.fill('#sk-list .sklg-from','2020-01-01'); await pg.dispatch_event('#sk-list .sklg-from','change'); await pg.fill('#sk-list .sklg-to','2020-01-31'); await pg.dispatch_event('#sk-list .sklg-to','change'); await pg.wait_for_timeout(300)
+            await pg.click('[data-rpg="sklg"]'); await pg.wait_for_timeout(250); await pg.locator('.rgp .pvrpc', has_text='Сегодня').click(); await pg.wait_for_timeout(400); ok(await pg.locator('#sk-list .sklr').count()>0, f'{W}: «Сегодня»')
+            await pg.evaluate("__rpg.set('sklg','2020-01-01','2020-01-31')"); await pg.wait_for_timeout(300)
             ok(await pg.locator('#sk-list .sklr').count()==0 and 'Поменяйте период' in await pg.text_content('#sk-list'), f'{W}: период без записей — понятная подсказка')
             await pg.click('[data-sklg-reset]'); await pg.wait_for_timeout(300); ok(await pg.locator('#sk-list .sklr').count()==10, f'{W}: «Сбросить»')
             sw=await pg.evaluate("document.documentElement.scrollWidth"); ok(sw<=W, f'{W}: нет прокрутки вбок ({sw})')

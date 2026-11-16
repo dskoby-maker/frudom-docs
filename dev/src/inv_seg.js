@@ -51,7 +51,7 @@ function renderInvoices(){ if(!invCan() || !$("#inv-list")) return;
   $("#inv-new").disabled = D.invSrv===false;
   const cs=$("#inv-cus"), used=[...new Set(invRows().map(r=>r.customerId))];
   cs.innerHTML=`<option value="">Все заказчики</option>`+opts(D.customers.filter(c=>used.includes(c.id)), INVF.cus);
-  $("#inv-q").value=INVF.q; $("#inv-per").value=INVF.per; $("#inv-arch").checked=INVF.arch; if($("#inv-sort")) $("#inv-sort").value=INVF.sort||"new"; if($("#inv-pay")) $("#inv-pay").value=INVF.pay||"";
+  $("#inv-q").value=INVF.q; rpgSync("invf"); $("#inv-arch").checked=INVF.arch; if($("#inv-sort")) $("#inv-sort").value=INVF.sort||"new"; if($("#inv-pay")) $("#inv-pay").value=INVF.pay||"";
   invDrawList(); }
 /* общий отбор и порядок счетов: поиск, заказчик, период, оплата, порядок (окно «Все счета» и блок «Последние счета») */
 const INV_SORT=[["new","Сначала новые"],["old","Сначала старые"],["sumd","Сумма: больше"],["suma","Сумма: меньше"],["num","По номеру"],["cus","По заказчику"]];
@@ -59,7 +59,7 @@ const INV_PER=[["","Всё время"],["m0","Этот месяц"],["m1","Пр
 const INV_PAY=[["open","К оплате"],["paid","Оплачены"],["","Все"]];   /* «папки»: к оплате (не оплачен / частично) · оплаченные · все */
 const invPayHit = (r, pay) => { const st=invPayState(r).st; return pay==="open" ? st!=="paid" : st===pay; };
 function invSel(f){ const q=String(f.q||"").toLowerCase().replace(/ё/g,"е").trim(), w=q.split(/\s+/).filter(Boolean);
-  let from="", to=""; if(f.per==="m0") [from,to]=invMonth(0); else if(f.per==="m1") [from,to]=invMonth(1); else if(f.per==="y"){ from=todayISO().slice(0,4)+"-01-01"; to=todayISO().slice(0,4)+"-12-31"; }
+  let from="", to=""; const rr=rpgDec(f.per); if(rr){ from=rr.a; to=rr.b; } else if(f.per==="m0") [from,to]=invMonth(0); else if(f.per==="m1") [from,to]=invMonth(1); else if(f.per==="y"){ from=todayISO().slice(0,4)+"-01-01"; to=todayISO().slice(0,4)+"-12-31"; }
   const pay=f.pay && invPayOk() ? f.pay : "";
   const L=invRows().filter(r=>invArch(r)===!!f.arch && (!f.cus || r.customerId===f.cus) && (!from || (r.date>=from && r.date<=to)) && (!pay || invPayHit(r, pay)) && (!w.length || (()=>{ const d=invData(r), t=[r.number, (cus(r.customerId)||{}).name, cusNm(r.customerId), r.place, r.period, d.basis, d.note, sup(r.supplierId).name, ...(d.lines||[]).map(x=>x.name)].join(" ").toLowerCase().replace(/ё/g,"е"); return w.every(x=>t.includes(x)); })()));
   const byNew=(a,b)=>String(b.date).localeCompare(String(a.date)) || invNumN(b.number)-invNumN(a.number);
@@ -205,7 +205,7 @@ function invDraw(keepFocus){ const d=document.getElementById("inv-dlg"); if(!d||
       <label class="f">Поставщик<select class="invi" data-f="supplierId">${D.suppliers.map(x=>`<option value="${x.id}"${x.id===F.supplierId?" selected":""}>${esc(x.name)}</option>`).join("")}</select></label>
       <label class="f">Договор<select class="invi" data-f="contractId"><option value="">— без договора —</option>${ctrs.map(x=>ctrOpt(x, F.contractId)).join("")}</select></label>
     </div>
-    <div class="invper"><span class="lbl">Период</span><div class="pfchips">${chip(mon[0], invMonthName(mon[0][0]))}${chip(mon[1], invMonthName(mon[1][0]))}</div><label class="f">с<input type="date" class="invi" data-f="from" value="${esc(F.from)}"></label><label class="f">по<input type="date" class="invi" data-f="to" value="${esc(F.to)}"></label></div>
+    <div class="invper"><span class="lbl">Период</span>${invFormPerReg(), rpgBar("invform",{k:""})}</div>
     <div class="invbox"><div class="invbh"><b>Накладные за период</b>${L.length?`<span class="muted">выбрано ${L.filter(j=>F.docs.has(j.id)).length} из ${L.length} · ${fm(selSum)} ₽</span><button type="button" class="btn ghost sm" data-invall="${L.every(j=>F.docs.has(j.id))?"0":"1"}">${L.every(j=>F.docs.has(j.id))?"Снять все":"Выбрать все"}</button>`:""}</div>
       ${!F.customerId?`<p class="muted">Выберите заказчика — сайт покажет его накладные за период.</p>`:!L.length?`<p class="muted">Накладных за этот период нет${F.branchId?" по этому подразделению":""}. Можно добавить строки счёта вручную ниже.</p>`:
       `<div class="invdl">${L.map(j=>{ const u=invUsed(j.id, F.id); return `<label class="invdr${F.docs.has(j.id)?" on":""}"><input type="checkbox" data-invd="${j.id}"${F.docs.has(j.id)?" checked":""}><span><b>№ ${esc(j.number)} · ${fd(j.date)}</b><small>${esc(kLbl(j)||jWho(j).main)}${u.length?` · <em class="miss">уже в счёте № ${esc(u.map(x=>x.number).join(", "))}</em>`:""}</small></span><i>${fm(j.sum)} ₽</i></label>`; }).join("")}</div>`}
@@ -302,7 +302,7 @@ function invMiniTools(){ const used=[...new Set(invRows().filter(r=>!invArch(r))
     <div class="invmt1"><input type="search" id="inv-mq" placeholder="Поиск: номер, заказчик, подразделение, товар" aria-label="Поиск счетов" value="${esc(INVM.q)}">
       <select id="inv-mcus" aria-label="Заказчик"><option value="">Все заказчики</option>${opts(D.customers.filter(c=>used.includes(c.id)), INVM.cus)}</select>
       <select id="inv-msort" aria-label="Порядок">${INV_SORT.map(([k,t])=>`<option value="${k}"${INVM.sort===k?" selected":""}>${t}</option>`).join("")}</select></div>
-    <div class="invmt2"><span class="invmg" role="group" aria-label="Период">${chips(INV_PER,"per","data-invmper")}</span>${invPayOk()?`<span class="invmg invfold" role="group" aria-label="Оплата">${INV_PAY.map(([v,t])=>`<button type="button" class="invmc${(INVM.pay||"")===v?" on":""}" data-invmpay="${v}" aria-pressed="${(INVM.pay||"")===v}">${v==="paid"?IC_INVOK:""}${t}<i class="invmn" data-invmn="${v}"></i></button>`).join("")}</span>`:""}</div></div>`; }
+    <div class="invmt2">${rpgBar("invm")}${invPayOk()?`<span class="invmg invfold" role="group" aria-label="Оплата">${INV_PAY.map(([v,t])=>`<button type="button" class="invmc${(INVM.pay||"")===v?" on":""}" data-invmpay="${v}" aria-pressed="${(INVM.pay||"")===v}">${v==="paid"?IC_INVOK:""}${t}<i class="invmn" data-invmn="${v}"></i></button>`).join("")}</span>`:""}</div></div>`; }
 function invMiniDraw(){ const box=$("#inv-mlist"); if(!box) return; const f=Object.assign({}, INVM, {arch:false}), L=invSel(f), all=invRows().filter(r=>!invArch(r)).length;
   const tot=r2(L.reduce((a,r)=>a+(+r.sum||0),0)), on=!!(INVM.q||INVM.cus||INVM.per);
   if(invPayOk()){ const B=invSel(Object.assign({}, f, {pay:""})), c={open:0, paid:0, "":B.length}; B.forEach(r=>{ c[invPayState(r).st==="paid"?"paid":"open"]++; });
@@ -323,11 +323,22 @@ document.addEventListener("click", e=>{ const t=e.target; if(!t.closest || !t.cl
   if(t.closest("[data-invmmore]")){ INVM.n+=5; invMiniDraw(); return; }
   if(t.closest("[data-invmless]")){ INVM.n=5; invMiniDraw(); $("#inv-recent")?.scrollIntoView({block:"nearest", behavior:"smooth"}); return; }
   if(t.closest("[data-invmreset]")){ Object.assign(INVM,{q:"",cus:"",per:"",n:5}); invMSave(); invDocCard(); return; } });
+/* период накладных в форме счёта — общий календарь: прошлый / этот месяц, квартал и свои даты */
+function invFormPerReg(){ if(RPG.reg.invform) return; rpgReg("invform", { allLab:"Выберите период",
+  presets:()=>{ const P=pvRpPresets(), [a1,b1]=invMonth(1), [a0,b0]=invMonth(0); return [[invMonthName(a1),a1,b1],[invMonthName(a0),a0,b0],P[2],P[4]]; },
+  get:()=>INV&&INV.from&&INV.to ? {a:INV.from, b:INV.to} : {a:"all"},
+  set:(a,b)=>{ if(!INV || a==="all") return; INV.from=a; INV.to=b; INV.dirty=true; if(INV.dateAuto) INV.date=b<todayISO()?b:todayISO(); invRefresh(); invDraw(); },
+  dots:()=>new Set(INV&&INV.customerId ? D.journal.filter(j=>j.customerId===INV.customerId && j.snap && !isArch(j)).map(j=>j.date) : []) }); }
+/* период счетов — общий календарь (rpgBar); старые ключи m0/m1/y читаются как раньше */
+const invPerR = per => { const r=rpgDec(per); if(r) return r; if(per==="m0"||per==="m1"){ const [a,b]=invMonth(per==="m0"?0:1); return {a,b}; } if(per==="y"){ const y=todayISO().slice(0,4); return {a:y+"-01-01", b:y+"-12-31"}; } return {a:"all"}; };
+const invPerDots = () => new Set(invRows().map(r=>r.date));
+rpgReg("invm", {get:()=>invPerR(INVM.per), set:(a,b)=>{ INVM.per=rpgEnc(a,b); INVM.n=5; invMSave(); rpgSync("invm"); invMiniDraw(); }, dots:invPerDots});
+rpgReg("invf", {get:()=>invPerR(INVF.per), set:(a,b)=>{ INVF.per=rpgEnc(a,b); rpgSync("invf"); invDrawList(); }, dots:invPerDots});
 function invAll(){ if(!invCan()) return; CARD_RE=()=>invAll();
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Счета на оплату</div><h3>Все отдельные счета</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <div class="invh invh2"><p class="muted">Например, за месяц по каждому подразделению. На сумму контракта, журнал и прибыль не влияют.</p><button class="btn pri" type="button" id="inv-new">+ Новый счёт</button></div>
     <div id="inv-old"></div>
-    <div class="invf"><input id="inv-q" type="search" placeholder="Поиск: номер, заказчик, подразделение, товар" aria-label="Поиск счетов"><select id="inv-cus" aria-label="Заказчик"></select><select id="inv-per" aria-label="Период"><option value="">Всё время</option><option value="m0">Этот месяц</option><option value="m1">Прошлый месяц</option><option value="y">Этот год</option></select><select id="inv-sort" aria-label="Порядок">${INV_SORT.map(([k,t])=>`<option value="${k}">${t}</option>`).join("")}</select>${invPayOk()?`<select id="inv-pay" aria-label="Оплата">${INV_PAY.map(([k,t])=>`<option value="${k}">${k?t:"Оплата: все"}</option>`).join("")}</select>`:""}<label class="invarch"><input type="checkbox" id="inv-arch"> Архив</label></div>
+    <div class="invf"><input id="inv-q" type="search" placeholder="Поиск: номер, заказчик, подразделение, товар" aria-label="Поиск счетов"><select id="inv-cus" aria-label="Заказчик"></select>${rpgBar("invf",{k:""})}<select id="inv-sort" aria-label="Порядок">${INV_SORT.map(([k,t])=>`<option value="${k}">${t}</option>`).join("")}</select>${invPayOk()?`<select id="inv-pay" aria-label="Оплата">${INV_PAY.map(([k,t])=>`<option value="${k}">${k?t:"Оплата: все"}</option>`).join("")}</select>`:""}<label class="invarch"><input type="checkbox" id="inv-arch"> Архив</label></div>
     <div id="inv-sum" class="muted"></div>
     <div id="inv-list"></div>`, true, ()=>{});
   const d=$("#fd-dcard"); if(d) d.classList.add("xwide"); renderInvoices();

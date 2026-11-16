@@ -70,7 +70,7 @@ async def main():
         await pg.click('#pf-loss [data-card="za2"] >> nth=0'); await pg.wait_for_timeout(500); ok(await pg.locator('#fd-dcard').count()==1, 'нажатие на № открывает накладную'); await pg.keyboard.press('Escape'); await pg.wait_for_timeout(400)
         # «Закупка»: 7 дней и календарь
         await pg.evaluate(TAB+"('purchase')"); await pg.wait_for_timeout(1200)
-        ok(await pg.evaluate("document.querySelector('#zkp-per [data-zkpp=\"7\"]').classList.contains('on')"), 'по умолчанию — 7 дней')
+        ok(await pg.evaluate("__rpg.R('zkp').lab")=='7 дней', 'по умолчанию — 7 дней')
         await pg.click('#zkp-vw [data-zkpv="cal"]'); await pg.wait_for_timeout(500)
         ok(await pg.is_visible('#zkp-cal') and await pg.is_hidden('#zkp-per'), 'вид «Календарь»: месяц вместо периодов')
         n=await pg.locator('#zkp-cal button.zkc-d').count(); ok(n>=1, f'в календаре есть дни с накладными: {n}')
