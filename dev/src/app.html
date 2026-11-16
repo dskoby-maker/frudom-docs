@@ -94,7 +94,7 @@
 #fd-app .dcard .dc-t tbody tr{animation:fdin .25s ease both}#fd-app .dcard .dc-t tbody tr:nth-child(2){animation-delay:.03s}#fd-app .dcard .dc-t tbody tr:nth-child(3){animation-delay:.06s}#fd-app .dcard .dc-t tbody tr:nth-child(n+4){animation-delay:.09s}
 #fd-app .dcard .dc-total{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:14px 2px 4px;color:var(--muted);font-size:13px}#fd-app .dcard .dc-total b{font-size:22px;color:var(--ink);letter-spacing:-.01em}
 #fd-app .dcard .dc-note{font-size:12px;color:var(--muted);margin:2px 2px 0}
-#fd-app .jcm{display:inline-flex;align-items:center;justify-content:center;gap:3px;vertical-align:middle;margin-left:6px;height:20px;min-width:20px;padding:0 5px;border-radius:99px;background:rgba(106,44,78,.1);color:var(--accent);font-size:11px;font-weight:600;cursor:pointer;animation:jcmIn .35s cubic-bezier(.2,.9,.3,1.4) both;transition:background .15s,transform .15s}
+#fd-app .jcm{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:2px;vertical-align:-3px;margin-left:6px;height:22px;min-width:22px;padding:0 4px;border-radius:7px;background:rgba(106,44,78,.1);color:var(--accent);font-size:11px;font-weight:600;cursor:pointer;animation:jcmIn .35s cubic-bezier(.2,.9,.3,1.4) both;transition:background .15s,transform .15s}
 /* меню правой кнопкой в журнале (jcx*) */
 #fd-app .jcx{position:fixed;z-index:9000;min-width:268px;max-width:min(330px,calc(100vw - 16px));max-height:calc(100vh - 16px);overflow:auto;padding:6px;background:var(--card,#fff);border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 40px rgba(30,20,25,.16),0 2px 6px rgba(30,20,25,.08);font:400 13.5px/1.25 var(--ui);color:var(--ink);opacity:0;transform:scale(.96) translateY(-2px);transition:opacity .14s ease,transform .16s cubic-bezier(.2,.9,.3,1.2);outline:none;overscroll-behavior:contain}
 #fd-app .jcx.in{opacity:1;transform:none}
@@ -141,36 +141,40 @@
 #fd-app .dgov[disabled]{cursor:default}
 #fd-app .dgov.pop i{animation:dgovp .35s cubic-bezier(.2,.8,.2,1)}@keyframes dgovp{50%{transform:scale(1.25)}}
 @media (prefers-reduced-motion:reduce){#fd-app .dgov,#fd-app .dgov i,#fd-app .dgov i svg{transition:none;animation:none}}
-#fd-app .jcm svg{width:14px;height:14px}#fd-app .jcm:hover{background:rgba(106,44,78,.2);transform:scale(1.08)}
+#fd-app .jcm svg{width:15px;height:15px;flex:none}#fd-app .jcm b{font-weight:600;font-size:11px;line-height:1;padding-right:1px}#fd-app .jcm:hover{background:rgba(106,44,78,.2);transform:scale(1.08)}
 /* «Важное» (16.11.2026): комментарий с отметкой — документ мягко подсвечен красным, фильтр «Важные» в журнале */
-#fd-app .jcm.imp{background:rgba(192,57,43,.12);color:#b23a2e}#fd-app .jcm.imp:hover{background:rgba(192,57,43,.2)}
-#fd-app .jcm.imp b{font-weight:700;font-size:11px;line-height:1}
-#fd-app :is(#jr-body,#cal-body,#ar-body)>tr:is(.jimp,.grp.jimp)>td{background:rgba(192,57,43,.045);transition:background .3s ease}
-#fd-app :is(#jr-body,#cal-body,#ar-body)>tr.jimp>td:first-child{box-shadow:inset 3px 0 0 rgba(192,57,43,.55)}
-#fd-app :is(#jr-body,#cal-body,#ar-body) .kd.jimp>div{background:rgba(192,57,43,.045)}#fd-app :is(#jr-body,#cal-body,#ar-body) .kd.jimp>div:first-child{box-shadow:inset 3px 0 0 rgba(192,57,43,.55)}
-#fd-app :is(#jr-body,#cal-body,#ar-body)>tr.jimp:hover>td{background:rgba(192,57,43,.075)}
-#fd-app .jimpf{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-weight:500;transition:background .2s,color .2s,border-color .2s,box-shadow .2s}
-#fd-app .jimpf i{width:8px;height:8px;border-radius:50%;background:#d0605a;flex:none;transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s}
-#fd-app .jimpf em{font-style:normal;font-size:12px;min-width:18px;padding:0 6px;border-radius:99px;background:rgba(192,57,43,.1);color:#b23a2e;text-align:center}
-#fd-app .jimpf:hover{border-color:rgba(192,57,43,.4);color:#b23a2e}
-#fd-app .jimpf[aria-pressed="true"]{background:rgba(192,57,43,.09);border-color:rgba(192,57,43,.45);color:#b23a2e;font-weight:600}
-#fd-app .jimpf[aria-pressed="true"] i{transform:scale(1.25);box-shadow:0 0 0 4px rgba(192,57,43,.14)}
+#fd-app{--imp:#c0392b;--imp-ink:#a8321f;--imp-soft:rgba(192,57,43,.08);--imp-row:rgba(192,57,43,.04)}
+#fd-app .jcm.imp{background:var(--imp-soft);color:var(--imp-ink)}#fd-app .jcm.imp:hover{background:rgba(192,57,43,.15)}
+#fd-app .jcm.imp::after{content:"";position:absolute;top:-2px;right:-2px;width:7px;height:7px;border-radius:50%;background:var(--imp);box-shadow:0 0 0 2px var(--surface)}
+#fd-app :is(#jr-body,#cal-body,#ar-body)>tr.jimp>td{background:var(--imp-row);transition:background .3s ease}
+#fd-app :is(#jr-body,#cal-body,#ar-body)>tr.jimp>td:first-child{box-shadow:inset 3px 0 0 var(--imp)}
+#fd-app :is(#jr-body,#cal-body,#ar-body)>tr.jimp:hover>td{background:rgba(192,57,43,.065)}
+#fd-app :is(#jr-body,#cal-body,#ar-body) .kd.jimp>div{background:var(--imp-row)}#fd-app :is(#jr-body,#cal-body,#ar-body) .kd.jimp>div:first-child{box-shadow:inset 3px 0 0 var(--imp)}
+#fd-app .jimpf{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:500;transition:background .2s,color .2s,border-color .2s,box-shadow .2s}
+#fd-app .jimpf i{width:7px;height:7px;border-radius:50%;background:var(--imp);flex:none;transition:transform .25s cubic-bezier(.2,.8,.2,1),box-shadow .25s}
+#fd-app .jimpf em{font-style:normal;font-size:11.5px;font-weight:600;min-width:18px;height:18px;line-height:18px;padding:0 5px;border-radius:6px;background:var(--imp-soft);color:var(--imp-ink);text-align:center}
+#fd-app .jimpf:hover{border-color:rgba(192,57,43,.35)}
+#fd-app .jimpf[aria-pressed="true"]{background:var(--imp-soft);border-color:rgba(192,57,43,.4);color:var(--imp-ink);font-weight:600}
+#fd-app .jimpf[aria-pressed="true"] i{transform:scale(1.15);box-shadow:0 0 0 3px rgba(192,57,43,.16)}
+#fd-app .jimpf[aria-pressed="true"] em{background:var(--imp);color:#fff}
 #fd-app .jimpf.pop{animation:jimpPop .35s cubic-bezier(.2,.8,.2,1)}@keyframes jimpPop{40%{transform:scale(.95)}}
 #fd-app #jr-body.jimpon>tr:not(.dsep){animation:fdin .28s ease both}
-#fd-app .cmimp{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:6px;padding:3px 10px 3px 4px;border-radius:99px;border:1px dashed rgba(28,34,32,.22);color:var(--muted);font:500 12.5px var(--ui);cursor:pointer;white-space:nowrap;transition:background .2s,border-color .2s,color .2s}
-#fd-app .cmimp i{display:grid;place-items:center;width:16px;height:16px;border-radius:50%;border:1.5px solid currentColor;box-sizing:border-box;transition:background .2s,border-color .2s}
-#fd-app .cmimp i svg{width:10px;height:10px;opacity:0;transform:scale(.4);transition:opacity .2s,transform .25s cubic-bezier(.2,.8,.2,1)}
-#fd-app .cmimp:hover{border-color:rgba(192,57,43,.5);color:#b23a2e}#fd-app .cmimp:focus-visible{box-shadow:0 0 0 2px rgba(192,57,43,.5)}
-#fd-app .cmimp[aria-pressed="true"]{border-style:solid;border-color:transparent;background:rgba(192,57,43,.1);color:#b23a2e;font-weight:600}
-#fd-app .cmimp[aria-pressed="true"] i{background:#c0392b;border-color:#c0392b;color:#fff}#fd-app .cmimp[aria-pressed="true"] i svg{opacity:1;transform:none}
-#fd-app .cmimp.pop i{animation:dgovp .35s cubic-bezier(.2,.8,.2,1)}
-#fd-app .cmimp.ro{cursor:default;border-style:solid;border-color:transparent}
-#fd-app .dcard .dc-cm{position:relative}#fd-app .dcard .dc-cm::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(180deg,rgba(192,57,43,.07),rgba(192,57,43,0) 75%);opacity:0;transition:opacity .3s ease}
-#fd-app .dcard .dc-cm.imp{border-color:rgba(192,57,43,.32)}#fd-app .dcard .dc-cm.imp::before{opacity:1}#fd-app .dcard .dc-cm.imp .cmh>svg{color:#b23a2e}
-#fd-app .dcard .dc-cm.imp:focus-within{border-color:rgba(192,57,43,.5);box-shadow:0 0 0 4px rgba(192,57,43,.08)}
-#fd-app .dc-cm .cmh{flex-wrap:wrap}
-@media (max-width:700px){#fd-app :is(#jr-body,#cal-body,#ar-body)>tr.jimp:not(.dsep):not(.kids){background:rgba(192,57,43,.05);box-shadow:inset 3px 0 0 rgba(192,57,43,.55)}#fd-app :is(#jr-body,#cal-body,#ar-body)>tr.jimp>td{background:transparent!important;box-shadow:none!important}}
-@media (prefers-reduced-motion:reduce){#fd-app .jimpf,#fd-app .jimpf i,#fd-app .cmimp,#fd-app .cmimp i,#fd-app .cmimp i svg,#fd-app .dcard .dc-cm::before{transition:none;animation:none}#fd-app #jr-body.jimpon>tr{animation:none}}
+/* переключатель «Важное» в блоке комментария: флажок */
+#fd-app .dc-cm .cmh .cmimp{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 10px 0 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font:500 12.5px/1 var(--ui);cursor:pointer;white-space:nowrap;transition:background .2s,border-color .2s,color .2s,box-shadow .2s}
+#fd-app .dc-cm .cmh .cmimp svg{width:14px;height:14px;color:currentColor;transform-origin:22% 90%;transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+#fd-app .dc-cm .cmh .cmimp svg .fl{fill:currentColor;fill-opacity:0;transition:fill-opacity .25s}
+#fd-app .dc-cm .cmh .cmimp:hover{border-color:rgba(192,57,43,.35);color:var(--imp-ink)}
+#fd-app .dc-cm .cmh .cmimp:focus-visible{box-shadow:0 0 0 3px rgba(192,57,43,.2)}
+#fd-app .dc-cm .cmh .cmimp[aria-pressed="true"]{background:var(--imp-soft);border-color:rgba(192,57,43,.3);color:var(--imp-ink);font-weight:600}
+#fd-app .dc-cm .cmh .cmimp[aria-pressed="true"] svg .fl{fill-opacity:.9}
+#fd-app .dc-cm .cmh .cmimp.pop svg{animation:cmFlag .5s cubic-bezier(.2,.8,.2,1)}@keyframes cmFlag{30%{transform:rotate(-14deg) scale(1.15)}65%{transform:rotate(6deg)}}
+#fd-app .dc-cm .cmh .cmimp.ro{cursor:default}
+#fd-app .dcard .dc-cm{position:relative}#fd-app .dcard .dc-cm::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(180deg,rgba(192,57,43,.055),rgba(192,57,43,0) 70%);opacity:0;transition:opacity .3s ease}
+#fd-app .dcard .dc-cm.imp{border-color:rgba(192,57,43,.26)}#fd-app .dcard .dc-cm.imp::before{opacity:1}#fd-app .dcard .dc-cm.imp .cmh>svg{color:var(--imp-ink)}
+#fd-app .dcard .dc-cm.imp:focus-within{border-color:rgba(192,57,43,.45);box-shadow:0 0 0 4px rgba(192,57,43,.07)}
+#fd-app .dc-cm .cmh{flex-wrap:wrap;row-gap:6px}
+@media (max-width:700px){#fd-app :is(#jr-body,#cal-body,#ar-body)>tr.jimp:not(.dsep):not(.kids){background:var(--imp-row);box-shadow:inset 3px 0 0 var(--imp)}#fd-app :is(#jr-body,#cal-body,#ar-body)>tr.jimp>td{background:transparent!important;box-shadow:none!important}}
+@media (prefers-reduced-motion:reduce){#fd-app .jimpf,#fd-app .jimpf i,#fd-app .dc-cm .cmh .cmimp,#fd-app .dc-cm .cmh .cmimp svg,#fd-app .dcard .dc-cm::before{transition:none;animation:none}#fd-app #jr-body.jimpon>tr{animation:none}}
 #fd-app .jzk{display:flex;align-items:center;justify-content:center;gap:4px;margin:5px 0 0 auto;min-width:58px;height:24px;padding:0 9px;border:0;border-radius:99px;font:600 11.5px var(--ui);cursor:pointer;white-space:nowrap;animation:jcmIn .35s ease both;transition:transform .15s,box-shadow .15s,filter .15s}
 #fd-app .jzk svg{width:13px;height:13px;flex:none}#fd-app .jzk:hover{transform:translateY(-1px);box-shadow:0 3px 8px -4px rgba(0,0,0,.3);filter:saturate(1.15)}#fd-app .jzk:active{transform:scale(.96)}#fd-app .jzk:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #fd-app .jzk.ok{background:#e4eee6;color:#5f8b6b}#fd-app .jzk.part{background:#f4ecd6;color:#a6873f}#fd-app .jzk.none{background:#f4e3df;color:#b27165}
@@ -1383,7 +1387,7 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .jf{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px 10px;margin-bottom:6px}#fd-app .jf .jq{grid-column:span 2}
 #fd-app .jsum{margin:4px 0 8px}
 #fd-app table.jt td .who{font-weight:600}#fd-app table.jt td:nth-child(2){white-space:nowrap}#fd-app table.jt td small{display:block;color:var(--muted);font-size:12px;line-height:1.35}
-#fd-app table.jt tr.grp td{background:var(--soft,#f6f4ef);cursor:pointer}#fd-app table.jt tr.grp td:first-child{border-left:3px solid var(--accent)}
+#fd-app table.jt tr.grp td{background:var(--soft,#f6f4ef);cursor:pointer}#fd-app table.jt tr.grp td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
 #fd-app table.jt tr.kid td:first-child{border-left:3px solid var(--accent);padding-left:14px}#fd-app table.jt tr.kid td{background:#fcfbf8}
 #fd-app .tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:10px;background:var(--accent);color:#fff;margin-right:6px;vertical-align:1px}
 #fd-app details.more{display:inline-block;position:relative}#fd-app details.more summary{list-style:none;cursor:pointer}#fd-app details.more summary::-webkit-details-marker{display:none}
@@ -6822,10 +6826,10 @@ function docCard(j, arch){
       onJClick(arch)({target:fake}); });
 }
 /* ---------- комментарий к документу: snap.meta.cm = {t, by, at}; в печатные формы и XML не попадает ---------- */
-const IC_CM='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.9A8 8 0 1 1 21 12Z"/><path d="M8.5 10.5h7M8.5 13.5h4.5"/></svg>';
+const IC_CM='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 7A2.5 2.5 0 0 1 7 4.5h10A2.5 2.5 0 0 1 19.5 7v7.5A2.5 2.5 0 0 1 17 17h-6.6l-3.7 2.9a.6.6 0 0 1-1-.47V17H7a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M8.5 9.25h7M8.5 12.5h4.5"/></svg>';
+const IC_FLAG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="fl" d="M5.5 15.5c3.9-2.3 7 2.3 12.5 0V5c-5.5 2.3-8.6-2.3-12.5 0Z"/><path d="M5.5 21V5"/></svg>';
 const cmOf = j => { const c=j&&j.snap&&j.snap.meta&&j.snap.meta.cm; return c&&c.t ? c : {}; };
 const cmImp = j => !!cmOf(j).imp;
-const IC_IMPOK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
 const cmTip = c => (c.imp?"❗ Важное\n":"")+(c.t.length>220?c.t.slice(0,220)+"…":c.t)+(c.by?"\n— "+c.by+(c.at?", "+dtShort(c.at):""):"");
 /* ---------- журнал: заполнена ли закупка (только администратор) ----------
    зелёный — у всех позиций есть закупка; жёлтый — частично или есть замечание (нехватка/не отгружено со склада); вся накладная в минус — маленькая красная точка; красный — ничего. */
@@ -6880,15 +6884,15 @@ function govToggle(id){ const j=D.journal.find(x=>x.id===id); if(!j||!j.snap||do
   const b=document.querySelector(`#fd-dcard [data-gov="${id}"]`); if(b){ const n=document.createElement("div"); n.innerHTML=govPill(j); const nb=n.firstElementChild; b.replaceWith(nb); nb.classList.add("pop"); nb.focus({preventScroll:true}); }
   if(curTab==="journal") renderJournal(); }
 document.addEventListener("click", e=>{ const b=e.target.closest("#fd-dcard [data-gov]"); if(b){ e.preventDefault(); govToggle(b.dataset.gov); } });
-function jCmIcon(j){ const c=cmOf(j); return c.t ? `<span class="jcm${c.imp?" imp":""}" title="${esc(cmTip(c))}" aria-label="${c.imp?"Важный комментарий":"Есть комментарий"}">${IC_CM}${c.imp?"<b>!</b>":""}</span>` : ""; }
+function jCmIcon(j){ const c=cmOf(j); return c.t ? `<span class="jcm${c.imp?" imp":""}" title="${esc(cmTip(c))}" aria-label="${c.imp?"Важный комментарий":"Есть комментарий"}">${IC_CM}</span>` : ""; }
 function jCmGroup(g){ const n=g.filter(j=>cmOf(j).t).length; if(!n) return ""; const L=g.filter(j=>cmOf(j).t).map(j=>"№ "+j.number+": "+cmTip(cmOf(j))).join("\n\n");
-  const im=g.some(cmImp); return `<span class="jcm${im?" imp":""}" title="${esc(L)}" aria-label="Комментарии: ${n}${im?", есть важные":""}">${IC_CM}${n>1?n:""}${im?"<b>!</b>":""}</span>`; }
+  const im=g.some(cmImp); return `<span class="jcm${im?" imp":""}" title="${esc(L)}" aria-label="Комментарии: ${n}${im?", есть важные":""}">${IC_CM}${n>1?`<b>${n}</b>`:""}</span>`; }
 function cmHtml(j, arch){ const c=cmOf(j), who=c.t?`${esc(c.by||"")}${c.at?" · "+esc(dtShort(c.at)):""}`:"";
-  if(arch) return c.t ? `<div class="dc-cm${c.imp?" imp":""}"><div class="cmh">${IC_CM}Комментарий${c.imp?`<span class="cmimp ro" aria-pressed="true"><i>${IC_IMPOK}</i>Важное</span>`:""}<small>${who}</small></div><div class="cmt">${esc(c.t)}</div></div>` : "";
+  if(arch) return c.t ? `<div class="dc-cm${c.imp?" imp":""}"><div class="cmh">${IC_CM}Комментарий${c.imp?`<span class="cmimp ro" aria-pressed="true">${IC_FLAG}<span>Важное</span></span>`:""}<small>${who}</small></div><div class="cmt">${esc(c.t)}</div></div>` : "";
   /* свёрнут, пока комментария нет: кнопка «Оставить комментарий…» плавно раскрывает поле; есть комментарий — виден сразу */
   const op=!!c.t;
   return `<div class="dc-cmf${op?" open":""}" id="dc-cmf"><button type="button" class="dc-cmo" data-cmopen aria-expanded="${op}" aria-controls="dc-cm"${op?" hidden":""}>${IC_CM}<span>Оставить комментарий к этой накладной</span></button>
-    <div class="dc-cmc"><div class="dc-cmi"${op?"":" inert"}><div class="dc-cm${c.imp?" imp":""}" id="dc-cm" data-doc="${j.id}"><div class="cmh">${IC_CM}Комментарий<button type="button" class="cmimp" id="dc-cmimp" aria-pressed="${!!c.imp}" title="Важный документ подсвечивается в журнале красным, его можно найти фильтром «Важные»"><i>${IC_IMPOK}</i>Важное</button><small id="dc-cmw">${who||"виден всем, в документы не печатается"}</small></div>
+    <div class="dc-cmc"><div class="dc-cmi"${op?"":" inert"}><div class="dc-cm${c.imp?" imp":""}" id="dc-cm" data-doc="${j.id}"><div class="cmh">${IC_CM}Комментарий<button type="button" class="cmimp" id="dc-cmimp" aria-pressed="${!!c.imp}" title="Важный документ подсвечивается в журнале красным, его можно найти фильтром «Важные»">${IC_FLAG}<span>Важное</span></button><small id="dc-cmw">${who||"виден всем, в документы не печатается"}</small></div>
     <textarea id="dc-cmt" rows="2" maxlength="2000" placeholder="Например: заказчик попросил привезти до 10:00, звонить Ольге" aria-label="Комментарий к документу">${esc(c.t||"")}</textarea>
     <div class="cma"><button type="button" class="btn pri sm" data-cm="save">Сохранить</button><button type="button" class="btn ghost sm" data-cm="cancel">Отмена</button><span>Ctrl+Enter — сохранить</span></div></div></div></div></div>`; }
 function cmOpen(on, focus){ const f=$("#dc-cmf"); if(!f) return; const b=f.querySelector(".dc-cmo"), inn=f.querySelector(".dc-cmi"), rm=matchMedia("(prefers-reduced-motion: reduce)").matches;
