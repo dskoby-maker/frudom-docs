@@ -174,8 +174,10 @@
 #fd-app .dcard .dc-cm.imp:focus-within{border-color:rgba(192,57,43,.45);box-shadow:0 0 0 4px rgba(192,57,43,.07)}
 #fd-app .dc-cm .cmh{flex-wrap:wrap;row-gap:6px}
 @media (max-width:700px){
-  #fd-app table.jt tr.grp td:first-child{box-shadow:none}
-  #fd-app :is(#jr-body,#cal-body,#ar-body)>tr.jimp:not(.dsep):not(.kids){background:var(--imp-row);border-left:3px solid var(--imp);padding-left:10px}
+  #fd-app :is(#jr-body,#cal-body,#ar-body)>tr.jimp:not(.dsep):not(.kids){background:var(--imp-row);border-left:3px solid var(--imp)}
+  #fd-app :is(#jr-body,#cal-body,#ar-body)>tr:not(.kids){padding-left:10px!important;padding-right:10px!important}
+  #fd-app :is(#jr-body,#cal-body,#ar-body)>tr.kids{padding-right:10px!important}
+  #fd-app :is(#jr-body,#cal-body,#ar-body)>tr:is(.grp,.jimp){padding-left:7px!important}
   #fd-app :is(#jr-body,#cal-body,#ar-body)>tr.jimp>td{background:transparent!important;box-shadow:none!important}
   #fd-app :is(#jr-body,#cal-body,#ar-body) tr.kids .kd.jimp{background:var(--imp-row);border-left:3px solid var(--imp);padding-left:10px}}
 @media (prefers-reduced-motion:reduce){#fd-app .jimpf,#fd-app .jimpf i,#fd-app .dc-cm .cmh .cmimp,#fd-app .dc-cm .cmh .cmimp svg,#fd-app .dcard .dc-cm::before{transition:none;animation:none}#fd-app #jr-body.jimpon>tr{animation:none}}
@@ -1391,7 +1393,7 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .jf{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px 10px;margin-bottom:6px}#fd-app .jf .jq{grid-column:span 2}
 #fd-app .jsum{margin:4px 0 8px}
 #fd-app table.jt td .who{font-weight:600}#fd-app table.jt td:nth-child(2){white-space:nowrap}#fd-app table.jt td small{display:block;color:var(--muted);font-size:12px;line-height:1.35}
-#fd-app table.jt tr.grp td{background:var(--soft,#f6f4ef);cursor:pointer}#fd-app table.jt tr.grp td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+#fd-app table.jt tr.grp td{background:var(--soft,#f6f4ef);cursor:pointer}@media (min-width:701px){#fd-app table.jt tr.grp td:first-child{box-shadow:inset 3px 0 0 var(--accent)}}
 #fd-app table.jt tr.kid td:first-child{border-left:3px solid var(--accent);padding-left:14px}#fd-app table.jt tr.kid td{background:#fcfbf8}
 #fd-app .tag{display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:10px;background:var(--accent);color:#fff;margin-right:6px;vertical-align:1px}
 #fd-app details.more{display:inline-block;position:relative}#fd-app details.more summary{list-style:none;cursor:pointer}#fd-app details.more summary::-webkit-details-marker{display:none}
