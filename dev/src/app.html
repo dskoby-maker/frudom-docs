@@ -1900,6 +1900,10 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .dvdh{margin:0 0 12px;font-size:13px;color:#8a847c;display:flex;align-items:center;gap:4px;flex-wrap:wrap}#fd-app .dvdh svg{width:14px;height:14px}
 #fd-app #dv-text.dvflash{animation:dvfl .5s ease}@keyframes dvfl{from{background:#f4edf1}to{background:inherit}}
 #fd-app .dvlnk{border:0;background:none;padding:0;font:inherit;color:#6A2C4E;text-decoration:underline;cursor:pointer;width:auto}
+#fd-app .dvtkh{margin:14px 0 6px;font-size:14px;font-weight:600;color:var(--ink)}
+#fd-app .dvp.dvtk h3 i{font-style:normal}
+#fd-app .dvp.dvtk .dvtkl{margin-left:auto;font-size:12px}
+#fd-app .dvtkt{white-space:pre-wrap;font-size:14px;line-height:1.45;margin:4px 0 2px;max-height:12.5em;overflow:auto}
 #fd-app .dtg-drv{display:inline-flex;align-items:center;gap:4px;margin-left:8px;padding:1px 8px;border-radius:999px;font-size:12.5px;font-weight:600;color:#1e4a5c;background:#e3ecef;white-space:nowrap}
 #fd-app .dt-docs svg{width:15px;height:15px;flex:none}#fd-app label.dt-docs input[type=checkbox]{margin:0;accent-color:#c27a0e;width:15px;height:15px;min-width:0;min-height:0;flex:none;padding:0;box-shadow:none}#fd-app .dt-docs span{white-space:nowrap}#fd-app label.dt-docs{flex:none;width:auto;min-height:0;line-height:1.2}
 #fd-app .dt-docs:has(input:checked){background:#FFF1D6;color:#7a4a00;box-shadow:inset 0 0 0 1px rgba(194,122,14,.4)}
@@ -4937,8 +4941,10 @@ function renderDriver(){
   $("#dv-sup").innerHTML=`<option value="">Все</option>`+opts(D.suppliers,f.sup); $("#dv-full").checked=!!f.full; $("#dv-load").checked=!!f.ld;
   const Pall=dvPoints(), fdv=f.drv||"", P=Pall.filter(p=>dvDrvOk(fdv, dvDrvOf(p))), TKd=DTS().filter(x=>x.date===f.date && !isAuto(x));
   { const bar=dvDrvBar(Pall, TKd); $("#dv-drvs").innerHTML=bar; $("#dv-drvt").innerHTML=bar.replace('class="dvdh"','class="dvdh" hidden'); }
-  $("#dv-count").textContent=(P.length?P.length+" "+(P.length===1?"точка":P.length<5?"точки":"точек"):"")+(fdv?(P.length?" · ":"")+(fdv==="-"?"без водителя":"для "+fdv):"");
-  if(Pall.length) $("#dv-date-lbl").textContent+=" · "+(fdv?P.length+" из "+Pall.length:P.length)+" "+plural(fdv?Pall.length:P.length,["точка","точки","точек"])+(fdv?" · "+(fdv==="-"?"без водителя":fdv):""); dvFold();
+  const TKf=TKd.filter(x=>dvDrvOk(fdv, x.drv?[String(x.drv).trim()]:[]));
+  const ptT = n => n+" "+plural(n,["точка","точки","точек"]), tkT = n => n+" "+plural(n,["задача","задачи","задач"]);
+  $("#dv-count").textContent=[P.length?ptT(P.length):"", TKf.length?tkT(TKf.length):""].filter(Boolean).join(" · ")+(fdv?" · "+(fdv==="-"?"без водителя":"для "+fdv):"");
+  if(Pall.length||TKd.length) $("#dv-date-lbl").textContent+=" · "+[Pall.length?(fdv?P.length+" из "+Pall.length+" "+plural(Pall.length,["точки","точек","точек"]):ptT(P.length)):"", TKd.length?(fdv?TKf.length+" из "+TKd.length+" "+plural(TKd.length,["задачи","задач","задач"]):tkT(TKf.length)):""].filter(Boolean).join(" · ")+(fdv?" · "+(fdv==="-"?"без водителя":fdv):""); dvFold();
   const card=(p,i,ing)=>{ const pi=ptInfo(p.cid,p.addr), has=pi.phone||pi.contact||ptTime(pi)||pi.note||pi.phone2||pi.tag, hu=dtHue(p.cid), br=p.c.branchLabel?dvWho(p):"";
       return `<div class="dvp${hu!=null?" hc":""}"${hu!=null?` style="--h:${hu}"`:""}><h3><i>${i+1}</i>${ing?esc(ptName(p))+(br?`<span class="muted" style="font-weight:400">${esc(br)}</span>`:""):esc(dvWho(p))+`<span class="muted" style="font-weight:400">${esc(stLabel(p.addr,p.c.address))}</span>`}</h3>
         <div class="ad">${esc(pi.daddr||p.addr)} · накладн. № ${esc(p.docs.map(j=>j.number).join(", "))}</div>
@@ -4949,7 +4955,10 @@ function renderDriver(){
         <div class="ct${has?"":" miss"}">${has?esc([pi.tag&&("("+pi.tag+")"), pi.phone&&("📞 "+pi.phone+(pi.contact?" — "+pi.contact:"")), !pi.phone&&pi.contact&&("👤 "+pi.contact), pi.phone2&&("📞 "+pi.phone2), ptTime(pi)&&("🕗 "+ptTime(pi)), pi.note&&("⚠️ "+pi.note)].filter(Boolean).join("   ")):"Контакты точки не заполнены — для наёмного водителя лучше заполнить"}</div>
         ${isStaff()?"":`<details><summary>${has?"Изменить контакты точки":"Заполнить контакты точки"}</summary>${ptFields(p.cid,p.addr)}</details>`}</div>`; };
   const G=[]; P.forEach((p,i)=>{ let g=G.find(x=>x.cid===p.cid); if(!g){ g={cid:p.cid, L:[]}; G.push(g); } g.L.push({p,i}); });
-  $("#dv-points").innerHTML = P.length ? G.map(g=>g.L.length>1 ? dvGroupHtml(g, f.date, card) : card(g.L[0].p, g.L[0].i)).join("")
+  const tkCards = TKf.map(x=>{ const c=x.customerId?cus(x.customerId):null, hu=dtHue(x.customerId), d=String(x.drv||"").trim();
+      return `<div class="dvp dvtk${hu!=null?" hc":""}"${hu!=null?` style="--h:${hu}"`:""}><h3><i>✓</i>${c&&c.id?esc(cusShort(c.name)):"Задача"}${x.addr&&c?`<span class="muted" style="font-weight:400">${esc(stLabel(x.addr,c.address))}</span>`:""}<span class="muted dvtkl" style="font-weight:400">задача без накладной</span></h3>
+        <div class="dvtkt">${fmtHtml(x.text)}</div>${d?`<div class="dvdr"><span class="muted">Водитель: ${esc(d)}</span></div>`:""}</div>`; }).join("");
+  $("#dv-points").innerHTML = P.length||TKf.length ? G.map(g=>g.L.length>1 ? dvGroupHtml(g, f.date, card) : card(g.L[0].p, g.L[0].i)).join("")+(TKf.length?`<h4 class="dvtkh">Задачи на день${fdv?" · "+esc(fdv==="-"?"без водителя":fdv):""} · ${TKf.length}</h4>`+tkCards:"")
     : Pall.length ? `<p class="muted">${fdv==="-"?"У всех точек на "+fd(f.date)+" выбран водитель.":"У водителя «"+esc(fdv)+"» на "+fd(f.date)+" точек нет."} <button type="button" class="dvlnk" data-dvdrv="">Показать все точки</button></p>`
     : `<p class="muted">На ${fd(f.date)} накладных нет. Маршрут собирается из накладных с этой датой — создайте их во вкладках «Заявка» или «Новый документ», или выберите другую дату.</p>`;
   $("#dv-text").value=dvText(P);
@@ -5118,11 +5127,11 @@ function dvDrvOf(p){ const s=[...new Set(dvTasksOf(p).map(x=>String(x.drv||"").t
 const dvDrvOk = (f, list) => !f ? true : f==="-" ? !list.length : list.includes(f);
 function dvDrvBar(Pall, TK){ const f=DV().drv||"", n={}, none={n:0};
   Pall.forEach(p=>{ const d=dvDrvOf(p); if(!d.length) none.n++; d.forEach(x=>n[x]=(n[x]||0)+1); });
-  TK.forEach(x=>{ const d=String(x.drv||"").trim(); if(d && !(d in n)) n[d]=0; });
+  TK.forEach(x=>{ const d=String(x.drv||"").trim(); if(d) n[d]=(n[d]||0)+1; else none.n++; });   /* задачи без накладной тоже считаются (16.11.2026) */
   const names=drvList(Object.keys(n)).filter(x=>x in n); if(f && f!=="-" && !names.includes(f)) names.push(f);
-  if(!names.length && !f) return Pall.length && dtDrvCan() ? `<p class="dvdh">Чтобы разделить маршрут, выберите водителя у точки — нажмите «${ITRUCK} Водитель» в карточке точки.</p>` : "";
+  if(!names.length && !f) return (Pall.length||TK.length) && dtDrvCan() ? `<p class="dvdh">Чтобы разделить маршрут, выберите водителя у точки — нажмите «${ITRUCK} Водитель» в карточке точки.</p>` : "";
   const chip=(v,lab,c,hu)=>`<button type="button" class="dvdc${f===v?" on":""}" data-dvdrv="${esc(v)}" aria-pressed="${f===v}"${hu!=null?` style="--h:${hu}"`:""}>${hu!=null?`<i class="drv-av" aria-hidden="true">${esc(drvIni(lab))}</i>`:""}<span>${esc(lab)}</span>${c!=null?`<em>${c}</em>`:""}</button>`;
-  return `<div class="dvdb" role="group" aria-label="Чей маршрут">${chip("","Все",Pall.length)}${names.map(x=>chip(x,x,n[x]||0,drvHue(x))).join("")}${none.n||f==="-"?chip("-","Без водителя",none.n):""}</div>`; }
+  return `<div class="dvdb" role="group" aria-label="Чей маршрут">${chip("","Все",Pall.length+TK.length)}${names.map(x=>chip(x,x,n[x]||0,drvHue(x))).join("")}${none.n||f==="-"?chip("-","Без водителя",none.n):""}</div>`; }
 function dtEdRow(x){ const e=EDf();
   return `<div class="dt dt-ed" data-dt="${esc(x.id)}"><div class="dt-comp">
     <div class="fmtbar" role="toolbar" aria-label="Оформление текста">${FMT_BTNS}</div>
