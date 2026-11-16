@@ -1608,6 +1608,9 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .dt-list.dtsw>*{animation:dtsw .34s cubic-bezier(.3,.9,.3,1) both}#fd-app .dt-list.dtsw>*:nth-child(2){animation-delay:.03s}#fd-app .dt-list.dtsw>*:nth-child(3){animation-delay:.06s}#fd-app .dt-list.dtsw>*:nth-child(n+4){animation-delay:.09s}
 @keyframes dtsw{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){#fd-app .dtms-pill,#fd-app .dtms button,#fd-app .dtms em{transition:none}}
+/* без курсива во всём сайте (просьба Даниила, 16.11.2026): em/i — только для выделения цветом и значков; курсив остаётся лишь там, где его поставили сами (оформление текста задачи) */
+#fd-app em,#fd-app i,#fd-app cite,#fd-app address,#fd-app var,#fd-app dfn,.cpk-pop em,.cpk-pop i,.drp em,.drp i,#ac-pan em{font-style:normal}
+#fd-app .dt-t i,#fd-app .fmtb i{font-style:italic}
 #fd-app .dt-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px}#fd-app .dt-head b{font-size:15px}#fd-app .dt-head small{color:var(--muted);font-size:12.5px}
 #fd-app .dt-count{font-size:12.5px;color:#a3620c;font-weight:600}
 #fd-app .dt-list{display:grid;gap:6px;min-width:0}#fd-app .dt-list>*,#fd-app .card>*,#fd-app .dtbox{min-width:0}
