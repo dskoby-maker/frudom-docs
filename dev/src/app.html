@@ -1321,6 +1321,14 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .ppdlg .ppbt{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
 #fd-app .bk-night{margin:10px 0}#fd-app .bk-night b{display:inline}#fd-app #bk-card a.btn{text-decoration:none}#fd-app .bk-list{display:grid;gap:4px;margin:10px 0 6px}#fd-app .bk-r{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;background:rgba(242,243,239,.7)}#fd-app .bk-r small{display:block;font-size:12px;color:var(--muted)}#fd-app .bk-a{display:flex;gap:4px;flex:none}
 #fd-app .bk-how{margin-top:12px;font-size:14px}#fd-app .bk-how summary{cursor:pointer;font-weight:600;color:var(--accent)}#fd-app .bk-how ol{margin:8px 0;padding-left:20px;display:grid;gap:6px}
+#fd-app .ctl{display:grid;gap:12px;margin:4px 0 12px}#fd-app .ct-empty{display:grid;gap:4px;padding:16px;border:1px dashed var(--line);border-radius:14px;color:var(--muted);text-align:center}#fd-app .ct-empty b{color:var(--ink)}
+#fd-app .ctc{border:1px solid var(--line);border-radius:16px;padding:14px 16px;background:#fff;display:grid;gap:12px;transition:box-shadow .2s,border-color .2s}#fd-app .ctc:focus-within{border-color:rgba(106,44,78,.35);box-shadow:0 4px 18px rgba(106,44,78,.08)}#fd-app .ctc.ctnew{animation:ctnew 1.6s ease}@keyframes ctnew{0%{box-shadow:0 0 0 4px rgba(106,44,78,.25)}100%{box-shadow:none}}
+#fd-app .cth{display:flex;align-items:flex-start;gap:10px}#fd-app .ctno{flex:none;width:28px;height:28px;border-radius:50%;background:rgba(106,44,78,.08);color:var(--accent);display:grid;place-items:center;font-weight:600;font-size:13px}#fd-app .ctht{flex:1;min-width:0;display:grid;gap:3px}#fd-app .ctname{font-size:16px;line-height:1.3;overflow-wrap:anywhere}#fd-app .ctsub{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:13px;color:var(--muted)}#fd-app .ctch{font-size:12px;padding:2px 8px;border-radius:999px;background:#EEF4EC;color:#3D6B35}#fd-app .ctch.warn{background:#FBF1DC;color:#8A5A00}#fd-app .ctch.bad{background:#FBE7E4;color:#A33A2B}#fd-app .ctdel{flex:none;width:auto}
+#fd-app .ctuse{position:relative;display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;font-size:13px;padding-bottom:10px}#fd-app .ctuse i{position:absolute;left:0;right:0;bottom:0;height:5px;border-radius:3px;background:#EFEAE6;overflow:hidden}#fd-app .ctuse i::after{content:"";position:absolute;inset:0 auto 0 0;width:var(--p);background:#7FA874;border-radius:3px;transition:width .4s}#fd-app .ctuse.near i::after{background:#D9A23A}#fd-app .ctuse.over i::after{background:#C9503E}#fd-app .ctuse.over span:nth-child(2){color:#A33A2B}#fd-app .ctuse:not(:has(i)){padding-bottom:0}
+#fd-app .ctg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 12px}#fd-app .ctg .ctw2{grid-column:span 2}#fd-app .ctg label.f{display:grid;gap:4px;align-content:start;font-size:13px;color:var(--muted)}#fd-app .ctg input,#fd-app .ctg select{min-height:42px}#fd-app .cth1{font-size:12px;color:var(--muted);line-height:1.3}
+#fd-app .ctf{display:flex;flex-wrap:wrap;gap:8px}#fd-app .ctf .ctspb{margin-top:0}
+@media (max-width:900px){#fd-app .ctg{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){#fd-app .ctc{padding:12px}#fd-app .ctg{grid-template-columns:minmax(0,1fr)}#fd-app .ctg .ctw2{grid-column:auto}#fd-app .ctf .ctspb{flex:1}}
 #fd-app .cturl{display:flex;gap:6px;align-items:center}#fd-app .cturl input{flex:1;min-width:0}#fd-app .cturl a.btn{flex:none;text-decoration:none;white-space:nowrap}
 #fd-app .mi-mob{display:none}#fd-app .mi-addr{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px}#fd-app .mi-addr .mi-one{margin-left:auto}
 #fd-app .mi-ai{display:inline-flex;align-items:center;gap:8px}#fd-app .mi-ai-i{font-size:16px}#fd-app .mi-ai b{font-weight:600}#fd-app .mi-ai small{display:none}
@@ -3312,7 +3320,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
     <div class="card">
       <h2>Контракты и договоры <small id="ct-name"></small></h2>
       <p class="muted">Каждый контракт привязан к конкретному исполнителю. В документе при выборе контракта поставщик, основание и ИКЗ подставятся сами, а по цене контракта считается остаток.</p>
-      <div class="tbl"><table class="stack" data-full="0,1,2,5"><thead><tr><th style="width:190px">Исполнитель</th><th>Основание (номер и дата)</th><th style="width:170px">ИКЗ</th><th style="width:120px">Цена контракта</th><th style="width:140px">Действует до</th><th style="width:230px">Ссылка на договор</th><th class="num">Отгружено</th><th style="width:40px"></th></tr></thead><tbody id="ct-body"></tbody></table></div>
+      <div id="ct-body" class="ctl"></div>
       <div class="row"><button class="btn" id="ct-add">+ Добавить контракт</button></div>
     </div>
     <div class="card" id="akt-card">
@@ -8457,23 +8465,55 @@ function renderBranches(cid){
 function renderContracts(cid){ if(typeof renderAkt==="function" && AKT.cid===cid) setTimeout(()=>{ if(!document.querySelector("#akt-box .aktedit")) renderAkt(cid); },0);
   const c=cus(cid); $("#ct-name").textContent=c.name?"— "+c.name:"";
   const supOpts = sel => `<option value=""${!sel?" selected":""}>любой</option>`+D.suppliers.map(x=>`<option value="${x.id}"${x.id===sel?" selected":""}>${esc(x.name)}</option>`).join("");
-  $("#ct-body").innerHTML = ctrs(cid).map(x=>`<tr data-id="${x.id}"><td><select data-k="supplierId">${supOpts(x.supplierId)}</select></td>
-    <td><input data-k="basis" value="${esc(x.basis)}" placeholder="ЭЗК-26-91390881 от 30.09.2026"><input class="ctsh" data-k="short" value="${esc(x.short||"")}" placeholder="${ctShortSrv()?"Коротко для сайта: краги, молоко…":"Короткое название — сначала обновите Code.gs"}" title="Короткое название — только на сайте, в документы не попадает"${ctShortSrv()?"":" disabled"}></td><td><input data-k="ikz" value="${esc(x.ikz)}" inputmode="numeric"></td>
-    <td><input data-k="maxSum" value="${esc(x.maxSum)}" inputmode="decimal" placeholder="—"></td><td><input data-k="dateTo" type="date" value="${esc(x.dateTo)}"></td>
-    <td><div class="cturl"><input data-k="url" value="${esc(x.url||"")}" placeholder="вставьте ссылку на договор" inputmode="url"${(D.srvVer||0)>=10?"":` disabled title="Сначала обновите Code.gs — иначе ссылка не сохранится"`}>${ctUrl(x.url)?`<a class="btn sm pri" href="${esc(ctUrl(x.url))}" target="_blank" rel="noopener" title="Открыть договор">Открыть ↗</a>`:""}</div>${ctSpecBtn(x)}</td>
-    <td class="num">${fm(ctrUsed(x.id))}</td><td><button class="btn ghost danger sm" data-del title="Удалить контракт">×</button></td></tr>`).join("")
-    || `<tr><td colspan="8" class="muted" style="padding:12px 6px">Контрактов пока нет.</td></tr>`;
-  $("#ct-add").onclick=()=>{ if(!cid) return; const x={id:uid(), customerId:cid, supplierId:"", basis:"", ikz:"", maxSum:"", dateTo:""}; D.contracts.push(x); dirty("contracts",x.id); renderContracts(cid); };
+  $("#ct-body").innerHTML = ctrs(cid).map((x,i)=>ctCardHtml(x,i,supOpts)).join("")
+    || `<div class="ct-empty"><b>Договоров пока нет</b><span>Нажмите «+ Добавить договор» — поставщик, основание и ИКЗ потом подставятся в документы сами.</span></div>`;
+  $("#ct-add").textContent="+ Добавить договор";
+  $("#ct-add").onclick=()=>{ if(!cid) return; const last=D.journal.filter(j=>j.snap&&j.snap.c&&j.snap.dr&&(j.snap.dr.customerId===cid||j.snap.c.id===cid)&&!isArch(j)).sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")))[0];
+    const x={id:uid(), customerId:cid, supplierId:last&&last.snap.dr.supplierId||(D.suppliers.length===1?D.suppliers[0].id:""), basis:"", ikz:"", maxSum:"", dateTo:""}; D.contracts.push(x); dirty("contracts",x.id); renderContracts(cid);
+    const el=document.querySelector(`#ct-body [data-id="${x.id}"]`); if(el){ el.classList.add("ctnew"); el.scrollIntoView({block:"center",behavior:"smooth"}); const f=el.querySelector('[data-k="basis"]'); if(f) setTimeout(()=>f.focus({preventScroll:true}),250); } };
 }
+/* карточка договора: поля с подписями, сверху — понятная шапка (название, ИП, срок, отгружено из цены договора) */
+const ctTitle = x => String(x.short||"").trim() || String(x.basis||"").trim() || "Новый договор";
+const ctDue = x => { if(!x.dateTo) return ""; const n=daysTo(x.dateTo);
+  return n<0?`<span class="ctch bad">закончился ${fd(x.dateTo)}</span>`:n<=30?`<span class="ctch warn">до ${fd(x.dateTo)} · осталось ${n} ${n%10===1&&n%100!==11?"день":n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?"дня":"дней"}</span>`:`<span class="ctch ok">действует до ${fd(x.dateTo)}</span>`; };
+const ctUse = x => { const used=ctrUsed(x.id), max=+x.maxSum||0;
+  if(!max) return `<div class="ctuse"><span>Отгружено <b>${fm(used)} ₽</b></span><span class="muted">цена договора не указана — остаток не считается</span></div>`;
+  const pc=Math.min(100,used/max*100), left=r2(max-used);
+  return `<div class="ctuse${left<0?" over":pc>=90?" near":""}"><span>Отгружено <b>${fm(used)} ₽</b> из ${fm(max)} ₽</span><span>${left<0?"превышение "+fm(-left)+" ₽":"осталось "+fm(left)+" ₽"} · ${Math.round(used/max*100)}%</span><i style="--p:${pc.toFixed(1)}%"></i></div>`; };
+const ctIkzHint = v => { const d=String(v||"").replace(/\D/g,""); return !d?"36 цифр, есть в ЕИС у контракта; для частных договоров не нужен":d.length===36?"✓ 36 цифр":`${d.length} из 36 цифр`; };
+const ctBasisHint = v => { v=String(v||"").trim(); if(!v) return "Как в документах: «Договор № 123 от 01.11.2026»"; return /\d{1,2}\.\d{1,2}\.\d{2,4}/.test(basisNorm(v))?"✓ номер и дата есть — попадут в ТОРГ‑12 и УПД":"⚠ нет даты — допишите «от ДД.ММ.ГГГГ»"; };
+function ctCardHtml(x,i,supOpts){ const s=x.supplierId?sup(x.supplierId):null, sh=ctShortSrv(), uOk=(D.srvVer||0)>=10, u=ctUrl(x.url);
+  return `<article class="ctc" data-id="${x.id}">
+    <header class="cth"><span class="ctno">${i+1}</span><div class="ctht"><b class="ctname">${esc(ctTitle(x))}</b><span class="ctsub"><span class="ctsup">${s&&s.name?esc(supShort(s.name)):"поставщик не выбран"}</span>${ctDue(x)}</span></div>
+      <button type="button" class="btn ghost danger sm ctdel" data-del title="Удалить договор">Удалить</button></header>
+    ${ctUse(x)}
+    <div class="ctg">
+      <label class="f ctw2">Основание — номер и дата, как в документах<input data-k="basis" value="${esc(x.basis)}" placeholder="Договор № 123 от 01.11.2026"><small class="cth1" data-h="basis">${esc(ctBasisHint(x.basis))}</small></label>
+      <label class="f">Коротко — только на сайте<input data-k="short" value="${esc(x.short||"")}" placeholder="${sh?"краги, молоко, овощи…":"сначала обновите Code.gs"}" title="Короткое название — только на сайте, в документы не попадает"${sh?"":" disabled"}><small class="cth1">${sh?"так договор видно в списках выбора":"нужен скрипт таблицы версии 26"}</small></label>
+      <label class="f">Исполнитель (ИП)<select data-k="supplierId">${supOpts(x.supplierId)}</select></label>
+      <label class="f">Цена договора, ₽<input data-k="maxSum" data-money type="text" value="${esc(x.maxSum)}" inputmode="decimal" placeholder="необязательно"><small class="cth1">по ней считается остаток</small></label>
+      <label class="f">Действует до<input data-k="dateTo" type="date" value="${esc(x.dateTo)}"></label>
+      <label class="f ctw2">ИКЗ<input data-k="ikz" value="${esc(x.ikz)}" inputmode="numeric" placeholder="только для госконтрактов"><small class="cth1" data-h="ikz">${esc(ctIkzHint(x.ikz))}</small></label>
+      <label class="f ctw2">Ссылка на договор<div class="cturl"><input data-k="url" value="${esc(x.url||"")}" placeholder="вставьте ссылку на файл или страницу ЕИС" inputmode="url"${uOk?"":` disabled title="Сначала обновите Code.gs — иначе ссылка не сохранится"`}>${u?`<a class="btn sm pri" href="${esc(u)}" target="_blank" rel="noopener" title="Открыть договор">Открыть ↗</a>`:""}</div></label>
+    </div>
+    <footer class="ctf">${ctSpecBtn(x)}</footer>
+  </article>`; }
 const ctb=$("#ct-body");
 /* ссылка на договор: что вставили — то и открываем; без http — добавим https:// */
 const ctUrl = v => { v=String(v||"").trim(); if(!v) return ""; if(/^https?:\/\//i.test(v)) return v; if(/^[\w.-]+\.[a-zа-я]{2,}(\/|$)/i.test(v)) return "https://"+v; return ""; };
-const ctSet=e=>{ const k=e.target.dataset.k; if(!k) return; const x=ctr(e.target.closest("tr").dataset.id); if(!x) return; x[k]= k==="maxSum"?num(e.target.value):e.target.value; dirty("contracts",x.id);
+const ctSet=e=>{ const k=e.target.dataset.k; if(!k) return; const card=e.target.closest("[data-id]"), x=ctr(card&&card.dataset.id); if(!x) return; x[k]= k==="maxSum"?num(e.target.value):e.target.value; dirty("contracts",x.id);
+  if(k==="basis"||k==="short") card.querySelector(".ctname").textContent=ctTitle(x);
+  if(k==="basis"||k==="ikz"){ const h=card.querySelector(`[data-h="${k}"]`); if(h) h.textContent=k==="basis"?ctBasisHint(x.basis):ctIkzHint(x.ikz); }
+  if(k==="supplierId"){ const s=x.supplierId?sup(x.supplierId):null; card.querySelector(".ctsup").textContent=s&&s.name?supShort(s.name):"поставщик не выбран"; }
+  if(k==="dateTo"){ const sb=card.querySelector(".ctsub"); sb.querySelectorAll(".ctch").forEach(z=>z.remove()); sb.insertAdjacentHTML("beforeend",ctDue(x)); }
+  if(k==="maxSum"){ const o=card.querySelector(".ctuse"); if(o) o.outerHTML=ctUse(x); }
   if(k==="url"){ const box=e.target.closest(".cturl"), u=ctUrl(x.url); let a=box.querySelector("a"); if(u){ if(!a){ a=document.createElement("a"); a.className="btn sm pri"; a.target="_blank"; a.rel="noopener"; a.textContent="Открыть ↗"; a.title="Открыть договор"; box.appendChild(a); } a.href=u; } else if(a) a.remove(); } };
-ctb.addEventListener("input",ctSet); ctb.addEventListener("change",e=>{ if(e.target.tagName==="SELECT") ctSet(e); });
+ctb.addEventListener("input",ctSet); ctb.addEventListener("change",e=>{ if(e.target.tagName==="SELECT"||e.target.type==="date") ctSet(e);
+  /* основание: «от 18 января 2024 г.» → «от 18.01.2024», лишние пробелы — убрать */
+  if(e.target.dataset.k==="basis"){ const v=basisNorm(e.target.value).replace(/\s+/g," ").trim(); if(v!==e.target.value){ e.target.value=v; ctSet(e); } } });
 ctb.addEventListener("click",e=>{ const b=e.target.closest("[data-del]"); if(!b) return;
   if(!b.dataset.armed){ b.dataset.armed=1; b.textContent="Удалить?"; return; }
-  const id=b.closest("tr").dataset.id, x=ctr(id); D.contracts=D.contracts.filter(c=>c.id!==id); dirty("contracts",id,true); if(D.draft.contractId===id) D.draft.contractId=""; renderContracts(x.customerId); });
+  const id=b.closest("[data-id]").dataset.id, x=ctr(id); D.contracts=D.contracts.filter(c=>c.id!==id); dirty("contracts",id,true); if(D.draft.contractId===id) D.draft.contractId=""; renderContracts(x.customerId); });
 /* ---------- товары по договору: полные характеристики, как в договоре (поле контракта spec — JSON, Code.gs ≥ 25) ----------
    позиция: {name, chars, unit, price, qty, per (срок/период), pid (товар на сайте)} */
 const ctSpec = x => { try{ const a=JSON.parse(x&&x.spec||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; } };
@@ -9936,7 +9976,7 @@ function autoTasks(){
       text:L.length===1?"Не указано: "+L[0].miss.join(", ")+". "+L[0].a:(ph?"Без телефона: "+ph+". ":"")+"Нет часов приёмки: "+L.filter(x=>x.miss.includes("часы приёмки")).length+". "+L.slice(0,3).map(x=>ptName({addr:x.a,c:{address:x.legal}})).join(", ")+(L.length>3?" и ещё "+(L.length-3):"")+".",
       act:"Заполнить", go:{tab:"customers", sel:["customers",c.id], pt:[f.a, f.miss.includes("телефон")?"phone":"from"]}}); });
   /* договоры */
-  (D.contracts||[]).forEach(x=>{ const c=cus(x.customerId); if(!c||!c.id) return; const nm=(x.basis||"Договор без номера")+" · "+cusShort(c.name), go=k=>({tab:"customers", sel:["customers",c.id], q:`#ct-body tr[data-id="${x.id}"] [data-k="${k}"]`});
+  (D.contracts||[]).forEach(x=>{ const c=cus(x.customerId); if(!c||!c.id) return; const nm=(x.basis||"Договор без номера")+" · "+cusShort(c.name), go=k=>({tab:"customers", sel:["customers",c.id], q:`#ct-body [data-id="${x.id}"] [data-k="${k}"]`});
     if(!String(x.basis||"").trim()) add("Договоры",{key:"ct-basis-"+x.id, lvl:"err", title:"Договор без номера и даты · "+cusShort(c.name), text:"Номер и дата договора печатаются в документах в строке «Основание».", go:go("basis")});
     if(!x.supplierId) add("Договоры",{key:"ct-sup-"+x.id, lvl:"warn", title:nm, text:"Не выбран поставщик — при выборе договора ИП не подставится сам.", go:go("supplierId")});
     if(String(x.basis||"").trim() && !/\d{1,2}\.\d{1,2}\.\d{2,4}/.test(basisNorm(x.basis))) add("Договоры",{key:"ct-date-"+x.id+"-"+x.basis, lvl:"err", title:nm, text:"Сайт не нашёл в основании дату договора — в ТОРГ‑12 и УПД графа «дата» останется пустой. Допишите «от ДД.ММ.ГГГГ» (или «от 18 января 2024 г.»).", go:go("basis")});

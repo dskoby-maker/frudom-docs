@@ -15,7 +15,7 @@ async def main():
               x.supplierId=x.supplierId||s.id; return [c.id,x.id,x.supplierId]})()""")
             await pg.evaluate("document.querySelector('nav.tabs button[data-tab=\"customers\"]').click()"); await pg.wait_for_timeout(500)
             await pg.select_option('#cus-editor select.pick', cid); await pg.wait_for_timeout(500)
-            inp=pg.locator(f'#ct-body tr[data-id="{xid}"] input[data-k="short"]'); ok(await inp.count()==1 and not await inp.is_disabled(), f'{W}: поле короткого названия есть')
+            inp=pg.locator(f'#ct-body [data-id="{xid}"] input[data-k="short"]'); ok(await inp.count()==1 and not await inp.is_disabled(), f'{W}: поле короткого названия есть')
             await inp.scroll_into_view_if_needed(); await inp.fill('Краги'); await inp.dispatch_event('change'); await pg.wait_for_timeout(300)
             await pg.evaluate('__fd.flush()'); await pg.wait_for_timeout(2000)
             T=dump()['Контракты']; Hh=T[0]; R=[dict(zip(Hh,r)) for r in T[1:]]; row=[r for r in R if r.get('ID (не менять)')==xid]
