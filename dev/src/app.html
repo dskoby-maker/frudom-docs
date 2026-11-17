@@ -7923,32 +7923,38 @@ document.addEventListener("click", e=>{ const b=e.target.closest("#fd-dcard [dat
     document.querySelectorAll("#fd-dcard [data-jnu]").forEach(x=>x.setAttribute("aria-pressed", JN.sel.has(+x.dataset.jnu))); b.textContent=all?"отметить все":"снять все"; }
   else { const i=+b.dataset.jnu; if(JN.sel.has(i)) JN.sel.delete(i); else JN.sel.add(i); b.setAttribute("aria-pressed", JN.sel.has(i)); }
   jnFoot(); });
+/* свежие записи из журнала: пока открыто окно или меню, сайт мог подтянуть из таблицы новую версию накладной
+   (её правили на другом устройстве) — тогда старая копия уже не в журнале, и отметка комплекта на ней терялась (17.11.2026) */
+const jnFresh = L => L.map(j=>D.journal.find(x=>x.id===j.id)||j).filter(j=>j && j.snap);
 /* поменять комплект у документов; prev — как было (для «Отменить») */
-function jnSet(L, fn, what){ const prev=L.map(j=>[j, (j.snap.meta||{}).batch]);
+function jnSet(L, fn, what){ L=jnFresh(L); const prev=L.map(j=>[j.id, (j.snap.meta||{}).batch]);
   UNDO.paused++; try{ L.forEach(j=>{ const m=j.snap.meta=j.snap.meta||{}, b=fn(j); if(b) m.batch=b; else delete m.batch; if(what) histPush(m, [what]); dirty("journal", j.id); }); }
   finally{ UNDO.paused--; unResync(); }
   return prev; }
 function jnAfter(dates, k){ docTasks(dates); saveLocal(); if(online()) flush().catch(handleErr);
   if(k) jOpen.add(k); if(curTab==="journal") renderJournal(); if(curTab==="calendar") renderCalendar(); if(curTab==="archive" && typeof renderArchive==="function") renderArchive(); }
-function jnUndo(prev, msg){ return ()=>{ UNDO.paused++; try{ prev.forEach(([j,b])=>{ const m=j.snap.meta=j.snap.meta||{}; if(b) m.batch=b; else delete m.batch; histPush(m, ["отменено: "+msg]); dirty("journal", j.id); }); } finally{ UNDO.paused--; unResync(); }
-  logEv("Журнал","Отменено ("+msg+"): № "+jnNums(prev.map(p=>p[0]))+" от "+fd(prev[0][0].date)+" — "+jWho(prev[0][0]).main);
-  jnAfter([...new Set(prev.map(p=>p[0].date))]); toast("ok","Отменено",""); }; }
+function jnUndo(prev, msg){ return ()=>{ const P=prev.map(([id,b])=>[D.journal.find(x=>x.id===id), b]).filter(p=>p[0] && p[0].snap); if(!P.length) return;
+  UNDO.paused++; try{ P.forEach(([j,b])=>{ const m=j.snap.meta=j.snap.meta||{}; if(b) m.batch=b; else delete m.batch; histPush(m, ["отменено: "+msg]); dirty("journal", j.id); }); } finally{ UNDO.paused--; unResync(); }
+  logEv("Журнал","Отменено ("+msg+"): № "+jnNums(P.map(p=>p[0]))+" от "+fd(P[0][0].date)+" — "+jWho(P[0][0]).main);
+  jnAfter([...new Set(P.map(p=>p[0].date))]); toast("ok","Отменено",""); }; }
 /* новый (или общий) номер комплекта: берём уже существующий комплект, иначе новый */
-function jnJoin(){ const g=JN.g; if(!g) return; const add=JN.U.filter((u,i)=>JN.sel.has(i) && u.ok); if(!add.length) return;
+function jnJoin(){ if(!JN.g) return; const g=jnFresh(JN.g), add=JN.U.filter((u,i)=>JN.sel.has(i) && u.ok).map(u=>({docs:jnFresh(u.docs)})); if(!add.length || !g.length) return;
   const L=g.concat(...add.map(u=>u.docs)), big=[g].concat(add.map(u=>u.docs)).filter(x=>x.length>1).sort((a,b)=>b.length-a.length)[0];
   const b0=big && (big[0].snap.meta||{}).batch, k0=big && jKey(big[0]), batch = b0 && k0===jKey(big[big.length-1]) && k0[0]==="B" ? b0 : uid()+uid();
   const prev=jnSet(L, ()=>batch, "объединён в комплект: № "+jnNums(L));
+  const miss=L.filter(j=>{ const x=D.journal.find(y=>y.id===j.id); return !x || ((x.snap.meta||{}).batch!==batch); });
+  if(miss.length) console.warn("jnJoin: не попали в комплект", miss.map(j=>j.number));
   JN.g=null; logEv("Журнал","Объединены в комплект: № "+jnNums(L)+" от "+fd(L[0].date)+" — "+jWho(L[0]).main+", "+L.length+" "+nklWord(L.length)+", "+fm(jnSum(L))+" ₽");
   jnAfter([L[0].date], "B"+batch);
   toast("ok","Комплект: "+L.length+" "+nklWord(L.length), "№ "+jnNums(L)+" · "+fm(jnSum(L))+" ₽", {action:{label:"Отменить", fn:jnUndo(prev,"объединение в комплект")}});
   requestAnimationFrame(()=>{ const r=[...document.querySelectorAll("#jr-body tr.grp, #cal-body tr.grp")].find(x=>x.dataset.g==="B"+batch); if(r){ r.classList.add("jnflash"); r.scrollIntoView({block:"nearest", behavior:"smooth"}); setTimeout(()=>r.classList.remove("jnflash"),1600); } }); }
 /* убрать одну накладную из комплекта: у неё свой отдельный номер комплекта (иначе старый комплект «по времени скачивания» собрал бы её снова) */
 const jnSolo = j => (j.snap.meta||{}).dl ? "s"+uid() : "";
-function jnOut(j){ const g=jnGroup(j); if(g.length<2 || docLimited()) return;
+function jnOut(j){ j=jnFresh([j])[0]; if(!j) return; const g=jnGroup(j); if(g.length<2 || docLimited()) return;
   const prev=jnSet([j], jnSolo, "убран из комплекта"); const rest=g.filter(x=>x.id!==j.id);
   logEv("Журнал","Убрана из комплекта: № "+j.number+" от "+fd(j.date)+" — "+jWho(j).main+(rest.length>1?" (в комплекте осталось "+rest.length+")":" (комплект разделён)"));
   jnAfter([j.date]); toast("ok","№ "+j.number+" — отдельной накладной", rest.length>1?"В комплекте осталось "+rest.length+" "+nklWord(rest.length):"Комплекта больше нет", {action:{label:"Отменить", fn:jnUndo(prev,"убрана из комплекта")}}); }
-function jnSplit(g){ g=g.filter(x=>!isArch(x)); if(g.length<2 || docLimited()) return;
+function jnSplit(g){ g=jnFresh(g).filter(x=>!isArch(x)); if(g.length<2 || docLimited()) return;
   const prev=jnSet(g, jnSolo, "комплект разделён");
   logEv("Журнал","Комплект разделён: № "+jnNums(g)+" от "+fd(g[0].date)+" — "+jWho(g[0]).main+", "+g.length+" "+nklWord(g.length));
   jnAfter([g[0].date]); toast("ok","Комплект разделён", g.length+" отдельных "+(g.length%10===1&&g.length%100!==11?"накладная":"накладных")+" · № "+jnNums(g), {action:{label:"Отменить", fn:jnUndo(prev,"разделение комплекта")}}); }
