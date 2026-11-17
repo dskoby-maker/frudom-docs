@@ -1823,6 +1823,8 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .dtg-b{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s cubic-bezier(.3,.9,.3,1)}
 #fd-app .dtg.open .dtg-b{grid-template-rows:1fr}
 #fd-app .dtg-i{overflow:hidden;min-height:0;display:grid;gap:6px;padding:0 8px;transition:padding .32s}
+/* карточка заказчика на телефоне не шире экрана: длинная кнопка «Накладные № …» раньше раздвигала задачу вправо (17.11.2026) */
+#fd-app .dtg,#fd-app .dtg-b,#fd-app .dtg-i,#fd-app .dtg-i>.dt{min-width:0;max-width:100%}#fd-app .dtg-b,#fd-app .dtg-i{grid-template-columns:minmax(0,1fr)}#fd-app .dtsrc{min-width:0}#fd-app .dtsrc i{flex:none}@media (max-width:520px){#fd-app .dt .dtsrc{border-radius:12px;align-items:flex-start;padding:5px 10px 5px 8px}#fd-app .dt .dtsrc span{white-space:normal;overflow-wrap:anywhere}#fd-app .dt .dtsrc svg{margin-top:2px}}
 #fd-app .dtg.open .dtg-i{padding:2px 8px 8px}
 #fd-app .dtg-i .dt{opacity:0;transform:translateY(-4px);transition:opacity .25s ease,transform .3s ease,background .25s,border-color .25s,box-shadow .25s;animation:none}
 #fd-app .dtg.open .dtg-i .dt{opacity:1;transform:none}
