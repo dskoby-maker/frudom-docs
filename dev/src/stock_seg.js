@@ -1099,19 +1099,42 @@ function dzItemOpts(l, cur){ const X=skIdx(), tk=s=>skK(s).replace(/[()«»"',.]
 /* ---------- выбор товара склада поиском (как поиск товара в документе): вводишь — появляются подсказки ----------
    scope: "dz" (окно накладной) / "bz" (окно комплекта); k — ключ строки; l — {name, unit}; cur — выбранный товар склада */
 const SKPQ={};
-function skPickList(l, q, cur){ const X=skIdx(), w=skK(q).split(" ").filter(Boolean), tk=s=>skK(s).replace(/[()«»"',.]/g," ").split(" ").filter(x=>x.length>=4).map(x=>x.slice(0,5)), P=new Set(tk(l.name));
-  const sc=i=>tk(i.name+" "+(i.alt||"")).filter(x=>P.has(x)).length, fr=i=>skFreeU(i.id,l.unit);
-  const L = w.length ? X.S.items.filter(i=>w.every(x=>skK(i.name+" "+(i.alt||"")+" "+(i._links||[]).map(pid=>(prod(pid)||{}).name||"").join(" ")).includes(x)))
-                     : X.S.items.filter(i=>sc(i)>0 || fr(i)>0);
-  return L.sort((a,b)=>(w.length?0:sc(b)-sc(a)) || (fr(b)>0)-(fr(a)>0) || a.name.localeCompare(b.name,"ru")).slice(0,8); }
-function skPickSug(sc, k, l, q){ const L=skPickList(l, q||"");
-  return L.length ? (!(q||"").trim()?`<small class="muted skpk-h">Похожие по названию и что есть на складе:</small>`:"")+L.map((i,n)=>{ const fr=skFreeU(i.id,l.unit); return `<button type="button" class="skpk-i${n===0?" act":""}" data-skpk="${i.id}" data-sc="${sc}" data-k="${esc(k)}"><b>${esc(i.name)}</b><small class="${fr>0?"":"miss"}">${fr>0?"свободно "+skQf(fr,l.unit):"нет в наличии"+(skUnitsOf(i.id).some(u=>u.free>0)?" в «"+esc(l.unit)+"»":"")}</small></button>`; }).join("")
-    : `<small class="muted skpk-h">${(q||"").trim()?"Не найдено. Попробуйте другое слово или заведите товар приходом на складе.":"Начните вводить название товара со склада."}</small>`; }
+/* похожесть названий: общие основы слов (первые 5 букв — полное совпадение, первые 4 — половина), «макароны» ~ «Изделия макаронные» */
+const skStems = s => skK(s).replace(/ё/g,"е").replace(/[()«»"'.,;:\/\-]/g," ").split(" ").filter(x=>x.length>=4 && !/\d/.test(x));
+function skSim(a, b){ const A=skStems(a), B=skStems(b); if(!A.length||!B.length) return 0; let sc=0;
+  A.forEach(x=>{ if(B.some(y=>y.slice(0,5)===x.slice(0,5))) sc+=1; else if(B.some(y=>y.slice(0,4)===x.slice(0,4))) sc+=0.5; }); return sc; }
+const skItemTxt = i => i.name+" "+(i.alt||"")+" "+(i._links||[]).map(pid=>(prod(pid)||{}).name||"").join(" ");
+/* сколько товара: свободно в единице строки; иначе — что есть в других единицах */
+function skPickAvail(i, unit){ const fr=skFreeU(i.id,unit); if(fr>0) return {cls:"", t:"свободно "+skQf(fr,unit), ok:2};
+  const U=skUnitsOf(i.id).filter(u=>u.free>0); if(U.length) return {cls:"oth", t:"нет в «"+unit+"» · есть "+U.map(u=>skQf(u.free,u.unit)+(skK(u.unit)==="шт"&&skKgTxt(i.id,u.free)?" "+skKgTxt(i.id,u.free):"")).join(", "), ok:1};
+  return {cls:"miss", t:"закончился", ok:0}; }
+function skPickList(l, q){ const X=skIdx(), w=skK(q).split(" ").filter(Boolean), av=i=>skPickAvail(i,l.unit).ok, nm=(a,b)=>a.name.localeCompare(b.name,"ru");
+  if(w.length) return X.S.items.filter(i=>w.every(x=>skK(skItemTxt(i)).includes(x))).sort((a,b)=>av(b)-av(a) || nm(a,b)).slice(0,40);
+  const sc=i=>Math.max(skSim(l.name, i.name+" "+(i.alt||"")), skSim(l.name, skItemTxt(i)));
+  return X.S.items.map(i=>[i,sc(i)]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1] || av(b[0])-av(a[0]) || nm(a[0],b[0])).slice(0,6).map(x=>x[0]); }
+const SKPA={};   /* «Показать всё на складе» раскрыто у строки */
+const skPickRow = (i, sc, k, l, n) => { const a=skPickAvail(i,l.unit); return `<button type="button" class="skpk-i${n===0?" act":""}${a.ok?"":" off"}" data-skpk="${i.id}" data-sc="${sc}" data-k="${esc(k)}"><b>${esc(i.name)}</b><small class="${a.cls}">${esc(a.t)}</small></button>`; };
+function skPickSug(sc, k, l, q){ const key=sc+"|"+k, X=skIdx(), qq=(q||"").trim();
+  if(qq){ const L=skPickList(l, qq); return L.length ? L.map((i,n)=>skPickRow(i,sc,k,l,n)).join("") : `<small class="muted skpk-h">Не найдено. Попробуйте другое слово${X.S.items.length?" или нажмите «Показать всё на складе»":" или заведите товар приходом на складе"}.</small>${X.S.items.length?`<button type="button" class="skpk-all" data-skpkall="${esc(k)}" data-sc="${sc}">Показать всё на складе (${X.S.items.length}) ›</button>`:""}`; }
+  const S=skPickList(l,""), seen=new Set(S.map(i=>i.id)), all=SKPA[key], nm=(a,b)=>a.name.localeCompare(b.name,"ru");
+  const has=X.S.items.filter(i=>!seen.has(i.id) && skPickAvail(i,l.unit).ok>0).sort(nm), gone=X.S.items.filter(i=>!seen.has(i.id) && !skPickAvail(i,l.unit).ok).sort(nm);
+  let n=0, h=S.length ? `<small class="muted skpk-h">Похоже по названию «${esc(l.name)}»:</small>`+S.map(i=>skPickRow(i,sc,k,l,n++)).join("")
+    : `<small class="muted skpk-h">${X.S.items.length?"Похожих по названию нет — посмотрите всё, что есть на складе, или начните вводить название.":"На складе пока нет товаров — сначала оформите приход."}</small>`;
+  if(!X.S.items.length || (!has.length && !gone.length)) return h;
+  if(!all) return h+`<button type="button" class="skpk-all" data-skpkall="${esc(k)}" data-sc="${sc}">Показать всё на складе (${has.length+gone.length}) ›</button>`;
+  return h + (has.length?`<small class="muted skpk-h skpk-g">Всё на складе — есть в наличии (${has.length}):</small>`+has.map(i=>skPickRow(i,sc,k,l,n++)).join(""):"")
+    + (gone.length?`<small class="muted skpk-h skpk-g">Закончились (${gone.length}):</small>`+gone.map(i=>skPickRow(i,sc,k,l,n++)).join(""):"")
+    + `<button type="button" class="skpk-all" data-skpkall="${esc(k)}" data-sc="${sc}">Свернуть список</button>`; }
+document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-skpkall]"); if(!b) return; e.preventDefault(); const sc=b.dataset.sc, k=b.dataset.skpkall, key=sc+"|"+k, C=typeof skPickCtx==="function"?skPickCtx(sc):null; if(!C) return;
+  const box=b.closest(".skpk-l"), inp=box&&box.parentElement.querySelector(".skpq"), l=C.line(k); if(!box||!l) return;
+  const open=!SKPA[key]; SKPA[key]=open; if(open && inp && inp.value){ inp.value=""; SKPQ[key]=""; }
+  box.innerHTML=skPickSug(sc, k, l, inp?inp.value:""); if(open){ box.classList.add("big"); const g=box.querySelector(".skpk-g"); if(g) box.scrollTo({top:Math.max(0,g.offsetTop-6), behavior:"smooth"}); } else box.classList.remove("big");
+  if(inp) inp.focus({preventScroll:true}); });
 function skPickHtml(sc, k, l, cur, o){ const it=cur?skIdx().item[cur]:null, key=sc+"|"+k, st=o&&o.s, cid=(o&&o.cid)||"";
   if(it){ const was=st&&st.it0===it.id, cus=cid && (was ? skLkScope(it, o.pid, cid)==="cus" : st&&st.sc==="cus");
     const lbl=!skLkSrv()||!cid ? "" : was ? `<small class="skpk-sc">${cus?"связь только для «"+esc(cusNm(cid))+"»":"связь для всех заказчиков"}</small>` : "";
     return `<div class="skpk on"><small>Товар на складе <i>(связь запомнится)</i></small><div class="skpk-sel"><b>${esc(it.name)}</b><span>свободно ${skQf(skFreeU(it.id,l.unit),l.unit)}</span><button type="button" class="btn ghost sm" data-skpkclr="${esc(k)}" data-sc="${sc}">Сменить</button></div>${lbl}${!was&&st?skScopeHtml(cid, st.sc||"all", `data-skpksc="${esc(k)}" data-sc="${sc}" data-v`):""}</div>`; }
-  return `<div class="skpk"><small>Товар на складе <i>(связь запомнится)</i></small><input class="skpq" data-sc="${sc}" data-k="${esc(k)}" autocomplete="off" placeholder="Начните вводить: рис, фасоль, Макфа…" value="${esc(SKPQ[key]||"")}" aria-label="Найти товар на складе"><div class="skpk-l" data-for="${esc(k)}">${skPickSug(sc, k, l, SKPQ[key]||"")}</div></div>`; }
+  return `<div class="skpk"><small>Товар на складе <i>(связь запомнится)</i></small><input class="skpq" data-sc="${sc}" data-k="${esc(k)}" autocomplete="off" placeholder="Начните вводить: рис, фасоль, Макфа…" value="${esc(SKPQ[key]||"")}" aria-label="Найти товар на складе"><div class="skpk-l${SKPA[key]?" big":""}" data-for="${esc(k)}">${skPickSug(sc, k, l, SKPQ[key]||"")}</div></div>`; }
 /* нехватка в кг, а товар лежит в штуках (приход в «шт»): подсказка + «Перевести в кг» одним нажатием (то же, что «Перевзвесить» партии) */
 function skRwPack(it){ const ip=skIPack(it.id); if(ip) return ip; const X=skIdx(), B=(X.byItem[it.id]||[]).filter(b=>!b.cancel && skK(b.unit)==="кг" && skPack(b)>0).sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
   if(B.length) return skPack(B[0]); const w=miWeight(it.name); return w && w.unit==="кг" ? w.w : 0; }
