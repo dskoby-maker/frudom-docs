@@ -342,7 +342,7 @@ async function pgStockAuto(){ if(PGSK || docLimited() || !online() || typeof SK=
   try{ const X=skIdx(), roots=[...new Set(D.products.filter(p=>p.grp).map(p=>pgRoot(p)))];
     for(const r of roots){ const M=pgMembers(r), items=[...new Set(M.map(p=>X.link[p.id]).filter(Boolean))]; if(items.length!==1) continue;
       const it=X.item[items[0]], un=new Set(M.filter(p=>X.link[p.id]).map(p=>p.unit||"")), miss=M.filter(p=>!X.link[p.id] && un.has(p.unit||"")).map(p=>p.id); if(!it||!miss.length) continue;
-      await skSend("item",{itemId:it.id, links:[...new Set((it._links||[]).concat(miss))]},"Связь: "+it.name+" (связанные названия)"); n+=miss.length; } }
+      await skSend("item",{itemId:it.id, links:[...new Set((it._lk||[]).concat(miss))]},"Связь: "+it.name+" (связанные названия)"); n+=miss.length; } }
   catch(e){ console.warn(e); } finally{ PGSK=false; }
   return n; }
 /* названия одного товара связаны с разными товарами склада — подсказка в карточке */

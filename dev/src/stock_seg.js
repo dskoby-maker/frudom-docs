@@ -20,7 +20,7 @@ const skCan = () => !!curUser() && !!pass();
 function skIdx(){
   const S=skD(); if(SKC && SKC.S===S) return SKC;
   const ag=S.agg||{}, X={S, item:{}, batch:{}, link:{}, fact:Object.assign({}, ag.fact||{}), resB:{}, resL:{}, done:JSON.parse(JSON.stringify(ag.done||{})), byItem:{}, filesI:{}, units:[]};
-  S.items.forEach(i=>{ X.item[i.id]=i; let L=[]; try{ L=JSON.parse(i.links||"[]")||[]; }catch(e){} i._links=L; L.forEach(pid=>X.link[pid]=i.id); X.byItem[i.id]=[]; });
+  S.items.forEach(i=>{ X.item[i.id]=i; let L=[]; try{ L=JSON.parse(i.links||"[]")||[]; }catch(e){} L=L.map(String).filter(Boolean); i._lk=L; i._links=[...new Set(L.map(skLkP))]; L.forEach(e=>X.link[e]=i.id); X.byItem[i.id]=[]; });
   S.batches.forEach(b=>{ X.batch[b.id]=b; (X.byItem[b.itemId]=X.byItem[b.itemId]||[]).push(b); });
   S.moves.forEach(m=>{ if(!SK_NOSTOCK[m.type]) X.fact[m.batchId]=r3((X.fact[m.batchId]||0)+(+m.qty||0));
     if(m.docId){ const k=m.docId+"|"+m.lineId, o=X.done[k]||(X.done[k]={shipped:0, closed:0, ret:0, direct:0, cost:0, retCost:0});
@@ -34,7 +34,20 @@ function skIdx(){
 const skFact = id => skIdx().fact[id]||0, skRes = id => skIdx().resB[id]||0, skFree = id => r3(skFact(id)-skRes(id));
 const skRoot = b => { const X=skIdx(); let x=b, n=0; while(x && x.parent && X.batch[x.parent] && n++<20) x=X.batch[x.parent]; return x||b; };
 const skExp = b => (skRoot(b)||b).exp||"";
-const skItemOf = pid => { const X=skIdx(); return X.item[X.link[pid]]||null; };
+/* связь «позиция документа → товар склада»: "pid" — для всех заказчиков, "pid@ID заказчика" — только для этого заказчика (Code.gs ≥ 43).
+   skItemOf(pid, cid): cid — заказчик документа (сначала его связь, потом общая); "" — только общая; без cid — общая или любая (для справки) */
+const skLkP = e => String(e||"").split("@")[0], skLkC = e => String(e||"").split("@")[1]||"";
+const skLkKey = (pid, cid) => cid ? pid+"@"+cid : pid;
+const skLkSrv = () => (D.srvVer||0)>=43;
+const skItemOf = (pid, cid) => { const X=skIdx(); if(cid){ const c=X.item[X.link[pid+"@"+cid]]; if(c) return c; }
+  const g=X.item[X.link[pid]]; if(g || cid!==undefined) return g||null; return X.S.items.find(i=>(i._links||[]).includes(pid))||null; };
+/* заказчик накладной по её ID (для строк, где передан только ID документа) */
+let SKJC=null;
+function skDocCid(docId){ const J=D.journal||[]; let m=SKJC&&SKJC.J===J&&SKJC.n===J.length?SKJC.m:null, i=m?m[docId]:undefined;
+  if(i==null || !J[i] || J[i].id!==docId){ m={}; J.forEach((j,k)=>m[j.id]=k); SKJC={J, n:J.length, m}; i=m[docId]; }
+  const j=i!=null?J[i]:null; return j&&j.snap&&j.snap.dr ? j.snap.dr.customerId||"" : ""; }
+const skLkScope = (it, pid, cid) => { const X=skIdx(); return cid && X.link[pid+"@"+cid]===it.id ? "cus" : "all"; };
+const skLkName = e => { const p=prod(skLkP(e)), c=skLkC(e); return ((p||{}).name||skLkP(e)) + (c?" — только для «"+(cusNm(c)||c)+"»":""); };
 function skUnitsOf(itemId){ const m={}, X=skIdx(); (X.byItem[itemId]||[]).forEach(b=>{ const k=skK(b.unit), o=m[k]||(m[k]={unit:b.unit, fact:0, res:0}); o.fact=r3(o.fact+skFact(b.id)); o.res=r3(o.res+skRes(b.id)); });
   return Object.values(m).map(o=>Object.assign(o,{free:r3(o.fact-o.res)})); }
 /* фасовка партии: вес (объём) одной штуки в единице партии — только чтобы видеть штуки рядом с кг; остатки, резерв и списание остаются в кг.
@@ -66,13 +79,13 @@ function skQPcs(itemId, unit, q){ if(!(q>0) || !itemId) return ""; const ok=x=>!
   return b?skBPcs(b,q):""; }
 const skFreeU = (itemId, unit) => { const u=skUnitsOf(itemId).find(o=>skK(o.unit)===skK(unit)); return u?u.free:0; };
 /* строка накладной: сколько нужно со склада, в резерве, отгружено, нехватка (так же считает сервер) */
-function skLineInfo(docId, l, unit){
+function skLineInfo(docId, l, unit, cid){
   const src=l.stk||{}, qty=r3(+l.qty||0), req = src.m==="s" ? qty : src.m==="x" ? Math.min(qty, Math.max(0,r3(+src.q||0))) : 0;
   const X=skIdx(), lid=l.lid||"", d=X.done[docId+"|"+lid]||{shipped:0,closed:0,ret:0,direct:0,cost:0,retCost:0}, res=X.resL[docId+"|"+lid]||0;
   const need=r3(Math.max(0, req-d.shipped-d.closed));
-  return {req, qty, res, need, short:r3(Math.max(0,need-res)), shipped:d.shipped, closed:d.closed, ret:d.ret, direct:d.direct, cost:d.cost, retCost:d.retCost, noCost:d.noCost, item:skItemOf(l.productId), unit, m:src.m||""}; }
+  return {req, qty, res, need, short:r3(Math.max(0,need-res)), shipped:d.shipped, closed:d.closed, ret:d.ret, direct:d.direct, cost:d.cost, retCost:d.retCost, noCost:d.noCost, item:skItemOf(l.productId, cid!==undefined?cid:skDocCid(docId)), unit, m:src.m||""}; }
 function skDocLines(j){ if(!j||!j.snap||!j.snap.dr) return []; const P=j.snap.prods||{};
-  return (j.snap.dr.lines||[]).filter(l=>l.productId && +l.qty>0).map(l=>Object.assign({l}, skLineInfo(j.id, l, (P[l.productId]||prod(l.productId)||{}).unit||""))); }
+  return (j.snap.dr.lines||[]).filter(l=>l.productId && +l.qty>0).map(l=>Object.assign({l}, skLineInfo(j.id, l, (P[l.productId]||prod(l.productId)||{}).unit||"", j.snap.dr.customerId||""))); }
 const skDocHas = j => { const X=skIdx(); return skDocLines(j).some(x=>x.req>0 || x.shipped>0 || x.res>0) || X.S.res.some(r=>r.docId===j.id); };
 /* ---------- загрузка и отправка ---------- */
 let skRaw="";
@@ -227,8 +240,8 @@ const skLogRow = (l,k) => { const tm=l.at?new Date(l.at):null, hm=tm&&!isNaN(tm)
 function skFileRow(f){ return dRow(f); }   /* декларация — одна и та же строка везде (decl_seg.js) */
 
 /* ---------- карточка товара ---------- */
-let SKI={id:"", f:"", edit:false, linkQ:""};
-function skItemCard(id){ SKMVN.i=10; SKI={id, f:"", edit:false, linkQ:""}; SK_RE=()=>skItemCard(id); skModal(skItemHtml, true); }
+let SKI={id:"", f:"", edit:false, linkQ:"", linkC:""};
+function skItemCard(id){ SKMVN.i=10; SKI={id, f:"", edit:false, linkQ:"", linkC:""}; SK_RE=()=>skItemCard(id); skModal(skItemHtml, true); }
 function skItemHtml(){ const X=skIdx(), it=X.item[SKI.id]; if(!it) return skHead("Склад","Товар не найден","Обновите страницу.");
   const U=skUnitsOf(it.id), B=X.byItem[it.id]||[], ML=X.S.moves.filter(m=>m.itemId===it.id).slice().reverse(), types=[...new Set(ML.map(m=>m.type))];
   const RL=X.S.res.filter(r=>r.itemId===it.id), files=X.filesI[it.id]||[];
@@ -238,7 +251,8 @@ function skItemHtml(){ const X=skIdx(), it=X.item[SKI.id]; if(!it) return skHead
   + (SKI.resU!=null?`<div class="skbox"><div class="skbh"><b>Резерв — ${esc(SKI.resU)}</b><button type="button" class="btn ghost sm" data-sk="resclose">Скрыть</button></div>${RL.filter(r=>skK(r.unit)===skK(SKI.resU)).reduce((a,r)=>{ const o=a.find(x=>x.docId===r.docId); if(o) o.q=r3(o.q+(+r.qty)); else a.push({docId:r.docId, q:+r.qty, doc:r.doc}); return a; },[]).map(o=>{ const j=D.journal.find(x=>x.id===o.docId); return `<button type="button" class="skdr" data-skdoc="${o.docId}"><b>${j?esc(jWho(j).main):"накладная"}</b><span>${j?"№ "+esc(j.number)+" от "+fd(j.date):esc(o.doc)} · ${skQf(o.q,SKI.resU)} — открыть накладную ›</span></button>`; }).join("")}</div>`:"")
   + `<div class="skbox"><div class="skbh"><b>Комментарий к товару</b><small class="muted">виден только здесь, в документы не попадает</small></div><textarea class="skcomment" rows="2" data-keep="1" placeholder="Например: «Этот кофейный напиток заказывает только ревматология»">${esc(it.note||"")}</textarea><div class="row"><button type="button" class="btn sm" data-sk="note">Сохранить комментарий</button>${it.note?`<button type="button" class="btn ghost sm" data-sk="noteclr">Очистить</button>`:""}</div></div>`
   + `<div class="skbox"><div class="skbh"><b>Партии${skHQ("Партии")}</b><button type="button" class="btn sm" data-sk="inItem">+ Приход</button></div>${B.length?`<div class="skbl">${B.slice().reverse().map(b=>{ const f=skFact(b.id), r=skRes(b.id), e=skExp(b); return `<button type="button" class="skbr${f>0?"":" empty"}${b.cancel?" cancel":""}" data-skbatch="${b.id}"><span><b>${esc(b.name)}${b.cancel?" · отменён":""}</b><small>${esc(b.supplier||"—")}${b.docRef?" · "+esc(b.docRef):""}${b.kind==="init"?" · начальный остаток":""}</small></span><span class="num"><b>${skQf(f,b.unit)}</b>${skBPcs(b,f)?`<i class="skpc">${skBPcs(b,f)}</i>`:""}<small>из ${skQf(b.qty,b.unit)}${skPack(b)?" · "+skPackTxt(b):""}${r?" · резерв "+skQf(r):""}</small></span><span class="num">${b.price!==""&&b.price!=null?fm(+b.price)+" ₽":`<span class="miss">цена?</span>`}</span><span>${e?`<span class="skexp ${skExpCls(e)}">до ${fd(e)}</span>`:`<small class="muted">Срок годности не указан</small>`}</span></button>`; }).join("")}</div>`:`<p class="muted">Партий нет.</p>`}</div>`
-  + `<div class="skbox"><div class="skbh"><b>Позиции в документах${skHQ("Позиции в документах")}</b><small class="muted">резерв и списание — только по этим связям</small></div>${(it._links||[]).map(pid=>`<span class="sklink">${esc((prod(pid)||{}).name||pid)}<button type="button" data-skunlink="${pid}" aria-label="Убрать связь">×</button></span>`).join("")||`<p class="muted">Не связан — со склада его в документ не взять.</p>`}
+  + `<div class="skbox"><div class="skbh"><b>Позиции в документах${skHQ("Позиции в документах")}</b><small class="muted">резерв и списание — только по этим связям</small></div>${(it._lk||[]).map(e=>{ const c=skLkC(e); return `<span class="sklink${c?" cus":""}">${esc((prod(skLkP(e))||{}).name||skLkP(e))}${c?`<i>только для «${esc(cusNm(c)||c)}»</i>`:""}<button type="button" data-skunlink="${esc(e)}" aria-label="Убрать связь">×</button></span>`; }).join("")||`<p class="muted">Не связан — со склада его в документ не взять.</p>`}
+      ${skLkSrv()?`<label class="sklc"><span>Связать для</span><select class="sklcs" data-keep="1" aria-label="Для какого заказчика связь"><option value="">всех заказчиков</option>${opts(D.customers.filter(c=>c.id!=="__private"&&!c.priv).slice().sort((a,b)=>cusNm(a.id).localeCompare(cusNm(b.id),"ru")), SKI.linkC||"")}</select></label>`:""}
       <div class="sklinkadd"><input class="sklq" data-keep="1" placeholder="Найти позицию документов, например «ягоды сушёные (шиповник)»" value="${esc(SKI.linkQ)}"><div class="sklsug">${skLinkSug(it)}</div></div></div>`
   + skDefBox(it)
   + `<div class="skbox"><div class="skbh"><b>Декларации</b><button type="button" class="btn sm" data-sk="attachItem">Прикрепить декларацию</button></div>${files.length?files.map(f=>skFileRow(f,false)).join(""):`<p class="muted">Файлов нет.</p>`}</div>`
@@ -254,13 +268,17 @@ function skMoves(L, key){ if(!L.length) return `<p class="muted">Движени�
     return `<div class="skmr t-${m.type}" style="--d:${Math.min(k,10)*15}ms"><span class="skmt" title="${esc(SK_T[m.type]||m.typeName||"")}">${esc(SK_T[m.type]||m.typeName||"")}</span><span class="skmq"><b>${sign}${skQf(Math.abs(q),m.unit)}</b>${m.cost!==""&&m.cost!=null?`<small>себест. ${fm(+m.cost)} ₽</small>`:""}${m.price?`<small>продажа ${fm(+m.price)} ₽</small>`:""}</span><span class="skmd">${party?`<b>${esc(party)}</b>`:""}${doc?`<small>${m.docId?`<a href="#" data-skdoc="${m.docId}">${esc(doc)}</a>`:esc(doc)}</small>`:""}${m.reason?`<small class="muted">${esc(m.reason)}</small>`:""}${!party&&!doc&&!m.reason?`<small class="muted">—</small>`:""}</span><span class="sklw">${esc(m.by||"")}<small>${when}</small></span></div>`; }).join("")}</div>
     ${L.length>n?`<div class="skmv-more"><span class="muted">Показано ${n} из ${L.length}</span><button type="button" class="btn ghost sm" data-skmv="${key}" data-n="10">Ещё 10</button><button type="button" class="btn ghost sm" data-skmv="${key}" data-n="all">Все</button></div>`:""}`; }
 document.addEventListener("click", e=>{ const b=e.target.closest && e.target.closest("[data-skmv]"); if(!b) return; const k=b.dataset.skmv; SKMVN[k]=b.dataset.n==="all"?1e9:(SKMVN[k]||10)+10; skModalRefresh(); });
-function skLinkSug(it){ const q=skK(SKI.linkQ); const words=q.split(" ").filter(Boolean);
-  const L=(words.length?D.products.filter(p=>!(it._links||[]).includes(p.id) && words.every(w=>skK(p.name).includes(w))):skCandidates(it)).slice(0,6);
+function skLinkSug(it){ const q=skK(SKI.linkQ); const words=q.split(" ").filter(Boolean), cid=skLkSrv()?SKI.linkC||"":"", X=skIdx(), has=p=>(it._lk||[]).includes(skLkKey(p.id,cid));
+  const L=(words.length?D.products.filter(p=>!has(p) && words.every(w=>skK(p.name).includes(w))):skCandidates(it).filter(p=>!has(p))).slice(0,6);
   if(!L.length) return words.length?`<small class="muted">Ничего не найдено</small>`:"";
-  return (words.length?"":`<small class="muted">Похоже по названию (связь появится только после нажатия):</small>`)+L.map(p=>{ const o=skItemOf(p.id); return `<button type="button" class="sklsb" data-sklink="${p.id}"><span>${esc(p.name)}</span><small>${o&&o.id!==it.id?"сейчас связан с «"+esc(o.name)+"» — перенести":"связать"}</small></button>`; }).join(""); }
+  const cn=cid?"«"+esc(cusNm(cid))+"»":"";
+  return (words.length?"":`<small class="muted">Похоже по названию (связь появится только после нажатия):</small>`)+L.map(p=>{ const o=X.item[X.link[skLkKey(p.id,cid)]], g=cid?X.item[X.link[p.id]]:null;
+    const t = o&&o.id!==it.id ? (cid?"для "+cn+" сейчас «"+esc(o.name)+"» — перенести сюда":"сейчас связан с «"+esc(o.name)+"» — перенести")
+      : cid ? "связать только для "+cn+(g&&g.id!==it.id?" · другим заказчикам останется «"+esc(g.name)+"»":"") : "связать";
+    return `<button type="button" class="sklsb" data-sklink="${esc(skLkKey(p.id,cid))}"><span>${esc(p.name)}</span><small>${t}</small></button>`; }).join(""); }
 /* кандидаты по похожему названию — только подсказка, связь создаёт человек */
 function skCandidates(it){ const tk=s=>skK(s).replace(/[()«»"',.]/g," ").split(" ").filter(w=>w.length>=4).map(w=>w.slice(0,5)), A=new Set([it.name,...String(it.alt||"").split(";")].flatMap(tk));
-  return D.products.filter(p=>!(it._links||[]).includes(p.id) && tk(p.name).some(w=>A.has(w))).slice(0,6); }
+  return D.products.filter(p=>tk(p.name).some(w=>A.has(w))).slice(0,12); }
 function skUnitSel(u, cls){ const X=skIdx(), L=X.units.slice(); if(u && !L.some(x=>skK(x)===skK(u))) L.push(u);
   return `<select class="${cls}">${L.map(x=>`<option${skK(x)===skK(u)?" selected":""}>${esc(x)}</option>`).join("")}<option value="__new">+ своя единица…</option></select>`; }
 
@@ -403,10 +421,10 @@ function skInvHtml(){ const X=skIdx(), L=X.S.batches.filter(b=>SKINV.all||skFact
    + `<div class="dc-acts"><span class="muted" style="margin-right:auto">Заполнено: ${n}</span><button class="btn" data-sk="close">Отмена</button><button class="btn pri" data-sk="invSave">Провести акт</button></div>`; }
 
 /* ---------- накладная: строка «откуда товар» ---------- */
-function skLineBtn(i){ if(!SK_READY) return ""; if(skSrv===false) return ""; const l=D.draft.lines[i]; if(!l||!l.productId||!skCan()) return ""; const it=skItemOf(l.productId), m=(l.stk||{}).m||"";
+function skLineBtn(i){ if(!SK_READY) return ""; if(skSrv===false) return ""; const l=D.draft.lines[i]; if(!l||!l.productId||!skCan()) return ""; const it=skItemOf(l.productId, D.draft.customerId||""), m=(l.stk||{}).m||"";
   const free=it?skFreeU(it.id, (prod(l.productId)||{}).unit):0;
   return `<button type="button" class="skb${m?" on":free>0?" has":""}" data-skl="${i}" title="${m?"Источник: "+(m==="s"?"со склада":"часть со склада"):it?"На складе свободно "+skQf(free,(prod(l.productId)||{}).unit)+" — нажмите, чтобы выбрать источник":"Источник товара: от Саида или со склада"}" aria-label="Источник товара">${skIcon}</button>`; }
-function skLineNote(i){ if(!SK_READY) return ""; if(skSrv===false) return ""; const l=D.draft.lines[i], p=l&&prod(l.productId); if(!p||!skCan()) return ""; const it=skItemOf(p.id), src=l.stk||{}, m=src.m||"", q=+l.qty||0;
+function skLineNote(i){ if(!SK_READY) return ""; if(skSrv===false) return ""; const l=D.draft.lines[i], p=l&&prod(l.productId); if(!p||!skCan()) return ""; const it=skItemOf(p.id, D.draft.customerId||""), src=l.stk||{}, m=src.m||"", q=+l.qty||0;
   const gov = !UNITS[p.unit] && typeof isGovCus==="function" && isGovCus(D.draft.customerId) ? `<div class="sknote bad" role="note">${skIcon}<span>У единицы «${esc(p.unit)}» нет кода ОКЕИ — для госконтракта и ЕИС выберите кг, шт или другую стандартную единицу.</span></div>` : "";
   if(!m){ const free=it?skFreeU(it.id,p.unit):0; return gov + (it && free>0 ? `<div class="sknote" role="note">${skIcon}<span>На складе свободно <b>${skQf(free,p.unit)}</b> — «${esc(it.name)}»${skStale()}. По умолчанию товар от Саида.</span></div>` : ""); }
   if(!it) return gov + `<div class="sknote bad" role="note">${skIcon}<span>Выбран склад, но позиция не связана со складским товаром — резерва не будет. Нажмите значок склада.</span></div>`;
@@ -420,10 +438,14 @@ function skDocHints(){ if(!SK_READY) return ""; if(curTab!=="doc") return; skAll
   if(b) b.outerHTML=bh||""; else if(bh){ const pc=el.querySelector(".pc"); pc&&pc.insertAdjacentHTML("beforeend",bh); }
   if(n) n.outerHTML=h||""; else if(h) el.insertAdjacentHTML("beforeend",h); }); }
 let SKL=null;
-function skLineCard(i){ const l=D.draft.lines[i]; if(!l||!l.productId) return; SKL={i, linkQ:""}; skModal(skLineHtml); }
-function skLineHtml(){ const l=D.draft.lines[SKL.i]; if(!l) return skHead("Склад","Строка удалена",""); const p=prod(l.productId)||{}, it=skItemOf(p.id), src=l.stk||{}, m=src.m||"", q=+l.qty||0, lim=docLimited();
-  if(!it) return skHead("Откуда товар", esc(p.name), "Эта позиция документа ещё не связана со складским товаром. Связь создаётся только вручную — похожее название само ничего не списывает.", "Откуда товар")
-    + `<div class="skbox"><div class="skbh"><b>Связать со складским товаром</b></div><input class="sklq2" data-keep="1" placeholder="Найти товар на складе" value="${esc(SKL.linkQ)}"><div class="sklsug">${skItemSug(p)}</div></div><div class="dc-acts"><button class="btn" data-sk="close">Закрыть</button></div>`;
+function skLineCard(i){ const l=D.draft.lines[i]; if(!l||!l.productId) return; SKL={i, linkQ:"", sc:"", relink:false}; skModal(skLineHtml); }
+/* «для всех заказчиков | только для «…»» — для какого заказчика запомнить связь */
+function skScopeHtml(cid, sc, attr){ if(!skLkSrv() || !cid) return ""; const b=(k,t)=>`<button type="button" class="${sc===k?"on":""}" ${attr}="${k}" aria-pressed="${sc===k}">${t}</button>`;
+  return `<div class="sklsc" role="group" aria-label="Для кого связь"><small>Связь:</small>${b("all","для всех заказчиков")}${b("cus","только для «"+esc(cusNm(cid))+"»")}</div>`; }
+function skLineHtml(){ const l=D.draft.lines[SKL.i]; if(!l) return skHead("Склад","Строка удалена",""); const p=prod(l.productId)||{}, cid=D.draft.customerId||"", it=SKL.relink?null:skItemOf(p.id, cid), it1=skItemOf(p.id, cid), src=l.stk||{}, m=src.m||"", q=+l.qty||0, lim=docLimited();
+  if(!it){ if(!SKL.sc) SKL.sc=it1&&cid?"cus":"all";
+    return skHead("Откуда товар", esc(p.name), SKL.relink&&it1?"Сейчас эта позиция берётся со склада как «"+esc(it1.name)+"»"+(skLkScope(it1,p.id,cid)==="cus"?" — только для «"+esc(cusNm(cid))+"»":"")+". Выберите другой товар склада.":"Эта позиция документа ещё не связана со складским товаром. Связь создаётся только вручную — похожее название само ничего не списывает.", "Откуда товар")
+    + `<div class="skbox"><div class="skbh"><b>Связать со складским товаром</b>${SKL.relink?`<button type="button" class="btn ghost sm" data-sk="relinkOff">Отмена</button>`:""}</div>${skScopeHtml(cid, SKL.sc, "data-sklsc")}<input class="sklq2" data-keep="1" placeholder="Найти товар на складе" value="${esc(SKL.linkQ)}"><div class="sklsug">${skItemSug(p)}</div></div><div class="dc-acts"><button class="btn" data-sk="close">Закрыть</button></div>`; }
   const free=skFreeU(it.id,p.unit), um=!skUnitsOf(it.id).some(u=>skK(u.unit)===skK(p.unit));
   const opt=(k,t,s)=>`<label class="skopt${m===k?" on":""}"><input type="radio" name="sksrc" value="${k}"${m===k?" checked":""}><span><b>${t}</b><small>${s}</small></span></label>`;
   const rwB=um ? (skIdx().byItem[it.id]||[]).filter(b=>!b.cancel && skFree(b.id)>0 && skK(b.unit)!==skK(p.unit) && skK(p.unit)==="кг") : [];
@@ -431,6 +453,7 @@ function skLineHtml(){ const l=D.draft.lines[SKL.i]; if(!l) return skHead("Ск�
    + (rwB.length?`<div class="sknoteb">На складе этот товар лежит в других единицах: ${rwB.map(b=>esc(skQf(skFree(b.id),b.unit))).join(", ")}. Чтобы взять его в кг, сначала перевзвесьте: <button type="button" class="btn sm" data-skrwgo="${rwB[0].id}">Перевзвесить…</button></div>`:"")
    + `<div class="skopts">${opt("","От Саида","закупка под эту поставку (по умолчанию)")}${opt("s","Со склада","все "+skQf(q,p.unit)+(skQPcs(it.id,p.unit,q)?" ("+skQPcs(it.id,p.unit,q)+")":"")+(free<q?" — свободно только "+skQf(free)+", нехватка будет "+skQf(r3(q-free),p.unit):""))}${opt("x","Часть со склада","остальное — от Саида")}</div>
      <div class="skmix"${m==="x"?"":" hidden"}><div class="skgrid"><label class="f">Со склада, ${esc(p.unit)}<input class="skmq" data-keep="1" inputmode="decimal" value="${esc(String(src.q||"").replace(".",","))}" placeholder="${esc(String(Math.min(free,q)).replace(".",","))}"></label>${lim?"":`<label class="f">Цена у Саида за ${esc(p.unit)}, ₽ <small>(для прибыли)</small><input class="skmp" data-keep="1" inputmode="decimal" value="${esc(String(src.pd||"").replace(".",","))}" placeholder="необязательно"></label>`}</div></div>
+     ${skLkSrv()&&cid&&!lim?`<p class="sklre"><span>${skLkScope(it,p.id,cid)==="cus"?"Связь только для «"+esc(cusNm(cid))+"»":"Связь для всех заказчиков"}.</span><button type="button" class="btn ghost sm" data-sk="relink">Другой товар склада…</button></p>`:""}
      <p class="muted sk-hint">Резерв появится после сохранения документа. Нехватка сама не превращается в закупку у Саида — можно выбрать «Часть со склада» или провести приход и обновить резерв.</p>
      <div class="dc-acts"><button class="btn" data-sk="close">Отмена</button><button class="btn pri" data-sk="lineSave">Готово</button></div>`; }
 function skItemSug(p){ const q=skK(SKL.linkQ), X=skIdx(), words=q.split(" ").filter(Boolean);
@@ -463,6 +486,20 @@ function skShipHtml(){ const j=D.journal.find(x=>x.id===SKS.id); if(!j) return s
 /* ---------- обработчики ---------- */
 const skVal = (sel) => { const el=$("#sk-dlg "+sel); return el?el.value:""; };
 const skBusy = (b, on, t) => { if(!b) return; if(on){ b.dataset.t0=b.textContent; b.disabled=true; b.textContent=t||"Отправляю…"; } else { b.disabled=false; if(b.dataset.t0) b.textContent=b.dataset.t0; } };
+document.addEventListener("change", e=>{ const el=e.target; if(!el.classList||!el.classList.contains("sklcs")) return; SKI.linkC=el.value; const b=el.closest(".skbox"), s=b&&b.querySelector(".sklsug"), it=skIdx().item[SKI.id]; if(s&&it) s.innerHTML=skLinkSug(it); });
+/* связать позиции документов с товаром склада: scope "cus" — только для заказчика cid, иначе для всех
+   (для всех — заодно снимаем свою связь этого заказчика с другим товаром, иначе она бы перебивала общую). Возвращает записанные связи */
+async function skLinkTo(itemId, pids, cid, scope){ const X=skIdx(), it=X.item[itemId]; if(!it) return [];
+  const cus=skLkSrv() && cid && scope==="cus", E=pids.map(p=>skLkKey(p, cus?cid:""));
+  const links=[...new Set((it._lk||[]).concat(E))]; await skSend("item",{itemId, links},"Связь: "+it.name+(cus?" (для «"+cusNm(cid)+"»)":""));
+  if(!cus && cid){ const drop={}; pids.forEach(p=>{ const o=skIdx().link[p+"@"+cid]; if(o && o!==itemId) (drop[o]=drop[o]||[]).push(p+"@"+cid); });
+    for(const o of Object.keys(drop)){ const x=skIdx().item[o]; if(x) await skSend("item",{itemId:o, links:(x._lk||[]).filter(e=>!drop[o].includes(e))},"Связь: "+x.name); } }
+  return E; }
+/* связь поменялась — пересчитать резерв открытых накладных с этой позицией (у заказчика связи или у всех), чтобы резерв встал на новый товар склада */
+async function skRelinkReserve(entries, except){ if(!SK_READY || !online()) return; const want=entries.map(e=>({pid:skLkP(e), cid:skLkC(e)}));
+  const L=(D.journal||[]).filter(j=>j.id!==except && j.snap && j.snap.dr && !(j.snap.meta||{}).arch && (j.snap.dr.lines||[]).some(l=>(l.stk||{}).m && want.some(w=>w.pid===l.productId && (!w.cid || w.cid===(j.snap.dr.customerId||"")))))
+    .filter(j=>skDocLines(j).some(x=>x.need>0 || x.res>0)).slice(0,30);
+  for(const j of L){ try{ await skSend("reserve",{docId:j.id},"Резерв № "+j.number+" (связь изменена)"); }catch(e){} } }
 async function skDo(op, d, label, okT, b){ skBusy(b,true); try{ const j=await skSend(op,d,label); toast("ok",okT||"Готово",""); return j; }catch(e){ skErr(e,label); if(e.queued) skClose(); return null; } finally{ skBusy(b,false); } }
 document.addEventListener("click", async e=>{
   const t=e.target; if(!t.closest) return;
@@ -485,9 +522,11 @@ document.addEventListener("click", async e=>{
   const kd=t.closest("[data-skd]"); if(kd){ const j=D.journal.find(x=>x.id===kd.dataset.doc); if(!j) return; const a=kd.dataset.skd;
     if(a==="reserve"){ skBusy(kd,true,"Проверяю…"); try{ await skSend("reserve",{docId:j.id},"Обновить резерв № "+j.number); const L=skDocLines(j), sh=L.filter(x=>x.short>0); toast(sh.length?"warn":"ok", sh.length?"Резерв обновлён, но не хватает":"Резерв обновлён", sh.map(x=>x.item.name+" — "+skQf(x.short,x.unit)).join("; ")); const c=document.getElementById("fd-dcard"); if(c) docCard(j); }catch(er){ skErr(er,"обновление резерва"); } finally{ skBusy(kd,false); } return; }
     const c=document.getElementById("fd-dcard"); if(c){ c.remove(); } skShipForm(j, a); return; }
-  const lk=t.closest("[data-sklink]"); if(lk){ const it=skIdx().item[SKI.id]; if(!it) return; SKI.linkQ=""; skBusy(lk,true,"Связываю…"); try{ await skSend("item",{itemId:it.id, links:(it._links||[]).concat(lk.dataset.sklink)},"Связь: "+it.name); toast("ok","Связано","«"+((prod(lk.dataset.sklink)||{}).name||"")+"» → «"+it.name+"»"); }catch(er){ skErr(er,"связь"); } return; }
-  const ul=t.closest("[data-skunlink]"); if(ul){ if(!armed(ul,"Убрать?")) return; const it=skIdx().item[SKI.id]; await skDo("item",{itemId:it.id, links:(it._links||[]).filter(x=>x!==ul.dataset.skunlink)},"Связь: "+it.name,"Связь убрана"); return; }
-  const lt=t.closest("[data-sklinkto]"); if(lt){ const it=skIdx().item[lt.dataset.sklinkto], l=D.draft.lines[SKL.i]; if(!it||!l) return; skBusy(lt,true,"Связываю…"); try{ await skSend("item",{itemId:it.id, links:(it._links||[]).concat(l.productId)},"Связь: "+it.name); toast("ok","Связано","Теперь «"+((prod(l.productId)||{}).name||"")+"» берётся со склада как «"+it.name+"»."); }catch(er){ skErr(er,"связь"); } return; }
+  const lk=t.closest("[data-sklink]"); if(lk){ const it=skIdx().item[SKI.id]; if(!it) return; SKI.linkQ=""; const e=lk.dataset.sklink; skBusy(lk,true,"Связываю…"); try{ await skSend("item",{itemId:it.id, links:(it._lk||[]).concat(e)},"Связь: "+it.name); toast("ok","Связано","«"+skLkName(e)+"» → «"+it.name+"»"); skRelinkReserve([e]); }catch(er){ skErr(er,"связь"); } return; }
+  const ul=t.closest("[data-skunlink]"); if(ul){ if(!armed(ul,"Убрать?")) return; const it=skIdx().item[SKI.id], e=ul.dataset.skunlink; const r=await skDo("item",{itemId:it.id, links:(it._lk||[]).filter(x=>x!==e)},"Связь: "+it.name,"Связь убрана"); if(r) skRelinkReserve([e]); return; }
+  const lt=t.closest("[data-sklinkto]"); if(lt){ const it=skIdx().item[lt.dataset.sklinkto], l=D.draft.lines[SKL.i]; if(!it||!l) return; const cid=D.draft.customerId||"", e=skLkKey(l.productId, skLkSrv()&&SKL.sc==="cus"&&cid?cid:""); skBusy(lt,true,"Связываю…");
+    try{ await skSend("item",{itemId:it.id, links:(it._lk||[]).concat(e)},"Связь: "+it.name); SKL.relink=false; toast("ok","Связано","Теперь «"+((prod(l.productId)||{}).name||"")+"» берётся со склада как «"+it.name+"»"+(skLkC(e)?" — только для «"+cusNm(cid)+"»":"")+"."); skRelinkReserve([e], D.draft.id); }catch(er){ skErr(er,"связь"); } return; }
+  const lsc=t.closest("[data-sklsc]"); if(lsc){ SKL.sc=lsc.dataset.sklsc; skModalRefresh(); return; }
   const pk=t.closest("[data-skpick]"); if(pk){ skInRead(); const it=skIdx().item[pk.dataset.skpick]; if(it){ SKIN.itemId=it.id; SKIN.name=it.name; SKIN.unit=it.unit||SKIN.unit; if(!skNum(SKIN.pack)) SKIN.pack=skLastPack(it.id,SKIN.unit); if(!skNum(SKIN.bx)) SKIN.bx=skLastBox(it.id,SKIN.unit); } else SKIN.itemId=""; SKIN.sugOpen=false; skModalRefresh(); const q=$("#sk-dlg .skf-qty"); q&&q.focus(); return; }
   const mf=t.closest("[data-skmf]"); if(mf){ SKI.f=mf.dataset.skmf; SKMVN.i=10; skModalRefresh(); return; }
   const rl=t.closest("[data-skresl]"); if(rl){ SKI.resU=SKI.resU===rl.dataset.skresl?null:rl.dataset.skresl; skModalRefresh(); return; }
@@ -511,6 +550,7 @@ document.addEventListener("click", async e=>{
     for(const o of L){ const lines=o.L.map(x=>({lineId:x.l.lid, qty:String(x.res)})); try{ await skSend("ship",{docId:o.j.id, lines},"Отгрузка № "+o.j.number); ok++; }catch(e){ if(e.queued){ q++; continue; } toast("err","№ "+o.j.number+": не отгружено", e.message); } }
     skBusy(b,false); toast(q?"warn":"ok", ok?"Отгружено со склада: "+ok+" "+plural(ok,["накладная","накладные","накладных"]):"Ничего не отгружено", q?q+" ждут отправки — нет связи.":""); skClose(); if(curTab==="calendar") renderCalendar(); return; }
   if(a==="close"){ skClose(); return; }
+  if(a==="relink"||a==="relinkOff"){ if(!SKL) return; SKL.relink=a==="relink"; SKL.sc=""; SKL.linkQ=""; skModalRefresh(); if(SKL.relink){ const f=document.querySelector("#sk-dlg .sklq2"); f&&f.focus(); } return; }
   if(a==="in"){ skMultiIn(); return; }
   if(a==="init"){ skInForm(a); return; }
   if(a==="inv"){ skInv(); return; }
@@ -591,12 +631,12 @@ function skAfterArch(list, on){ if(!SK_READY) return ""; if(!skCan()) return; co
   if(on){ const sh=hit.filter(j=>skDocLines(j).some(x=>x.shipped-x.ret>0)); toast(sh.length?"warn":"info", "Резерв склада снимается", sh.length?"По № "+sh.map(j=>j.number).join(", ")+" товар уже отгружен со склада. Если он вернулся на склад — проведите возврат.":"Товар снова свободен на складе.", sh.length?{ms:15000, action:{label:"Провести возврат", fn:()=>skShipForm(sh[0],"ret")}}:{}); } }
 
 /* названия склада для поиска товара в документе: «шиповник» находит договорную позицию «ягоды сушёные (шиповник)» */
-function skNamesOf(pid){ if(!SK_READY) return []; const it=skItemOf(pid); return it ? [it.name, ...String(it.alt||"").split(";").map(skN).filter(Boolean)] : []; }
-function skPsTag(pid){ if(!SK_READY) return ""; const it=skItemOf(pid), p=prod(pid)||{}; if(!it) return ""; const free=skFreeU(it.id,p.unit);
+function skNamesOf(pid){ if(!SK_READY) return []; const it=skItemOf(pid, (D.draft||{}).customerId||""); return it ? [it.name, ...String(it.alt||"").split(";").map(skN).filter(Boolean)] : []; }
+function skPsTag(pid){ if(!SK_READY) return ""; const it=skItemOf(pid, (D.draft||{}).customerId||""), p=prod(pid)||{}; if(!it) return ""; const free=skFreeU(it.id,p.unit);
   return `<small class="pssk">${skK(it.name)!==skK(p.name)?"склад: «"+esc(it.name)+"» · ":"на складе: "}${skQf(free,p.unit)} свободно</small>`; }
 /* себестоимость строки накладной со складской частью: фактическая по отгруженным партиям, по резерву — оценка; прямая часть — по цене Саида */
 function skLineCost(j, l){ if(!SK_READY || !l.stk || !l.stk.m) return null;
-  const si=skLineInfo(j.id, {productId:l.pid, qty:l.qty, lid:l.lid, stk:l.stk}, l.unit); if(!si.req || !si.item) return null;
+  const si=skLineInfo(j.id, {productId:l.pid, qty:l.qty, lid:l.lid, stk:l.stk}, l.unit, (j.snap&&j.snap.dr||{}).customerId||""); if(!si.req || !si.item) return null;
   const X=skIdx(); let est=0, unk=!!si.noCost;
   X.S.res.filter(r=>r.docId===j.id && r.lineId===l.lid).forEach(r=>{ const b=X.batch[r.batchId]; if(!b || b.price===""||b.price==null) unk=true; else est+=(+r.qty)*(+b.price); });
   const actual=si.cost-si.retCost, prelim = si.need>0 || unk;
@@ -623,19 +663,19 @@ function skDefBox(it){ const on=it.def==="s", L=skDefC(it), used=new Set(); (it.
     <div class="row"><button type="button" class="btn sm" data-sk="defSave">Сохранить</button><small class="muted">Действует на новые документы: если товар свободен — строка сама станет «Со склада», если его мало — «Часть со склада».</small></div></div>`; }
 /* новый документ: строки без явного выбора получают источник по настройке товара (старые накладные не трогаем) */
 function skAutoSrc(dr){ if(!SK_READY || skSrv===false || !dr || !dr.lines) return; const take={};
-  dr.lines.forEach(l=>{ if(!l.productId || l.stk || l.stkSet || !(+l.qty>0)) return; const it=skItemOf(l.productId), p=prod(l.productId)||{}; if(!skDefFor(it, dr.customerId)) return;
+  dr.lines.forEach(l=>{ if(!l.productId || l.stk || l.stkSet || !(+l.qty>0)) return; const it=skItemOf(l.productId, dr.customerId||""), p=prod(l.productId)||{}; if(!skDefFor(it, dr.customerId)) return;
     const k=it.id+"|"+skK(p.unit), free=r3(skFreeU(it.id,p.unit)-(take[k]||0)), q=r3(+l.qty); if(free<=0) return;
     if(free>=q){ l.stk={m:"s"}; take[k]=r3((take[k]||0)+q); } else { l.stk={m:"x", q:String(free)}; take[k]=r3((take[k]||0)+free); } l.stkA=1; }); }
 /* кнопка в форме документа: «Со склада всё, что есть» */
 function skFillAll(){ const dr=D.draft, take={}; let n=0, part=0;
-  dr.lines.forEach(l=>{ if(!l.productId || !(+l.qty>0)) return; const it=skItemOf(l.productId), p=prod(l.productId)||{}; if(!it) return;
+  dr.lines.forEach(l=>{ if(!l.productId || !(+l.qty>0)) return; const it=skItemOf(l.productId, dr.customerId||""), p=prod(l.productId)||{}; if(!it) return;
     const k=it.id+"|"+skK(p.unit), free=r3(skFreeU(it.id,p.unit)-(take[k]||0)), q=r3(+l.qty); if(free<=0) return;
     if(free>=q){ l.stk={m:"s"}; take[k]=r3((take[k]||0)+q); } else { l.stk={m:"x", q:String(free)}; take[k]=r3((take[k]||0)+free); part++; }
     l.stkSet=1; delete l.stkA; if(!l.lid) l.lid=uid()+uid(); n++; });
   saveLocal(); renderLines();
   toast(n?"ok":"info", n?"Со склада: "+n+" "+plural(n,["строка","строки","строк"]):"На складе нечего взять", n?(part?part+" — частично, остальное от Саида. ":"")+"Резерв появится после сохранения документа.":"Свободного товара по позициям этого документа нет (или они не связаны со складом)."); }
 function skAllBtn(){ const b=document.getElementById("d-skall"); if(!b) return; const dr=D.draft;
-  const can=SK_READY && skSrv!==false && !dr.qtyOnly && dr.lines.some(l=>{ if(!l.productId||!(+l.qty>0)) return false; const it=skItemOf(l.productId); return it && skFreeU(it.id,(prod(l.productId)||{}).unit)>0 && (l.stk||{}).m!=="s"; });
+  const can=SK_READY && skSrv!==false && !dr.qtyOnly && dr.lines.some(l=>{ if(!l.productId||!(+l.qty>0)) return false; const it=skItemOf(l.productId, dr.customerId||""); return it && skFreeU(it.id,(prod(l.productId)||{}).unit)>0 && (l.stk||{}).m!=="s"; });
   b.hidden=!can; }
 /* ---------- объединение двух товаров ---------- */
 function skMergeBox(it){ const X=skIdx(), L=X.S.items.filter(i=>i.id!==it.id).sort((a,b)=>a.name.localeCompare(b.name,"ru"));
@@ -696,7 +736,7 @@ function skAutoTasks(add){ if(!SK_READY || skSrv===false || !SK) return; const W
   if(ex.bad.length) add("Склад",{key:"sk-expbad-"+ex.bad.map(b=>b.id).join(","), lvl:"err", title:"Просрочен товар на складе: "+ex.bad.length+" парт.", text:ex.bad.slice(0,4).map(b=>(skIdx().item[b.itemId]||{}).name+" — годен до "+fd(skExp(b))).join("; ")+". Спишите или проверьте дату.", go:go("exp")});
   if(ex.soon.length) add("Склад",{key:"sk-expsoon-"+ex.soon.map(b=>b.id).join(","), lvl:"warn", title:"Срок годности кончается: "+ex.soon.length+" парт.", text:ex.soon.slice(0,4).map(b=>(skIdx().item[b.itemId]||{}).name+" — до "+fd(skExp(b))).join("; ")+".", go:go("exp")}); }
 /* складская часть строки накладной (для маршрута водителя и закупки Саида): только по связанным товарам */
-function skStockQ(j, l){ if(!SK_READY || !l || !l.stk || !l.stk.m) return 0; const it=skItemOf(l.pid||l.productId); if(!it) return 0; const q=+l.qty||0; return r3(l.stk.m==="s"?q:Math.min(q, Math.max(0,+l.stk.q||0))); }
+function skStockQ(j, l){ if(!SK_READY || !l || !l.stk || !l.stk.m) return 0; const it=skItemOf(l.pid||l.productId, (j&&j.snap&&j.snap.dr||{}).customerId||""); if(!it) return 0; const q=+l.qty||0; return r3(l.stk.m==="s"?q:Math.min(q, Math.max(0,+l.stk.q||0))); }
 /* ---------- после сохранения: количество стало меньше уже отгруженного — предложить возврат ---------- */
 function skAfterEdit(e){ if(!SK_READY || !e || !e.snap) return; const L=skDocLines(e).filter(x=>x.shipped-x.ret>x.req+0.0005);
   if(!L.length) return; const j=e;
@@ -917,11 +957,11 @@ let DZ=null;
 const dzKey = l => l.lid || ("p:"+l.pid);
 const dzOn = () => SK_READY && skSrv!==false && skCan() && !!SK;
 function dzInit(j){ const k=calc(j.snap.dr, j.snap); DZ={doc:j.id, s:{}, ship:j.date<=todayISO(), v:null};
-  if(!dzOn()) return; k.lines.forEach(l=>{ const it=skItemOf(l.pid), st=l.stk||{}, q=st.m==="x"?String(st.q||"").replace(".",","):"";
+  if(!dzOn()) return; const cid=j.snap.dr.customerId||""; k.lines.forEach(l=>{ const it=skItemOf(l.pid, cid), st=l.stk||{}, q=st.m==="x"?String(st.q||"").replace(".",","):"";
     DZ.s[dzKey(l)]={m:st.m||"", q, itemId:it?it.id:"", m0:st.m||"", q0:q, it0:it?it.id:"", pd0:st.pd!=null&&st.pd!==""?String(st.pd):""}; }); }
 function dzSt(j, l){ return DZ && DZ.doc===j.id ? DZ.s[dzKey(l)] : null; }
 /* сохранённое состояние строки на складе: сколько уже уехало со склада */
-function dzDone(j, l){ const si=skLineInfo(j.id, {productId:l.pid, qty:l.qty, lid:l.lid, stk:l.stk}, l.unit); return si; }
+function dzDone(j, l){ const si=skLineInfo(j.id, {productId:l.pid, qty:l.qty, lid:l.lid, stk:l.stk}, l.unit, j.snap.dr.customerId||""); return si; }
 const dzLocked = (j, l) => { const si=dzDone(j,l); return r3(si.shipped-si.ret)>0 ? si : null; };
 /* сколько и почём можно взять со склада под эту строку: партии с самой ранней даты, свой резерв строки считается свободным */
 function dzEst(j, l, itemId, q){ const X=skIdx(), own={}; X.S.res.forEach(r=>{ if(r.docId===j.id && r.lineId===l.lid) own[r.batchId]=(own[r.batchId]||0)+(+r.qty||0); });
@@ -954,8 +994,10 @@ function skPickList(l, q, cur){ const X=skIdx(), w=skK(q).split(" ").filter(Bool
 function skPickSug(sc, k, l, q){ const L=skPickList(l, q||"");
   return L.length ? (!(q||"").trim()?`<small class="muted skpk-h">Похожие по названию и что есть на складе:</small>`:"")+L.map((i,n)=>{ const fr=skFreeU(i.id,l.unit); return `<button type="button" class="skpk-i${n===0?" act":""}" data-skpk="${i.id}" data-sc="${sc}" data-k="${esc(k)}"><b>${esc(i.name)}</b><small class="${fr>0?"":"miss"}">${fr>0?"свободно "+skQf(fr,l.unit):"нет в наличии"+(skUnitsOf(i.id).some(u=>u.free>0)?" в «"+esc(l.unit)+"»":"")}</small></button>`; }).join("")
     : `<small class="muted skpk-h">${(q||"").trim()?"Не найдено. Попробуйте другое слово или заведите товар приходом на складе.":"Начните вводить название товара со склада."}</small>`; }
-function skPickHtml(sc, k, l, cur){ const it=cur?skIdx().item[cur]:null, key=sc+"|"+k;
-  if(it) return `<div class="skpk on"><small>Товар на складе <i>(связь запомнится)</i></small><div class="skpk-sel"><b>${esc(it.name)}</b><span>свободно ${skQf(skFreeU(it.id,l.unit),l.unit)}</span><button type="button" class="btn ghost sm" data-skpkclr="${esc(k)}" data-sc="${sc}">Сменить</button></div></div>`;
+function skPickHtml(sc, k, l, cur, o){ const it=cur?skIdx().item[cur]:null, key=sc+"|"+k, st=o&&o.s, cid=(o&&o.cid)||"";
+  if(it){ const was=st&&st.it0===it.id, cus=cid && (was ? skLkScope(it, o.pid, cid)==="cus" : st&&st.sc==="cus");
+    const lbl=!skLkSrv()||!cid ? "" : was ? `<small class="skpk-sc">${cus?"связь только для «"+esc(cusNm(cid))+"»":"связь для всех заказчиков"}</small>` : "";
+    return `<div class="skpk on"><small>Товар на складе <i>(связь запомнится)</i></small><div class="skpk-sel"><b>${esc(it.name)}</b><span>свободно ${skQf(skFreeU(it.id,l.unit),l.unit)}</span><button type="button" class="btn ghost sm" data-skpkclr="${esc(k)}" data-sc="${sc}">Сменить</button></div>${lbl}${!was&&st?skScopeHtml(cid, st.sc||"all", `data-skpksc="${esc(k)}" data-sc="${sc}" data-v`):""}</div>`; }
   return `<div class="skpk"><small>Товар на складе <i>(связь запомнится)</i></small><input class="skpq" data-sc="${sc}" data-k="${esc(k)}" autocomplete="off" placeholder="Начните вводить: рис, фасоль, Макфа…" value="${esc(SKPQ[key]||"")}" aria-label="Найти товар на складе"><div class="skpk-l" data-for="${esc(k)}">${skPickSug(sc, k, l, SKPQ[key]||"")}</div></div>`; }
 /* нехватка в кг, а товар лежит в штуках (приход в «шт»): подсказка + «Перевести в кг» одним нажатием (то же, что «Перевзвесить» партии) */
 function skRwPack(it){ const X=skIdx(), B=(X.byItem[it.id]||[]).filter(b=>!b.cancel && skK(b.unit)==="кг" && skPack(b)>0).sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
@@ -981,7 +1023,7 @@ function dzSrcHtml(j, l){ if(!dzOn() || !DZ || DZ.doc!==j.id) return ""; const s
   const b=(m,t)=>`<button type="button" class="${s.m===m?"on":""}" data-dzm="${m}" data-k="${k}" aria-pressed="${s.m===m}">${t}</button>`;
   let det="";
   if(s.m){ const it=s.itemId?X.item[s.itemId]:null, sq=dzQ(l,s);
-    const pick = !s.it0 ? skPickHtml("dz", k, l, s.itemId) : "";
+    const pick = !s.it0 || skLkSrv() ? skPickHtml("dz", k, l, s.itemId, {s, cid:j.snap.dr.customerId||"", pid:l.pid}) : "";
     const qf = s.m==="x" ? `<label class="dzpq"><small>Со склада, ${u}</small><input class="dzq" data-k="${k}" inputmode="decimal" value="${esc(s.q)}" placeholder="из ${esc(nq3(l.qty))}"></label>` : "";
     let info="";
     if(!it) info=`<span class="miss">Выберите, какой товар взяли со склада.</span>`;
@@ -1007,8 +1049,10 @@ function dzChanges(j){ if(!dzOn() || !DZ || DZ.doc!==j.id) return {list:[]}; con
 async function dzApply(j, list, ship){
   if(!online()) throw new Error("нет связи с таблицей — склад меняется только онлайн");
   const X=skIdx(), add={};
+  const cid=j.snap.dr.customerId||"", ent=[];
   list.forEach(c=>{ if(c.s.m && c.s.itemId!==c.s.it0){ (add[c.s.itemId]=add[c.s.itemId]||[]).push(c.l.pid); } });
-  for(const id of Object.keys(add)){ const it=X.item[id]; const links=[...new Set((it._links||[]).concat(add[id]))]; await skSend("item",{itemId:id, links},"Связь: "+it.name); }
+  for(const id of Object.keys(add)){ const sc=list.find(c=>c.s.itemId===id && c.s.m)?.s.sc; ent.push(...await skLinkTo(id, add[id], cid, sc)); }
+  if(ent.length) skRelinkReserve(ent, j.id);
   const lines=clone(j.snap.dr.lines||[]), used=new Set(), what=[];
   list.forEach(c=>{ let i=lines.findIndex((x,n)=>!used.has(n) && c.l.lid && x.lid===c.l.lid); if(i<0) i=lines.findIndex((x,n)=>!used.has(n) && !x.lid && x.productId===c.l.pid); if(i<0) return; used.add(i);
     const x=lines[i]; if(!x.lid) x.lid=uid()+uid(); c.lid=x.lid;
@@ -1086,7 +1130,7 @@ function skItemHistHtml(){ const X=skIdx(), it=X.item[SKH.id]; if(!it) return sk
     + (old?`<p class="muted skh-note">Движения старше ${keep} дней по складу показаны в остатках итогом, здесь — только за последние ${keep} дней.</p>`:"")
     + `<div class="dc-acts"><button class="btn" data-skitem="${it.id}">Карточка товара</button><button class="btn pri" data-sk="close">Закрыть</button></div>`; }
 document.addEventListener("keydown", e=>{ const r=e.target; if(!(r.classList&&r.classList.contains("skrow")) || r.tagName==="BUTTON") return; if(e.key==="Enter"||e.key===" "){ e.preventDefault(); skItemCard(r.dataset.skitem); } });
-window.__sk = { send:(op,d,l)=>skSend(op,d,l||op), logN:()=>skQ().length+skD().log.length };
+window.__sk = { send:(op,d,l)=>skSend(op,d,l||op), linkTo:(id,p,c,s)=>skLinkTo(id,p,c,s), item:(p,c)=>skItemOf(p,c), idx:()=>skIdx(), logN:()=>skQ().length+skD().log.length };
 window.__mi = { open: skMultiIn, st: () => SKMI };
 SK_READY=true;
 

@@ -1336,6 +1336,17 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .skbr:hover{background:#fff}#fd-app .skbr.empty{opacity:.6}#fd-app .skbr b{display:block;font-size:13.5px}#fd-app .skbr small{display:block;font-size:11.5px;color:var(--muted)}#fd-app .skbr .num{text-align:right;white-space:nowrap}
 #fd-app textarea.skcomment{width:100%;resize:vertical}
 #fd-app .sklink{display:inline-flex;align-items:center;gap:4px;margin:0 6px 6px 0;padding:4px 6px 4px 11px;border-radius:99px;background:#fff;border:1px solid rgba(28,34,32,.1);font-size:13px}
+#fd-app .sklink.cus{background:#F6F1F6;border-color:rgba(110,60,100,.22)}
+#fd-app .sklink i{font-style:normal;font-size:11.5px;color:#7a4a70;padding:1px 7px;border-radius:99px;background:#fff;border:1px solid rgba(110,60,100,.18)}
+#fd-app .sklc{display:flex;align-items:center;gap:8px;margin:8px 0 6px;font-size:13px;color:#555}
+#fd-app .sklc span{white-space:nowrap}
+#fd-app .sklc select{flex:1;min-width:0;max-width:340px;height:36px}
+#fd-app .sklsc{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0}
+#fd-app .sklsc small{color:#777;margin-right:2px}
+#fd-app .sklsc button{border:1px solid rgba(28,34,32,.14);background:#fff;border-radius:99px;padding:5px 11px;font:inherit;font-size:12.5px;cursor:pointer;color:#333;transition:background .15s,border-color .15s,color .15s}
+#fd-app .sklsc button.on{background:#5B2A4E;border-color:#5B2A4E;color:#fff}
+#fd-app .skpk-sc{display:block;margin-top:4px;color:#7a4a70;font-size:12px}
+#fd-app .sklre{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:10px 0 0;font-size:13px;color:#666}
 #fd-app .sklink button{border:0;background:none;cursor:pointer;color:var(--muted);font-size:16px;line-height:1;padding:0 4px;border-radius:50%}#fd-app .sklink button:hover{color:var(--err)}
 #fd-app .sklinkadd input,#fd-app .sklq2{width:100%;margin-top:4px}
 #fd-app .sklsug{display:grid;gap:4px;margin-top:6px}
@@ -7588,7 +7599,8 @@ function bzRows(G){ const R=[], by={};
   R.forEach(o=>{ const u=[...new Set(o.own)]; o.same = u.length===1 ? u[0] : null; o.mixed = u.length>1; o.vals=u.filter(Boolean).map(Number).sort((a,b)=>a-b); });
   return R; }
 /* склад в комплекте: состояние строки-товара */
-function bzInitS(){ BZ.s={}; if(!dzOn()) return; BZ.rows.forEach(o=>{ const it=skItemOf(o.pid), sq=r3(o.lines.reduce((a,x)=>a+x.sq0,0)), m0=sq<=0?"":sq>=o.qty-0.0005?"s":"x", q0=m0==="x"?String(sq).replace(".",","):"";
+const bzCid = () => { const o=(BZ&&BZ.rows||[]).find(x=>x.lines&&x.lines[0]); return o ? o.lines[0].j.snap.dr.customerId||"" : ""; };
+function bzInitS(){ BZ.s={}; if(!dzOn()) return; const cid=bzCid(); BZ.rows.forEach(o=>{ const it=skItemOf(o.pid, cid), sq=r3(o.lines.reduce((a,x)=>a+x.sq0,0)), m0=sq<=0?"":sq>=o.qty-0.0005?"s":"x", q0=m0==="x"?String(sq).replace(".",","):"";
   const lk=o.lines.reduce((a,x)=>{ const si=dzLocked(x.j, x.l); return si?a+r3(si.shipped-si.ret):a; },0);
   BZ.s[o.k]={m:m0, q:q0, itemId:it?it.id:"", m0, q0, it0:it?it.id:"", lock:lk>0?r3(lk):0}; }); }
 const bzSt = o => BZ&&BZ.s ? BZ.s[o.k] : null;
@@ -7618,7 +7630,7 @@ function bzSrcHtml(o){ const s=bzSt(o); if(!s || !dzOn()) return ""; const X=skI
   const b=(m,t)=>`<button type="button" class="${s.m===m?"on":""}" data-bzm="${m}" data-k="${k}" aria-pressed="${s.m===m}">${t}</button>`;
   let det="";
   if(s.m){ const it=s.itemId?X.item[s.itemId]:null, sq=bzSQ(o,s);
-    const pick = !s.it0 ? skPickHtml("bz", o.k, o, s.itemId) : "";
+    const pick = !s.it0 || skLkSrv() ? skPickHtml("bz", o.k, o, s.itemId, {s, cid:bzCid(), pid:o.pid}) : "";
     const qf = s.m==="x" ? `<label class="dzpq"><small>Со склада, ${u} (всего)</small><input class="bzq" data-k="${k}" inputmode="decimal" value="${esc(s.q)}" placeholder="из ${esc(nq3(o.qty))}"></label>` : "";
     let info="";
     if(!it) info=`<span class="miss">Найдите и выберите, какой товар взяли со склада.</span>`;
@@ -7731,7 +7743,8 @@ document.addEventListener("click", async e=>{ const b=e.target.closest&&e.target
     if(ch.list.length){ b.disabled=true; const t0=b.textContent; b.textContent="Провожу по складу…"; rep={n:0, shipped:0, short:[]};
       try{ if(!online()) throw new Error("нет связи с таблицей — склад меняется только онлайн");
         const X=skIdx(), add={}; ch.list.forEach(c=>{ if(c.s.m && c.s.itemId!==c.s.it0) (add[c.s.itemId]=add[c.s.itemId]||[]).push(c.o.pid); });
-        for(const id of Object.keys(add)){ const it=X.item[id]; await skSend("item",{itemId:id, links:[...new Set((it._links||[]).concat(add[id]))]},"Связь: "+it.name); }
+        const ent=[]; for(const id of Object.keys(add)){ const sc=ch.list.find(c=>c.s.itemId===id && c.s.m)?.s.sc; ent.push(...await skLinkTo(id, add[id], bzCid(), sc)); }
+        if(ent.length) skRelinkReserve(ent, null);
         const per={}; ch.list.forEach(c=>{ const A=bzAlloc(c.o, c.sq); c.o.lines.forEach((x,i)=>{ const q=A[i], m=!c.s.m||q<=0?"":q>=(+x.l.qty||0)-0.0005?"s":"x"; (per[x.j.id]=per[x.j.id]||[]).push({l:x.l, s:{m, itemId:c.s.itemId, it0:c.s.itemId}, sq:q}); }); });
         for(const j0 of G){ const L=per[j0.id]; if(!L) continue; const j=D.journal.find(x=>x.id===j0.id)||j0;
           try{ const r=await dzApply(j, L, !!BZ.ship); rep.n+=r.n; rep.shipped+=r.shipped; rep.short=rep.short.concat(r.short); }
@@ -7782,9 +7795,10 @@ function skPickCtx(sc){ if(sc==="dz"){ const w=$("#dc-zk"), j=w&&D.journal.find(
   return {S:BZ.s, line:k=>{ const o=ro(k); return o&&{name:o.name, unit:o.unit}; }, fill:(k,id)=>{ const o=ro(k); return o?{avail:bzEst(o,id,o.qty).avail, qty:o.qty}:null; }, redraw:()=>{ bzKeep(); $("#bz-msg").textContent=""; }}; }
 document.addEventListener("input", e=>{ const el=e.target; if(!el.classList||!el.classList.contains("skpq")) return; const C=skPickCtx(el.dataset.sc), k=el.dataset.k; if(!C) return; SKPQ[el.dataset.sc+"|"+k]=el.value;
   const l=C.line(k), box=el.parentElement.querySelector(".skpk-l"); if(l&&box) box.innerHTML=skPickSug(el.dataset.sc, k, l, el.value); });
-document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-skpk],[data-skpkclr]"); if(!b) return; const C=skPickCtx(b.dataset.sc); if(!C) return;
+document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-skpk],[data-skpkclr],[data-skpksc]"); if(!b) return; const C=skPickCtx(b.dataset.sc); if(!C) return;
+  if(b.dataset.skpksc!=null){ const s=C.S[b.dataset.skpksc]; if(s){ s.sc=b.dataset.v; } C.redraw(); return; }
   if(b.dataset.skpkclr!=null){ const s=C.S[b.dataset.skpkclr]; if(s){ s.itemId=""; } C.redraw(); const f=document.querySelector(`.skpq[data-k="${CSS.escape(b.dataset.skpkclr)}"]`); f&&f.focus(); return; }
-  const s=C.S[b.dataset.k]; if(!s) return; s.itemId=b.dataset.skpk; delete SKPQ[b.dataset.sc+"|"+b.dataset.k];
+  const s=C.S[b.dataset.k]; if(!s) return; s.itemId=b.dataset.skpk; s.sc=s.it0&&s.it0!==s.itemId?"cus":"all"; delete SKPQ[b.dataset.sc+"|"+b.dataset.k];   /* позиция уже связана с другим товаром — по умолчанию новая связь только для этого заказчика */
   if(s.m==="x" && !String(s.q||"").trim()){ const f=C.fill(b.dataset.k, s.itemId); if(f && f.avail>0 && f.avail<f.qty) s.q=String(f.avail).replace(".",","); }   /* «Часть»: подставляем всё свободное */
   C.redraw();
   const q=document.querySelector(`.dzq[data-k="${CSS.escape(b.dataset.k)}"],.bzq[data-k="${CSS.escape(b.dataset.k)}"]`); if(q && s.m==="x") q.focus(); });

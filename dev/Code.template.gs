@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 42;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 43;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -1251,13 +1251,18 @@ function stCommit_(rid, me, kind, W) {
   PropertiesService.getScriptProperties().setProperty('stockOn', '1');
 }
 
+/* название связи для листа: «Позиция» или «Позиция — только для Заказчик» */
+let ST_LN_ = null;
+function stLinkName_(x) { if (!ST_LN_) ST_LN_ = { p: nameMap_('products'), c: nameMap_('customers') }; const pn = ST_LN_.p, cn = ST_LN_.c, p = String(x).split('@'); return (pn[p[0]] || p[0]) + (p[1] ? ' — только для ' + (cn[p[1]] || p[1]) : ''); }
 /* текущее состояние склада (только завершённые операции) */
 function stCtx_() {
+  ST_LN_ = null;
   const done = stDone_(), c = { done: done };
   ['sunits', 'sitems', 'sbatches', 'smoves', 'sres', 'sfiles', 'sacts'].forEach(t => c[t] = stRows_(t, done));
   c.item = {}; c.sitems.forEach(i => c.item[i.id] = i);
   c.batch = {}; c.sbatches.forEach(b => c.batch[b.id] = b);
-  c.link = {}; c.sitems.forEach(i => stParse_(i.links, []).forEach(pid => c.link[pid] = i.id));
+  /* связи: "ID позиции" — для всех заказчиков, "ID позиции@ID заказчика" — только для этого заказчика (важнее общей) */
+  c.link = {}; c.sitems.forEach(i => stParse_(i.links, []).forEach(pid => c.link[String(pid)] = i.id));
   c.fact = {}; c.smoves.forEach(m => { if (!ST_NOSTOCK[m.type]) c.fact[m.batchId] = stR3_((c.fact[m.batchId] || 0) + (+m.qty || 0)); });
   c.resB = {}; c.sres.forEach(r => c.resB[r.batchId] = stR3_((c.resB[r.batchId] || 0) + (+r.qty || 0)));
   return c;
@@ -1296,7 +1301,7 @@ function stDocLines_(c, row) {
     if (!l.productId || !(+l.qty > 0)) return;
     const lid = String(l.lid || ('i' + i + ':' + l.productId)), src = l.stk || {}, qty = stR3_(+l.qty), unit = stN_(((sn.prods || {})[l.productId] || {}).unit);
     const req = src.m === 's' ? qty : src.m === 'x' ? Math.min(qty, Math.max(0, stR3_(+src.q || 0))) : 0;
-    out.push({ lid: lid, pid: l.productId, itemId: c.link[l.productId] || '', qty: qty, req: stR3_(req), unit: unit, price: +l.price || 0, name: String(l.name || ((sn.prods || {})[l.productId] || {}).name || ''), m: src.m || '' });
+    out.push({ lid: lid, pid: l.productId, itemId: c.link[l.productId + '@' + (sn.dr.customerId || '')] || c.link[l.productId] || '', qty: qty, req: stR3_(req), unit: unit, price: +l.price || 0, name: String(l.name || ((sn.prods || {})[l.productId] || {}).name || ''), m: src.m || '' });
   });
   return { sn: sn, lines: out, arch: arch };
 }
@@ -1584,9 +1589,9 @@ const ST_OPS = {
       const L = (Array.isArray(d.links) ? d.links : []).map(String).filter(Boolean).filter((x, i, a) => a.indexOf(x) === i);
       L.forEach(pid => { const other = c.link[pid]; if (other && other !== it.id) {   /* позиция была связана с другим товаром — переносим явно */
         const o = Object.assign({}, c.item[other]); o.links = JSON.stringify(stParse_(o.links, []).filter(x => x !== pid)); W.sitems.upsert.push(o);
-        stLog_(W, rid, me, n++, { action: 'Связь перенесена', object: o.name, before: pid, after: '→ ' + (it.name || 'новый товар'), itemId: o.id }); } });
+        stLog_(W, rid, me, n++, { action: 'Связь перенесена', object: o.name, before: stLinkName_(pid), after: '→ ' + (it.name || 'новый товар'), itemId: o.id }); } });
       it.links = JSON.stringify(L);
-      const pn = nameMap_('products'); it.linkNames = L.map(x => pn[x] || x).join('; ');
+      it.linkNames = L.map(stLinkName_).join('; ');
     }
     if (d.def != null) { it.def = d.def === 's' ? 's' : ''; it.defC = JSON.stringify((Array.isArray(d.defC) ? d.defC : []).map(String).filter(Boolean)); }
     W.sitems.upsert.push(it);
@@ -1626,7 +1631,7 @@ const ST_OPS = {
     const W = { sitems: { upsert: [], del: [a.id] }, sbatches: { upsert: [] }, smoves: { upsert: [] }, sres: { upsert: [] }, sfiles: { upsert: [] } };
     const L = stParse_(b.links, []).concat(stParse_(a.links, [])).filter((x, i, arr) => arr.indexOf(x) === i), pn = nameMap_('products');
     const alt = [b.alt, a.name, a.alt].join(';').split(';').map(stN_).filter(Boolean).filter(x => stK_(x) !== stK_(b.name)).filter((x, i, arr) => arr.findIndex(y => stK_(y) === stK_(x)) === i).join('; ');
-    W.sitems.upsert.push(Object.assign({}, b, { links: JSON.stringify(L), linkNames: L.map(x => pn[x] || x).join('; '), alt: alt, note: [b.note, a.note].filter(Boolean).join('\n') }));
+    W.sitems.upsert.push(Object.assign({}, b, { links: JSON.stringify(L), linkNames: L.map(stLinkName_).join('; '), alt: alt, note: [b.note, a.note].filter(Boolean).join('\n') }));
     c.sbatches.filter(x => x.itemId === a.id).forEach(x => W.sbatches.upsert.push(Object.assign({}, x, { itemId: b.id, itemName: b.name })));
     c.smoves.filter(x => x.itemId === a.id).forEach(x => W.smoves.upsert.push(Object.assign({}, x, { itemId: b.id, itemName: b.name })));
     c.sres.filter(x => x.itemId === a.id).forEach(x => W.sres.upsert.push(Object.assign({}, x, { itemId: b.id, itemName: b.name })));
