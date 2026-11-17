@@ -2367,17 +2367,21 @@ dialog .ndr-a{display:flex;gap:6px;flex:none}
   #fd-app .jf:has(#jr-q).open>label.f:not(.jq)>.fh{min-height:16px;line-height:16px}
   #fd-app .jf:has(#jr-q).open>label.f:not(.jq)>:is(select,input),#fd-app .jf:has(#jr-q).open>label.f:not(.jq)>.cpkw,#fd-app .jf:has(#jr-q).open>label.f:not(.jq)>.cpkw>:is(.cpk,select){height:38px!important;min-height:38px!important;font-size:14.5px}
   #fd-app .jf.jfin>label.f:not(.jq){animation:jfmIn .3s ease}@keyframes jfmIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
-  #fd-app .jf:has(#jr-q)+.jsum{gap:6px;margin:6px 0 4px}
-  #fd-app .jf:has(#jr-q)+.jsum #jr-sum{font-size:13px;line-height:1.3}
-  #fd-app .jf:has(#jr-q)+.jsum .btn{min-height:34px;height:34px;padding-top:0;padding-bottom:0;font-size:13.5px}
-  #fd-app .jf:has(#jr-q)+.jsum .btn.jimpf,#fd-app .jf:has(#jr-q)+.jsum .btn.jtoday{flex:1 1 0!important;min-width:0}
-  #fd-app .jf:has(#jr-q)+.jsum #jr-refresh{flex:0 0 34px;width:34px;padding:0}#fd-app .jf:has(#jr-q)+.jsum .jrft{display:none}
-  #fd-app .jf:has(#jr-q)+.jsum #jr-reset{flex:0 0 auto;order:9;background:none;color:var(--accent);padding:0 6px;min-height:0;height:auto;font-size:13px}
+  /* строка «Найдено…» под фильтрами — ровно, без наложений (17.11.2026): 1-я строка — «Найдено» и «Сбросить», 2-я — кнопки по содержимому */
+  #fd-app .jf:has(#jr-q)+.jsum{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:6px 0 4px}
+  #fd-app .jf:has(#jr-q)+.jsum #jr-sum{flex:1 1 0;min-width:0;order:0;font-size:13px;line-height:1.3}
+  #fd-app .jf:has(#jr-q)+.jsum #jr-reset{flex:0 0 auto;order:1;background:none;border:0;color:var(--accent);padding:0 2px;min-height:0;height:auto;font-size:13px;font-weight:500}
   #fd-app .jf:has(#jr-q):not(.jfact)+.jsum #jr-reset{display:none}
-  #fd-app .jf:has(#jr-q)+.jsum #jr-msg:not(:empty){flex:1 1 100%;font-size:13px}
-  #fd-app .jf:has(#jr-q)+.jsum .btn.jimpf{gap:5px;overflow:hidden}#fd-app .jf:has(#jr-q)+.jsum .btn.jcmf{flex:0 1 auto!important}
+  #fd-app .jf:has(#jr-q)+.jsum #jr-msg:not(:empty){flex:1 1 100%;order:2;font-size:13px}
+  #fd-app .jf:has(#jr-q)+.jsum::after{content:"";flex:1 1 100%;order:3;height:0}
+  #fd-app .jf:has(#jr-q)+.jsum .btn{order:4;flex:0 1 auto!important;min-width:0;min-height:34px;height:34px;padding:0 10px;gap:5px;font-size:13.5px;white-space:nowrap;overflow:hidden;justify-content:center}
+  #fd-app .jf:has(#jr-q)+.jsum .btn>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+  #fd-app .jf:has(#jr-q)+.jsum .btn :is(i,em,svg,.jcmfi){flex:none}
+  #fd-app .jf:has(#jr-q)+.jsum .btn.jtoday{flex:1 1 0!important;min-width:64px}
+  #fd-app .jf:has(#jr-q)+.jsum #jr-refresh{flex:0 0 34px!important;width:34px;padding:0}#fd-app .jf:has(#jr-q)+.jsum .jrft{display:none}
+  #fd-app .jf:has(#jr-q)+.jsum #jr-refresh .jrfi{display:block;width:16px;height:16px;margin:0}
 }
-#fd-app .jrfi{display:none}@media (max-width:440px){#fd-app .jf:has(#jr-q)+.jsum .jcmf .jcmfs{display:none}}@media (max-width:700px){#fd-app .jf:has(#jr-q)+.jsum .jrfi{display:block}}
+#fd-app .jrfi{display:none}@media (max-width:440px){#fd-app .jf:has(#jr-q)+.jsum .jcmf .jcmfs{display:none}#fd-app .jf:has(#jr-q)+.jsum .btn{padding:0 9px}}@media (max-width:400px){#fd-app .jf:has(#jr-q)+.jsum .btn.jtoday svg{display:none}#fd-app .jf:has(#jr-q)+.jsum{gap:6px 5px}}
 #fd-app .rpgw{display:inline-flex;align-items:center;gap:2px;max-width:100%;padding:3px;border-radius:12px;background:var(--surface-2,rgba(28,34,32,.04));border:1px solid var(--line)}
 #fd-app .rpgw .pvarr{flex:none}
 #fd-app .rpgf{grid-column:span 2;display:grid;grid-template-columns:minmax(0,1fr);gap:4px;align-content:start;min-width:0}#fd-app .rpgslot{min-width:0}#fd-app .rpgfl{font-size:12px;color:var(--muted);letter-spacing:.02em}
