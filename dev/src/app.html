@@ -165,6 +165,18 @@
 #fd-app .dc-oweadd:hover{background:#fdf7ea;color:#8a5a12}
 #fd-dcard .owe-was{margin:0 0 16px;padding:8px 10px;border-radius:10px;background:#fdf7ea;font-size:13px;color:#6d4a0e}
 #fd-dcard.owewin{max-width:540px}
+.cpk-new{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;border-top:1px solid rgba(28,34,32,.08);cursor:pointer;font:600 14.5px var(--ui,inherit);color:var(--accent,#6a2c4e);background:var(--surface,#fff);flex:none;transition:background .15s}
+.cpk-new:hover,.cpk-new:focus-visible{background:var(--accent-soft,#f5eaf0)}.cpk-new:focus-visible{outline:2px solid var(--accent,#6a2c4e);outline-offset:-2px}
+.cpk-new .cpk-np{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--accent,#6a2c4e);color:#fff;font-size:17px;line-height:1;flex:none}
+.cpk-new .cpk-nt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fd-dcard.cnwin{max-width:640px}
+#fd-app .cnwin .cn-g{grid-template-columns:1fr 1fr;gap:10px 14px}#fd-app .cnwin .cn-g .wide{grid-column:1/-1}
+#fd-app .cnwin .cn-e{display:block;min-height:0;color:var(--err);font-size:12px;margin-top:2px}#fd-app .cnwin .cn-e:empty{display:none}#fd-app .cnwin .cn-e.soft{color:#9a5b00}
+#fd-app .cnwin .cn-paste{margin:0 0 14px;border:1px dashed rgba(106,44,78,.3);border-radius:12px;padding:10px 14px;background:var(--accent-soft)}
+#fd-app .cnwin .cn-paste summary{cursor:pointer;font-weight:600;color:var(--accent);font-size:14px}#fd-app .cnwin .cn-paste textarea{margin:10px 0 8px;width:100%}
+#fd-app .cnwin .cn-dup{margin:12px 0 0;padding:12px 14px;border-radius:12px;background:#f6ecd4;color:#5d4300;font-size:13.5px;animation:fdin .2s ease}#fd-app .cnwin .cn-dup .row{margin-top:8px;gap:10px;align-items:center;flex-wrap:wrap}
+#fd-app .cnwin .cn-f{flex-wrap:wrap;gap:10px}#fd-app .cnwin .cn-f>.muted{flex:1 1 220px;font-size:12.5px}
+@media (max-width:560px){#fd-app .cnwin .cn-g{grid-template-columns:1fr}#fd-app .cnwin .cn-f .row{width:100%}#fd-app .cnwin .cn-f .row .btn{flex:1}}
 #fd-dcard .owe-sub{margin:6px 0 18px;font-size:13.5px;color:var(--muted)}
 #fd-dcard .owe-lbl{margin:0 0 8px;font-size:12px;color:var(--muted);letter-spacing:.02em}
 #fd-dcard .owe-ch{display:flex;flex-wrap:wrap;gap:6px;max-height:172px;overflow:auto;padding:2px;margin:0 -2px}
@@ -3979,7 +3991,7 @@ function cpkOpen(sel,b){
     || sel.getAttribute("aria-label") || sel.title || (sel.id && (document.querySelector(`label[for="${CSS.escape(sel.id)}"]`)||{}).textContent) || "";
   const isCus=/заказчик/i.test(ttl) || (!!sel.querySelector("option[data-full]") && !/договор|контракт/i.test(ttl));
   pop.innerHTML=`<div class="cpk-hd"><span class="cpk-ttl">${esc(ttl||"Выберите")}</span><button type="button" class="cpk-x" aria-label="Закрыть"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button></div>`
-    +(many?`<div class="cpk-qw"><svg class="cpk-qi" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="cpk-q" type="search" placeholder="${isCus?"Найти заказчика…":"Найти…"}" aria-label="Найти" autocomplete="off"></div>`:"")+`<div class="cpk-l">${body}</div>`;
+    +(many?`<div class="cpk-qw"><svg class="cpk-qi" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><input class="cpk-q" type="search" placeholder="${isCus?"Найти заказчика…":"Найти…"}" aria-label="Найти" autocomplete="off"></div>`:"")+`<div class="cpk-l">${body}</div>`+(cnCan(sel)?`<button type="button" class="cpk-new" data-cpknew><span class="cpk-np">+</span><span class="cpk-nt">Новый заказчик</span></button>`:"");
   pop.querySelector(".cpk-x").addEventListener("click", e=>{ e.stopPropagation(); cpkClose(); });
   const host=document.querySelector("dialog[open]")||$("#fd-app")||document.body; host.appendChild(bd); host.appendChild(pop);
   const phone=innerWidth<=560, r=b.getBoundingClientRect();
@@ -3988,13 +4000,99 @@ function cpkOpen(sel,b){
     Object.assign(pop.style,{left:Math.max(12,Math.min(r.left, innerWidth-w-12))+"px", width:w+"px", maxHeight:Math.max(200, (up?r.top:below)-8)+"px"}, up?{bottom:(innerHeight-r.top+4)+"px"}:{top:(r.bottom+4)+"px"}); }
   CPKP={pop,bd,b,sel}; document.addEventListener("keydown", cpkKey, true);
   bd.addEventListener("click", ()=>cpkClose()); 
-  pop.addEventListener("click", e=>{ const o=e.target.closest(".cpk-o"); if(!o||o.disabled) return; const v=o.dataset.v, ch=sel.value!==v; sel.value=v; cpkClose(); if(ch){ sel.dispatchEvent(new Event("input",{bubbles:true})); sel.dispatchEvent(new Event("change",{bubbles:true})); } });
+  pop.addEventListener("click", e=>{ const nb=e.target.closest("[data-cpknew]"); if(nb){ const t=(pop.querySelector(".cpk-q")||{}).value||""; cpkClose(false); cnOpen(sel, t.trim()); return; } const o=e.target.closest(".cpk-o"); if(!o||o.disabled) return; const v=o.dataset.v, ch=sel.value!==v; sel.value=v; cpkClose(); if(ch){ sel.dispatchEvent(new Event("input",{bubbles:true})); sel.dispatchEvent(new Event("change",{bubbles:true})); } });
   const q=pop.querySelector(".cpk-q");
   if(q){ q.addEventListener("input", ()=>{ const t=norm(q.value); pop.querySelectorAll(".cpk-o").forEach(o=>o.hidden=!!t && !norm(o.textContent).includes(t));
-    pop.querySelectorAll(".cpk-g").forEach(g=>{ let n=g.nextElementSibling, any=false; while(n && !n.classList.contains("cpk-g")){ if(!n.hidden) any=true; n=n.nextElementSibling; } g.hidden=!any; }); }); }
+    pop.querySelectorAll(".cpk-g").forEach(g=>{ let n=g.nextElementSibling, any=false; while(n && !n.classList.contains("cpk-g")){ if(!n.hidden) any=true; n=n.nextElementSibling; } g.hidden=!any; });
+    const nt=pop.querySelector(".cpk-nt"); if(nt) nt.textContent = q.value.trim() ? "Новый заказчик «"+q.value.trim()+"»" : "Новый заказчик"; }); }
   const cur=pop.querySelector(".cpk-o.on"); if(cur) cur.scrollIntoView({block:"center"});
   (phone||!q ? (cur||pop.querySelector(".cpk-o")) : q)?.focus({preventScroll:true});
 }
+/* ===== «+ Новый заказчик» прямо из списка выбора заказчика (17.11.2026, просьба Даниила) =====
+   В «Новом документе» (#d-cus) и «Заявке» (#o-cus): внизу окошка выбора — «+ Новый заказчик» (набранное в поиске — сразу в название).
+   Окно с реквизитами (можно вставить карточку предприятия — сайт сам разложит), проверка ИНН/КПП/БИК/счетов и повтора ИНН,
+   «Сохранить» — заказчик сразу в справочнике (как «+ Новый» в «Заказчики и цены») и выбран в документе/заявке.
+   Только admin/manager: сервер staff не даёт сохранять заказчиков. */
+const CN_SEL=["d-cus","o-cus"];
+const cnCan = sel => !!sel && CN_SEL.includes(sel.id) && !isStaff();
+let CN=null;
+const cnDig = v => String(v||"").replace(/\D/g,"");
+/* разбор карточки предприятия: «ИНН 7701234567», «КПП …», «БИК …», «р/с …», «к/с …», адрес, название */
+function cnParse(t){ t=String(t||"").replace(/ /g," "); const R={}, one=(re)=>{ const m=t.match(re); return m?m[1]:""; };
+  const nums=s=>s.replace(/[\s-]/g,"");
+  let inn=one(/ИНН(?:\s*\/\s*КПП)?\s*[:№]?\s*(\d[\d\s]{8,13}\d)/i); inn=nums(inn); if(inn.length!==10&&inn.length!==12){ const m=nums(inn).match(/^(\d{10})(\d{9})$/); inn=m?m[1]:""; }
+  const ik=t.match(/ИНН\s*\/\s*КПП\s*[:№]?\s*(\d{10})\s*[\/\\ ]\s*(\d{9})/i); if(ik){ inn=ik[1]; R.kpp=ik[2]; }
+  if(inn) R.inn=inn;
+  if(!R.kpp){ const k=nums(one(/КПП\s*[:№]?\s*(\d[\d\s]{7,10}\d)/i)); if(k.length===9) R.kpp=k; }
+  const bik=nums(one(/БИК(?:\s*ТОФК)?\s*[:№]?\s*(\d[\d\s]{7,10}\d)/i)); if(bik.length===9) R.bik=bik;
+  const acc=re=>{ const v=nums(one(re)); return v.length===20?v:""; };
+  R.rs=acc(/(?:р\/с|р\.с\.|расч[её]тн\w*\s+сч[её]т|казначейск\w*\s+сч[её]т|номер\s+сч[её]та)\s*[:№]?\s*(\d[\d\s]{18,26}\d)/i);
+  R.ks=acc(/(?:к\/с|к\.с\.|корр?\w*\.?\s*сч[её]т|ЕКС|единый\s+казначейский\s+сч[её]т)\s*[:№]?\s*(\d[\d\s]{18,26}\d)/i);
+  if(!R.rs||!R.ks){ const all=(t.match(/\d[\d ]{18,26}\d/g)||[]).map(nums).filter(x=>x.length===20); all.forEach(x=>{ if(/^(301|401)/.test(x)){ if(!R.ks) R.ks=x; } else if(!R.rs && x!==R.ks) R.rs=x; }); }
+  if(/^03\d{18}$/.test(R.rs||"") || /казначейск|УФК|ТОФК/i.test(t)) R.acct="treasury";
+  const bank=one(/(?:Банк(?:\s+получателя)?|Наименование\s+банка)\s*[:\-]\s*([^\n]+)/i); if(bank) R.bank=bank.trim();
+  const adr=one(/(?:Юридический\s+адрес|Юр\.?\s*адрес|Адрес(?:\s+местонахождения)?)\s*[:\-]\s*([^\n]+)/i); if(adr) R.address=adr.trim().replace(/[;,.]\s*$/,"");
+  const sh=one(/(?:Фактический\s+адрес|Почтовый\s+адрес|Адрес\s+доставки)\s*[:\-]\s*([^\n]+)/i); if(sh && sh.trim()!==R.address) R.ship=sh.trim().replace(/[;,.]\s*$/,"");
+  let nm=one(/(?:Полное\s+наименование|Наименование(?:\s+организации)?|Организация|Покупатель|Заказчик)\s*[:\-]\s*([^\n]+)/i);
+  if(!nm){ const ln=t.split(/\n/).map(x=>x.trim()).find(x=>/(^|\s)(ООО|АО|ПАО|ЗАО|ИП|ГБУ|ГАУ|ГУП|ФГБУ|ФГБНУ|ФГУП|ГБОУ|ГБПОУ|ГАПОУ|МБУ|МУП|ОАО|НКО|АНО)\b|«.+»|".+"/.test(x) && !/ИНН|КПП|БИК|сч[её]т|банк/i.test(x)); if(ln) nm=ln; }
+  if(nm) R.name=nm.trim().replace(/[;,.]\s*$/,"");
+  Object.keys(R).forEach(k=>{ if(!R[k]) delete R[k]; }); return R; }
+const CN_F=[["name","Наименование — как в документах","ООО «Ромашка»",1],["short","Коротко — только на сайте","Например: Ромашка",0],["inn","ИНН","10 или 12 цифр",0],["kpp","КПП","9 цифр (у ИП нет)",0],
+  ["address","Юридический адрес","",1],["ship","Адрес доставки (если другой)","Если совпадает с юридическим — оставьте пустым",1],["bank","Банк","",1],["bik","БИК / БИК ТОФК","9 цифр",0],["rs","Р/с или казначейский счёт","20 цифр",0],["ks","К/с или ЕКС","20 цифр",0]];
+function cnOpen(sel, q){ if(!cnCan(sel)) return;
+  CN={sel:sel.id, dup:""};
+  const looksInn=/^\d{10}(\d{2})?$/.test(cnDig(q)) && cnDig(q).length===q.replace(/\s/g,"").length;
+  const v={name:looksInn?"":q, inn:looksInn?cnDig(q):""}, shOk=typeof shortSrv!=="function"||shortSrv();
+  const fld=([k,l,ph,wide])=>k==="short"&&!shOk?"":`<label class="f${wide?" wide":""}">${esc(l)}${k==="ship"?`<textarea id="cn-${k}" rows="2" placeholder="${esc(ph)}"></textarea>`:`<input id="cn-${k}" value="${esc(v[k]||"")}" placeholder="${esc(ph)}"${["inn","kpp","bik","rs","ks"].includes(k)?' inputmode="numeric"':""} autocomplete="off">`}<small class="cn-e" data-cne="${k}"></small></label>`;
+  openCard(`<div class="dc-head"><div><div class="dc-kicker">Новый заказчик</div><h3>Реквизиты заказчика</h3><div class="jn-sub">Сохранится в «Заказчики и цены» и сразу выберется ${CN.sel==="o-cus"?"в заявке":"в документе"}</div></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+    <details class="cn-paste"><summary>Вставить карточку предприятия — сайт сам разложит реквизиты</summary><textarea id="cn-src" rows="5" placeholder="Скопируйте сюда текст карточки предприятия или реквизиты из письма: ИНН, КПП, адрес, банк, БИК, счета…"></textarea><div class="row"><button type="button" class="btn sm" data-cn="parse">Разложить по полям</button><span class="muted" id="cn-pm"></span></div></details>
+    <div class="grid cn-g">${CN_F.map(fld).join("")}<label class="f">Тип счёта<select id="cn-acct" data-native><option value="bank">Расчётный счёт в банке</option><option value="treasury">Казначейский счёт (бюджетник)</option></select></label></div>
+    <div class="cn-dup" id="cn-dup" hidden></div>
+    <div class="jn-f cn-f"><span class="muted">Цены, договор и точки доставки — потом в «Заказчики и цены». Обязательно только наименование.</span><span class="row"><button type="button" class="btn ghost" data-dc="close">Отмена</button><button type="button" class="btn pri" data-cn="save">Сохранить заказчика</button></span></div>`, false, ()=>{});
+  const d=$("#fd-dcard"); if(d) d.classList.add("cnwin"); setTimeout(()=>{ const f=$(looksInn||!q?"#cn-"+(looksInn?"name":"name"):"#cn-inn"); f&&f.focus(); }, 60); }
+function cnVal(){ const g=k=>{ const e=$("#cn-"+k); return e?String(e.value||"").trim():""; }; const c={}; CN_F.forEach(([k])=>c[k]=g(k)); c.acct=g("acct")||"bank";
+  ["inn","kpp","bik","rs","ks"].forEach(k=>c[k]=cnDig(c[k])); return c; }
+function cnCheck(c){ const E={};
+  if(!c.name) E.name="Впишите наименование — так заказчик будет назван в документах";
+  if(c.inn && c.inn.length!==10 && c.inn.length!==12) E.inn="ИНН — 10 цифр (организация) или 12 (ИП)";
+  if(c.kpp && c.kpp.length!==9) E.kpp="КПП — 9 цифр";
+  if(c.inn.length===10 && !c.kpp) E.kpp="У организации обычно есть КПП — проверьте (можно оставить пустым)";
+  if(c.bik && c.bik.length!==9) E.bik="БИК — 9 цифр";
+  if(c.rs && c.rs.length!==20) E.rs="Счёт — 20 цифр";
+  if(c.ks && c.ks.length!==20) E.ks="Счёт — 20 цифр";
+  return E; }
+function cnShowErr(E){ document.querySelectorAll("#fd-dcard [data-cne]").forEach(x=>{ const k=x.dataset.cne, m=E[k]||""; x.textContent=m; x.classList.toggle("soft", k==="kpp" && /обычно/.test(m)); const i=$("#cn-"+k); if(i) i.classList.toggle("bad", !!m && !(k==="kpp"&&/обычно/.test(m))); }); }
+function cnSave(){ const c=cnVal(), E=cnCheck(c); cnShowErr(E); const hard=Object.keys(E).filter(k=>!(k==="kpp"&&/обычно/.test(E[k])));
+  if(hard.length){ const i=$("#cn-"+hard[0]); i&&i.focus(); return; }
+  /* тот же ИНН (и КПП) уже есть — предложить выбрать его; второе нажатие — всё равно создать */
+  const dup=c.inn && D.customers.find(x=>!isPriv(x.id) && cnDig(x.inn)===c.inn && (!c.kpp || !x.kpp || cnDig(x.kpp)===c.kpp));
+  const dupN=!dup && D.customers.find(x=>!isPriv(x.id) && norm(x.name)===norm(c.name));
+  const hit=dup||dupN, box=$("#cn-dup");
+  if(hit && CN.dup!==hit.id){ CN.dup=hit.id; box.hidden=false;
+    box.innerHTML=`<b>${dup?"Заказчик с этим ИНН уже есть":"Заказчик с таким названием уже есть"}:</b> ${esc(cusNm(hit.id))}${hit.short?` <span class="muted">(${esc(hit.name)})</span>`:""}${hit.inn?` · ИНН ${esc(hit.inn)}`:""}
+      <div class="row"><button type="button" class="btn sm pri" data-cn="pick" data-id="${esc(hit.id)}">Выбрать «${esc(cusNm(hit.id))}»</button><span class="muted">или нажмите «Сохранить заказчика» ещё раз — будет создан новый</span></div>`;
+    box.scrollIntoView({block:"nearest", behavior:"smooth"}); return; }
+  const n={id:uid(), name:c.name, inn:c.inn, kpp:c.kpp, address:c.address, ship:c.ship, contract:"", ikz:"", acct:c.acct, bank:c.bank, bik:c.bik, rs:c.rs, ks:c.ks};
+  if(c.short && (typeof shortSrv!=="function"||shortSrv())) n.short=c.short;
+  D.customers.push(n); dirty("customers", n.id); editorSel.customers=n.id; saveLocal(); if(online()) flush().catch(handleErr);
+  logEv("Справочники","Новый заказчик: "+n.name+(n.inn?" (ИНН "+n.inn+")":"")+" — добавлен из "+(CN.sel==="o-cus"?"«Заявки»":"«Нового документа»"));
+  cnDone(n.id, true); }
+function cnDone(id, isNew){ const sid=CN&&CN.sel; CN=null; const d=$("#fd-dcard"); if(d){ d._bye=1; d.classList.add("out"); setTimeout(()=>{ try{ d.close(); }catch(e){} d.remove(); }, 180); }
+  if(sid==="d-cus" && typeof renderDoc==="function") renderDoc(); if(sid==="o-cus" && typeof renderOrder==="function") renderOrder();
+  const s=sid&&$("#"+sid); if(s && s.value!==id){ s.value=id; s.dispatchEvent(new Event("change",{bubbles:true})); }
+  const b=s&&CPK.get(s); if(b){ b.classList.remove("fdflash"); void b.offsetWidth; b.classList.add("fdflash"); }
+  if(isNew) toast("ok","Заказчик добавлен: "+cusNm(id), "Он уже выбран. Цены, договор и точки доставки можно дополнить в «Заказчики и цены».", {action:{label:"Открыть карточку", fn:()=>{ editorSel.customers=id; showTab("customers"); }}});
+  else toast("info","Выбран «"+cusNm(id)+"»",""); }
+document.addEventListener("click", e=>{ const b=e.target.closest("#fd-dcard.cnwin [data-cn]"); if(!b || !CN) return; e.preventDefault(); const a=b.dataset.cn;
+  if(a==="save") cnSave();
+  else if(a==="pick") cnDone(b.dataset.id, false);
+  else if(a==="parse"){ const R=cnParse(($("#cn-src")||{}).value), ks=Object.keys(R), pm=$("#cn-pm");
+    ks.forEach(k=>{ const i=$("#cn-"+k); if(i && (k==="acct" || !String(i.value||"").trim())) i.value=R[k]; });
+    if(pm) pm.textContent = ks.length ? "Заполнено: "+ks.map(k=>({name:"наименование",inn:"ИНН",kpp:"КПП",bik:"БИК",rs:"р/с",ks:"к/с",bank:"банк",address:"адрес",ship:"адрес доставки",acct:"тип счёта"})[k]).filter(Boolean).join(", ")+". Проверьте." : "Не нашёл реквизитов — впишите вручную.";
+    cnShowErr({}); CN.dup=""; } });
+document.addEventListener("input", e=>{ if(!CN || !e.target.closest("#fd-dcard.cnwin")) return; if(/^cn-(inn|kpp|name)$/.test(e.target.id)){ CN.dup=""; const b=$("#cn-dup"); if(b) b.hidden=true; }
+  const k=(e.target.id||"").replace(/^cn-/,""), m=e.target.closest("label")&&e.target.closest("label").querySelector("[data-cne]"); if(m && m.textContent){ m.textContent=""; e.target.classList.remove("bad"); } });
+document.addEventListener("keydown", e=>{ if(e.key!=="Enter" || !CN || !e.target.closest("#fd-dcard.cnwin") || e.target.tagName==="TEXTAREA" || e.target.tagName==="SELECT") return; e.preventDefault(); cnSave(); });
 /* стандарт: любой список заказчиков (даже собранный вручную, не через opts) сам показывает короткое название, полное — серым в выборе */
 function cpkCusFix(n, map){ if(!map.size) return; const L=n.tagName==="OPTION" ? [n] : n.querySelectorAll ? n.querySelectorAll("option:not([data-full])") : [];
   L.forEach(o=>{ if(o.dataset.full || o.hasAttribute("data-native")) return; const c=map.get(o.value); if(!c) return; const t=o.textContent.trim();
