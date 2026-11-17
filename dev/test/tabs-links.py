@@ -30,11 +30,11 @@ async def main():
             ok(await pg.is_visible('#tab-products'), f'{W}: смена адреса переключает вкладку')
             # ссылка на договор
             await pg.evaluate("document.querySelector('nav.tabs button[data-tab=\"customers\"]').click()"); await pg.wait_for_timeout(500)
-            if await pg.locator('#ct-body tr[data-id]').count()==0: await pg.click('#ct-add'); await pg.wait_for_timeout(200)
-            inp=pg.locator('#ct-body tr[data-id] input[data-k=url]').first
+            if await pg.locator('#ct-body [data-id]').count()==0: await pg.click('#ct-add'); await pg.wait_for_timeout(200)
+            inp=pg.locator('#ct-body [data-id] input[data-k=url]').first
             ok(await inp.is_enabled(), f'{W}: поле ссылки доступно (новый Code.gs)')
             await inp.fill(f'drive.google.com/file/d/abc{W}'); await pg.wait_for_timeout(300)
-            a=pg.locator('#ct-body tr[data-id] .cturl a').first
+            a=pg.locator('#ct-body [data-id] .cturl a').first
             ok(await a.count()==1 and await a.get_attribute('href')==f'https://drive.google.com/file/d/abc{W}', f'{W}: кнопка «Открыть ↗» с правильной ссылкой')
             await pg.wait_for_timeout(2500)
             ok(any(r.get('Ссылка на договор')==f'drive.google.com/file/d/abc{W}' for r in rows('Контракты')), f'{W}: ссылка сохранилась в таблице')
