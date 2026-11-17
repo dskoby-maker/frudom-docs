@@ -134,7 +134,7 @@
 #fd-dcard .jnm b{font-weight:600;font-size:14.5px}
 #fd-dcard .jnm small{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #fd-dcard .jns{font-variant-numeric:tabular-nums;font-weight:500;font-size:14px;white-space:nowrap}
-#fd-dcard .jn-f{position:sticky;bottom:-18px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0 -18px;padding:12px 0 18px;background:var(--surface);border-top:1px solid var(--line,#e7e2dc)}
+#fd-dcard .jn-f{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0 0;padding:14px 0 0;border-top:1px solid var(--line,#e7e2dc)}
 #fd-dcard .jn-f span{font-size:13.5px;color:var(--muted)}#fd-dcard .jn-f span b{color:var(--ink);font-weight:600}
 #fd-dcard .jn-f .btn{flex:none}
 @media (max-width:480px){#fd-dcard .jn-f{flex-direction:column;align-items:stretch}#fd-dcard .jn-f .btn{width:100%}#fd-dcard .jnr{gap:10px;padding:10px}}
@@ -163,17 +163,24 @@
 #fd-app .dc-oweadd{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:7px 12px;border-radius:999px;font-size:13px;color:var(--muted);transition:background .15s,color .15s}
 #fd-app .dc-oweadd svg{width:16px;height:16px;flex:none}
 #fd-app .dc-oweadd:hover{background:#fdf7ea;color:#8a5a12}
-#fd-dcard .owe-was{margin:0 0 6px;padding:8px 10px;border-radius:10px;background:#fdf7ea;font-size:13px;color:#6d4a0e}
-#fd-dcard .owe-ch{display:flex;flex-wrap:wrap;gap:6px;max-height:190px;overflow:auto;padding:2px}
-#fd-dcard .owc{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:baseline;gap:6px;max-width:100%;padding:7px 12px;border:1px solid var(--line,#e7e2dc);border-radius:999px;font-size:13.5px;background:var(--card,#fff);transition:border-color .15s,background .15s}
-#fd-dcard .owc small{font-size:12px;color:var(--muted);white-space:nowrap}
+#fd-dcard .owe-was{margin:0 0 16px;padding:8px 10px;border-radius:10px;background:#fdf7ea;font-size:13px;color:#6d4a0e}
+#fd-dcard.owewin{max-width:540px}
+#fd-dcard .owe-sub{margin:6px 0 18px;font-size:13.5px;color:var(--muted)}
+#fd-dcard .owe-lbl{margin:0 0 8px;font-size:12px;color:var(--muted);letter-spacing:.02em}
+#fd-dcard .owe-ch{display:flex;flex-wrap:wrap;gap:6px;max-height:172px;overflow:auto;padding:2px;margin:0 -2px}
+#fd-dcard .owc{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:6px;height:34px;max-width:100%;padding:0 12px;border:1px solid var(--line,#e7e2dc);border-radius:999px;font-size:13.5px;background:var(--card,#fff);transition:border-color .15s,background .15s}
+#fd-dcard .owc small{font-size:12px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+#fd-dcard .owc>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #fd-dcard .owc:hover{border-color:color-mix(in srgb,var(--accent) 40%,var(--line,#e7e2dc))}
 #fd-dcard .owc:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #fd-dcard .owc[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--card,#fff));color:var(--accent)}
-#fd-dcard .owe-g{display:grid;grid-template-columns:minmax(0,1fr) 130px 80px;gap:10px;margin-top:14px}
-#fd-dcard .owe-n{display:grid;margin-top:10px}
-#fd-dcard #owe-msg{color:#b4532a}
-@media (max-width:480px){#fd-dcard .owe-g{grid-template-columns:1fr 1fr}#fd-dcard .owe-g .owe-t{grid-column:1/-1}#fd-app .ower{flex-wrap:wrap}#fd-app .ower .owed{margin-left:auto}}
+#fd-dcard .owe-g{display:grid;grid-template-columns:minmax(0,1fr) 96px 72px;gap:10px;margin-top:18px}
+#fd-dcard .owe-g input,#fd-dcard .owe-n input{height:44px;box-sizing:border-box}
+#fd-dcard .owe-n{margin-top:10px!important}
+#fd-dcard .owe-f{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:20px}
+#fd-dcard #owe-msg{flex:1;min-width:0;font-size:13px;color:#b4532a}
+#fd-dcard #owe-msg:empty{display:none}
+@media (max-width:480px){#fd-dcard .owe-g{grid-template-columns:1fr 1fr}#fd-dcard .owe-g .owe-t{grid-column:1/-1}#fd-dcard .owe-f{flex-wrap:wrap}#fd-dcard .owe-f .btn{flex:1 1 100%}#fd-app .ower{flex-wrap:wrap}#fd-app .ower .owed{margin-left:auto}}
 #fd-app tr.grp.jnflash>td{animation:jnflash 1.6s ease}@keyframes jnflash{0%,40%{background:color-mix(in srgb,var(--accent) 12%,transparent)}100%{background:transparent}}
 #fd-app .jcx-i span{flex:1;min-width:0}
 #fd-app .jcx-i .jcx-s{display:block;font:500 11.5px/1.25 var(--ui);color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -8017,15 +8024,15 @@ const OWEF={j:null, pid:""};
 function oweForm(j){ if(!j||!j.snap) return; OWEF.j=j; OWEF.pid=""; const k=calc(j.snap.dr, j.snap), open=oweOf(j).filter(o=>!o.done);
   CARD_RE=null;
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Недовезли · № ${esc(j.number)} · ${fd(j.date)}</div><h3>${esc(jWho(j).main)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
-    <p class="jn-tip">Сайт напомнит об этом, когда будете делать следующий документ на этого заказчика, а у водителя в маршруте и в тексте для MAX появится строка «Доложить: …». Номера и суммы документов не меняются.</p>
+    <p class="owe-sub">Напомню в следующем документе и в маршруте водителя</p>
     ${open.length?`<div class="owe-was">Уже записано: ${open.map(o=>esc(oweTxt(o))).join("; ")}</div>`:""}
-    <div class="jn-h">Какой товар</div>
-    <div class="owe-ch">${k.lines.map((l,i)=>`<button type="button" class="owc" data-owp="${i}" aria-pressed="false">${esc(l.name)}<small>${esc(qf(l.qty)+" "+(l.unit||""))}</small></button>`).join("")}</div>
+    <div class="owe-lbl">Что недовезли</div>
+    <div class="owe-ch">${k.lines.map((l,i)=>`<button type="button" class="owc" data-owp="${i}" aria-pressed="false" title="${esc(l.name)}"><span>${esc(l.name)}</span><small>${esc(qf(l.qty)+" "+(l.unit||""))}</small></button>`).join("")}</div>
     <div class="owe-g"><label class="f owe-t"><span>Товар</span><input id="owe-t" maxlength="200" placeholder="Выберите выше или впишите" autocomplete="off"></label>
-      <label class="f"><span>Сколько недовезли</span><input id="owe-q" inputmode="decimal" maxlength="12" placeholder="2" autocomplete="off"></label>
+      <label class="f"><span>Сколько</span><input id="owe-q" inputmode="decimal" maxlength="12" placeholder="2" autocomplete="off"></label>
       <label class="f"><span>Ед.</span><input id="owe-u" maxlength="12" placeholder="кг" autocomplete="off"></label></div>
-    <label class="f owe-n"><span>Комментарий — необязательно</span><input id="owe-n" maxlength="300" placeholder="Например: договорились привезти в пятницу" autocomplete="off"></label>
-    <div class="jn-f"><span id="owe-msg"></span><button type="button" class="btn pri" id="owe-go">Запомнить</button></div>`, false, ()=>{});
+    <label class="f owe-n"><span>Комментарий</span><input id="owe-n" maxlength="300" placeholder="Необязательно" autocomplete="off"></label>
+    <div class="owe-f"><span id="owe-msg" role="alert"></span><button type="button" class="btn pri" id="owe-go">Запомнить</button></div>`, false, ()=>{});
   const d=$("#fd-dcard"); if(d) d.classList.add("jnwin","owewin"); OWEF.k=k;
   setTimeout(()=>{ const f=$(k.lines.length?"#fd-dcard .owc":"#owe-t"); if(f) f.focus({preventScroll:true}); }, 60); }
 function owePick(i){ const l=OWEF.k&&OWEF.k.lines[i]; if(!l) return; OWEF.pid=l.pid||""; $("#owe-t").value=l.name; $("#owe-u").value=l.unit||"";
