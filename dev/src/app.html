@@ -2094,6 +2094,8 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .dt-drvl .drvb.on{padding-left:2px}
 #fd-app .dt-drvl .drvb svg{width:13px;height:13px}
 #fd-app .dt-drvl .drv-av{width:19px;height:19px;font-size:9.5px}
+/* «Задача для: водитель» — тихо, как «Прочитал» (17.11.2026, просьба Даниила); при наведении и нажатии — обычная */
+#fd-app .dt-drvl{margin-top:3px;gap:4px;opacity:.55;transition:opacity .2s}#fd-app .dt-drvl:hover,#fd-app .dt-drvl:focus-within{opacity:1}#fd-app .dt-drvl>span{font-size:10.5px}#fd-app .dt-drvl .drvb{height:20px;padding:0 6px 0 5px;font-size:11px;gap:4px;background:transparent;border-color:transparent;box-shadow:none}#fd-app .dt-drvl .drvb.on{padding-left:1px}#fd-app .dt-drvl .drvb svg{width:11px;height:11px}#fd-app .dt-drvl .drv-av{width:16px;height:16px;font-size:8.5px}
 .drp{position:fixed;inset:auto;margin:0;z-index:2147483000;width:256px;max-height:min(440px,calc(100vh - 20px));display:flex;flex-direction:column;padding:6px;border:0;border-radius:14px;background:#fff;color:#2c2925;font:14px var(--ui,system-ui);box-shadow:0 1px 2px rgba(0,0,0,.06),0 14px 40px -8px rgba(30,25,20,.28),0 0 0 1px rgba(28,34,32,.08);opacity:0;transform:translateY(-4px) scale(.98);transition:opacity .16s,transform .18s cubic-bezier(.3,.9,.3,1);overflow:hidden}
 .drp.on{opacity:1;transform:none}
 .drp-h{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 6px 10px}.drp-h b{font:600 11.5px var(--ui,system-ui);letter-spacing:.06em;text-transform:uppercase;color:#8a847c}
