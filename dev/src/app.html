@@ -140,6 +140,8 @@
 @media (max-width:480px){#fd-dcard .jn-f{flex-direction:column;align-items:stretch}#fd-dcard .jn-f .btn{width:100%}#fd-dcard .jnr{gap:10px;padding:10px}}
 #fd-app tr.grp.jnflash>td{animation:jnflash 1.6s ease}@keyframes jnflash{0%,40%{background:color-mix(in srgb,var(--accent) 12%,transparent)}100%{background:transparent}}
 #fd-app .jcx-i span{flex:1;min-width:0}
+#fd-app .jcx-i .jcx-s{display:block;font:500 11.5px/1.25 var(--ui);color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fd-app .jcx-i .jcx-s.ok{color:#3E7A4F}#fd-app .jcx-i .jcx-s.old{color:#B4472F}
 #fd-app .jcx-i kbd{font:500 11px/1 var(--ui);color:var(--muted);opacity:.75}
 #fd-app .jcx-i:is(:hover,:focus-visible),#fd-app .jcx.mouse .jcx-i:focus{background:var(--accent-soft);color:var(--accent)}
 #fd-app .jcx-i:is(:hover,:focus-visible) i,#fd-app .jcx.mouse .jcx-i:focus i{color:var(--accent)}
@@ -7809,7 +7811,10 @@ const JCX_I={
   kids:'<path d="m6 9 6 6 6-6"/>',
   join:'<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/><path d="M15 7h2a2 2 0 0 1 2 2v2"/><path d="M9 17H7a2 2 0 0 1-2-2v-2"/>',
   out:'<rect x="3" y="5" width="11" height="14" rx="2"/><path d="M17 12h5"/>',
-  split:'<rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="16" rx="2"/>' };
+  split:'<rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="16" rx="2"/>',
+  pay:'<rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="m8.5 12 2.4 2.4L15.8 9.6"/>',
+  payoff:'<rect x="2.5" y="6" width="19" height="12" rx="2.5"/><path d="M9 12h6"/>',
+  pays:'<path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H18v4"/><path d="M3 7.5v10A2.5 2.5 0 0 0 5.5 20H20v-11H5.5A2.5 2.5 0 0 1 3 7.5Z"/><circle cx="16" cy="14.5" r="1.2"/>' };
 const jcxIc = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${JCX_I[k]||""}</svg>`;
 /* что нажато: строка накладной, накладная внутри комплекта или комплект */
 function jcxTarget(t, arch){
@@ -7901,6 +7906,10 @@ function jcxItems(T){ const R=T.row, has=s=>!!R.querySelector(s), adm=me().admin
     if(has("[data-edit]")) it("edit","Изменить",jcxIc("edit"),()=>jcxPress(R,"[data-edit]"));
     else if(has("[data-qty]")) it("edit","Изменить количество",jcxIc("edit"),()=>jcxPress(R,"[data-qty]"));
     if(adm && !T.arch) it("zk",zkJState(j)&&zkJState(j).st==="ok"?"Закупка ✓":"Закупка",jcxIc("zk"),()=>zkPageOpen(j));
+    if(adm && !T.arch && pfLoaded){ const p=payOf(j), cid=j.customerId||"-";
+      if(p.st==="paid") it("pay","Снять отметку «Оплачена»",jcxIc("payoff"),()=>jpayToggle([j],false),{sub:"оплачена "+(p.d?fd(p.d):""), subc:"ok"});
+      else it("pay","Отметить оплаченной",jcxIc("pay"),()=>jpayToggle([j],true),{sub:p.st==="part"?"частично · осталось "+fm(p.left)+" ₽":"ждём оплату · "+ageTxt(j.date), subc:daysSince(j.date)>30?"old":""});
+      it("pays","Оплаты заказчика ›",jcxIc("pays"),()=>jpayGo(cid),{sub:"«Прибыль» → "+(cusNm(cid)||jWho(j).main)}); }
     const gk=!T.arch&&!docLimited()&&govKind(j); if(gk){ const s=govSent(j); it("gov", s?"Снять «Отправлено в "+GOV[gk]+"»":"Отправлено в "+GOV_FULL[gk], jcxIc(s?"govoff":"gov"), ()=>{ govToggle(j.id); toast("ok", s?"Отметка снята":"Отмечено: отправлено в "+GOV_FULL[gk], "№ "+j.number+" от "+fd(j.date)); }, {on:!!s}); }
     if(!T.arch && !docLimited()){ const jg=jnGroup(j); if(jnCan(jg)) it("join", jg.length>1?"Добавить в комплект…":"Объединить в комплект…", jcxIc("join"), ()=>jnOpen(jg)); if(jg.length>1) it("out","Убрать из комплекта",jcxIc("out"),()=>jnOut(j)); }
     if(!T.arch) it("cm", cmOf(j).t?"Комментарий":"Добавить комментарий", jcxIc("cm"), ()=>{ docCard(j,false); cmFocus(); });
@@ -7919,12 +7928,27 @@ function jcxItems(T){ const R=T.row, has=s=>!!R.querySelector(s), adm=me().admin
     if(has("[data-gt]")) it("kids", op?"Скрыть накладные комплекта":"Показать накладные · "+g.length, jcxIc("kids"), ()=>jcxPress(R,"[data-gt]"), {flip:op});
     if(has("[data-gedit]")) it("edit","Изменить комплект",jcxIc("edit"),()=>jcxPress(R,"[data-gedit]"));
     if(adm && !T.arch) it("zk","Закупка комплекта",jcxIc("zk"),()=>bzPageOpen(g));
+    if(adm && !T.arch && pfLoaded){ const P=g.map(payOf), np=P.filter(p=>p.st==="paid").length, left=r2(P.reduce((a,p)=>a+p.left,0)), cid=g[0].customerId||"-";
+      if(np===g.length) it("pay","Снять оплату с комплекта",jcxIc("payoff"),()=>jpayToggle(g,false),{sub:"оплачены все "+g.length, subc:"ok"});
+      else it("pay","Отметить комплект оплаченным",jcxIc("pay"),()=>jpayToggle(g,true),{sub:"оплачено "+np+" из "+g.length+" · ждём "+fm(left)+" ₽", subc:daysSince(g[0].date)>30?"old":""});
+      it("pays","Оплаты заказчика ›",jcxIc("pays"),()=>jpayGo(cid),{sub:"«Прибыль» → "+(cusNm(cid)||jWho(g[0]).main)}); }
     if(!T.arch && !docLimited()){ if(jnCan(g)) it("join","Добавить накладные в комплект…",jcxIc("join"),()=>jnOpen(g)); it("split","Разделить комплект",jcxIc("split"),()=>jnSplit(g)); }
     it("num","Скопировать номера",jcxIc("num"),()=>{ const n=g.map(x=>x.number); jcxCopy("№ "+(n.length>2?n[0]+"–"+n[n.length-1]:n.join(", "))+" от "+fd(g[0].date)); });
     if(has("[data-garch]")){ sep(); it("arch","Комплект в архив",jcxIc("arch"),()=>{ jcxPress(R,"[data-garch]"); jcxPress(R,"[data-garch]"); },{danger:1, confirm:"Точно в архив? Нажмите ещё раз"}); }
     if(has("[data-gunarch]")){ sep(); it("unarch","Вернуть комплект",jcxIc("unarch"),()=>jcxPress(R,"[data-gunarch]")); }
   }
   if(out.length && out[out.length-1].sep) out.pop(); return out; }
+/* оплата из меню журнала: отметить «Оплачена» на всю сумму сегодняшней датой (как в окне заказчика «Прибыли») или снять; «Отменить» возвращает прежние оплаты */
+function jpayToggle(L, on){ if(!me().admin) return; const today=todayISO(), prev=L.map(j=>{ const p=payOf(j); return [j,p.s,p.d]; }); let n=0;
+  UNDO.paused++; try{ L.forEach(j=>{ const p=payOf(j); if(on ? p.st!=="paid" : p.s>0){ setPay(j, on?p.tot:0, on?today:"", L.length>1); n++; } }); } finally{ UNDO.paused--; unResync(); }
+  if(L.length>1) logEv("Прибыль", (on?"Оплачен комплект":"Снята оплата комплекта")+": № "+jnNums(L)+" от "+fd(L[0].date)+" — "+jWho(L[0]).main);
+  saveLocal(); const redraw=()=>{ if(curTab==="journal") renderJournal(); else if(curTab==="archive") renderArchive(); else if(curTab==="calendar") renderCalendar(); };
+  redraw(); const s=r2(L.reduce((a,j)=>a+docTotal(j),0)), nm="№ "+(L.length>1?jnNums(L):L[0].number);
+  toast(on?"ok":"info", on?(L.length>1?"Комплект оплачен":"Оплачена"):"Отметка об оплате снята", on?nm+" · "+fm(s)+" ₽ · "+fd(today):nm+" снова ждёт оплату",
+    {action:{label:"Отменить", fn:()=>{ UNDO.paused++; try{ prev.forEach(([j,ps,pd])=>setPay(j, ps, pd||today, true)); } finally{ UNDO.paused--; unResync(); } saveLocal(); redraw(); toast("info","Отменено",nm+" — как было."); }}}); }
+/* перейти к оплатам заказчика: «Прибыль» → «По заказчикам» → окно заказчика (накладные с кнопками «Оплачена / Не оплачена»), сверху «‹ Назад: Журнал» */
+function jpayGo(cid){ const lbl=curTab==="archive"?"Архив":curTab==="calendar"?"Календарь":"Журнал";
+  tabBackFrom(lbl, ()=>{ PV().v="cus"; saveLocal(); showTab("profit"); setTimeout(()=>pvLedger(cid), 60); }); }
 function jcxCopy(t){ const ok=()=>toast("ok","Скопировано",t);
   try{ if(navigator.clipboard&&window.isSecureContext){ navigator.clipboard.writeText(t).then(ok, ()=>jcxCopyOld(t)&&ok()); return; } }catch(e){}
   if(jcxCopyOld(t)) ok(); else toast("warn","Не получилось скопировать",t); }
@@ -7937,7 +7961,7 @@ function jcxOpen(T, x, y, kb){ jcxClose(true); const L=T.items||jcxItems(T); if(
   m.innerHTML=(T.items?(T.head||""):jcxHead(T))+L.map((o,i)=> o.sep ? `<div class="jcx-s" role="separator"></div>`
     : o.chips ? `<div class="jcx-cl">${esc(o.title||"")}</div><div class="jcx-c" role="group" aria-label="${esc(o.title||"")}">${o.chips.map((c,k)=>`<button type="button" role="menuitemradio" aria-checked="${!!c.on}" class="jcx-i jcx-ch${c.on?" on":""}" data-jcxc="${i}:${k}" tabindex="-1">${c.dot?`<b style="--cc:${esc(c.dot)}"></b>`:""}${esc(c.lbl)}</button>`).join("")}</div>`
     : o.docs ? `<div class="jcx-d" role="group" aria-label="Документы">${o.docs.map(d=>`<button type="button" role="menuitem" class="jcx-i jcx-dc" data-jcxd="${esc(d.sel)}" tabindex="-1">${esc(d.lbl)}</button>`).join("")}</div>`
-    : `<button type="button" role="menuitem" class="jcx-i${o.danger?" dng":""}${o.on?" on":""}${o.flip?" flip":""}" data-jcx="${i}" tabindex="-1"><i>${o.ic}</i><span>${esc(o.lbl)}</span>${o.kbd?`<kbd>${o.kbd}</kbd>`:""}</button>`).join("");
+    : `<button type="button" role="menuitem" class="jcx-i${o.danger?" dng":""}${o.on?" on":""}${o.flip?" flip":""}" data-jcx="${i}" tabindex="-1"><i>${o.ic}</i><span>${esc(o.lbl)}${o.sub?`<small class="jcx-s${o.subc?" "+o.subc:""}">${esc(o.sub)}</small>`:""}</span>${o.kbd?`<kbd>${o.kbd}</kbd>`:""}</button>`).join("");
   (document.getElementById("fd-app")||document.body).appendChild(m); JCX.el=m; JCX.row=T.row; JCX.T=T; JCX.L=L; JCX.at=Date.now();
   T.row.classList.add("jcxon");
   /* место: у курсора, не за краем экрана; не помещается вниз — открывается вверх */
