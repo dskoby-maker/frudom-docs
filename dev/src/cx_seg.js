@@ -90,7 +90,7 @@ cxReg(t=>{ const row=t.closest("#cal-grid [data-d]"); if(!row) return null; cons
   L.it("task","Задача на этот день","task",()=>{ cxCalSel(iso); setTimeout(()=>{ const b=$("#dt-box"); if(b) b.scrollIntoView({behavior:"smooth", block:"start"}); const x=$("#dt-text"); x&&x.focus({preventScroll:true}); }, 60); });
   if(docs.length){ L.sep().it("route","Маршрут водителю","route",()=>{ cxCalSel(iso); setTimeout(()=>{ const r=$("#cal-route"); r&&r.click(); }, 60); })
     .it("max","Скопировать текст для MAX","clip",()=>{ cxCalSel(iso); setTimeout(()=>{ const t2=$("#dv-text") && $("#dv-text").value; if(t2) jcxCopy(t2); else toast("warn","Нечего копировать","На "+fd(iso)+" нет точек для водителя."); }, 60); })
-    .it("pdf","Скачать все Счета+ТОРГ","pdf",()=>{ cxCalSel(iso); setTimeout(()=>{ const b=$("#cal-pdf"); b&&!b.disabled&&b.click(); }, 60); });
+    .it("pdf","Печать и PDF документов дня","pdf",()=>{ cxCalSel(iso); setTimeout(()=>{ const b=$("#cal-pdf"); b&&!b.disabled&&b.click(); }, 60); });
     if(typeof skDayDocs==="function" && SK_READY && skSrv!==false){ const n=skDayDocs(iso).length; if(n) L.it("ship","Отгрузить со склада ("+n+")","ship",()=>skDayShip(iso)); }
     L.it("find","Документы дня в журнале","search",()=>cxJournalFind(fd(iso),"Календарь")); }
   const sub=[docs.length?docs.length+" "+plural(docs.length,["накладная","накладные","накладных"]):"накладных нет", tasks.length?tasks.length+" "+plural(tasks.length,["задача","задачи","задач"]):""].filter(Boolean).join(" · ");

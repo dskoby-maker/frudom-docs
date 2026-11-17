@@ -193,6 +193,46 @@
 #fd-dcard #owe-msg{flex:1;min-width:0;font-size:13px;color:#b4532a}
 #fd-dcard #owe-msg:empty{display:none}
 @media (max-width:480px){#fd-dcard .owe-g{grid-template-columns:1fr 1fr}#fd-dcard .owe-g .owe-t{grid-column:1/-1}#fd-dcard .owe-f{flex-wrap:wrap}#fd-dcard .owe-f .btn{flex:1 1 100%}#fd-app .ower{flex-wrap:wrap}#fd-app .ower .owed{margin-left:auto}}
+/* окно «Печать и PDF документов дня» (dpOpen) */
+#fd-dcard.dpwin{max-width:640px}
+#fd-dcard .dpall{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin:14px 0 6px;padding:10px 12px;border-radius:14px;background:rgba(0,0,0,.035)}
+#fd-dcard .dpal{font-size:12.5px;color:var(--muted)}
+#fd-dcard .dpsel{all:unset;cursor:pointer;margin-left:auto;font-size:13px;color:var(--accent);padding:4px 6px;border-radius:8px}
+#fd-dcard .dpsel:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+#fd-dcard .dpg{margin-top:14px;transition:opacity .2s}
+#fd-dcard .dpgh,#fd-dcard .dpr{display:grid;grid-template-columns:22px minmax(0,1fr) auto;align-items:center;gap:12px}
+#fd-dcard .dpgh{padding:6px 12px 8px}
+#fd-dcard .dpgh .dpn b{font-size:15px}
+#fd-dcard .dpl{display:flex;flex-direction:column;gap:6px}
+#fd-dcard .dpr{padding:9px 12px;border:1px solid var(--line,#e7e2dc);border-radius:12px;background:var(--card,#fff);transition:opacity .2s,border-color .2s,background .2s}
+#fd-dcard .dpr.off{opacity:.5;background:transparent}
+#fd-dcard .dpr.none{border-color:#efd9a8}
+#fd-dcard .dpr .dpn{cursor:pointer}
+#fd-dcard .dpn{min-width:0;display:flex;flex-direction:column;gap:1px}
+#fd-dcard .dpn b{font-weight:600;font-size:14px}
+#fd-dcard .dpn small{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#fd-dcard .dpks{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end}
+#fd-dcard .dpk,#fd-dcard .dpc{all:unset;box-sizing:border-box;cursor:pointer;height:30px;padding:0 11px;display:inline-flex;align-items:center;border-radius:999px;font-size:13px;font-weight:500;border:1px solid var(--line,#e7e2dc);color:var(--muted);background:var(--card,#fff);transition:background .18s,border-color .18s,color .18s,transform .18s;white-space:nowrap}
+#fd-dcard .dpk:hover,#fd-dcard .dpc:hover{border-color:color-mix(in srgb,var(--accent) 40%,var(--line,#e7e2dc))}
+#fd-dcard .dpk[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+#fd-dcard .dpk[aria-pressed="mixed"],#fd-dcard .dpc[aria-pressed="mixed"]{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--card,#fff))}
+#fd-dcard .dpc[aria-pressed="true"]{background:#2f6b45;border-color:#2f6b45;color:#fff}
+#fd-dcard .dpc[aria-pressed="mixed"]{border-color:#2f6b45;color:#2f6b45;background:#eef6f0}
+#fd-dcard .dpk.pop,#fd-dcard .dpc.pop,#fd-dcard .dpx.pop{animation:dppop .22s ease}@keyframes dppop{50%{transform:scale(1.08)}}
+#fd-dcard .dpk:focus-visible,#fd-dcard .dpc:focus-visible,#fd-dcard .dpx:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#fd-dcard .dpx{all:unset;box-sizing:border-box;cursor:pointer;width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line2,#cfc7bf);display:inline-flex;align-items:center;justify-content:center;color:transparent;transition:background .15s,border-color .15s,color .15s}
+#fd-dcard .dpx svg{width:13px;height:13px}
+#fd-dcard .dpx[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+#fd-dcard .dpx[aria-pressed="mixed"]{border-color:var(--accent);background:linear-gradient(var(--accent),var(--accent)) center/9px 2px no-repeat}
+#fd-dcard .dpx[aria-pressed="mixed"] svg{display:none}
+#fd-dcard .dpf{position:sticky;bottom:-18px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0 -18px;padding:12px 0 16px;box-shadow:-24px 0 0 rgba(255,255,255,.72),24px 0 0 rgba(255,255,255,.72);border-top:1px solid var(--line,#e7e2dc);background:rgba(255,255,255,.72);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+#fd-dcard #dp-tot{font-size:13.5px;color:var(--muted)}#fd-dcard #dp-tot b{color:var(--ink);font-weight:600}
+#fd-dcard #dp-tot.bump{animation:dpbump .25s ease}@keyframes dpbump{40%{transform:translateY(-2px);opacity:.6}}
+#fd-dcard .dpfb{display:flex;gap:8px;flex:none}
+#fd-dcard .dpfb .btn{display:inline-flex;align-items:center;gap:6px}
+#fd-dcard .dpfb svg{width:16px;height:16px}
+@media (max-width:560px){#fd-dcard .dpr,#fd-dcard .dpgh{grid-template-columns:22px minmax(0,1fr)}#fd-dcard .dpr .dpks,#fd-dcard .dpgh .dpks{grid-column:2;justify-content:flex-start}
+  #fd-dcard .dpf{flex-direction:column;align-items:stretch;bottom:-14px;margin-bottom:-14px}#fd-dcard .dpfb .btn{flex:1;justify-content:center}#fd-dcard .dpsel{margin-left:0}}
 #fd-app tr.grp.jnflash>td{animation:jnflash 1.6s ease}@keyframes jnflash{0%,40%{background:color-mix(in srgb,var(--accent) 12%,transparent)}100%{background:transparent}}
 #fd-app .jcx-i span{flex:1;min-width:0}
 #fd-app .jcx-i .jcx-s{display:block;font:500 11.5px/1.25 var(--ui);color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -3088,7 +3128,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
       </div>
       <div class="row calacts">
         <button class="btn pri" id="cal-route">Маршрут водителю ↓</button>
-        <button class="btn" id="cal-pdf">Скачать все Счета+ТОРГ</button>
+        <button class="btn" id="cal-pdf">Печать и PDF документов дня</button>
         <button class="btn" id="cal-order">Новая заявка на этот день</button>
         <button class="btn ghost" id="cal-new">Новый документ на эту дату</button>
         <span id="cal-sk"></span>
@@ -5917,9 +5957,101 @@ $("#cal-route").onclick=()=>$("#dv-card").scrollIntoView({behavior:"smooth", blo
 $("#cal-order").onclick=()=>{ const o=O(); o.date=CAL().sel; saveLocal(); showTab("order"); };
 $("#cal-new").onclick=()=>{ const dr=D.draft; if(D.journal.some(j=>j.id===dr.id)||dr.qtyOnly){ const keep={supplierId:dr.supplierId, customerId:dr.customerId}; D.draft=Object.assign(newDraft(D),keep); D.draft.number=nextNum(keep.supplierId, keep.customerId); }
   D.draft.date=CAL().sel; saveLocal(); showTab("doc"); toast("info","Дата документа — "+fd(CAL().sel),"Выберите заказчика и товары."); };
-$("#cal-pdf").onclick=async()=>{ const docs=calDocs(CAL().sel, CAL().cus).sort(jNumSort); if(!docs.length) return; const b=$("#cal-pdf"), t0=b.textContent; b.disabled=true; b.textContent="Готовлю PDF…";
-  try{ const ks=docs.map(j=>calc(j.snap.dr,j.snap)); await manyPdf(["invoice","torg12"], ks, "Счета и ТОРГ-12 на "+fd(CAL().sel)+" — "+docs.length+" док."); toast("ok","PDF скачан","Все документы на "+fd(CAL().sel)+": "+docs.length+" шт."); }
-  catch(e){ toast("err","Не получилось сделать PDF", e.message+". Попробуйте ещё раз."); } finally{ b.disabled=false; b.textContent=t0; } };
+/* ===== «Печать и PDF за день» — выбор документов (17.11.2026, просьба Даниила) =====
+   Окно со всеми накладными дня по заказчикам: у каждой — галочка, какие документы (Счёт / ТОРГ‑12 / УПД, у частного лица — Накладная)
+   и «2 экз.»; у заказчика и сверху — то же для всех сразу. «Печать» — одним заданием, «Скачать PDF» — одним файлом.
+   Выбор по заказчику запоминается на устройстве (frudom-dprint) и подставляется в следующий раз. Документы не меняются. */
+const DP_K=["invoice","torg12","upd"], DP_LS="frudom-dprint";
+const DP={iso:"", R:[]};
+const dpMem = () => { try{ return JSON.parse(localStorage.getItem(DP_LS)||"{}")||{}; }catch(e){ return {}; } };
+const dpKindsOf = j => isPriv(j.customerId) ? ["nakl"] : DP_K;
+const dpOrd = k => ["invoice","torg12","upd","nakl"].indexOf(k);
+function dpOpen(iso){ iso=iso||CAL().sel; const docs=calDocs(iso, CAL().cus); if(!docs.length) return; const M=dpMem();
+  const G={}; docs.forEach(j=>(G[j.customerId]=G[j.customerId]||[]).push(j));
+  DP.iso=iso; DP.R=[];
+  Object.keys(G).sort((a,b)=>(cusNm(a)||"").localeCompare(cusNm(b)||"","ru")).forEach(cid=>G[cid].sort(jNumSort).forEach(j=>{
+    const av=dpKindsOf(j), m=M[cid]||{}, k=(Array.isArray(m.k)?m.k:["invoice","torg12","nakl"]).filter(x=>av.includes(x));
+    DP.R.push({j, cid, av, on:true, k:new Set(k.length?k:[av[0]]), c:m.c===2?2:1}); }));
+  dpDraw(true); }
+const dpGroups = () => { const G=[]; DP.R.forEach((r,i)=>{ let g=G[G.length-1]; if(!g||g.cid!==r.cid){ g={cid:r.cid, ix:[]}; G.push(g); } g.ix.push(i); }); return G; };
+const dpChip = (attr, kind, st, dis) => `<button type="button" class="dpk${dis?" dis":""}" ${attr} aria-pressed="${st===2?"mixed":st?"true":"false"}"${dis?" disabled":""}>${esc(KSHORT[kind]||kind)}</button>`;
+const dpCopy = (attr, st) => `<button type="button" class="dpc" ${attr} aria-pressed="${st===2?"mixed":st?"true":"false"}" title="Каждый документ — в двух экземплярах">2 экз.</button>`;
+/* состояние для группы строк: 0 — ни у кого, 1 — у всех, 2 — у части */
+const dpSt = (ix, f) => { const on=ix.filter(i=>DP.R[i].on), v=on.filter(i=>f(DP.R[i])).length; return !on.length?0:v===on.length?1:v?2:0; };
+function dpRowHtml(r, i){ const j=r.j, sub=[kLbl(j)||"", me().admin?fm(+j.sum||0)+" ₽":""].filter(Boolean).join(" · ");
+  return `<div class="dpr${r.on?"":" off"}" data-dpi="${i}" data-jid="${esc(j.id)}">
+    <button type="button" class="dpx" data-dpd="${i}" aria-pressed="${r.on}" aria-label="Печатать № ${esc(j.number)}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+    <span class="dpn"><b>№ ${esc(j.number)}</b><small>${esc(sub)}</small></span>
+    <span class="dpks">${r.av.map(k=>dpChip(`data-dpk="${i}|${k}"`, k, r.on&&r.k.has(k))).join("")}${dpCopy(`data-dpc="${i}"`, r.on&&r.c===2)}</span></div>`; }
+function dpGroupHtml(g){ const r0=DP.R[g.ix[0]], av=r0.av, n=g.ix.length;
+  return `<section class="dpg" data-dpgid="${esc(g.cid)}"><div class="dpgh">
+    <button type="button" class="dpx" data-dpgd="${esc(g.cid)}" aria-pressed="${dpSt(g.ix,()=>1)===1&&g.ix.every(i=>DP.R[i].on)?"true":g.ix.some(i=>DP.R[i].on)?"mixed":"false"}" aria-label="Все накладные заказчика"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>
+    <span class="dpn"><b>${esc(cusNm(g.cid)||r0.j.snap.c.name||"")}</b><small>${n} ${nklWord(n)}</small></span>
+    ${n>1?`<span class="dpks">${av.map(k=>dpChip(`data-dpgk="${esc(g.cid)}|${k}"`, k, dpSt(g.ix,r=>r.k.has(k)))).join("")}${dpCopy(`data-dpgc="${esc(g.cid)}"`, dpSt(g.ix,r=>r.c===2))}</span>`:""}</div>
+    <div class="dpl">${g.ix.map(i=>dpRowHtml(DP.R[i], i)).join("")}</div></section>`; }
+function dpItems(){ const out=[]; DP.R.forEach(r=>{ if(!r.on||!r.k.size) return; const k=calc(r.j.snap.dr, r.j.snap), ks=[...r.k].sort((a,b)=>dpOrd(a)-dpOrd(b));
+  for(let c=0;c<r.c;c++) ks.forEach(kind=>out.push({kind, k})); }); return out; }
+function dpCounts(){ let d=0, n=0; DP.R.forEach(r=>{ if(r.on&&r.k.size){ d++; n+=r.k.size*r.c; } }); return {d, n}; }
+function dpDraw(open){ const G=dpGroups(), all=DP.R.map((r,i)=>i), hasP=DP.R.some(r=>r.av[0]==="nakl"), hasB=DP.R.some(r=>r.av[0]!=="nakl");
+  const kinds=[...(hasB?DP_K:[]), ...(hasP?["nakl"]:[])], d=new Date(DP.iso+"T00:00:00");
+  let dl=isNaN(d)?fd(DP.iso):d.toLocaleDateString("ru-RU",{weekday:"long",day:"numeric",month:"long"}); dl=dl.charAt(0).toUpperCase()+dl.slice(1);
+  const html=`<div class="dc-head"><div><div class="dc-kicker">Печать и PDF</div><h3>${esc(dl)}</h3><div class="jn-sub">${DP.R.length} ${nklWord(DP.R.length)} · ${G.length} ${G.length%10===1&&G.length%100!==11?"заказчик":G.length%10>=2&&G.length%10<=4&&(G.length%100<10||G.length%100>=20)?"заказчика":"заказчиков"}</div></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+    <div class="dpall"><span class="dpal">Всем сразу</span><span class="dpks">${kinds.map(k=>dpChip(`data-dpak="${k}"`, k, dpSt(all.filter(i=>DP.R[i].av.includes(k)), r=>r.k.has(k)))).join("")}${dpCopy("data-dpac", dpSt(all,r=>r.c===2))}</span>
+      <button type="button" class="dpsel" data-dpsel></button></div>
+    <div id="dp-list">${G.map(dpGroupHtml).join("")}</div>
+    <div class="dpf"><span id="dp-tot"></span><span class="dpfb"><button type="button" class="btn" id="dp-pdf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg><span>Скачать PDF</span></button><button type="button" class="btn pri" id="dp-prn"><span>Печать</span></button></span></div>`;
+  if(open){ CARD_RE=null; openCard(html, false, ()=>{}); const dd=$("#fd-dcard"); if(dd) dd.classList.add("dpwin"); }
+  dpSync(); }
+/* обновить отметки на месте, без перерисовки (прокрутка и анимации сохраняются) */
+function dpSync(){ const d=$("#fd-dcard"); if(!d||!d.classList.contains("dpwin")) return; const all=DP.R.map((r,i)=>i);
+  const set=(el,st)=>{ const v=st===2?"mixed":st?"true":"false"; if(el.getAttribute("aria-pressed")!==v){ el.setAttribute("aria-pressed",v); el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); } };
+  d.querySelectorAll("[data-dpk]").forEach(b=>{ const [i,k]=b.dataset.dpk.split("|"), r=DP.R[+i]; set(b, r.on&&r.k.has(k)?1:0); });
+  d.querySelectorAll("[data-dpc]").forEach(b=>{ const r=DP.R[+b.dataset.dpc]; set(b, r.on&&r.c===2?1:0); });
+  d.querySelectorAll("[data-dpd]").forEach(b=>{ const r=DP.R[+b.dataset.dpd]; set(b, r.on?1:0); const row=b.closest(".dpr"); row.classList.toggle("off", !r.on); row.classList.toggle("none", r.on&&!r.k.size); });
+  dpGroups().forEach(g=>{ const s=d.querySelector(`[data-dpgid="${CSS.escape(g.cid)}"]`); if(!s) return; const on=g.ix.filter(i=>DP.R[i].on).length;
+    set(s.querySelector("[data-dpgd]"), on===g.ix.length?1:on?2:0); s.classList.toggle("off", !on);
+    s.querySelectorAll("[data-dpgk]").forEach(b=>set(b, dpSt(g.ix, r=>r.k.has(b.dataset.dpgk.split("|")[1]))));
+    const gc=s.querySelector("[data-dpgc]"); if(gc) set(gc, dpSt(g.ix, r=>r.c===2)); });
+  d.querySelectorAll("[data-dpak]").forEach(b=>{ const k=b.dataset.dpak; set(b, dpSt(all.filter(i=>DP.R[i].av.includes(k)), r=>r.k.has(k))); });
+  const ac=d.querySelector("[data-dpac]"); if(ac) set(ac, dpSt(all, r=>r.c===2));
+  const allOn=DP.R.every(r=>r.on), sel=d.querySelector("[data-dpsel]"); if(sel) sel.textContent=allOn?"Снять все":"Выбрать все";
+  const {d:nd, n}=dpCounts(), t=$("#dp-tot");
+  if(t){ const h=nd?`<b>${nd} ${nklWord(nd)}</b> · ${n} ${n%10===1&&n%100!==11?"документ":n%10>=2&&n%10<=4&&(n%100<10||n%100>=20)?"документа":"документов"} на печать`:"Ничего не выбрано"; if(t.innerHTML!==h){ t.innerHTML=h; t.classList.remove("bump"); void t.offsetWidth; t.classList.add("bump"); } }
+  ["#dp-pdf","#dp-prn"].forEach(s=>{ const b=$(s); if(b) b.disabled=!nd; }); }
+function dpKind(ix, k, v){ ix.forEach(i=>{ const r=DP.R[i]; if(!r.av.includes(k)) return; if(v){ r.k.add(k); r.on=true; } else r.k.delete(k); }); }
+function dpSave(){ const M=dpMem(); dpGroups().forEach(g=>{ const r=g.ix.map(i=>DP.R[i]).find(x=>x.on&&x.k.size); if(r) M[g.cid]={k:[...r.k], c:r.c}; });
+  try{ localStorage.setItem(DP_LS, JSON.stringify(M)); }catch(e){} }
+const dpTitle = () => "Документы на "+fd(DP.iso);
+async function dpPdf(b){ const items=dpItems(); if(!items.length) return; const h=b.innerHTML; b.disabled=true; b.innerHTML="<span>Готовлю PDF…</span>";
+  try{ await pdfLibs(); const box=document.createElement("div"); box.style.cssText="position:absolute;left:0;top:0;z-index:-1;pointer-events:none"; $("#fd-app").appendChild(box); const st={};
+    try{ for(const {kind,k} of items){ const K=KINDS[kind]; box.innerHTML=pagesFor(kind,k).map(x=>`<div class="sheet ${K.o}" style="box-shadow:none;margin:0">${x}</div>`).join(""); await addSheets(st, box.querySelectorAll(".sheet"), K.o==="landscape"); } }
+    finally{ box.remove(); }
+    st.pdf.save(fileSafe(dpTitle()+" — "+dpCounts().d+" накл")+".pdf");
+    setDocs(items).forEach((kinds,id)=>markDownloaded(id, [...new Set(kinds)], true)); dpSave();
+    logEv("Скачивание","Скачан PDF документов дня "+fd(DP.iso)+": "+dpCounts().d+" накл., "+items.length+" док. — "+[...new Set(DP.R.filter(r=>r.on&&r.k.size).map(r=>"№ "+r.j.number))].join(", "));
+    toast("ok","PDF скачан", dpCounts().d+" "+nklWord(dpCounts().d)+" · "+items.length+" док. — ищите в «Загрузках»"); }
+  catch(e){ toast("err","Не получилось сделать PDF", e.message+". Попробуйте ещё раз."); }
+  finally{ b.disabled=!dpCounts().d; b.innerHTML=h; } }
+function dpPrint(){ const items=dpItems(); if(!items.length) return; const all=[];
+  items.forEach(({kind,k})=>{ const K=KINDS[kind]; pagesFor(kind,k).forEach(h=>all.push({h,o:K.o})); });
+  cur={kind:items[0].kind, title:dpTitle(), pages:all.map(p=>p.h), po:all.map(p=>p.o), o:all[0].o, k:items[0].k, set:items};
+  dpSave(); $("#pv-print").onclick(); toast("ok","Открылась печать", dpCounts().d+" "+nklWord(dpCounts().d)+" · "+items.length+" док."); }
+document.addEventListener("click", e=>{ const d=e.target.closest("#fd-dcard.dpwin"); if(!d) return; const t=e.target, all=DP.R.map((r,i)=>i); let b;
+  if((b=t.closest("[data-dpd]"))){ const r=DP.R[+b.dataset.dpd]; r.on=!r.on; if(r.on&&!r.k.size) r.k.add(r.av[0]); }
+  else if((b=t.closest("[data-dpk]"))){ const [i,k]=b.dataset.dpk.split("|"), r=DP.R[+i]; if(!r.on){ r.on=true; r.k.add(k); } else if(r.k.has(k)) r.k.delete(k); else r.k.add(k); }
+  else if((b=t.closest("[data-dpc]"))){ const r=DP.R[+b.dataset.dpc]; r.c=r.on&&r.c===2?1:2; if(!r.on){ r.on=true; if(!r.k.size) r.k.add(r.av[0]); } }
+  else if((b=t.closest("[data-dpgd]"))){ const g=dpGroups().find(x=>x.cid===b.dataset.dpgd), v=!g.ix.every(i=>DP.R[i].on); g.ix.forEach(i=>{ const r=DP.R[i]; r.on=v; if(v&&!r.k.size) r.k.add(r.av[0]); }); }
+  else if((b=t.closest("[data-dpgk]"))){ const [cid,k]=b.dataset.dpgk.split("|"), g=dpGroups().find(x=>x.cid===cid); dpKind(g.ix, k, dpSt(g.ix, r=>r.k.has(k))!==1); }
+  else if((b=t.closest("[data-dpgc]"))){ const g=dpGroups().find(x=>x.cid===b.dataset.dpgc), v=dpSt(g.ix, r=>r.c===2)!==1; g.ix.forEach(i=>{ DP.R[i].c=v?2:1; }); }
+  else if((b=t.closest("[data-dpak]"))){ const k=b.dataset.dpak, ix=all.filter(i=>DP.R[i].av.includes(k)); dpKind(ix, k, dpSt(ix, r=>r.k.has(k))!==1); }
+  else if((b=t.closest("[data-dpac]"))){ const v=dpSt(all, r=>r.c===2)!==1; DP.R.forEach(r=>{ r.c=v?2:1; }); }
+  else if((b=t.closest("[data-dpsel]"))){ const v=!DP.R.every(r=>r.on); DP.R.forEach(r=>{ r.on=v; if(v&&!r.k.size) r.k.add(r.av[0]); }); }
+  else if((b=t.closest("#dp-pdf"))){ dpPdf(b); return; }
+  else if((b=t.closest("#dp-prn"))){ dpPrint(); return; }
+  else if((b=t.closest(".dpr .dpn"))){ const i=+b.closest(".dpr").dataset.dpi, r=DP.R[i]; r.on=!r.on; if(r.on&&!r.k.size) r.k.add(r.av[0]); }
+  else return;
+  e.preventDefault(); dpSync(); });
+$("#cal-pdf").onclick=()=>dpOpen();
 
 /* ================= прибыль (только администратор) ================= */
 let pfLoaded=false, pfOpen=new Set(), pfPrev=[], pfAt=0;
