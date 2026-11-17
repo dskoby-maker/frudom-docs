@@ -2345,6 +2345,35 @@ dialog .ndr-a{display:flex;gap:6px;flex:none}
 #fd-app .jf>label.f>.fh{min-height:20px;line-height:20px}#fd-app .jf>.rpgf>.rpgfl{line-height:20px}
 #fd-app .jf>label.f>:is(select,input:not([type=checkbox])),#fd-app .jf>label.f>.cpkw,#fd-app .jf>label.f>.cpkw>.cpk,#fd-app .jf>.rpgf .rpgw{height:42px;min-height:42px;box-sizing:border-box;margin:0}
 #fd-app .jf>.rpgf .rpgw .pvrpb{height:100%}
+/* журнал на телефоне — компактные фильтры (17.11.2026): период, поиск + «Фильтры N», остальное по кнопке */
+#fd-app .jfm{display:none}
+@media (max-width:700px){
+  #fd-app .card:has(>.jf #jr-q)>h2{margin-bottom:8px}
+  #fd-app .jf:has(#jr-q){gap:8px;margin-bottom:4px}
+  #fd-app .jf:has(#jr-q)>.rpgf{grid-column:1/-1;grid-template-rows:auto}#fd-app .jf:has(#jr-q)>.rpgf>.rpgfl{display:none}
+  #fd-app .jf:has(#jr-q)>.rpgf .rpgw{height:40px;min-height:40px}
+  #fd-app .jf:has(#jr-q)>label.f.jq:not([hidden]){display:block;grid-row:2;grid-column:1/-1;font-size:0;line-height:0}
+  #fd-app .jf:has(#jr-q)>label.jq>input{height:40px!important;min-height:40px!important;font-size:15px;line-height:normal;padding-right:118px}
+  #fd-app .jfm{grid-row:2;grid-column:1/-1;justify-self:end;align-self:center;margin-right:4px;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 10px;border:0;border-radius:9px;background:rgba(28,34,32,.05);color:var(--ink);font:inherit;font-size:13.5px;font-weight:500;cursor:pointer;width:auto;position:relative;z-index:1}
+  #fd-app .jfm em{font-style:normal;font-size:11.5px;font-weight:600;min-width:18px;height:18px;line-height:18px;padding:0 5px;border-radius:6px;background:var(--accent);color:#fff;text-align:center}
+  #fd-app .jfm.on,#fd-app .jf.open .jfm{background:var(--accent-soft);color:var(--accent)}
+  #fd-app .jfm svg{transition:transform .25s}#fd-app .jf.open .jfm svg{transform:rotate(180deg)}
+  #fd-app .jf:has(#jr-q):not(.open)>label.f:not(.jq){display:none!important}
+  #fd-app .jf:has(#jr-q).open>label.f:not(.jq):not([hidden]){grid-template-rows:16px auto;row-gap:3px;font-size:12px}
+  #fd-app .jf:has(#jr-q).open>label.f:not(.jq)>.fh{min-height:16px;line-height:16px}
+  #fd-app .jf:has(#jr-q).open>label.f:not(.jq)>:is(select,input),#fd-app .jf:has(#jr-q).open>label.f:not(.jq)>.cpkw,#fd-app .jf:has(#jr-q).open>label.f:not(.jq)>.cpkw>:is(.cpk,select){height:38px!important;min-height:38px!important;font-size:14.5px}
+  #fd-app .jf.jfin>label.f:not(.jq){animation:jfmIn .3s ease}@keyframes jfmIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  #fd-app .jf:has(#jr-q)+.jsum{gap:6px;margin:6px 0 4px}
+  #fd-app .jf:has(#jr-q)+.jsum #jr-sum{font-size:13px;line-height:1.3}
+  #fd-app .jf:has(#jr-q)+.jsum .btn{min-height:34px;height:34px;padding-top:0;padding-bottom:0;font-size:13.5px}
+  #fd-app .jf:has(#jr-q)+.jsum .btn.jimpf,#fd-app .jf:has(#jr-q)+.jsum .btn.jtoday{flex:1 1 0!important;min-width:0}
+  #fd-app .jf:has(#jr-q)+.jsum #jr-refresh{flex:0 0 34px;width:34px;padding:0}#fd-app .jf:has(#jr-q)+.jsum .jrft{display:none}
+  #fd-app .jf:has(#jr-q)+.jsum #jr-reset{flex:0 0 auto;order:9;background:none;color:var(--accent);padding:0 6px;min-height:0;height:auto;font-size:13px}
+  #fd-app .jf:has(#jr-q):not(.jfact)+.jsum #jr-reset{display:none}
+  #fd-app .jf:has(#jr-q)+.jsum #jr-msg:not(:empty){flex:1 1 100%;font-size:13px}
+  #fd-app .jf:has(#jr-q)+.jsum .btn.jimpf{gap:5px;overflow:hidden}#fd-app .jf:has(#jr-q)+.jsum .btn.jcmf{flex:0 1 auto!important}
+}
+#fd-app .jrfi{display:none}@media (max-width:440px){#fd-app .jf:has(#jr-q)+.jsum .jcmf .jcmfs{display:none}}@media (max-width:700px){#fd-app .jf:has(#jr-q)+.jsum .jrfi{display:block}}
 #fd-app .rpgw{display:inline-flex;align-items:center;gap:2px;max-width:100%;padding:3px;border-radius:12px;background:var(--surface-2,rgba(28,34,32,.04));border:1px solid var(--line)}
 #fd-app .rpgw .pvarr{flex:none}
 #fd-app .rpgf{grid-column:span 2;display:grid;grid-template-columns:minmax(0,1fr);gap:4px;align-content:start;min-width:0}#fd-app .rpgslot{min-width:0}#fd-app .rpgfl{font-size:12px;color:var(--muted);letter-spacing:.02em}
@@ -3167,10 +3196,10 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
         <label class="f" id="jr-brw" hidden>Подразделение<select id="jr-br"></select></label>
         <label class="f" id="jr-skw"><span class="fh">Склад<button type="button" class="hq" data-hq="Склад в журнале" aria-label="Подсказка: склад в журнале">?</button></span><select id="jr-sk"><option value="">Все</option><option value="any">Со склада</option><option value="wait">Ждут отгрузки</option><option value="short">С нехваткой</option></select></label>
         <label class="f" id="jr-govw" hidden>ЕИС / ПП<select id="jr-gov" aria-label="Отправлено в ЕИС / на Портал поставщиков"></select></label>
-        <label class="f jq">Поиск<input id="jr-q" placeholder="номер, адрес, товар…"></label>
+        <label class="f jq">Поиск<input id="jr-q" placeholder="номер, адрес, товар…"></label><button type="button" class="jfm" id="jr-more" aria-expanded="false" title="Поставщик, заказчик, склад, ЕИС / ПП, порядок"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>Фильтры</span><em id="jr-moren" hidden></em></button>
         <label class="f jso">Порядок<select id="jr-sort"><option value="cr_d">Сначала новые (по созданию)</option><option value="cr_a">Сначала старые (по созданию)</option><option value="dt_d">Дата документа: новые сверху</option><option value="dt_a">Дата документа: старые сверху</option><option value="nm_d">Номер: по убыванию</option><option value="nm_a">Номер: по возрастанию</option><option value="sm_d">Сумма: больше сверху</option><option value="sm_a">Сумма: меньше сверху</option><option value="cu_a">Заказчик: А–Я</option></select></label>
       </div>
-      <div class="row jsum"><span id="jr-sum" class="muted"></span><span class="muted" id="jr-msg" style="color:var(--accent)"></span><span style="flex:1"></span><button type="button" class="btn sm jimpf jcmf" id="jr-cm" aria-pressed="false" hidden title="Показать только документы с комментарием"><b class="jcmfi" aria-hidden="true"></b><span class="jcmfl">С комментарием</span><span class="jcmfs">Комментарии</span><em id="jr-cmn"></em></button><button type="button" class="btn sm jimpf" id="jr-imp" aria-pressed="false" hidden title="Показать только документы с важным комментарием"><i aria-hidden="true"></i><span>Важные</span><em id="jr-impn"></em></button><button class="btn sm jtoday" id="jr-today" title="Плавно прокрутить к документам на сегодня"><span>Сегодня</span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button><button class="btn ghost sm" id="jr-reset">Сбросить фильтры</button><button class="btn ghost sm" id="jr-refresh">Обновить</button></div>
+      <div class="row jsum"><span id="jr-sum" class="muted"></span><span class="muted" id="jr-msg" style="color:var(--accent)"></span><span style="flex:1"></span><button type="button" class="btn sm jimpf jcmf" id="jr-cm" aria-pressed="false" hidden title="Показать только документы с комментарием"><b class="jcmfi" aria-hidden="true"></b><span class="jcmfl">С комментарием</span><span class="jcmfs">Комментарии</span><em id="jr-cmn"></em></button><button type="button" class="btn sm jimpf" id="jr-imp" aria-pressed="false" hidden title="Показать только документы с важным комментарием"><i aria-hidden="true"></i><span>Важные</span><em id="jr-impn"></em></button><button class="btn sm jtoday" id="jr-today" title="Плавно прокрутить к документам на сегодня"><span>Сегодня</span><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg></button><button class="btn ghost sm" id="jr-reset">Сбросить фильтры</button><button class="btn ghost sm" id="jr-refresh" title="Загрузить свежие данные из таблицы"><svg class="jrfi" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg><span class="jrft">Обновить</span></button></div>
       <div class="tbl"><table class="stack jt" data-full="2,5"><thead id="jr-head"><tr><th data-js="dt">Дата</th><th data-js="nm">№</th><th data-js="cu">Заказчик и точка</th><th class="num" data-js="sm">Сумма</th><th>Распечатан со склада</th><th class="acts"></th></tr></thead><tbody id="jr-body"></tbody></table></div>
       <p class="muted" style="font-size:12px">Документ открывается ровно в том виде, в каком был создан. Нажмите на название заказчика — откроется карточка документа или комплекта. «Комплект» — документы одной заявки: стрелка справа показывает каждый документ, карандаш открывает комплект на правку во вкладке «Заявка», корзина убирает комплект в архив.</p>
     </div>
@@ -6993,7 +7022,16 @@ function jrToday(){ const body=$("#jr-body"); if(!body) return; const t=todayISO
   window.scrollTo({top:Math.max(0,y), behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
   el.classList.remove("jflash"); void el.offsetWidth; el.classList.add("jflash"); setTimeout(()=>el.classList.remove("jflash"),1800); }
 document.addEventListener("click", e=>{ if(e.target.closest && e.target.closest("#jr-today")) jrToday(); });
-function renderJournal(){
+/* журнал на телефоне: фильтры свёрнуты под кнопку «Фильтры N» (17.11.2026, просьба Даниила — компактнее) */
+const JFM_K="frudom-jfopen";
+function jfmSync(){ const box=$("#jr-q")&&$("#jr-q").closest(".jf"), b=$("#jr-more"); if(!box||!b) return; const f=JF();
+  const n=["sup","cus","br","sk","gov"].filter(k=>f[k]).length, open=(()=>{ try{ return localStorage.getItem(JFM_K)==="1"; }catch(e){ return false; } })();
+  box.classList.toggle("open", open); b.setAttribute("aria-expanded", open?"true":"false"); b.classList.toggle("on", n>0);
+  const em=$("#jr-moren"); em.hidden=!n; em.textContent=n||"";
+  box.classList.toggle("jfact", !!(n || f.q || (f.per&&f.per!=="all") || f.imp || f.cm || (f.sort&&f.sort!=="cr_d"))); }
+document.addEventListener("click", e=>{ if(!e.target.closest || !e.target.closest("#jr-more")) return; let o=false; try{ o=localStorage.getItem(JFM_K)!=="1"; localStorage.setItem(JFM_K, o?"1":"0"); }catch(x){}
+  jfmSync(); const box=$("#jr-q").closest(".jf"); if(o){ box.classList.add("jfin"); setTimeout(()=>box.classList.remove("jfin"),400); } });
+function renderJournal(){ setTimeout(jfmSync,0);
   if(me().admin && !pfLoaded && !zkJLoading && online()){ zkJLoading=true; loadProfit(true).then(()=>{ if(curTab==="journal") renderJournal(); }); }   /* значки закупки — по данным прибыли */
   const f=JF();
   $("#jr-per").value=f.per; $("#jr-fromw").hidden=$("#jr-tow").hidden=f.per!=="custom"; $("#jr-from").value=f.from||""; $("#jr-to").value=f.to||"";
