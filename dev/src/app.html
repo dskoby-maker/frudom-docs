@@ -1809,7 +1809,7 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .dtg-s em{font-style:normal;font-weight:600;color:hsl(var(--h) 40% 35%)}
 #fd-app .dtg-pts{display:inline-flex;flex-wrap:wrap;gap:4px;margin-left:4px}
 #fd-app .dtg-pts i{font-style:normal;font-size:11.5px;background:hsl(var(--h) 65% 93%);color:hsl(var(--h) 40% 30%);border-radius:99px;padding:0 8px;line-height:19px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;transition:opacity .25s}
-#fd-app .dtg.open .dtg-pts{opacity:.0;max-height:0;overflow:hidden}
+#fd-app .dtg.open .dtg-pts{display:none} /* в раскрытой карточке чипы точек убираются целиком — иначе пустое место сдвигало «Гриша» на середину (17.11.2026) */
 #fd-app .dtg-pts{transition:opacity .2s}
 #fd-app .dtg-new{flex:none;font-size:11.5px;font-weight:600;color:#fff;background:#d9822b;border-radius:99px;padding:2px 9px;animation:dtgPulse 1.8s ease-in-out infinite;transition:opacity .25s,transform .25s}
 #fd-app .dtg-new.gone{opacity:0;transform:scale(.6)}
