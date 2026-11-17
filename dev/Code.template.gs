@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 43;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 44;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -63,7 +63,7 @@ const S = {
   /* склад: см. раздел «СКЛАД» ниже. Пишется только действием stock */
   sunits: { title: 'Склад: единицы', key: 'id', cols: [['name','Единица'],['by','Кто добавил'],['at','Когда'],['id','ID (не менять)'],['op','Операция']]},
   sitems: { title: 'Склад: товары', key: 'id', cols: [
-    ['name','Товар на складе'],['alt','Другие названия'],['unit','Основная единица'],['note','Комментарий к товару'],['linkNames','Позиции в документах'],['id','ID (не менять)'],['links','ID позиций (не редактировать)'],['by','Кто добавил'],['at','Когда'],['op','Операция'],['def','Брать со склада по умолчанию (s = да)'],['defC','Только для заказчиков (ID)']]},
+    ['name','Товар на складе'],['alt','Другие названия'],['unit','Основная единица'],['note','Комментарий к товару'],['linkNames','Позиции в документах'],['id','ID (не менять)'],['links','ID позиций (не редактировать)'],['by','Кто добавил'],['at','Когда'],['op','Операция'],['def','Брать со склада по умолчанию (s = да)'],['defC','Только для заказчиков (ID)'],['pack','Вес 1 шт, кг (вписан руками)']]},
   sbatches: { title: 'Склад: партии', key: 'id', cols: [
     ['itemName','Товар'],['name','Партия'],['date','Дата приёмки'],['qty','Количество'],['unit','Ед.'],['price','Закупочная цена за ед.'],['supplier','Поставщик'],['docRef','Входящий документ'],['exp','Годен до'],['kind','Вид'],['id','ID (не менять)'],['itemId','ID товара'],['parent','Из партии'],['by','Кто'],['at','Когда'],['op','Операция'],['cancel','Приход отменён'],['pack','Вес 1 шт (фасовка)'],['box','Штук в коробке']]},
   smoves: { title: 'Склад: движения', key: 'id', cols: [
@@ -1192,7 +1192,7 @@ function applySync_(ch, me) {
  * со статусом prep, потом строки ложатся на листы по постоянным ключам, потом статус done. Остатки и резервы считаются
  * только по операциям done. Если скрипт оборвался посередине — следующий запрос допишет недостающее (stRepair_). */
 const ST_UNITS0 = ['кг', 'г', 'шт', 'л', 'упак', 'короб'];
-const ST_TYPES = { in: 'Приход', init: 'Начальный остаток', ship: 'Отгрузка', ret: 'Возврат', wo: 'Списание', inv: 'Инвентаризация', rwout: 'Перевзвешивание (из упаковок)', rwin: 'Перевзвешивание (в кг)', fix: 'Исправление прихода', close: 'Остаток закрыт', direct: 'Отгружено от Саида' };
+const ST_TYPES = { in: 'Приход', init: 'Начальный остаток', ship: 'Отгрузка', ret: 'Возврат', wo: 'Списание', inv: 'Инвентаризация', rwout: 'Перевзвешивание (из упаковок)', rwin: 'Перевзвешивание (в кг)', rwund: 'Отмена перевзвешивания', fix: 'Исправление прихода', close: 'Остаток закрыт', direct: 'Отгружено от Саида' };
 const ST_NOSTOCK = { close: 1, direct: 1 };   /* записи, которые не меняют остаток */
 const stN_ = v => String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
 const stK_ = v => stN_(v).toLowerCase().replace(/ё/g, 'е');
@@ -1593,6 +1593,11 @@ const ST_OPS = {
       it.links = JSON.stringify(L);
       it.linkNames = L.map(stLinkName_).join('; ');
     }
+    if (d.pack != null) { const v = d.pack === '' ? '' : +String(d.pack).replace(',', '.');
+      if (v !== '' && (!(v > 0) || !isFinite(v) || v > 1000)) stErr_('Вес 1 шт — число от 0 до 1000 кг');
+      const pk = v === '' ? '' : String(Math.round(v * 1e6) / 1e6);
+      if (String(pk) !== String(it.pack || '')) stLog_(W, rid, me, n++, { action: 'Вес 1 шт', object: it.name || '', before: it.pack ? stQ_(+it.pack, 'кг') : 'не указан', after: pk ? stQ_(+pk, 'кг') : 'не указан', itemId: it.id });
+      it.pack = pk; }
     if (d.def != null) { it.def = d.def === 's' ? 's' : ''; it.defC = JSON.stringify((Array.isArray(d.defC) ? d.defC : []).map(String).filter(Boolean)); }
     W.sitems.upsert.push(it);
     if (!isNew && (String(was.def || '') !== String(it.def || '') || String(was.defC || '[]') !== String(it.defC || '[]'))) {
@@ -1617,7 +1622,8 @@ const ST_OPS = {
   cancelIn: function (d, me, c, rid) {
     const b = c.batch[d.batchId]; if (!b) stErr_('Партия не найдена'); if (b.cancel) stErr_('Приход уже отменён'); if (b.kind === 'rw') stErr_('Перевзвешенную партию не отменить — сделайте инвентаризацию');
     const reason = stN_(d.reason); if (!reason) stErr_('Укажите причину');
-    const used = c.smoves.some(m => m.batchId === b.id && ['in', 'init', 'fix'].indexOf(m.type) < 0) || c.sbatches.some(x => x.parent === b.id);
+    const rwNet = stR3_(c.smoves.filter(m => m.batchId === b.id && (m.type === 'rwout' || m.type === 'rwund')).reduce((s, m) => s + (+m.qty || 0), 0));
+    const used = c.smoves.some(m => m.batchId === b.id && ['in', 'init', 'fix', 'rwout', 'rwund'].indexOf(m.type) < 0) || Math.abs(rwNet) > 0.0005 || c.sbatches.some(x => x.parent === b.id && !x.cancel);
     if (used || (c.resB[b.id] || 0) > 0) stErr_('Из этой партии уже брали товар (резерв, отгрузка, списание или перевзвешивание) — отменить нельзя. Исправьте количество с причиной или сделайте инвентаризацию.');
     const f = c.fact[b.id] || 0, it = c.item[b.itemId] || {}, at = new Date().toISOString();
     const W = { sbatches: { upsert: [Object.assign({}, b, { cancel: at.slice(0, 10) })] }, smoves: { upsert: f ? [{ id: rid + ':m', at: at, by: me.name, type: 'fix', typeName: 'Приход отменён', itemId: b.itemId, itemName: it.name, batchId: b.id, qty: -f, unit: b.unit, cost: b.price, reason: reason }] : [] } };
@@ -1709,6 +1715,23 @@ const ST_OPS = {
       { id: rid + ':m2', at: at, by: me.name, type: 'rwin', typeName: ST_TYPES.rwin, itemId: b.itemId, itemName: it.name, batchId: nb.id, qty: kg, unit: 'кг', cost: price, reason: 'из ' + stQ_(n, b.unit) } ] } };
     stLog_(W, rid, me, 0, { action: 'Перевзвешивание', object: it.name + ' — ' + b.name, before: stQ_(n, b.unit), after: stQ_(kg, 'кг') + (price ? ' по ' + price + ' ₽/кг' : ''), batchId: nb.id, itemId: b.itemId });
     return { W: W, out: { batchId: nb.id } };
+  },
+  /* отменить перевзвешивание: новая партия в кг исчезает, упаковки возвращаются в исходную партию.
+     Можно, только если из новой партии ещё ничего не брали (резерв, отгрузка, списание, инвентаризация, перевзвешивание дальше) */
+  rwUndo: function (d, me, c, rid) {
+    const b = c.batch[d.batchId]; if (!b) stErr_('Партия не найдена — обновите страницу'); if (b.kind !== 'rw') stErr_('Это не перевзвешенная партия'); if (b.cancel) stErr_('Перевзвешивание уже отменено');
+    const p = c.batch[b.parent]; if (!p) stErr_('Исходная партия не найдена');
+    const r0 = String(b.id).replace(/:b$/, ''), out = c.smoves.find(m => m.id === r0 + ':m1' && m.batchId === p.id);
+    if (!out) stErr_('Не нашёл, сколько упаковок перевзвешивали — исправьте инвентаризацией');
+    const used = c.smoves.some(m => m.batchId === b.id && m.type !== 'rwin') || c.sbatches.some(x => x.parent === b.id && !x.cancel) || (c.resB[b.id] || 0) > 0;
+    const f = c.fact[b.id] || 0;
+    if (used || Math.abs(f - (+b.qty || 0)) > 0.0005) stErr_('Из этой партии уже брали товар (резерв, отгрузка, списание или инвентаризация) — отменить нельзя. Исправьте остатки инвентаризацией.');
+    const n = -(+out.qty || 0), it = c.item[b.itemId] || {}, at = new Date().toISOString(), reason = stN_(d.reason) || 'ошибочное перевзвешивание';
+    const W = { sbatches: { upsert: [Object.assign({}, b, { cancel: at.slice(0, 10) })] }, smoves: { upsert: [
+      { id: rid + ':m1', at: at, by: me.name, type: 'rwund', typeName: ST_TYPES.rwund, itemId: b.itemId, itemName: it.name, batchId: b.id, qty: -f, unit: b.unit, cost: b.price, reason: reason },
+      { id: rid + ':m2', at: at, by: me.name, type: 'rwund', typeName: ST_TYPES.rwund, itemId: b.itemId, itemName: it.name, batchId: p.id, qty: n, unit: p.unit, cost: p.price, reason: reason } ] } };
+    stLog_(W, rid, me, 0, { action: 'Перевзвешивание отменено', object: it.name + ' — ' + p.name, before: stQ_(f, b.unit), after: stQ_(n, p.unit), reason: reason, batchId: p.id, itemId: b.itemId });
+    return { W: W, out: { batchId: p.id } };
   },
   /* явное обновление резерва накладной (например, после нового прихода) */
   reserve: function (d, me, c, rid) {

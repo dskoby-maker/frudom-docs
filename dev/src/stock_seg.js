@@ -4,7 +4,7 @@
    Резерв по накладной сервер пересчитывает сам при каждом её сохранении (любой путь: документ, заявка, комплект, импорт). */
 var SK_READY=false;
 const SK_UNITS0=["кг","г","шт","л","упак","короб"];
-const SK_T={in:"Приход", init:"Начальный остаток", ship:"Отгрузка", ret:"Возврат", wo:"Списание", inv:"Инвентаризация", rwout:"Перевзвешивание", rwin:"Перевзвешивание", fix:"Исправление прихода", close:"Остаток закрыт", direct:"От Саида"};
+const SK_T={in:"Приход", init:"Начальный остаток", ship:"Отгрузка", ret:"Возврат", wo:"Списание", inv:"Инвентаризация", rwout:"Перевзвешивание", rwin:"Перевзвешивание", rwund:"Отмена перевзвешивания", fix:"Исправление прихода", close:"Остаток закрыт", direct:"От Саида"};
 const SK_NOSTOCK={close:1, direct:1};
 const SKKEY = () => "frudom-stock:"+(curUser()||"-"), SKQKEY = () => "frudom-stockq:"+(curUser()||"-");
 var SK=null, SKC=null, skSrv=null, skLoading=false, skT=null; const SKQF={};
@@ -55,8 +55,19 @@ function skUnitsOf(itemId){ const m={}, X=skIdx(); (X.byItem[itemId]||[]).forEac
 var SKPL={}; try{ SKPL=JSON.parse(lsGet("frudom-stockpack")||"{}")||{}; }catch(e){ SKPL={}; }
 const skPackSave = (id,v) => { if(!id) return; if(+v>0) SKPL[id]=String(v); else delete SKPL[id]; try{ lsSet("frudom-stockpack",JSON.stringify(SKPL)); }catch(e){} };
 const skPack = b => { if(!b || skK(b.unit)==="шт") return 0; const v=+String(b.pack!=null&&b.pack!==""?b.pack:(SKPL[b.id]||"")).replace(",","."); if(v>0) return v;
-  /* фасовка не указана — берём вес 1 шт из названия товара склада («Фасоль … 450г» → 0,45 кг), если единицы совпадают */
+  /* фасовка партии не указана — вес 1 шт товара (вписан руками в карточке товара), иначе из названия («Фасоль … 450г» → 0,45 кг) */
+  if(skK(b.unit)==="кг"){ const ip=skIPack(b.itemId); if(ip) return ip; }
   const it=skIdx().item[b.itemId], w=miWeight((it&&it.name)||b.itemName||""); return w && skK(w.unit)===skK(b.unit) ? w.w : 0; };
+/* вес 1 шт у товара склада, кг: вписан руками (поле pack товара, Code.gs ≥ 44; со старым скриптом — на устройстве SKIPL) */
+var SKIPL={}; try{ SKIPL=JSON.parse(lsGet("frudom-stockipack")||"{}")||{}; }catch(e){ SKIPL={}; }
+const skIPackSave = (id,v) => { if(!id) return; if(+v>0) SKIPL[id]=String(v); else delete SKIPL[id]; try{ lsSet("frudom-stockipack",JSON.stringify(SKIPL)); }catch(e){} };
+const skIPackSrv = () => (D.srvVer||0)>=44;
+const skIPack = id => { const it=skIdx().item[id]; const v=+String(it&&it.pack!=null&&it.pack!==""?it.pack:(SKIPL[id]||"")).replace(",","."); return v>0?v:0; };
+/* вес 1 шт для расчёта «шт → кг»: вписанный руками, иначе из названия; {w, src:"own"|"name"} или null */
+function skPcW(id){ const ip=skIPack(id); if(ip) return {w:ip, src:"own"}; const it=skIdx().item[id], w=miWeight(it&&it.name); return w&&w.unit==="кг"?{w:w.w, src:"name"}:null; }
+const skGr = kg => { const g=kg*1000; return g<1000 ? String(Math.round(g*10)/10).replace(".",",")+" г" : skQf(kg,"кг"); };
+/* штуки → килограммы (только для показа): «405 шт ≈ 202,5 кг» */
+const skKgTxt = (id, n) => { const w=skPcW(id); return w && n>0 ? "≈ "+skQf(r3(n*w.w),"кг") : ""; };
 const skPcN = n => { const k=Math.round(n); return (Math.abs(n-k)<0.01?String(k):"≈ "+String(Math.round(n*10)/10).replace(".",","))+" шт"; };
 /* коробки: сколько штук в коробке у партии (поле box; со старым скриптом — на устройстве SKBX). Коробок может быть дробное число: 2,35 кор */
 var SKBX={}; try{ SKBX=JSON.parse(lsGet("frudom-stockbox")||"{}")||{}; }catch(e){ SKBX={}; }
@@ -66,13 +77,13 @@ const skBxN = n => { const k=Math.round(n); return (Math.abs(n-k)<0.005?String(k
 /* штук в количестве партии: в «шт» — само количество, иначе по весу 1 шт; null — неизвестно */
 const skPcsOf = (b,q) => skK(b.unit)==="шт" ? q : (skPack(b) ? q/skPack(b) : null);
 function skPcsBox(b, pc){ const out=[]; if(skK(b.unit)!=="шт") out.push(skPcN(pc)); const bx=skBox(b); if(bx) out.push(skBxN(pc/bx)); return out.join(" · "); }
-const skBPcs = (b,q) => { if(!(q>0)) return ""; const pc=skPcsOf(b,q); return pc==null?"":skPcsBox(b,pc); };
+const skBPcs = (b,q) => { if(!(q>0)) return ""; const pc=skPcsOf(b,q), kg=skK(b.unit)==="шт"?skKgTxt(b.itemId,q):""; return [kg, pc==null?"":skPcsBox(b,pc)].filter(Boolean).join(" · "); };
 const skPackTxt = b => { const p=skPack(b), bx=skBox(b); return [p?"1 шт = "+skQf(p,b.unit):"", bx?"в коробке "+String(bx).replace(".",",")+" шт":""].filter(Boolean).join(" · "); };
 /* штуки (и коробки) по товару в одной единице: только если у всех партий с остатком они известны (иначе число было бы неполным) */
 function skUPcs(itemId, unit, key){ let n=0, nb=0, any=false, boxOk=true;
   for(const b of (skIdx().byItem[itemId]||[])){ if(b.cancel || skK(b.unit)!==skK(unit)) continue; const q=key==="free"?skFree(b.id):key==="res"?skRes(b.id):skFact(b.id); if(!(q>0)) continue;
     const pc=skPcsOf(b,q); if(pc==null){ if(skK(unit)!=="шт") return ""; boxOk=false; continue; } n+=pc; any=true; const bx=skBox(b); if(bx) nb+=pc/bx; else boxOk=false; }
-  if(!any) return ""; const out=[]; if(skK(unit)!=="шт") out.push(skPcN(n)); if(boxOk && nb>0) out.push(skBxN(nb)); return out.join(" · "); }
+  if(!any) return ""; const out=[]; if(skK(unit)!=="шт") out.push(skPcN(n)); else { const kg=skKgTxt(itemId,n); if(kg) out.push(kg); } if(boxOk && nb>0) out.push(skBxN(nb)); return out.join(" · "); }
 /* сколько штук в количестве строки документа: по фасовке партии, из которой возьмём первой (самая ранняя с остатком) */
 function skQPcs(itemId, unit, q){ if(!(q>0) || !itemId) return ""; const ok=x=>!x.cancel && skK(x.unit)===skK(unit) && (skK(unit)==="шт"?skBox(x):skPack(x));
   const b=(skIdx().byItem[itemId]||[]).find(x=>ok(x) && skFree(x.id)>0) || (skIdx().byItem[itemId]||[]).slice().reverse().find(ok);
@@ -235,13 +246,18 @@ document.addEventListener("change", e=>{ const t=e.target; if(!t.closest || !t.c
   if(t.classList.contains("sklg-who")){ G.who=t.value; G.page=0; skLgRedraw(); return; }
   if(t.classList.contains("sklg-from")||t.classList.contains("sklg-to")){ G[t.classList.contains("sklg-from")?"from":"to"]=t.value; G.page=0; skLgRedraw(); } });
 const skExpCls = e => { const d=Math.round((new Date(e+"T12:00:00")-new Date(todayISO()+"T12:00:00"))/864e5); return d<0?"bad":d<=7?"warn":""; };
-const skLogRow = (l,k) => { const tm=l.at?new Date(l.at):null, hm=tm&&!isNaN(tm)?tm.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}):"";
-  return `<div class="sklr${l.pend?" pend":""}" style="--d:${Math.min(k||0,10)*18}ms"><span class="sklt">${hm}</span><span class="skla ${skActCls(l.action)}" title="${esc(l.action)}">${esc(l.action)}</span><span class="sklo"><b>${esc(l.object||"")}</b>${l.before||l.after?`<small>${l.before&&l.before!=="—"?esc(l.before)+" → ":""}${esc(l.after||"")}</small>`:""}${l.reason?`<small class="muted">${esc(l.reason)}</small>`:""}</span><span class="sklw">${esc(l.by||"")}</span></div>`; };
+const skLogGo = l => { const X=skIdx(); return l.pend?"" : l.batchId&&X.batch[l.batchId] ? `data-sklgb="${esc(l.batchId)}"` : l.itemId&&X.item[l.itemId] ? `data-sklgi="${esc(l.itemId)}"` : l.docId ? `data-sklgd="${esc(l.docId)}"` : ""; };
+const skLogUndo = l => { if(l.action!=="Перевзвешивание") return ""; const b=skIdx().batch[l.batchId]; return b && b.kind==="rw" && skCanRwUndo(b) ? `<button type="button" class="btn ghost sm danger sklu" data-skrwund="${esc(b.id)}">Отменить</button>` : b&&b.cancel?`<small class="muted sklu">отменено</small>`:""; };
+const skLogRow = (l,k) => { const tm=l.at?new Date(l.at):null, hm=tm&&!isNaN(tm)?tm.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}):"", go=skLogGo(l);
+  return `<div class="sklr${l.pend?" pend":""}${go?" go":""}" ${go}${go?` role="button" tabindex="0" title="Открыть и при необходимости исправить"`:""} style="--d:${Math.min(k||0,10)*18}ms"><span class="sklt">${hm}</span><span class="skla ${skActCls(l.action)}" title="${esc(l.action)}">${esc(l.action)}</span><span class="sklo"><b>${esc(l.object||"")}</b>${l.before||l.after?`<small>${l.before&&l.before!=="—"?esc(l.before)+" → ":""}${esc(l.after||"")}</small>`:""}${l.reason?`<small class="muted">${esc(l.reason)}</small>`:""}</span><span class="sklw">${esc(l.by||"")}${skLogUndo(l)}${go?`<i class="sklgo" aria-hidden="true">›</i>`:""}</span></div>`; };
+function skLogOpen(r){ if(r.dataset.sklgb) skBatchCard(r.dataset.sklgb); else if(r.dataset.sklgi) skItemCard(r.dataset.sklgi); else if(r.dataset.sklgd){ const j=D.journal.find(x=>x.id===r.dataset.sklgd); if(j) docCard(j, isArch(j)); else toast("info","Накладной нет на этом устройстве","Обновите страницу."); } }
+document.addEventListener("click", e=>{ const t=e.target; if(!t.closest || t.closest("button,a,select,input")) return; const r=t.closest(".sklr.go"); if(r) skLogOpen(r); });
+document.addEventListener("keydown", e=>{ if(e.key!=="Enter"||!e.target.classList||!e.target.classList.contains("sklr")||!e.target.classList.contains("go")) return; e.preventDefault(); skLogOpen(e.target); });
 function skFileRow(f){ return dRow(f); }   /* декларация — одна и та же строка везде (decl_seg.js) */
 
 /* ---------- карточка товара ---------- */
 let SKI={id:"", f:"", edit:false, linkQ:"", linkC:""};
-function skItemCard(id){ SKMVN.i=10; SKI={id, f:"", edit:false, linkQ:"", linkC:""}; SK_RE=()=>skItemCard(id); skModal(skItemHtml, true); }
+function skItemCard(id){ SKMVN.i=10; SKPW=null; SKI={id, f:"", edit:false, linkQ:"", linkC:""}; SK_RE=()=>skItemCard(id); skModal(skItemHtml, true); }
 function skItemHtml(){ const X=skIdx(), it=X.item[SKI.id]; if(!it) return skHead("Склад","Товар не найден","Обновите страницу.");
   const U=skUnitsOf(it.id), B=X.byItem[it.id]||[], ML=X.S.moves.filter(m=>m.itemId===it.id).slice().reverse(), types=[...new Set(ML.map(m=>m.type))];
   const RL=X.S.res.filter(r=>r.itemId===it.id), files=X.filesI[it.id]||[];
@@ -250,7 +266,8 @@ function skItemHtml(){ const X=skIdx(), it=X.item[SKI.id]; if(!it) return skHead
   + skItemTiles(it) + `</div>`
   + (SKI.resU!=null?`<div class="skbox"><div class="skbh"><b>Резерв — ${esc(SKI.resU)}</b><button type="button" class="btn ghost sm" data-sk="resclose">Скрыть</button></div>${RL.filter(r=>skK(r.unit)===skK(SKI.resU)).reduce((a,r)=>{ const o=a.find(x=>x.docId===r.docId); if(o) o.q=r3(o.q+(+r.qty)); else a.push({docId:r.docId, q:+r.qty, doc:r.doc}); return a; },[]).map(o=>{ const j=D.journal.find(x=>x.id===o.docId); return `<button type="button" class="skdr" data-skdoc="${o.docId}"><b>${j?esc(jWho(j).main):"накладная"}</b><span>${j?"№ "+esc(j.number)+" от "+fd(j.date):esc(o.doc)} · ${skQf(o.q,SKI.resU)} — открыть накладную ›</span></button>`; }).join("")}</div>`:"")
   + `<div class="skbox"><div class="skbh"><b>Комментарий к товару</b><small class="muted">виден только здесь, в документы не попадает</small></div><textarea class="skcomment" rows="2" data-keep="1" placeholder="Например: «Этот кофейный напиток заказывает только ревматология»">${esc(it.note||"")}</textarea><div class="row"><button type="button" class="btn sm" data-sk="note">Сохранить комментарий</button>${it.note?`<button type="button" class="btn ghost sm" data-sk="noteclr">Очистить</button>`:""}</div></div>`
-  + `<div class="skbox"><div class="skbh"><b>Партии${skHQ("Партии")}</b><button type="button" class="btn sm" data-sk="inItem">+ Приход</button></div>${B.length?`<div class="skbl">${B.slice().reverse().map(b=>{ const f=skFact(b.id), r=skRes(b.id), e=skExp(b); return `<button type="button" class="skbr${f>0?"":" empty"}${b.cancel?" cancel":""}" data-skbatch="${b.id}"><span><b>${esc(b.name)}${b.cancel?" · отменён":""}</b><small>${esc(b.supplier||"—")}${b.docRef?" · "+esc(b.docRef):""}${b.kind==="init"?" · начальный остаток":""}</small></span><span class="num"><b>${skQf(f,b.unit)}</b>${skBPcs(b,f)?`<i class="skpc">${skBPcs(b,f)}</i>`:""}<small>из ${skQf(b.qty,b.unit)}${skPack(b)?" · "+skPackTxt(b):""}${r?" · резерв "+skQf(r):""}</small></span><span class="num">${b.price!==""&&b.price!=null?fm(+b.price)+" ₽":`<span class="miss">цена?</span>`}</span><span>${e?`<span class="skexp ${skExpCls(e)}">до ${fd(e)}</span>`:`<small class="muted">Срок годности не указан</small>`}</span></button>`; }).join("")}</div>`:`<p class="muted">Партий нет.</p>`}</div>`
+  + skPwBox(it)
+  + `<div class="skbox"><div class="skbh"><b>Партии${skHQ("Партии")}</b><button type="button" class="btn sm" data-sk="inItem">+ Приход</button></div>${B.length?`<div class="skbl">${B.filter(b=>!(b.kind==="rw"&&b.cancel)).reverse().map(b=>{ const f=skFact(b.id), r=skRes(b.id), e=skExp(b); return `<button type="button" class="skbr${f>0?"":" empty"}${b.cancel?" cancel":""}" data-skbatch="${b.id}"><span><b>${esc(b.name)}${b.cancel?(b.kind==="rw"?" · перевзвешивание отменено":" · отменён"):""}</b><small>${esc(b.supplier||"—")}${b.docRef?" · "+esc(b.docRef):""}${b.kind==="init"?" · начальный остаток":""}</small></span><span class="num"><b>${skQf(f,b.unit)}</b>${skBPcs(b,f)?`<i class="skpc">${skBPcs(b,f)}</i>`:""}<small>из ${skQf(b.qty,b.unit)}${skPack(b)?" · "+skPackTxt(b):""}${r?" · резерв "+skQf(r):""}</small></span><span class="num">${b.price!==""&&b.price!=null?fm(+b.price)+" ₽":`<span class="miss">цена?</span>`}</span><span>${e?`<span class="skexp ${skExpCls(e)}">до ${fd(e)}</span>`:`<small class="muted">Срок годности не указан</small>`}</span></button>`; }).join("")}</div>`:`<p class="muted">Партий нет.</p>`}</div>`
   + `<div class="skbox"><div class="skbh"><b>Позиции в документах${skHQ("Позиции в документах")}</b><small class="muted">резерв и списание — только по этим связям</small></div>${(it._lk||[]).map(e=>{ const c=skLkC(e); return `<span class="sklink${c?" cus":""}">${esc((prod(skLkP(e))||{}).name||skLkP(e))}${c?`<i>только для «${esc(cusNm(c)||c)}»</i>`:""}<button type="button" data-skunlink="${esc(e)}" aria-label="Убрать связь">×</button></span>`; }).join("")||`<p class="muted">Не связан — со склада его в документ не взять.</p>`}
       ${skLkSrv()?`<label class="sklc"><span>Связать для</span><select class="sklcs" data-keep="1" aria-label="Для какого заказчика связь"><option value="">всех заказчиков</option>${opts(D.customers.filter(c=>c.id!=="__private"&&!c.priv).slice().sort((a,b)=>cusNm(a.id).localeCompare(cusNm(b.id),"ru")), SKI.linkC||"")}</select></label>`:""}
       <div class="sklinkadd"><input class="sklq" data-keep="1" placeholder="Найти позицию документов, например «ягоды сушёные (шиповник)»" value="${esc(SKI.linkQ)}"><div class="sklsug">${skLinkSug(it)}</div></div></div>`
@@ -287,7 +304,7 @@ let SKB={id:"", mode:""};
 function skBatchCard(id){ SKMVN.b=10; SKB={id, mode:""}; SK_RE=()=>skBatchCard(id); skModal(skBatchHtml, true); }
 function skBatchHtml(){ const X=skIdx(), b=X.batch[SKB.id]; if(!b) return skHead("Склад","Партия не найдена","");
   const it=X.item[b.itemId]||{}, f=skFact(b.id), r=skRes(b.id), root=skRoot(b), e=root.exp||"", ML=X.S.moves.filter(m=>m.batchId===b.id).slice().reverse(), files=(X.filesI[b.itemId]||[]).filter(x=>x.batchId===b.id||x.batchId===root.id);
-  const lim=docLimited(), info=[["Дата приёмки",fd(b.date)],["Поставщик",b.supplier||"—"],["Входящий документ",b.docRef||"—"],["Пришло",skQf(b.qty,b.unit)+(skBPcs(b,+b.qty)?" ("+skBPcs(b,+b.qty)+")":"")],["Фасовка",skPack(b)?skPackTxt(b):skK(b.unit)==="шт"?"—":"не указана"],["Закупочная цена",b.price!==""&&b.price!=null?fm(+b.price)+" ₽ за "+b.unit:"не указана"],["Сумма прихода",b.price!==""&&b.price!=null?fm(r2(b.qty*b.price))+" ₽":"—"],["Годен до",e?fd(e)+(root.id!==b.id?" (срок исходной партии)":""):"Срок годности не указан"]].concat(b.parent?[["Из партии",(X.batch[b.parent]||{}).name||""]]:[]);
+  const lim=docLimited(), info=[["Дата приёмки",fd(b.date)],["Поставщик",b.supplier||"—"],["Входящий документ",b.docRef||"—"],["Пришло",skQf(b.qty,b.unit)+(skBPcs(b,+b.qty)?" ("+skBPcs(b,+b.qty)+")":"")],["Фасовка",skPack(b)?skPackTxt(b):skK(b.unit)==="шт"?((w=>w?"1 шт = "+skGr(w.w)+(w.src==="own"?" (у товара)":" (из названия)"):"вес 1 шт не указан — впишите в карточке товара")(skPcW(b.itemId))):"не указана"],["Закупочная цена",b.price!==""&&b.price!=null?fm(+b.price)+" ₽ за "+b.unit:"не указана"],["Сумма прихода",b.price!==""&&b.price!=null?fm(r2(b.qty*b.price))+" ₽":"—"],["Годен до",e?fd(e)+(root.id!==b.id?" (срок исходной партии)":""):"Срок годности не указан"]].concat(b.parent?[["Из партии",(X.batch[b.parent]||{}).name||""]]:[]);
   let form="";
   if(SKB.mode==="edit") form=`<div class="skbox"><div class="skbh"><b>Изменить партию</b></div><div class="skgrid">
       ${lim?"":`<label class="f">Закупочная цена за ${esc(b.unit)}, ₽<input class="skbp" data-keep="1" inputmode="decimal" value="${esc(String(b.price||"").replace(".",","))}"></label>`}
@@ -300,10 +317,14 @@ function skBatchHtml(){ const X=skIdx(), b=X.batch[SKB.id]; if(!b) return skHead
       <div class="row"><button type="button" class="btn pri sm" data-sk="batchSave">Сохранить</button><button type="button" class="btn ghost sm" data-sk="mode0">Отмена</button></div></div>`;
   if(SKB.mode==="wo") form=`<div class="skbox"><div class="skbh"><b>Списание</b><small class="muted">свободно ${skQf(r3(f-r),b.unit)}</small></div><div class="skgrid"><label class="f">Сколько, ${esc(b.unit)}<input class="skwq" data-keep="1" inputmode="decimal"></label><label class="f wide">Причина (обязательно)<input class="skwr" data-keep="1" placeholder="испортился, усушка, брак…"></label></div><div class="row"><button type="button" class="btn pri sm danger" data-sk="woSave">Списать</button><button type="button" class="btn ghost sm" data-sk="mode0">Отмена</button></div></div>`;
   if(SKB.mode==="cancel") form=`<div class="skbox"><div class="skbh"><b>Отменить приход${skHQ("Отменить приход")}</b></div><p class="muted sk-hint">Партия исчезнет из остатков (в истории останется запись). Можно, только если из неё ещё ничего не брали.</p><label class="f wide">Причина (обязательно)<input class="skcr" data-keep="1" placeholder="ошибся товаром, задвоил приход…"></label><div class="row"><button type="button" class="btn pri sm danger" data-sk="cancelSave">Отменить приход</button><button type="button" class="btn ghost sm" data-sk="mode0">Не отменять</button></div></div>`;
-  if(SKB.mode==="rw") form=`<div class="skbox"><div class="skbh"><b>Перевзвешивание в кг${skHQ("Перевзвешивание")}</b><small class="muted">свободно ${skQf(r3(f-r),b.unit)}; зарезервированные не перевзвешиваются</small></div><div class="skgrid"><label class="f">Сколько ${esc(b.unit)}<input class="skrn" data-keep="1" inputmode="decimal"></label><label class="f">Фактический вес, кг<input class="skrk" data-keep="1" inputmode="decimal"></label></div><p class="muted sk-hint">Стоимость упаковок перейдёт в новую партию в кг. Срок годности и декларации остаются от этой партии.</p><div class="row"><button type="button" class="btn pri sm" data-sk="rwSave">Перевзвесить</button><button type="button" class="btn ghost sm" data-sk="mode0">Отмена</button></div></div>`;
+  if(SKB.mode==="rw"){ const fr=r3(f-r), pw=skPcW(b.itemId); if(!SKRW || SKRW.id!==b.id) SKRW={id:b.id, n:String(fr).replace(".",","), kg:pw?String(r3(fr*pw.w)).replace(".",","):"", kgA:!!pw};
+    form=`<div class="skbox skrwf"><div class="skbh"><b>Перевзвешивание в кг${skHQ("Перевзвешивание")}</b><small class="muted">свободно ${skQf(fr,b.unit)}; зарезервированные не перевзвешиваются</small></div><div class="skgrid"><label class="f">Сколько ${esc(b.unit)}<input class="skrn" data-keep="1" inputmode="decimal" value="${esc(SKRW.n)}"></label><label class="f">Сколько это кг (взвесили)<input class="skrk" data-keep="1" inputmode="decimal" value="${esc(SKRW.kg)}" placeholder="${pw?"":"например 202,5"}"></label></div>
+      <div class="skrwc" id="sk-rwc">${skRwCheckHtml(b)}</div>
+      ${skIPack(b.itemId)?"":`<label class="ck skrwmem"><input type="checkbox" class="skrwm" data-keep="1" checked> Запомнить вес 1 шт у товара — дальше сайт будет считать штуки в кг сам</label>`}
+      <p class="muted sk-hint">Стоимость упаковок перейдёт в новую партию в кг. Срок годности и декларации остаются от этой партии. Ошиблись — перевзвешивание можно отменить, пока из новой партии ничего не брали.</p><div class="row"><button type="button" class="btn pri sm" data-sk="rwSave">Перевзвесить</button><button type="button" class="btn ghost sm" data-sk="mode0">Отмена</button></div></div>`; }
   return skHead(esc(it.name||"Товар"), esc(b.name)+(b.cancel?" · приход отменён":""), "")
    + `<div class="skuv one"><div><small>${esc(b.unit)}</small><b>${skQf(f)}</b><span>на складе</span><span class="skfree">резерв <b>${skQf(r)}</b> · свободно <b>${skQf(r3(f-r))}</b></span>${skBPcs(b,f)?`<span class="skpcs">${skBPcs(b,f)}${r?" · свободно "+skBPcs(b,r3(f-r)).replace(/^≈ /,""):""}</span>`:""}</div></div>`
-   + `<dl class="dc-info">${info.map(([a,v])=>`<div><dt>${a}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>` + form
+   + `<dl class="dc-info">${info.map(([a,v])=>`<div><dt>${a}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>` + skRwBox(b) + form
    + `<div class="skbox"><div class="skbh"><b>Декларации партии</b><button type="button" class="btn sm" data-sk="attachBatch">Прикрепить</button></div>${files.length?files.map(x=>skFileRow(x,false)).join(""):`<p class="muted">Файлов нет.</p>`}</div>`
    + `<div class="skbox"><div class="skbh"><b>История партии</b></div>${skMoves(ML,"b")}</div>`
    + `<div class="dc-acts"><button class="btn" data-sk="item" data-id="${b.itemId}">‹ К товару</button>${SKB.mode?"":`<button class="btn" data-sk="mode" data-m="edit">Изменить</button><button class="btn" data-sk="mode" data-m="wo"${f-r>0?"":" disabled"}>Списать</button>${skK(b.unit)!=="кг"?`<button class="btn" data-sk="mode" data-m="rw"${f-r>0?"":" disabled"}>Перевзвесить</button>`:""}${skCanCancel(b)?`<button class="btn ghost danger" data-sk="mode" data-m="cancel">Отменить приход</button>`:""}`}<button class="btn pri" data-sk="close">Готово</button></div>`; }
@@ -532,7 +553,7 @@ document.addEventListener("click", async e=>{
   const rl=t.closest("[data-skresl]"); if(rl){ SKI.resU=SKI.resU===rl.dataset.skresl?null:rl.dataset.skresl; skModalRefresh(); return; }
   const ws=t.closest("[data-skwship]"); if(ws){ const j=D.journal.find(x=>x.id===ws.dataset.skwship); if(j) skShipForm(j,"ship"); return; }
   const dy=t.closest("[data-skday]"); if(dy){ skDayShip(dy.dataset.skday); return; }
-  const rg=t.closest("[data-skrwgo]"); if(rg){ skBatchCard(rg.dataset.skrwgo); SKB.mode="rw"; skModalRefresh(); return; }
+  const rg=t.closest("[data-skrwgo]"); if(rg){ skBatchCard(rg.dataset.skrwgo); SKB.mode="rw"; SKRW=null; skModalRefresh(); return; }
   const b=t.closest("[data-sk]"); if(!b) return; const a=b.dataset.sk;
   if(a==="bulk"){ skBulk(); return; }
   if(a==="bulkParse"){ SKBULK.text=skVal(".skbkt"); SKBULK.date=skVal(".skbkd")||todayISO(); skBulkParse(); skModalRefresh(); return; }
@@ -567,19 +588,35 @@ document.addEventListener("click", async e=>{
   if(a==="resclose"){ SKI.resU=null; skModalRefresh(); return; }
   if(a==="itemEdit"){ SKI.edit=true; skModalRefresh(); return; } if(a==="itemEditOff"){ SKI.edit=false; skModalRefresh(); return; }
   if(a==="itemSave"){ const u=skVal(".skiu"); const j=await skDo("item",{itemId:SKI.id, name:skVal(".skin"), alt:skVal(".skalt"), unit:u==="__new"?undefined:u},"Товар склада","Сохранено",b); if(j){ SKI.edit=false; skModalRefresh(); } return; }
+  if(a==="pwSave"||a==="pwClr"){ const v=$("#sk-dlg .skpwv"); if(v&&SKPW) SKPW.v=v.value; await skPwSave(b, a==="pwClr"); return; }
   if(a==="note"||a==="noteclr"){ const v=a==="noteclr"?"":skVal(".skcomment"); await skDo("item",{itemId:SKI.id, note:v},"Комментарий к товару",v?"Комментарий сохранён":"Комментарий очищен",b); return; }
-  if(a==="mode"){ SKB.mode=b.dataset.m; skModalRefresh(); return; } if(a==="mode0"){ SKB.mode=""; skModalRefresh(); return; }
+  if(a==="mode"){ SKB.mode=b.dataset.m; if(SKB.mode==="rw") SKRW=null; skModalRefresh(); return; } if(a==="mode0"){ SKB.mode=""; skModalRefresh(); return; }
   if(a==="batchSave"){ const bt=skIdx().batch[SKB.id], d={batchId:SKB.id}; if(!bt) return;
-    if(!docLimited()){ const p=skVal(".skbp").replace(",","."); if(p!==String(bt.price||"")) d.price=p; }
+    if(!docLimited()){ const p=skVal(".skbp").replace(",",".").replace(/\s/g,""); if(p!==String(bt.price||"")){ d.price=p;
+      if(p!=="" && !(+p>=0)){ toast("err","Цена — число","Например 39,20. Или сотрите, если цены нет."); return; }
+      const o=+bt.price; if(p!=="" && o>0 && +p>0 && (+p/o>3 || o/(+p)>3) && !armed(b,"Цена верная — сохранить")){ toast("warn","Цена сильно отличается","Было "+fm(o)+" ₽, стало "+fm(+p)+" ₽ за "+bt.unit+". Если всё верно — нажмите ещё раз."); return; }
+      if(p==="" && o>0 && !armed(b,"Убрать цену — сохранить")){ toast("warn","Цена будет пустой","Без цены себестоимость и прибыль по этому товару не посчитаются. Если так и нужно — нажмите ещё раз."); return; } } }
     const ev=skVal(".skbe"), root=skRoot(bt); if(ev!==(root.exp||"")){ if(ev && ev<root.date){ toast("err","Срок годности раньше даты приёмки",""); return; } d.exp=ev; }
-    if(skK(bt.unit)!=="шт"){ const pk=skVal(".skbpk").replace(",",".").trim(); if(pk!=="" && !(+pk>0)){ toast("err","Вес 1 шт — число больше нуля","Или сотрите, если фасовки нет."); return; } if(Math.abs((+pk||0)-skPack(bt))>1e-9){ d.pack=pk; skPackSave(bt.id,pk); } }
+    if(skK(bt.unit)!=="шт"){ const pk=skVal(".skbpk").replace(",",".").trim(); if(pk!=="" && !(+pk>0)){ toast("err","Вес 1 шт — число больше нуля","Или сотрите, если фасовки нет."); return; } if(Math.abs((+pk||0)-skPack(bt))>1e-9){ const w=skPcW(bt.itemId); if(+pk>0 && w && skK(bt.unit)==="кг" && (+pk/w.w<0.75 || +pk/w.w>1.33) && !armed(b,"Вес верный — сохранить")){ toast("warn","Проверьте вес 1 шт","Вы вписали "+skGr(+pk)+", а "+(w.src==="own"?"у товара":"в названии")+" — "+skGr(w.w)+". Если всё верно — нажмите ещё раз."); return; } d.pack=pk; skPackSave(bt.id,pk); } }
     { const bx=skVal(".skbbx").replace(",",".").trim(); if(bx!=="" && !(+bx>0)){ toast("err","Штук в коробке — число больше нуля","Или сотрите, если коробок нет."); return; } if(Math.abs((+bx||0)-skBox(bt))>1e-9){ d.box=bx; skBoxSave(bt.id,bx); } }
     if(skVal(".skbs")!==(bt.supplier||"")) d.supplier=skVal(".skbs"); if(skVal(".skbd")!==(bt.docRef||"")) d.docRef=skVal(".skbd");
     const qv=skVal(".skbq"); if(qv && r3(+qv.replace(",","."))!==r3(bt.qty)){ d.qty=qv.replace(",","."); d.reason=skVal(".skbr2"); if(!skN(d.reason)){ toast("err","Укажите причину исправления количества",""); return; } }
     if(Object.keys(d).length===1){ SKB.mode=""; skModalRefresh(); return; }
     const j=await skDo("batch",d,"Партия: "+bt.name,"Партия изменена",b); if(j){ SKB.mode=""; skModalRefresh(); } return; }
-  if(a==="woSave"){ const r=skN(skVal(".skwr")); if(!r){ toast("err","Укажите причину списания",""); return; } const j=await skDo("wo",{batchId:SKB.id, qty:skVal(".skwq").replace(",","."), reason:r},"Списание","Списано",b); if(j){ SKB.mode=""; skModalRefresh(); } return; }
-  if(a==="rwSave"){ const j=await skDo("rw",{batchId:SKB.id, n:skVal(".skrn").replace(",","."), kg:skVal(".skrk").replace(",",".")},"Перевзвешивание","Перевзвешено",b); if(j && j.out){ const nn=+skVal(".skrn").replace(",","."), kk=+skVal(".skrk").replace(",","."); if(nn>0&&kk>0&&skK(b.unit||"")!=="кг") skPackSave(j.out.batchId, Math.round(kk/nn*10000)/10000); skBatchCard(j.out.batchId); } return; }
+  if(a==="woSave"){ const bt=skIdx().batch[SKB.id]; if(!bt) return; const q=skNum(skVal(".skwq")), fr=r3(skFree(bt.id));
+    if(!(q>0)){ toast("err","Сколько списать?","Впишите количество, например 2,5."); return; }
+    if(skK(bt.unit)==="шт" && Math.round(q)!==q){ toast("err","Штуки — только целым числом",""); return; }
+    if(q>fr+0.0005){ toast("err","Столько нет","Свободно только "+skQf(fr,bt.unit)+(skRes(bt.id)?" — остальное в резерве накладных.":".")); return; }
+    const r=skN(skVal(".skwr")); if(!r){ toast("err","Укажите причину списания","Например: испортился, усушка, брак."); return; }
+    if(Math.abs(q-fr)<0.0005 && !armed(b,"Списать всё: "+skQf(q,bt.unit)+"?")) return; const j=await skDo("wo",{batchId:SKB.id, qty:skVal(".skwq").replace(",","."), reason:r},"Списание","Списано",b); if(j){ SKB.mode=""; skModalRefresh(); } return; }
+  if(a==="rwSave"){ const bt=skIdx().batch[SKB.id]; if(!bt) return; SKRW=SKRW&&SKRW.id===bt.id?SKRW:{id:bt.id}; SKRW.n=skVal(".skrn"); SKRW.kg=skVal(".skrk"); const c=skRwCheck(bt), box=$("#sk-rwc"); if(box) box.innerHTML=skRwCheckHtml(bt);
+    if(c.err.length){ toast("err","Проверьте перевзвешивание",c.err[0]); return; }
+    if(c.warn.length && !armed(b,"Вес верный — перевзвесить")){ toast("warn","Проверьте вес","Если всё верно — нажмите ещё раз."); return; }
+    const mem=!!(document.querySelector("#sk-dlg .skrwm")||{}).checked, per=Math.round(c.per*1e6)/1e6, it=skIdx().item[bt.itemId]||{};
+    const j=await skDo("rw",{batchId:bt.id, n:String(c.n), kg:String(c.kg)},"Перевзвешивание: "+(it.name||""),"Перевзвешено",b); if(!j || !j.out) return;
+    skPackSave(j.out.batchId, per); SKRW=null;
+    if(mem && !c.warn.length && !skIPack(bt.itemId)){   /* вес, который сайт счёл странным, у товара не запоминаем */ if(skIPackSrv()){ try{ await skSend("item",{itemId:bt.itemId, pack:String(per)},"Вес 1 шт: "+(it.name||"")); }catch(er){ skErr(er,"вес 1 шт"); } } else skIPackSave(bt.itemId, per); }
+    skRwDone(j, skQf(c.n,bt.unit)+" → "+skQf(c.kg,"кг")); skBatchCard(j.out.batchId); return; }
   if(a==="inSave"){ skInSave(false); return; }
   if(a==="invSave"){ const rows=Object.keys(SKINV.f).filter(k=>SKINV.f[k]!=="").map(k=>({batchId:k, fact:String(SKINV.f[k]).replace(",",".")})); if(!rows.length){ toast("err","Впишите факт хотя бы по одной партии",""); return; }
     const j=await skDo("inv",{rows, note:skVal(".skinvn")},"Инвентаризация ("+rows.length+" парт.)","Акт проведён",b); if(j){ toast("ok","Акт инвентаризации сохранён", (j.out&&j.out.diffN)?"Расхождений: "+j.out.diffN+" — остатки поправлены":"Расхождений нет"); skClose(); } return; }
@@ -677,6 +714,32 @@ function skFillAll(){ const dr=D.draft, take={}; let n=0, part=0;
 function skAllBtn(){ const b=document.getElementById("d-skall"); if(!b) return; const dr=D.draft;
   const can=SK_READY && skSrv!==false && !dr.qtyOnly && dr.lines.some(l=>{ if(!l.productId||!(+l.qty>0)) return false; const it=skItemOf(l.productId, dr.customerId||""); return it && skFreeU(it.id,(prod(l.productId)||{}).unit)>0 && (l.stk||{}).m!=="s"; });
   b.hidden=!can; }
+/* ---------- вес 1 шт у товара (вписывается руками) ---------- */
+let SKPW=null;   /* {id, v, u:"г"|"кг"} — что набрано в поле */
+function skPwBox(it){ const own=skIPack(it.id), nm=miWeight(it.name), pw=skPcW(it.id);
+  if(!SKPW || SKPW.id!==it.id) SKPW={id:it.id, v:own?(own<1?String(Math.round(own*1e4)/10):String(own)).replace(".",","):"", u:own&&own>=1?"кг":"г"};
+  return `<div class="skbox skpwb"><div class="skbh"><b>Вес 1 шт</b><small class="muted">сайт сам переведёт штуки в кг: например, 405 шт ≈ 202,5 кг</small></div>
+    <div class="skpw"><input class="skpwv" data-keep="1" inputmode="decimal" value="${esc(SKPW.v)}" placeholder="${nm&&nm.unit==="кг"?"из названия: "+esc(skGr(nm.w)):"например 500"}" aria-label="Вес 1 шт"><div class="fdseg skpwu" role="group" aria-label="Единица"><i style="--x:${SKPW.u==="кг"?"100%":"0%"}"></i><button type="button" data-skpwu="г" class="${SKPW.u==="г"?"on":""}">г</button><button type="button" data-skpwu="кг" class="${SKPW.u==="кг"?"on":""}">кг</button></div><button type="button" class="btn sm pri" data-sk="pwSave">Сохранить</button>${own?`<button type="button" class="btn ghost sm" data-sk="pwClr">Убрать</button>`:""}</div>
+    <div class="skpwc" id="sk-pwc">${skPwCheckHtml(it)}</div>
+    ${!own&&pw&&pw.src==="name"?`<small class="muted">Сейчас вес берётся из названия: 1 шт = ${esc(skGr(pw.w))}. Впишите, если в названии не тот вес.</small>`:""}${own&&!skIPackSrv()?`<small class="muted">Сохранено только на этом устройстве — обновите скрипт таблицы, чтобы вес видели все.</small>`:""}</div>`; }
+function skPwCheck(it){ const v=skNum(SKPW?SKPW.v:""), kg=v>0?(SKPW.u==="г"?v/1000:v):0, nm=miWeight(it.name), warn=[]; let sw="";
+  if(String(SKPW?SKPW.v:"").trim()!=="" && !(v>0)) return {kg:0, err:"Вес — число больше нуля, например 500 г или 0,5 кг.", warn};
+  if(SKPW && SKPW.u==="г" && v>0 && v<1){ warn.push("Меньше 1 грамма за штуку? Возможно, это килограммы."); sw="кг"; }
+  if(SKPW && SKPW.u==="кг" && v>30){ warn.push(`${esc(skQf(v,"кг"))} за одну штуку? Возможно, это граммы (${esc(String(v).replace(".",","))} г).`); sw="г"; }
+  if(kg>1000) return {kg:0, err:"Больше 1000 кг за штуку — так не бывает. Проверьте единицу (г или кг).", warn};
+  if(kg && nm && nm.unit==="кг"){ const k=kg/nm.w; if(k<0.75||k>1.33) warn.push(`В названии товара указано ${esc(skGr(nm.w))}, а вы вписываете ${esc(skGr(kg))}. Проверьте.`); }
+  return {kg, err:"", warn, sw}; }
+function skPwCheckHtml(it){ const c=skPwCheck(it); if(c.err) return `<div class="skrw-e">${esc(c.err)}</div>`;
+  const U=skUnitsOf(it.id).find(u=>skK(u.unit)==="шт"), n=U?U.fact:0;
+  return (c.kg?`<div class="skrw-ok">1 шт = <b>${esc(skGr(c.kg))}</b>${n>0?` · на складе ${esc(skQf(n,"шт"))} ≈ <b>${esc(skQf(r3(n*c.kg),"кг"))}</b>`:""}</div>`:"")
+    + c.warn.map(t=>`<div class="skrw-w"><span>${t}</span>${c.sw?`<button type="button" class="btn sm" data-skpwu="${c.sw}">Это ${c.sw}</button>`:""}</div>`).join(""); }
+document.addEventListener("input", e=>{ const t=e.target; if(!t.classList || !t.classList.contains("skpwv") || !SKPW) return; SKPW.v=t.value; const it=skIdx().item[SKPW.id], c=$("#sk-pwc"); if(it&&c) c.innerHTML=skPwCheckHtml(it); });
+document.addEventListener("click", e=>{ const b=e.target.closest && e.target.closest("[data-skpwu]"); if(!b || !SKPW || !b.closest("#sk-dlg")) return; SKPW.u=b.dataset.skpwu; const v=$("#sk-dlg .skpwv"); if(v) SKPW.v=v.value; skModalRefresh(); });
+async function skPwSave(b, clr){ const it=skIdx().item[SKPW&&SKPW.id]; if(!it) return; let kg="";
+  if(!clr){ const c=skPwCheck(it); if(c.err){ toast("err","Проверьте вес 1 шт",c.err); return; } if(!c.kg){ toast("err","Впишите вес 1 шт","Например 500 г."); return; }
+    if(c.warn.length && !armed(b,"Да, верно")){ toast("warn","Проверьте вес","Если всё верно — нажмите ещё раз."); return; } kg=String(Math.round(c.kg*1e6)/1e6); }
+  if(!skIPackSrv()){ skIPackSave(it.id, kg); SKPW=null; skModalRefresh(); if(curTab==="stock") skDrawList(); toast("info", kg?"Вес 1 шт сохранён на этом устройстве":"Вес 1 шт убран", "Чтобы вес видели все, обновите скрипт таблицы (Code.gs)."); return; }
+  const j=await skDo("item",{itemId:it.id, pack:kg},"Вес 1 шт: "+it.name, kg?"Вес 1 шт сохранён: "+skGr(+kg):"Вес 1 шт убран", b); if(j){ skIPackSave(it.id,""); SKPW=null; skModalRefresh(); } }
 /* ---------- объединение двух товаров ---------- */
 function skMergeBox(it){ const X=skIdx(), L=X.S.items.filter(i=>i.id!==it.id).sort((a,b)=>a.name.localeCompare(b.name,"ru"));
   return `<div class="skbox"><div class="skbh"><b>Объединить с другим товаром${skHQ("Объединить товары")}</b></div><p class="muted sk-hint">«${esc(it.name)}» исчезнет, его партии, остатки, резервы, декларации и связи перейдут в выбранный товар. Название «${esc(it.name)}» станет его другим названием.</p>
@@ -684,7 +747,57 @@ function skMergeBox(it){ const X=skIdx(), L=X.S.items.filter(i=>i.id!==it.id).so
     <div class="row"><button type="button" class="btn pri sm" data-sk="mergeSave">Объединить</button><button type="button" class="btn ghost sm" data-sk="mergeOff">Отмена</button></div></div>`; }
 /* ---------- отмена прихода ---------- */
 function skCanCancel(b){ if(!b || b.cancel || b.kind==="rw") return false; const X=skIdx();
-  return !skRes(b.id) && !X.S.moves.some(m=>m.batchId===b.id && !["in","init","fix"].includes(m.type)) && !X.S.batches.some(x=>x.parent===b.id) && skFact(b.id)===r3(+b.qty); }
+  const rwNet=r3(X.S.moves.filter(m=>m.batchId===b.id && (m.type==="rwout"||m.type==="rwund")).reduce((a,m)=>a+(+m.qty||0),0));
+  return !skRes(b.id) && !rwNet && !X.S.moves.some(m=>m.batchId===b.id && !["in","init","fix","rwout","rwund"].includes(m.type)) && !X.S.batches.some(x=>x.parent===b.id && !x.cancel) && skFact(b.id)===r3(+b.qty); }
+/* ---------- перевзвешивание: проверка перед проведением и отмена ---------- */
+let SKRW=null;   /* {id, n, kg, kgA — кг подставлены сайтом и пересчитываются за штуками} */
+function skRwCheck(b){ const fr=r3(skFree(b.id)), n=skNum(SKRW?SKRW.n:""), kg=skNum(SKRW?SKRW.kg:""), pw=skPcW(b.itemId), err=[], warn=[];
+  if(!(n>0)) err.push("Впишите, сколько "+b.unit+" перевзвешиваете.");
+  else if(n>fr+0.0005) err.push("Свободно только "+skQf(fr,b.unit)+" — больше перевзвесить нельзя"+(skRes(b.id)?" (остальное в резерве накладных).":"."));
+  else if(skK(b.unit)==="шт" && Math.round(n)!==n) err.push("Штуки — только целым числом.");
+  if(!(kg>0)) err.push("Впишите, сколько вышло кг.");
+  const per=n>0&&kg>0?kg/n:0; let fix=0;
+  if(per && pw){ const k=per/pw.w; if(k<0.75||k>1.33){ fix=r3(n*pw.w);
+    warn.push(`Получается 1 ${esc(b.unit)} = <b>${skGr(per)}</b>, а ${pw.src==="own"?"у товара указано":"в названии товара"} 1 шт = <b>${skGr(pw.w)}</b> — ${skTimes(k<1?1/k:k)} ${k<1?"меньше":"больше"}. Проверьте вес.`); } }
+  if(per && !pw && (per<0.001||per>50)) warn.push(`Получается 1 ${esc(b.unit)} = <b>${skGr(per)}</b> — так бывает редко. Проверьте, не перепутаны ли граммы и килограммы.`);
+  return {n, kg, per, pw, fix, err, warn}; }
+const skTimes = x => { const r=Math.round(x*10)/10, n=Math.round(r); return Math.abs(r-n)<0.05 ? "в "+n+" "+plural(n,["раз","раза","раз"]) : "в "+String(r).replace(".",",")+" раза"; };
+function skRwCheckHtml(b){ const c=skRwCheck(b);
+  return (c.per&&!c.err.length?`<div class="skrw-ok${c.warn.length?" neu":""}">${esc(skQf(c.n,b.unit))} → <b>${esc(skQf(c.kg,"кг"))}</b> · 1 ${esc(b.unit)} = ${skGr(c.per)}${b.price!==""&&b.price!=null?` · цена станет ${fm(r2(c.n*(+b.price)/c.kg))} ₽/кг`:""}</div>`:"")
+    + c.err.map(t=>`<div class="skrw-e">${esc(t)}</div>`).join("")
+    + c.warn.map(t=>`<div class="skrw-w"><span>${t}</span>${c.fix?`<button type="button" class="btn sm" data-skrwfix="${c.fix}">Поставить ${esc(skQf(c.fix,"кг"))}</button>`:""}</div>`).join(""); }
+document.addEventListener("input", e=>{ const t=e.target; if(!t.closest || !t.closest("#sk-dlg .skrwf") || !SKRW) return; const b=skIdx().batch[SKRW.id]; if(!b) return;
+  if(t.classList.contains("skrn")){ SKRW.n=t.value; const pw=skPcW(b.itemId), n=skNum(t.value); if(SKRW.kgA && pw){ SKRW.kg=n>0?String(r3(n*pw.w)).replace(".",","):""; const k=$("#sk-dlg .skrk"); if(k) k.value=SKRW.kg; } }
+  else if(t.classList.contains("skrk")){ SKRW.kg=t.value; SKRW.kgA=false; } else return;
+  const c=$("#sk-rwc"); if(c) c.innerHTML=skRwCheckHtml(b); });
+/* можно ли отменить перевзвешивание (партия в кг, из которой ещё ничего не брали) */
+function skRwWhy(b){ if(!b || b.kind!=="rw" || b.cancel) return "нет"; const X=skIdx();
+  if(skRes(b.id)>0) return "из новой партии уже зарезервировано "+skQf(skRes(b.id),b.unit)+" под накладные";
+  if(X.S.moves.some(m=>m.batchId===b.id && m.type!=="rwin")) return "из новой партии уже брали товар (отгрузка, списание или инвентаризация)";
+  if(X.S.batches.some(x=>x.parent===b.id && !x.cancel)) return "новую партию уже перевзвешивали дальше";
+  if(r3(skFact(b.id))!==r3(+b.qty)) return "остаток новой партии уже менялся";
+  if(!X.batch[b.parent]) return "исходная партия не найдена";
+  return ""; }
+const skCanRwUndo = b => !skRwWhy(b);
+/* блок в карточке партии: «это перевзвешено — отменить?» и «из этой партии перевзвешивали» */
+function skRwBox(b){ if(SKB.mode) return ""; const X=skIdx();
+  if(b.kind==="rw"){ if(b.cancel) return `<div class="skrwbox off"><b>Перевзвешивание отменено</b><span>Упаковки вернулись в «${esc((X.batch[b.parent]||{}).name||"исходную партию")}».</span></div>`;
+    const why=skRwWhy(b), p=X.batch[b.parent]||{}, out=X.S.moves.find(m=>m.batchId===p.id && m.type==="rwout" && m.id===String(b.id).replace(/:b$/,":m1")), n=out?-(+out.qty):null;
+    return `<div class="skrwbox${why?" off":""}"><b>${why?"Отменить перевзвешивание уже нельзя":"Ошиблись при перевзвешивании?"}</b><span>${why?esc(why)+". Исправьте остаток инвентаризацией.":`«Отменить» уберёт эту партию (${esc(skQf(+b.qty,b.unit))}) и вернёт ${n!=null?"<b>"+esc(skQf(n,p.unit))+"</b>":"упаковки"} в «${esc(p.name||"исходную партию")}». Потом можно перевзвесить заново.`}</span>${why?"":`<button type="button" class="btn sm danger" data-skrwund="${esc(b.id)}">Отменить перевзвешивание</button>`}</div>`; }
+  const K=X.S.batches.filter(x=>x.parent===b.id && x.kind==="rw" && !x.cancel); if(!K.length) return "";
+  return `<div class="skrwbox kids"><b>Перевзвешено из этой партии</b>${K.map(k=>{ const why=skRwWhy(k); return `<div class="skrwk"><button type="button" class="lnk" data-skbatch="${esc(k.id)}">${esc(skQf(+k.qty,k.unit))} · ${esc(skWhen(k.at))} ›</button>${why?`<small class="muted" title="${esc(why)}">отменить нельзя</small>`:`<button type="button" class="btn ghost sm danger" data-skrwund="${esc(k.id)}">Отменить</button>`}</div>`; }).join("")}</div>`; }
+async function skRwUndo(id, btn){ const X=skIdx(), b=X.batch[id]; if(!b) return; const why=skRwWhy(b); if(why){ toast("err","Отменить нельзя",why); return; }
+  if(!skIPackSrv()){ toast("err","Нужен новый скрипт таблицы","Отмена перевзвешивания появится после обновления Code.gs (Данные → «Скрипт таблицы старый» → «Как обновить»)."); return; }
+  if(btn && !armed(btn,"Да, отменить")) return;
+  const p=X.batch[b.parent]||{}, out=X.S.moves.find(m=>m.batchId===p.id && m.type==="rwout" && m.id===String(b.id).replace(/:b$/,":m1")), n=out?-(+out.qty):0; let j=null;
+  skBusy(btn,true); try{ j=await skSend("rwUndo",{batchId:id},"Отмена перевзвешивания: "+((X.item[b.itemId]||{}).name||"")); }catch(e){ skErr(e,"отмена перевзвешивания"); } finally{ skBusy(btn,false); }
+  if(!j) return; toast("ok","Перевзвешивание отменено", (n?skQf(n,p.unit)+" вернулись в ":"Упаковки вернулись в ")+"«"+(p.name||"партию")+"». Можно перевзвесить заново.");
+  if(SKM && document.getElementById("sk-dlg")) skBatchCard(p.id||id); else if(curTab==="stock") skDrawList(); }
+/* после перевзвешивания: уведомление с «Отменить» */
+function skRwDone(j, label){ const id=j&&j.out&&j.out.batchId; if(!id) return;
+  toast("ok","Перевзвешено", label||"", {action:{label:"Отменить", fn:()=>skRwUndo(id)}, ms:12000}); }
+document.addEventListener("click", e=>{ const u=e.target.closest && e.target.closest("[data-skrwund]"); if(u){ e.preventDefault(); e.stopPropagation(); skRwUndo(u.dataset.skrwund, u); return; }
+  const fx=e.target.closest && e.target.closest("[data-skrwfix]"); if(fx && SKRW){ SKRW.kg=String(fx.dataset.skrwfix).replace(".",","); SKRW.kgA=true; const k=$("#sk-dlg .skrk"); if(k) k.value=SKRW.kg; const b=skIdx().batch[SKRW.id], c=$("#sk-rwc"); if(b&&c) c.innerHTML=skRwCheckHtml(b); } }, true);
 /* ---------- ввод остатков (или приходов) списком ---------- */
 let SKBULK=null;
 function skBulk(){ SKBULK={kind:"init", text:"", rows:null, date:todayISO()}; skModal(skBulkHtml, true); }
@@ -759,7 +872,7 @@ function miCalc(r){ const q=skNum(r.qty), p=skNum(r.price), sm=skNum(r.sum);
   if(r.by==="sum"){ return {q, price:q>0&&sm>=0?sm/q:NaN, sum:sm}; } return {q, price:p, sum:q>0&&p>=0?q*p:NaN}; }
 function miItem(r){ const X=skIdx(), k=skK(r.name); if(!k) return null; return X.item[r.itemId] && skK(X.item[r.itemId].name)===k ? X.item[r.itemId] : X.S.items.find(i=>skK(i.name)===k || String(i.alt||"").split(";").some(a=>skK(a)===k)) || null; }
 /* вес одной штуки из названия: «Лапша 450г», «Сок 0,2 л», «Мука 2 кг» */
-function miWeight(name){ const m=String(name||"").replace(",",".").match(/(\d+(?:\.\d+)?)\s*(кг|гр|г|мл|л)(?![а-яёa-z])/i); if(!m) return null; const v=+m[1], u=m[2].toLowerCase();
+function miWeight(name){ const m=String(name||"").replace(",",".").match(/(\d+(?:\.\d+)?)\s*(кг|гр|г|мл|л)(?=$|[^а-яёa-z]|[хx]\s*\d)/i); if(!m) return null; const v=+m[1], u=m[2].toLowerCase();
   return u==="кг"?{unit:"кг",w:v}:u==="л"?{unit:"л",w:v}:u==="мл"?{unit:"л",w:v/1000}:{unit:"кг",w:v/1000}; }
 function miCheck(r, i){ const it=miItem(r), c=miCalc(r), out=[]; if(!skN(r.name) && !String(r.qty).trim()) return {empty:true, it, c, err:[]};
   if(!skN(r.name)) out.push("нет товара"); if(!(c.q>0)) out.push("нет количества"); if(skK(r.unit)==="шт" && c.q>0 && Math.round(c.q)!==c.q) out.push("штуки — целым числом");
@@ -1000,7 +1113,7 @@ function skPickHtml(sc, k, l, cur, o){ const it=cur?skIdx().item[cur]:null, key=
     return `<div class="skpk on"><small>Товар на складе <i>(связь запомнится)</i></small><div class="skpk-sel"><b>${esc(it.name)}</b><span>свободно ${skQf(skFreeU(it.id,l.unit),l.unit)}</span><button type="button" class="btn ghost sm" data-skpkclr="${esc(k)}" data-sc="${sc}">Сменить</button></div>${lbl}${!was&&st?skScopeHtml(cid, st.sc||"all", `data-skpksc="${esc(k)}" data-sc="${sc}" data-v`):""}</div>`; }
   return `<div class="skpk"><small>Товар на складе <i>(связь запомнится)</i></small><input class="skpq" data-sc="${sc}" data-k="${esc(k)}" autocomplete="off" placeholder="Начните вводить: рис, фасоль, Макфа…" value="${esc(SKPQ[key]||"")}" aria-label="Найти товар на складе"><div class="skpk-l" data-for="${esc(k)}">${skPickSug(sc, k, l, SKPQ[key]||"")}</div></div>`; }
 /* нехватка в кг, а товар лежит в штуках (приход в «шт»): подсказка + «Перевести в кг» одним нажатием (то же, что «Перевзвесить» партии) */
-function skRwPack(it){ const X=skIdx(), B=(X.byItem[it.id]||[]).filter(b=>!b.cancel && skK(b.unit)==="кг" && skPack(b)>0).sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
+function skRwPack(it){ const ip=skIPack(it.id); if(ip) return ip; const X=skIdx(), B=(X.byItem[it.id]||[]).filter(b=>!b.cancel && skK(b.unit)==="кг" && skPack(b)>0).sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
   if(B.length) return skPack(B[0]); const w=miWeight(it.name); return w && w.unit==="кг" ? w.w : 0; }
 function skRwHint(itemId, unit, short){ if(!(short>0) || skK(unit)!=="кг" || docLimited()) return ""; const X=skIdx(), it=X.item[itemId]; if(!it) return "";
   const B=(X.byItem[itemId]||[]).filter(b=>!b.cancel && b.kind!=="rw" && skK(b.unit)==="шт" && skFree(b.id)>0); if(!B.length) return "";
@@ -1013,6 +1126,7 @@ document.addEventListener("click", async e=>{ const b=e.target.closest&&e.target
   const j=await skDo("rw",{batchId:b.dataset.skrwq, n:String(n), kg:String(kg)},"Перевзвешивание","Переведено в кг: "+skQf(kg,"кг"),b);
   if(!j) return;
   if(j.out && j.out.batchId && n>0) skPackSave(j.out.batchId, Math.round(kg/n*10000)/10000);
+  skRwDone(j, skQf(n,"шт")+" → "+skQf(kg,"кг"));
   if(b.closest("#dc-zki")){ const wrap=$("#dc-zk"), d=wrap&&D.journal.find(x=>x.id===wrap.dataset.doc); if(d) dcZkKeep(d); }
   else if(b.closest("#bz-zki") && typeof bzKeep==="function") bzKeep(); });
 /* строка источника под товаром в блоке закупки */
@@ -1130,7 +1244,7 @@ function skItemHistHtml(){ const X=skIdx(), it=X.item[SKH.id]; if(!it) return sk
     + (old?`<p class="muted skh-note">Движения старше ${keep} дней по складу показаны в остатках итогом, здесь — только за последние ${keep} дней.</p>`:"")
     + `<div class="dc-acts"><button class="btn" data-skitem="${it.id}">Карточка товара</button><button class="btn pri" data-sk="close">Закрыть</button></div>`; }
 document.addEventListener("keydown", e=>{ const r=e.target; if(!(r.classList&&r.classList.contains("skrow")) || r.tagName==="BUTTON") return; if(e.key==="Enter"||e.key===" "){ e.preventDefault(); skItemCard(r.dataset.skitem); } });
-window.__sk = { send:(op,d,l)=>skSend(op,d,l||op), linkTo:(id,p,c,s)=>skLinkTo(id,p,c,s), item:(p,c)=>skItemOf(p,c), idx:()=>skIdx(), logN:()=>skQ().length+skD().log.length };
+window.__sk = { send:(op,d,l)=>skSend(op,d,l||op), linkTo:(id,p,c,s)=>skLinkTo(id,p,c,s), item:(p,c)=>skItemOf(p,c), idx:()=>skIdx(), logN:()=>skQ().length+skD().log.length, state:()=>skD(), fact:id=>skFact(id), canCancel:id=>skCanCancel(skIdx().batch[id]), batch:id=>skBatchCard(id), item2:id=>skItemCard(id) };
 window.__mi = { open: skMultiIn, st: () => SKMI };
 SK_READY=true;
 

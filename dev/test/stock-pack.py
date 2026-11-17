@@ -52,7 +52,9 @@ async def main():
             ok('60 шт' in await pg.text_content('#sk-dlg .skuv'), f'{vw[0]}: две партии — 60 шт')
             # правка фасовки в партии
             await pg.locator('#sk-dlg [data-skbatch]').first.click(); await pg.wait_for_timeout(300)
-            await pg.click('#sk-dlg [data-sk="mode"][data-m="edit"]'); await pg.fill('#sk-dlg .skbpk','0,9'); await pg.click('#sk-dlg [data-sk="batchSave"]'); await pg.wait_for_timeout(1200)
+            await pg.click('#sk-dlg [data-sk="mode"][data-m="edit"]'); await pg.fill('#sk-dlg .skbpk','0,9'); await pg.click('#sk-dlg [data-sk="batchSave"]'); await pg.wait_for_timeout(300)
+            ok('верный' in (await pg.text_content('#sk-dlg [data-sk="batchSave"]')), f'{vw[0]}: 0,9 кг при «450г» в названии — сайт переспрашивает')
+            await pg.click('#sk-dlg [data-sk="batchSave"]'); await pg.wait_for_timeout(1200)
             ok('10 шт' in await pg.text_content('#sk-dlg .skuv'), f'{vw[0]}: фасовка партии изменена (9 кг = 10 шт по 0,9)')
             ok(not errs, f'{vw[0]}: нет ошибок JS {errs[:2]}'); await ctx.close()
         await b.close()
