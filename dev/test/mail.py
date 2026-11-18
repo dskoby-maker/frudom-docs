@@ -25,7 +25,7 @@ M_RU=[{'uid':11,'date':'2026-11-12T06:15:00.000Z','from':{'n':'МГУ Комби
   {'uid':12,'date':'2026-11-11T08:00:00.000Z','from':{'n':'Рассылка','a':'news@shop.ru'},'to':[{'n':'','a':'frudom.ru@mail.ru'}],'cc':[],'replyTo':'','subject':'Скидки недели','msgid':'<n12@shop.ru>','inReply':'','refs':'',
   'text':'Только сегодня скидки','html':'<p>Только <b>сегодня</b> скидки <img src="https://track.example/x.png"></p>','atts':[]}]
 M_TW=[{'uid':3,'date':'2026-11-12T09:30:00.000Z','from':{'n':'Цирк бухгалтерия','a':'buh@circus.ru'},'to':[{'n':'','a':'info@frudom.ru'}],'cc':[{'n':'Кассир','a':'kassa@circus.ru'}],'replyTo':'','subject':'Акт сверки за октябрь',
-  'msgid':'<c3@circus.ru>','inReply':'','refs':'','text':'Пришлите, пожалуйста, акт сверки.','html':'','atts':[{'name':'big.xlsx','mime':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','size':3000000,'big':1,'data':b64('PK fake')}]}]
+  'msgid':'<c3@circus.ru>','inReply':'','refs':'','text':'Пришлите, пожалуйста, акт сверки.','html':'','atts':[{'name':'big.xlsx','mime':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','size':3000000,'big':1,'data':b64('PK fake big attachment, sent in parts!')}]}]
 AIF=os.environ.get('MAILAI','/tmp/mail-ai.json')
 TAB="(t=>{document.querySelector('nav.tabs button[data-tab=\"doc\"]').click(); document.querySelector('nav.tabs button[data-tab=\"'+t+'\"]').click()})"
 async def login(b, who, pw, W=1300, H=900):
@@ -42,7 +42,7 @@ async def until(pg, js, n=60):
         await pg.wait_for_timeout(250)
     return False
 async def main():
-    ev("__mail={boxes:{'frudom.ru@mail.ru':{pass:'app-pass-mailru',uidv:5,msgs:%s},'info@frudom.ru':{pass:'tw-pass',uidv:9,msgs:%s}},sent:[]}; __tb={proxy:{key:'%s'}}; PropertiesService.getScriptProperties().setProperty('TB_PROXY', JSON.stringify({url:'https://functions.yandexcloud.net/dtest', key:'%s'})); PropertiesService.getScriptProperties().setProperty('GEMINI_KEY','AIzaTEST0000000000000000000'); PropertiesService.getScriptProperties().deleteProperty('MAIL_ACC'); PropertiesService.getScriptProperties().deleteProperty('MAIL_SYNC_AT'); write_('mail', []); write_('uprefs', []); write_('mailtags', []); 1" % (json.dumps(M_RU,ensure_ascii=False), json.dumps(M_TW,ensure_ascii=False), PX, PX))
+    ev("__mailPart=9"); ev("__mail={boxes:{'frudom.ru@mail.ru':{pass:'app-pass-mailru',uidv:5,msgs:%s},'info@frudom.ru':{pass:'tw-pass',uidv:9,msgs:%s}},sent:[]}; __tb={proxy:{key:'%s'}}; PropertiesService.getScriptProperties().setProperty('TB_PROXY', JSON.stringify({url:'https://functions.yandexcloud.net/dtest', key:'%s'})); PropertiesService.getScriptProperties().setProperty('GEMINI_KEY','AIzaTEST0000000000000000000'); PropertiesService.getScriptProperties().deleteProperty('MAIL_ACC'); PropertiesService.getScriptProperties().deleteProperty('MAIL_SYNC_AT'); write_('mail', []); write_('uprefs', []); write_('mailtags', []); 1" % (json.dumps(M_RU,ensure_ascii=False), json.dumps(M_TW,ensure_ascii=False), PX, PX))
     async with async_playwright() as p:
         b=await p.chromium.launch(executable_path=os.environ.get("BROWSER_EXECUTABLE_PATH"))
         ctx,pg,errs=await login(b,'Даниил','1111')
@@ -124,7 +124,7 @@ async def main():
         await pg.click('#ml-list .mlr:has-text("Акт сверки")'); await until(pg,"/акт сверки/.test(document.querySelector('#ml-view').textContent)")
         ok(await pg.locator('#ml-view [data-ml="replyall"]').count()==1, 'есть копия — кнопка «Ответить всем»')
         async with pg.expect_download() as dl: await pg.click('#ml-view [data-mlatt="0"][data-how="get"]')
-        d=await dl.value; ok(d.suggested_filename=='big.xlsx', 'большое вложение скачалось через посредника')
+        d=await dl.value; ok(d.suggested_filename=='big.xlsx' and open(await d.path(),'rb').read()==b'PK fake big attachment, sent in parts!', 'большое вложение скачалось через посредника — куски склеены верно')
         ok('"f"' in [r for r in rows('Почта') if r['Тема']=='Акт сверки за октябрь'][0]['Вложения (не редактировать)'], 'и сохранилось на Диске')
         # заявка → документы через ИИ (текст письма)
         await pg.click('#ml-list .mlr:has-text("Заявка на 14.11")'); await until(pg,"!!document.querySelector('#ml-view [data-mlmk=text]')")

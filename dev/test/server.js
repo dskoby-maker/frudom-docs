@@ -42,7 +42,7 @@ const ctx={ SpreadsheetApp:{getActive:()=>ss}, LockService:{getScriptLock:()=>({
         if(b.path==='/mail/test') return R({imap:'ok', smtp:'ok', exists:B.msgs.length, uidv:B.uidv});
         if(b.path==='/mail/fetch'){ const since=String(b.uidv)===String(B.uidv)?(+b.since||0):0, L=B.msgs.filter(m=>m.uid>since).sort((x,y)=>x.uid-y.uid), take=L.slice(0, b.max||15);
           return R({uidv:B.uidv, last:take.length?take[take.length-1].uid:since, more:L.length>take.length, msgs:JSON.parse(JSON.stringify(take)).map(m=>{ m.atts=(m.atts||[]).map(x=>{ if(x.big){ delete x.data; } return x; }); return m; })}); }
-        if(b.path==='/mail/att'){ const m=B.msgs.find(x=>x.uid===+b.uid), x=m&&m.atts[+b.idx||0]; return R(x?{name:x.name,mime:x.mime,size:x.size,data:x.data}:{error:'вложение не найдено'}); }
+        if(b.path==='/mail/att'){ const m=B.msgs.find(x=>x.uid===+b.uid), x=m&&m.atts[+b.idx||0]; if(!x) return R({error:'вложение не найдено'}); if(b.part){ const buf=Buffer.from(x.data,'base64'), P=+(ctx.__mailPart||2400000), off=+b.off||0, ch=buf.subarray(off,off+P); B.attCalls=(B.attCalls||0)+1; return R({name:x.name,mime:x.mime,size:buf.length,off,n:ch.length,data:ch.toString('base64')}); } return R({name:x.name,mime:x.mime,size:x.size,data:x.data}); }
         if(b.path==='/mail/send'){ ctx.__mail.sent.push(b); return R({ok:true, saved:true, msgid:'<t'+ctx.__mail.sent.length+'@test>'}); }
         return R({error:'?'}); }
       ctx.__pxCalls=(ctx.__pxCalls||0)+1; const r=tbFake(b.path, b.token); return {getResponseCode:()=>200,getContentText:()=>JSON.stringify({code:r.code, body:r.text})}; }
