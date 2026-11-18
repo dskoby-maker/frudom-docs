@@ -20,7 +20,7 @@ const ss={ getId:()=>'SS1', getSheetByName:n=>sheets[n]||null, insertSheet:n=>(s
 const ctx={ SpreadsheetApp:{getActive:()=>ss}, LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){},tryLock(){return true}})},
   ContentService:{MimeType:{JSON:'json'}, createTextOutput:t=>({t, setMimeType(){return this}})}, JSON, String, Math, Object, parseInt, Date, isNaN, Array, Session:{getScriptTimeZone:()=>'Europe/Moscow'}, PropertiesService:{getScriptProperties:()=>({getProperty:k=>props[k]||null,setProperty:(k,v)=>{props[k]=v;},deleteProperty:k=>{delete props[k];}})},
   ScriptApp:{ getOAuthToken:()=>'tok-test' },
-  UrlFetchApp:{ fetch:(url,o)=>{ if(/googleapis\.com\/drive\/v3\/files\//.test(url)){   /* тестовый Google Диск: копия в формат Google → PDF; ctx.__conv = {n, fail} */
+  UrlFetchApp:{ fetchAll:L=>{ ctx.__fetchAll=(ctx.__fetchAll||0)+1; return L.map(q=>ctx.UrlFetchApp.fetch(q.url,q)); }, fetch:(url,o)=>{ if(/googleapis\.com\/drive\/v3\/files\//.test(url)){   /* тестовый Google Диск: копия в формат Google → PDF; ctx.__conv = {n, fail} */
       const cv=ctx.__conv=ctx.__conv||{n:0}, m=url.match(/files\/([^/?]+)\/(copy|export)/)||[];
       if(cv.fail) return {getResponseCode:()=>500, getContentText:()=>'{}'};
       if(m[2]==='copy'){ if(!files[m[1]]) return {getResponseCode:()=>404, getContentText:()=>'{}'}; const nid='g'+(++fileN); files[nid]={getBytes:()=>Buffer.alloc(0)}; cv.last=JSON.parse(o.payload); return {getResponseCode:()=>200, getContentText:()=>JSON.stringify({id:nid})}; }
