@@ -21,7 +21,7 @@ PDFB=mkpdf()
 PX='k'*24
 M_RU=[{'uid':11,'date':'2026-11-12T06:15:00.000Z','from':{'n':'МГУ Комбинат','a':'zakaz@msu.ru'},'to':[{'n':'','a':'frudom.ru@mail.ru'}],'cc':[],'replyTo':'','subject':'Заявка на 14.11',
   'msgid':'<m11@msu.ru>','inReply':'','refs':'','text':'Добрый день!\nПрошу поставить:\nПомидоры тест 10 кг\nОгурцы тест 5 кг\n\nС уважением, Комбинат питания','html':'',
-  'atts':[{'name':'заявка.pdf','mime':'application/pdf','size':len(PDFB),'data':b64(PDFB)},{'name':'счёт.docx','mime':'application/vnd.openxmlformats-officedocument.wordprocessingml.document','size':7,'data':b64('PK docx')}]},
+  'atts':[{'name':'заявка.pdf','mime':'application/pdf','size':len(PDFB),'data':b64(PDFB)},{'name':'счёт.docx','mime':'application/vnd.openxmlformats-officedocument.wordprocessingml.document','size':7,'data':b64('PK docx')},{'name':'фото.png','mime':'image/png','size':80,'data':'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR4nGP8z8DAwMDAxMDAwMDAAAANHQEDK+mmyAAAAABJRU5ErkJggg=='}]},
   {'uid':12,'date':'2026-11-11T08:00:00.000Z','from':{'n':'Рассылка','a':'news@shop.ru'},'to':[{'n':'','a':'frudom.ru@mail.ru'}],'cc':[],'replyTo':'','subject':'Скидки недели','msgid':'<n12@shop.ru>','inReply':'','refs':'',
   'text':'Только сегодня скидки','html':'<p>Только <b>сегодня</b> скидки <img src="https://track.example/x.png"></p>','atts':[]}]
 M_TW=[{'uid':3,'date':'2026-11-12T09:30:00.000Z','from':{'n':'Цирк бухгалтерия','a':'buh@circus.ru'},'to':[{'n':'','a':'info@frudom.ru'}],'cc':[{'n':'Кассир','a':'kassa@circus.ru'}],'replyTo':'','subject':'Акт сверки за октябрь',
@@ -34,6 +34,7 @@ async def login(b, who, pw, W=1300, H=900):
     if PJ:
         await pg.route('**/pdf.js/*/pdf.min.js', lambda r: r.fulfill(path=PJ+'/pdf.min.js', content_type='text/javascript'))
         await pg.route('**/pdf.js/*/pdf.worker.min.js', lambda r: r.fulfill(path=PJ+'/pdf.worker.min.js', content_type='text/javascript'))
+    await ctx.add_init_script("try{localStorage.setItem('frudom-mlav', JSON.stringify({'@msu.ru':{u:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR4nGP8z8DAwMDAxMDAwMDAAAANHQEDK+mmyAAAAABJRU5ErkJggg==',f:1,t:Date.now()}}))}catch(e){}")
     await pg.goto('http://localhost:8787/page'); await pg.click(f'#fd-who [data-who="{who}"]'); await pg.fill('#fd-pass',pw); await pg.click('#fd-enter'); await pg.wait_for_timeout(2500)
     return ctx, pg, errs
 async def until(pg, js, n=60):
@@ -71,7 +72,7 @@ async def main():
         await pg.click('#ml [data-ml="setclose"]'); await pg.wait_for_timeout(500)
         n=await pg.locator('#ml-list .mlr').count(); ok(n==3, f'во «Входящих» 3 письма из двух ящиков ({n})')
         R=rows('Почта'); ok(len(R)==3 and all(r['Файл письма на Диске'] for r in R), 'письма на листе «Почта», текст — файлом на Диске')
-        big=[r for r in R if r['Тема']=='Акт сверки за октябрь'][0]; ok('"f"' not in big['Вложения (не редактировать)'], 'большое вложение не скачано заранее')
+        big=[r for r in R if r['Тема']=='Акт сверки за октябрь'][0]; ok('"f"' in big['Вложения (не редактировать)'] and ev("__fetchAll||0")>=1, 'большое вложение забрано заранее, при проверке почты (кусками параллельно)')
         ok(await pg.evaluate("document.querySelector('nav.tabs button[data-tab=\"mail\"]').dataset.n")=='3', 'на вкладке счётчик непрочитанных 3')
         ok(await pg.locator('#ml [data-mlf="ord"] em').count()==0, 'у «Заявок» нет счётчика')
         ok(await pg.locator('#ml-list .mlord').count()==1, 'у письма с заявкой метка «Заявка»')
@@ -81,6 +82,10 @@ async def main():
         ok(await pg.locator('#ml-view .mlordbox').count()==1, 'открытое письмо: плашка «Похоже на заявку»')
         ok(await pg.locator('#ml-view [data-mlmk="0"]').count()==1 and await pg.locator('#ml-view [data-mlmk="1"]').count()==1 and await pg.locator('#ml-view [data-mlmk="text"]').count()==1, 'кнопки «из заявка.pdf» и «из текста письма»')
         await pg.wait_for_timeout(800)
+        ok(await pg.locator('#ml-list .mlr:has-text("Заявка на 14.11") .mlrav img.mlavim.fav').count()==1 and await pg.locator('#ml-view .mlav img.mlavim').count()==1, 'аватарка отправителя (значок сайта msu.ru) — в списке и в письме')
+        ok(await pg.locator('#ml-view .mlth').count()==2, 'превью вложений: PDF и фото (Word — без превью)')
+        await until(pg,"!!document.querySelector('#ml-view .mlth.ok img[src^=\"data:image/jpeg\"]')")
+        ok(await pg.locator('#ml-view .mlth.ok').count()>=1, 'превью фото нарисовано')
         R=rows('Почта'); ok([r for r in R if r['Тема']=='Заявка на 14.11'][0]['Прочитано']=='1', 'письмо отмечено прочитанным в таблице')
         ok(await pg.evaluate("document.querySelector('nav.tabs button[data-tab=\"mail\"]').dataset.n")=='2', 'счётчик стал 2')
         # вложение

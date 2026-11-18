@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 46;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 47;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -615,13 +615,20 @@ function mailAttGet_(a, row, i) {
   if (j.size == null || j.n == null) return j;   /* старый посредник (mail < 3) прислал файл целиком */
   if (j.size > 25 * 1048576) throw new Error('файл больше 25 МБ — откройте его в обычной почте');
   /* куски по 2 400 000 байт (делится на 3) — их base64 просто склеиваются, без перекодирования */
-  let data = j.data || '', got = +j.n || 0;
-  while (got < j.size) { const k = mailPx_('/mail/att', Object.assign({ part: 1, off: got }, base)); if (!(+k.n > 0) || +k.off !== got) throw new Error('посредник прислал не тот кусок файла'); data += k.data; got += +k.n; }
+  /* остальные куски — все сразу, параллельно (раньше по одному: файл 5 МБ грузился в 2–3 раза дольше) */
+  const step = +j.n || 0, offs = []; if (!(step > 0)) return { name: j.name, mime: j.mime, size: 0, data: '' };
+  for (let o = step; o < j.size; o += step) offs.push(o);
+  let data = j.data || '', got = step;
+  const K = offs.length ? UrlFetchApp.fetchAll(offs.map(o => mailPxReq_('/mail/att', Object.assign({ part: 1, off: o }, base)))).map(mailPxRes_) : [];
+  K.forEach((k, n) => { if (+k.off !== offs[n] || !(+k.n > 0)) throw new Error('посредник прислал не тот кусок файла'); data += k.data; got += +k.n; });
+  if (got !== +j.size) throw new Error('файл пришёл не целиком — попробуйте ещё раз');
   return { name: j.name, mime: j.mime, size: got, data: data };
 }
-function mailPx_(path, body) {
+function mailPxReq_(path, body) {
   const px = tbProxy_(); if (!px || !px.url) throw new Error('noproxy');
-  const r = UrlFetchApp.fetch(px.url, { method: 'post', contentType: 'application/json', headers: { 'X-Proxy-Key': px.key }, payload: JSON.stringify(Object.assign({ path: path }, body)), muteHttpExceptions: true });
+  return { url: px.url, method: 'post', contentType: 'application/json', headers: { 'X-Proxy-Key': px.key }, payload: JSON.stringify(Object.assign({ path: path }, body)), muteHttpExceptions: true };
+}
+function mailPxRes_(r) {
   const c = r.getResponseCode(), t = r.getContentText(); let j = {}; try { j = JSON.parse(t) || {}; } catch (e) { j = {}; }
   if (c === 403) throw new Error('посредник не принял секрет — проверьте секрет в настройках посредника');
   if (c === 400 && /path not allowed/.test(t)) throw new Error('oldproxy');
@@ -629,6 +636,7 @@ function mailPx_(path, body) {
   if (j.error) throw new Error(j.error);
   return j;
 }
+function mailPx_(path, body) { const q = mailPxReq_(path, body); return mailPxRes_(UrlFetchApp.fetch(q.url, q)); }
 const mailCred_ = a => ({ user: a.user, pass: a.pass, email: a.email, ih: a.ih, ip: +a.ip || 993, sh: a.sh, sp: +a.sp || 465 });
 const mailAddrTxt_ = L => (L || []).map(x => x.n ? x.n + ' <' + x.a + '>' : x.a).join(', ');
 function mailSave_(a, uidv, m) {
@@ -643,6 +651,13 @@ function mailSave_(a, uidv, m) {
     subject: String(m.subject || '').slice(0, 500), snippet: txt.slice(0, 600), attsText: atts.map(x => x.n).join(', ').slice(0, 500), atts: JSON.stringify(atts), body: body,
     msgid: m.msgid || '', refs: String(m.refs || '').slice(0, 2000), inrep: m.inReply || '', dir: 'in', read: '', ans: '', order: '', by: '', at: new Date().toISOString() };
 }
+/* большие вложения новых писем забираем сразу при проверке почты (пока есть время) — потом они открываются быстро, с Диска */
+function mailPrefetch_(a, rows, until) {
+  rows.forEach(row => { if (Date.now() > until) return; let L; try { L = JSON.parse(row.atts || '[]'); } catch (e) { return; } let ch = 0;
+    L.forEach((x, i) => { if (x.f || !(+x.s > 0) || +x.s > 15 * 1048576 || Date.now() > until) return;
+      try { const j = mailAttGet_(a, row, i); x.f = mailDir_().createFile(Utilities.newBlob(Utilities.base64Decode(j.data), j.mime || x.m || 'application/octet-stream', row.id.replace(/:/g, '_') + '__' + i + '__' + x.n)).getId(); delete x.e; ch = 1; } catch (e) {} });
+    if (ch) row.atts = JSON.stringify(L); });
+}
 function mailSync_(force) {
   const pr = PropertiesService.getScriptProperties(), now = Date.now(), last = +(pr.getProperty('MAIL_SYNC_AT') || 0);
   if (!force && now - last < 60000) return { skipped: 1 };          /* синхронизация не чаще раза в минуту и не двумя людьми сразу */
@@ -654,6 +669,7 @@ function mailSync_(force) {
         const j = mailPx_('/mail/fetch', { acc: mailCred_(a), since: +a.last || 0, uidv: a.uidv || '', days: 30, max: 12 });
         if (String(j.uidv) !== String(a.uidv)) { a.uidv = j.uidv; }
         const rows = (j.msgs || []).map(m => ({ m: m, id: a.id + ':' + j.uidv + ':' + m.uid })).filter(x => !have[x.id]).map(x => { have[x.id] = 1; return mailSave_(a, j.uidv, x.m); });
+        mailPrefetch_(a, rows, now + 45000);
         if (rows.length) { const lock = LockService.getScriptLock(); lock.waitLock(25000); try { upsertList_('mail', { upsert: rows }); } finally { lock.releaseLock(); } added += rows.length; }
         a.last = Math.max(+a.last || 0, +j.last || 0); if (!j.more) break; }
       a.at = new Date().toISOString(); a.err = '';
