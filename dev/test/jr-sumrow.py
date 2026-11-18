@@ -33,6 +33,7 @@ async def main():
             r=await pg.evaluate(JS_OVL)
             ok(not r['bad'], f'{W}: ничего не налезает {r["bad"]}'); ok(not r['clip'], f'{W}: текст не вылезает из кнопок {r["clip"]}'); ok(not r['out'], f'{W}: не за краем {r["out"]}')
             ok(r['rows']==1, f'{W}: кнопки в один ряд ({r["rows"]})')
+            if r['rows']!=1: print(await pg.evaluate("[...document.querySelectorAll('.jf:has(#jr-q)+.jsum .btn')].filter(e=>e.offsetParent).map(e=>(e.id||e.className)+':'+Math.round(e.getBoundingClientRect().width)+'@'+Math.round(e.getBoundingClientRect().top)+' '+e.textContent.trim().slice(0,20))"))
             ok(await pg.evaluate('document.documentElement.scrollWidth')<=W, f'{W}: без прокрутки вбок')
             await pg.locator('.jf:has(#jr-q)+.jsum').screenshot(path=f'/tmp/claude-0/jsum-{W}.png')
             await pg.click('#jr-imp'); await pg.wait_for_timeout(300)
