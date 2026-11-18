@@ -31,11 +31,17 @@ function pdHint(p){ const s=pdSortOf(), o=pdSales()[p.id];
   if(s==="sold") return o&&o.last ? "продавали "+fd(o.last) : "ещё не продавали";
   if(s==="top") return o&&o.n ? o.n+" "+plural(o.n,["накладная","накладные","накладных"])+" · "+skQf(o.q,p.unit) : "за 3 мес. не продавали";
   return ""; }
+/* цена за кг/л по весу из названия («Сметана 300г» 71,1 ₽/шт → ≈ 237 ₽/кг), округление вверх до копеек */
+function pdNameW(name){ const m=String(name||"").replace(/(\d),(\d)/g,"$1.$2").match(/(\d+(?:\.\d+)?)\s*(кг|гр|г|мл|л)(?=$|[^а-яёa-z]|[хx×*]\s*\d)/i); if(!m) return null; const v=+m[1], u=m[2].toLowerCase(); if(!(v>0)) return null;
+  return u==="кг"?{u:"кг",w:v}:u==="л"?{u:"л",w:v}:u==="мл"?{u:"л",w:v/1000}:{u:"кг",w:v/1000}; }
+function pdPerKg(name, unit, price){ const pr=parseFloat(String(price==null?"":price).replace(/\s/g,"").replace(",",".")); if(!(pr>0)) return null; const un=String(unit||"").toLowerCase().replace(/\.$/,"").trim(); if(/^(кг|л|г|гр|мл)$/.test(un)) return null;
+  const W=pdNameW(name); if(!W) return null; const v=Math.ceil(pr/W.w*100-1e-7)/100; return {u:W.u, v, txt:"≈ "+fm(v).replace(/,00$/,"")+" ₽/"+W.u}; }
+function pdKgHtml(p, price, unit){ const k=pdPerKg(p.name, unit||p.unit, price); return k?`<i class="nmk" title="Цена за ${k.u==="кг"?"килограмм":"литр"} по весу из названия">${k.txt}</i>`:""; }
 function pdRowHead(p){ const c=catOf(p), a=pArt(p), n=pgCount(p.id), pr=+p.price>0, h=pdHint(p), vp=typeof pdVpPrice==="function"?pdVpPrice(p):null;
   const meta=[c?`<i class="nmcd" style="--cc:${esc(c.color||"#bbb")}"></i>${esc(c.name)}`:"", esc(p.unit||""), n>1?`<span class="nmlk" title="Связанные названия одного товара">${IC_LINK}${n}</span>`:"", h?esc(h):"", typeof vpTag==="function"&&typeof pdSrcGet==="function"&&pdSrcGet()==="all"?vpTag(p.id):"", vp&&pr?"ваша цена "+fm(p.price).replace(/,00$/,"")+" ₽":""].filter(Boolean).join(" · ");
   return `<span class="nma${a?"":" new"}" title="${a?"Внутренний артикул":"Артикул появится после сохранения в таблицу"}">${a?esc(a):pdArtSrv()?"новый":"—"}</span>
     <span class="nmn"><b>${p.name?esc(p.name):`<em>Без названия</em>`}</b><small>${meta}</small></span>
-    ${vp?`<span class="nmp vpp" style="--h:${vpHue(vp.vendor)}" title="Цена из прайса ${esc(vp.vendor)} от ${fd(vp.date)}"><b>${vpMoney(vp.price)}</b><small>/${esc(vp.unit||p.unit||"")} · ${typeof pdSrcGet==="function"&&pdSrcGet().startsWith("v:")?"от "+fd(vp.date).slice(0,5):esc(vp.vendor)}</small></span>`:`<span class="nmp${pr?"":" no"}">${pr?`<b>${fm(p.price).replace(/,00$/,"")} ₽</b><small>/${esc(p.unit||"")}</small>`:`<small>нет цены</small>`}</span>`}<span class="nmv">${IC_PDV}</span>`; }
+    ${vp?`<span class="nmp vpp" style="--h:${vpHue(vp.vendor)}" title="Цена из прайса ${esc(vp.vendor)} от ${fd(vp.date)}"><b>${vpMoney(vp.price)}</b><small>/${esc(vp.unit||p.unit||"")} · ${typeof pdSrcGet==="function"&&pdSrcGet().startsWith("v:")?"от "+fd(vp.date).slice(0,5):esc(vp.vendor)}</small>${pdKgHtml(p, vp.price, vp.unit||p.unit)}</span>`:`<span class="nmp${pr?"":" no"}">${pr?`<b>${fm(p.price).replace(/,00$/,"")} ₽</b><small>/${esc(p.unit||"")}</small>${pdKgHtml(p, p.price)}`:`<small>нет цены</small>`}</span>`}<span class="nmv">${IC_PDV}</span>`; }
 function pdEditor(p){ const a=pArt(p), M=pgMembers(p.id), packs=Object.entries(packsOf(p)).map(([u,f])=>u+" = "+qtxt(f)).join("; ");
   return `<div class="nme"><div class="nmg">
     <label class="w2"><span>Наименование <small>печатается в документах — пишите как в контракте</small></span><input data-k="name" value="${esc(p.name)}" placeholder="Например, Изюм Малаяр"></label>
