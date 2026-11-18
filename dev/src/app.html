@@ -5283,7 +5283,7 @@ function dvText(P){
       if(f.full){ if(ptTime(pi)) L.push("Приёмка: "+ptTime(pi)); L.push("Получатель: "+(p.c.name||cus(p.cid).name||"")); }
       const it={}; Object.values(p.items).forEach(x=>{ const k=itemShort(x.name); const y=it[k]=it[k]||{name:k,unit:x.unit,qty:0,st:0}; y.qty+=x.qty; y.st+=x.st||0; });
       Object.values(it).forEach(x=>L.push(x.name+" — "+qfmt(x.qty,x.unit)+(x.st>0?" (со склада "+qfmt(x.st,x.unit)+")":"")));
-      (OW[p.cid+"|"+p.addr]||[]).forEach(x=>L.push("+ Доложить (недовезли "+fd(x.j.date)+"): "+(x.o.t||"")+(x.o.q?" — "+qf(x.o.q)+(x.o.u?" "+x.o.u:""):"")));
+      (OW[p.cid+"|"+p.addr]||[]).forEach(x=>L.push("+ На эту поставку (пометка от "+fd(x.j.date)+"): "+oweTxt(x.o)+(x.o.n&&x.o.t?" ("+x.o.n+")":"")));
       if(f.full) L.push("Документы: "+p.docs.map(j=>kindsOf(j)+" #"+j.number).join("; ")+". Передать на подпись, подписанный экземпляр вернуть.");
     }); });
   if(f.ld){ const tot={}; P.forEach(p=>Object.values(p.items).forEach(x=>{ const k=itemShort(x.name); const y=tot[k]=tot[k]||{name:k,unit:x.unit,qty:0}; y.qty+=x.qty; }));
@@ -8283,18 +8283,18 @@ function jnSplit(g){ g=jnFresh(g).filter(x=>!isArch(x)); if(g.length<2 || docLim
 const IC_OWE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.2 12 4l8.5 4.2v7.6L12 20l-8.5-4.2z"/><path d="M3.5 8.2 12 12.4l8.5-4.2M12 12.4V20"/><path d="M16.5 6.1 8 10.3"/></svg>';
 const IC_OWEOK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const oweOf = j => (((j&&j.snap&&j.snap.meta)||{}).owe)||[];
-const oweTxt = o => (o.t||"")+(o.q?" — "+qf(o.q)+(o.u?" "+o.u:""):"");
+const oweTxt = o => o.t?(o.t+(o.q?" — "+qf(o.q)+(o.u?" "+o.u:""):"")):(o.n||"");
 /* открытые пометки заказчика; before — только с накладных раньше этой даты; skip — кроме этой накладной */
 function oweOpen(cid, opt){ opt=opt||{}; const R=[]; if(!cid) return R;
   D.journal.forEach(j=>{ if(!j.snap||isArch(j)||j.customerId!==cid||j.id===opt.skip) return; if(opt.before && !(j.date<opt.before)) return;
     oweOf(j).forEach(o=>{ if(!o.done) R.push({j,o}); }); });
   return R.sort((a,b)=>a.j.date<b.j.date?-1:a.j.date>b.j.date?1:String(a.o.at).localeCompare(String(b.o.at))); }
-const oweSrcTxt = j => "недовезли по № "+j.number+" от "+fd(j.date);
+const oweSrcTxt = j => "пометка к № "+j.number+" от "+fd(j.date);
 /* строка открытой пометки (форма, заявка, маршрут) */
-function oweRow(x, small){ return `<div class="ower"><span class="owet"><b>${esc(oweTxt(x.o))}</b><small><button type="button" class="owel" data-owedoc="${x.j.id}">${esc(oweSrcTxt(x.j))}</button>${x.o.n?" · "+esc(x.o.n):""}</small></span>
-  <button type="button" class="btn ${small?"sm ":""}owed" data-owedone="${x.j.id}|${x.o.id}">${IC_OWEOK}<span>Доложили</span></button></div>`; }
+function oweRow(x, small){ return `<div class="ower"><span class="owet"><b>${esc(oweTxt(x.o))}</b><small><button type="button" class="owel" data-owedoc="${x.j.id}">${esc(oweSrcTxt(x.j))}</button>${x.o.n&&x.o.t?" · "+esc(x.o.n):""}</small></span>
+  <button type="button" class="btn ${small?"sm ":""}owed" data-owedone="${x.j.id}|${x.o.id}">${IC_OWEOK}<span>Сделано</span></button></div>`; }
 function oweBox(cid, L, where){ if(!L.length) return "";
-  return `<div class="oweb"><div class="oweh">${IC_OWE}<span>${where||"Должны доложить"} ${esc(cusNm(cid)||"")}</span></div>${L.map(x=>oweRow(x)).join("")}</div>`; }
+  return `<div class="oweb"><div class="oweh">${IC_OWE}<span>${where||"На эту поставку — пометка"} · ${esc(cusNm(cid)||"")}</span></div>${L.map(x=>oweRow(x)).join("")}</div>`; }
 /* плашки в «Новом документе» и «Заявке» */
 function oweDocBox(){ const b=$("#d-owe"), dr=D.draft; if(!b||!dr) return; const h=dr.customerId?oweBox(dr.customerId, oweOpen(dr.customerId,{skip:dr.id})):"";
   if(b.dataset.h===h) return; b.dataset.h=h; b.hidden=!h; b.innerHTML=h; }
@@ -8305,15 +8305,15 @@ function dvOweMap(P, date){ const M={}, by={}; P.forEach(p=>(by[p.cid]=by[p.cid]
   Object.keys(by).forEach(cid=>oweOpen(cid,{before:date}).forEach(x=>{ const sk=ptKey(x.j.snap.dr.ship||(x.j.snap.c||{}).address||"");
     const p=by[cid].find(q=>ptKey(q.addr)===sk)||by[cid][0], k=p.cid+"|"+p.addr; (M[k]=M[k]||[]).push(x); }));
   return M; }
-function dvOweHtml(L){ if(!L||!L.length) return ""; return `<div class="dvowe"><div class="oweh">${IC_OWE}<span>Доложить — недовезли в прошлый раз</span></div>${L.map(x=>oweRow(x, true)).join("")}</div>`; }
+function dvOweHtml(L){ if(!L||!L.length) return ""; return `<div class="dvowe"><div class="oweh">${IC_OWE}<span>Пометка на эту поставку</span></div>${L.map(x=>oweRow(x, true)).join("")}</div>`; }
 /* окно накладной */
 function oweHtml(j, arch){ const L=oweOf(j); if(!L.length && arch) return "";
-  if(!L.length) return `<div id="dc-owe" data-doc="${j.id}"><button type="button" class="dc-oweadd" data-oweadd="${j.id}">${IC_OWE}<span>Недовезли товар? Запомнить, чтобы доложить в следующий раз</span></button></div>`;
-  return `<div id="dc-owe" class="dc-owe" data-doc="${j.id}"><div class="oweh">${IC_OWE}<span>Недовезли — доложить в следующий раз</span></div>${L.map(o=>`<div class="ower${o.done?" ok":""}">
-    <span class="owet"><b>${esc(oweTxt(o))}</b><small>${o.done?"✓ доложили · "+esc(o.done.by||"")+" · "+esc(dtShort(o.done.at)):"ждёт следующей поставки · записал(а) "+esc(o.by||"")+" "+esc(dtShort(o.at))}${o.n?" · "+esc(o.n):""}</small></span>
-    ${arch?"":o.done?`<button type="button" class="btn ghost sm" data-oweback="${j.id}|${o.id}">Не доложили</button>`:`<button type="button" class="btn sm owed" data-owedone="${j.id}|${o.id}">${IC_OWEOK}<span>Доложили</span></button>`}
-    ${arch?"":`<button type="button" class="owex" data-owedel="${j.id}|${o.id}" title="Убрать пометку (записали по ошибке)" aria-label="Убрать пометку">×</button>`}</div>`).join("")}
-    ${arch?"":`<button type="button" class="owe-more" data-oweadd="${j.id}">+ Ещё товар</button>`}</div>`; }
+  if(!L.length) return `<div id="dc-owe" data-doc="${j.id}"><button type="button" class="dc-oweadd" data-oweadd="${j.id}">${IC_OWE}<span>Пометка на следующую поставку</span></button></div>`;
+  return `<div id="dc-owe" class="dc-owe" data-doc="${j.id}"><div class="oweh">${IC_OWE}<span>Пометка на следующую поставку</span></div>${L.map(o=>`<div class="ower${o.done?" ok":""}">
+    <span class="owet"><b>${esc(oweTxt(o))}</b><small>${o.done?"✓ сделано · "+esc(o.done.by||"")+" · "+esc(dtShort(o.done.at)):"ждёт следующей поставки · записал(а) "+esc(o.by||"")+" "+esc(dtShort(o.at))}${o.n&&o.t?" · "+esc(o.n):""}</small></span>
+    ${arch?"":o.done?`<button type="button" class="btn ghost sm" data-oweback="${j.id}|${o.id}">Не сделано</button>`:`<button type="button" class="btn sm owed" data-owedone="${j.id}|${o.id}">${IC_OWEOK}<span>Сделано</span></button>`}
+    ${arch?"":`<button type="button" class="owex" data-owedel="${j.id}|${o.id}" title="Удалить пометку (записали по ошибке)" aria-label="Убрать пометку">×</button>`}</div>`).join("")}
+    ${arch?"":`<button type="button" class="owe-more" data-oweadd="${j.id}">+ Ещё пометка</button>`}</div>`; }
 /* после изменения — перерисовать всё, где видны пометки */
 function oweRefresh(j){ oweDocBox(); if(curTab==="order") oweOrderBox(); if(curTab==="calendar") renderCalendar(); if(curTab==="journal") renderJournal();
   const b=document.querySelector("#fd-dcard #dc-owe"); if(b && j && b.dataset.doc===j.id) b.outerHTML=oweHtml(j, isArch(j)); }
@@ -8325,34 +8325,33 @@ function oweSet(jid, oid, fn, what, ev){ const j=D.journal.find(x=>x.id===jid); 
     dirty("journal", x.id); saveLocal(); if(online()) flush().catch(handleErr); logEv("Журнал","Отменено: "+ev+" — № "+x.number, x.id); oweRefresh(x); toast("ok","Отменено",""); }; }
 function oweDone(jid, oid, on){ const j=D.journal.find(x=>x.id===jid), o=oweOf(j).find(x=>x.id===oid); if(!o) return; const txt=oweTxt(o);
   const un=oweSet(jid, oid, (L,i)=>{ if(on) L[i].done={by:curUser()||"", at:new Date().toISOString()}; else delete L[i].done; },
-    (on?"доложили: ":"не доложили: ")+txt, (on?"Доложили: ":"Снята отметка «доложили»: ")+txt);
-  if(un) toast("ok", on?"Доложили: "+txt:"Снова ждёт: "+txt, on?(cusNm(j.customerId)||"")+" · пометка закрыта":"", {action:{label:"Отменить", fn:un}}); }
-function oweDel(jid, oid){ const o=oweOf(D.journal.find(x=>x.id===jid)).find(x=>x.id===oid); if(!o) return; const txt=oweTxt(o); const un=oweSet(jid, oid, (L,i)=>{ L.splice(i,1); }, "убрана пометка «недовезли»: "+txt, "Убрана пометка «недовезли»: "+txt);
+    (on?"пометка сделана: ":"пометка не сделана: ")+txt, (on?"Пометка на поставку сделана: ":"Снята отметка «сделано»: ")+txt);
+  if(un) toast("ok", on?"Сделано: "+txt:"Снова ждёт: "+txt, on?(cusNm(j.customerId)||"")+" · пометка закрыта":"", {action:{label:"Отменить", fn:un}}); }
+function oweDel(jid, oid){ const o=oweOf(D.journal.find(x=>x.id===jid)).find(x=>x.id===oid); if(!o) return; const txt=oweTxt(o); const un=oweSet(jid, oid, (L,i)=>{ L.splice(i,1); }, "удалена пометка на поставку: "+txt, "Удалена пометка на поставку: "+txt);
   if(un) toast("ok","Пометка убрана", txt, {action:{label:"Отменить", fn:un}}); }
 /* окно «Недовезли»: выбрать товар из накладной, сколько, комментарий */
 const OWEF={j:null, pid:""};
 function oweForm(j){ if(!j||!j.snap) return; OWEF.j=j; OWEF.pid=""; const k=calc(j.snap.dr, j.snap), open=oweOf(j).filter(o=>!o.done);
   CARD_RE=null;
-  openCard(`<div class="dc-head"><div><div class="dc-kicker">Недовезли · № ${esc(j.number)} · ${fd(j.date)}</div><h3>${esc(jWho(j).main)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
-    <p class="owe-sub">Напомню в следующем документе и в маршруте водителя</p>
+  openCard(`<div class="dc-head"><div><div class="dc-kicker">Пометка на следующую поставку · № ${esc(j.number)} · ${fd(j.date)}</div><h3>${esc(jWho(j).main)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+    <p class="owe-sub">Например: недовезли товар, положили мак вместо кунжута. Покажу при следующей накладной и в маршруте водителя</p>
     ${open.length?`<div class="owe-was">Уже записано: ${open.map(o=>esc(oweTxt(o))).join("; ")}</div>`:""}
-    <div class="owe-lbl">Что недовезли</div>
+    <div class="owe-lbl">Какой товар (если касается товара)</div>
     <div class="owe-ch">${k.lines.map((l,i)=>`<button type="button" class="owc" data-owp="${i}" aria-pressed="false" title="${esc(l.name)}"><span>${esc(l.name)}</span><small>${esc(qf(l.qty)+" "+(l.unit||""))}</small></button>`).join("")}</div>
-    <div class="owe-g"><label class="f owe-t"><span>Товар</span><input id="owe-t" maxlength="200" placeholder="Выберите выше или впишите" autocomplete="off"></label>
-      <label class="f"><span>Сколько</span><input id="owe-q" inputmode="decimal" maxlength="12" placeholder="2" autocomplete="off"></label>
+    <div class="owe-g"><label class="f owe-t"><span>Товар</span><input id="owe-t" maxlength="200" placeholder="Необязательно" autocomplete="off"></label>
+      <label class="f"><span>Сколько</span><input id="owe-q" inputmode="decimal" maxlength="12" placeholder="—" autocomplete="off"></label>
       <label class="f"><span>Ед.</span><input id="owe-u" maxlength="12" placeholder="кг" autocomplete="off"></label></div>
-    <label class="f owe-n"><span>Комментарий</span><input id="owe-n" maxlength="300" placeholder="Необязательно" autocomplete="off"></label>
+    <label class="f owe-n"><span>Что сделать</span><input id="owe-n" maxlength="300" placeholder="Например: доложить 2 кг / привезти кунжут вместо мака" autocomplete="off"></label>
     <div class="owe-f"><span id="owe-msg" role="alert"></span><button type="button" class="btn pri" id="owe-go">Запомнить</button></div>`, false, ()=>{});
   const d=$("#fd-dcard"); if(d) d.classList.add("jnwin","owewin"); OWEF.k=k;
   setTimeout(()=>{ const f=$(k.lines.length?"#fd-dcard .owc":"#owe-t"); if(f) f.focus({preventScroll:true}); }, 60); }
 function owePick(i){ const l=OWEF.k&&OWEF.k.lines[i]; if(!l) return; OWEF.pid=l.pid||""; $("#owe-t").value=l.name; $("#owe-u").value=l.unit||"";
   document.querySelectorAll("#fd-dcard .owc").forEach(b=>b.setAttribute("aria-pressed", String(+b.dataset.owp===i))); const q=$("#owe-q"); q.focus(); q.select(); }
 function oweSave(){ const j=OWEF.j, t=$("#owe-t").value.trim(), q=String(num($("#owe-q").value)||""), u=$("#owe-u").value.trim(), n=$("#owe-n").value.trim(), msg=$("#owe-msg");
-  if(!t){ msg.textContent="Выберите товар или впишите название"; $("#owe-t").focus(); return; }
-  if(!(+q>0)){ msg.textContent="Впишите, сколько недовезли"; $("#owe-q").focus(); return; }
+  if(!t && !n){ msg.textContent="Напишите, что сделать, или выберите товар"; $("#owe-n").focus(); return; }
   const l=OWEF.k.lines.find(x=>x.name===t), o={id:uid(), t, q, u, by:curUser()||"", at:new Date().toISOString()}; if(l&&l.pid) o.pid=l.pid; if(n) o.n=n;
-  const txt=oweTxt(o); const un=oweSet(j.id, o.id, L=>{ L.push(o); }, "недовезли: "+txt, "Недовезли: "+txt+" — доложить в следующий раз");
-  if(!un) return; toast("ok","Запомнил: доложить "+txt, "Напомню при следующем документе на "+(cusNm(j.customerId)||"заказчика"), {action:{label:"Отменить", fn:un}});
+  const txt=oweTxt(o); const un=oweSet(j.id, o.id, L=>{ L.push(o); }, "пометка на поставку: "+txt, "Пометка на следующую поставку: "+txt);
+  if(!un) return; toast("ok","Запомнил пометку: "+txt, "Покажу при следующем документе на "+(cusNm(j.customerId)||"заказчика"), {action:{label:"Отменить", fn:un}});
   if(!navBack()){ const c=document.querySelector('#fd-dcard [data-dc="close"]'); if(c) c.click(); } }
 document.addEventListener("click", e=>{ const t=e.target; if(!t.closest) return;
   const p=t.closest("#fd-dcard [data-owp]"); if(p){ e.preventDefault(); owePick(+p.dataset.owp); return; }
@@ -8380,7 +8379,7 @@ function jcxItems(T){ const R=T.row, has=s=>!!R.querySelector(s), adm=me().admin
       else it("pay","Отметить оплаченной",jcxIc("pay"),()=>jpayToggle([j],true),{sub:p.st==="part"?"частично · осталось "+fm(p.left)+" ₽":"ждём оплату · "+ageTxt(j.date), subc:daysSince(j.date)>30?"old":""});
       it("pays","Оплаты заказчика ›",jcxIc("pays"),()=>jpayGo(cid),{sub:"«Прибыль» → "+(cusNm(cid)||jWho(j).main)}); }
     const gk=!T.arch&&!docLimited()&&govKind(j); if(gk){ const s=govSent(j); it("gov", s?"Снять «Отправлено в "+GOV[gk]+"»":"Отправлено в "+GOV_FULL[gk], jcxIc(s?"govoff":"gov"), ()=>{ govToggle(j.id); toast("ok", s?"Отметка снята":"Отмечено: отправлено в "+GOV_FULL[gk], "№ "+j.number+" от "+fd(j.date)); }, {on:!!s}); }
-    if(!T.arch) it("owe", oweOf(j).some(o=>!o.done)?"Недовезли — ещё товар…":"Недовезли — доложить в след. раз…", jcxIc("owe"), ()=>oweForm(j));
+    if(!T.arch) it("owe", oweOf(j).some(o=>!o.done)?"Пометка на поставку — ещё…":"Пометка на следующую поставку…", jcxIc("owe"), ()=>oweForm(j));
     if(!T.arch && !docLimited()){ const jg=jnGroup(j); if(jnCan(jg)) it("join", jg.length>1?"Добавить в комплект…":"Объединить в комплект…", jcxIc("join"), ()=>jnOpen(jg)); if(jg.length>1) it("out","Убрать из комплекта",jcxIc("out"),()=>jnOut(j)); }
     if(!T.arch) it("cm", cmOf(j).t?"Комментарий":"Добавить комментарий", jcxIc("cm"), ()=>{ docCard(j,false); cmFocus(); });
     it("num","Скопировать номер",jcxIc("num"),()=>jcxCopy("№ "+j.number+" от "+fd(j.date)));
