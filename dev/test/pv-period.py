@@ -61,7 +61,7 @@ async def run(b, vw, tag):
     await pg.click('#pv-cus .pvrpb'); await pg.wait_for_timeout(300); await pg.click('#pv-cus [data-pvrpp]:has-text("Всё время")'); await pg.wait_for_timeout(600)
     lab=await pg.text_content('#pv-cus .pvrpb b'); ok('Всё время' in lab, f'{tag}: «Всё время» ({lab})')
     # «Расходы и доходы» не сломались
-    await pg.click('#pv-seg [data-pv="fin"]'); await pg.wait_for_timeout(500); ok(await pg.locator('#pv-fin .pvmon').count()>0, f'{tag}: «Расходы и доходы» со своими месяцами')
+    await pg.click('#pv-seg [data-pv="fin"]'); await pg.wait_for_timeout(500); ok('Всё время' in (await pg.text_content('#pv-fin [data-rpg="pvfin"]')), f'{tag}: «Расходы и доходы» — тот же период (Всё время)')
     sw=await pg.evaluate("[document.documentElement.scrollWidth, innerWidth]"); ok(sw[0]<=sw[1], f'{tag}: без прокрутки вбок {sw}')
     ok(not errs, f'{tag}: ошибок JS нет {errs}')
     await ctx.close()

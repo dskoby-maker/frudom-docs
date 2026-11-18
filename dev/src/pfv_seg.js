@@ -94,6 +94,7 @@ function pvInit(){
   $("#pv-cus").addEventListener("keydown", e=>{ if((e.key==="Enter"||e.key===" ") && e.target.matches && e.target.matches(".pvmr")){ e.preventDefault(); e.target.click(); } }); $("#pv-cus").addEventListener("input", e=>{ if(e.target.id==="pv-q"){ PV().q=e.target.value; pvCusDraw(true); } });
   $("#pv-fin").addEventListener("click", pvFinClick);
   $("#pv-fin").addEventListener("input", e=>{ if(e.target.id!=="pv-fsq") return; PVFS.q=e.target.value; PVFS.m=""; PVFS.c=""; clearTimeout(PVFS.t); PVFS.t=setTimeout(pvFsDraw, 120); });
+  $("#pv-fin").addEventListener("keydown", e=>{ if((e.key==="Enter"||e.key===" ") && e.target.matches && e.target.matches(".pvfr[data-pvflow]")){ e.preventDefault(); pvFlowCard(e.target.dataset.pvflow); return; } });
   $("#pv-fin").addEventListener("keydown", e=>{ if(e.target.id==="pv-fsq" && e.key==="Escape" && PVFS.q){ e.preventDefault(); e.stopPropagation(); PVFS={q:"", sc:"all", m:"", c:""}; e.target.value=""; pvFsDraw(); } });
   $("#pv-bank").addEventListener("click", pvBankClick);
   const debt=$("#pv-debt");
@@ -566,11 +567,13 @@ function pvFold(k, title, sum, sk, cur, opts, body){ const f=PV(), op=!!(f.fo||{
 function pvItRow(x, dt){ const k=pvKind(x), c=pvCatOf(x), s=+x.sum||0;
   return `<button type="button" class="pvit k-${k}" data-pvx="${esc(x.id)}">${pvBubble(c)}<span class="pvitn"><b>${esc(x.note||c.n)}</b><small>${dt?esc(fd(x.date).slice(0,5))+" · ":""}${k==="per"?`<span class="pvtag">личное</span>`:esc(c.n)}${x.supplierId?" · "+esc(supShort(sup(x.supplierId).name||"")):""}${x.by?" · "+esc(x.by):""}</small></span><span class="pvits ${k==="inc"?"pos":k==="per"?"per":"neg"}">${pvMoney(k==="inc"?s:-s,true)} ₽</span></button>`; }
 const pvFoOpen = (k, on) => { const f=PV(); f.fo=f.fo||{}; f.fo[k]=on; saveLocal(); };
+/* период «Расходы и доходы» — тот же, что в «По заказчикам» (PV().m или свои даты PV().cr), выбор календарём (18.11.2026) */
+function pvFinR(){ const R=pvCusR(); return {R, d1:R.all?"0000":R.a, d2:R.all?"9999":R.b, mon:R.all?"all":R.cr?"":R.m}; }
 function pvFinDraw(){
-  const box=$("#pv-fin"), f=PV(), [d1,d2]=pvRange(), mon=pvMonth(), cats=pvCats(); f.fk=f.fk||""; f.fv=f.fv||"list";
+  const box=$("#pv-fin"), f=PV(), FR=pvFinR(), d1=FR.d1, d2=FR.d2, mon=FR.mon, cats=pvCats(); f.fk=f.fk||""; f.fv=f.fv||"list";
   if(f.fday && (f.fday<d1 || f.fday>d2)) f.fday="";
-  const cal = f.fv==="cal" && mon!=="all", T=pvFinTot(d1,d2), all=T.L;
-  const W = mon!=="all" ? (()=>{ const pm=pvShift(mon,-1), [a,b]=[pm+"-01", jIso(new Date(+pm.slice(0,4), +pm.slice(5,7), 0))]; return pvFinTot(a,b); })() : null;
+  const cal = f.fv==="cal" && !!mon && mon!=="all", T=pvFinTot(d1,d2), all=T.L;
+  const W = mon && mon!=="all" ? (()=>{ const pm=pvShift(mon,-1), [a,b]=[pm+"-01", jIso(new Date(+pm.slice(0,4), +pm.slice(5,7), 0))]; return pvFinTot(a,b); })() : null;
   f.cs=f.cs||"s"; f.ls=f.ls||"d";
   const cSort=(a,b)=> f.cs==="n" ? b.n-a.n || b.s-a.s : f.cs==="a" ? String(a.c.n).localeCompare(String(b.c.n),"ru") : f.cs==="u" ? a.s-b.s : b.s-a.s;
   const by=(list)=>{ const m=new Map(); list.forEach(x=>{ const c=pvCat(x.cat); const k=c.id; if(!m.has(k)) m.set(k,{c, s:0, n:0}); const g=m.get(k); g.s+=(+x.sum||0); g.n++; }); return [...m.values()].sort(cSort); };
@@ -584,27 +587,27 @@ function pvFinDraw(){
   DLs.forEach(x=>{ if(!days.has(x.date)) days.set(x.date,[]); if(!dd.has(x.date)) dd.set(x.date,[]); dd.get(x.date).push(x); });
   const dayKeys=[...days.keys()].sort((a,b)=>a<b?1:a>b?-1:0);
   const fc = f.fcat ? (f.fcat.startsWith("per:") ? Object.assign({},PV_PERC,{n:(all.find(x=>pvKind(x)==="per" && (x.note||"Без описания").trim().toLowerCase()===f.fcat.slice(4))||{}).note||"Личное"}) : pvCat(f.fcat.split(":")[1])) : null;
-  const nd = mon==="all" ? 0 : mon===todayISO().slice(0,7) ? +todayISO().slice(8,10) : mon<todayISO().slice(0,7) ? new Date(+mon.slice(0,4), +mon.slice(5,7), 0).getDate() : 0;
+  const nd = !mon ? Math.max(0, Math.round((pvIsoD(d2<todayISO()?d2:todayISO())-pvIsoD(d1))/864e5)+1) : mon==="all" ? 0 : mon===todayISO().slice(0,7) ? +todayISO().slice(8,10) : mon<todayISO().slice(0,7) ? new Date(+mon.slice(0,4), +mon.slice(5,7), 0).getDate() : 0;
   const lim=+(getPrefs().perLim||0), limP = lim>0 ? Math.min(100, T.P/lim*100) : 0;
   const nDocs=T.DL.filter(x=>!cal || !f.fday || x.date===f.fday).length, cnt=k=>all.filter(x=>pvKind(x)===k && (!cal || !f.fday || x.date===f.fday)).length + (k==="inc"?nDocs:0);
   const seg=`<div class="fdseg pvfv" role="group" aria-label="Вид"><i style="--x:${cal?"100%":"0%"}"></i><button type="button" data-pvv="list" class="${cal?"":"on"}" aria-pressed="${!cal}">Список</button><button type="button" data-pvv="cal" class="${cal?"on":""}" aria-pressed="${cal}">Календарь</button></div>`;
-  const row=(lbl, v, sub, cls, w)=>`<div class="pvfr ${cls||""}"><span class="pvfl">${lbl}${sub?`<small>${sub}</small>`:""}</span><b>${pvMoney(v,true)}</b><i class="pvfb"><i style="--w:${w}%"></i></i></div>`;
+  const row=(lbl, v, sub, cls, w, fk)=>`<div class="pvfr ${cls||""}${fk?" go":""}"${fk?` data-pvflow="${fk}" role="button" tabindex="0" title="Подробнее: ${esc(lbl)}"`:""}><span class="pvfl">${lbl}${sub?`<small>${sub}</small>`:""}</span><b>${pvMoney(v,true)}${fk?`<i class="pvfgo" aria-hidden="true">›</i>`:""}</b><i class="pvfb"><i style="--w:${w}%"></i></i></div>`;
   const mx=Math.max(1, Math.abs(T.dp), T.I, T.E, T.P, Math.abs(T.B));
-  box.innerHTML = `<div class="pvhead"><div><h2>Расходы и доходы</h2><small class="muted">Всё, что не закупка товара, и отдельно — личные траты</small></div>${pvMonBar()}</div>
+  box.innerHTML = `<div class="pvhead"><div><h2>Расходы и доходы</h2><small class="muted">Всё, что не закупка товара, и отдельно — личные траты</small></div>${rpgBar("pvfin")}</div>
     <div class="pvacts"><button type="button" class="pvadd exp" data-pva="exp"><span>−</span>Расход</button><button type="button" class="pvadd inc" data-pva="inc"><span>+</span>Доход</button><button type="button" class="pvadd per" data-pva="per"><span>${pvIco("user")}</span>Личное</button><span style="flex:1"></span>${seg}<button type="button" class="btn ghost sm" data-pva="xls" title="Скачать записи месяца в Excel">${pvIco("doc")}Excel</button><button type="button" class="btn ghost sm" data-pva="cats">${pvIco("gear")}Категории</button></div>
     <div class="pvfsb"><label class="pvsearch pvfsq">${pvIco("search")}<input id="pv-fsq" type="search" placeholder="Найти: бензин, такси, аренда, категория…" value="${esc(PVFS.q)}" autocomplete="off" aria-label="Поиск по расходам и доходам"><button type="button" class="pvfsx" data-pvfs="clear" aria-label="Очистить поиск"${PVFS.q?"":" hidden"}>×</button></label></div>
     <div id="pv-fsr"></div>
     <div id="pv-fmain">
     ${D.poSrv?"":`<p class="note">Пока скрипт таблицы старый, записи хранятся только на этом устройстве. <button type="button" class="btn sm" id="srvOldHow">Как обновить</button></p>`}
     ${pvCatOk()?"":`<p class="note">Категории начнут сохраняться после обновления скрипта таблицы (Code.gs, версия 15). <button type="button" class="btn sm" id="srvOldHow">Как обновить</button></p>`}
-    ${cal ? pvFinCal(all.filter(x=>!f.fk || pvKind(x)===f.fk), mon, !f.fk || f.fk==="inc" ? T.DL : []) : (f.fv==="cal" ? `<p class="muted bncalno">Календарь — по месяцам: выберите месяц стрелками сверху.</p>` : "")}
+    ${cal ? pvFinCal(all.filter(x=>!f.fk || pvKind(x)===f.fk), mon, !f.fk || f.fk==="inc" ? T.DL : []) : (f.fv==="cal" ? `<p class="muted bncalno">Календарь — по месяцам: выберите в «Периоде» один месяц.</p>` : "")}
     <div class="pvsum2">
       <div class="pvflow">
-        ${row("Прибыль с накладных", T.dp, T.docs+" "+plural(T.docs,["накладная","накладные","накладных"])+" · после закупки и налога"+(T.miss?` · <button type="button" class="pvmiss" data-pvmiss title="Открыть эти накладные во вкладке «Закупка» и заполнить">без закупки: ${T.miss} ›</button>`:"")+(T.docs?`<span class="pvpd"><span class="paid"><i></i>оплачено ${fm(T.dpPaid)}</span><span class="due"><i></i>ждём оплату ${fm(T.dpDue)}</span></span>`:""), T.dp<0?"neg":"pos", Math.abs(T.dp)/mx*100)}
-        ${row("Прочие доходы", T.I, "", "pos", T.I/mx*100)}
-        ${row("Расходы", -T.E, "", "neg", T.E/mx*100)}
+        ${row("Прибыль с накладных", T.dp, T.docs+" "+plural(T.docs,["накладная","накладные","накладных"])+" · после закупки и налога"+(T.miss?` · <button type="button" class="pvmiss" data-pvmiss title="Открыть эти накладные во вкладке «Закупка» и заполнить">без закупки: ${T.miss} ›</button>`:"")+(T.docs?`<span class="pvpd"><span class="paid"><i></i>оплачено ${fm(T.dpPaid)}</span><span class="due"><i></i>ждём оплату ${fm(T.dpDue)}</span></span>`:""), T.dp<0?"neg":"pos", Math.abs(T.dp)/mx*100, "doc")}
+        ${row("Прочие доходы", T.I, "", "pos", T.I/mx*100, "inc")}
+        ${row("Расходы", -T.E, "", "neg", T.E/mx*100, "exp")}
         <div class="pvfr tot"><span class="pvfl">Бизнес заработал${W?pvCmp(T.B,W.B,"up"):""}</span><b class="${T.B<0?"neg":""}">${pvMoney(T.B,true)}</b></div>
-        ${row("Личные расходы", -T.P, "", "per", T.P/mx*100)}
+        ${row("Личные расходы", -T.P, "", "per", T.P/mx*100, "per")}
       </div>
       <div class="pvres ${T.R<0?"neg":""}"><small>Остаётся вам</small><b>${pvMoney(T.R,true)} <em>₽</em></b><span>бизнес заработал ${fm(T.B)} − личные ${fm(T.P)}</span>${W?pvCmp(T.R,W.R,"up"):""}
         ${nd?`<div class="pvavg"><div><small>В среднем за день</small></div><div><span>бизнес</span><b class="${T.B<0?"neg":""}">${pvMoney(r2(T.B/nd),true)}</b></div><div><span>личные</span><b class="per">${fm(r2(T.P/nd))}</b></div>${W&&W.P>0?`<div><span>личные в прошлом месяце</span><b>${fm(W.P)}</b></div>`:""}</div>`:""}
@@ -629,13 +632,13 @@ const pvFsStem = t => /^\d/.test(t) ? t : t.length>=7 ? t.slice(0,-2) : t.length
 const pvFsToks = q => pvFsN(q).split(/[\s,.;:!?«»"()]+/).filter(Boolean).map(pvFsStem);
 function pvFsHay(x){ const k=pvKind(x), c=pvCatOf(x); return pvFsN([x.note||"", k==="per"?"личное личные":c.n, k==="inc"?"доход доходы":k==="per"?"":"расход расходы", x.by||"", String(Math.round(+x.sum||0)), String(+x.sum||0).replace(".",",")].join(" ")); }
 function pvFsHit(hay, T){ const W=hay.split(/[\s\-–—,.;:()«»"\/]+/).filter(Boolean); return T.every(t=>W.some(w=>w.startsWith(t)) || (t.length>=3 && hay.includes(t))); }
-function pvFsFind(q, sc){ const T=pvFsToks(q); if(!T.length) return []; const [d1,d2]=sc==="mon"&&pvMonth()!=="all"?pvRange():["0000","9999"];
+function pvFsFind(q, sc){ const T=pvFsToks(q); if(!T.length) return []; const FR=pvFinR(), [d1,d2]=sc==="mon"&&!FR.R.all?[FR.d1,FR.d2]:["0000","9999"];
   return pfArr("pother").filter(x=>x.date>=d1 && x.date<=d2 && pvFsHit(pvFsHay(x), T)).sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0); }
 function pvFsMark(text, q){ let h=esc(text); const T=pvFsToks(q).filter(t=>t.length>=2); if(!T.length) return h;
   const re=new RegExp("("+T.map(t=>t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&").replace(/е/g,"[её]")).join("|")+")","gi"); return h.replace(re,"<mark>$1</mark>"); }
 function pvFsDraw(){ const out=$("#pv-fsr"), main=$("#pv-fmain"); if(!out||!main) return; const q=PVFS.q.trim(), x=$("#pv-fin [data-pvfs=clear]"); if(x) x.hidden=!PVFS.q;
   if(!q){ out.innerHTML=""; main.hidden=false; return; } main.hidden=true;
-  const mon=pvMonth(), canMon=mon!=="all"; if(!canMon) PVFS.sc="all";
+  const FR=pvFinR(), mon=FR.mon, canMon=!FR.R.all; if(!canMon) PVFS.sc="all";
   const all=pvFsFind(q, PVFS.sc), allT=PVFS.sc==="mon"?pvFsFind(q,"all"):all;
   /* по месяцам и категориям — из всех найденных; ниже список с учётом выбранного месяца/категории */
   const bm=new Map(), bc=new Map(); all.forEach(x=>{ const m=x.date.slice(0,7), k=pvKind(x), c=pvCatOf(x), ck=k+":"+(k==="per"?"__per":c.id), v=(k==="inc"?1:-1)*(+x.sum||0);
@@ -687,9 +690,9 @@ function pvFinCal(list, ym, dl){
     ${f.fday?`<p class="zkc-f">Показаны записи за <b>${fd(f.fday)}</b> · <button type="button" class="btn ghost sm" data-pvday="${f.fday}">Весь месяц</button> <button type="button" class="btn ghost sm" data-pvday="${f.fday}" data-pvnew="1">+ Запись на этот день</button></p>`:`<p class="zkc-f muted">Доход — прибыль с накладных по дню поставки: зелёный — деньги пришли, светло-зелёный — товар отвезли, ждём оплату. Нажмите на день — ниже останутся его записи; пустой день — сразу новая запись.</p>`}</div>`;
 }
 async function pvFinXls(){
-  try{ const X=await loadXLSX(), [d1,d2]=pvRange(), m=pvMonth(), L=pfArr("pother").filter(x=>x.date>=d1 && x.date<=d2).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  try{ const X=await loadXLSX(), FR=pvFinR(), d1=FR.d1, d2=FR.d2, m=FR.mon, L=pfArr("pother").filter(x=>x.date>=d1 && x.date<=d2).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
     if(!L.length){ toast("info","Нечего выгружать","За этот период записей нет."); return; }
-    const T=pvFinTot(d1,d2), aoa=[["Расходы и доходы — "+(m==="all"?"все месяцы":pvMon(m))],[],["Дата","Вид","Категория","На что / откуда","ИП","Сумма, ₽","Кто добавил"],
+    const T=pvFinTot(d1,d2), aoa=[["Расходы и доходы — "+(m==="all"?"все месяцы":FR.R.lab)],[],["Дата","Вид","Категория","На что / откуда","ИП","Сумма, ₽","Кто добавил"],
       ...L.map(x=>{ const k=pvKind(x); return [fd(x.date), k==="inc"?"Доход":k==="per"?"Личное":"Расход", k==="per"?"":pvCat(x.cat).n, x.note||"", x.supplierId?(sup(x.supplierId).name||""):"Общие", (k==="inc"?1:-1)*(+x.sum||0), x.by||""]; }),
       [],["","","","Прибыль с накладных","",T.dp],["","","","Прочие доходы","",T.I],["","","","Расходы","",-T.E],["","","","Бизнес заработал","",T.B],["","","","Личные","",-T.P],["","","","Остаётся","",T.R]];
     const ws=X.utils.aoa_to_sheet(aoa); ws["!cols"]=[{wch:11},{wch:9},{wch:18},{wch:40},{wch:30},{wch:13},{wch:12}];
@@ -715,19 +718,20 @@ function pvFinClick(e){
     sec.classList.toggle("open", on); fo.setAttribute("aria-expanded", on); sec.querySelector(".pvfob").inert=!on; sec.querySelector(".pvfos").hidden=!on; return; }
   const so=e.target.closest("[data-pvsort]"); if(so){ const [k,v]=so.dataset.pvsort.split(":"); PV()[k]=v; saveLocal(); pvFinDraw(); return; }
   const m=e.target.closest("[data-pvm]"); if(m){ pvMonClick(m); return; }
-  const v=e.target.closest("[data-pvv]"); if(v){ const f=PV(); f.fv=v.dataset.pvv; f.fday=""; if(f.fv==="cal" && pvMonth()==="all") f.m=todayISO().slice(0,7); saveLocal(); pvFinDraw(); return; }
+  const v=e.target.closest("[data-pvv]"); if(v){ const f=PV(); f.fv=v.dataset.pvv; f.fday=""; if(f.fv==="cal" && (f.cr || pvMonth()==="all")){ f.cr=null; f.m=todayISO().slice(0,7); } saveLocal(); pvFinDraw(); return; }
   const dy=e.target.closest("[data-pvday]"); if(dy){ const f=PV(), iso=dy.dataset.pvday; if(dy.dataset.pvnew){ pvItemOpen(null, f.fk||"exp", iso); return; } f.fday = f.fday===iso ? "" : iso; if(f.fday) pvFoOpen("list", true); saveLocal(); pvFinDraw(); return; }
   const fk=e.target.closest("[data-pvfk]"); if(fk){ const f=PV(); f.fk=fk.dataset.pvfk; if(f.fcat && f.fk && !f.fcat.startsWith(f.fk+":")) f.fcat=""; saveLocal(); pvFinDraw(); return; }
   const f=e.target.closest("[data-pvf]"); if(f){ const k=f.dataset.pvf; PV().fcat = PV().fcat===k ? "" : k; if(PV().fcat){ pvFoOpen("list", true); setTimeout(()=>{ const l=$('#pv-fin [data-pvfo="list"]'); if(l) l.scrollIntoView({behavior:"smooth", block:"start"}); }, 60); } saveLocal(); pvFinDraw(); return; }
   const a=e.target.closest("[data-pva]"); if(a){ const k=a.dataset.pva; if(k==="cats") pvCatsOpen(); else if(k==="xls") pvFinXls(); else if(k==="lim") pvLimOpen(); else pvItemOpen(null, k); return; }
-  if(e.target.closest("[data-pvmiss]")){ const m=pvMonth(), [a,b]=pvRange(); tabBackFrom("Прибыль", ()=>zkpGoMiss(a, b, m==="all"?"за всё время":"за "+pvMon(m).toLowerCase())); return; }
+  if(e.target.closest("[data-pvmiss]")){ const FR=pvFinR(); tabBackFrom("Прибыль", ()=>zkpGoMiss(FR.d1, FR.d2, FR.R.all?"за всё время":"за "+FR.R.lab.toLowerCase())); return; }
+  const fw=e.target.closest("[data-pvflow]"); if(fw){ pvFlowCard(fw.dataset.pvflow); return; }
   const dj=e.target.closest("[data-pvdoc]"); if(dj){ const j=D.journal.find(y=>y.id===dj.dataset.pvdoc); if(j) docCard(j, false); return; }
   const x=e.target.closest("[data-pvx]"); if(x){ const it=pfArr("pother").find(y=>y.id===x.dataset.pvx); if(it) pvItemOpen(it); }
 }
 let PVI=null;
 function pvItemOpen(it, kind, date, copy){
   const k = it ? pvKind(it) : (kind==="inc"||kind==="per" ? kind : "exp"); PVI={id:it&&!copy?it.id:"", k, inc:k==="inc", cat:it&&k!=="per"?(it.cat||""):"", rows:[]};
-  const m=pvMonth(), dDef = date || (m!=="all" && todayISO().slice(0,7)!==m ? m+"-01" : todayISO()), ed=it&&!copy;
+  const FR=pvFinR(), t0=todayISO(), dDef = date || (FR.R.all || (t0>=FR.d1 && t0<=FR.d2) ? t0 : FR.d1), ed=it&&!copy;
   const notes=[...new Set(pfArr("pother").map(x=>x.note).filter(Boolean))].slice(-80).reverse();
   openCard(`<div class="dc-head"><div><div class="dc-kicker">${ed?"Изменить запись":copy?"Повтор записи":"Новая запись"}</div><h3 id="pvi-t">${PV_KT[k]}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <div class="pvform k-${k}" id="pvi-f">
@@ -812,7 +816,7 @@ function pvItemSave(){
   put(old || {id:uid(), by:curUser()}, v, note, PVI.cat, date);
   R.forEach(r=>put({id:uid(), by:curUser()}, r.v, r.note, r.cat, r.date));
   saveLocal(); pvCloseCard();
-  const m=pvMonth(); if(m!=="all" && date.slice(0,7)!==m){ PV().m=date.slice(0,7); saveLocal(); }
+  { const FR=pvFinR(); if(!FR.R.all && (date<FR.d1 || date>FR.d2)){ PV().cr=null; PV().m=date.slice(0,7); saveLocal(); } }
   const tot=r2(made.reduce((a,x)=>a+ +x.sum,0));
   drawProfit(); toast("ok", old?"Сохранено":made.length>1?"Добавлено записей: "+made.length:k==="inc"?"Доход добавлен":per?"Личный расход добавлен":"Расход добавлен", made.length>1?"Всего "+fm(tot)+" ₽":(!per&&PVI.cat?c.n+" · ":"")+fm(v)+" ₽");
   setTimeout(()=>{ made.forEach((x,i)=>{ const r=document.querySelector(`#pv-fin [data-pvx="${x.id}"]`); if(r){ r.classList.add("fresh"); if(!i) r.scrollIntoView({block:"nearest", behavior:"smooth"}); } }); }, 30);
@@ -1151,3 +1155,134 @@ function dbClick(e){ const sg=e.target.closest("[data-dbsug]"); if(sg){ const el
   if(b.dataset.dbedit){ dbEdit(b.dataset.dbedit); return; }
   if(b.dataset.dbdel){ if(!armed(b,"Удалить?")) return; dbDel(b.dataset.dbdel); }
 }
+
+/* ===== «Расходы и доходы»: период календарём, окна «Прибыль с накладных / Прочие доходы / Расходы / Личные», правая кнопка (18.11.2026, просьба Даниила) =====
+   Записи меняются одним местом — pvRecSet (вид и категория) / pvRecDel / pvRecRename; у каждого действия «Отменить» (мимо общей отмены — UNDO.paused). */
+rpgReg("pvfin", { get:()=>{ const R=pvCusR(); return R.all?{a:"all"}:{a:R.a, b:R.b}; },
+  set:(a,b)=>{ pvSetR(a,b); PV().fday=""; pvFinDraw(); if(PVFW.on) pvFlowRedraw(); },
+  dots:()=>{ const S=new Set(pfArr("pother").map(x=>x.date)); D.journal.forEach(j=>{ if(j.snap && !isArch(j)) S.add(j.date); }); return S; } });
+const PV_KIND_V = {exp:PO_EXP, inc:PO_INC, per:PO_PER};
+const PV_KNAME = {exp:"расходы бизнеса", inc:"доходы", per:"личные"};
+const PV_KTO = {exp:"Перенести в расходы бизнеса", inc:"Сделать доходом", per:"Перенести в личные"};
+/* категория для записи при переносе в другой вид: как у прошлой записи с тем же текстом этого вида */
+function pvGuessCat(x, k){ if(k==="per") return ""; const n=(x.note||"").trim().toLowerCase();
+  const last=n ? pfArr("pother").filter(y=>y.id!==x.id && (y.note||"").trim().toLowerCase()===n && pvKind(y)===k && y.cat).sort((a,b)=>a.date<b.date?1:-1)[0] : null;
+  return last && pvCats().some(c=>c.id===last.cat && (c.k===k||c.k==="both")) ? last.cat : ""; }
+function pvRecAfter(){ saveLocal(); drawProfit(); if(PVFW.on) pvFlowRedraw(); }
+/* k — новый вид (или null — тот же), cat — новая категория (undefined — подобрать/оставить) */
+function pvRecSet(ids, k, cat, quiet){ const L=pfArr("pother").filter(x=>ids.includes(x.id)); if(!L.length) return;
+  const prev=L.map(x=>({x, kind:x.kind, cat:x.cat, catName:x.catName, note:x.note}));
+  UNDO.paused++; try{ L.forEach(x=>{ const kk=k||pvKind(x), was=pvKind(x); x.kind=PV_KIND_V[kk];
+    if(kk==="per"){ if(!x.note) x.note=pvCatOf(Object.assign({},x,{kind:PO_EXP})).n; if(pvCatOk()){ x.cat=""; x.catName=""; } }
+    else if(pvCatOk()){ const c = cat!==undefined ? cat : (kk!==was ? pvGuessCat(x, kk) : x.cat||""); x.cat=c; x.catName=c?pvCat(c).n:""; }
+    dirty("pother", x.id); }); } finally{ UNDO.paused--; if(typeof unResync==="function") unResync(); }
+  const sum=r2(L.reduce((a,x)=>a+(+x.sum||0),0)), what = k ? "в "+PV_KNAME[k] : "в категорию «"+(cat?pvCat(cat).n:"Без категории")+"»";
+  logEv("Прибыль","Перенесено "+what+": "+(L.length>1?L.length+" записей на "+fm(sum)+" ₽":(L[0].note||"")+" — "+fm(sum)+" ₽"));
+  pvRecAfter();
+  if(!quiet) toast("ok", (L.length>1?L.length+" "+plural(L.length,["запись","записи","записей"])+" перенесено ":"Перенесено ")+what, fm(sum)+" ₽",
+    {action:{label:"Отменить", fn:()=>{ UNDO.paused++; try{ prev.forEach(p=>{ Object.assign(p.x, {kind:p.kind, cat:p.cat, catName:p.catName, note:p.note}); dirty("pother", p.x.id); }); } finally{ UNDO.paused--; if(typeof unResync==="function") unResync(); }
+      logEv("Прибыль","Отменён перенос "+what); pvRecAfter(); toast("info","Отменено","Как было."); }}}); }
+function pvRecDel(ids){ const L=pfArr("pother").filter(x=>ids.includes(x.id)); if(!L.length) return; const sum=r2(L.reduce((a,x)=>a+(+x.sum||0),0));
+  UNDO.paused++; try{ D.pother=pfArr("pother").filter(x=>!ids.includes(x.id)); L.forEach(x=>dirty("pother", x.id, true)); } finally{ UNDO.paused--; if(typeof unResync==="function") unResync(); }
+  logEv("Прибыль","Удалено: "+(L.length>1?L.length+" записей на "+fm(sum)+" ₽":(L[0].note||pvCatOf(L[0]).n)+" — "+fm(sum)+" ₽")); pvRecAfter();
+  toast("ok", L.length>1?"Удалено записей: "+L.length:"Запись удалена", fm(sum)+" ₽", {action:{label:"Отменить", fn:()=>{ UNDO.paused++; try{ L.forEach(x=>{ pfArr("pother").push(x); dirty("pother", x.id); }); } finally{ UNDO.paused--; if(typeof unResync==="function") unResync(); }
+    logEv("Прибыль","Возвращено удалённое: "+L.length+" "+plural(L.length,["запись","записи","записей"])); pvRecAfter(); toast("info","Вернул","Записи снова на месте."); }}}); }
+/* записи группы из разбивки (kind:id) за выбранный период */
+function pvGroupIds(key){ const [k, id]=key.split(/:(.*)/s), FR=pvFinR();
+  return pfArr("pother").filter(x=>x.date>=FR.d1 && x.date<=FR.d2 && pvKind(x)===k && (k==="per" ? (x.note||"Без описания").trim().toLowerCase()===id : pvCat(x.cat).id===id)).map(x=>x.id); }
+/* переименовать «на что» у записей (личные «Йота» → «Мобильная связь») */
+function pvRecRename(ids, title){ const L=pfArr("pother").filter(x=>ids.includes(x.id)); if(!L.length) return; const old=L[0].note||"";
+  CARD_RE=null;
+  openCard(`<div class="dc-head"><div><div class="dc-kicker">${L.length} ${plural(L.length,["запись","записи","записей"])} за период</div><h3>${esc(title||"Переименовать")}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
+    <label class="f"><span>Новое название</span><input id="pvrn-in" maxlength="200" value="${esc(old)}" autocomplete="off"></label>
+    <div class="pvea"><button type="button" class="btn pri" id="pvrn-go">Сохранить</button><button type="button" class="btn ghost" data-dc="close">Отмена</button></div>`, false, ()=>{});
+  const d=$("#fd-dcard"); d.classList.add("pvi-d"); const go=()=>{ const v=$("#pvrn-in").value.trim(); if(!v){ $("#pvrn-in").focus(); return; } const prev=L.map(x=>[x, x.note]);
+    UNDO.paused++; try{ L.forEach(x=>{ x.note=v; dirty("pother", x.id); }); } finally{ UNDO.paused--; if(typeof unResync==="function") unResync(); }
+    logEv("Прибыль","Переименовано «"+old+"» → «"+v+"» ("+L.length+")"); pvCloseCard(); pvRecAfter();
+    toast("ok","Переименовано","«"+old+"» → «"+v+"»",{action:{label:"Отменить", fn:()=>{ UNDO.paused++; try{ prev.forEach(([x,n])=>{ x.note=n; dirty("pother", x.id); }); } finally{ UNDO.paused--; if(typeof unResync==="function") unResync(); } pvRecAfter(); }}}); };
+  d.addEventListener("click", e=>{ if(e.target.closest("#pvrn-go")) go(); }); d.addEventListener("keydown", e=>{ if(e.key==="Enter" && e.target.id==="pvrn-in"){ e.preventDefault(); go(); } });
+  setTimeout(()=>{ const i=$("#pvrn-in"); if(i){ i.focus(); i.select(); } }, 60); }
+/* новая запись сразу в нужной категории / с нужным текстом */
+function pvAddTo(k, cat, note){ pvItemOpen(null, k); setTimeout(()=>{ if(k!=="per" && cat && PVI){ PVI.cat=cat; pvItemCats(); } if(note){ const n=$("#pvi-note"); if(n) n.value=note; } }, 30); }
+
+/* ---------- окно «Прибыль с накладных» / «Прочие доходы» / «Расходы» / «Личные расходы» ---------- */
+const PVFW={on:false, k:"", q:"", s:"d", c:"", f:"", sel:new Set(), n:60};
+const PVFW_T={doc:["Прибыль с накладных","прибыль каждой накладной после закупки, налога и её расходов"], inc:["Прочие доходы","всё, что пришло не за накладные"], exp:["Расходы бизнеса","всё, что не закупка товара"], per:["Личные расходы","в прибыль бизнеса не входят — вычитаются в «Остаётся вам»"]};
+function pvFlowCard(k, o){ if(!PVFW_T[k]) return; o=o||{}; if(PVFW.k!==k || o.c!==undefined){ Object.assign(PVFW, {k, q:o.q||"", s:"d", c:o.c||"", f:o.f||"", sel:new Set(), n:60}); }
+  PVFW.on=true; CARD_RE=()=>pvFlowCard(k);
+  openCard(`<div class="dc-head"><div><div class="dc-kicker">Расходы и доходы · ${esc(pvFinR().R.lab)}</div><h3>${PVFW_T[k][0]}</h3><div class="dc-sub">${PVFW_T[k][1]}</div></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div><div id="pvfw" class="k-${k}"></div>`, true, ()=>{});
+  const d=$("#fd-dcard"); d.classList.add("pvfw-d"); d.addEventListener("click", pvFlowClick); d.addEventListener("change", pvFlowChange);
+  d.addEventListener("input", e=>{ if(e.target.id==="pvw-q"){ PVFW.q=e.target.value; clearTimeout(PVFW.t); PVFW.t=setTimeout(()=>pvFlowRedraw(true), 120); } });
+  d.addEventListener("keydown", e=>{ if(e.target.id==="pvw-q" && e.key==="Escape" && PVFW.q){ e.preventDefault(); e.stopPropagation(); PVFW.q=""; e.target.value=""; pvFlowRedraw(true); }
+    if((e.key==="Enter"||e.key===" ") && e.target.matches("[data-pvwx],[data-pvwdoc]")){ e.preventDefault(); e.target.click(); } });
+  d.addEventListener("close", ()=>{ setTimeout(()=>{ if(!document.querySelector("#fd-dcard #pvfw")) PVFW.on=false; }, 400); });
+  pvFlowRedraw(); }
+function pvFlowRedraw(keepFocus){ const box=document.querySelector("#fd-dcard #pvfw"); if(!box){ return; } const foc=keepFocus && document.activeElement && document.activeElement.id==="pvw-q", pos=foc?document.activeElement.selectionStart:0;
+  box.innerHTML = PVFW.k==="doc" ? pvFlowDocs() : pvFlowRecs(); if(foc){ const i=$("#pvw-q"); if(i){ i.focus(); try{ i.setSelectionRange(pos,pos); }catch(_){} } } }
+const pvwQ = s => pvFsN(s).trim();
+const pvwSort = (arr, val, date) => arr.sort((a,b)=> PVFW.s==="o" ? (date(a)<date(b)?-1:date(a)>date(b)?1:0) : PVFW.s==="s" ? val(b)-val(a) : PVFW.s==="u" ? val(a)-val(b) : (date(a)<date(b)?1:date(a)>date(b)?-1:0));
+const pvwSortBar = opts => `<div class="pvfos pvwso" role="group" aria-label="Порядок">${opts.map(([v,l])=>`<button type="button" data-pvws="${v}" class="${PVFW.s===v?"on":""}" aria-pressed="${PVFW.s===v}">${l}</button>`).join("")}</div>`;
+/* записи одного вида */
+function pvFlowRecs(){ const k=PVFW.k, FR=pvFinR(), all=pfArr("pother").filter(x=>x.date>=FR.d1 && x.date<=FR.d2 && pvKind(x)===k), tot=r2(all.reduce((a,x)=>a+(+x.sum||0),0));
+  const gkey = x => k==="per" ? (x.note||"Без описания").trim().toLowerCase() : pvCat(x.cat).id;
+  const G=new Map(); all.forEach(x=>{ const g=gkey(x); if(!G.has(g)) G.set(g,{id:g, c:k==="per"?Object.assign({},PV_PERC,{n:(x.note||"Без описания").trim()}):pvCat(x.cat), s:0, n:0}); const y=G.get(g); y.s+=+x.sum||0; y.n++; });
+  const gs=[...G.values()].sort((a,b)=>b.s-a.s); if(PVFW.c && !G.has(PVFW.c)) PVFW.c="";
+  const q=pvwQ(PVFW.q), T=q?pvFsToks(q):[], L=pvwSort(all.filter(x=>(!PVFW.c || gkey(x)===PVFW.c) && (!T.length || pvFsHit(pvFsHay(x), T))), x=>+x.sum||0, x=>x.date);
+  [...PVFW.sel].forEach(id=>{ if(!L.some(x=>x.id===id)) PVFW.sel.delete(id); });
+  const ls=r2(L.reduce((a,x)=>a+(+x.sum||0),0)), big=all.slice().sort((a,b)=>(+b.sum||0)-(+a.sum||0))[0], sel=[...PVFW.sel], selS=r2(L.filter(x=>PVFW.sel.has(x.id)).reduce((a,x)=>a+(+x.sum||0),0));
+  const sign = k==="inc" ? 1 : -1, cls = k==="inc" ? "pos" : k==="per" ? "per" : "neg";
+  const tiles=`<div class="pfd-sum"><div class="${k==="inc"?"ok":k==="per"?"":"bad"}"><small>Всего</small><b>${fm(tot)} ₽</b><span>${all.length} ${plural(all.length,["запись","записи","записей"])}</span></div>
+    ${all.length?`<div><small>В среднем за запись</small><b>${fm(r2(tot/all.length))} ₽</b><span>${gs.length} ${k==="per"?plural(gs.length,["вид трат","вида трат","видов трат"]):plural(gs.length,["категория","категории","категорий"])}</span></div>`:""}
+    ${big?`<div class="go" data-pvwx="${esc(big.id)}" role="button" tabindex="0" title="Открыть запись"><i class="pkgo" aria-hidden="true">›</i><small>Самая крупная</small><b>${fm(+big.sum||0)} ₽</b><span>${esc(big.note||pvCatOf(big).n)} · ${fd(big.date).slice(0,5)}</span></div>`:""}</div>`;
+  const chips = gs.length>1 ? `<div class="pfchips pvwch"><button type="button" data-pvwc="" class="${!PVFW.c?"on":""}">Все<i>${all.length}</i></button>${gs.map(g=>`<button type="button" data-pvwc="${esc(g.id)}" class="${PVFW.c===g.id?"on":""}" title="${fm(r2(g.s))} ₽">${esc(g.c.n)}<i>${g.n}</i></button>`).join("")}</div>` : "";
+  const moves=["exp","inc","per"].filter(x=>x!==k), cats=pvCats().filter(c=>c.k===k||c.k==="both");
+  const bulk = sel.length ? `<div class="pvwbulk"><b>Выбрано ${sel.length} · ${fm(selS)} ₽</b><span class="pvwba">${moves.map(m=>`<button type="button" class="btn sm" data-pvwmv="${m}">${PV_KTO[m]}</button>`).join("")}
+      ${k!=="per" && pvCatOk() ? `<select id="pvw-cat" aria-label="Перенести в категорию"><option value="">Сменить категорию…</option><option value="__none">Без категории</option>${cats.map(c=>`<option value="${esc(c.id)}">${esc(c.n)}</option>`).join("")}</select>` : ""}
+      ${k==="per" ? `<button type="button" class="btn sm ghost" data-pvwren="1">Переименовать…</button>` : ""}
+      <button type="button" class="btn sm ghost danger" data-pvwdel="sel">Удалить</button><button type="button" class="btn sm ghost" data-pvwsel="none">Снять выбор</button></span></div>` : "";
+  const shown=L.slice(0, PVFW.n), byDay=PVFW.s==="d"||PVFW.s==="o";
+  let rows="", lastD=""; shown.forEach(x=>{ if(byDay && x.date!==lastD){ lastD=x.date; const ds=r2(L.filter(y=>y.date===x.date).reduce((a,y)=>a+(+y.sum||0),0)); rows+=`<div class="pvwday"><b>${esc(pvDay(x.date))}</b><span>${pvMoney(sign*ds,true)} ₽</span></div>`; }
+    const c=pvCatOf(x), on=PVFW.sel.has(x.id);
+    rows+=`<div class="pvwr${on?" on":""}"><label class="pvwck"><input type="checkbox" data-pvwck="${esc(x.id)}"${on?" checked":""} aria-label="Выбрать"></label>
+      <div class="pvwb" data-pvwx="${esc(x.id)}" role="button" tabindex="0">${pvBubble(c)}<span class="pvitn"><b>${pvFsMark(x.note||c.n, PVFW.q)}</b><small>${byDay?"":esc(fd(x.date).slice(0,5))+" · "}${k==="per"?"личное":esc(c.n)}${x.by?" · "+esc(x.by):""}</small></span><span class="pvits ${cls}">${pvMoney(sign*(+x.sum||0),true)} ₽</span></div>
+      <button type="button" class="pvwx" data-pvwdel="${esc(x.id)}" title="Удалить запись" aria-label="Удалить">×</button></div>`; });
+  return `${tiles}
+    <div class="pvwtb"><button type="button" class="btn pri sm" data-pvwadd="1">+ ${k==="inc"?"Доход":k==="per"?"Личный расход":"Расход"}</button><label class="pvsearch pvwq">${pvIco("search")}<input id="pvw-q" type="search" placeholder="Найти…" value="${esc(PVFW.q)}" autocomplete="off" aria-label="Поиск"></label>${pvwSortBar([["d","Новые"],["o","Старые"],["s","Больше сумма"],["u","Меньше сумма"]])}</div>
+    ${chips}${bulk}
+    ${L.length?`<div class="pvwsum"><label class="pvwck"><input type="checkbox" data-pvwsel="all"${L.length&&L.every(x=>PVFW.sel.has(x.id))?" checked":""} aria-label="Выбрать все"></label><span>${PVFW.c||q?"Найдено":"Записей"}: ${L.length} · ${fm(ls)} ₽</span><small class="muted">отметьте записи, чтобы перенести или удалить сразу несколько</small></div>
+      <div class="pvwl">${rows}</div>${L.length>shown.length?`<button type="button" class="btn ghost pvwmore" data-pvwn="1">Показать ещё ${Math.min(60, L.length-shown.length)} из ${L.length-shown.length}</button>`:""}`
+    : `<div class="pvempty">${pvIco("receipt","big")}<b>${all.length?"Ничего не нашлось":"За этот период записей нет"}</b><small>${all.length?"Измените поиск или категорию.":"Нажмите «+ "+(k==="inc"?"Доход":k==="per"?"Личный расход":"Расход")+"»."}</small></div>`}`; }
+/* накладные: прибыль, оплата, закупка */
+const PVFW_DF=[["","Все"],["paid","Оплачены"],["due","Ждём оплату"],["miss","Без закупки"],["neg","В минус"]];
+function pvFlowDocs(){ const FR=pvFinR(), T=pvFinTot(FR.d1, FR.d2), all=T.DL;
+  const ok = (x,f) => !f || (f==="paid" ? x.st==="paid" : f==="due" ? x.st!=="paid" : f==="miss" ? x.miss : f==="neg" ? x.p<0 : true);
+  const q=pvwQ(PVFW.q), L=pvwSort(all.filter(x=>ok(x,PVFW.f) && (!q || pvFsN(cusNm(x.j.customerId)+" "+jWho(x.j).main+" "+x.j.number).includes(q))), x=>PVFW.s==="r"?docTotal(x.j):x.p, x=>x.date+String(x.j.number).padStart(8,"0"));
+  if(PVFW.s==="r") L.sort((a,b)=>docTotal(b.j)-docTotal(a.j)); if(PVFW.s==="m") L.sort((a,b)=>(a.pay.tot?a.p/a.pay.tot:0)-(b.pay.tot?b.p/b.pay.tot:0));
+  const ls=r2(L.reduce((a,x)=>a+x.p,0)), rev=r2(L.reduce((a,x)=>a+x.pay.tot,0)), T2=(cls,f,small,big,sub)=>`<div class="${cls} go${PVFW.f===f?" on":""}" data-pvwf="${f}" role="button" tabindex="0"><i class="pkgo" aria-hidden="true">›</i><small>${small}</small><b>${big}</b><span>${sub}</span></div>`;
+  const cnt=f=>all.filter(x=>ok(x,f)).length;
+  const tiles=`<div class="pfd-sum">${T2(T.dp<0?"bad":"ok","","Прибыль",fm(T.dp)+" ₽",T.docs+" "+plural(T.docs,["накладная","накладные","накладных"])+" · маржа "+(all.reduce((a,x)=>a+x.pay.tot,0)>0?Math.round(T.dp/all.reduce((a,x)=>a+x.pay.tot,0)*100):0)+"%")}
+    ${T2("ok","paid","Оплачено",fm(T.dpPaid)+" ₽","прибыль в оплаченных · "+cnt("paid"))}${T2("","due","Ждём оплату",fm(T.dpDue)+" ₽","прибыль в неоплаченных · "+cnt("due"))}${T.miss?T2("warn","miss","Без закупки",String(T.miss),"прибыль у них завышена"):""}${cnt("neg")?T2("bad","neg","В минус",String(cnt("neg")),"накладные с убытком"):""}</div>`;
+  const shown=L.slice(0, PVFW.n);
+  const rows=shown.map(x=>{ const j=x.j, mg=x.pay.tot?Math.round(x.p/x.pay.tot*100):0;
+    return `<div class="pvwr doc"><div class="pvwb" data-pvwdoc="${esc(j.id)}" role="button" tabindex="0">${pvAva(j.customerId||"-")}<span class="pvitn"><b>${esc(cusNm(j.customerId)||jWho(j).main)} · № ${esc(j.number)}</b><small>${fd(j.date).slice(0,5)} · продажа ${fm(x.pay.tot)} · маржа ${mg}%${x.miss?` · <em class="warn">без закупки</em>`:""}</small></span><span class="pvits ${x.p<0?"neg":x.st==="paid"?"pos":"due"}">${pvMoney(x.p,true)} ₽</span></div>
+      <span class="pvwda"><button type="button" class="btn sm ghost" data-pvwzk="${esc(j.id)}">Закупка</button><button type="button" class="btn sm ${x.st==="paid"?"ok":"ghost"}" data-pvwpay="${esc(j.id)}" title="${x.st==="paid"?"Снять отметку об оплате":"Отметить оплаченной сегодня"}">${x.st==="paid"?"✓ Оплачена":x.st==="part"?"Частично":"Не оплачена"}</button></span></div>`; }).join("");
+  return `${tiles}<div class="pvwtb"><label class="pvsearch pvwq">${pvIco("search")}<input id="pvw-q" type="search" placeholder="Заказчик или № накладной" value="${esc(PVFW.q)}" autocomplete="off" aria-label="Поиск"></label>${pvwSortBar([["d","Новые"],["o","Старые"],["s","Больше прибыль"],["u","Меньше прибыль"],["m","Меньше маржа"],["r","Больше сумма"]])}</div>
+    <div class="pfchips pvwch">${PVFW_DF.map(([f,l])=>`<button type="button" data-pvwf="${f}" class="${PVFW.f===f?"on":""}">${l}<i>${cnt(f)}</i></button>`).join("")}</div>
+    ${L.length?`<div class="pvwsum"><span>Показано: ${L.length} · прибыль ${fm(ls)} ₽ · продажа ${fm(rev)} ₽</span></div><div class="pvwl">${rows}</div>${L.length>shown.length?`<button type="button" class="btn ghost pvwmore" data-pvwn="1">Показать ещё ${Math.min(60, L.length-shown.length)}</button>`:""}`
+      : `<div class="pvempty">${pvIco("box","big")}<b>${all.length?"Таких накладных нет":"За этот период накладных нет"}</b><small>${all.length?"Выберите «Все».":"Выберите другой период."}</small></div>`}`; }
+function pvFlowClick(e){ const t=e.target;
+  const s=t.closest("[data-pvws]"); if(s){ PVFW.s=s.dataset.pvws; PVFW.n=60; pvFlowRedraw(); return; }
+  const c=t.closest("[data-pvwc]"); if(c){ PVFW.c=PVFW.c===c.dataset.pvwc?"":c.dataset.pvwc; PVFW.sel.clear(); PVFW.n=60; pvFlowRedraw(); return; }
+  const f=t.closest("[data-pvwf]"); if(f){ PVFW.f=PVFW.f===f.dataset.pvwf?"":f.dataset.pvwf; PVFW.n=60; pvFlowRedraw(); return; }
+  if(t.closest("[data-pvwn]")){ PVFW.n+=60; pvFlowRedraw(); return; }
+  if(t.closest("[data-pvwadd]")){ pvItemOpen(null, PVFW.k); if(PVFW.c && PVI){ const g=PVFW.c; setTimeout(()=>{ if(PVFW.k==="per"){ const n=$("#pvi-note"), it=pfArr("pother").find(x=>(x.note||"").trim().toLowerCase()===g); if(n&&it) n.value=it.note; } else if(PVI){ PVI.cat=g; pvItemCats(); } }, 30); } return; }
+  const ck=t.closest("[data-pvwck]"); if(ck){ const id=ck.dataset.pvwck; if(ck.checked) PVFW.sel.add(id); else PVFW.sel.delete(id); pvFlowRedraw(); return; }
+  const sa=t.closest("[data-pvwsel]"); if(sa){ if(sa.dataset.pvwsel==="none" || !sa.checked) PVFW.sel.clear(); else document.querySelectorAll("#pvfw [data-pvwck]").forEach(b=>PVFW.sel.add(b.dataset.pvwck)); if(sa.dataset.pvwsel==="all" && sa.checked){ const FR=pvFinR(); pfArr("pother").filter(x=>x.date>=FR.d1 && x.date<=FR.d2 && pvKind(x)===PVFW.k).forEach(x=>{ if(document.querySelector(`#pvfw [data-pvwck="${CSS.escape(x.id)}"]`)) PVFW.sel.add(x.id); }); } pvFlowRedraw(); return; }
+  const mv=t.closest("[data-pvwmv]"); if(mv){ const ids=[...PVFW.sel]; PVFW.sel.clear(); pvRecSet(ids, mv.dataset.pvwmv); return; }
+  if(t.closest("[data-pvwren]")){ pvRecRename([...PVFW.sel], "Переименовать выбранные"); PVFW.sel.clear(); return; }
+  const dl=t.closest("[data-pvwdel]"); if(dl){ if(!armed(dl, dl.dataset.pvwdel==="sel"?"Точно удалить?":"Удалить?")) return; const ids=dl.dataset.pvwdel==="sel"?[...PVFW.sel]:[dl.dataset.pvwdel]; ids.forEach(i=>PVFW.sel.delete(i)); pvRecDel(ids); return; }
+  const x=t.closest("[data-pvwx]"); if(x){ const it=pfArr("pother").find(y=>y.id===x.dataset.pvwx); if(it) pvItemOpen(it); return; }
+  const zk=t.closest("[data-pvwzk]"); if(zk){ const j=D.journal.find(y=>y.id===zk.dataset.pvwzk); if(j) zkPageOpen(j); return; }
+  const py=t.closest("[data-pvwpay]"); if(py){ const j=D.journal.find(y=>y.id===py.dataset.pvwpay); if(!j) return; const p=payOf(j), on=p.st!=="paid"; jpayToggle([j], on); drawProfit(); pvFlowRedraw(); return; }
+  const dc=t.closest("[data-pvwdoc]"); if(dc){ const j=D.journal.find(y=>y.id===dc.dataset.pvwdoc); if(j) docCard(j, false); return; } }
+function pvFlowChange(e){ if(e.target.id==="pvw-cat" && e.target.value){ const v=e.target.value==="__none"?"":e.target.value, ids=[...PVFW.sel]; PVFW.sel.clear(); pvRecSet(ids, null, v); } }
