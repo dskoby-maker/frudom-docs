@@ -38,7 +38,7 @@ async def run(b, vw, tag):
     ok(row and '_src' in row[0][h.index('Закупочные цены строк (не редактировать)')], f'{tag}: быстрая закупка записана в таблицу')
     await pg.keyboard.press('Escape'); await pg.wait_for_timeout(400)
     # расходы и доходы
-    await pg.click('#pv-seg [data-pv="fin"]'); await pg.wait_for_timeout(400)
+    await pg.click('#pv-seg [data-pv="fin"]'); await pg.wait_for_timeout(400); await pg.evaluate("document.querySelectorAll('#pv-fin .pvfold:not(.open) [data-pvfold]').forEach(b=>b.click())"); await pg.wait_for_timeout(350)
     await pg.click('#pv-fin [data-pva="exp"]'); await pg.wait_for_timeout(400)
     await pg.fill('#pvi-sum','2500'); await pg.click('#fd-dcard [data-pvcat="c-fuel"]'); await pg.fill('#pvi-note','Бензин Гриша '+tag)
     await pg.screenshot(path=f'{SHOT}/pv-{tag}-item.png')

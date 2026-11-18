@@ -17,7 +17,7 @@ async def main():
             await pg.evaluate(f"""(()=>{{const D=__fd.D(); D.pother=(D.pother||[]).filter(x=>!/^ts-/.test(x.id)); [
               ['ts-1','{pp}','Расход','3000','Бензин АИ-95','c-fuel'],['ts-2','{pm}','Расход','2500','Заправка','c-fuel'],['ts-3','{m0}','Личное','1200','Бензина на дачу',''],
               ['ts-4','{m0}','Расход','800','Такси','c-dlv'],['ts-5','{m0}','Доход','500','Возврат за бензин','c-ret']].forEach(([id,date,kind,sum,note,cat])=>D.pother.push({{id,date,kind,sum,note,cat,catName:'',supplierId:'',by:'Даниил'}})); }})()""")
-            await pg.click('#pv-seg [data-pv="fin"]'); await pg.wait_for_timeout(500)
+            await pg.click('#pv-seg [data-pv="fin"]'); await pg.wait_for_timeout(500); await pg.evaluate("document.querySelectorAll('#pv-fin .pvfold:not(.open) [data-pvfold]').forEach(b=>b.click())"); await pg.wait_for_timeout(350)
             ok(await pg.locator('#pv-fsq').count()==1, f'{W}: строка поиска есть')
             await pg.fill('#pv-fsq','бензин'); await pg.wait_for_timeout(400)
             ok(await pg.evaluate("document.querySelector('#pv-fmain').hidden"), f'{W}: при поиске обычная сводка спрятана')

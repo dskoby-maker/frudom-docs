@@ -555,13 +555,26 @@ function pvDocRow(x){ const j=x.j, c=cus(j.customerId), st=x.st, nm=(c.name?cusS
   return `<button type="button" class="pvit k-doc ${st==="paid"?"paid":"due"}" data-pvdoc="${esc(j.id)}"><span class="pvb pvdb ${st==="paid"?"paid":"due"}">${pvIco("box")}</span><span class="pvitn"><b>${esc(nm)} · № ${esc(j.number)}</b><small><span class="pvst ${st==="paid"?"paid":"due"}">${esc(sub)}</span> · продажа ${fm(x.pay.tot)}${x.miss?` · <em class="warn">без закупки</em>`:""}</small></span><span class="pvits ${st==="paid"?"pos":"due"}">${pvMoney(x.p,true)} ₽</span></button>`; }
 const pvCmp = (now, was, good) => { if(!was || Math.abs(was)<0.5) return ""; const d=(now-was)/Math.abs(was)*100; if(Math.abs(d)<0.5) return `<span class="pvcmp">как в прошлом месяце</span>`;
   const up=d>0, ok=good==="up"?up:!up; return `<span class="pvcmp ${ok?"good":"bad"}">${up?"▲":"▼"} ${Math.abs(d).toFixed(0)}% к прошлому месяцу</span>`; };
+/* «По категориям» и «Записи» в «Расходы и доходы» — свёрнуты по умолчанию (18.11.2026, просьба Даниила), у каждого свой порядок.
+   Открытость и порядок — в PV(): fo.cats / fo.list, cs, ls (хранятся на устройстве). */
+const PVCS=[["s","Больше сумма"],["u","Меньше сумма"],["n","Чаще"],["a","А–Я"]];
+const PVLS=[["d","Новые"],["o","Старые"],["s","Больше сумма"],["u","Меньше сумма"]];
+function pvFold(k, title, sum, sk, cur, opts, body){ const f=PV(), op=!!(f.fo||{})[k];
+  return `<section class="pvfold${op?" open":""}" data-pvfo="${k}"><div class="pvfoh"><button type="button" class="pvfot" data-pvfold="${k}" aria-expanded="${op}"><span class="pvfott"><b>${title}</b><small>${sum}</small></span><i class="pvfoc" aria-hidden="true">⌄</i></button>
+    <div class="pvfos" role="group" aria-label="Порядок"${op?"":" hidden"}>${opts.map(([v,l])=>`<button type="button" data-pvsort="${sk}:${v}" class="${cur===v?"on":""}" aria-pressed="${cur===v}">${l}</button>`).join("")}</div></div>
+    <div class="pvfob"${op?"":" inert"}><div>${body}</div></div></section>`; }
+function pvItRow(x, dt){ const k=pvKind(x), c=pvCatOf(x), s=+x.sum||0;
+  return `<button type="button" class="pvit k-${k}" data-pvx="${esc(x.id)}">${pvBubble(c)}<span class="pvitn"><b>${esc(x.note||c.n)}</b><small>${dt?esc(fd(x.date).slice(0,5))+" · ":""}${k==="per"?`<span class="pvtag">личное</span>`:esc(c.n)}${x.supplierId?" · "+esc(supShort(sup(x.supplierId).name||"")):""}${x.by?" · "+esc(x.by):""}</small></span><span class="pvits ${k==="inc"?"pos":k==="per"?"per":"neg"}">${pvMoney(k==="inc"?s:-s,true)} ₽</span></button>`; }
+const pvFoOpen = (k, on) => { const f=PV(); f.fo=f.fo||{}; f.fo[k]=on; saveLocal(); };
 function pvFinDraw(){
   const box=$("#pv-fin"), f=PV(), [d1,d2]=pvRange(), mon=pvMonth(), cats=pvCats(); f.fk=f.fk||""; f.fv=f.fv||"list";
   if(f.fday && (f.fday<d1 || f.fday>d2)) f.fday="";
   const cal = f.fv==="cal" && mon!=="all", T=pvFinTot(d1,d2), all=T.L;
   const W = mon!=="all" ? (()=>{ const pm=pvShift(mon,-1), [a,b]=[pm+"-01", jIso(new Date(+pm.slice(0,4), +pm.slice(5,7), 0))]; return pvFinTot(a,b); })() : null;
-  const by=(list)=>{ const m=new Map(); list.forEach(x=>{ const c=pvCat(x.cat); const k=c.id; if(!m.has(k)) m.set(k,{c, s:0, n:0}); const g=m.get(k); g.s+=(+x.sum||0); g.n++; }); return [...m.values()].sort((a,b)=>b.s-a.s); };
-  const byNote=(list)=>{ const m=new Map(); list.forEach(x=>{ const k=(x.note||"Без описания").trim(), kk=k.toLowerCase(); if(!m.has(kk)) m.set(kk,{c:Object.assign({},PV_PERC,{id:kk,n:k}), s:0, n:0}); const g=m.get(kk); g.s+=(+x.sum||0); g.n++; }); return [...m.values()].sort((a,b)=>b.s-a.s).slice(0,8); };
+  f.cs=f.cs||"s"; f.ls=f.ls||"d";
+  const cSort=(a,b)=> f.cs==="n" ? b.n-a.n || b.s-a.s : f.cs==="a" ? String(a.c.n).localeCompare(String(b.c.n),"ru") : f.cs==="u" ? a.s-b.s : b.s-a.s;
+  const by=(list)=>{ const m=new Map(); list.forEach(x=>{ const c=pvCat(x.cat); const k=c.id; if(!m.has(k)) m.set(k,{c, s:0, n:0}); const g=m.get(k); g.s+=(+x.sum||0); g.n++; }); return [...m.values()].sort(cSort); };
+  const byNote=(list)=>{ const m=new Map(); list.forEach(x=>{ const k=(x.note||"Без описания").trim(), kk=k.toLowerCase(); if(!m.has(kk)) m.set(kk,{c:Object.assign({},PV_PERC,{id:kk,n:k}), s:0, n:0}); const g=m.get(kk); g.s+=(+x.sum||0); g.n++; }); return [...m.values()].sort((a,b)=>b.s-a.s).slice(0,8).sort(cSort); };
   const bars=(list, tot, kind)=> list.length ? list.map((g,i)=>`<button type="button" class="pvcb ${f.fcat===kind+":"+g.c.id?"on":""}" data-pvf="${kind}:${esc(g.c.id)}" style="--d:${i*40}ms">${pvBubble(g.c)}<span class="pvcbn"><b>${esc(g.c.n)}</b><small>${g.n} ${plural(g.n,["запись","записи","записей"])}</small></span><span class="pvcbs"><b>${fm(r2(g.s))}</b><small>${pct(g.s,tot)}</small></span><i class="pvcbb"><i style="width:${tot?Math.max(2,g.s/tot*100):0}%;background:${pvCol(g.c.h,.75)}"></i></i></button>`).join("") : `<p class="muted pvnone">Пока ничего</p>`;
   const inF = x => { const k=pvKind(x); if(f.fk && k!==f.fk) return false; if(cal && f.fday && x.date!==f.fday) return false;
     if(f.fcat){ const [fk,id]=f.fcat.split(":"); if(fk!==k) return false; if(k==="per") return (x.note||"Без описания").trim().toLowerCase()===id; return pvCat(x.cat).id===id; } return true; };
@@ -597,13 +610,15 @@ function pvFinDraw(){
         ${nd?`<div class="pvavg"><div><small>В среднем за день</small></div><div><span>бизнес</span><b class="${T.B<0?"neg":""}">${pvMoney(r2(T.B/nd),true)}</b></div><div><span>личные</span><b class="per">${fm(r2(T.P/nd))}</b></div>${W&&W.P>0?`<div><span>личные в прошлом месяце</span><b>${fm(W.P)}</b></div>`:""}</div>`:""}
         <div class="pvlim ${lim&&T.P>lim?"over":""}">${lim?`<div class="pvlimt"><span>Личные: <b>${fm(T.P)}</b> из ${fm(lim)} ₽</span><button type="button" class="pvlink" data-pva="lim">изменить</button></div><i class="pvlimb"><i style="--w:${limP}%"></i></i><small>${T.P>lim?"лимит превышен на "+fm(r2(T.P-lim))+" ₽":"можно ещё "+fm(r2(lim-T.P))+" ₽"}</small>`:`<button type="button" class="pvlink" data-pva="lim">+ Задать лимит личных трат на месяц</button>`}</div></div>
     </div>
-    <div class="pvcats three"><div><h3>Расходы по категориям</h3>${bars(by(all.filter(x=>pvKind(x)==="exp")),T.E,"exp")}</div><div><h3>Доходы по категориям</h3>${bars(by(all.filter(x=>pvKind(x)==="inc")),T.I,"inc")}</div><div><h3>Личные — на что</h3>${bars(byNote(all.filter(x=>pvKind(x)==="per")),T.P,"per")}</div></div>
+    ${pvFold("cats", "По категориям", `<span class="neg">расходы ${fm(r2(T.E))}</span> · <span class="pos">доходы ${fm(r2(T.I))}</span> · <span class="per">личные ${fm(r2(T.P))}</span>`, "cs", f.cs, PVCS,
+      `<div class="pvcats three"><div><h3>Расходы по категориям</h3>${bars(by(all.filter(x=>pvKind(x)==="exp")),T.E,"exp")}</div><div><h3>Доходы по категориям</h3>${bars(by(all.filter(x=>pvKind(x)==="inc")),T.I,"inc")}</div><div><h3>Личные — на что</h3>${bars(byNote(all.filter(x=>pvKind(x)==="per")),T.P,"per")}</div></div>`)}
+    ${pvFold("list", "Записи", `${L.length+DLs.length} ${plural(L.length+DLs.length,["запись","записи","записей"])}`, "ls", f.ls, PVLS, `
     <div class="pfchips pvfk">${[["","Все",all.filter(x=>!cal || !f.fday || x.date===f.fday).length+nDocs],["exp","Расходы",cnt("exp")],["inc","Доходы",cnt("inc")],["per","Личные",cnt("per")]].map(([k,l,n])=>`<button type="button" data-pvfk="${k}" class="${f.fk===k?"on":""} k-${k||"all"}" aria-pressed="${f.fk===k}">${l}<i>${n}</i></button>`).join("")}</div>
     ${fc?`<div class="pvfilt">Показано: ${pvBubble(fc)} <b>${esc(fc.n)}</b><button type="button" class="btn ghost sm" data-pvf="">Показать всё ×</button></div>`:""}
-    <div class="pvlist">${days.size ? dayKeys.map((d,di)=>{ const xs=days.get(d), ds=dd.get(d)||[], t=r2(xs.reduce((a,x)=>a+(pvKind(x)==="inc"?1:-1)*(+x.sum||0),0)+ds.reduce((a,x)=>a+x.p,0));
-      return `<div class="pvday" style="--d:${Math.min(di,10)*35}ms"><div class="pvdh"><b>${pvDay(d)}</b><span class="${t<0?"neg":ds.some(x=>x.st!=="paid")?"due":"pos"}">${pvMoney(t,true)} ₽</span></div>${ds.map(pvDocRow).join("")}${xs.map(x=>{ const k=pvKind(x), c=pvCatOf(x), s=+x.sum||0;
-        return `<button type="button" class="pvit k-${k}" data-pvx="${esc(x.id)}">${pvBubble(c)}<span class="pvitn"><b>${esc(x.note||c.n)}</b><small>${k==="per"?`<span class="pvtag">личное</span>`:esc(c.n)}${x.supplierId?" · "+esc(supShort(sup(x.supplierId).name||"")):""}${x.by?" · "+esc(x.by):""}</small></span><span class="pvits ${k==="inc"?"pos":k==="per"?"per":"neg"}">${pvMoney(k==="inc"?s:-s,true)} ₽</span></button>`; }).join("")}</div>`; }).join("")
-      : `<div class="pvempty">${pvIco("receipt","big")}<b>${all.length?"Здесь записей нет":"За этот месяц записей нет"}</b><small>${all.length?"Выберите другой фильтр или день.":"Нажмите «− Расход», «+ Доход» или «Личное», чтобы добавить."}</small></div>`}</div></div>`;
+    <div class="pvlist">${days.size && (f.ls==="s"||f.ls==="u") ? (()=>{ const R=[...L.map(x=>({x, v:Math.abs(+x.sum||0)})), ...DLs.map(x=>({d:x, v:Math.abs(x.p)}))].sort((a,b)=>f.ls==="u"?a.v-b.v:b.v-a.v);
+        return `<div class="pvday">${R.map(r=>r.d?pvDocRow(r.d):pvItRow(r.x, true)).join("")}</div>`; })() : days.size ? (f.ls==="o"?dayKeys.reverse():dayKeys).map((d,di)=>{ const xs=days.get(d), ds=dd.get(d)||[], t=r2(xs.reduce((a,x)=>a+(pvKind(x)==="inc"?1:-1)*(+x.sum||0),0)+ds.reduce((a,x)=>a+x.p,0));
+      return `<div class="pvday" style="--d:${Math.min(di,10)*35}ms"><div class="pvdh"><b>${pvDay(d)}</b><span class="${t<0?"neg":ds.some(x=>x.st!=="paid")?"due":"pos"}">${pvMoney(t,true)} ₽</span></div>${ds.map(pvDocRow).join("")}${xs.map(x=>pvItRow(x)).join("")}</div>`; }).join("")
+      : `<div class="pvempty">${pvIco("receipt","big")}<b>${all.length?"Здесь записей нет":"За этот месяц записей нет"}</b><small>${all.length?"Выберите другой фильтр или день.":"Нажмите «− Расход», «+ Доход» или «Личное», чтобы добавить."}</small></div>`}</div>`)}</div>`;
   pvFsDraw();
 }
 /* ---------- поиск по расходам и доходам: «бензин» — когда и сколько. Ищет в «на что», категории, виде (расход/доход/личное), сумме и авторе.
@@ -696,11 +711,14 @@ function pvFinClick(e){
     if(a==="xls"){ pvFsXls(); return; } if(a==="reset"){ PVFS.m=""; PVFS.c=""; pvFsDraw(); return; }
     if(a.startsWith("sc:")){ PVFS.sc=a.slice(3); PVFS.m=""; PVFS.c=""; } else if(a.startsWith("m:")){ PVFS.m = PVFS.m===a.slice(2) ? "" : a.slice(2); } else if(a.startsWith("c:")){ PVFS.c = PVFS.c===a.slice(2) ? "" : a.slice(2); }
     pvFsDraw(); return; }
+  const fo=e.target.closest("[data-pvfold]"); if(fo){ const k=fo.dataset.pvfold, sec=fo.closest(".pvfold"), on=!sec.classList.contains("open"); pvFoOpen(k, on);
+    sec.classList.toggle("open", on); fo.setAttribute("aria-expanded", on); sec.querySelector(".pvfob").inert=!on; sec.querySelector(".pvfos").hidden=!on; return; }
+  const so=e.target.closest("[data-pvsort]"); if(so){ const [k,v]=so.dataset.pvsort.split(":"); PV()[k]=v; saveLocal(); pvFinDraw(); return; }
   const m=e.target.closest("[data-pvm]"); if(m){ pvMonClick(m); return; }
   const v=e.target.closest("[data-pvv]"); if(v){ const f=PV(); f.fv=v.dataset.pvv; f.fday=""; if(f.fv==="cal" && pvMonth()==="all") f.m=todayISO().slice(0,7); saveLocal(); pvFinDraw(); return; }
-  const dy=e.target.closest("[data-pvday]"); if(dy){ const f=PV(), iso=dy.dataset.pvday; if(dy.dataset.pvnew){ pvItemOpen(null, f.fk||"exp", iso); return; } f.fday = f.fday===iso ? "" : iso; saveLocal(); pvFinDraw(); return; }
+  const dy=e.target.closest("[data-pvday]"); if(dy){ const f=PV(), iso=dy.dataset.pvday; if(dy.dataset.pvnew){ pvItemOpen(null, f.fk||"exp", iso); return; } f.fday = f.fday===iso ? "" : iso; if(f.fday) pvFoOpen("list", true); saveLocal(); pvFinDraw(); return; }
   const fk=e.target.closest("[data-pvfk]"); if(fk){ const f=PV(); f.fk=fk.dataset.pvfk; if(f.fcat && f.fk && !f.fcat.startsWith(f.fk+":")) f.fcat=""; saveLocal(); pvFinDraw(); return; }
-  const f=e.target.closest("[data-pvf]"); if(f){ const k=f.dataset.pvf; PV().fcat = PV().fcat===k ? "" : k; saveLocal(); pvFinDraw(); return; }
+  const f=e.target.closest("[data-pvf]"); if(f){ const k=f.dataset.pvf; PV().fcat = PV().fcat===k ? "" : k; if(PV().fcat){ pvFoOpen("list", true); setTimeout(()=>{ const l=$('#pv-fin [data-pvfo="list"]'); if(l) l.scrollIntoView({behavior:"smooth", block:"start"}); }, 60); } saveLocal(); pvFinDraw(); return; }
   const a=e.target.closest("[data-pva]"); if(a){ const k=a.dataset.pva; if(k==="cats") pvCatsOpen(); else if(k==="xls") pvFinXls(); else if(k==="lim") pvLimOpen(); else pvItemOpen(null, k); return; }
   if(e.target.closest("[data-pvmiss]")){ const m=pvMonth(), [a,b]=pvRange(); tabBackFrom("Прибыль", ()=>zkpGoMiss(a, b, m==="all"?"за всё время":"за "+pvMon(m).toLowerCase())); return; }
   const dj=e.target.closest("[data-pvdoc]"); if(dj){ const j=D.journal.find(y=>y.id===dj.dataset.pvdoc); if(j) docCard(j, false); return; }

@@ -15,7 +15,7 @@ async def run(b, vw, tag):
         await pg.evaluate(TAB+"('doc')"); await pg.wait_for_timeout(300); await pg.click('#d-save'); await pg.wait_for_timeout(1300)
     await pg.evaluate(TAB+"('profit')"); await pg.wait_for_timeout(2000)
     await pg.evaluate("(()=>{const j=__fd.D().journal.find(x=>x.id==='dpd0'); __fd.setPay(j, __fd.payOf(j).tot, j.date, true);})()")
-    await pg.click('#pv-seg [data-pv="fin"]'); await pg.wait_for_timeout(500)
+    await pg.click('#pv-seg [data-pv="fin"]'); await pg.wait_for_timeout(500); await pg.evaluate("document.querySelectorAll('#pv-fin .pvfold:not(.open) [data-pvfold]').forEach(b=>b.click())"); await pg.wait_for_timeout(350)
     await pg.click('#pv-fin [data-pvv="list"]'); await pg.wait_for_timeout(300)
     r0=pg.locator('#pv-fin [data-pvdoc="dpd0"]'); r1=pg.locator('#pv-fin [data-pvdoc="dpd1"]')
     ok(await r0.count()==1 and await r1.count()==1, f'{tag}: накладные видны в ленте')
