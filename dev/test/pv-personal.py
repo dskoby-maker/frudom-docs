@@ -17,7 +17,7 @@ async def run(b, vw, tag):
     ctx=await b.new_context(viewport={'width':vw[0],'height':vw[1]}); pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
     await pg.goto('http://localhost:8787/page'); await pg.click('#fd-who [data-who="Даниил"]'); await pg.fill('#fd-pass','1111'); await pg.click('#fd-enter'); await pg.wait_for_timeout(2500)
     await pg.evaluate(TAB+"('profit')"); await pg.wait_for_timeout(2000)
-    await pg.click('#pv-seg [data-pv="fin"]'); await pg.wait_for_timeout(500)
+    await pg.click('#pv-seg [data-pv="fin"]'); await pg.wait_for_timeout(500); await pg.evaluate("document.querySelectorAll('#pv-fin .pvfold:not(.open) [data-pvfold]').forEach(b=>b.click())"); await pg.wait_for_timeout(350)
     await add(pg,'exp','40000','Спровод Ростислав')
     await add(pg,'inc','5000','Проценты по вкладу')
     await add(pg,'per','12000','Продукты домой')
@@ -33,7 +33,7 @@ async def run(b, vw, tag):
     net=N(await pg.text_content('#pf-cards [data-k="net"] b')); own=N(await pg.text_content('#pf-cards [data-k="own"] b'))
     ok(net.replace('−','-').strip().startswith('-35 000'), f'{tag}: «Чистая прибыль» без личных: {net}')
     ok(own.replace('−','-').strip().startswith('-50 000'), f'{tag}: «Остаётся после личных»: {own}')
-    await pg.click('#pv-seg [data-pv="fin"]'); await pg.wait_for_timeout(400)
+    await pg.click('#pv-seg [data-pv="fin"]'); await pg.wait_for_timeout(400); await pg.evaluate("document.querySelectorAll('#pv-fin .pvfold:not(.open) [data-pvfold]').forEach(b=>b.click())"); await pg.wait_for_timeout(350)
     # фильтр «Личные»
     await pg.click('#pv-fin [data-pvfk="per"]'); await pg.wait_for_timeout(300)
     ok(await pg.locator('#pv-fin .pvlist .pvit').count()==2, f'{tag}: фильтр «Личные» — 2 записи')
