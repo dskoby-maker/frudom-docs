@@ -1827,6 +1827,20 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .pdfk:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #fd-app .pdfk{min-height:38px!important;padding:6px 14px 6px 11px!important}#fd-app .dmk-go{min-height:38px;padding:6px 16px;font-size:14px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}#fd-app .dmk-go svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}#fd-app .dmk-prn{background:var(--surface);color:var(--accent);border:1px solid rgba(106,44,78,.45);box-shadow:none}#fd-app .dmk-prn:hover{background:var(--accent-soft)}#fd-app .impai{display:inline-flex;align-items:center;gap:5px;color:var(--accent);border-color:rgba(106,44,78,.35)}#fd-app .impai svg{width:15px;height:15px;fill:currentColor;flex:none}#fd-app .dmk-go:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
 #fd-app .dmk-new{margin-left:auto;width:auto}
+/* «В черновик» (18.11.2026): маленькая кнопка рядом с «Очистить форму» */
+#fd-app .dmk-end{margin-left:auto;display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}#fd-app .dmk-end .dmk-new{margin-left:0}
+#fd-app .dmk-dr{width:auto;display:inline-flex;align-items:center;gap:7px;background:var(--surface);color:var(--accent);border:1px solid var(--line);font-weight:600;transition:background .25s,border-color .25s,color .25s,transform .15s}
+#fd-app .dmk-dr:hover{border-color:rgba(106,44,78,.35);background:var(--accent-soft)}
+#fd-app .dmk-dri{position:relative;width:16px;height:16px;flex:none;display:inline-block}#fd-app .dmk-dri svg{position:absolute;inset:0;transition:opacity .25s,transform .35s cubic-bezier(.2,.8,.2,1)}
+#fd-app .dmk-dri svg.ok{opacity:0;transform:scale(.4)}
+#fd-app .dmk-dr.saved{background:#e8f4ec;border-color:rgba(46,125,80,.4);color:#2e7d50}#fd-app .dmk-dr.saved .dmk-dri svg:first-child{opacity:0;transform:translateY(-8px) scale(.6)}#fd-app .dmk-dr.saved .dmk-dri svg.ok{opacity:1;transform:none}
+#fd-app .dmk-dr.nope{animation:drNope .4s ease}@keyframes drNope{20%,60%{transform:translateX(-4px)}40%,80%{transform:translateX(4px)}}
+#fd-app .drrow.drnew{animation:drNew 1.6s cubic-bezier(.2,.8,.2,1)}@keyframes drNew{0%{opacity:0;transform:translateY(-10px) scale(.98);box-shadow:0 0 0 0 rgba(106,44,78,.0)}25%{opacity:1;transform:none;box-shadow:0 0 0 4px rgba(106,44,78,.18)}100%{box-shadow:0 0 0 0 rgba(106,44,78,0)}}
+#fd-app .drcard.drping .drhead{animation:drPing 1.4s ease}@keyframes drPing{0%,100%{background:transparent}30%{background:var(--accent-soft)}}
+#fd-app .drcard.drping .drn{animation:drPop .5s cubic-bezier(.2,.8,.2,1)}@keyframes drPop{40%{transform:scale(1.35)}}
+#fd-app .drcard{scroll-margin-top:calc(var(--toph,64px) + 12px)}
+@media (max-width:640px){#fd-app .dmk-end{width:100%;display:grid;grid-template-columns:1fr 1fr}#fd-app .dmk-dr{justify-content:center;min-height:36px}}
+@media (prefers-reduced-motion:reduce){#fd-app .dmk-dr,#fd-app .dmk-dri svg,#fd-app .drrow.drnew,#fd-app .drcard.drping .drhead,#fd-app .drcard.drping .drn{animation:none;transition:none}}
 @media (max-width:640px){#fd-app .dmk-row{flex-direction:column}#fd-app .dmk-save{flex:none;min-height:54px}#fd-app .dmk-pr{flex:none}#fd-app .dmk-pr .btn{min-height:50px}#fd-app .dmk .btn small{font-size:10.5px}}
 @media (max-width:640px){#fd-app .dmk-new{min-height:36px;border:0}#fd-app .dmk-pdf{display:grid;grid-template-columns:repeat(3,1fr);width:100%;gap:6px}#fd-app .dmk-l{grid-column:1/-1}#fd-app .pdfk{justify-content:center;min-height:40px;padding:5px 6px}#fd-app .dmk-pdf{grid-template-columns:repeat(6,1fr)}#fd-app .pdfk{grid-column:span 2}#fd-app .dmk-go{grid-column:span 3;min-height:44px;justify-content:center}}
 #fd-app .dtbox{margin:12px 0 14px;border:1px solid #f0dcb0;background:#fffaf0;border-radius:12px;padding:10px 12px}
@@ -3185,7 +3199,8 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
       <div class="dmk-opt">
         <span class="dmk-pdf" data-npriv role="group" aria-label="Что войдёт в один PDF"><span class="dmk-l">Одним PDF:</span><button class="pdfk" type="button" data-pdfk="invoice" aria-pressed="false">Счёт</button><button class="pdfk" type="button" data-pdfk="torg12" aria-pressed="false">ТОРГ‑12</button><button class="pdfk" type="button" data-pdfk="upd" aria-pressed="false">УПД</button><button class="btn sm dmk-go dmk-prn" id="d-pdfgo" type="button" data-combo="invoice,torg12"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>Скачать PDF</button><button class="btn sm dmk-go dmk-prn" id="d-pdfprn" type="button" data-combo="invoice,torg12" data-print="1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M6 14h12v7H6z"/></svg>Печать</button></span>
         <span class="signopt"><label class="chk" id="d-signw" hidden><input type="checkbox" id="d-sign"> С печатью и подписью</label><label class="chk" id="d-scanw" hidden title="Только в скачанном PDF"><input type="checkbox" id="d-scan"> Вид скана в PDF</label></span>
-        <button class="btn ghost sm dmk-new" id="d-new" type="button">Очистить форму</button>
+        <span class="dmk-end"><button class="btn sm dmk-dr" id="d-drsave" type="button" title="Отложить документ: он уйдёт в «Черновики», а форма станет чистой"><span class="dmk-dri" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 14h6"/><path d="M9 17h4"/></svg><svg class="ok" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span><span class="dmk-drt">В черновик</span></button>
+        <button class="btn ghost sm dmk-new" id="d-new" type="button">Очистить форму</button></span>
       </div>
     </div>
     <div class="card invdc" id="inv-dc" hidden></div>
@@ -4742,8 +4757,10 @@ $("#d-save").onclick=async()=>{
   catch(e){ msg.textContent="Не получилось сохранить: "+e.message; toast("err","Не получилось сохранить документ", e.message+". Проверьте интернет и нажмите кнопку ещё раз."); }
   finally{ b.disabled=false; }
 };
-$("#d-new").onclick=$("#d-new2").onclick=e=>{ const bt=e.currentTarget; if(!armed(bt,"Точно очистить форму?")) return; delete bt.dataset.armed; bt.classList.remove("armed"); bt.textContent=bt.id==="d-new2"?"Очистить":"Очистить форму"; if(typeof drTick==="function") drTick(true); const drK=typeof drDocOn==="function"&&drDocOn(D.draft); const s=D.draft.supplierId, c=D.draft.customerId; D.draft=newDraft(D); D.draft.supplierId=s; D.draft.customerId=c;
-  D.draft.contractId=pickCtr(); { const x=ctr(D.draft.contractId); if(x&&x.supplierId) D.draft.supplierId=x.supplierId; } D.draft.number=nextNum(D.draft.supplierId, c); D.draft.basis=(ctr(D.draft.contractId)||{}).basis||""; saveLocal(); renderDoc(); $("#d-saved").textContent=""; if(drK) toast("info","Форма очищена","Прежний документ остался в «Черновиках» — его можно продолжить или удалить."); };
+/* новая пустая форма для того же поставщика и заказчика (общее у «Очистить форму» и «В черновик») */
+function docFormReset(){ const s=D.draft.supplierId, c=D.draft.customerId; D.draft=newDraft(D); D.draft.supplierId=s; D.draft.customerId=c;
+  D.draft.contractId=pickCtr(); { const x=ctr(D.draft.contractId); if(x&&x.supplierId) D.draft.supplierId=x.supplierId; } D.draft.number=nextNum(D.draft.supplierId, c); D.draft.basis=(ctr(D.draft.contractId)||{}).basis||""; saveLocal(); renderDoc(); $("#d-saved").textContent=""; }
+$("#d-new").onclick=$("#d-new2").onclick=e=>{ const bt=e.currentTarget; if(!armed(bt,"Точно очистить форму?")) return; delete bt.dataset.armed; bt.classList.remove("armed"); bt.textContent=bt.id==="d-new2"?"Очистить":"Очистить форму"; if(typeof drTick==="function") drTick(true); const drK=typeof drDocOn==="function"&&drDocOn(D.draft); docFormReset(); if(drK) toast("info","Форма очищена","Прежний документ остался в «Черновиках» — его можно продолжить или удалить."); };
 
 /* «Очистить всё»: заявка из файла, стороны, номер, основание, адрес, товары — всё пустое, в списках «(не выбрано)» */
 $("#d-clrall").onclick=e=>{ const bt=e.currentTarget; if(!armed(bt,"Точно очистить всё?")) return; delete bt.dataset.armed; bt.classList.remove("armed"); bt.textContent="Очистить всё"; if(typeof drTick==="function") drTick(true);
