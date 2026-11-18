@@ -153,3 +153,29 @@ document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState=
   try{ const h=document.querySelector("#fd-app header.top"); if(h && window.ResizeObserver) new ResizeObserver(set).observe(h); }catch(e){} addEventListener("resize", set); setTimeout(set, 300); })();
 addEventListener("scroll", ()=>{ const h=document.querySelector("#mul .mulhead"); if(!h) return; const top=parseFloat(getComputedStyle(document.getElementById("fd-app")).getPropertyValue("--toph"))||0; h.classList.toggle("stuck", h.getBoundingClientRect().top<=top+1 && h.parentElement.getBoundingClientRect().top<top); }, {passive:true});
 setTimeout(()=>{ drTick(); drDraw(); drLoad(true); }, 1500);
+
+/* ---- «В черновик» (18.11.2026, просьба Даниила): отложить документ из формы — он в «Черновиках», форма чистая ---- */
+function drFlash(id){ requestAnimationFrame(()=>{ const box=document.querySelector("#tab-doc .drcard"); if(!box || box.hidden) return;
+    const row=box.querySelector(`.drrow[data-drid="${CSS.escape(id)}"]`), see=row && !box.classList.contains("folded");
+    box.classList.remove("drping"); if(row) row.classList.remove("drnew"); void box.offsetWidth;
+    if(see) row.classList.add("drnew"); else box.classList.add("drping");
+    setTimeout(()=>{ box.classList.remove("drping"); if(row) row.classList.remove("drnew"); }, 1700);
+    const r=box.getBoundingClientRect(); if(r.top<0 || r.top>innerHeight*.6) box.scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth", block:"start"}); }); }
+function drBtnOk(bt, ok){ if(!bt) return; const t=bt.querySelector(".dmk-drt"); clearTimeout(bt._t);
+  if(!ok){ bt.classList.remove("nope"); void bt.offsetWidth; bt.classList.add("nope"); return; }
+  bt.classList.add("saved"); if(t) t.textContent="В черновиках"; bt._t=setTimeout(()=>{ bt.classList.remove("saved"); if(t) t.textContent="В черновик"; }, 1800); }
+function drSaveNow(bt){ if(!curUser()) return;
+  const where=D.drSrv===false?"Пока только на этом устройстве — обновите Code.gs, чтобы видели все.":"Продолжить можно в любой момент — блок «Черновики» вверху страницы.";
+  if(mulOn()){ const m=D.multi; if(!drMultiOn(m)){ drBtnOk(bt,false); toast("info","Все накладные из файлов уже в журнале","В черновик откладывать нечего."); return; }
+    drTick(true); const id="m-"+m.did; D.multi=null; IMP=null; saveLocal(); drawImp(); renderDoc(); drDraw(); drBtnOk(bt,true); drFlash(id);
+    toast("ok","Документы из файлов — в черновиках", where, {action:{label:"Вернуть", fn:()=>drOpen(id)}}); logEv("Документ","Отложено в черновики: документы из файлов"); return; }
+  const dr=D.draft||{};
+  if(dr.qtyOnly || D.journal.some(j=>j.id===dr.id)){ drBtnOk(bt,false); toast("info","Этот документ уже в журнале","Изменения сохраняются кнопкой «Сохранить в журнал»."); return; }
+  if(!dr.customerId){ drBtnOk(bt,false); toast("warn","Сначала выберите заказчика","Без заказчика черновик не сохранить."); return; }
+  if(!(dr.lines||[]).some(l=>l.productId && +l.qty>0)){ drBtnOk(bt,false); toast("warn","Добавьте хотя бы один товар с количеством","Пустой документ в черновики не кладём."); return; }
+  drTick(true); const id="d-"+dr.id, row=drArr().find(r=>r.id===id);
+  if(!row){ drBtnOk(bt,false); toast("err","Не получилось сохранить черновик","Попробуйте ещё раз."); return; }
+  docFormReset(); drDraw(); drBtnOk(bt,true); drFlash(id);
+  toast("ok","Сохранено в черновики", row.title+" · "+where, {action:{label:"Вернуть в форму", fn:()=>drOpen(id)}});
+  logEv("Документ","Отложено в черновики: "+row.title); }
+document.addEventListener("click", e=>{ const bt=e.target.closest && e.target.closest("#d-drsave"); if(bt) drSaveNow(bt); });
