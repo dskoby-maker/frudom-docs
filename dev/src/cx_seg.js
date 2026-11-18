@@ -151,3 +151,38 @@ cxReg(t=>{ const row=t.closest("#ev-body .evr"); if(!row) return null; const u=r
   if(a) L.it("a", $("#ev-type").value===a?"Все действия":"Только «"+a+"»","filter",()=>set("#ev-type", $("#ev-type").value===a?"":a));
   L.sep().it("cp","Скопировать текст","clip",()=>jcxCopy(txt));
   return {row, items:L.done(), label:"Действия с событием", head:cxHead(u||"?", a, "")}; });
+
+/* ---------- «Прибыль → Расходы и доходы» (18.11.2026): запись, группа в разбивке, накладная в ленте, строки итога ---------- */
+Object.assign(JCX_I, { swap:'<path d="M7 4 3 8l4 4M3 8h13M17 20l4-4-4-4M21 16H8"/>', del:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>' });
+function cxPvCats(L, ids, k, cur){ if(k==="per" || !pvCatOk()) return; const C=pvCats().filter(c=>c.k===k||c.k==="both"); if(!C.length) return;
+  L.sep().chips(ids.length>1?"Перенести все в категорию":"Категория", [{lbl:"Без категории", on:cur==="", fn:()=>pvRecSet(ids, null, "")}].concat(C.map(c=>({lbl:c.n, dot:c.h==null?"#bbb":`hsl(${c.h} 50% 55%)`, on:cur===c.id, fn:()=>pvRecSet(ids, null, c.id)})))); }
+cxReg(t=>{ const row=t.closest("#pv-fin .pvit[data-pvx]"); if(!row) return null; const x=pfArr("pother").find(y=>y.id===row.dataset.pvx); if(!x) return null;
+  const k=pvKind(x), c=pvCatOf(x), L=cxList(), nm=x.note||c.n;
+  L.it("edit","Изменить","edit",()=>pvItemOpen(x),{kbd:"Enter"}).it("rep","Повторить с сегодняшней датой","plus",()=>pvItemOpen(x, null, todayISO(), true));
+  L.sep(); ["exp","inc","per"].filter(m=>m!==k).forEach(m=>L.it("mv"+m, PV_KTO[m], "swap", ()=>pvRecSet([x.id], m)));
+  cxPvCats(L, [x.id], k, k==="per"?"":(x.cat||""));
+  const same=pfArr("pother").filter(y=>(y.note||"").trim().toLowerCase()===(x.note||"").trim().toLowerCase() && x.note);
+  L.sep(); if(same.length>1) L.it("all","Все записи «"+nm+"» · "+same.length,"search",()=>{ const i=$("#pv-fsq"); if(i){ i.value=x.note; PVFS.q=x.note; pvFsDraw(); i.scrollIntoView({block:"center", behavior:"smooth"}); } });
+  L.it("cp","Скопировать «"+nm+" — "+fm(+x.sum||0)+"»","clip",()=>jcxCopy(nm+" — "+fm(+x.sum||0)+" ₽ · "+fd(x.date)));
+  L.sep().it("del","Удалить запись","del",()=>pvRecDel([x.id]),{danger:1, confirm:"Точно удалить? Нажмите ещё раз"});
+  return {row, items:L.done(), label:"Действия с записью «"+nm+"»", head:cxHead(nm, PV_KT[k]+(k!=="per"?" · "+c.n:"")+" · "+fd(x.date)+(x.by?" · "+x.by:""), (k==="inc"?"+":"−")+fm(+x.sum||0)+" ₽")}; });
+cxReg(t=>{ const row=t.closest("#pv-fin .pvcb[data-pvf]"); if(!row) return null; const key=row.dataset.pvf, [k, id]=key.split(/:(.*)/s), ids=pvGroupIds(key); if(!ids.length) return null;
+  const X=pfArr("pother").filter(x=>ids.includes(x.id)), nm=k==="per"?(X[0].note||"Без описания"):pvCat(id).n, sum=r2(X.reduce((a,x)=>a+(+x.sum||0),0)), n=ids.length, L=cxList(), nn=n+" "+plural(n,["запись","записи","записей"]);
+  L.it("show", PV().fcat===key?"Показать все записи":"Показать только эти записи","filter",()=>row.click()).it("open","Открыть подробно","open",()=>pvFlowCard(k, {c:id}))
+   .it("add","Добавить запись сюда","plus",()=>pvAddTo(k, k==="per"?"":id, k==="per"?X[0].note:""));
+  L.sep(); ["exp","inc","per"].filter(m=>m!==k).forEach(m=>L.it("mv"+m, PV_KTO[m]+(n>1?" — все "+n:""), "swap", ()=>pvRecSet(ids, m)));
+  cxPvCats(L, ids, k, id);
+  if(k==="per") L.sep().it("ren","Переименовать «"+nm+"»…","edit",()=>pvRecRename(ids, "Переименовать «"+nm+"»"));
+  L.sep().it("del","Удалить "+(n>1?"все "+nn:"запись"),"del",()=>pvRecDel(ids),{danger:1, confirm:"Удалить "+nn+" на "+fm(sum)+" ₽? Ещё раз"});
+  return {row, items:L.done(), label:"Действия с «"+nm+"»", head:cxHead(nm, (k==="per"?"Личные":k==="inc"?"Доходы":"Расходы")+" · "+nn+" за период", fm(sum)+" ₽")}; });
+cxReg(t=>{ const row=t.closest("#pv-fin [data-pvdoc]"); if(!row) return null; const j=D.journal.find(y=>y.id===row.dataset.pvdoc); if(!j) return null; const p=payOf(j), L=cxList();
+  L.it("open","Открыть накладную","open",()=>docCard(j,false),{kbd:"Enter"}).it("zk","Закупка","box",()=>zkPageOpen(j));
+  L.sep().it("pay", p.st==="paid"?"Снять отметку «Оплачена»":"Отметить оплаченной", p.st==="paid"?"payoff":"pay", ()=>{ jpayToggle([j], p.st!=="paid"); drawProfit(); }, {sub:p.st==="paid"?(p.d?"оплачена "+fd(p.d):""):"ждём оплату · "+ageTxt(j.date)});
+  if(j.customerId) L.it("led","Все накладные «"+cusNm(j.customerId)+"»","card",()=>pvLedger(j.customerId));
+  L.sep().it("all","Все накладные периода","search",()=>pvFlowCard("doc"));
+  return {row, items:L.done(), label:"Накладная № "+j.number, head:cxHead("№ "+j.number+" · "+fd(j.date), cusNm(j.customerId)||jWho(j).main, fm(docTotal(j))+" ₽")}; });
+cxReg(t=>{ const row=t.closest("#pv-fin .pvfr[data-pvflow]"); if(!row) return null; const k=row.dataset.pvflow, L=cxList();
+  L.it("open","Открыть подробно","open",()=>pvFlowCard(k),{kbd:"Enter"});
+  if(k!=="doc") L.it("add", k==="inc"?"+ Доход":k==="per"?"+ Личный расход":"− Расход","plus",()=>pvItemOpen(null, k));
+  else L.it("miss","Накладные без закупки","box",()=>pvFlowCard("doc",{f:"miss"})).it("due","Ждём оплату","pay",()=>pvFlowCard("doc",{f:"due"}));
+  return {row, items:L.done(), label:PVFW_T[k][0], head:cxHead(PVFW_T[k][0], pvFinR().R.lab, "")}; });
