@@ -24,7 +24,7 @@ module.exports.handler = async (event) => {
   let p = {};
   try { p = JSON.parse(event.isBase64Encoded ? Buffer.from(event.body || '', 'base64').toString('utf8') : (event.body || '{}')); } catch (e) { return out(400, { error: 'bad json' }); }
   const path = String(p.path || '');
-  if (path === '/ping') return out(200, { ok: true, proxy: 2, mail: 2 });
+  if (path === '/ping') return out(200, { ok: true, proxy: 2, mail: 3 });
   if (/^\/mail\//.test(path)) { try { return out(200, await mailOp(path, p)); } catch (e) { return out(200, { error: String(e && e.message || e).slice(0, 300) }); } }
   if (!ALLOWED.some(r => r.test(path))) return out(400, { error: 'path not allowed' });
   try {
@@ -38,10 +38,10 @@ module.exports.handler = async (event) => {
 /* ===================== ПОЧТА: IMAP (чтение) и SMTP (отправка) — только встроенные модули Node.js =====================
    /mail/test  {acc}                         — войти в ящик (IMAP) и на сервер отправки (SMTP), ничего не меняя
    /mail/fetch {acc, since, uidv, days, max} — новые письма папки «Входящие» (UID > since), не больше max за раз; письмо НЕ помечается прочитанным
-   /mail/att   {acc, uid, idx}               — одно вложение письма целиком (до 2,5 МБ)
+   /mail/att   {acc, uid, idx, part, off}    — одно вложение письма; part=1 — кусками по 2,4 МБ с байта off (ответ функции ≤ 3,5 МБ)
    /mail/send  {acc, msg}                    — отправить письмо и положить копию в «Отправленные»
    acc = {user, pass, ih, ip, sh, sp}: логин, пароль (для внешних приложений), IMAP-сервер и порт (993), SMTP-сервер и порт (465). */
-const MAIL_TMO = 25000, MAIL_BUDGET = 2400000;
+const MAIL_TMO = 25000, MAIL_BUDGET = 2400000, MAIL_PART = 2400000;
 /* большие письма (импорт старой почты с тяжёлыми вложениями): больше MAIL_BIG читаем только начало — текст и заголовки,
    за один раз забираем не больше MAIL_BATCH байт писем, иначе функции не хватает памяти и она падает («user code crashed») */
 const MAIL_BIG = 12 * 1048576, MAIL_HEAD = 600000, MAIL_BATCH = 24 * 1048576;
@@ -90,6 +90,8 @@ async function mailOp(path, p) {
       if (sz > 40 * 1048576) throw new Error('письмо больше 40 МБ — откройте вложение в обычной почте');
       const raw = await c.fetchRaw(+p.uid); if (!raw) throw new Error('письмо не найдено в ящике (удалено?)');
       const x = mimeMsg(raw).atts[+p.idx || 0]; if (!x) throw new Error('вложение не найдено');
+      if (p.part) { const off = Math.max(0, +p.off || 0), ch = x.buf.subarray(off, off + MAIL_PART);   /* большой файл — по кусочкам, скрипт таблицы склеит */
+        return { name: x.name, mime: x.mime, size: x.buf.length, off, n: ch.length, data: ch.toString('base64') }; }
       if (x.buf.length > 2500000) throw new Error('файл больше 2,5 МБ — откройте его в обычной почте');
       return { name: x.name, mime: x.mime, size: x.buf.length, data: x.buf.toString('base64') };
     } finally { c.logout().catch(() => {}); }

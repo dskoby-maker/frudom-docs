@@ -40,7 +40,7 @@ const smtp=tls.createServer({key,cert},s=>{ s.write('220 test smtp\r\n'); let bu
 const call=async(p)=>{ const r=await P.handler({headers:{'X-Proxy-Key':process.env.SECRET}, body:JSON.stringify(p)}); return JSON.parse(r.body); };
 (async()=>{ await new Promise(r=>imap.listen(0,r)); await new Promise(r=>smtp.listen(0,r));
   const acc={user:'user@test', pass:'app-pass', email:'user@test', ih:'localhost', ip:imap.address().port, sh:'localhost', sp:smtp.address().port};
-  const pg=await call({path:'/ping'}); ok(pg.proxy===2 && pg.mail===2, 'ping: новая версия посредника с почтой');
+  const pg=await call({path:'/ping'}); ok(pg.proxy===2 && pg.mail===3, 'ping: новая версия посредника с почтой');
   const t=await call({path:'/mail/test', acc}); ok(t.imap==='ok' && t.smtp==='ok' && t.uidv===777, 'вход в IMAP и SMTP '+JSON.stringify(t));
   const bad=await call({path:'/mail/test', acc:Object.assign({},acc,{pass:'wrong'})}); ok(/не пустил/.test(bad.imap) && /не пустил/.test(bad.smtp), 'неверный пароль — понятная ошибка: '+bad.imap+' / '+bad.smtp);
   const f=await call({path:'/mail/fetch', acc, since:0, days:3650}); ok(f.msgs && f.msgs.length===2 && f.last===9 && f.uidv===777, 'первая загрузка: 2 письма, последний UID 9');
@@ -59,6 +59,9 @@ const call=async(p)=>{ const r=await P.handler({headers:{'X-Proxy-Key':process.e
   ok(bm && bm.big===1 && /Письмо очень большое \(1[45],\d МБ\)/.test(bm.text) && /Старая заявка/.test(bm.text) && bm.atts.length===0 && BOX.partial===1, 'большое письмо: только текст и пометка '+JSON.stringify(bm&&{t:bm.text.slice(0,90), a:bm.atts.length, s:bm.size}));
   ok(fb.msgs.length===2 && fb.last===13, 'письмо после большого тоже пришло, last=13');
   const fbig=await call({path:'/mail/att', acc, uid:12, idx:0}); ok(/больше 2,5 МБ|40 МБ/.test(fbig.error||''), 'вложение большого письма — понятная ошибка, без падения: '+fbig.error);
+  /* кусками (mail:3): вложение 11 МБ собирается целиком, каждый ответ ≤ 3,5 МБ */
+  { let off=0, data='', size=0, mx=0, n=0; do { const r=await call({path:'/mail/att', acc, uid:12, idx:0, part:1, off}); if(r.error){ data=null; console.log(r.error); break; } size=r.size; mx=Math.max(mx, JSON.stringify(r).length); data+=r.data; off+=r.n; n++; } while(off<size && n<20);
+    const buf=data&&Buffer.from(data,'base64'); ok(buf && buf.length===11*1048576 && buf.every(x=>x===7) && mx<3500000, `большое вложение кусками: ${n} кусков, ${buf&&buf.length} байт, самый большой ответ ${mx}`); }
   BOX.msgs.splice(2);
   const at=await call({path:'/mail/att', acc, uid:5, idx:0}); ok(at.name==='заявка.pdf' && Buffer.from(at.data,'base64').toString()==='%PDF-1.4 test', 'вложение отдельно');
   const s=await call({path:'/mail/send', acc:Object.assign({fromName:'Фруктовый Дом'},acc), msg:{to:['МГУ <zakaz@msu.ru>'], subject:'Re: Заявка', text:'Здравствуйте!\n.точка в начале строки\nПринято.', inReply:'<m1@msu.ru>', refs:'<m1@msu.ru>', fromName:'Фруктовый Дом', atts:[{name:'счёт.pdf', mime:'application/pdf', data:b64('%PDF x')}]}});

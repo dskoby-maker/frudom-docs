@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 44;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 45;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -607,6 +607,18 @@ function mailDir_() {
   if (id) { try { const f = DriveApp.getFolderById(id); if (!f.isTrashed()) return f; } catch (x) {} }
   const f = DriveApp.createFolder('Документы ФД — почта'); pr.setProperty('mailFolder', f.getId()); return f;
 }
+/* вложение письма через посредника: кусками по 2,4 МБ (ответ функции в Яндекс Облаке — не больше 3,5 МБ), до 25 МБ; старый посредник — одним куском до 2,5 МБ */
+function mailAttGet_(a, row, i) {
+  const base = { acc: mailCred_(a), uid: +row.uid, idx: i };
+  let j; try { j = mailPx_('/mail/att', Object.assign({ part: 1, off: 0 }, base)); }
+  catch (e) { if (/больше 2,5 МБ/.test(String(e.message))) throw new Error('файл больше 2,5 МБ — чтобы открывать такие файлы, обновите код посредника в Яндекс Облаке: «Почта» → «Ящики» → «Скопировать код»'); throw e; }
+  if (j.size == null || j.n == null) return j;   /* старый посредник (mail < 3) прислал файл целиком */
+  if (j.size > 25 * 1048576) throw new Error('файл больше 25 МБ — откройте его в обычной почте');
+  /* куски по 2 400 000 байт (делится на 3) — их base64 просто склеиваются, без перекодирования */
+  let data = j.data || '', got = +j.n || 0;
+  while (got < j.size) { const k = mailPx_('/mail/att', Object.assign({ part: 1, off: got }, base)); if (!(+k.n > 0) || +k.off !== got) throw new Error('посредник прислал не тот кусок файла'); data += k.data; got += +k.n; }
+  return { name: j.name, mime: j.mime, size: got, data: data };
+}
 function mailPx_(path, body) {
   const px = tbProxy_(); if (!px || !px.url) throw new Error('noproxy');
   const r = UrlFetchApp.fetch(px.url, { method: 'post', contentType: 'application/json', headers: { 'X-Proxy-Key': px.key }, payload: JSON.stringify(Object.assign({ path: path }, body)), muteHttpExceptions: true });
@@ -720,7 +732,7 @@ function mail_(p, me) {
       if (x.f) { try { const b = DriveApp.getFileById(x.f).getBlob(); return { ok: true, name: x.n, mime: x.m, data: Utilities.base64Encode(b.getBytes()) }; } catch (e) {} }
       if (row.dir === 'sent') return { ok: false, error: 'вложение не сохранено' };
       const a = mailAcc_().find(y => y.id === row.acc); if (!a) return { ok: false, error: 'ящик этого письма отключён' };
-      const j = mailPx_('/mail/att', { acc: mailCred_(a), uid: +row.uid, idx: i });
+      const j = mailAttGet_(a, row, i);
       try { x.f = mailDir_().createFile(Utilities.newBlob(Utilities.base64Decode(j.data), j.mime || x.m, row.id.replace(/:/g, '_') + '__' + i + '__' + x.n)).getId(); delete x.e;
         const lock = LockService.getScriptLock(); lock.waitLock(25000); try { upsertList_('mail', { upsert: [{ id: row.id, atts: JSON.stringify(L) }] }); } finally { lock.releaseLock(); } } catch (e) {}
       return { ok: true, name: x.n, mime: j.mime || x.m, data: j.data }; }

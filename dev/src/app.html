@@ -9339,8 +9339,8 @@ function svRows(){ const R=[], s=SV.srv||{}, j=s.j||null, old=s.ok===false && /u
   add("site","Сайт и приложение (GitHub)","dskoby-maker.github.io — отсюда грузится код сайта", SV.site&&SV.site.ok?"ok":SV.site?"err":"wait", SV.site?(SV.site.ok?"Открывается":"Не открывается"):"", "h-site");
   add("tilda","frudom.ru/1c (Тильда)","", SV.tilda&&SV.tilda.ok?"ok":SV.tilda?"err":"wait", SV.tilda?(SV.tilda.ok?"Открывается":"Не открывается"):"", "h-tilda");
   if(j && !stf){
-    if(j.proxy) add("proxy","Посредник в Яндекс Облаке","забирает платежи из банка и почту", j.proxy.none?"off":j.proxy.ok?((j.proxy.mail||0)<2?"warn":"ok"):"err",
-      j.proxy.none?"Не подключён":j.proxy.ok?((j.proxy.mail||0)<2?"Работает, но код старый — обновите":"Работает · "+(j.proxy.ms/1000).toFixed(1).replace(".",",")+" с"):"Не отвечает: "+esc(j.proxy.err||""), "h-proxy");
+    if(j.proxy) add("proxy","Посредник в Яндекс Облаке","забирает платежи из банка и почту", j.proxy.none?"off":j.proxy.ok?((j.proxy.mail||0)<3?"warn":"ok"):"err",
+      j.proxy.none?"Не подключён":j.proxy.ok?((j.proxy.mail||0)<3?"Работает, но код старый — обновите":"Работает · "+(j.proxy.ms/1000).toFixed(1).replace(".",",")+" с"):"Не отвечает: "+esc(j.proxy.err||""), "h-proxy");
     if(adm && j.bank) (j.bank.length?j.bank:[null]).forEach(b=>{ if(!b){ add("bank","Банк Т-Бизнес","", "off","Не подключён","h-bank"); return; }
       const a=b.last?(Date.now()-Date.parse(b.last))/36e5:1e9, nm=supSurname(b.sid)||sup(b.sid).name||"";
       add("bank:"+b.sid,"Банк Т-Бизнес · "+esc(nm),"", b.err?"err":a<26?"ok":"warn", b.err?"Ошибка: "+esc(b.err):b.last?"Выписка загружена "+svAgo(b.last):"Выписка ещё не загружалась", "h-bank"); });
