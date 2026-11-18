@@ -60,6 +60,9 @@ async def main():
         ok(fit and all(fit), f'текст влезает в наклейку: {fit}')
         size=await pg.evaluate("(()=>{const f=[...document.querySelectorAll('iframe')].pop(); return f.contentWindow.document.querySelector('style').textContent.includes('size:55.4mm 40mm')})()")
         ok(size, 'размер страницы 55,4 × 40 мм')
+        g=await pg.evaluate("""(()=>{const D=__fd.D(); D.products.push({id:'o1',name:'Лук репчатый',unit:'кг'},{id:'o2',name:'Лук репчатый красный',unit:'кг'},{id:'o3',name:'Лук красный',unit:'кг'},{id:'o4',name:'Картофель продовольственный',unit:'кг'},{id:'o5',name:'Картофель беби',unit:'кг'});
+          const N=id=>(D.products.find(p=>p.id===id)||{}).name||''; return [__lbl.guess('ЛУК РЕПЧАТЫЙ  КРАСНЫЙ.btw','Лук репчатый красный',''), __lbl.guess('ЛУК РЕПЧАТЫЙ.btw','Лук репчатый',''), __lbl.guess('ЛУК КРАСНЫЙ.btw','Лук красный',''), __lbl.guess('Картофель беби.btw','Картофель беби',''), __lbl.guess('ГРИБЫ.btw','Шампиньоны свежие','')].map(N)})()""")
+        ok(g[:4]==['Лук репчатый красный','Лук репчатый','Лук красный','Картофель беби'], f'похожие названия не путаются: {g}')
         # загрузка готовой наклейки из BarTender (файл .btw — путь в BTW, в репозиторий не кладём)
         if os.environ.get('BTW'):
             await pg.set_input_files('#lb-up', os.environ['BTW']); await pg.wait_for_timeout(2500)

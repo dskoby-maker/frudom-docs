@@ -166,10 +166,14 @@ function lblParse(L){ const g=rx=>{ for(const x of L){ const m=x.match(rx); if(m
   return { m:g(/изготовитель\s*:?\s*(.+)/i), t:g(/услови\S*\s+хран\S*\s+при\s+темп\S*\s*(.+)/i), d:g(/срок\s+годности\s*:?\s*(.+?)\s*с\s+даты/i), p:g(/партия\s*:?\s*(\S+)/i),
     b: +kg.replace(",",".")>0 ? kg.replace(",",".") : "", ctry:g(/страна\s+происхождения\s*:?\s*(.+)/i) }; }
 const lblStem = s => String(s||"").toLowerCase().replace(/ё/g,"е").replace(/\.btw$/i,"").split(/[^а-яa-z0-9]+/).filter(w=>w.length>2).map(w=>w.slice(0,5));
+/* подбор товара к наклейке: общие основы слов (Жаккар — лишние слова с обеих сторон снижают оценку: «Лук репчатый красный» ≠ «Лук репчатый»),
+   товары из прайса заказчика — чуть выше; оценка < 0,5 — не подбираем, человек выберет сам */
 function lblGuess(name, first, cid){ const A=new Set([...lblStem(name), ...lblStem(first)]); if(!A.size) return "";
   const pr=(D.prices||{})[cid]||{}; let best="", bs=0;
-  D.products.forEach(p=>{ const B=lblStem(p.name); if(!B.length) return; const c=B.filter(w=>A.has(w)).length; let sc=c/Math.max(B.length, 1); if(pr[p.id]!=null && pr[p.id]!=="") sc+=0.25; if(c && sc>bs){ bs=sc; best=p.id; } });
-  return bs>=0.6 ? best : ""; }
+  D.products.forEach(p=>{ const B=new Set(lblStem(String(p.name).replace(/\(поз\..*?\)/i,""))); if(!B.size) return; const c=[...B].filter(w=>A.has(w)).length; if(!c) return;
+    const sc=c/new Set([...A,...B]).size + (pr[p.id]!=null && pr[p.id]!=="" ? 0.2 : 0);
+    if(sc>bs+1e-9){ bs=sc; best=p.id; } });
+  return bs>=0.5 ? best : ""; }
 async function lblUpLoad(F){ const cid=(LBX.L[0].snap.dr||{}).customerId||""; const t=toast("info","Читаю наклейки…","", {sticky:true}); const up=[];
   try{ for(const f of F){ if(!/\.btw$/i.test(f.name)){ up.push({f:f.name, err:"не файл BarTender (.btw)"}); continue; }
       const L=await lblBtwLines(f); if(!L||!L.length){ up.push({f:f.name, err:"не нашёл текст наклейки"}); continue; }
@@ -180,7 +184,7 @@ function lblUpHtml(cid){ const U=LBX.up; if(!U) return ""; const pr=(D.prices||{
   const sel=(u,i)=>`<select data-lbup="${i}" data-native aria-label="Какой это товар на сайте"><option value="">— не сохранять —</option><optgroup label="В прайсе заказчика">${mine.map(p=>`<option value="${p.id}"${u.pid===p.id?" selected":""}>${esc(p.name)}</option>`).join("")}</optgroup><optgroup label="Остальные товары">${rest.map(p=>`<option value="${p.id}"${u.pid===p.id?" selected":""}>${esc(p.name)}</option>`).join("")}</optgroup></select>`;
   const ok=U.filter(u=>u.x&&u.pid).length;
   return `<div class="lbup"><div class="lbuph"><b>Наклейки из BarTender · ${U.length}</b><small>Проверьте, к какому товару относится каждая. Текст наклейки сохранится у товара — дату фасовки и массу сайт будет подставлять сам.</small></div>
-    ${U.map((u,i)=>u.x?`<div class="lbu${u.pid?"":" no"}"><div class="lbu-n"><small>${esc(u.f)}</small><b>${esc(u.x[0])}</b><span>${esc(u.x.slice(1,3).join(" · "))}</span></div>${sel(u,i)}</div>`:`<div class="lbu no"><div class="lbu-n"><small>${esc(u.f)}</small><span class="lbw">${esc(u.err)}</span></div></div>`).join("")}
+    ${U.map((u,i)=>{ if(!u.x) return null; const dup=u.pid && U.some((v,j)=>j!==i && v.x && v.pid===u.pid); return `<div class="lbu${u.pid?"":" no"}${dup?" dup":""}"><div class="lbu-n"><small>${esc(u.f)}</small><b>${esc(u.x[0])}</b><span>${esc(u.x.slice(1,3).join(" · "))}</span>${!u.pid?`<em class="lbw">не нашёл товар — выберите сами</em>`:dup?`<em class="lbw">этот товар выбран и для другой наклейки</em>`:""}</div>${sel(u,i)}</div>`; }).map((h,i)=>h!==null?h:`<div class="lbu no"><div class="lbu-n"><small>${esc(U[i].f)}</small><span class="lbw">${esc(U[i].err)}</span></div></div>`).join("")}
     <div class="lbsa"><button type="button" class="btn pri sm" data-lbk="upsave"${ok?"":" disabled"}>Сохранить для товаров · ${ok}</button><button type="button" class="btn ghost sm" data-lbk="upoff">Отмена</button></div></div>`; }
 function lblUpSave(){ const U=(LBX.up||[]).filter(u=>u.x&&u.pid); let n=0;
   U.forEach(u=>{ const p=prod(u.pid); if(!p||!p.id) return; const o=lblOf(p), q=u.o||{};
@@ -189,4 +193,4 @@ function lblUpSave(){ const U=(LBX.up||[]).filter(u=>u.x&&u.pid); let n=0;
     lblSave(p, o); n++; });
   saveLocal(); LBX.up=null; LBX.st={}; lblDraw(); toast("ok","Наклейки сохранены", n+" "+plural(n,["товар","товара","товаров"])+(lblSrv()?"":" — только на этом устройстве"));
   logEvSoft("Справочники","Загружены наклейки из BarTender: "+n); }
-window.__lbl={ up:(f)=>lblUpLoad(f), lines:(f)=>lblBtwLines(f), open:(ids)=>lblOpen(D.journal.filter(j=>ids.includes(j.id))), all:()=>lblAll().map(([r,m])=>[r.p.name,m]), last:()=>window.__lblLast||"" };
+window.__lbl={ guess:(n,f,c)=>lblGuess(n,f,c), up:(f)=>lblUpLoad(f), lines:(f)=>lblBtwLines(f), open:(ids)=>lblOpen(D.journal.filter(j=>ids.includes(j.id))), all:()=>lblAll().map(([r,m])=>[r.p.name,m]), last:()=>window.__lblLast||"" };
