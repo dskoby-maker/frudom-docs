@@ -165,6 +165,39 @@
 #fd-app .dc-oweadd:hover{background:#fdf7ea;color:#8a5a12}
 #fd-dcard .owe-was{margin:0 0 16px;padding:8px 10px;border-radius:10px;background:#fdf7ea;font-size:13px;color:#6d4a0e}
 #fd-dcard.owewin{max-width:540px}
+/* наклейки на коробки (lbl_seg.js) */
+#fd-dcard.lbwin{max-width:980px}
+#fd-dcard.lbwin .lbtop{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin:4px 0 12px}
+#fd-dcard.lbwin .lbtop .f{max-width:200px;margin:0}
+#fd-dcard.lbwin .lbsum{display:flex;flex-direction:column;line-height:1.2;padding-bottom:4px}
+#fd-dcard.lbwin .lbsum span{font-size:15px}#fd-dcard.lbwin .lbsum b{font-size:22px;color:var(--plum,#5B2A4E);margin-right:2px}
+#fd-dcard.lbwin .lbsum small{color:#888;font-size:12px}
+#fd-dcard.lbwin .lbwrap{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:16px;align-items:start}
+#fd-dcard.lbwin .lblist{display:flex;flex-direction:column;gap:6px;min-width:0}
+#fd-dcard.lbwin .lbr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;align-items:center;padding:9px 11px;border-radius:12px;background:#fff;border:1px solid rgba(28,34,32,.08);cursor:pointer;transition:border-color .15s,box-shadow .15s}
+#fd-dcard.lbwin .lbr.on{border-color:rgba(91,42,78,.45);box-shadow:0 0 0 3px rgba(91,42,78,.08)}
+#fd-dcard.lbwin .lbr.off{opacity:.55}
+#fd-dcard.lbwin .lbr-n{min-width:0;display:flex;flex-direction:column}
+#fd-dcard.lbwin .lbr-n b{font-size:14px;overflow-wrap:anywhere}
+#fd-dcard.lbwin .lbr-n small{color:#888;font-size:12px}
+#fd-dcard.lbwin .lbw{color:#a86a00}
+#fd-dcard.lbwin .lbr-c{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;font-size:13px;color:#666}
+#fd-dcard.lbwin .lbr-c label{display:flex;align-items:center;gap:4px;white-space:nowrap}
+#fd-dcard.lbwin .lbr-c input{width:58px;height:32px;padding:0 6px;text-align:center}
+#fd-dcard.lbwin .lbf{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px;padding-top:8px;border-top:1px dashed rgba(28,34,32,.12);cursor:default}
+#fd-dcard.lbwin .lbf .f{margin:0}
+#fd-dcard.lbwin .lbf .lbfw{grid-column:1/-1}
+#fd-dcard.lbwin .lbsa{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+#fd-dcard.lbwin .lbprev{position:sticky;top:8px;display:flex;flex-direction:column;gap:6px}
+#fd-dcard.lbwin .lbprev>small{font-size:12px;color:#777}
+#fd-dcard.lbwin .lbpv{width:273px;height:197px;overflow:hidden;border-radius:10px;box-shadow:0 1px 6px rgba(0,0,0,.12);background:#fff}
+#fd-dcard.lbwin .lbpv .lb{transform:scale(1.3);transform-origin:0 0}
+#fd-dcard.lbwin .lbset{margin-top:14px}
+#fd-dcard.lbwin .lbset summary{cursor:pointer;font-size:13px;color:#666}
+#fd-dcard.lbwin .lbset .f{margin:8px 0 0}
+#fd-dcard.lbwin .lbset .lbsa{margin-top:8px}
+#fd-dcard.lbwin .lbold{margin-top:10px;font-size:12px}
+@media (max-width:700px){#fd-dcard.lbwin .lbwrap{grid-template-columns:minmax(0,1fr)}#fd-dcard.lbwin .lbprev{position:static;order:-1;align-items:center}#fd-dcard.lbwin .lbf{grid-template-columns:minmax(0,1fr)}#fd-dcard.lbwin .lbr{grid-template-columns:minmax(0,1fr)}#fd-dcard.lbwin .lbr-c{justify-content:flex-start}}
 .cpk-new{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;border-top:1px solid rgba(28,34,32,.08);cursor:pointer;font:600 14.5px var(--ui,inherit);color:var(--accent,#6a2c4e);background:var(--surface,#fff);flex:none;transition:background .15s}
 .cpk-new:hover,.cpk-new:focus-visible{background:var(--accent-soft,#f5eaf0)}.cpk-new:focus-visible{outline:2px solid var(--accent,#6a2c4e);outline-offset:-2px}
 .cpk-new .cpk-np{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--accent,#6a2c4e);color:#fff;font-size:17px;line-height:1;flex:none}
@@ -7580,7 +7613,7 @@ function docCard(j, arch){
   const k=calc(j.snap.dr, j.snap), dr=j.snap.dr, m=j.snap.meta||{}, w=jWho(j), lim=docLimited(), inG=!arch && jKey(j) && D.journal.filter(x=>x.snap&&!isArch(x)&&jKey(x)===jKey(j)).length>1;
   const info=[["Поставщик",j.snap.s.name||""],["Адрес доставки",dr.ship||j.snap.c.address||""],["Основание",dr.basis||""]].concat(whoLine(j)).filter(x=>x[1]);
   const acts = arch ? `<button class="btn" data-dc="close">Закрыть</button>`
-    : `<button class="btn" data-dc="decl" title="Скачать декларации на товары документа">Декларации</button>`+(j.snap.c&&j.snap.c.priv?`<button class="btn" data-dc="nakl">Накладная</button>`:`<button class="btn" data-dc="combo">Счёт+ТОРГ</button><button class="btn" data-dc="upd">УПД</button>`)+(inG&&!lim?`<button class="btn" data-dc="gedit">Редактировать комплект</button>`:"")+(me().admin?`<button class="btn" data-zkc="toggle" data-doc="${j.id}">${dcZkHas(j)?"Закупка ✓":"Добавить закупку"}</button>`:"")+(lim?`<button class="btn pri" data-dc="qty">Изменить количество</button>`:`<button class="btn pri" data-dc="edit">Изменить</button>`);
+    : `<button class="btn" data-dc="decl" title="Скачать декларации на товары документа">Декларации</button>`+(lblOn(dr.customerId)?`<button class="btn" data-dc="lbl" title="Наклейки на коробки">Наклейки</button>`:"")+(j.snap.c&&j.snap.c.priv?`<button class="btn" data-dc="nakl">Накладная</button>`:`<button class="btn" data-dc="combo">Счёт+ТОРГ</button><button class="btn" data-dc="upd">УПД</button>`)+(inG&&!lim?`<button class="btn" data-dc="gedit">Редактировать комплект</button>`:"")+(me().admin?`<button class="btn" data-zkc="toggle" data-doc="${j.id}">${dcZkHas(j)?"Закупка ✓":"Добавить закупку"}</button>`:"")+(lim?`<button class="btn pri" data-dc="qty">Изменить количество</button>`:`<button class="btn pri" data-dc="edit">Изменить</button>`);
   CARD_RE=()=>{ const x=D.journal.find(y=>y.id===j.id); if(x) docCard(x, arch); else toast("info","Документа уже нет"); };
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Документ № ${esc(j.number)} · ${fd(j.date)}</div><h3>${esc(w.main)}</h3>${arch?"":govPill(j)}</div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <dl class="dc-info">${info.map(([a,b])=>`<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>
@@ -7594,6 +7627,7 @@ function docCard(j, arch){
     <div class="dc-acts">${acts}</div>`, false, a=>{
       if(a==="gedit"){ bundleEdit(D.journal.filter(x=>x.snap&&!isArch(x)&&jKey(x)===jKey(j)).sort(jNumSort)); return; }
       if(a==="decl"){ skDeclDocs([j]); return; }
+      if(a==="lbl"){ lblOpen([j]); return; }
       const fake=document.createElement("button"); fake.dataset[{combo:"comboJ",upd:"p",nakl:"p",edit:"edit",qty:"qty"}[a]] = (a==="upd"||a==="nakl") ? a : j.id; if(a==="upd"||a==="nakl") fake.dataset.id=j.id;
       onJClick(arch)({target:fake}); });
 }
@@ -8214,7 +8248,7 @@ function bundleCard(g, arch){
   const info=[["Поставщик",g[0].snap.s.name||""],["Основание",g[0].snap.dr.basis||""],["Документы","№ "+(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", "))]].filter(x=>x[1]);
   const docs=g.map((j,i)=>{ const k=ks[i]; return `<section class="dc-doc" style="animation-delay:${Math.min(i,8)*0.04}s"><button class="dc-dh" data-dc="doc" data-id="${j.id}" title="Открыть документ"><span><b>№ ${esc(j.number)}</b> · ${esc(kLbl(j)||stLabel(k.dr.ship||k.c.address||"", k.c.address))}</span><span class="s">${fm(k.t.sum)} ₽ ›</span></button>${linesTable(k)}</section>`; }).join("");
   const acts = arch ? `<button class="btn" data-dc="close">Закрыть</button>`
-    : `<button class="btn" data-dc="decl">Декларации</button><button class="btn" data-dc="gpdf" data-k="invoice,torg12">Счета+ТОРГ</button><button class="btn" data-dc="gpdf" data-k="upd">Все УПД</button>`+(me().admin?`<button class="btn" data-bzk="toggle" data-ids="${esc(g.map(j=>j.id).join(","))}">${bzHas(g)}</button>`:"")+(lim?"":`<button class="btn pri" data-dc="gedit">Редактировать комплект</button>`);
+    : `<button class="btn" data-dc="decl">Декларации</button>`+(g.some(j=>lblOn(j.snap.dr.customerId))?`<button class="btn" data-dc="lbl">Наклейки</button>`:"")+`<button class="btn" data-dc="gpdf" data-k="invoice,torg12">Счета+ТОРГ</button><button class="btn" data-dc="gpdf" data-k="upd">Все УПД</button>`+(me().admin?`<button class="btn" data-bzk="toggle" data-ids="${esc(g.map(j=>j.id).join(","))}">${bzHas(g)}</button>`:"")+(lim?"":`<button class="btn pri" data-dc="gedit">Редактировать комплект</button>`);
   { const ids=g.map(x=>x.id); CARD_RE=()=>{ const gg=ids.map(id=>D.journal.find(y=>y.id===id)).filter(Boolean); if(gg.length) bundleCard(gg, arch); else toast("info","Комплекта уже нет"); }; }
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Комплект · ${g.length} ${docsWord(g.length)} · ${fd(g[0].date)}</div><h3>${esc(w.main)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <dl class="dc-info">${info.map(([a,b])=>`<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>
@@ -8225,6 +8259,7 @@ function bundleCard(g, arch){
       if(a==="doc"){ const j=D.journal.find(x=>x.id===b.dataset.id); if(j) docCard(j, arch); return; }
       if(a==="gedit"){ bundleEdit(g); return; }
       if(a==="decl"){ skDeclDocs(g); return; }
+      if(a==="lbl"){ lblOpen(g.filter(j=>lblOn(j.snap.dr.customerId))); return; }
       if(a==="gpdf"){ const kinds=b.dataset.k.split(","); showPreviewSet(ks.flatMap(k=>kinds.map(kind=>({kind,k}))), kinds.map(x=>KSHORT[x]).join(" и ")+" № "+(nums.length>1?nums[0]+"–"+nums[nums.length-1]:nums[0])+" от "+fd(g[0].date)+" — "+shortCus(ks[0])); } });
 }
 /* ---------- редактирование комплекта во вкладке «Заявка» ---------- */
