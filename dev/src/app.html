@@ -5130,15 +5130,21 @@ function renderOrderGrid(){
     $("#o-body").innerHTML = all.map((a,i)=>{ const q=o.qty[a]||{}, ex=o.extra.includes(a);
       const r=oRow(o,a,legal); return `<tr data-i="${i}"><td class="a"><b>${esc(r.title)}</b><small>${esc(r.sub)}</small>${ex?`<button class="btn ghost sm danger" data-rm="${i}" style="margin-top:4px">убрать адрес</button>`:""}</td><td class="num"><input class="nm" data-a="${i}" inputmode="numeric" value="${esc(o.num[a]||"")}"></td>${P.map(p=>`<td class="num"><input class="q" inputmode="decimal" data-a="${i}" data-p="${p.id}" value="${esc(q[p.id]||"")}" placeholder="0"></td>`).join("")}<td class="num rs" data-rs="${i}"></td></tr>`; }).join("");
   }
+  const tbs=$("#o-tbl"); if(tbs){ tbs.dataset.sig=oSig(o,V,P,all); tbs.dataset.v=V; }
   oTotals(); oPin();
 }
+/* что сейчас нарисовано в таблице заявки: вид, товары, адреса — если с тех пор что-то поменялось (настройки пришли с другого устройства), шапка, строки и итог разъезжались */
+const oSig = (o,V,P,all) => P.map(p=>p.id).join(",")+"|"+all.length;
 /* закреплённые столбцы: второй встаёт ровно за первым; тень — только когда таблица прокручена вправо */
 function oPin(){ const t=$("#o-tbl"); if(!t) return; const c=t.querySelector("tr>:first-child"); if(c) t.style.setProperty("--o1w", c.getBoundingClientRect().width+"px");
   const w=t.parentElement; if(w && !w.dataset.pin){ w.dataset.pin="1"; w.addEventListener("scroll",()=>w.classList.toggle("oscr", w.scrollLeft>2),{passive:true}); window.addEventListener("resize",()=>{ clearTimeout(oPin._t); oPin._t=setTimeout(oPin,120); }); }
   if(w) w.classList.toggle("oscr", w.scrollLeft>2); }
 function oTotals(){
   oCtrInfo(); qckOrder();
-  const o=O(), P=oProds(o), {all}=oAddrs(o), V=oView(o); const tq={}, rs={}; let tot=0;
+  const o=O(), P=oProds(o), {all}=oAddrs(o), tb0=$("#o-tbl"), V=(tb0&&tb0.dataset.v)||oView(o); /* вид — как нарисовано на экране, не прыгает под рукой */
+  { const tb=$("#o-tbl"); if(P.length && tb && tb.dataset.sig && tb.dataset.sig!==oSig(o,V,P,all) && !oTotals._re){ oTotals._re=1; const ae=document.activeElement, k=ae&&ae.matches&&ae.matches("#o-tbl input")?{a:ae.dataset.a,p:ae.dataset.p,nm:ae.classList.contains("nm"),s:ae.selectionStart}:null;
+      try{ renderOrderGrid(); } finally { oTotals._re=0; }
+      if(k){ const el=$(`#o-tbl input.${k.nm?"nm":"q"}[data-a="${k.a}"]`+(k.nm?"":`[data-p="${k.p}"]`)); if(el){ el.focus(); try{ el.setSelectionRange(k.s,k.s); }catch(e){} } } return; } } const tq={}, rs={}; let tot=0;
   all.forEach((a,i)=>{ const q=o.qty[a]||{}; let s=0; P.forEach(p=>{ const v=+q[p.id]||0; s+=r2(v*oPrice(o,p.id)); tq[p.id]=(tq[p.id]||0)+v; }); rs[i]=r2(s); tot+=rs[i]; });
   document.querySelectorAll("#o-body [data-rs]").forEach(td=>{ const s=rs[+td.dataset.rs]; td.textContent=s?fm(s):""; });
   document.querySelectorAll("#o-body [data-tq]").forEach(td=>{ td.textContent=oQv(tq[td.dataset.tq]); });
