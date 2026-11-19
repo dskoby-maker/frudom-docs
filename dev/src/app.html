@@ -548,7 +548,9 @@
 #fd-app .pfmw-t .pvi{width:18px;height:18px;flex:none;margin-top:1px}
 #fd-app .pfmw-b{display:flex;gap:8px;flex-wrap:wrap;flex:0 1 auto}
 #fd-app .pfmw-b .btn{white-space:nowrap}
-@media (max-width:560px){ #fd-app .pfmw-b{flex:1 1 100%} #fd-app .pfmw-b .btn{flex:1 1 100%;white-space:normal;min-height:40px} }
+#fd-app .note.pfmw{height:auto;max-height:none;overflow:visible;box-sizing:border-box;align-self:start;contain:none}
+#fd-app .pfmw-b .btn{height:auto;max-height:none;overflow:visible;box-sizing:border-box}
+@media (max-width:560px){ #fd-app .note.pfmw{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding:14px} #fd-app .pfmw-t{flex:none} #fd-app .pfmw-b{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;flex:none} #fd-app .pfmw-b .btn{width:100%;white-space:normal;min-height:44px;padding:11px 14px;line-height:1.3;text-align:center} }
 #fd-app .lines{display:grid;gap:8px}
 #fd-app .line{display:grid;grid-template-columns:26px minmax(0,1fr) 90px 44px 110px 110px 36px;gap:8px;align-items:center}
 #fd-app .line .ln{width:24px;height:24px;border-radius:50%;background:var(--soft,#f1ece6);color:var(--accent);font:600 12px/24px var(--ui,inherit);text-align:center;justify-self:center;transition:background .15s,color .15s}
