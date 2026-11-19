@@ -75,9 +75,9 @@ http.createServer((req,res)=>{
   if(u.pathname.startsWith('/page')){ res.writeHead(200,{'content-type':'text/html; charset=utf-8'}); res.end(fs.readFileSync(require('path').join(__dirname,'../out/test.html'),'utf8').split('http://localhost:8787/exec').join('http://'+(req.headers.host||'localhost:8787')+'/exec')); return; }
   if(u.pathname==='/files'){ res.writeHead(200,{'content-type':'application/json'}); res.end(JSON.stringify(Object.keys(files).map(k=>({id:k,name:files[k]&&files[k].name})))); return; }
   /* только для тестов: выполнить код внутри «Apps Script» (например, оборвать операцию на середине) */
-  if(u.pathname==='/eval'){ let b=''; req.on('data',d=>b+=d); req.on('end',()=>{ vm.runInContext('Object.keys(MEMO_).forEach(k=>delete MEMO_[k]); Object.keys(SH_).forEach(k=>delete SH_[k]);',ctx); let r; try{ r=vm.runInContext(b,ctx); }catch(e){ r='ERR '+e.message; } res.writeHead(200,{'content-type':'application/json'}); res.end(JSON.stringify(r===undefined?null:r)); }); return; }
+  if(u.pathname==='/eval'){ const bb=[]; req.on('data',d=>bb.push(d)); req.on('end',()=>{ const b=Buffer.concat(bb).toString('utf8'); vm.runInContext('Object.keys(MEMO_).forEach(k=>delete MEMO_[k]); Object.keys(SH_).forEach(k=>delete SH_[k]);',ctx); let r; try{ r=vm.runInContext(b,ctx); }catch(e){ r='ERR '+e.message; } res.writeHead(200,{'content-type':'application/json'}); res.end(JSON.stringify(r===undefined?null:r)); }); return; }
   if(u.pathname==='/dump'){ res.writeHead(200,{'content-type':'application/json'}); res.end(JSON.stringify(Object.fromEntries(Object.entries(sheets).map(([k,v])=>[k,v.data])))); return; }
-  let body=''; req.on('data',d=>body+=d); req.on('end',()=>{
+  const bc=[]; req.on('data',d=>bc.push(d)); req.on('end',()=>{ const body=Buffer.concat(bc).toString('utf8');
     vm.runInContext('Object.keys(MEMO_).forEach(k=>delete MEMO_[k]); Object.keys(SH_).forEach(k=>delete SH_[k]);',ctx);
     const out = req.method==='POST' ? ctx.doPost({postData:{contents:body}}) : ctx.doGet({parameter:Object.fromEntries(u.searchParams)});
     res.writeHead(200,{'content-type':'application/json','access-control-allow-origin':'*'}); res.end(out.t); });
