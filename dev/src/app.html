@@ -1788,6 +1788,19 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
   #fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a){align-items:flex-start!important}
 }
 @media (max-width:400px){#fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a) .jk .jkc>.btn{font-size:12.5px;padding:0 2px!important}}
+/* ПК: «Изменить» и «Ещё» — значками; место под «скачать» всегда занято, чтобы кнопки строк стояли ровно (19.11.2026) */
+@media (min-width:701px){
+  #fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a) :is([data-edit],[data-qty],details.more>summary) .jmt{display:none}
+  #fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a) :is([data-edit],[data-qty],details.more>summary) .jmi{display:grid;place-items:center}
+  #fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a)>:is([data-edit],[data-qty]),
+  #fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a)>details.more>summary{width:34px;height:34px;min-height:34px;padding:0!important;display:inline-grid;place-items:center;border-radius:9px;color:var(--muted);vertical-align:top;transition:background .15s,color .15s}
+  #fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a)>:is([data-edit],[data-qty]):hover,
+  #fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a)>details.more>summary:hover,
+  #fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a)>details.more[open]>summary{background:rgba(28,34,32,.06);color:var(--ink)}
+  #fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a)>details.more{display:inline-block;vertical-align:top}
+  #fd-app :is(#jr-body,#cal-body,#ar-body) .jdocs.jk{vertical-align:top}
+  #fd-app :is(#jr-body,#cal-body,#ar-body) .jkd{width:34px;margin-left:0}
+}
 @media (prefers-reduced-motion:reduce){#fd-app .jkb,#fd-app .jkb::after,#fd-app .jkd{transition:none}#fd-app .jkd.busy svg{animation:none}}#fd-app details.more .menu .jmed{display:none}
 /* Журнал на телефоне: компактная карточка — документы одной полосой, «Изменить» и «Ещё» значками (13.11.2026) */
 @media (max-width:700px){
