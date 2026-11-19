@@ -1396,6 +1396,12 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .catm{display:grid;gap:6px;margin-top:12px}#fd-app .catm-r{display:grid;grid-template-columns:40px minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:6px 8px;border-radius:12px;background:rgba(255,255,255,.8);border:1px solid rgba(28,34,32,.07);animation:fdin .25s ease}
 #fd-app .catm-col{width:36px;height:36px;padding:2px;border-radius:10px;border:1px solid rgba(28,34,32,.12);background:#fff;cursor:pointer}#fd-app .catm-n{min-width:0;width:100%}#fd-app .catm-c{font-size:12px;white-space:nowrap}#fd-app .catm-a{display:flex;gap:2px}
 #fd-app .catm-add{display:flex;gap:8px;margin-top:12px}#fd-app .catm-add input{flex:1;min-width:0}
+#fd-app .pfby{display:grid;gap:4px;align-content:start}#fd-app .pfby>span{font-size:13px;color:var(--muted)}
+#fd-app .pfbyw{display:inline-flex;padding:3px;border-radius:12px;background:rgba(28,34,32,.06);gap:2px}
+#fd-app .pfbyw button{all:unset;box-sizing:border-box;cursor:pointer;padding:0 12px;height:36px;display:flex;align-items:center;border-radius:9px;font:500 13.5px var(--ui);color:var(--muted);white-space:nowrap;transition:background .2s,color .2s,box-shadow .2s}
+#fd-app .pfbyw button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.1)}#fd-app .pfbyw button:focus-visible{box-shadow:0 0 0 3px rgba(106,44,78,.22)}
+#fd-app .pfbyn{margin:10px 0 0;padding:9px 12px;border-radius:12px;background:rgba(106,44,78,.06);font-size:13px;line-height:1.45}
+@media (max-width:700px){#fd-app .pfby{grid-column:1/-1}#fd-app .pfbyw{display:flex}#fd-app .pfbyw button{flex:1;justify-content:center;padding:0 6px;font-size:13px}}
 #fd-app .cata-ai{margin-left:auto}#fd-app .cata-err{flex-basis:100%;color:var(--err)}
 #fd-app .cata-busy{display:inline-flex;align-items:center;gap:7px;color:var(--accent);font-size:12.5px}#fd-app .cata-busy i{width:13px;height:13px;border-radius:50%;border:2px solid var(--accent-soft);border-top-color:var(--accent);animation:vpsp .8s linear infinite}
 @keyframes vpsp{to{transform:rotate(360deg)}}
@@ -3418,7 +3424,9 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
         <label class="f" id="pf-fromw" hidden>с<input type="date" id="pf-from"></label><label class="f" id="pf-tow" hidden>по<input type="date" id="pf-to"></label>
         <label class="f">Поставщик<select id="pf-sup"></select></label>
         <label class="f">Заказчик<select id="pf-cus"></select></label>
+        <div class="f pfby"><span>Считать</span><div class="pfbyw" id="pf-by" role="group" aria-label="Как считать прибыль"><button type="button" data-pfby="">По дате накладной</button><button type="button" data-pfby="pay">По дате оплаты</button></div></div>
       </div>
+      <p class="pfbyn" id="pf-byn" hidden></p>
       <div class="pfkpi" id="pf-cards"></div>
       <div class="note" id="pf-warn" hidden></div>
       <div class="row"><span class="muted" id="pf-msg"></span><span style="flex:1"></span><button class="btn ghost sm" id="pf-refresh">Обновить</button></div>
@@ -6393,13 +6401,18 @@ function dbMerge(list){
 /* ---- главная функция вкладки ---- */
 function drawProfit(){
   const f=PF(); f.st=f.st||"all"; $("#pf-per").value=f.per; $("#pf-fromw").hidden=$("#pf-tow").hidden=f.per!=="custom"; $("#pf-from").value=f.from||""; $("#pf-to").value=f.to||"";
-  rpgSelect("pf", {sel:"#pf-per", dates:["#pf-fromw","#pf-tow"], f:PF, range:pfRange, apply:(per,a,b)=>{ const F=PF(); if(per==="custom"){ F.from=a; F.to=b; } pfSet("per", per); }, dots:()=>new Set(D.journal.filter(j=>j.snap&&!isArch(j)).map(j=>j.date))});
+  rpgSelect("pf", {sel:"#pf-per", dates:["#pf-fromw","#pf-tow"], f:PF, range:pfRange, apply:(per,a,b)=>{ const F=PF(); if(per==="custom"){ F.from=a; F.to=b; } pfSet("per", per); }, dots:()=>new Set(PF().by==="pay"?D.journal.filter(j=>j.snap&&!isArch(j)).map(j=>payOf(j)).filter(p=>p.s>0&&p.d).map(p=>p.d):D.journal.filter(j=>j.snap&&!isArch(j)).map(j=>j.date))});
   $("#pf-sup").innerHTML=`<option value="">Все</option>`+opts(D.suppliers,f.sup); $("#pf-cus").innerHTML=`<option value="">Все</option>`+opts(D.customers,f.cus);
-  const [d1,d2]=pfRange(f);
-  const docs=D.journal.filter(j=>j.snap && !isArch(j) && j.date>=d1 && j.date<=d2 && (!f.sup||j.supplierId===f.sup) && (!f.cus||j.customerId===f.cus))
-    .sort((a,b)=> a.date<b.date?1:a.date>b.date?-1:-jNumSort(a,b)).map(docProfit);
-  docs.forEach(x=>{ x.pay=payOf(x.j); x.isNew=pfIsNew(x.j); });
-  const T=docs.reduce((a,x)=>({rev:a.rev+x.rev, cost:a.cost+x.cost, tax:a.tax+x.tax, exp:a.exp+x.exp, miss:a.miss+(x.miss?1:0), paid:a.paid+x.pay.s, due:a.due+x.pay.left}),{rev:0,cost:0,tax:0,exp:0,miss:0,paid:0,due:0});
+  const [d1,d2]=pfRange(f), byPay=f.by==="pay";
+  /* «По дате оплаты» (19.11.2026, просьба Даниила): период собирается из оплат, пришедших в эти даты (дата оплаты накладной — lines._pay.d);
+     частично оплаченная накладная идёт долей (оплачено ÷ сумма накладной), неоплаченные не попадают никуда */
+  document.querySelectorAll("#pf-by [data-pfby]").forEach(b=>{ const on=(b.dataset.pfby==="pay")===byPay; b.classList.toggle("on",on); b.setAttribute("aria-pressed",on); });
+  const bn=$("#pf-byn"); if(bn){ bn.hidden=!byPay; bn.innerHTML=byPay?"Считается по <b>дате оплаты</b>: в период попали накладные, деньги за которые пришли в эти даты (даже если сама накладная — из прошлых месяцев). Частичная оплата — долей накладной. Неоплаченные накладные сюда не попадают.":""; }
+  const docs=D.journal.filter(j=>j.snap && !isArch(j) && pfInPer(j,d1,d2,f) && (!f.sup||j.supplierId===f.sup) && (!f.cus||j.customerId===f.cus))
+    .map(docProfit);
+  docs.forEach(x=>{ x.pay=payOf(x.j); x.isNew=pfIsNew(x.j); x.k = byPay && x.pay.tot>0 ? Math.min(1, x.pay.s/x.pay.tot) : 1; });
+  const sk=x=>byPay?(x.pay.d||""):x.j.date; docs.sort((a,b)=> sk(a)<sk(b)?1:sk(a)>sk(b)?-1:-jNumSort(a.j,b.j));
+  const T=docs.reduce((a,x)=>({rev:a.rev+x.rev*x.k, cost:a.cost+x.cost*x.k, tax:a.tax+x.tax*x.k, exp:a.exp+x.exp*x.k, miss:a.miss+(x.miss?1:0), paid:a.paid+x.pay.s, due:a.due+x.pay.left}),{rev:0,cost:0,tax:0,exp:0,miss:0,paid:0,due:0});
   const OT=poFor(f,d1,d2); T.oexp=OT.filter(x=>x.kind!==PO_INC).reduce((a,x)=>a+(+x.sum||0),0); T.oinc=OT.filter(x=>x.kind===PO_INC).reduce((a,x)=>a+(+x.sum||0),0);
   Object.keys(T).forEach(k=>T[k]=r2(T[k])); T.gross=r2(T.rev-T.cost-T.tax); T.net=r2(T.gross-T.exp-T.oexp+T.oinc);
   const taxes=[...new Set(docs.map(x=>taxOf(x.j.supplierId)))], taxL = taxes.length===1 ? String(taxes[0]).replace(".",",")+"%" : taxes.length ? "по ставкам" : "8%";
@@ -6407,13 +6420,13 @@ function drawProfit(){
   const bar = T.rev>0 ? (()=>{ const seg=[["cost","Закупка",T.cost],["tax","Налог "+taxL,T.tax],["exp","Расходы",T.exp+T.oexp],["net","Прибыль",Math.max(0,T.net-T.oinc)]], tot=seg.reduce((a,s)=>a+Math.max(0,s[2]),0)||1;
       return `<div class="pfbar" role="img" aria-label="Из чего состоит выручка">${seg.map(s=>`<i class="b-${s[0]}" style="--w:${(Math.max(0,s[2])/tot*100).toFixed(2)}%" title="${s[1]}: ${fm(s[2])} ₽"></i>`).join("")}</div>
         <div class="pfleg">${seg.map(s=>`<span><i class="b-${s[0]}"></i>${s[1]} <b>${pct(Math.max(0,s[2]),tot)}</b></span>`).join("")}</div>`; })() : "";
-  $("#pf-cards").innerHTML=`<div class="pfk">${tile("rev","Выручка",T.rev,docs.length+" "+plural(docs.length,["накладная","накладные","накладных"]))}${tile("cost","Закупка",T.cost)}${tile("tax","Налог "+taxL,T.tax)}${tile("gross","Валовая прибыль",T.gross,"после налога · маржа "+pct(T.gross,T.rev),"soft")}${tile("exp","Прочие расходы",r2(T.exp+T.oexp),T.exp&&T.oexp?"по накладным "+fm(T.exp)+" · общие "+fm(T.oexp):"")}${tile("inc","Прочие доходы",T.oinc)}${tile("net","Чистая прибыль, ₽",T.net,"маржа "+pct(T.net,T.rev),"main")}${(()=>{ const P=r2(pfArr("pother").filter(x=>x.kind===PO_PER && x.date>=d1 && x.date<=d2).reduce((a,x)=>a+(+x.sum||0),0)); return P>0 && !f.cus && !f.sup ? tile("own","Остаётся после личных",r2(T.net-P),"личные траты "+fm(P)) : ""; })()}${tile("paid","Оплачено за эти накладные",T.paid,"","ok")}${tile("due","Ждём оплату",T.due,docs.filter(x=>x.pay.st!=="paid").length+" "+plural(docs.filter(x=>x.pay.st!=="paid").length,["накладная","накладные","накладных"]),T.due>0?"warn":"")}</div>${bar}`;
+  $("#pf-cards").innerHTML=`<div class="pfk">${tile("rev",byPay?"Пришло (выручка)":"Выручка",T.rev,docs.length+" "+plural(docs.length,["накладная","накладные","накладных"])+(byPay?" · оплачены в периоде":""))}${tile("cost","Закупка",T.cost)}${tile("tax","Налог "+taxL,T.tax)}${tile("gross","Валовая прибыль",T.gross,"после налога · маржа "+pct(T.gross,T.rev),"soft")}${tile("exp","Прочие расходы",r2(T.exp+T.oexp),T.exp&&T.oexp?"по накладным "+fm(T.exp)+" · общие "+fm(T.oexp):"")}${tile("inc","Прочие доходы",T.oinc)}${tile("net","Чистая прибыль, ₽",T.net,"маржа "+pct(T.net,T.rev),"main")}${(()=>{ const P=r2(pfArr("pother").filter(x=>x.kind===PO_PER && x.date>=d1 && x.date<=d2).reduce((a,x)=>a+(+x.sum||0),0)); return P>0 && !f.cus && !f.sup ? tile("own","Остаётся после личных",r2(T.net-P),"личные траты "+fm(P)) : ""; })()}${tile("paid","Оплачено за эти накладные",T.paid,"","ok")}${tile("due","Ждём оплату",T.due,docs.filter(x=>x.pay.st!=="paid").length+" "+plural(docs.filter(x=>x.pay.st!=="paid").length,["накладная","накладные","накладных"]),T.due>0?"warn":"")}</div>${bar}`;
   { const W=$("#pf-warn"), md=docs.filter(x=>x.miss).map(x=>x.j.date).sort(), n=T.miss, nw=n+" "+plural(n,["накладную","накладные","накладных"]);
     W.hidden=!n; W.classList.toggle("pfmw", !!n); W.dataset.a=md[0]||""; W.dataset.b=md[md.length-1]||"";
     W.innerHTML = n ? `<span class="pfmw-t">${pvIco("alert")}<span>У <b>${n} ${n===1?"накладной":"накладных"}</b> не для всех товаров есть закупочная цена — их закупка посчитана как 0, прибыль завышена. Впишите закупку (можно одной суммой на всю накладную) или добавьте цены в «Закупочные цены».</span></span><span class="pfmw-b"><button type="button" class="btn sm pri" data-pfmw="list">Заполнить закупку · ${n} ›</button><button type="button" class="btn sm" data-pfmw="zk" title="Открыть эти накладные списком во вкладке «Закупка»">Списком во вкладке «Закупка»</button></span>` : ""; }
   /* контракты */
   const byC={}; docs.forEach(x=>{ const id=x.j.snap.dr.contractId||""; (byC[id]=byC[id]||[]).push(x); });
-  $("#pf-ctr").innerHTML = Object.keys(byC).length ? Object.keys(byC).map(id=>{ const L=byC[id], c=ctr(id), s=L.reduce((a,x)=>({rev:a.rev+x.rev,cost:a.cost+x.cost,te:a.te+x.tax+x.exp,p:a.p+x.profit}),{rev:0,cost:0,te:0,p:0});
+  $("#pf-ctr").innerHTML = Object.keys(byC).length ? Object.keys(byC).map(id=>{ const L=byC[id], c=ctr(id), s=L.reduce((a,x)=>({rev:a.rev+x.rev*x.k,cost:a.cost+x.cost*x.k,te:a.te+(x.tax+x.exp)*x.k,p:a.p+x.profit*x.k}),{rev:0,cost:0,te:0,p:0});
       const all=c&&+c.maxSum ? ctrUsed(c.id) : 0;
       return `<tr><td><div class="who">${esc(c?(c.basis||"(без номера)"):"Без контракта")}</div><small>${esc(c?(cusNm(c.customerId)||""):"")}${c&&c.supplierId?" · "+esc(supShort(sup(c.supplierId).name)):""} · ${L.length} нак.</small></td><td class="num">${fm(r2(s.rev))}</td><td class="num">${fm(r2(s.cost))}</td><td class="num">${fm(r2(s.te))}</td><td class="num"><b>${sgn(r2(s.p))}</b></td><td class="num">${pct(s.p,s.rev)}</td><td class="num">${c&&+c.maxSum?pct(all,+c.maxSum)+`<small>${fm(all)} из ${fm(+c.maxSum)}</small>`:"—"}</td></tr>`; }).join("")
     : `<tr><td colspan="7" class="muted" style="padding:14px 6px">За этот период накладных нет.</td></tr>`;
@@ -6519,6 +6532,10 @@ function drawCosts(){
 function drawTax(){ $("#pf-tax").innerHTML=D.suppliers.map(s=>`<label class="f">${esc(s.name)}<input inputmode="decimal" data-tax="${s.id}" value="${esc(String(taxOf(s.id)).replace(".",","))}"></label>`).join(""); }
 /* --- события --- */
 const pfSet=(k,v)=>{ PF()[k]=v; saveLocal(); drawProfit(); };
+/* попадает ли накладная в период «Прибыли»: по дате накладной или (переключатель «По дате оплаты») по дате оплаты */
+function pfInPer(j, d1, d2, f){ if(f && f.by==="pay"){ const p=payOf(j); return p.s>0 && !!p.d && p.d>=d1 && p.d<=d2; } return j.date>=d1 && j.date<=d2; }
+document.addEventListener("click", e=>{ const b=e.target.closest && e.target.closest("#pf-by [data-pfby]"); if(!b) return; const v=b.dataset.pfby; if((PF().by||"")===v) return; pfShow=50; pfSet("by", v);
+  toast("info", v==="pay"?"Считаю по дате оплаты":"Считаю по дате накладной", v==="pay"?"В период попадают деньги, пришедшие в эти даты — за накладные любых месяцев.":"В период попадают накладные с датой в этом периоде, оплачены они или нет."); });
 $("#pf-per").onchange=e=>pfSet("per",e.target.value); $("#pf-from").onchange=e=>pfSet("from",e.target.value); $("#pf-to").onchange=e=>pfSet("to",e.target.value);
 $("#pf-sup").onchange=e=>pfSet("sup",e.target.value); $("#pf-cus").onchange=e=>pfSet("cus",e.target.value);
 $("#pf-refresh").onclick=()=>loadProfit(); $("#pf-q").addEventListener("input",()=>{ pfCPage=0; drawCosts(); }); $("#pf-onlyused").onchange=()=>{ pfCPage=0; drawCosts(); };
