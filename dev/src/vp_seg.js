@@ -60,7 +60,7 @@ function vpFindHtml(q){ const R=vpRows().filter(r=>acHit(q, r.name+" "+(r.produc
 
 /* ---------- загрузка прайса ---------- */
 async function vpFile(f){ if(!f) return; if(VP.srv===false){ toast("warn","Нужно обновить Code.gs","Прайсы хранятся на новом листе таблицы."); return; }
-  VP.up={file:f.name, busy:"Загружаю прайс", items:[], t0:Date.now(), steps:["Открываю файл","Читаю товары и цены","Сверяю с товарами сайта","Готовлю список для проверки"], st:0, sub:"", pct:null}; vpDraw();
+  VP.up={file:f.name, busy:"Загружаю прайс", items:[], t0:Date.now(), steps:["Открываю файл","Читаю товары и цены","Сверяю с товарами сайта","Раскладываю по категориям","Готовлю список для проверки"], st:0, sub:"", pct:null}; vpDraw();
   try{ await vpIdle(); vpStep(0, f.size>1e6?(f.size/1048576).toFixed(1).replace(".",",")+" МБ":"", 5);
     const T=await vpSheet(f);   /* шаблон или любая таблица «Наименование … Цена» — читается сам, без ИИ */
     if(T && T.items.length>=2){ vpStep(1, "без ИИ · строк: "+T.items.length, 30); await vpIdle();
@@ -75,7 +75,7 @@ async function vpFile(f){ if(!f) return; if(VP.srv===false){ toast("warn","Ну�
       let j; try{ j=await apiFetch(API_URL,{method:"POST", tmo:150000, body:JSON.stringify(Object.assign({key:pass(), user:curUser()}, body))}); }
       catch(e){ const m=e.message||""; throw new Error(m==="nokey"||m==="badkey"?"не настроен ключ ИИ — «Данные» → «ИИ»":m==="unknown action"?"скрипт таблицы старый — обновите Code.gs":m); }
       let x; try{ x=JSON.parse(String(j.text).replace(/^```(json)?|```$/g,"").trim()); }catch(e){ throw new Error("ИИ ответил не по форме — попробуйте ещё раз"); }
-      vendor=vendor||String(x.supplier||"").trim(); date=date||String(x.date||"").trim(); (x.items||[]).forEach(it=>parts.push(Array.isArray(it)?{name:it[0], unit:it[1], price:it[2]}:it)); }
+      vendor=vendor||String(x.supplier||"").trim(); date=date||String(x.date||"").trim(); (x.items||[]).forEach(it=>parts.push(Array.isArray(it)?{name:it[0], unit:it[1], price:it[2], cat:it[3]||""}:it)); }
     await vpUpSet(f, parts, vendor, date, {how:"ИИ"});
     logEv("Справочники","Прайс «"+f.name+"» прочитан ИИ: "+VP.up.items.length+" поз.");
   }catch(e){ VP.up={file:f.name, err:e.message||String(e), items:[]}; }
@@ -88,8 +88,23 @@ async function vpUpSet(f, parts, vendor, date, o){ o=o||{}; const seen={}, items
     const unit=String(it.unit||"").toLowerCase().replace(/\.$/,"").trim()||"кг", k=norm(name)+"|"+unit; if(seen[k]) continue; seen[k]=1;
     const p=vpMatch(name); items.push({name, unit, price, cat:String(it.cat||"").trim(), pid:p?p.id:"", on:true}); }
   if(!items.length) throw new Error("в прайсе не нашлось товаров с ценами");
-  vpStep(3, items.length+" "+plural(items.length,["позиция","позиции","позиций"]), 100); await vpIdle(); await new Promise(r=>setTimeout(r,250));
-  VP.up={file:f.name, vendor:vpVendorGuess(vendor, f.name), date:vpDateIso(date)||todayISO(), items, f:"all", how:o.how||"", skip, vat:o.vat||""}; }
+  /* категории (19.11.2026): у товара сайта с категорией — его; иначе по разделу прайса и названию; что не узнали — спрашиваем ИИ */
+  let nw=[], catNote="";
+  try{ catSeed(); }catch(e){}
+  if(D.catSrv){ vpStep(3, "по разделам и названиям", 100); await vpIdle();
+    items.forEach(it=>{ const p=it.pid?prod(it.pid):null; if(p && catOf(p)){ it.sc=p.cat; it.fix=1; } else it.sc=catPick(it.name, it.cat); });
+    const need=items.filter(it=>!it.sc);
+    if(need.length){ const r=await vpCatAi(need, (i,n)=>vpStep(3, "ИИ: "+(n>150?i+" из "+n:n+" "+plural(n,["товар","товара","товаров"])), null));
+      nw=r.nw; catNote=r.note; } }
+  vpStep(4, items.length+" "+plural(items.length,["позиция","позиции","позиций"]), 100); await vpIdle(); await new Promise(r=>setTimeout(r,250));
+  VP.up={file:f.name, vendor:vpVendorGuess(vendor, f.name), date:vpDateIso(date)||todayISO(), items, f:"all", how:o.how||"", skip, vat:o.vat||"", nw, catNote}; }
+/* ИИ подбирает категории товарам без категории; новые категории («Напитки») — предложением, создаются при сохранении */
+async function vpCatAi(need, step){ const nw=[]; if(!need.length) return {nw, note:""};
+  if(!catAiSrv()) return {nw, note:"ИИ разложит остальные по категориям после обновления скрипта таблицы (Code.gs)."};
+  try{ const R=await catAi(need.map(it=>({n:it.name, s:it.cat})), step); let k=0;
+    need.forEach((it,i)=>{ const v=catAiVal(R[i]); if(v){ it.sc=v; it.ai=1; k++; if(/^new:/.test(v) && !nw.includes(v)) nw.push(v); } });
+    return {nw, note:k<need.length?"ИИ не узнал "+(need.length-k)+" "+plural(need.length-k,["товар","товара","товаров"])+" — выберите категорию сами или оставьте без неё.":""}; }
+  catch(e){ return {nw, note:"ИИ не разложил по категориям: "+(e.message||String(e))+". Можно выбрать вручную или нажать «Подобрать ИИ»."}; } }
 const VP_MON={"январ":1,"феврал":2,"март":3,"апрел":4,"ма":5,"июн":6,"июл":7,"август":8,"сентябр":9,"октябр":10,"ноябр":11,"декабр":12};
 function vpDateIso(t){ t=String(t==null?"":t).trim(); let m=t.match(/(\d{4})-(\d\d)-(\d\d)/); if(m) return m[0];
   m=t.match(/(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})/); if(m){ const y=m[3].length===2?"20"+m[3]:m[3]; return y+"-"+m[2].padStart(2,"0")+"-"+m[1].padStart(2,"0"); }
@@ -159,17 +174,28 @@ function vpUpHtml(){ const u=VP.up;
   if(u.busy) return vpProgHtml(u);
   if(u.err) return `<div class="vpup"><div class="vpempty"><b>Не получилось прочитать «${esc(u.file)}»</b><span>${esc(u.err)}</span><span class="row"><label class="btn sm">Выбрать другой файл<input type="file" id="vp-file2" hidden></label><button type="button" class="btn ghost sm" data-vp="cancel">Закрыть</button></span></div></div>`;
   const I=u.items, nw=I.filter(i=>!i.pid).length, on=I.filter(i=>i.on), onNew=on.filter(i=>!i.pid).length;
-  const F=I.map((it,i)=>[it,i]).filter(([it])=>u.f==="all"||(u.f==="new"?!it.pid:!!it.pid));
+  const F=I.map((it,i)=>[it,i]).filter(([it])=>u.f==="all"||(u.f==="new"?!it.pid:u.f==="have"?!!it.pid:/^c:/.test(u.f)?(it.sc||"")===u.f.slice(2):true));
   return `<div class="vpup"><div class="vpuph"><b>Прайс прочитан · ${I.length} ${plural(I.length,["позиция","позиции","позиций"])}</b><small>«${esc(u.file)}» · ${u.how==="ИИ"?"прочитан ИИ — проверьте названия и цены":u.how==="шаблон"?"прочитан по шаблону, без ИИ":"таблица прочитана без ИИ"}${u.vat?" · цены "+esc(u.vat):""}${u.skip?` · без цены пропущено: ${u.skip}`:""}</small></div>
     <div class="vpugrid"><label><span>Поставщик</span><input id="vp-vendor" value="${esc(u.vendor)}" placeholder="Например, Роспродукт" list="vp-vlist"><datalist id="vp-vlist">${vpVendors().map(v=>`<option value="${esc(v)}">`).join("")}</datalist></label>
       <label><span>Дата прайса</span><input id="vp-date" type="date" value="${esc(u.date)}"></label></div>
+    ${vpCatBar(u)}
     <div class="vpchips">${[["all","Все",I.length],["new","Новые товары",nw],["have","Уже есть на сайте",I.length-nw]].map(([k,t,n])=>`<button type="button" class="vpchip${u.f===k?" on":""}" data-vpf="${k}">${t} <b>${n}</b></button>`).join("")}
       <span style="flex:1"></span><button type="button" class="btn ghost sm" data-vp="allon">${on.length===I.length?"Снять все":"Отметить все"}</button></div>
     <div class="vprows up">${F.map(([it,i])=>`<label class="vpr vpu${it.on?"":" off"}"><input type="checkbox" data-vpi="${i}"${it.on?" checked":""}>
-      <span class="vprn"><b>${esc(it.name)}</b>${it.cat?`<small class="cat">${esc(it.cat)}</small>`:""}${it.pid?`<small class="have">есть на сайте: ${esc((prod(it.pid)||{}).name||"")} <button type="button" class="vpun" data-vpun="${i}" title="Это другой товар — создать новый">×</button></small>`:`<small class="nw">новый товар — появится во «Товарах»</small>`}</span>
+      <span class="vprn"><b>${esc(it.name)}</b>${it.cat?`<small class="cat">раздел: ${esc(it.cat)}</small>`:""}${vpCatSel(it,i,u)}${it.pid?`<small class="have">есть на сайте: ${esc((prod(it.pid)||{}).name||"")} <button type="button" class="vpun" data-vpun="${i}" title="Это другой товар — создать новый">×</button></small>`:`<small class="nw">новый товар — появится во «Товарах»</small>`}</span>
       <span class="vprp"><b>${vpMoney(it.price)}</b><small>/${esc(it.unit)}</small></span></label>`).join("")}</div>
     <div class="vpubar"><span>${on.length} ${plural(on.length,["позиция","позиции","позиций"])}${onNew?` · ${onNew} ${plural(onNew,["новый товар","новых товара","новых товаров"])}`:""}</span>
       <button type="button" class="btn ghost" data-vp="cancel">Отмена</button><button type="button" class="btn primary" data-vp="save"${on.length?"":" disabled"}>Сохранить прайс</button></div></div>`; }
+/* категории в окне проверки: строка с итогами по категориям (нажатие — показать только их) и выбор категории у позиции */
+function vpCatBar(u){ if(!D.catSrv) return ""; const I=u.items, cnt={}; I.forEach(it=>{ const v=it.sc||""; cnt[v]=(cnt[v]||0)+1; });
+  const vals=Object.keys(cnt).sort((a,b)=>!a?1:!b?-1:cnt[b]-cnt[a]), none=cnt[""]||0, nai=I.filter(it=>!it.sc&&!it.fix).length;
+  const col=v=>{ const c=v&&!/^new:/.test(v)?catById(v):null; return c?c.color:"#9aa19d"; };
+  return `<div class="vpcats"><div class="vpcath"><b>Категории</b><small>${u.catBusy?`<span class="cata-busy"><i></i>${esc(u.catBusy)}</span>`:`сайт разложил по разделам прайса и названиям${I.some(it=>it.ai)?", остальное — ИИ":""} · можно поменять у любой позиции`}</small>
+      ${nai&&catAiSrv()&&!u.catBusy?`<button type="button" class="btn sm" data-vp="catai">Подобрать ИИ · ${nai}</button>`:""}</div>
+    ${u.catNote?`<p class="vpcatn">${esc(u.catNote)}</p>`:""}
+    <div class="vpcatc">${vals.map(v=>`<button type="button" class="catc${u.f==="c:"+v?" on":""}" data-vpf="c:${esc(v)}" style="--cc:${col(v)}"><i></i>${esc(v?catLabel(v):"Без категории")}${/^new:/.test(v)?" · новая":""} <em>${cnt[v]}</em></button>`).join("")}</div></div>`; }
+function vpCatSel(it, i, u){ if(!D.catSrv) return ""; if(it.fix) return `<small class="vpcf">категория: ${esc(catLabel(it.sc))}</small>`;
+  return `<select class="vpcs${it.sc?"":" none"}" data-vpc="${i}" aria-label="Категория товара">${catOptsX(it.sc||"", u.nw)}</select>${it.ai?`<small class="vpcai" title="Категорию подобрал ИИ">ИИ</small>`:""}`; }
 const vpUnit = u => { u=String(u||"").toLowerCase(); return UNITS[u]?u:/^уп/.test(u)?"упак":/шт|штук/.test(u)?"шт":/^пар/.test(u)?"пар":/^л/.test(u)?"л":/^г(р|$)/.test(u)?"г":"кг"; };
 async function vpSave(){ const u=VP.up, vendor=($("#vp-vendor").value||"").trim(), date=$("#vp-date").value||todayISO();
   if(!vendor){ toast("warn","Укажите поставщика","Например, «Роспродукт» — чтобы было понятно, чьи это цены."); $("#vp-vendor").focus(); return; }
@@ -189,14 +215,17 @@ async function vpSave(){ const u=VP.up, vendor=($("#vp-vendor").value||"").trim(
     vpStep(1, newP.length?newP.length+" "+plural(newP.length,["товар","товара","товаров"]):"новых нет", 85); await vpIdle();
     /* новые товары — часть сохранения прайса, а не отдельные шаги «Отменить: добавление товара …» (их отмена оставила бы цены без товаров) */
     const un=typeof UNDO!=="undefined"&&UNDO; if(un) un.paused++;
-    try{ const have=new Set(D.products.map(x=>x.id)); newP.forEach(p=>{ if(have.has(p.id)) return; D.products.push(p); dirty("products",p.id); made++; }); }
+    let nc=0; const mk={}, catOf2=it=>D.catSrv&&it.sc&&!it.fix?catEnsure(it.sc, mk):"";
+    try{ const have=new Set(D.products.map(x=>x.id)); newP.forEach(p=>{ if(have.has(p.id)) return; const it=on[rows.findIndex(r=>r.productId===p.id)], c=it?catOf2(it):""; if(c){ p.cat=c; nc++; } D.products.push(p); dirty("products",p.id); made++; });
+      /* товар уже был на сайте, но без категории — ставим категорию из прайса */
+      on.forEach(it=>{ if(!it.pid) return; const p=prod(it.pid); if(!p||catOf(p)) return; const c=catOf2(it); if(c){ p.cat=c; delete p._ca; dirty("products",p.id); nc++; } }); }
     finally{ if(un){ un.paused--; try{ unResync(); }catch(e){} } }
     vpStep(2, "", 100); await vpIdle();
     on.forEach((it,i)=>{ it.pid=rows[i].productId; });
-    if(made){ saveLocal(); flush().catch(()=>{}); }
+    if(made||nc){ saveLocal(); flush().catch(()=>{}); }
     VP.rows=D.vprices=vpRows().filter(r=>!old||r.listId!==old.id).concat(rows.map(r=>Object.assign({by:curUser(), at:new Date().toISOString()}, r)));
     VP.up=null; VP.open={[lid]:true};
-    toast("ok","Прайс сохранён", vendor+" от "+fd(date)+": "+rows.length+" "+plural(rows.length,["позиция","позиции","позиций"])+(made?", "+made+" "+plural(made,["новый товар","новых товара","новых товаров"])+" во «Товарах»":"")+(old?" (старый прайс за эту дату заменён)":"")+".");
+    toast("ok","Прайс сохранён", vendor+" от "+fd(date)+": "+rows.length+" "+plural(rows.length,["позиция","позиции","позиций"])+(made?", "+made+" "+plural(made,["новый товар","новых товара","новых товаров"])+" во «Товарах»":"")+(nc?", категории у "+nc:"")+(old?" (старый прайс за эту дату заменён)":"")+".");
   }catch(e){ u.busy=""; if(rows.length) api({action:"vprices", op:"del", listId:lid}).catch(()=>{});   /* часть могла записаться — убираем, чтобы не было половины прайса */
     toast("err","Прайс не сохранился", (e.message||String(e))+". Ничего не добавлено — нажмите «Сохранить прайс» ещё раз."); }
   vpDraw(); }
@@ -216,12 +245,16 @@ document.addEventListener("click", e=>{ const box=e.target.closest("#vp-card"); 
   if(k==="cancel"){ VP.up=null; vpDraw(); return; }
   if(k==="allon"){ const all=VP.up.items.every(i=>i.on); VP.up.items.forEach(i=>i.on=!all); vpDraw(); return; }
   if(k==="save"){ vpSave(); return; }
+  if(k==="catai"){ const u=VP.up, need=u.items.filter(it=>!it.sc&&!it.fix); if(!need.length||u.catBusy) return; u.catBusy="ИИ раскладывает "+need.length+" "+plural(need.length,["товар","товара","товаров"])+"…"; u.catNote=""; vpDraw();
+    vpCatAi(need, (i,n)=>{ if(n>150){ u.catBusy="ИИ раскладывает: "+i+" из "+n+"…"; vpDraw(); } }).then(r=>{ r.nw.forEach(v=>u.nw.includes(v)||u.nw.push(v)); u.catNote=r.note; u.catBusy=""; if(VP.up===u) vpDraw(); }); return; }
   if(k==="tpl"){ vpTpl(); return; } });
 document.addEventListener("change", e=>{ const t=e.target; if(!t.closest||!t.closest("#vp-card")) return;
   if(t.id==="vp-file"||t.id==="vp-file2"){ const f=t.files&&t.files[0]; t.value=""; vpFile(f); return; }
   if(t.dataset.vpi!=null){ VP.up.items[+t.dataset.vpi].on=t.checked; const r=t.closest(".vpu"); r&&r.classList.toggle("off",!t.checked);
     const bar=$("#vp-card .vpubar span"), on=VP.up.items.filter(i=>i.on), nn=on.filter(i=>!i.pid).length; if(bar) bar.textContent=on.length+" "+plural(on.length,["позиция","позиции","позиций"])+(nn?` · ${nn} ${plural(nn,["новый товар","новых товара","новых товаров"])}`:"");
     const sv=$('#vp-card [data-vp="save"]'); if(sv) sv.disabled=!on.length; return; }
+  if(t.dataset.vpc!=null){ const it=VP.up.items[+t.dataset.vpc]; it.sc=t.value; it.ai=0; t.classList.toggle("none",!t.value); const ai=t.nextElementSibling; if(ai&&ai.classList.contains("vpcai")) ai.remove();
+    const bar=document.querySelector("#vp-card .vpcats"); if(bar) bar.outerHTML=vpCatBar(VP.up); return; }
   if(t.id==="vp-vendor") VP.up.vendor=t.value; if(t.id==="vp-date") VP.up.date=t.value; });
 document.addEventListener("input", e=>{ const t=e.target; if(t.id==="vp-q"){ VP.q=t.value; vpDraw(); return; }
   if(t.dataset&&t.dataset.vpiq!=null){ VP.iq[t.dataset.vpiq]=t.value; const l=t.closest(".vpl"), lst=vpLists().find(x=>x.id===t.dataset.vpiq); if(!l||!lst) return;
@@ -407,4 +440,13 @@ function vpCss(){ if(document.getElementById("vp-css")) return; const st=documen
 @keyframes vpline{0%{stroke-dashoffset:24}45%,70%{stroke-dashoffset:0}100%{stroke-dashoffset:-24}}
 @keyframes vpfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 @media (max-width:620px){.vplhw{flex-wrap:wrap;padding:0 12px 10px}.vplhw .vplh{flex-basis:100%;padding:12px 2px 6px}.vpopen{width:100%}.vpwt{flex-wrap:wrap}.vpwt select{width:100%}.vph{flex-direction:column}.vpbtns{width:100%}.vpbtns>*{flex:1;justify-content:center}.vpadd{justify-content:center}.vpugrid{grid-template-columns:1fr}.vpubar{flex-wrap:wrap}.vpubar span{flex-basis:100%}.vpubar .btn{flex:1}}
+.vpcats{margin:2px 0 12px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:color-mix(in srgb,var(--surface) 70%,transparent)}
+.vpcath{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap}.vpcath b{font-size:14px}.vpcath small{flex:1;min-width:200px;color:var(--muted);font-size:12.5px}
+.vpcatn{margin:6px 0 0;font-size:12.5px;color:#8a6414}
+.vpcatc{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.vpcatc .catc{cursor:pointer}
+#fd-app .vprn select.vpcs{justify-self:start;width:auto;max-width:100%;min-height:0;height:28px;padding:0 26px 0 9px;margin-top:4px;font-size:12.5px;border-radius:8px;background-color:var(--surface)}
+#fd-app .vprn select.vpcs.none{color:var(--muted);border-style:dashed}
+.vprn small.vpcf{color:var(--muted)}
+.vpcai{justify-self:start;margin-top:2px;padding:0 6px;border-radius:6px;background:var(--accent-soft);color:var(--accent)!important;font-size:10.5px!important;line-height:16px;font-weight:600}
+@media (max-width:600px){.vpcath small{min-width:0;flex-basis:100%}}
 @media (prefers-reduced-motion:reduce){.vpl,.vpup,.vplbi,.vppic,.vppic path,.vpscan{animation:none!important}.vppic path{stroke-dashoffset:0}.vplb,.vpchev{transition:none}}`; document.head.appendChild(st); }
