@@ -66,6 +66,39 @@ document.addEventListener("change", e=>{ const t=e.target; if(!CATM || !t.closes
   if(t.classList.contains("catm-n")){ const v=skN(t.value); if(!v){ t.value=c.name; return; } if((D.cats||[]).some(x=>x.id!==c.id && skK(x.name)===skK(v))){ toast("err","Такая категория уже есть",""); t.value=c.name; return; } if(v!==c.name){ c.name=v; dirty("cats",c.id); catAfter(); } } });
 document.addEventListener("keydown", e=>{ if(e.key==="Enter" && CATM && e.target.classList && e.target.classList.contains("catm-new")){ e.preventDefault(); const b=SKM&&SKM.d.querySelector('[data-catm="add"]'); b&&b.click(); } });
 
+/* ---------- категория по разделу прайса и через ИИ (19.11.2026, просьба Даниила) ---------- */
+/* какие категории сайта упоминаются в тексте раздела («Овощи свежие» → Овощи, «Консервация» → Соленья и консервы, «Молочная продукция» → своя) */
+function catSecHits(sec){ const s=String(sec||"").toLowerCase().replace(/ё/g,"е"); if(!s.trim()) return []; const out=[];
+  Object.entries(CAT_KEYS).forEach(([id,k])=>{ if(k.some(w=>s.includes(w.replace(/ё/g,"е")))){ const t=catTarget(id); if(t && !out.includes(t)) out.push(t); } });
+  (D.cats||[]).forEach(c=>{ const n=String(c.name||"").toLowerCase().replace(/ё/g,"е"); if(n.length>=4 && s.includes(n.slice(0,5)) && !out.includes(c.id)) out.push(c.id); });
+  return out; }
+/* категория товара из прайса: раздел однозначный — по разделу; иначе по названию вместе с разделом (узкие признаки — заморозка, соленья — важнее) */
+function catPick(name, sec){ const H=catSecHits(sec); if(H.length===1) return H[0];
+  const g=catGuess(String(name||"")+(sec?" | "+sec:"")); if(g) return g; return H[0]||""; }
+/* название категории от ИИ → ID категории сайта; нет такой — "" (её можно создать) */
+function catByName(n){ const k=skK(n); if(!k) return ""; const L=D.cats||[]; const ex=L.find(c=>skK(c.name)===k); if(ex) return ex.id;
+  const H=catSecHits(n); return H.length===1?H[0]:""; }
+const catAiSrv = () => (D.srvVer||0)>=48;
+/* ИИ раскладывает товары по категориям: list = [{n: название, s: раздел прайса}] → массив названий категорий ("" — не знает) */
+async function catAi(list, onStep){ const out=new Array(list.length).fill(""), cats=catList().map(c=>c.name);
+  for(let i=0;i<list.length;i+=150){ const part=list.slice(i,i+150); onStep&&onStep(i, list.length);
+    const text="Категории сайта: "+(cats.join("; ")||"(пока нет)")+"\n\nТовары:\n"+part.map((x,k)=>(k+1)+". "+x.n+(x.s?" (раздел прайса: "+x.s+")":"")).join("\n");
+    let j; try{ j=await apiFetch(API_URL,{method:"POST", tmo:150000, body:JSON.stringify({key:pass(), user:curUser(), action:"aiRead", kind:"cat", text})}); }
+    catch(e){ const m=e.message||""; throw new Error(m==="nokey"||m==="badkey"?"не настроен ключ ИИ — «Данные» → «ИИ»":m==="unknown action"?"скрипт таблицы старый — обновите Code.gs":m); }
+    let x; try{ x=JSON.parse(String(j.text).replace(/^```(json)?|```$/g,"").trim()); }catch(e){ throw new Error("ИИ ответил не по форме — попробуйте ещё раз"); }
+    (x.c||[]).forEach(r=>{ const k=+(Array.isArray(r)?r[0]:r.i)-1, c=String((Array.isArray(r)?r[1]:r.c)||"").trim(); if(k>=0 && k<part.length) out[i+k]=c; }); }
+  return out; }
+/* ответ ИИ → значение выбора: ID категории сайта или "new:Название" (создастся при сохранении) */
+const catAiVal = n => { n=skN(n||""); if(!n) return ""; return catByName(n) || "new:"+n; };
+/* список выбора: категории сайта + предложенные ИИ новые */
+function catOptsX(sel, extra){ const nw=[...new Set((extra||[]).filter(v=>/^new:/.test(v)))];
+  return `<option value=""${!sel?" selected":""}>— без категории —</option>`+catList().map(c=>`<option value="${esc(c.id)}"${c.id===sel?" selected":""}>${esc(c.name)}</option>`).join("")
+    + nw.map(v=>`<option value="${esc(v)}"${v===sel?" selected":""}>${esc(v.slice(4))} (новая)</option>`).join(""); }
+/* "new:Название" → создать категорию (один раз на название), вернуть ID */
+function catEnsure(v, made){ if(!v) return ""; if(!/^new:/.test(v)) return catById(v)?v:""; const n=v.slice(4); if(made && made[n]) return made[n];
+  const ex=catByName(n); if(ex){ if(made) made[n]=ex; return ex; } const c=catAdd(n); const id=c?c.id:""; if(made) made[n]=id; return id; }
+const catLabel = v => !v ? "" : /^new:/.test(v) ? v.slice(4) : ((catById(v)||{}).name||"");
+
 /* ---------- «Разложить по категориям»: предложение для товаров без категории ---------- */
 let CATA=null;
 function catAuto(){ const L=D.products.filter(p=>!p.cat && p.name), sel={}; L.forEach(p=>{ const g=catGuess(p.name); if(g) sel[p.id]=g; });
@@ -73,13 +106,21 @@ function catAuto(){ const L=D.products.filter(p=>!p.cat && p.name), sel={}; L.fo
 function catAutoHtml(){ const A=CATA, groups=catList().map(c=>({c, L:A.L.filter(p=>A.sel[p.id]===c.id)})).filter(g=>g.L.length), rest=A.L.filter(p=>!A.sel[p.id]), n=Object.keys(A.sel).length;
   return skHead("Товары","Разложить по категориям","Сайт подобрал категорию по названию. Проверьте: любую можно поменять в списке справа или выбрать «— без категории —».","Категории товаров")
    + `<div class="cata">${groups.map(g=>`<div class="cata-g"><div class="cata-h">${catChip(g.c, g.L.length, true, "disabled")}</div>${g.L.map(p=>catARow(p)).join("")}</div>`).join("")}
-      ${rest.length?`<div class="cata-g"><div class="cata-h">${catChip(null, rest.length, false, "disabled")}<small class="muted">не узнал — выберите сами или оставьте</small></div>${rest.map(p=>catARow(p)).join("")}</div>`:""}</div>
+      ${A.nw&&A.nw.length?A.nw.map(v=>{ const L=A.L.filter(p=>A.sel[p.id]===v); return L.length?`<div class="cata-g"><div class="cata-h"><span class="catc on"><i></i>${esc(v.slice(4))} <em>${L.length}</em></span><small class="muted">новая категория — появится при «Применить»</small></div>${L.map(p=>catARow(p)).join("")}</div>`:""; }).join(""):""}
+      ${rest.length?`<div class="cata-g"><div class="cata-h">${catChip(null, rest.length, false, "disabled")}<small class="muted">не узнал — выберите сами или оставьте</small>${catAiSrv()&&!A.busy?`<button type="button" class="btn sm cata-ai" data-cata="ai">Подобрать ИИ · ${rest.length}</button>`:""}${A.busy?`<span class="cata-busy"><i></i>${esc(A.busy)}</span>`:""}${A.err?`<small class="cata-err">${esc(A.err)}</small>`:""}</div>${rest.map(p=>catARow(p)).join("")}</div>`:""}</div>
      <div class="mi-bar"><div class="dc-acts"><button class="btn" data-sk="close">Отмена</button><button class="btn pri" data-cata="apply"${n?"":" disabled"}>Применить · ${n} ${plural(n,["товар","товара","товаров"])}</button></div></div>`; }
-const catARow = p => `<label class="cata-r"><span>${esc(p.name)}</span><select data-cata-p="${esc(p.id)}">${catOptions(CATA.sel[p.id]||"", true)}</select></label>`;
+const catARow = p => `<label class="cata-r"><span>${esc(p.name)}</span><select data-cata-p="${esc(p.id)}">${catOptsX(CATA.sel[p.id]||"", CATA.nw)}</select></label>`;
 document.addEventListener("change", e=>{ const t=e.target; if(!CATA || !t.dataset || !t.dataset.cataP) return; if(t.value) CATA.sel[t.dataset.cataP]=t.value; else delete CATA.sel[t.dataset.cataP];
   const b=SKM&&SKM.d.querySelector('[data-cata="apply"]'), n=Object.keys(CATA.sel).length; if(b){ b.disabled=!n; b.textContent="Применить · "+n+" "+plural(n,["товар","товара","товаров"]); } });
-document.addEventListener("click", e=>{ const b=e.target.closest && e.target.closest('[data-cata="apply"]'); if(!b || !CATA) return; let n=0;
-  Object.entries(CATA.sel).forEach(([pid,c])=>{ const p=prod(pid); if(p && p.id && !p.cat && catById(c)){ p.cat=c; dirty("products",p.id); n++; } });
+/* «Подобрать ИИ»: товары без категории, которые сайт не узнал по названию */
+document.addEventListener("click", async e=>{ const b=e.target.closest && e.target.closest('[data-cata="ai"]'); if(!b || !CATA || CATA.busy) return; const A=CATA, rest=A.L.filter(p=>!A.sel[p.id]);
+  A.busy="ИИ раскладывает "+rest.length+" "+plural(rest.length,["товар","товара","товаров"])+"…"; A.err=""; skModalRefresh();
+  try{ const R=await catAi(rest.map(p=>({n:p.name})), (i,n)=>{ if(n>150){ A.busy="ИИ раскладывает: "+i+" из "+n+"…"; skModalRefresh(); } });
+    let k=0; rest.forEach((p,i)=>{ const v=catAiVal(R[i]); if(v){ A.sel[p.id]=v; k++; if(/^new:/.test(v)) (A.nw=A.nw||[]).includes(v)||A.nw.push(v); } });
+    A.busy=""; if(CATA!==A) return; skModalRefresh(); toast(k?"ok":"info", k?"ИИ подобрал категории":"ИИ не смог подобрать", k?k+" из "+rest.length+" — проверьте и нажмите «Применить».":"Выберите категории сами.");
+  }catch(er){ A.busy=""; A.err="ИИ не ответил: "+(er.message||String(er)); if(CATA===A) skModalRefresh(); } });
+document.addEventListener("click", e=>{ const b=e.target.closest && e.target.closest('[data-cata="apply"]'); if(!b || !CATA) return; let n=0; const made={};
+  Object.entries(CATA.sel).forEach(([pid,v])=>{ const p=prod(pid); if(!p || !p.id || p.cat) return; const c=catEnsure(v, made); if(c){ p.cat=c; delete p._ca; dirty("products",p.id); n++; } });
   logEv("Справочники","Товары разложены по категориям: "+n); CATA=null; skClose(); toast("ok","Категории расставлены", n+" "+plural(n,["товар","товара","товаров"])+"."); catAfter(); });
 
 /* ---------- вкладка «Товары»: поиск, фильтр по категории, колонка «Категория» ---------- */
@@ -90,7 +131,7 @@ function pdToolbar(){ const box=$("#pd-cats"); if(!box) return; if(typeof pdSrcB
   box.innerHTML=`<button type="button" data-pdc="all" class="catc all${PDV.cat==="all"?" on":""}">Все <em>${base.length}</em></button>`
     + catList().map(c=>{ const n=base.filter(p=>p.cat===c.id).length; return n||PDV.cat===c.id?catChip(c,n,PDV.cat===c.id,`data-pdc="${esc(c.id)}"`):""; }).join("")
     + (none?catChip(null,none,PDV.cat==="none",'data-pdc="none"'):"");
-  const nn=D.products.filter(p=>!p.cat && p.name).length, au=$("#pd-auto"), canA=catCan() && D.catSrv && (D.cats||[]).length && nn && D.products.some(p=>!p.cat && catGuess(p.name));
+  const nn=D.products.filter(p=>!p.cat && p.name).length, au=$("#pd-auto"), canA=catCan() && D.catSrv && (D.cats||[]).length && nn && (catAiSrv() || D.products.some(p=>!p.cat && catGuess(p.name)));
   if(au){ au.hidden=!canA; au.textContent="Разложить по категориям ("+nn+")"; }
   const mg=$("#pd-catm"); if(mg) mg.hidden=!catCan() || !D.catSrv;
   /* старый скрипт таблицы не сохраняет категории — не даём их расставлять, чтобы работа не пропала */

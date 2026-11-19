@@ -3,7 +3,7 @@
 let AI=null, AIM=null;   /* AI — ответ сервера (настройки, статистика), AIM — список моделей */
 const AI_WHO={all:"Все сотрудники", nodriver:"Все, кроме водителя (Гриши)", office:"Только Даниил и Наталья"};
 const AI_WHO_HINT={all:"Даниил, Наталья, Склад и Гриша", nodriver:"Даниил, Наталья и Склад", office:"Склад и Гриша — без ИИ"};
-const AI_KIND_TXT={order:"Заявки заказчиков («Новый документ» → «Прочитать через ИИ»)", in:"Накладные прихода («Склад» → «+ Приход» → «Фото накладной»)", decl:"Декларации («Склад» → «Декларации» → «Заполнить по файлу»)", price:"Прайсы поставщиков («Поставщики» → «Загрузить прайс»)"};
+const AI_KIND_TXT={order:"Заявки заказчиков («Новый документ» → «Прочитать через ИИ»)", in:"Накладные прихода («Склад» → «+ Приход» → «Фото накладной»)", decl:"Декларации («Склад» → «Декларации» → «Заполнить по файлу»)", price:"Прайсы поставщиков («Поставщики» → «Загрузить прайс»)", cat:"Категории товаров (прайс поставщика, «Товары» → «Разложить по категориям»)"};
 const aiProv=m=>/^claude/i.test(m||"")?"claude":"gemini", AI_PN={gemini:"Gemini",claude:"Claude"};
 function aiErr(m){ return m==="nokey"?"ключ Gemini ещё не вставлен":m==="badkey"?"ключ Gemini не подходит (проверьте, что скопирован полностью)":m==="unknown action"?"скрипт таблицы старый — обновите Code.gs":m||"ошибка"; }
 async function aiLoad(n){ const box=$("#ai-box"); if(!box) return;
@@ -37,12 +37,12 @@ function aiDraw(){ const box=$("#ai-box"); if(!box||!AI) return; const c=AI.cfg,
     <h3 class="ai-h">Кто может пользоваться</h3>
     <div class="ai-r">${Object.entries(AI_WHO).map(([k,t])=>`<label class="ai-o"><input type="radio" name="ai-who" value="${k}"${c.who===k?" checked":""}><span><b>${t}</b><small>${AI_WHO_HINT[k]}</small></span></label>`).join("")}</div>
     <h3 class="ai-h">Что читает ИИ</h3>
-    <div class="ai-r">${Object.entries(AI_KIND_TXT).map(([k,t])=>`<label class="ai-o"><input type="checkbox" data-aion="${k}"${c.off[k]?"":" checked"}><span><b>${t.replace(/\s*\(.*$/,"")}</b><small>${(t.match(/\((.*)\)$/)||[])[1]||""}</small></span></label>`).join("")}</div>
+    <div class="ai-r">${Object.entries(AI_KIND_TXT).filter(([k])=>!AI.kinds||AI.kinds[k]).map(([k,t])=>`<label class="ai-o"><input type="checkbox" data-aion="${k}"${c.off[k]?"":" checked"}><span><b>${t.replace(/\s*\(.*$/,"")}</b><small>${(t.match(/\((.*)\)$/)||[])[1]||""}</small></span></label>`).join("")}</div>
     <h3 class="ai-h">Ограничения</h3>
     <div class="ai-g"><label class="ai-l">Наибольший размер файла, МБ (1–13)<input id="ai-mb" type="number" min="1" max="13" step="1" value="${c.maxMb}"></label><label class="ai-l">Запросов в день, не больше (0 — без лимита)<input id="ai-limit" type="number" min="0" step="1" value="${c.limit}"></label></div>
     <h3 class="ai-h">Свои указания для ИИ</h3>
     <p class="muted ai-n">Добавляются к основной инструкции. Пишите простыми словами, например: «Количество в коробках не пересчитывай в кг» или «Поставщик Саид — это ИП Алиев». Формат ответа менять нельзя — сайт его разбирает.</p>
-    ${Object.keys(AI_KIND_TXT).map(k=>`<label class="ai-l">${esc(AI.kinds[k]||k)}<textarea data-aix="${k}" rows="2" maxlength="2000" placeholder="ничего не добавлено">${esc(c.extra[k]||"")}</textarea></label><details class="ai-p"><summary>Основная инструкция (не меняется)</summary><pre>${esc((AI.prompts||{})[k]||"")}</pre></details>`).join("")}
+    ${Object.keys(AI_KIND_TXT).filter(k=>!AI.kinds||AI.kinds[k]).map(k=>`<label class="ai-l">${esc(AI.kinds[k]||k)}<textarea data-aix="${k}" rows="2" maxlength="2000" placeholder="ничего не добавлено">${esc(c.extra[k]||"")}</textarea></label><details class="ai-p"><summary>Основная инструкция (не меняется)</summary><pre>${esc((AI.prompts||{})[k]||"")}</pre></details>`).join("")}
     <div class="row ai-save"><button type="button" class="btn pri" id="ai-save">Сохранить настройки</button><button type="button" class="btn ghost" id="ai-reset">Вернуть по умолчанию</button></div>
     ${(AI.log||[]).length?`<details class="ai-log"><summary>Последние запросы (${AI.log.length})</summary><div class="bk-list">${AI.log.map(x=>`<div class="bk-r"><span><b>${esc(when(x.at))} · ${esc(x.u||"—")}</b><small>${esc((AI.kinds||{})[x.k]||(x.k==="chat"?"Помощник (вопросы)":x.k))} · ${esc(x.m||"")} · ${((+x.ms||0)/1000).toFixed(1)} с${x.t?" · "+num(x.t)+" ток.":""}</small></span><span class="${x.ok?"ai-ok":"miss"}">${x.ok?"✓ прочитано":esc(aiErr(x.e))}</span></div>`).join("")}</div><button type="button" class="btn ghost sm" id="ai-stat-reset">Обнулить счётчики и список</button></details>`:""}`;
 }
