@@ -1666,6 +1666,8 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .tbl td input,#fd-app .tbl td select{padding:6px 8px;font-size:14px}
 #fd-app .tbl td.num{text-align:right;white-space:nowrap}
 #fd-app .tbl .acts{white-space:nowrap;text-align:right}
+/* журнал/календарь/архив на ПК: если таблица не влезает (узкое окно, увеличенный масштаб) — класс jw (jFit), кнопки строки переносятся, а не уезжают за край */
+@media(min-width:701px){#fd-app table.jt.jw>tbody>tr>td.acts{white-space:normal;line-height:1.9}#fd-app table.jt.jw>tbody>tr>td.acts :is(.btn,details.more){white-space:nowrap;vertical-align:middle}#fd-app table.jt.jw>tbody>tr>td.acts details.more{display:inline-block}#fd-app table.jt.jw>thead>tr>th:nth-child(5),#fd-app table.jt.jw>tbody>tr>td.jpr{width:96px}}
 #fd-app .mldsep{display:flex;align-items:center;gap:10px;flex-wrap:wrap;row-gap:2px;padding:16px 4px 6px;font-size:14px}
 #fd-app .mll>.mldsep:first-child,#fd-app .mll>.mlnote+.mldsep{padding-top:2px}
 #fd-app .mldsep i{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px var(--accent-soft);flex:none}
@@ -6114,7 +6116,7 @@ function lbUp(e){ if(!LBP.has(e.pointerId)) return; const pt=LBP.get(e.pointerId
   LB.tx=0; LB.ty=0; LB.el.querySelector(".lb-bg").style.opacity=""; lbApply(); }
 function lbWheel(e){ if(!LB.open) return; e.preventDefault(); lbAnim(false);
   const f=Math.exp(-e.deltaY*(e.ctrlKey?.012:.0022)); lbZoomAt(Math.min(8, Math.max(1, LB.s*f)), e.clientX, e.clientY); lbClamp(); lbApply(); }
-function drawCalDay(){
+function drawCalDay(){ setTimeout(jFitAll,0);
   const c=CAL(), d=new Date(c.sel+"T12:00:00"), docs=calDocs(c.sel, c.cus).sort((a,b)=>-jNumSort(a,b)), staff=isStaff();
   $("#cal-dtitle").textContent=d.getDate()+" "+MONG[d.getMonth()]+" "+d.getFullYear()+", "+["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"][d.getDay()];
   const sum=r2(docs.reduce((a,j)=>a+(+j.sum||0),0)), pts=dayPoints(c.sel, docs, c.cus); $("#cal-sk").innerHTML=skDayBtn(c.sel);
@@ -7187,7 +7189,12 @@ function jfmSync(){ const box=$("#jr-q")&&$("#jr-q").closest(".jf"), b=$("#jr-mo
   box.classList.toggle("jfact", !!(n || f.q || (f.per&&f.per!=="all") || f.imp || f.cm || (f.sort&&f.sort!=="cr_d"))); }
 document.addEventListener("click", e=>{ if(!e.target.closest || !e.target.closest("#jr-more")) return; let o=false; try{ o=localStorage.getItem(JFM_K)!=="1"; localStorage.setItem(JFM_K, o?"1":"0"); }catch(x){}
   jfmSync(); const box=$("#jr-q").closest(".jf"); if(o){ box.classList.add("jfin"); setTimeout(()=>box.classList.remove("jfin"),400); } });
-function renderJournal(){ setTimeout(jfmSync,0);
+/* таблица журнала шире своего окошка — разрешить перенос кнопок (класс jw); следит за размером окна и таблицы */
+const JFIT={ro:null};
+function jFit(t){ if(!t||innerWidth<=700) { if(t) t.classList.remove("jw"); return; } const w=t.parentElement; if(!w) return;
+  t.classList.remove("jw"); if(t.scrollWidth>w.clientWidth+1) t.classList.add("jw"); }
+function jFitAll(){ document.querySelectorAll("#fd-app table.jt").forEach(t=>{ jFit(t); if(window.ResizeObserver){ if(!JFIT.ro) JFIT.ro=new ResizeObserver(es=>es.forEach(e=>{ const t=e.target.matches("table")?e.target:e.target.querySelector(":scope>table.jt"); if(t && !t._jfz){ t._jfz=1; requestAnimationFrame(()=>{ t._jfz=0; jFit(t); }); } })); if(!t._jfo){ t._jfo=1; JFIT.ro.observe(t.parentElement); } } }); }
+function renderJournal(){ setTimeout(jfmSync,0); setTimeout(jFitAll,0);
   if(me().admin && !pfLoaded && !zkJLoading && online()){ zkJLoading=true; loadProfit(true).then(()=>{ if(curTab==="journal") renderJournal(); }); }   /* значки закупки — по данным прибыли */
   const f=JF();
   $("#jr-per").value=f.per; $("#jr-fromw").hidden=$("#jr-tow").hidden=f.per!=="custom"; $("#jr-from").value=f.from||""; $("#jr-to").value=f.to||"";
@@ -7225,7 +7232,7 @@ function jKidCols(t){ const th=[...t.querySelectorAll("thead th")]; if(th.length
 let JKRO=null;
 function jKidObs(){ if(!JKRO && window.ResizeObserver) JKRO=new ResizeObserver(()=>requestAnimationFrame(()=>document.querySelectorAll("#fd-app table.jt").forEach(jKidCols)));
   if(JKRO){ JKRO.disconnect(); document.querySelectorAll("#fd-app table.jt thead th").forEach(h=>JKRO.observe(h)); } document.querySelectorAll("#fd-app table.jt").forEach(jKidCols); }
-function renderArchive(){
+function renderArchive(){ setTimeout(jFitAll,0);
   const q=($("#ar-q").value||"").toLowerCase().trim();
   const rows=D.journal.filter(j=>isArch(j) && jMatch(j,q)).sort((a,b)=> a.date<b.date?1:a.date>b.date?-1:-jNumSort(a,b));
   const out=jBuild(rows,true,arOpen), na=D.journal.filter(isArch).length;
