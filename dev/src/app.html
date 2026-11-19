@@ -542,6 +542,12 @@
 #fd-app .muted{color:var(--muted);font-size:13px}
 #fd-app p{margin:0}
 #fd-app .note{background:var(--warn-soft);color:var(--warn);border-radius:8px;padding:10px 12px;font-size:13px}
+#fd-app .note.pfmw{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:12px 14px;line-height:1.45;animation:fdin .3s ease both}
+#fd-app .pfmw-t{display:flex;gap:9px;align-items:flex-start;flex:1 1 360px;min-width:0}
+#fd-app .pfmw-t .pvi{width:18px;height:18px;flex:none;margin-top:1px}
+#fd-app .pfmw-b{display:flex;gap:8px;flex-wrap:wrap;flex:0 1 auto}
+#fd-app .pfmw-b .btn{white-space:nowrap}
+@media (max-width:560px){ #fd-app .pfmw-b{flex:1 1 100%} #fd-app .pfmw-b .btn{flex:1 1 100%;white-space:normal;min-height:40px} }
 #fd-app .lines{display:grid;gap:8px}
 #fd-app .line{display:grid;grid-template-columns:26px minmax(0,1fr) 90px 44px 110px 110px 36px;gap:8px;align-items:center}
 #fd-app .line .ln{width:24px;height:24px;border-radius:50%;background:var(--soft,#f1ece6);color:var(--accent);font:600 12px/24px var(--ui,inherit);text-align:center;justify-self:center;transition:background .15s,color .15s}
@@ -6349,7 +6355,9 @@ function drawProfit(){
       return `<div class="pfbar" role="img" aria-label="Из чего состоит выручка">${seg.map(s=>`<i class="b-${s[0]}" style="--w:${(Math.max(0,s[2])/tot*100).toFixed(2)}%" title="${s[1]}: ${fm(s[2])} ₽"></i>`).join("")}</div>
         <div class="pfleg">${seg.map(s=>`<span><i class="b-${s[0]}"></i>${s[1]} <b>${pct(Math.max(0,s[2]),tot)}</b></span>`).join("")}</div>`; })() : "";
   $("#pf-cards").innerHTML=`<div class="pfk">${tile("rev","Выручка",T.rev,docs.length+" "+plural(docs.length,["накладная","накладные","накладных"]))}${tile("cost","Закупка",T.cost)}${tile("tax","Налог "+taxL,T.tax)}${tile("gross","Валовая прибыль",T.gross,"после налога · маржа "+pct(T.gross,T.rev),"soft")}${tile("exp","Прочие расходы",r2(T.exp+T.oexp),T.exp&&T.oexp?"по накладным "+fm(T.exp)+" · общие "+fm(T.oexp):"")}${tile("inc","Прочие доходы",T.oinc)}${tile("net","Чистая прибыль, ₽",T.net,"маржа "+pct(T.net,T.rev),"main")}${(()=>{ const P=r2(pfArr("pother").filter(x=>x.kind===PO_PER && x.date>=d1 && x.date<=d2).reduce((a,x)=>a+(+x.sum||0),0)); return P>0 && !f.cus && !f.sup ? tile("own","Остаётся после личных",r2(T.net-P),"личные траты "+fm(P)) : ""; })()}${tile("paid","Оплачено за эти накладные",T.paid,"","ok")}${tile("due","Ждём оплату",T.due,docs.filter(x=>x.pay.st!=="paid").length+" "+plural(docs.filter(x=>x.pay.st!=="paid").length,["накладная","накладные","накладных"]),T.due>0?"warn":"")}</div>${bar}`;
-  $("#pf-warn").hidden=!T.miss; $("#pf-warn").textContent = T.miss ? "У "+T.miss+" "+(T.miss===1?"накладной":"накладных")+" не для всех товаров есть закупочная цена — их закупка посчитана как 0, прибыль завышена. Откройте накладную ниже и впишите закупку (можно одной суммой на всю накладную) или добавьте цены в «Закупочные цены»." : "";
+  { const W=$("#pf-warn"), md=docs.filter(x=>x.miss).map(x=>x.j.date).sort(), n=T.miss, nw=n+" "+plural(n,["накладную","накладные","накладных"]);
+    W.hidden=!n; W.classList.toggle("pfmw", !!n); W.dataset.a=md[0]||""; W.dataset.b=md[md.length-1]||"";
+    W.innerHTML = n ? `<span class="pfmw-t">${pvIco("alert")}<span>У <b>${n} ${n===1?"накладной":"накладных"}</b> не для всех товаров есть закупочная цена — их закупка посчитана как 0, прибыль завышена. Впишите закупку (можно одной суммой на всю накладную) или добавьте цены в «Закупочные цены».</span></span><span class="pfmw-b"><button type="button" class="btn sm pri" data-pfmw="list">Заполнить закупку · ${n} ›</button><button type="button" class="btn sm" data-pfmw="zk" title="Открыть эти накладные списком во вкладке «Закупка»">Списком во вкладке «Закупка»</button></span>` : ""; }
   /* контракты */
   const byC={}; docs.forEach(x=>{ const id=x.j.snap.dr.contractId||""; (byC[id]=byC[id]||[]).push(x); });
   $("#pf-ctr").innerHTML = Object.keys(byC).length ? Object.keys(byC).map(id=>{ const L=byC[id], c=ctr(id), s=L.reduce((a,x)=>({rev:a.rev+x.rev,cost:a.cost+x.cost,te:a.te+x.tax+x.exp,p:a.p+x.profit}),{rev:0,cost:0,te:0,p:0});
