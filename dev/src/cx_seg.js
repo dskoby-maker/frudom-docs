@@ -3,7 +3,7 @@
    Провайдер — функция (элемент под курсором) → {row, head, items, label} или null; первый подошедший открывает меню.
    Shift + правая кнопка, поля ввода и выделенный текст — обычное меню браузера. */
 const CX=[];
-const cxReg = f => CX.push(f);
+const cxReg = f => CX.push(f), cxRegFirst = f => CX.unshift(f);
 Object.assign(JCX_I, {
   plus:'<path d="M12 5v14M5 12h14"/>',
   doc:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>',
@@ -32,7 +32,7 @@ function cxList(){ const out=[]; return { out,
 const cxHead = (b, sub, em) => `<div class="jcx-h${em?"":" g"}"><b>${esc(b)}</b>${em?`<span></span><em>${esc(em)}</em>`:"<span></span>"}${sub?`<small>${esc(sub)}</small>`:""}</div>`;
 document.addEventListener("contextmenu", e=>{
   if(e.shiftKey || e.defaultPrevented) return; const t=e.target; if(!t || !t.closest) return;
-  if(t.closest("input,textarea,select,[contenteditable=''],[contenteditable='true'],.jcx,dialog")) return;
+  if(t.closest("input,textarea,select,[contenteditable=''],[contenteditable='true'],.jcx,dialog:not(.dcard)")) return;
   try{ if(String(getSelection()||"").trim()) return; }catch(_){}
   for(const f of CX){ let T=null; try{ T=f(t); }catch(err){ console.error(err); }
     if(!T || !T.items || !T.items.length) continue;
@@ -186,3 +186,63 @@ cxReg(t=>{ const row=t.closest("#pv-fin .pvfr[data-pvflow]"); if(!row) return nu
   if(k!=="doc") L.it("add", k==="inc"?"+ Доход":k==="per"?"+ Личный расход":"− Расход","plus",()=>pvItemOpen(null, k));
   else L.it("miss","Накладные без закупки","box",()=>pvFlowCard("doc",{f:"miss"})).it("due","Ждём оплату","pay",()=>pvFlowCard("doc",{f:"due"}));
   return {row, items:L.done(), label:PVFW_T[k][0], head:cxHead(PVFW_T[k][0], pvFinR().R.lab, "")}; });
+
+/* ---------- «Где используется товар»: договоры, прайсы заказчиков, кому возили (19.11.2026, просьба Даниила) ---------- */
+const cxLow = v => String(v||"").toLowerCase().replace(/ё/g,"е").replace(/\s+/g," ").trim();
+function cxUse(pids){ pids=[...new Set(pids.filter(Boolean))]; const P=new Set(pids), N=new Set(pids.map(id=>cxLow((prod(id)||{}).name)).filter(Boolean));
+  const ctrsU=[], seen=new Set();
+  (D.contracts||[]).forEach(x=>{ const it=ctSpec(x).find(o=>(o.pid&&P.has(o.pid)) || (!o.pid && N.has(cxLow(o.name)))); if(it){ ctrsU.push({x, it}); seen.add(x.customerId); } });
+  const pr=[]; Object.keys(D.prices||{}).forEach(cid=>{ if(!cus(cid)) return; const id=pids.find(pid=>{ const v=custPrice(cid,pid); return v!=null && v!==""; }); if(id) pr.push({cid, pid:id, price:+custPrice(cid,id)}); });
+  const dl={}; D.journal.forEach(j=>{ const sn=j.snap||{}, m=sn.meta||{}, dr=sn.dr||{}, cid=j.customerId||dr.customerId, dt=String(j.date||dr.date||""); if(m.arch || !cid) return; if(!(dr.lines||[]).some(l=>P.has(l.productId))) return;
+    const o=dl[cid]=dl[cid]||{cid, n:0, last:""}; o.n++; if(dt>o.last) o.last=dt; });
+  return {pids, ctrs:ctrsU, prices:pr.sort((a,b)=>String(cusNm(a.cid)).localeCompare(String(cusNm(b.cid)),"ru")), dl:Object.values(dl).sort((a,b)=>b.last.localeCompare(a.last))}; }
+function cxUseSub(U){ const a=[]; if(U.ctrs.length) a.push(U.ctrs.length+" "+plural(U.ctrs.length,["договор","договора","договоров"])); if(U.prices.length) a.push("в прайсе у "+U.prices.length);
+  const cs=new Set([...U.ctrs.map(o=>o.x.customerId), ...U.prices.map(o=>o.cid), ...U.dl.map(o=>o.cid)]); if(cs.size) a.push(cs.size+" "+plural(cs.size,["заказчик","заказчика","заказчиков"])); return a.join(" · ")||"ни к договору, ни к заказчику не привязан"; }
+function cxCardsOff(){ navReset(); const d=document.getElementById("fd-dcard"); if(d && d.open){ d._bye=1; try{ d.close(); }catch(_){} } }
+const cxTabLbl = () => { const b=document.querySelector(`nav.tabs button[data-tab="${curTab}"]`); return b ? b.textContent.replace(/[↗]/g,"").trim() : "назад"; };
+function cxGoCus(cid){ const back=cxTabLbl(); cxCardsOff(); tabBackFrom(back, ()=>{ editorSel.customers=cid; showTab("customers"); setTimeout(()=>{ const e=$("#cus-editor"); e&&e.scrollIntoView({block:"start", behavior:"smooth"}); }, 80); }); }
+function cxGoJournal(q){ const back=cxTabLbl(); cxCardsOff(); cxJournalFind(q, back); }
+function cxUseAdd(L, pids, scopeCid){ const U=cxUse(pids), ps=x=>+x>0?fm(x).replace(/,00$/,"")+" ₽":"";
+  L.sep(); const done=new Set();
+  if(scopeCid) L.it("sc","Связь склада только для «"+cusNm(scopeCid)+"»","user",()=>cxGoCus(scopeCid),{sub:"открыть заказчика"});
+  U.ctrs.slice(0,6).forEach(({x,it},k)=>{ done.add(x.customerId); const s=sup(x.supplierId);
+    L.it("ct"+k,"Договор «"+(ctrNm(x)||"без названия")+"» · "+(cusNm(x.customerId)||"?"),"doc",()=>ctSpecCard(x.id),{sub:["в товарах по договору", it.price?ps(it.price)+(it.unit?"/"+it.unit:""):"", it.qty?"по договору "+it.qty+(it.unit?" "+it.unit:""):"", s?supSurname(s.id):""].filter(Boolean).join(" · ")}); });
+  if(U.ctrs.length>6) L.it("ctm","Ещё договоров: "+(U.ctrs.length-6),"doc",()=>cxGoCus(U.ctrs[6].x.customerId));
+  U.prices.filter(o=>!done.has(o.cid)).slice(0,6).forEach((o,k)=>{ done.add(o.cid); const c=ctrs(o.cid).filter(x=>!x.dateTo||x.dateTo>=todayISO());
+    L.it("pr"+k,"Прайс заказчика «"+cusNm(o.cid)+"»","user",()=>cxGoCus(o.cid),{sub:[ps(o.price)+"/"+((prod(o.pid)||{}).unit||""), c.length?"договоров: "+c.length+" (товара нет в «Товарах по договору»)":"без договора"].filter(Boolean).join(" · ")}); });
+  U.dl.filter(o=>!done.has(o.cid)).slice(0,4).forEach((o,k)=>L.it("dl"+k,"Возили «"+cusNm(o.cid)+"»","route",()=>cxGoJournal((prod(U.pids[0])||{}).name||""),{sub:o.n+" "+plural(o.n,["накладная","накладные","накладных"])+(o.last?" · последняя "+fd(o.last):"")+" · не в прайсе"}));
+  if(!U.ctrs.length && !U.prices.length && !U.dl.length) L.it("none","Не привязан ни к договору, ни к заказчику","search",()=>{},{sub:"нет в «Товарах по договору», в прайсах и в накладных"});
+  return U; }
+/* общее меню товара сайта (позиции документов) */
+function cxProdMenu(row, pid, extra){ const p=prod(pid); if(!p) return null; const L=cxList();
+  if(extra && extra.pre) extra.pre(L);
+  L.it("card","Карточка товара","card",()=>pdCard(p.id));
+  const U=cxUseAdd(L, (typeof pgSameIds==="function"?pgSameIds(p.id):null)||[p.id], extra&&extra.cid);
+  L.sep().it("find","Найти в журнале","search",()=>cxGoJournal(p.name));
+  L.it("cpn","Скопировать название","num",()=>jcxCopy(p.name));
+  if(extra && extra.post) extra.post(L);
+  const a=pArt(p);
+  return {row, items:L.done(), label:"Товар «"+p.name+"» — где используется", head:cxHead(p.name, [a?"арт. "+a:"", cxUseSub(U)].filter(Boolean).join(" · "), "")}; }
+/* окно товара склада: связанные позиции и подсказки «Похоже по названию» */
+cxRegFirst(t=>{ const row=t.closest("dialog.dcard .sklink[data-pid]"); if(!row) return null; const x=row.querySelector("[data-skunlink]");
+  return cxProdMenu(row, row.dataset.pid, {cid:row.dataset.cid||"", post:L=>{ if(x && skCan()) L.sep().it("unl","Убрать связь со складом","arch",()=>{ x.click(); x.click(); },{danger:1, confirm:"Убрать связь? Нажмите ещё раз"}); }}); });
+cxRegFirst(t=>{ const row=t.closest("dialog.dcard .sklsb[data-sklink]"); if(!row) return null;
+  return cxProdMenu(row, skLkP(row.dataset.sklink), {pre:L=>L.it("link","Связать с этим товаром склада","plus",()=>row.click()).sep()}); });
+/* окно накладной / комплекта: название товара */
+cxRegFirst(t=>{ const row=t.closest("dialog.dcard [data-dcpd]"); if(!row) return null; return cxProdMenu(row, row.dataset.dcpd); });
+/* «Товары»: тот же раздел «где используется» в меню строки */
+{ const base=CX.find(f=>String(f).includes('#pd-body .nmr[data-id]')); if(base){ const i=CX.indexOf(base); CX[i]=t=>{ const T=base(t); if(!T) return T; const pid=T.row.dataset.id, L=cxList(); L.out.push(...T.items);
+    const k=T.items.findIndex(o=>o.id==="find"); const tail=k>=0?L.out.splice(k):[]; cxUseAdd(L, (typeof pgSameIds==="function"?pgSameIds(pid):null)||[pid]); L.sep(); L.out.push(...tail);
+    T.items=L.done(); T.head=T.head.replace(/<small>([^<]*)<\/small>/, (m,a)=>`<small>${a}${a?" · ":""}${esc(cxUseSub(cxUse((typeof pgSameIds==="function"?pgSameIds(pid):null)||[pid])))}</small>`); return T; }; } }
+/* склад: строка товара — где используются его позиции */
+{ const base=CX.find(f=>String(f).includes('t.closest("[data-skitem]")')); if(base){ const i=CX.indexOf(base); CX[i]=t=>{ const T=base(t); if(!T) return T; const it=skIdx().item[T.row.dataset.skitem]; const pids=(it&&it._links)||[]; if(!pids.length) return T;
+    const L=cxList(); L.out.push(...T.items); const k=L.out.findIndex(o=>o.id==="cp"); const tail=k>=0?L.out.splice(k):[]; cxUseAdd(L, pids); L.sep(); L.out.push(...tail); T.items=L.done(); return T; }; } }
+/* «Заказчики и цены» → договор (карточка) */
+cxReg(t=>{ const row=t.closest("#ct-body .ctc[data-id]"); if(!row) return null; const x=ctr(row.dataset.id); if(!x) return null; const L=cxList(), n=ctSpec(x).length, u=ctUrl(x.url);
+  L.it("spec", n?"Товары по договору · "+n:"Добавить товары по договору","order",()=>ctSpecCard(x.id));
+  if(u) L.it("url","Открыть договор ↗","next",()=>window.open(u,"_blank","noopener"));
+  L.it("nd","Новый документ по этому договору","plus",()=>{ tabBackFrom("Заказчики и цены", ()=>{ showTab("doc"); const cs=$("#d-cus"); if(cs){ cs.value=x.customerId; cs.dispatchEvent(new Event("change",{bubbles:true})); } setTimeout(()=>{ const c=$("#d-ctr"); if(c && [...c.options].some(o=>o.value===x.id)){ c.value=x.id; c.dispatchEvent(new Event("change",{bubbles:true})); } }, 60); }); })
+   .sep().it("cpb","Скопировать основание","num",()=>jcxCopy(x.basis||""));
+  if(x.ikz) L.it("cpi","Скопировать ИКЗ","num",()=>jcxCopy(String(x.ikz)));
+  const s=sup(x.supplierId);
+  return {row, items:L.done(), label:"Договор «"+(ctrNm(x)||"")+"»", head:cxHead(ctrNm(x)||x.basis||"Договор", [s?supSurname(s.id):"", n?n+" "+plural(n,["позиция","позиции","позиций"])+" по договору":"товары по договору не заполнены"].filter(Boolean).join(" · "), x.sum?fm(x.sum).replace(/,00$/,"")+" ₽":"")}; });
