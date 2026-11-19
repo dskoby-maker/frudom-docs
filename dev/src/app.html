@@ -92,7 +92,18 @@
 #fd-app .dcard .dc-t td{padding:9px 12px;border-top:1px solid var(--line);vertical-align:top}#fd-app .dcard .dc-t td b{font-weight:500}
 #fd-app .dcard .dc-t .num{text-align:right;white-space:nowrap}
 #fd-app .dcard .dc-t tbody tr{animation:fdin .25s ease both}#fd-app .dcard .dc-t tbody tr:nth-child(2){animation-delay:.03s}#fd-app .dcard .dc-t tbody tr:nth-child(3){animation-delay:.06s}#fd-app .dcard .dc-t tbody tr:nth-child(n+4){animation-delay:.09s}
-#fd-app .dcard .dc-total{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:14px 2px 4px;color:var(--muted);font-size:13px}#fd-app .dcard .dc-total b{font-size:22px;color:var(--ink);letter-spacing:-.01em}
+#fd-app .dcard .dc-total{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:14px 2px 4px;color:var(--muted);font-size:13px}
+#fd-app .dcard .dc-aggb{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;margin:-5px -10px;border-radius:9px;color:var(--muted);font-size:13px;transition:background .15s,color .15s}
+#fd-app .dcard .dc-aggb:hover,#fd-app .dcard .dc-aggb:focus-visible{background:rgba(0,0,0,.05);color:var(--ink)}
+#fd-app .dcard .dc-aggb span{border-bottom:1px dashed currentColor}
+#fd-app .dcard .dc-aggb i{font-style:normal;font-size:14px;line-height:1;transition:transform .3s ease}
+#fd-app .dcard .dc-aggb[aria-expanded="true"]{color:var(--ink)}#fd-app .dcard .dc-aggb[aria-expanded="true"] i{transform:rotate(180deg)}
+#fd-app .dcard .dc-agg{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows .35s ease,opacity .3s ease,margin .35s ease;margin:0}
+#fd-app .dcard .dc-agg.open{grid-template-rows:1fr;opacity:1;margin:8px 0 12px}
+#fd-app .dcard .dc-aggi{overflow:hidden;min-height:0}
+#fd-app .dcard .dc-aggh{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:2px 2px 8px}#fd-app .dcard .dc-aggh small{color:var(--muted);font-size:12.5px}
+#fd-app .dcard .dc-am{display:block;color:var(--muted);font-size:11.5px;margin-top:2px;font-weight:400}
+@media (max-width:480px){#fd-app .dcard .dc-t.dc-aggt th:nth-child(2),#fd-app .dcard .dc-t.dc-aggt td:nth-child(2),#fd-app .dcard .dc-t.dc-aggt th:nth-child(3),#fd-app .dcard .dc-t.dc-aggt td:nth-child(3){display:table-cell}#fd-app .dcard .dc-t.dc-aggt th:nth-child(4),#fd-app .dcard .dc-t.dc-aggt td:nth-child(4){display:none}#fd-app .dcard .dc-t.dc-aggt th,#fd-app .dcard .dc-t.dc-aggt td{padding:9px 8px}}#fd-app .dcard .dc-total b{font-size:22px;color:var(--ink);letter-spacing:-.01em}
 #fd-app .dcard .dc-note{font-size:12px;color:var(--muted);margin:2px 2px 0}
 #fd-app .jcm{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:2px;vertical-align:-3px;margin-left:6px;height:22px;min-width:22px;padding:0 4px;border-radius:7px;background:rgba(106,44,78,.1);color:var(--accent);font-size:11px;font-weight:600;cursor:pointer;animation:jcmIn .35s cubic-bezier(.2,.9,.3,1.4) both;transition:background .15s,transform .15s}
 /* меню правой кнопкой в журнале (jcx*) */
@@ -8411,6 +8422,15 @@ document.addEventListener("keydown", e=>{ const el=e.target; if(!el.classList||!
   let i=L.findIndex(x=>x.classList.contains("act"));
   if(e.key==="ArrowDown"||e.key==="ArrowUp"){ e.preventDefault(); e.stopPropagation(); L.forEach(x=>x.classList.remove("act")); i=(i+(e.key==="ArrowDown"?1:-1)+L.length)%L.length; L[i].classList.add("act"); L[i].scrollIntoView({block:"nearest"}); return; }
   if(e.key==="Enter"){ e.preventDefault(); e.stopPropagation(); (L[i]||L[0]).click(); return; } }, true);
+/* комплект: нажатие на «N документа · N кг» — все товары комплекта вместе (сколько всего и общий вес каждого) */
+function bunAggHtml(g, ks){ const M=new Map();
+  ks.forEach((k,i)=>k.lines.forEach(l=>{ if(!(l.qty>0)) return; const key=(l.pid||l.name)+"|"+(l.unit||""); if(!M.has(key)) M.set(key,{l, q:0, s:0, n:new Set()}); const x=M.get(key); x.q+=l.qty; x.s+=l.sum; x.n.add(g[i].number); }));
+  const L=[...M.values()].map(x=>{ const u=String(x.l.unit||"").toLowerCase(), W=u==="кг"?{w:1,u:"кг"}:(u==="г"||u==="гр")?{w:.001,u:"кг"}:(typeof pdNameW==="function"?pdNameW(x.l.name):null); x.kg=W&&W.u==="кг"?x.q*W.w:0; x.est=u!=="кг"&&x.kg>0; return x; })
+    .sort((a,b)=>b.kg-a.kg||String(a.l.name).localeCompare(String(b.l.name),"ru"));
+  const tk=L.reduce((a,x)=>a+x.kg,0), est=L.some(x=>x.est);
+  return `<div class="dc-agg" id="dc-agg"><div class="dc-aggi"><div class="dc-aggh"><b>Все товары комплекта</b><small>${L.length} ${plural(L.length,["наименование","наименования","наименований"])}${tk?" · общий вес "+nq3(Math.round(tk*1000)/1000)+" кг"+(est?" (с учётом веса из названий)":""):""}</small></div>
+    <div class="dc-tw"><table class="dc-t dc-aggt"><thead><tr><th>Товар</th><th class="num">Всего</th><th class="num">Вес, кг</th><th class="num">Сумма, ₽</th></tr></thead><tbody>${L.map(x=>`<tr><td>${dcPName(x.l)}<small class="dc-am">${x.n.size>1?"в "+x.n.size+" накладных: № "+esc([...x.n].join(", ")):"№ "+esc([...x.n][0])}</small></td><td class="num">${esc(nq3(Math.round(x.q*1000)/1000))}&nbsp;${esc(x.l.unit||"")}</td><td class="num"><b>${x.kg?(x.est?"≈ ":"")+nq3(Math.round(x.kg*1000)/1000):"—"}</b></td><td class="num">${fm(r2(x.s))}</td></tr>`).join("")}</tbody></table></div></div></div>`; }
+document.addEventListener("click", e=>{ const b=e.target.closest && e.target.closest("[data-bagg]"); if(!b) return; const d=b.closest("dialog")||document, a=d.querySelector("#dc-agg"); if(!a) return; const on=!a.classList.contains("open"); a.classList.toggle("open", on); b.setAttribute("aria-expanded", on); if(on) setTimeout(()=>{ const r=a.getBoundingClientRect(), sc=a.closest(".dcard")||b.closest("dialog"); if(sc && r.bottom>innerHeight) a.scrollIntoView({behavior:"smooth", block:"nearest"}); }, 380); });
 function bundleCard(g, arch){
   if(!g.length) return; logEvSoft("Просмотр","Открыт комплект «"+gTitle(g)+"»: "+g.length+" док., № "+g.map(j=>j.number).join(", "),"bun:"+g.map(j=>j.id).join(","),900000); const ks=g.map(j=>calc(j.snap.dr, j.snap)), w={main:gTitle(g)}, lim=docLimited(), sum=r2(ks.reduce((a,k)=>a+k.t.sum,0)), kg=ks.reduce((a,k)=>a+k.t.kg,0);
   const nums=g.map(j=>j.number), hist=[].concat(...g.map(j=>histOf(j).map(x=>Object.assign(x,{num:j.number}))));
@@ -8422,7 +8442,8 @@ function bundleCard(g, arch){
   openCard(`<div class="dc-head"><div><div class="dc-kicker">Комплект · ${g.length} ${docsWord(g.length)} · ${fd(g[0].date)}</div><h3>${esc(w.main)}</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
     <dl class="dc-info">${info.map(([a,b])=>`<div><dt>${a}</dt><dd>${esc(b)}</dd></div>`).join("")}</dl>
     <div class="dc-docs">${docs}</div>
-    <div class="dc-total"><span>${g.length} ${docsWord(g.length)}${kg?" · "+nq3(kg)+" кг":""}</span><b>${fm(sum)} ₽</b></div>
+    <div class="dc-total"><button type="button" class="dc-aggb" data-bagg aria-expanded="false" title="Все товары комплекта вместе"><span>${g.length} ${docsWord(g.length)}${kg?" · "+nq3(kg)+" кг":""}</span><i aria-hidden="true">⌄</i></button><b>${fm(sum)} ₽</b></div>
+    ${bunAggHtml(g, ks)}
     ${histHtml(hist)}
     <div class="dc-acts">${acts}</div>`, true, (a,b)=>{
       if(a==="doc"){ const j=D.journal.find(x=>x.id===b.dataset.id); if(j) docCard(j, arch); return; }
