@@ -1757,7 +1757,38 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
   #fd-app :is(#jr-body,#cal-body,#ar-body)>tr.grp>td.acts .btn.ic,#fd-app :is(#jr-body,#cal-body,#ar-body)>tr.grp>td.acts .btn.gt{flex:none;min-height:38px}
   #fd-app :is(#jr-body,#cal-body,#ar-body)>tr.grp>td.acts [data-gpdf]{flex-basis:calc(50% - 50px)}
 }
-#fd-app .jdocs{display:contents}#fd-app .jmi{display:none}#fd-app details.more .menu .jmed{display:none}
+#fd-app .jdocs{display:contents}#fd-app .jmi{display:none}
+/* конструктор документов в строке журнала (19.11.2026) */
+#fd-app .jdocs.jk{display:inline-flex;align-items:flex-start;gap:6px;vertical-align:middle}
+#fd-app .jkc{display:inline-flex;flex-direction:column;align-items:center;gap:5px}
+#fd-app .jkb{all:unset;box-sizing:border-box;width:15px;height:15px;border-radius:4px;border:1.5px solid rgba(28,34,32,.22);background:#fff;cursor:pointer;display:grid;place-items:center;transition:background .18s,border-color .18s,transform .12s,box-shadow .18s}
+#fd-app .jkb{position:relative}#fd-app .jkb::before{content:"";position:absolute;inset:-7px}
+#fd-app .jkb::after{content:"";width:7px;height:4px;border:solid #fff;border-width:0 0 2px 2px;transform:translateY(-1px) rotate(-45deg) scale(.4);opacity:0;transition:transform .18s cubic-bezier(.3,1.5,.5,1),opacity .15s}
+#fd-app .jkb:hover{border-color:var(--accent,#6a2c4e)}
+#fd-app .jkb:focus-visible{box-shadow:0 0 0 3px rgba(106,44,78,.22)}
+#fd-app .jkb:active{transform:scale(.88)}
+#fd-app .jkb.on{background:var(--accent,#6a2c4e);border-color:var(--accent,#6a2c4e)}
+#fd-app .jkb.on::after{transform:translateY(-1px) rotate(-45deg) scale(1);opacity:1}
+#fd-app .jkd{all:unset;box-sizing:border-box;position:relative;flex:none;width:0;height:32px;border-radius:9px;display:grid;place-items:center;color:#fff;background:var(--accent,#6a2c4e);opacity:0;transform:scale(.6);pointer-events:none;overflow:visible;margin-left:-6px;transition:width .22s ease,margin .22s ease,opacity .18s,transform .22s cubic-bezier(.3,1.4,.5,1),background .2s;cursor:pointer}
+#fd-app .jk.has .jkd{width:34px;margin-left:0;opacity:1;transform:none;pointer-events:auto}
+#fd-app .jkd svg{overflow:visible}
+#fd-app .jkd:hover{filter:brightness(1.12)}#fd-app .jkd:focus-visible{box-shadow:0 0 0 3px rgba(106,44,78,.25)}
+#fd-app .jkd b{position:absolute;top:-6px;right:-6px;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:8px;background:#fff;color:var(--accent,#6a2c4e);border:1.5px solid var(--accent,#6a2c4e);font:700 10px/13px var(--ui);text-align:center}
+#fd-app .jkd.busy svg{animation:jkdl .9s ease-in-out infinite}#fd-app .jkd.ok{background:#2f7a4f}
+@keyframes jkdl{0%,100%{transform:translateY(-2px)}50%{transform:translateY(2px)}}
+@media (max-width:700px){
+  #fd-app :is(#jr-body,#cal-body,#ar-body) .jdocs.jk{display:flex;flex:1 1 auto;min-width:0;height:auto;border:0;border-radius:0;background:none;overflow:visible;gap:6px;align-items:flex-start}
+  #fd-app :is(#jr-body,#cal-body,#ar-body) .jk .jkc{flex:1 1 0;min-width:0;gap:7px}
+  #fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a) .jk .jkc>.btn{all:unset;box-sizing:border-box;width:100%;height:36px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:10px;background:rgba(255,255,255,.8);font:500 13px var(--ui);letter-spacing:-.01em;color:var(--ink);white-space:nowrap;cursor:pointer;padding:0 4px!important;overflow:hidden;text-overflow:ellipsis}
+  #fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a) .jk .jkc>.btn:active{background:rgba(106,44,78,.08)}
+  #fd-app :is(#jr-body,#cal-body,#ar-body) .jk .jkb{width:18px;height:18px;border-radius:5px}
+  #fd-app :is(#jr-body,#cal-body,#ar-body) .jk .jkb::before{inset:-9px -16px}
+  #fd-app :is(#jr-body,#cal-body,#ar-body) .jkd{height:36px;border-radius:10px}
+  #fd-app :is(#jr-body,#cal-body,#ar-body) .jk.has .jkd{width:36px}
+  #fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a){align-items:flex-start!important}
+}
+@media (max-width:400px){#fd-app :is(#jr-body,#cal-body,#ar-body) :is(td.acts,.kd-a) .jk .jkc>.btn{font-size:12.5px;padding:0 2px!important}}
+@media (prefers-reduced-motion:reduce){#fd-app .jkb,#fd-app .jkb::after,#fd-app .jkd{transition:none}#fd-app .jkd.busy svg{animation:none}}#fd-app details.more .menu .jmed{display:none}
 /* Журнал на телефоне: компактная карточка — документы одной полосой, «Изменить» и «Ещё» значками (13.11.2026) */
 @media (max-width:700px){
   #fd-app :is(#jr-body,#cal-body,#ar-body)>tr:not(.dsep):not(.kids){grid-template-areas:"nm dt sm" "who who sm" "pr pr pr" "acts acts acts";gap:1px 8px;padding-top:12px;padding-bottom:12px}
@@ -7130,14 +7161,42 @@ function jCtrTxt(j){ const dr=j.snap&&j.snap.dr; if(!dr||!dr.customerId) return 
   if(!x && dr.basis){ const b=String(dr.basis); x=cs.find(c=>c.basis && b.includes(String(c.basis).trim())); }
   return x ? ctrNm(x) : (dr.basis ? String(dr.basis) : "без договора"); }
 const jCtrHtml = t => t ? `<div class="jctr" title="${esc(t)}">${esc(t)}</div>` : "";
+/* Журнал: «конструктор» документов в строке (19.11.2026, просьба Даниила). Кнопки Счёт / ТОРГ‑12 / УПД открывают просмотр,
+   под каждой — маленькая отметка; отметили хоть одну — справа появляется значок «скачать», всё отмеченное одним PDF (порядок счёт → ТОРГ → УПД).
+   Отметки живут до перезагрузки страницы (JK), перерисовка журнала их не теряет. */
+const JK={}, JK_ORD=["nakl","invoice","torg12","upd"];
+const IC_JKDL='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>';
+const jkKinds = pv => pv ? [["nakl","Накладная"],["invoice","Счёт"],["torg12","ТОРГ‑12"]] : [["invoice","Счёт"],["torg12","ТОРГ‑12"],["upd","УПД"]];
+const jkLbl = k => ({nakl:"Накладная",invoice:"Счёт",torg12:"ТОРГ‑12",upd:"УПД"})[k]||k;
+function jkHtml(j, pv){ const sel=JK[j.id]||[], T12=`ТОРГ<span class="jmh">‑12</span>`;
+  const col=([k,l])=>{ const on=sel.includes(k); return `<span class="jkc"><button class="btn sm" data-p="${k}" data-id="${j.id}">${k==="torg12"?T12:esc(l)}</button><button type="button" class="jkb${on?" on":""}" data-jkk="${k}" aria-pressed="${on}" title="Отметить «${esc(l)}» — скачать одним PDF" aria-label="Отметить «${esc(l)}» для скачивания"></button></span>`; };
+  return `<span class="jdocs jk${sel.length?" has":""}" data-jk="${j.id}">${jkKinds(pv).map(col).join("")}<button type="button" class="jkd" data-jkd="${j.id}" ${sel.length?"":'tabindex="-1" '}title="${esc(jkTip(sel))}" aria-label="${esc(jkTip(sel))}">${IC_JKDL}${sel.length>1?`<b>${sel.length}</b>`:""}</button></span>`; }
+const jkTip = sel => sel.length ? "Скачать одним PDF: "+JK_ORD.filter(k=>sel.includes(k)).map(jkLbl).join(" + ") : "Отметьте документы, чтобы скачать";
+function jkSync(box){ const id=box.dataset.jk, sel=JK[id]||[], d=box.querySelector(".jkd");
+  box.querySelectorAll("[data-jkk]").forEach(b=>{ const on=sel.includes(b.dataset.jkk); b.classList.toggle("on",on); b.setAttribute("aria-pressed",on); });
+  box.classList.toggle("has", sel.length>0);
+  if(d){ d.title=jkTip(sel); d.setAttribute("aria-label", d.title); d.tabIndex=sel.length?0:-1; d.innerHTML=IC_JKDL+(sel.length>1?`<b>${sel.length}</b>`:""); } }
+/* нажатие на отметку или «скачать» — вызывается в начале обработчика журнала/календаря/архива; true — нажатие наше */
+function jkClick(e){ const k=e.target.closest("[data-jkk]"), d=!k&&e.target.closest("[data-jkd]"); if(!k&&!d) return false;
+  const box=e.target.closest("[data-jk]"); if(!box) return false; const id=box.dataset.jk;
+  if(k){ const sel=new Set(JK[id]||[]); sel.has(k.dataset.jkk)?sel.delete(k.dataset.jkk):sel.add(k.dataset.jkk);
+    JK[id]=JK_ORD.filter(x=>sel.has(x)); if(!JK[id].length) delete JK[id];
+    document.querySelectorAll(`[data-jk="${CSS.escape(id)}"]`).forEach(jkSync); return true; }
+  const sel=JK[id]||[]; if(!sel.length || d.classList.contains("busy")) return true;
+  const j=D.journal.find(x=>x.id===id); if(!j||!j.snap) return true;
+  d.classList.add("busy"); d.disabled=true;
+  comboPdf(sel, calc(j.snap.dr, j.snap)).then(()=>{ toast("ok","PDF скачан", sel.map(jkLbl).join(" + ")+" № "+j.number); d.classList.add("ok"); setTimeout(()=>d.classList.remove("ok"),1200); })
+    .catch(err=>toast("err","Не получилось сделать PDF", (err&&err.message||err)+". Откройте документ и нажмите «Печать» → «Сохранить как PDF»."))
+    .finally(()=>{ d.classList.remove("busy"); d.disabled=false; });
+  return true; }
 function jRowHtml(j, kid, arch){ const w=jWho(j), pv=!!(j.snap.c&&j.snap.c.priv);
   const T12=`ТОРГ<span class="jmh">‑12</span>`;
   const view=pv ? `<button class="btn sm" data-p="nakl" data-id="${j.id}">Накладная</button> <button class="btn sm" data-p="invoice" data-id="${j.id}">Счёт</button> <button class="btn sm" data-p="torg12" data-id="${j.id}">${T12}</button>` : `<button class="btn sm" data-p="invoice" data-id="${j.id}">Счёт</button> <button class="btn sm" data-p="torg12" data-id="${j.id}">${T12}</button> <button class="btn sm" data-p="upd" data-id="${j.id}">УПД</button>`;
-  const cj=pv?"":`<button class="btn sm" data-combo-j="${j.id}" title="Счёт и ТОРГ‑12 вместе — просмотр, печать, PDF">Счёт+ТОРГ</button> `;
+  const cj=`<button class="btn sm" data-combo-j="${j.id}" hidden tabindex="-1" aria-hidden="true">Счёт+ТОРГ</button>`; /* для меню правой кнопкой */
   const acts = arch
     ? `<span class="jdocs">${view}</span> <button class="btn sm" data-unarch="${j.id}" title="Вернуть из архива"><span class="jmt">Вернуть из архива</span><span class="jmi" aria-hidden="true">${IC_UNDO}</span></button>`
-    : docLimited() ? `<span class="jdocs">${cj}${view}</span> <button class="btn ghost sm" data-qty="${j.id}" title="Изменить количество" aria-label="Изменить количество"><span class="jmt">Изменить количество</span><span class="jmi">${IC_EDIT}</span></button>`
-    : `<span class="jdocs">${cj}${view}</span> <button class="btn ghost sm" data-edit="${j.id}" title="Изменить" aria-label="Изменить"><span class="jmt">Изменить</span><span class="jmi">${IC_EDIT}</span></button>
+    : docLimited() ? `${pv?"":cj}${jkHtml(j,pv)} <button class="btn ghost sm" data-qty="${j.id}" title="Изменить количество" aria-label="Изменить количество"><span class="jmt">Изменить количество</span><span class="jmi">${IC_EDIT}</span></button>`
+    : `${pv?"":cj}${jkHtml(j,pv)} <button class="btn ghost sm" data-edit="${j.id}" title="Изменить" aria-label="Изменить"><span class="jmt">Изменить</span><span class="jmi">${IC_EDIT}</span></button>
     <details class="more"><summary class="btn ghost sm" aria-label="Ещё действия"><span class="jmt">Ещё ▾</span><span class="jmi">${IC_DOTS}</span></summary><div class="menu"><button class="btn sm jmed" data-edit="${j.id}">Изменить</button><button class="btn sm" data-x="${j.id}">XML для ЕИС</button>${pv?"":`<button class="btn sm" data-ppx="${j.id}">XML для Портала поставщиков</button>`}<button class="btn sm" data-copy="${j.id}">Сделать копию</button><button class="btn sm danger" data-arch="${j.id}">В архив</button></div></details>`;
   const ad = arch ? `<span class="muted" title="Убран в архив">в архиве с ${dtShort(j.snap.meta.arch)}</span>` : jDl(j);
   if(kid) return `<div class="kd${arch?"":" np"}${cmImp(j)?" jimp":""}"><div class="kd-n">№ ${esc(j.number)}</div><div class="kd-w jcard" data-card="${j.id}" title="Подробнее о документе"><span>${esc(kLbl(j)||w.main)}</span>${jCmIcon(j)}${arch?"":govChip(j)}${skJBadge(j)}</div><div class="kd-s">${fm(j.sum)}${arch?"":jBdg(jPayBadge(j)+zkJBadge(j))}</div>${arch?`<div class="kd-p">${ad}</div>`:""}<div class="kd-a acts">${acts}</div></div>`;
@@ -7405,6 +7464,7 @@ function ppOpen(j){ const k=calc(j.snap.dr, j.snap), miss=ppMissing(k), cid=k.dr
       catch(err){ toast("err","Файл не получился", err.message); } } });
   d.showModal(); }
 function onJClick(arch){ return async e=>{
+  if(jkClick(e)) return;
   const b=e.target.closest("button"), msgEl=arch?$("#ar-msg"):$("#jr-msg");
   const cardTd=!b && e.target.closest("[data-card]"); if(cardTd){ const j=D.journal.find(x=>x.id===cardTd.dataset.card); if(j){ docCard(j, arch); if(e.target.closest(".jcm")) cmFocus(); } return; }
   const tr=e.target.closest("tr.grp");
