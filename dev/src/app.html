@@ -1221,7 +1221,7 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .sksegs .ss{display:none}@media(max-width:700px){#fd-app .sksegs .sl{display:none}#fd-app .sksegs .ss{display:inline}}
 #fd-app .sksegs button{overflow:hidden;text-overflow:ellipsis;border:0;background:none;font:500 13px var(--ui);color:var(--muted);padding:7px 6px;border-radius:9px;cursor:pointer;white-space:nowrap;transition:color .2s}#fd-app .sksegs button.on{color:var(--accent);font-weight:600}
 #fd-app .sklist{display:grid;gap:6px;margin-top:8px}
-#fd-app .skrow{display:grid;grid-template-columns:minmax(0,1fr) 170px 388px;gap:12px;align-items:center;text-align:left;font:inherit;color:inherit;border-radius:14px;padding:11px 14px;background:rgba(255,255,255,.6);border:1px solid rgba(28,34,32,.06);cursor:pointer;transition:background .2s,box-shadow .2s,transform .15s;animation:fdin .3s ease backwards;animation-delay:var(--d,0ms)}
+#fd-app .skrow{display:grid;grid-template-columns:minmax(0,1fr) 150px 200px 84px;gap:12px;align-items:center;text-align:left;font:inherit;color:inherit;border-radius:14px;padding:11px 14px;background:rgba(255,255,255,.6);border:1px solid rgba(28,34,32,.06);cursor:pointer;transition:background .2s,box-shadow .2s,transform .15s;animation:fdin .3s ease backwards;animation-delay:var(--d,0ms)}
 #fd-app .skrow:hover{background:#fff;box-shadow:0 8px 18px -14px rgba(48,32,44,.4)}#fd-app .skrow:active{transform:scale(.995)}#fd-app .skrow.sm{grid-template-columns:minmax(0,1fr) auto}
 #fd-app .skn b{display:block;font-size:14.5px}#fd-app .skn small{display:block;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #fd-app .sku{display:flex;flex-wrap:wrap;gap:4px 12px}#fd-app .skuq b{display:block;font-size:15px}#fd-app .skuq em{display:block;font-style:normal;font-size:11.5px;color:var(--muted)}
@@ -1231,13 +1231,15 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .skib .ls{display:none}#fd-app .skrows{display:grid;grid-template-columns:minmax(0,1fr);gap:6px}#fd-app .skib{min-width:0}
 #fd-app .skrow:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #fd-app .skrow .sku{flex-direction:column;flex-wrap:nowrap;align-items:flex-start;gap:3px;font-variant-numeric:tabular-nums}#fd-app .skrow .skuq b{font-variant-numeric:tabular-nums}
-#fd-app .skrow .skm{display:grid;grid-template-columns:154px 226px;gap:8px;justify-content:end}
+#fd-app .skrow .skm{display:grid;grid-template-columns:38px 38px;gap:8px;justify-content:end}
 #fd-app .skib{display:inline-flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:center;gap:7px;min-height:36px;padding:7px 12px;border-radius:10px;border:1px solid rgba(106,44,78,.16);background:#fff;color:var(--accent);font:600 12.5px var(--ui);cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s,box-shadow .15s,transform .1s}
 #fd-app .skib svg{width:16px;height:16px;flex:none}#fd-app .skib span{overflow:hidden;text-overflow:ellipsis}
 #fd-app .skib em{font-style:normal;font-size:11px;font-weight:700;min-width:18px;height:18px;line-height:18px;border-radius:9px;background:var(--accent-soft);padding:0 5px}
 #fd-app .skib:hover{background:var(--accent-soft);border-color:rgba(106,44,78,.3);box-shadow:0 4px 10px -6px rgba(106,44,78,.45)}#fd-app .skib:active{transform:scale(.97)}#fd-app .skib:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #fd-app .skib.up{border-style:dashed;color:var(--muted);background:rgba(255,255,255,.6)}#fd-app .skib.up:hover{color:var(--accent);background:#fff}
-@media(max-width:1100px){#fd-app .skrow{grid-template-columns:minmax(0,1fr) 120px 360px}#fd-app .skrow .skm{grid-template-columns:146px 206px}#fd-app .skib{font-size:12px;padding:7px 9px;gap:6px}}
+@media(max-width:1100px){#fd-app .skrow{grid-template-columns:minmax(0,1fr) 120px 180px 84px}}
+#fd-app .skrow .skib{width:38px;height:38px;min-height:38px;padding:0;position:relative}#fd-app .skrow .skib svg{width:18px;height:18px}#fd-app .skrow .skib em{position:absolute;top:-6px;right:-6px;min-width:17px;height:17px;line-height:17px;font-size:10.5px;background:var(--accent);color:#fff;padding:0 4px}
+#fd-app .skpr{display:flex;flex-direction:column;gap:2px;font-variant-numeric:tabular-nums;min-width:0}#fd-app .skpp{white-space:nowrap}#fd-app .skpp b{font-size:13.5px;font-weight:600}#fd-app .skpp small{font-size:11.5px;color:var(--muted);margin-left:1px}#fd-app .skpp i{font-style:normal;color:var(--muted);margin:0 5px}#fd-app .skpv{font-size:12px;color:var(--muted);white-space:nowrap}
 /* история товара */
 #fd-app .skh-kpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:4px 0 12px}#fd-app .skh-kpi>div{border-radius:12px;padding:9px 11px;background:rgba(255,255,255,.7);border:1px solid rgba(28,34,32,.06)}
 #fd-app .skh-kpi small{display:block;font-size:11.5px;color:var(--muted)}#fd-app .skh-kpi b{display:block;font-size:15px;font-variant-numeric:tabular-nums}
@@ -1557,7 +1559,7 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .dcard .skdoc .row{margin:10px 0 0}
 @media(max-width:700px){
   #fd-app .skkpi{grid-template-columns:repeat(2,minmax(0,1fr))}#fd-app .skk b{font-size:18px}
-  #fd-app .skrow{grid-template-columns:minmax(0,1fr);gap:8px}#fd-app .skrow .sku{flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:4px 10px}#fd-app .skrow .skm{grid-template-columns:minmax(0,1fr) minmax(0,1fr);justify-content:stretch}#fd-app .skib .lf{display:none}#fd-app .skib .ls{display:inline}
+  #fd-app .skrow{grid-template-columns:minmax(0,1fr) auto;gap:6px 10px}#fd-app .skrow .skn{grid-column:1;grid-row:1}#fd-app .skrow .skm{grid-column:2;grid-row:1;align-self:start}#fd-app .skrow .sku{grid-column:1/-1;flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:4px 10px}#fd-app .skrow .skpr{grid-column:1/-1;flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:2px 12px}#fd-app .skrow .skpr:empty{display:none}#fd-app .skib .lf{display:none}#fd-app .skib .ls{display:inline}
   #fd-app .skh-kpi{grid-template-columns:repeat(2,minmax(0,1fr))}#fd-app .skh-pw{grid-template-columns:1fr}
   #fd-app .skh-r{grid-template-columns:38px 10px minmax(0,1fr) 96px;gap:6px}#fd-app .skh-w{grid-column:3/-1;text-align:left;margin-top:-4px}
   #fd-app .sksegs button{font-size:12px;padding:7px 2px}
