@@ -1286,3 +1286,7 @@ function pvFlowClick(e){ const t=e.target;
   const py=t.closest("[data-pvwpay]"); if(py){ const j=D.journal.find(y=>y.id===py.dataset.pvwpay); if(!j) return; const p=payOf(j), on=p.st!=="paid"; jpayToggle([j], on); drawProfit(); pvFlowRedraw(); return; }
   const dc=t.closest("[data-pvwdoc]"); if(dc){ const j=D.journal.find(y=>y.id===dc.dataset.pvwdoc); if(j) docCard(j, false); return; } }
 function pvFlowChange(e){ if(e.target.id==="pvw-cat" && e.target.value){ const v=e.target.value==="__none"?"":e.target.value, ids=[...PVFW.sel]; PVFW.sel.clear(); pvRecSet(ids, null, v); } }
+/* «У N накладных нет закупки» в «Прибыль → Обзор» — сразу к ним: окно со списком (у каждой «Заполнить») или вкладка «Закупка» с этими накладными */
+document.addEventListener("click", e=>{ const t=e.target.closest && e.target.closest("#pf-warn [data-pfmw]"); if(!t) return; const W=$("#pf-warn");
+  if(t.dataset.pfmw==="list"){ pfDetail("miss","period"); return; }
+  const a=W.dataset.a, b=W.dataset.b; if(!a) return; tabBackFrom("Прибыль", ()=>zkpGoMiss(a, b, a===b?"за "+fd(a):"с "+fd(a)+" по "+fd(b))); });
