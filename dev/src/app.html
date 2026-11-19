@@ -1372,6 +1372,12 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
   #fd-app .dcf-ai{flex:1 1 100%;min-height:46px}#fd-app .dcf-q{font-size:16px}#fd-app .dcf-meta input{font-size:16px}#fd-app .dd-o{padding:10px}#fd-app .dd-o input{width:22px;height:22px}#fd-app .dd-pick{font-size:16px;min-height:44px}#fd-app .dd-more .btn{min-height:44px}}
 #fd-app .pdtools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0 8px}#fd-app .pdtools #pd-q{flex:1 1 240px;max-width:420px}#fd-app .pdtools #pd-catm{margin-left:auto}
 #fd-app .catrow{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}#fd-app .catrow:empty{display:none}
+#fd-app .skstk{position:relative;display:inline-grid;grid-template-columns:1fr 1fr;gap:0;padding:3px;margin:0 0 10px;border-radius:12px;background:var(--line-soft,#EFEDE8);isolation:isolate}
+#fd-app .skstk-p{position:absolute;z-index:-1;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);border-radius:9px;background:#fff;box-shadow:0 1px 4px rgba(30,20,25,.12);transform:translateX(calc(var(--x,0) * 100%));transition:transform .26s cubic-bezier(.2,.8,.2,1)}
+#fd-app .skstk button{border:0;background:none;min-height:34px;padding:0 16px;border-radius:9px;font:600 13.5px/1 var(--ui);color:var(--muted);cursor:pointer;white-space:nowrap;transition:color .2s}
+#fd-app .skstk button[aria-pressed="true"]{color:var(--ink)}#fd-app .skstk em{font-style:normal;font-weight:500;opacity:.6;margin-left:3px}
+@media (max-width:560px){#fd-app .skstk{display:grid;width:100%}}
+@media (prefers-reduced-motion:reduce){#fd-app .skstk-p{transition:none}}
 #fd-app .catc{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(28,34,32,.12);background:#fff;border-radius:999px;padding:5px 12px 5px 10px;font:inherit;font-size:13px;cursor:pointer;color:var(--ink);transition:background .2s,border-color .2s,box-shadow .2s}
 #fd-app .catc i{width:9px;height:9px;border-radius:50%;background:var(--cc,#9aa19d);flex:none}#fd-app .catc em{font-style:normal;color:var(--muted);font-size:12px}
 #fd-app .catc:hover{border-color:var(--cc,rgba(28,34,32,.3))}#fd-app .catc.on{background:color-mix(in srgb,var(--cc,#7a264a) 14%,#fff);border-color:var(--cc,#7a264a);box-shadow:0 0 0 1px var(--cc,#7a264a) inset;font-weight:600}
