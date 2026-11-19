@@ -3929,12 +3929,15 @@ let serverOld=false;
 let stamp=0;
 function dirty(type,id,del){ if(type==="products" && !del){ const p=D.products.find(x=>x.id===id); if(p && (p.cat===undefined||p._ca) && p.name){ try{ const g=catGuess(p.name); if(g && g!==p.cat){ p.cat=g; p._ca=1; } }catch(e){} } }   /* новый товар — категория по названию, пока её не выбрали руками */
   pend[type].set(id,{s:++stamp, del:!!del}); undoNote(type,id); changed(); }
+/* много записей разом (прайс поставщика на 3 700 товаров): сохранить на устройство один раз в конце, а не после каждой — иначе браузер падает (19.11.2026) */
+let dirtyBulk=0;
+function dirtyMany(type, ids){ dirtyBulk++; try{ ids.forEach(id=>dirty(type,id)); } finally{ dirtyBulk--; } changed(); }
 function dirtyPrice(c,p){ const v=custPrice(c,p); pend.prices.set(c+"|"+p,{s:++stamp, del:(v==null||v==="")}); undoNote("prices",c+"|"+p); changed(); }
 let syncT=null, flushing=false;
 const PENDK="frudom-docs-pend";
 function savePend(){ try{ const o={}; Object.keys(pend).forEach(t=>{ if(pend[t].size) o[t]=[...pend[t].entries()]; }); lsSet(PENDK, Object.keys(o).length?JSON.stringify(o):null); }catch(e){} }
 (function(){ try{ const o=JSON.parse(lsGet(PENDK)||"null"); if(!o) return; Object.keys(o).forEach(t=>{ if(!pend[t]) return; (o[t]||[]).forEach(([id,v])=>{ pend[t].set(id,v); if(v&&v.s>stamp) stamp=v.s; }); }); }catch(e){} })();
-function changed(){ saveLocal(); savePend(); if(!online()) return; setStatus("wait","Есть несохранённое"); clearTimeout(syncT); syncT=setTimeout(flush,1200); }
+function changed(){ if(dirtyBulk) return; saveLocal(); savePend(); if(!online()) return; setStatus("wait","Есть несохранённое"); clearTimeout(syncT); syncT=setTimeout(flush,1200); }
 const hasPending = () => Object.keys(pend).some(t=>pend[t].size && (t!=="pother" || D.poSrv) && (t!=="debts" || D.dbSrv) && (t!=="cats" || D.catSrv) && (t!=="invoices" || D.invSrv)) || evq.length>0;
 
 /* запрос к таблице: не дольше 45 секунд; при ошибке понятно, что случилось — нет интернета, Google не ответил или таблица вернула ошибку */
