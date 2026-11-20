@@ -65,13 +65,13 @@ cxReg(t=>{ const row=t.closest("#pd-body .nmr[data-id]"); if(!row) return null; 
    .sep().it("doc","Добавить в новый документ","plus",()=>cxToDoc(p.id,"Товары"))
    .it("find","Найти в журнале","search",()=>cxJournalFind(p.name,"Товары"));
   if(typeof skItemOf==="function" && SK_READY){ const it=skItemOf(p.id); if(it) L.it("stock","На складе: "+it.name,"box",()=>skItemCard(it.id)); }
-  if(!lim && D.catSrv && typeof catList==="function"){ const C=catList(); if(C.length){ L.sep().chips("Категория", C.map(c=>({lbl:c.name, dot:c.color||"#bbb", on:p.cat===c.id,
-    fn:()=>{ if(p.cat===c.id) return; p.cat=c.id; delete p._ca; dirty("products",p.id); pdToolbar(); renderProducts(); toast("ok","Категория: "+c.name,"«"+p.name+"»"); }}))); } }
+  if(!lim && D.catSrv && typeof catList==="function"){ const C=catTops(); if(C.length){ L.sep().chips("Категория", C.map(c=>({lbl:c.name, dot:catCol(c), on:(catTop(catOf(p))||{}).id===c.id,
+    fn:()=>{ if((catTop(catOf(p))||{}).id===c.id) return; p.cat=c.id; delete p._ca; dirty("products",p.id); pdToolbar(); renderProducts(); toast("ok","Категория: "+c.name,"«"+p.name+"»"); }}))); } }
   L.sep().it("cpn","Скопировать название","num",()=>jcxCopy(p.name));
   if(a) L.it("cpa","Скопировать артикул «"+a+"»","num",()=>jcxCopy(a));
   if(!lim) L.sep().it("del","Удалить товар","arch",()=>pdDelete(p.id),{danger:1, confirm:"Точно удалить? Нажмите ещё раз"});
   const pr=+p.price>0 ? fm(p.price).replace(/,00$/,"")+" ₽/"+(p.unit||"") : "";
-  return {row, items:L.done(), label:"Действия с товаром «"+p.name+"»", head:cxHead(p.name||"Без названия", [a?"арт. "+a:"", (catOf(p)||{}).name||"", p.unit||""].filter(Boolean).join(" · "), pr)}; });
+  return {row, items:L.done(), label:"Действия с товаром «"+p.name+"»", head:cxHead(p.name||"Без названия", [a?"арт. "+a:"", catFull(catOf(p)), p.unit||""].filter(Boolean).join(" · "), pr)}; });
 
 /* ---------- Календарь: день ---------- */
 function cxCalSel(iso){ const c=CAL(); c.sel=iso; c.ym=iso.slice(0,7); saveLocal(); renderCalendar(); }

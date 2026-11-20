@@ -28,9 +28,9 @@ async def main():
         a=[r for r in V[1:] if 'Ахмад' in r[2]]
         ok(len(V)-1==602 and a and a[0][i]=='Чай · уп: упак. 12 шт по 37,5 г, 1 205,64 ₽ за упак.', f'на листе 602 позиции, упаковка в примечании ({a[0][i] if a else ""})')
         ok(await pg.evaluate("__fd.D().products.filter(p=>/Конфеты тест вариант/.test(p.name)).length")==600, '600 новых товаров созданы')
-        await pg.click('#vp-card [data-vp="win"]'); await pg.wait_for_timeout(800)
-        ok('кор. 6,5 кг' in await pg.inner_text('#fd-dcard'), 'в окне прайса видна упаковка')
-        await pg.keyboard.press('Escape'); await pg.wait_for_timeout(500)
+        await pg.click('#vp-card [data-vp="win"]'); await pg.wait_for_selector('#tab-vprice:not([hidden]) .vpgr', timeout=8000)
+        ok('кор. 6,5 кг' in await pg.inner_text('#tab-vprice'), 'на странице прайса видна упаковка')
+
         await pg.evaluate("document.querySelector('nav.tabs [data-tab=\"products\"]').click()"); await pg.wait_for_timeout(2000)
         await pg.evaluate("(()=>{const b=[...document.querySelectorAll('#pd-src [data-pdsrc]')].find(x=>x.dataset.pdsrc.startsWith('v:'));b&&b.click()})()"); await pg.wait_for_timeout(1000)
         await pg.fill('#pd-q','Ахмад черный персик'); await pg.wait_for_timeout(1200)
