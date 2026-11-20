@@ -74,6 +74,18 @@ final class Ui {
         return BOX[0];
     }
 
+    /* буква ящика вместо цветной точки (просьба Даниила, 20.11.2026): I — info@frudom.ru, F — frudom.ru@mail.ru */
+    static String boxLetter(String accId) {
+        org.json.JSONObject a = MailApi.accOf(accId); String e = a == null ? "" : a.optString("email").toLowerCase().trim();
+        if (e.startsWith("info@")) return "I"; if (e.startsWith("frudom")) return "F";
+        String t = e.replaceAll("[^a-z0-9]", ""); return t.isEmpty() ? "?" : t.substring(0, 1).toUpperCase();
+    }
+    static TextView boxBadge(Context c, String accId) {
+        int col = boxColor(accId); TextView v = text(c, boxLetter(accId), 10, col, true); v.setGravity(Gravity.CENTER); v.setIncludeFontPadding(false);
+        GradientDrawable g = new GradientDrawable(); g.setCornerRadius(dp(c, 5)); g.setColor((col & 0x00FFFFFF) | 0x22000000); g.setStroke(Math.max(1, dp(c, 1) / 2 + 1), (col & 0x00FFFFFF) | 0x55000000); v.setBackground(g);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(c, 18), dp(c, 18)); lp.gravity = Gravity.CENTER_VERTICAL; v.setLayoutParams(lp); return v;
+    }
+
     static View dot(Context c, int color, int sizeDp) {
         View v = new View(c); GradientDrawable g = new GradientDrawable(); g.setShape(GradientDrawable.OVAL); g.setColor(color); v.setBackground(g);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(c, sizeDp), dp(c, sizeDp)); lp.gravity = Gravity.CENTER_VERTICAL; v.setLayoutParams(lp); return v;
