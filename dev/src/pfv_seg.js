@@ -478,8 +478,10 @@ function pvCum(L){ let c=0, prev=""; [...L].reverse().forEach(x=>{ c=r2(c+x.prof
 /* оплата накладной: одно нажатие — «оплачена сегодня» (дата нажатия запоминается), ещё одно — снять отметку */
 const pvDiff = (a, b) => Math.round((new Date(b+"T12:00:00")-new Date(a+"T12:00:00"))/864e5);
 const pvPayDays = (j, p) => Math.max(0, pvDiff(j.date, p.d));
+/* когда пришла оплата относительно накладной: «в день накладной» / «за 5 дней» / «предоплата за 4 дня до накладной» */
+const pvPayTxt = (j, p) => { const d=pvDiff(j.date, p.d); return d>0 ? "за "+dnum(d) : d<0 ? "предоплата за "+dnum(-d) : "в день накладной"; };
 function pvPayBtn(j){ const p=payOf(j);
-  if(p.st==="paid"){ const d=pvPayDays(j,p); return `<button type="button" class="pvpay paid" data-pvpay="${j.id}" title="Оплачена ${fd(p.d)} — через ${dnum(d)} после накладной. Нажмите, чтобы снять отметку"><span>${pvIco("check")}Оплачена</span><small>${fd(p.d).slice(0,5)} · ${d?"за "+dnum(d):"в день накладной"}</small></button>`; }
+  if(p.st==="paid"){ const d=pvPayDays(j,p); return `<button type="button" class="pvpay paid" data-pvpay="${j.id}" title="Оплачена ${fd(p.d)} — ${esc(pvPayTxt(j,p))}. Нажмите, чтобы снять отметку"><span>${pvIco("check")}Оплачена</span><small>${fd(p.d).slice(0,5)} · ${pvPayTxt(j,p)}</small></button>`; }
   const age=j.date>todayISO()?0:daysSince(j.date), cls=ageCls(age);
   return `<button type="button" class="pvpay ${p.st} ${cls}" data-pvpay="${j.id}" title="Нажмите, когда пришла оплата — сайт запомнит сегодняшнюю дату"><span><i></i>${p.st==="part"?"Частично":"Не оплачена"}</span><small>${p.st==="part"?"осталось "+fm(p.left):ageTxt(j.date)}</small></button>`; }
 function pvLedgerRow(x){ const j=x.j, src=pvSrc(j), ed=PVL.ed===j.id, rs=r2(x.rev-x.tax);
