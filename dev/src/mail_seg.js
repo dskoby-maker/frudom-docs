@@ -137,7 +137,7 @@ function mlDaysHtml(S, all){ const cnt={}; all.forEach(r=>{ const k=r.date?jIso(
 function mlRowHtml(r,i){ if(mlMob()) return mlRowMob(r,i); const A=mlAtts(r), o=r.dir!=="sent" && mlIsOrd(r), st=mlOrdSt(r), c=o?mlOrd(r).cus:null, who=r.dir==="sent" ? "Кому: "+(r.to||"") : (r.fromName||r.from||"без имени");
   const tg=r.dir!=="sent"?mlTag(mlAddr(r)):null, sp=mlSpam(r);
   const qa = mlRO() ? `<span class="mlqa"><button type="button" data-mlq="menu" title="Действия" aria-label="Действия">⋯</button></span>` : `<span class="mlqa">${r.dir!=="sent"?`<button type="button" data-mlq="read" title="${r.read?"Отметить непрочитанным":"Отметить прочитанным"}" aria-label="Прочитано">${r.read?ML_IC.mail1:ML_IC.mail0}</button><button type="button" data-mlq="todo" class="${mlTodo(r)?"ontodo":""}" title="${mlTodo(r)?"Снять «Не обработано»":"Не обработано"}" aria-label="Не обработано">${ML_IC_TODO}</button><button type="button" data-mlq="done" class="${mlDone(r)?"on":""}" title="${mlDone(r)?"Снять «Обработано»":"Обработано"}" aria-label="Обработано">${ML_IC_OK}</button><button type="button" data-mlq="${mlMinor(r)?"major":"minor"}" title="${mlMinor(r)?"Вернуть во входящие":"В неважные"}" aria-label="Неважные">${ML_IC.minor}</button><button type="button" data-mlq="${sp?"nospam":"spam"}" title="${sp?"Не спам":"В спам"}" aria-label="Спам">${ML_IC.spam}</button>`:""}<button type="button" data-mlq="menu" title="Ещё действия (или правая кнопка мыши)" aria-label="Ещё действия">⋯</button></span>`;
-  return `<div class="mlr hav${mlUnread(r)?" un":""}${ML.sel===r.id?" sel":""}${mlDone(r)?" isdone":""}${mlTodo(r)?" istodo":""}${sp?" isspam":""}" data-mlid="${esc(r.id)}" role="listitem" tabindex="0" style="--c:${mlCol(r.acc)};--h:${mlHue(r.dir==="sent"?r.to:mlAddr(r))};--d:${Math.min(i,14)*18}ms">${qa}<span class="mlrav" data-av="${esc(mlAvAddr(r))}" aria-hidden="true"><span class="mlravt">${esc(mlAvTxt(r))}</span></span>
+  return `<div class="mlr hav${mlUnread(r)?" un":""}${ML.sel===r.id?" sel":""}${mlDone(r)?" isdone":""}${mlTodo(r)?" istodo":""}${sp?" isspam":""}" data-mlid="${esc(r.id)}" role="listitem" tabindex="0" style="--c:${mlCol(r.acc)};--h:${mlHue(r.dir==="sent"?r.to:mlAddr(r))};--d:${Math.min(i,14)*18}ms">${qa}<span class="mlrav${mlAvOrg(r)?" org":""}" data-av="${esc(mlAvAddr(r))}" aria-hidden="true" style="${mlAvSt(r)}"><span class="mlravt">${esc(mlAvTxt(r))}</span></span>
     <span class="mlr1"><b>${esc(who)}</b><time>${mlDate(r.date)}</time></span>
     <span class="mlr2">${ML.f==="all"?mlWhere(r):""}${r.ans?`<i class="mlans" title="Вы ответили">${ML_IC.reply}</i>`:""}${esc(r.subject||"(без темы)")}</span>
     <span class="mlr3">${esc(String(r.snippet||"").slice(0,140))}</span>
@@ -154,7 +154,7 @@ function mlViewBody(){ if(ML.comp) return mlCompHtml(); const V=ML.view, mob=mlM
   const ordBox = !mlRO() && r.dir!=="sent" && !load && (O.ok || (st&&st.st) || ML.force===r.id) && !(st&&st.st==="no") ? mlOrdHtml(r, O, st) : "";
   return `<div class="mlvh">${mob?"":`<button type="button" class="btn ghost sm mlback" data-ml="back">‹ Письма</button>`}
       <h3>${esc(r.subject||"(без темы)")}</h3>
-      <div class="mlmeta"><span class="mlav" data-av="${esc(mlAvAddr(r))}" style="--c:${mlCol(r.acc)}">${esc(((r.dir==="sent"?r.to:r.fromName||r.from)||"?").trim()[0]||"?").toUpperCase()}</span>
+      <div class="mlmeta"><span class="mlav${mlAvOrg(r)?" org":""}" data-av="${esc(mlAvAddr(r))}" style="--c:${mlCol(r.acc)};${mlAvSt(r)}">${esc(mlAvTxt(r))}</span>
         <span><b>${esc(r.dir==="sent"?"Вы":(r.fromName||r.from))}</b> ${r.dir==="sent"?"":`<small>&lt;${esc(r.from)}&gt;</small>`}<br><small>кому: ${esc(r.to||r.box)}${r.cc?" · копия: "+esc(r.cc):""}</small></span>
         <span class="mlwhen"><small>${esc(mlFull(r.date))}</small><small class="mlbx" style="--c:${mlCol(r.acc)}">${esc(r.box)}</small></span></div>
       ${r.dir!=="sent"?mlTagLine(r):""}${mlSpam(r)?`<div class="mlspam">${ML_IC.spam}<span><b>Письмо в спаме.</b> ${(mlTag(mlAddr(r))||{}).kind==="spam"?"Все письма от "+esc(r.from)+" попадают сюда сами.":""}</span>${mlRO()?"":`<button type="button" class="btn ghost sm" data-ml="nospam">Не спам</button>`}</div>`:""}
@@ -562,9 +562,27 @@ const MI={plus:mlSv('<path d="M12 5v14M5 12h14"/>'), menu:mlSv('<path d="M4 7h16
   ref:mlSv('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/>',20), gear:mlSv('<circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/>',20),
   pick:mlSv('<rect x="4" y="4" width="7" height="7" rx="1.5"/><path d="M14 6h6M14 9h4M4 15h16M4 19h11"/>',20)};
 const mlHue = s => { let h=7; s=String(s||""); for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))%360; return h; };
-function mlAvTxt(r){ const s=String(r.dir==="sent"?(r.to||""):(r.fromName||r.from||"?")).replace(/<[^>]*>/g,"").replace(/["'«»]/g,"").trim();
-  const w=s.split(/[\s@._,-]+/).filter(x=>/[\p{L}\d]/u.test(x)); const a=((w[0]||"?").match(/[\p{L}\d]/u)||["?"])[0], b=s.includes("@")||!w[1]?"":((w[1].match(/[\p{L}\d]/u)||[""])[0]);
-  return (a+b).toUpperCase(); }
+/* своя аватарка отправителя, когда картинки нет (20.11.2026): буквы из имени, цвет и рисунок — из адреса, у каждого отправителя свои и всегда одинаковые;
+   у организаций (ООО, ИП, ГБУ…) — значок-домик в углу, буквы — из названия без «ООО» и кавычек */
+const ML_ORG=/^(ооо|оао|зао|пао|нао|ао|ип|гбу|гау|гуп|гкуп|мгуп|фгуп|фгбу|фгбоу|фгбну|фгаоу|гбоу|гбпоу|гапоу|гоу|мбоу|мбу|мку|ано|нко|ук|тд|чоп|ltd|llc|inc|gmbh|сп|кфх)$/i;
+function mlAvName(r){ const raw=String(r.dir==="sent"?(r.to||""):(r.fromName||r.from||"?")).replace(/<[^>]*>/g,"").trim();
+  const org=/["«»]/.test(raw) || ML_ORG.test((raw.match(/^[\p{L}]+/u)||[""])[0]);
+  const w=raw.replace(/["'«»]/g," ").split(/[\s@._,-]+/).filter(x=>/[\p{L}\d]/u.test(x) && !ML_ORG.test(x));
+  return {w, org, mail:raw.includes("@")}; }
+function mlAvTxt(r){ const {w, org, mail}=mlAvName(r), L=x=>((x||"").match(/[\p{L}\d]/u)||[""])[0];
+  if(!w.length) return "?";
+  if(org && w.length===1){ const m=w[0].match(/^(\p{Lu})\p{Ll}+(\p{Lu})/u); return (m ? m[1]+m[2] : w[0].slice(0,2)).toUpperCase(); }   /* «РосПродукт» → РП, «Застава» → ЗА */
+  return (L(w[0])+(mail||!w[1]?"":L(w[1]))).toUpperCase(); }
+function mlAvHash(s){ let h=2166136261; s=String(s||"").toLowerCase(); for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+function mlAvSt(r){ const k=mlAvAddr(r)||mlAvName(r).w.join(" ")||"?", h=mlAvHash(k), a=Math.round((h%997)*137.508)%360, b=(a+38)%360, v=(h>>>11)%5;
+  const dk=x=>x>=40&&x<=190?8:0, L=(x,l)=>`hsl(${x} ${l>60?70:52}% ${l-dk(x)}%)`;   /* жёлтые и зелёные темнее — белые буквы читаются */
+  const S=[[`hsl(${a} 72% 89%)`, `hsl(${a} 55% 28%)`],
+    [L(a,44), "#fff"],
+    [`linear-gradient(135deg,${L(a,56)},${L(b,40)})`, "#fff"],
+    [`linear-gradient(135deg,hsl(${a} 70% 88%) 50%,hsl(${b} 58% 76%) 50%)`, `hsl(${a} 55% 26%)`],
+    [`radial-gradient(circle at 30% 25%,${L(a,66)},${L(b,40)} 72%)`, "#fff"]][v];
+  return `--avbg:${S[0]};--avfg:${S[1]}${S[1]==="#fff"?";text-shadow:0 1px 1px rgba(0,0,0,.2)":""}`; }
+const mlAvOrg = r => mlAvName(r).org;
 /* аватарки: у компаний — значок их сайта (по домену почты), у личной почты (Gmail, Mail.ru, Яндекс…) — Gravatar, если человек его завёл; иначе — буквы.
    Что нашлось — помним на устройстве (frudom-mlav): найденное 30 дней, ненайденное 7 дней */
 const ML_PUB=/^(gmail\.com|googlemail\.com|mail\.ru|bk\.ru|list\.ru|inbox\.ru|internet\.ru|yandex\.[a-z]+|ya\.ru|narod\.ru|rambler\.ru|lenta\.ru|ro\.ru|autorambler\.ru|myrambler\.ru|icloud\.com|me\.com|mac\.com|outlook\.[a-z]+|hotmail\.[a-z]+|live\.[a-z]+|msn\.com|yahoo\.[a-z]+|proton(mail)?\.(me|com)|pm\.me|aol\.com|qip\.ru|ukr\.net|tut\.by)$/i;
@@ -619,7 +637,7 @@ function mlRowMob(r,i){ const A=mlAtts(r), un=mlUnread(r), o=r.dir!=="sent"&&mlI
     dn?`<span class="mldbadge">${ML_IC_OK}Обработано</span>`:td?`<span class="mltbadge">${ML_IC_TODO}Не обработано</span>`:"", tg&&tg.kind==="cus"?`<span class="mltag cus">Заказчик${cus(tg.customerId)?" · "+esc(cusNm(tg.customerId)):""}</span>`:""].filter(Boolean).join("");
   return `<div class="mlr mr${un?" un":""}${ML.sel===r.id?" sel":""}${pk?" picked":""}${dn?" isdone":""}${td?" istodo":""}" data-mlid="${esc(r.id)}" data-swr="${sr}" data-swl="${sl}" role="listitem" tabindex="0" style="--c:${mlCol(r.acc)};--h:${mlHue(r.dir==="sent"?r.to:mlAddr(r))};--d:${Math.min(i,12)*14}ms">
     ${sr?`<span class="mrbg l">${sr==="read"?ML_IC.mail1:ML_IC.mail0}<b>${ML_SWT[sr]}</b></span>`:""}${sl?`<span class="mrbg r"><b>${ML_SWT[sl]}</b>${sl==="nospam"?ML_IC_OK:ML_IC.minor}</span>`:""}
-    <span class="mrin"><button type="button" class="mrav" data-av="${esc(mlAvAddr(r))}" data-mm="pick" aria-label="${pk?"Снять выбор":"Выбрать письмо"}"><span class="mravt">${esc(mlAvTxt(r))}</span><span class="mravc">${MI.check}</span></button>
+    <span class="mrin"><button type="button" class="mrav${mlAvOrg(r)?" org":""}" data-av="${esc(mlAvAddr(r))}" style="${mlAvSt(r)}" data-mm="pick" aria-label="${pk?"Снять выбор":"Выбрать письмо"}"><span class="mravt">${esc(mlAvTxt(r))}</span><span class="mravc">${MI.check}</span></button>
       <span class="mrtx"><span class="mr1">${un?'<i class="mrdot" aria-label="не прочитано"></i>':""}<b>${esc(who)}</b>${ML.acc.length>1&&!ML.box?`<i class="mrbx" title="${esc(r.box||"")}"></i>`:""}<time>${mlDate(r.date)}</time></span>
         <span class="mr2">${r.ans?`<i class="mlans" title="Вы ответили">${ML_IC.reply}</i>`:""}<span>${esc(r.subject||"(без темы)")}</span></span>
         <span class="mr3"><span>${esc(String(r.snippet||"").replace(/\s+/g," ").slice(0,160))}</span>${A.length?`<i class="mrclip" title="${esc(A.map(x=>x.n).join(", "))}">${ML_IC.clip}</i>`:""}</span>
