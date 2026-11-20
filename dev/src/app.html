@@ -2509,7 +2509,7 @@ dialog .ndr-a{display:flex;gap:6px;flex:none}
 #fd-app .pdl{display:grid;gap:2px;border-top:1px solid var(--glass-ln,var(--line));padding-top:8px}
 #fd-app .pdr{display:grid;grid-template-columns:minmax(0,1fr) auto 120px auto;gap:12px;align-items:center;padding:6px 4px;border-radius:9px;font-size:13.5px;transition:background .2s,opacity .25s,transform .25s}
 #fd-app .pdr:hover{background:rgba(255,255,255,.7)}#fd-app .pdr small{display:block;color:var(--muted);font-size:11.5px}#fd-app .pdr .num{text-align:right}
-#fd-app .pdr.gone{opacity:0;transform:translateX(16px)}
+#fd-app .pdr.gone{opacity:0;transform:translateX(16px)}#fd-app .pdr .pdo{all:unset;box-sizing:border-box;display:block;min-width:0;cursor:pointer;border-radius:7px;padding:2px 4px;margin:-2px -4px;font:inherit;color:inherit}#fd-app .pdr .pdo .pdot{display:inline-flex;align-items:center;gap:6px}#fd-app .pdr .pdo i{font-style:normal;color:var(--muted);opacity:.55;transition:transform .2s,opacity .2s}#fd-app .pdr .pdo:hover .pdot{text-decoration:underline;text-underline-offset:3px}#fd-app .pdr .pdo:hover i{opacity:1;transform:translateX(2px)}#fd-app .pdr .pdo:focus-visible{outline:2px solid var(--accent);outline-offset:2px}#fd-app .pdr .pdo small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #fd-app .pdf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 4px;font-size:13px}#fd-app .pdf .pdsum{width:130px;text-align:right}#fd-app .pdf .pddate{width:150px}
 #fd-app .pdempty{text-align:center;padding:14px}
 #fd-app .pfage{display:inline-block;font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:99px;background:rgba(28,34,32,.06);color:var(--muted);white-space:nowrap}
@@ -6584,7 +6584,7 @@ function drawDebts(){
           <span class="pdp"><span class="pdbar"><i style="--w:${sh.toFixed(1)}%"></i></span><small>оплачено ${fm(c.paid)} из ${fm(c.ship)}</small></span>
           <span class="pdd"><small>Долг</small><b class="${c.due>0.004?"":"pos"}">${c.due>0.004?fm(c.due):"0,00"}</b></span><span class="pda" aria-hidden="true">▾</span></button>
         <div class="pdb"><div class="pdbi">${c.docs.length?`<div class="pdl">${c.docs.sort((a,b)=>a.j.date.localeCompare(b.j.date)||jNumSort(a.j,b.j)).map(x=>{ const d=daysSince(x.j.date), w=jWho(x.j);
-              return `<div class="pdr"><span>${fd(x.j.date)} · № ${esc(x.j.number)}${w.pt?`<small>${esc(w.pt)}</small>`:""}</span><span class="pfage ${ageCls(d)}">${ageTxt(x.j.date)}</span><span class="num"><b>${fm(x.p.left)}</b>${x.p.st==="part"?`<small>из ${fm(x.p.tot)}</small>`:""}</span><button type="button" class="pfpay" data-pay="${x.j.id}">Оплачено</button></div>`; }).join("")}</div>
+              return `<div class="pdr"><button type="button" class="pdo" data-pdoc="${x.j.id}" title="Открыть накладную"><span class="pdot">${fd(x.j.date)} · № ${esc(x.j.number)}<i aria-hidden="true">›</i></span>${w.pt?`<small>${esc(w.pt)}</small>`:""}</button><span class="pfage ${ageCls(d)}">${ageTxt(x.j.date)}</span><span class="num"><b>${fm(x.p.left)}</b>${x.p.st==="part"?`<small>из ${fm(x.p.tot)}</small>`:""}</span><button type="button" class="pfpay" data-pay="${x.j.id}">Оплачено</button></div>`; }).join("")}</div>
             <div class="pdf"><span>Пришли деньги:</span><input class="pdsum" inputmode="decimal" placeholder="${esc(fm(c.due))}" aria-label="Сумма оплаты"><input type="date" class="pddate" value="${todayISO()}" aria-label="Дата оплаты"><button type="button" class="btn sm" data-dspread="${esc(c.cid)}">Разнести по накладным</button><span style="flex:1"></span><button type="button" class="btn pri sm" data-dall="${esc(c.cid)}">Всё оплачено</button></div>
             <small class="muted">Сумма закрывает накладные по порядку — с самой старой. Остаток ляжет частичной оплатой на следующую.</small>`:`<p class="muted" style="margin:4px 0">Все накладные оплачены.</p>`}</div></div></div>`; }).join("")
     : `<p class="muted pdempty">${all.length?"Все заказчики всё оплатили 🎉":"Накладных пока нет."}</p>`;
@@ -6667,6 +6667,7 @@ $("#pf-next").onclick=()=>{ pfShow+=50; drawProfit(); }; $("#pf-all").onclick=()
 $("#pf-showpaid").onchange=drawDebts;
 $("#pf-debt").addEventListener("click",e=>{
   const h=e.target.closest("[data-dopen]"); if(h){ const c=h.dataset.dopen, box=h.closest(".pdc"); pfDebtOpen.has(c)?pfDebtOpen.delete(c):pfDebtOpen.add(c); box.classList.toggle("open"); h.setAttribute("aria-expanded", box.classList.contains("open")); return; }
+  const od=e.target.closest("[data-pdoc]"); if(od){ const j=pfDoc(od.dataset.pdoc); if(j) docCard(j); return; }
   const pb=e.target.closest("[data-pay]"); if(pb){ const j=pfDoc(pb.dataset.pay); if(!j) return; const p=payOf(j); setPay(j,p.tot,(pb.closest(".pdc").querySelector(".pddate")||{}).value||todayISO()); saveLocal();
     const r=pb.closest(".pdr"); r.classList.add("gone"); setTimeout(drawProfit,280); toast("ok","Оплачено","Накладная № "+j.number+" · "+fm(p.left)+" ₽"); return; }
   const al=e.target.closest("[data-dall]"); if(al){ if(!armed(al,"Точно все?")) return; payAll(al.dataset.dall, al.closest(".pdc").querySelector(".pddate").value||todayISO()); return; }
