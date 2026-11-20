@@ -409,7 +409,7 @@ public class MainActivity extends Activity {
             dotNew.setVisibility(un ? VISIBLE : GONE);
             ans.setVisibility(!x.optString("ans").isEmpty() ? VISIBLE : GONE);
             tags.removeAllViews();
-            if (MailApi.acc.length() > 1) { View d = Ui.dot(c, Ui.boxColor(x.optString("acc")), 7); ((LayoutParams) d.getLayoutParams()).rightMargin = Ui.dp(c, 6); tags.addView(d); }
+            if (MailApi.acc.length() > 1) { View d = Ui.boxBadge(c, x.optString("acc")); ((LayoutParams) d.getLayoutParams()).rightMargin = Ui.dp(c, 6); tags.addView(d); }
             if (MailApi.isOrd(x)) addTag(Ui.chip(c, "taken".equals(MailApi.ord(x).optString("st")) ? "Документы сделаны" : "Заявка", Ui.ORD, Ui.ORD_BG));
             if (MailApi.done(x)) addTag(Ui.chip(c, "✓ Обработано", Ui.OK, Ui.OK_BG));
             else if (MailApi.todo(x)) addTag(Ui.chip(c, "Не обработано", Ui.TODO, Ui.TODO_BG));
