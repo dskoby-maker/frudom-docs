@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 48;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 49;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -28,7 +28,7 @@ const S = {
     ['date','Дата'],['supplierName','ИП'],['sum','Сумма'],['payerName','Плательщик'],['payerInn','ИНН плательщика'],['purpose','Назначение платежа'],['statusName','Статус'],['docsText','Разнесено по накладным'],
     ['id','ID операции (не менять)'],['supplierId','ID поставщика'],['account','Счёт'],['status','Код статуса'],['docs','Накладные (не редактировать)'],['by','Кто разнёс'],['at','Когда'],['opId','ID операции банка']]},
   cats: { title: 'Категории товаров', key: 'id', cols: [
-    ['name','Категория'],['order','Порядок'],['color','Цвет'],['id','ID (не менять)']]},
+    ['name','Категория'],['order','Порядок'],['color','Цвет'],['id','ID (не менять)'],['parent','Входит в категорию (ID, заполняется с сайта)']]},
   prices: { title: 'Цены', key: null, cols: [
     ['customerName','Заказчик'],['productName','Товар'],['price','Цена'],['customerId','ID заказчика'],['productId','ID товара']]},
   specs: { title: 'СТЕ', key: null, cols: [
@@ -1116,6 +1116,8 @@ function artFix_() {
 }
 
 function nameMap_(t) { const m = {}; read_(t).forEach(o => m[o.id] = o.name); return m; }
+/* категория товара: у подкатегории — «Категория / Подкатегория» (Code.gs ≥ 49) */
+function catNames_() { const L = read_('cats'), n = {}, m = {}; L.forEach(o => n[o.id] = o.name); L.forEach(o => m[o.id] = o.parent && n[o.parent] ? n[o.parent] + ' / ' + o.name : o.name); return m; }
 
 function upsertList_(t, ch) {
   const res = { added: [], changed: [], removed: [] };
@@ -1145,7 +1147,7 @@ function applySync_(ch, me) {
     });
   };
   if (ch.cats) { const r = upsertList_('cats', ch.cats); r.added.concat(r.changed).forEach(o => ev.push({ action: 'Справочники', text: 'Категория товаров «' + (o.name || '') + '»' + (r.added.indexOf(o) >= 0 ? ' добавлена' : ' изменена') })); r.removed.forEach(o => ev.push({ action: 'Справочники', text: 'Категория товаров «' + (o.name || '') + '» удалена' })); }
-  if (ch.products) { const cn = nameMap_('cats'); (ch.products.upsert || []).forEach(o => { o.catName = o.cat ? (cn[o.cat] || '') : ''; }); }
+  if (ch.products) { const cn = catNames_(); (ch.products.upsert || []).forEach(o => { o.catName = o.cat ? (cn[o.cat] || '') : ''; }); }
   if (ch.products) (ch.products.upsert || []).forEach(o => { delete o.art; delete o.artOwn; });   /* артикулы присваивает только таблица */
   ['suppliers', 'customers', 'products'].forEach(t => say(t, upsertList_(t, ch[t])));
   if (ch.products) artFix_();
@@ -1157,7 +1159,7 @@ function applySync_(ch, me) {
     r.changed.forEach(o => ev.push({ action: 'Счета', text: 'Изменён ' + lbl(o) }));
     r.removed.forEach(o => ev.push({ action: 'Счета', text: 'Удалён ' + lbl(o) }));
   }
-  if (ch.cats) { const cn = nameMap_('cats'); const P = read_('products'); let n = 0; P.forEach(o => { const v = o.cat ? (cn[o.cat] || '') : ''; if (String(o.catName || '') !== v) { o.catName = v; n++; } }); if (n) write_('products', P); }
+  if (ch.cats) { const cn = catNames_(); const P = read_('products'); let n = 0; P.forEach(o => { const v = o.cat ? (cn[o.cat] || '') : ''; if (String(o.catName || '') !== v) { o.catName = v; n++; } }); if (n) write_('products', P); }
   if (ch.prices) {
     const cn0 = nameMap_('customers'), per = {};
     (ch.prices.upsert || []).concat(ch.prices.del || []).forEach(o => per[o.customerId] = (per[o.customerId] || 0) + 1);

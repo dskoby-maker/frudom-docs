@@ -26,6 +26,7 @@ async def run(b, W, H):
     await pg.evaluate(TAB+"('products')"); await pg.wait_for_timeout(500)
     await pg.fill('#pd-q','Груши Конф'); await pg.wait_for_timeout(500)
     sel='#pd-body .nmr[data-id="cx-a"] .nmh'
+    await pg.evaluate("document.querySelectorAll('#fd-toasts .fd-toast').forEach(x=>x.remove())")   # уведомление о сохранении не должно закрывать строку
     await rclick(pg, sel, 'right'); L=await items(pg); print('   товар:', L)
     ok(L[:2]==['Изменить','Карточка товара'] and 'Добавить в новый документ' in L and 'Найти в журнале' in L and any('Удалить' in x for x in L), T+' меню товара')
     ok(await inview(pg), T+' меню товара в пределах экрана'); ok(await pg.locator('#pd-body .nmr.jcxon').count()==1, T+' строка товара подсвечена')

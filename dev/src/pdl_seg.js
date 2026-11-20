@@ -38,14 +38,14 @@ function pdPerKg(name, unit, price, w){ const pr=parseFloat(String(price==null?"
   const W=w||pdNameW(name); if(!W) return null; const v=Math.ceil(pr/W.w*100-1e-7)/100; return {u:W.u, v, txt:"≈ "+fm(v).replace(/,00$/,"")+" ₽/"+W.u}; }
 function pdKgHtml(p, price, unit, w){ const k=pdPerKg(p.name, unit||p.unit, price, w); return k?`<i class="nmk" title="Цена за ${k.u==="кг"?"килограмм":"литр"} по весу ${w?"из прайса поставщика":"из названия"}">${k.txt}</i>`:""; }
 function pdRowHead(p){ const c=catOf(p), a=pArt(p), n=pgCount(p.id), pr=+p.price>0, h=pdHint(p), vp=typeof pdVpPrice==="function"?pdVpPrice(p):null;
-  const meta=[c?`<i class="nmcd" style="--cc:${esc(c.color||"#bbb")}"></i>${esc(c.name)}`:"", esc(p.unit||""), n>1?`<span class="nmlk" title="Связанные названия одного товара">${IC_LINK}${n}</span>`:"", h?esc(h):"", typeof vpTag==="function"&&typeof pdSrcGet==="function"&&pdSrcGet()==="all"?vpTag(p.id):"", vp&&pr?"ваша цена "+fm(p.price).replace(/,00$/,"")+" ₽":""].filter(Boolean).join(" · ");
+  const meta=[c?`<i class="nmcd" style="--cc:${esc(catCol(c))}"></i>${esc(catFull(c))}`:"", esc(p.unit||""), n>1?`<span class="nmlk" title="Связанные названия одного товара">${IC_LINK}${n}</span>`:"", h?esc(h):"", typeof vpTag==="function"&&typeof pdSrcGet==="function"&&pdSrcGet()==="all"?vpTag(p.id):"", vp&&pr?"ваша цена "+fm(p.price).replace(/,00$/,"")+" ₽":""].filter(Boolean).join(" · ");
   return `<span class="nma${a?"":" new"}" title="${a?"Внутренний артикул":"Артикул появится после сохранения в таблицу"}">${a?esc(a):pdArtSrv()?"новый":"—"}</span>
     <span class="nmn"><b>${p.name?esc(p.name):`<em>Без названия</em>`}</b><small>${meta}</small></span>
     ${vp?`<span class="nmp vpp" style="--h:${vpHue(vp.vendor)}" title="Цена из прайса ${esc(vp.vendor)} от ${fd(vp.date)}"><b>${vpMoney(vp.price)}</b><small>/${esc(vp.unit||p.unit||"")} · ${typeof pdSrcGet==="function"&&pdSrcGet().startsWith("v:")?"от "+fd(vp.date).slice(0,5):esc(vp.vendor)}</small>${pdKgHtml(p, vp.price, vp.unit||p.unit, typeof vpPackW==="function"?vpPackW(vp):null)}</span>`:`<span class="nmp${pr?"":" no"}">${pr?`<b>${fm(p.price).replace(/,00$/,"")} ₽</b><small>/${esc(p.unit||"")}</small>${pdKgHtml(p, p.price)}`:`<small>нет цены</small>`}</span>`}<span class="nmv">${IC_PDV}</span>`; }
 function pdEditor(p){ const a=pArt(p), M=pgMembers(p.id), packs=Object.entries(packsOf(p)).map(([u,f])=>u+" = "+qtxt(f)).join("; ");
   return `<div class="nme"><div class="nmg">
     <label class="w2"><span>Наименование <small>печатается в документах — пишите как в контракте</small></span><input data-k="name" value="${esc(p.name)}" placeholder="Например, Изюм Малаяр"></label>
-    <label><span>Категория</span><select data-k="cat" class="pdcat" style="--cc:${esc((catOf(p)||{}).color||"transparent")}"${D.catSrv?"":" disabled title=\"Сначала обновите Code.gs\""}>${catOptions(p.cat||"", true)}</select></label>
+    <label><span>Категория</span><select data-k="cat" class="pdcat" style="--cc:${esc(catOf(p)?catCol(catOf(p)):"transparent")}"${D.catSrv?"":" disabled title=\"Сначала обновите Code.gs\""}>${catOptions(p.cat||"", true)}</select></label>
     <label><span>Ед.</span><select data-k="unit">${Object.keys(UNITS).map(u=>`<option${u===p.unit?" selected":""}>${u}</option>`).join("")}</select></label>
     <label><span>Базовая цена, ₽</span><input data-k="price" inputmode="decimal" value="${esc(p.price)}" placeholder="0"></label>
     <label><span title="Сайт запоминает сам по заказам: «2 кор» → 6 кг значит 1 кор = 3 кг">Вес упаковки</span><input data-k="packs" value="${esc(packs)}" placeholder="кор = 3"></label>
@@ -68,9 +68,9 @@ function pdToggle(id){ const was=PDL.open; PDL.open = was===id ? "" : id; if(was
   if(r && PDL.open===id){ r.scrollIntoView({block:"nearest", behavior:"smooth"}); } else if(r){ const h=r.querySelector(".nmh"); h&&h.focus({preventScroll:true}); } }
 const pdSet=e=>{ const k=e.target.dataset.k; if(!k) return; const row=e.target.closest(".nmr[data-id]"), p=row&&prod(row.dataset.id); if(!p) return;
   if(k==="packs"){ const o={}; String(e.target.value).split(/[;\n]/).forEach(x=>{ const m=x.match(/([а-яёa-z.]+)\s*[=:≈-]?\s*(\d+(?:[.,]\d+)?)/i); if(!m) return; const pk=parsePack("1 "+m[1]); const u=pk?pk.u:m[1].toLowerCase(); o[u]=+m[2].replace(",","."); }); p.packs=Object.keys(o).length?JSON.stringify(o):""; dirty("products",p.id); return; }
-  if(k==="cat"){ delete p._ca; e.target.style.setProperty("--cc",(catById(e.target.value)||{}).color||"transparent"); }
+  if(k==="cat"){ delete p._ca; e.target.style.setProperty("--cc",catById(e.target.value)?catCol(catById(e.target.value)):"transparent"); }
   p[k]=k==="price"?num(e.target.value):e.target.value; dirty("products",p.id);
-  if(k==="name" && p._ca){ const s=row.querySelector(".pdcat"); if(s && s.value!==p.cat){ s.value=p.cat; s.style.setProperty("--cc",(catOf(p)||{}).color||"transparent"); } }
+  if(k==="name" && p._ca){ const s=row.querySelector(".pdcat"); if(s && s.value!==p.cat){ s.value=p.cat; s.style.setProperty("--cc",catOf(p)?catCol(catOf(p)):"transparent"); } }
   const h=row.querySelector(".nmh"); if(h) h.innerHTML=pdRowHead(p);   /* шапка строки сразу показывает новое название и цену */
   if(k==="cat") pdToolbar(); };
 document.addEventListener("input", e=>{ if(e.target.closest && e.target.closest("#pd-body")) pdSet(e); });
@@ -101,7 +101,7 @@ async function pdExport(){ const b=$("#pd-xls"), t0=b?b.textContent:""; if(b){ b
   try{ const X=await loadXLSX(), G=new Map();
     D.products.filter(p=>p.name).forEach(p=>{ const r=pgRoot(p); if(!G.has(r)) G.set(r,[]); G.get(r).push(p); });
     const rows=[...G.entries()].map(([r,M])=>{ const m=prod(r)||M[0], ps=M.map(x=>+x.price).filter(v=>v>0);
-      return {"Артикул":pArt(m), "Название":m.name, "Другие названия":M.filter(x=>x.id!==m.id).map(x=>x.name).join("; "), "Категория":(catOf(m)||{}).name||"", "Ед.":m.unit||"", "Цена для сайта, ₽":ps.length?Math.max(...ps):"", "Страна":m.country&&COUNTRIES[m.country]?COUNTRIES[m.country]:""}; })
+      return {"Артикул":pArt(m), "Название":m.name, "Другие названия":M.filter(x=>x.id!==m.id).map(x=>x.name).join("; "), "Категория":catFull(catOf(m)," / "), "Ед.":m.unit||"", "Цена для сайта, ₽":ps.length?Math.max(...ps):"", "Страна":m.country&&COUNTRIES[m.country]?COUNTRIES[m.country]:""}; })
       .sort((a,b)=>(+a["Артикул"]||1e9)-(+b["Артикул"]||1e9)||String(a["Название"]).localeCompare(String(b["Название"]),"ru"));
     const ws=X.utils.json_to_sheet(rows); ws["!cols"]=[{wch:9},{wch:40},{wch:40},{wch:22},{wch:6},{wch:16},{wch:14}];
     const wb=X.utils.book_new(); X.utils.book_append_sheet(wb,ws,"Каталог"); X.writeFile(wb,"Каталог товаров ФД "+fd(todayISO())+".xlsx");
