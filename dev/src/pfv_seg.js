@@ -99,6 +99,7 @@ function pvInit(){
   $("#pv-bank").addEventListener("click", pvBankClick);
   const debt=$("#pv-debt");
   debt.addEventListener("click", dbClick);
+  debt.addEventListener("click", mbClick); debt.addEventListener("input", mbInput); debt.addEventListener("keydown", mbKey); debt.addEventListener("focusout", mbBlur);
   debt.addEventListener("input", dbInput);
   debt.addEventListener("focusin", e=>{ if(e.target.id==="db-name"){ dbSugOpen(); if(matchMedia("(max-width:720px)").matches) setTimeout(()=>e.target.scrollIntoView({behavior:"smooth", block:"start"}), 250); } });
   debt.addEventListener("focusout", e=>{ if(e.target.id==="db-name") setTimeout(dbSugClose, 120); });
@@ -1116,12 +1117,12 @@ function dbKpiHtml(){
       <div class="${net<0?"neg":"pos"} go" data-dbf="${lateN?"late":"open"}" role="button" tabindex="0" title="${lateN?"Показать просроченные":"Показать все открытые"}"><small>Разница</small><b>${net<0?"−":""}${fm(Math.abs(net))} ₽</b><span>${Math.abs(net)<0.005?"всё ровно":net<0?"вы должны больше":"вам должны больше"}${lateN?" · просрочено "+lateN:""}</span></div></div>`;
 }
 function dbDraw(){
-  const box=$("#pv-debt"); if(!box) return;
+  const box=$("#pv-debt"); if(!box) return; if(PV().dv==="board") return mbDraw();
   if(!DBUI.date) DBUI.date=todayISO(); if(!DBUI.payDate) DBUI.payDate=todayISO();
   const ae=document.activeElement, fid=ae && box.contains(ae) && ae.id ? ae.id : "", pos=fid?ae.selectionStart:null;
   const all=pfArr("debts"), inn=r2(all.filter(x=>x.side!==DB_OUT).reduce((a,x)=>a+dbLeft(x),0)), out=r2(all.filter(x=>x.side===DB_OUT).reduce((a,x)=>a+dbLeft(x),0)), net=r2(inn-out);
   const lateN=all.filter(dbLate).length;
-  box.innerHTML=`<div class="dbhead"><div><h2>Долги</h2><small>Отдельная книжка: кто должен вам и кому должны вы. Оплаты накладных остаются в «Обзоре».</small></div></div>
+  box.innerHTML=`<div class="dbhead"><div><h2>Долги</h2><small>Отдельная книжка: кто должен вам и кому должны вы. Оплаты накладных остаются в «Обзоре».</small></div><div class="mbhr">${mbSwitch("book")}</div></div>
     <p class="note" ${pfLoaded && !D.dbSrv?"":"hidden"}>Чтобы долги были видны на всех устройствах, обновите скрипт таблицы. Пока они хранятся только здесь.</p>
     ${dbKpiHtml()}
     <div class="dbadd"><label class="f dbkind"><span>Сторона</span><div class="fdseg" id="db-side" style="--x:${DBUI.side===DB_OUT?"100%":"0"}"><i></i><button type="button" data-dbk="${DB_IN}" class="${DBUI.side===DB_OUT?"":"on"}" aria-pressed="${DBUI.side!==DB_OUT}">Мне должны</button><button type="button" data-dbk="${DB_OUT}" class="${DBUI.side===DB_OUT?"on":""}" aria-pressed="${DBUI.side===DB_OUT}">Я должен</button></div></label>

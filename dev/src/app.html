@@ -3010,6 +3010,149 @@ dialog .ndr-a{display:flex;gap:6px;flex:none}
 @media (prefers-reduced-motion:reduce){#fd-app .pvseg>i,#fd-app .pvkind>i,#fd-app .pvmb,#fd-app .pvrx,#fd-app .dbc .pdbar i{transition:none}#fd-app .pvcus,#fd-app .pvday,#fd-app .pvcb,#fd-app .pvbar i,#fd-app .pvcbb>i,#fd-app .pvkpi>div,#fd-app .dbc{animation:none}}
 #fd-app .aktdir:not(:empty){margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--line)}#fd-app .adset{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}#fd-app .adset .f{flex:1 1 320px;min-width:0}#fd-app .adbar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:6px 0 10px}#fd-app .adbtns{display:flex;gap:6px;flex-wrap:wrap}#fd-app .adg{border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin:10px 0;background:var(--card,#fff)}#fd-app .adgh{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:4px}#fd-app .adr{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-top:1px dashed var(--line)}#fd-app .adgh+.adr{border-top:0}#fd-app .adk{font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;background:#eef1ec;color:#46604a;text-transform:uppercase;letter-spacing:.03em}#fd-app .adk.k-letter{background:#f1ece3;color:#7a5a24}#fd-app .adk.k-inv{background:#ece9f3;color:#5a4a86}#fd-app .adn{min-width:0}#fd-app .adn b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}#fd-app .adn small{color:var(--muted)}#fd-app .ada{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}#fd-app .adhelp{font-size:13px;margin-top:8px}@media (max-width:640px){dialog .adstage{max-height:52vh;padding:6px}dialog .adtool .f{min-width:0;flex-basis:100%}#fd-app .adr{grid-template-columns:auto minmax(0,1fr)}#fd-app .ada{grid-column:1/-1;justify-content:stretch}#fd-app .ada .btn{flex:1 1 auto}}dialog .adtool{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin:4px 0 6px}dialog .adtool .f{min-width:220px;flex:1 1 220px}dialog .adpg{display:flex;align-items:center;gap:6px}dialog .adtip{font-size:13px;margin:4px 0 10px}dialog .adstage{background:#e9e7e1;border-radius:12px;padding:12px;overflow:auto;max-height:68vh;display:flex;justify-content:center}dialog .adpage{position:relative;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.12);flex:none;touch-action:pan-x pan-y}dialog .adpage canvas{display:block}dialog .adov{position:absolute;cursor:grab;touch-action:none;outline:1.5px dashed rgba(110,40,80,.55);outline-offset:2px;border-radius:4px;user-select:none;-webkit-user-select:none}dialog .adov.drag{cursor:grabbing;outline-style:solid}dialog .adov img{width:100%;height:100%;display:block;pointer-events:none;mix-blend-mode:multiply}dialog .adrs{position:absolute;right:-9px;bottom:-9px;width:18px;height:18px;border-radius:50%;background:#6e2850;border:2px solid #fff;cursor:nwse-resize;box-shadow:0 1px 4px rgba(0,0,0,.3)}dialog .adacts{flex-wrap:wrap}#fd-app .dbkpi>.go{cursor:pointer}#fd-app .dbkpi>.go:hover{filter:brightness(.98)}#fd-app .dbkpi>.go:focus-visible{outline:2px solid var(--accent);outline-offset:2px}#fd-app .dbhead{display:flex;justify-content:space-between;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:4px}
 #fd-app .dbhead h2{margin:0 0 2px}#fd-app .dbhead small{color:var(--muted)}
+/* ===== Доска денег (mb_seg.js, 21.11.2026) ===== */
+#fd-app .mbhr{display:flex;align-items:center;gap:8px}
+#fd-app .mbsw button{padding:7px 14px}
+#fd-app .mbq{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);font:600 15px var(--ui);cursor:pointer;transition:background .2s,color .2s,transform .15s}
+#fd-app .mbq:hover{background:var(--accent-soft);color:var(--accent)}#fd-app .mbq:active{transform:scale(.94)}
+#fd-app .mb.anim .mbb,#fd-app .mb.anim .mbempty{animation:mbfade .32s ease both}
+@keyframes mbfade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+#fd-app .mbhelp{margin:12px 0 4px;padding:14px 16px;border-radius:16px;background:linear-gradient(135deg,#f6eef3,#fbf7f0);border:1px solid #eadbe3;opacity:0;transform:translateY(-6px);transition:opacity .22s,transform .22s}
+#fd-app .mbhelp.on{opacity:1;transform:none}
+#fd-app .mbhelp>b{display:block;font-size:15px;margin-bottom:8px;color:var(--accent)}
+#fd-app .mbhelp ol{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:8px}
+#fd-app .mbhelp li{display:grid;grid-template-columns:24px 1fr;gap:10px;align-items:start;font-size:13.5px;line-height:1.45}
+#fd-app .mbhelp li>span{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font:600 12px var(--ui)}
+#fd-app .mbhelp em{font-weight:600;color:var(--ink)}
+#fd-app .mbchips{display:flex;gap:8px;overflow-x:auto;padding:12px 0 4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+#fd-app .mbchips::-webkit-scrollbar{display:none}
+#fd-app .mbachips{padding-top:2px}
+#fd-app .mbchip{flex:none;display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:99px;border:1px solid var(--line);background:var(--surface);font:500 14px var(--ui);color:var(--ink);cursor:pointer;white-space:nowrap;transition:background .2s,color .2s,border-color .2s,transform .15s}
+#fd-app .mbchip:active{transform:scale(.97)}
+#fd-app .mbchip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+#fd-app .mbchip em{min-width:20px;height:20px;padding:0 6px;border-radius:99px;background:#fbeed7;color:#9a5b00;font:600 11.5px/20px var(--ui);text-align:center}
+#fd-app .mbchip.on em{background:rgba(255,255,255,.25);color:#fff}
+#fd-app .mbchip.add{border-style:dashed;color:var(--accent);background:none}
+#fd-app .mbchip.arch{color:var(--muted);background:none}#fd-app .mbchip.arch.on{background:var(--ink);border-color:var(--ink);color:#fff}
+#fd-app .mbempty{display:grid;justify-items:center;text-align:center;gap:8px;padding:34px 16px 20px}
+#fd-app .mbempty .mbei{width:56px;height:56px;border-radius:18px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font:700 26px var(--ui)}
+#fd-app .mbempty b{font-size:17px}#fd-app .mbempty span{max-width:440px;color:var(--muted);font-size:14px;line-height:1.5}#fd-app .mbempty .btn{margin-top:6px}
+#fd-app .mbb{margin-top:10px}
+#fd-app .mbtop{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+#fd-app input.mbtitle{flex:1;min-width:0;width:auto;border:0;border-bottom:2px solid transparent;border-radius:0;background:none;padding:4px 0;font:650 20px var(--ui);color:var(--ink);outline:none;box-shadow:none;transition:border-color .2s}
+#fd-app input.mbtitle:hover{border-bottom-color:var(--line)}#fd-app input.mbtitle:focus{border-bottom-color:var(--accent)}
+#fd-app .mbtacts{display:flex;gap:6px;flex:none}
+#fd-app .mbkpi>div b{white-space:nowrap}
+#fd-app .mbkpi .neg{box-shadow:inset 3px 0 0 var(--err)}#fd-app .mbkpi .neg b{color:var(--err)}
+#fd-app .mbkpi .pos b{color:var(--ok)}#fd-app .mbkpi .due b{color:#9a5b00}
+#fd-app .mbkpi .go{cursor:pointer;transition:transform .15s,box-shadow .2s}#fd-app .mbkpi .go:hover{transform:translateY(-1px)}
+#fd-app .mbflow{margin-top:12px}
+#fd-app .mbfl{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;color:var(--muted);margin-bottom:5px}
+#fd-app .mbbar{display:flex;height:12px;border-radius:99px;overflow:hidden;background:#eee8e1;gap:2px}
+#fd-app .mbbar i{display:block;height:100%;min-width:4px;transition:flex .5s cubic-bezier(.3,.7,.2,1)}
+#fd-app .mblg{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:6px;font-size:12.5px;color:var(--muted)}
+#fd-app .mblg span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:3px;background:var(--c);margin-right:5px;vertical-align:0}
+#fd-app .mbhints{display:grid;gap:8px;margin-top:12px}
+#fd-app .mbh{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;padding:10px 12px;border-radius:14px;background:#f3f1ff;border:1px solid #e3def8;font-size:13.5px;line-height:1.45;animation:fdin .3s ease both}
+#fd-app .mbh>i{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#fff;color:#5b4aa8;font:700 14px var(--ui)}
+#fd-app .mbh.w{background:#fff6e6;border-color:#f3dfb8}#fd-app .mbh.w>i{color:#9a5b00}
+#fd-app .mbh.ok{background:#eef7f0;border-color:#d4ead9}#fd-app .mbh.ok>i{color:var(--ok)}
+#fd-app .mbh .btn{white-space:nowrap}
+#fd-app .mbcols{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:14px;margin-top:14px;align-items:start}
+#fd-app .mbside{display:grid;gap:14px}
+#fd-app .mbcard{border:1px solid var(--line);border-radius:16px;padding:14px;background:var(--surface)}
+#fd-app .mbsec{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+#fd-app .mbsec h3{margin:0;font-size:15.5px}#fd-app .mbsec h3 small{font-weight:400;color:var(--muted);font-size:12.5px;margin-left:6px}
+#fd-app .lnk{border:0;background:none;color:var(--accent);font:500 13.5px var(--ui);cursor:pointer;padding:4px 0}#fd-app .lnk:hover{text-decoration:underline}
+#fd-app .mbsteps{list-style:none;margin:0;padding:0}
+#fd-app .mbs{display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 6px;border-radius:12px;cursor:pointer;position:relative;transition:background .2s}
+#fd-app .mbs:hover{background:#faf8f5}
+#fd-app .mbs+.mbs::before{content:"";position:absolute;left:25px;top:-9px;height:18px;width:2px;background:#ece6df}
+#fd-app .mb.anim .mbs{animation:mbin .34s cubic-bezier(.3,.7,.2,1) both;animation-delay:var(--d)}
+@keyframes mbin{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+#fd-app .mbs.flash{animation:mbflash 1.4s ease}
+@keyframes mbflash{0%,30%{background:var(--accent-soft)}100%{background:transparent}}
+#fd-app .mbic{position:relative;width:40px;height:40px;border-radius:50%;border:2px solid transparent;background:var(--s);color:var(--c);display:grid;place-items:center;font:700 17px var(--ui);cursor:pointer;padding:0;z-index:1;transition:transform .2s cubic-bezier(.3,.7,.2,1),background .25s,border-color .25s}
+#fd-app .mbic:hover{transform:scale(1.07)}#fd-app .mbic:active{transform:scale(.92)}#fd-app .mbic:disabled{cursor:default;transform:none}
+#fd-app .mbic>i{position:absolute;right:-4px;bottom:-4px;width:18px;height:18px;border-radius:50%;background:var(--ok);color:#fff;font:700 11px/18px var(--ui);text-align:center;border:2px solid #fff;transition:transform .25s cubic-bezier(.3,1.4,.4,1),opacity .2s}
+#fd-app .mbs.plan .mbic{background:#fff;border:2px dashed var(--c)}
+#fd-app .mbs.plan .mbic>i{transform:scale(0);opacity:0}
+#fd-app .mbs.late .mbic{border-color:var(--err)}
+#fd-app .mbs.pop .mbic{animation:mbpop .32s ease}
+@keyframes mbpop{40%{transform:scale(1.18)}100%{transform:scale(1)}}
+#fd-app .mbst{min-width:0;outline:none}
+#fd-app .mbst b{display:block;font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fd-app .mbst small{display:block;color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fd-app .mbst em{font-style:normal;font-weight:600}#fd-app .mbpl{color:#9a5b00}#fd-app .mblate{color:var(--err)}#fd-app .mbdb{color:#5b4aa8}
+#fd-app .mbs.plan .mbst b{color:#4a4440}
+#fd-app .mbsum{font-weight:650;white-space:nowrap;font-variant-numeric:tabular-nums;font-size:14.5px}
+#fd-app .mbsum.pos{color:var(--ok)}#fd-app .mbsum.neg{color:var(--err)}#fd-app .mbs.plan .mbsum{opacity:.65}
+#fd-app .mbtoday{display:flex;align-items:center;gap:8px;margin:4px 0;color:var(--accent);font:600 11.5px var(--ui);text-transform:uppercase;letter-spacing:.04em}
+#fd-app .mbtoday::before,#fd-app .mbtoday::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,transparent,var(--accent))}#fd-app .mbtoday::after{background:linear-gradient(90deg,var(--accent),transparent)}
+#fd-app .mbnone{color:var(--muted);font-size:13.5px;line-height:1.5;padding:6px 0}
+#fd-app .mbdebt{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:9px 6px;border-radius:12px;transition:background .2s}
+#fd-app .mbdebt+.mbdebt{border-top:1px solid var(--line)}
+#fd-app .mbdebt.go{cursor:pointer}#fd-app .mbdebt.go:hover{background:#faf8f5}
+#fd-app .mbdebt b{display:block}#fd-app .mbdebt small{color:var(--muted);font-size:12.5px}
+#fd-app .mbpb{height:6px;border-radius:9px;background:#eee8e1;margin-top:6px;overflow:hidden}#fd-app .mbpb i{display:block;height:100%;background:var(--ok);border-radius:9px;transition:width .6s cubic-bezier(.3,.7,.2,1)}
+#fd-app .mbdl{text-align:right}#fd-app .mbdl b{font-variant-numeric:tabular-nums}#fd-app .mbdl small{display:block}
+#fd-app .mbdl.due b{color:#9a5b00}#fd-app .mbdl.pos b{color:var(--ok)}
+#fd-app .mbnotes{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+#fd-app .mbnote{position:relative;border-radius:14px;background:var(--nb);padding:10px 10px 6px;transition:background .3s,transform .2s,opacity .2s;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+#fd-app .mbnote.born{animation:mbborn .3s cubic-bezier(.3,1.3,.4,1)}@keyframes mbborn{from{transform:scale(.85);opacity:0}}
+#fd-app .mbnote.gone{transform:scale(.9);opacity:0}
+#fd-app .mbnote textarea{display:block;width:100%;min-height:72px;border:0;background:none;resize:vertical;font:14px/1.45 var(--ui);color:var(--ink);outline:none;box-shadow:none;padding:0}
+#fd-app .mbna{display:flex;justify-content:flex-end;gap:2px;opacity:.55;transition:opacity .2s}
+#fd-app .mbnote:hover .mbna,#fd-app .mbnote:focus-within .mbna{opacity:1}
+#fd-app .mbna button{border:0;background:none;cursor:pointer;color:var(--muted);font:15px var(--ui);width:28px;height:26px;border-radius:8px}
+#fd-app .mbna button:hover{background:rgba(0,0,0,.06);color:var(--ink)}
+#fd-app .mbnote.add{display:grid;place-items:center;align-content:center;gap:4px;min-height:96px;border:2px dashed var(--line);background:none;color:var(--accent);font:600 14px var(--ui);cursor:pointer;box-shadow:none;text-align:center}
+#fd-app .mbnote.add small{font-weight:400;color:var(--muted);font-size:12px}
+#fd-app .mbnote.add:hover{border-color:var(--accent)}
+/* окно шага */
+#fd-app dialog.mbdlg{border:0;padding:0;border-radius:22px;width:min(520px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;background:var(--surface);color:var(--ink);box-shadow:0 24px 60px rgba(0,0,0,.25);opacity:0;transform:translateY(14px) scale(.98);transition:opacity .2s,transform .22s cubic-bezier(.3,.7,.2,1)}
+#fd-app dialog.mbdlg.in{opacity:1;transform:none}#fd-app dialog.mbdlg.out{opacity:0;transform:translateY(10px) scale(.98)}
+#fd-app dialog.mbdlg::backdrop{background:rgba(28,24,26,.38)}
+#fd-app .mbdf{padding:18px}
+#fd-app .mbdh{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}#fd-app .mbdh b{font-size:18px}
+#fd-app .mbx{width:34px;height:34px;border-radius:50%;border:0;background:var(--bg);font:20px var(--ui);color:var(--muted);cursor:pointer}
+#fd-app .mbtypes{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+#fd-app .mbtypes button{display:grid;justify-items:center;gap:2px;padding:9px 4px;border-radius:13px;border:1.5px solid var(--line);background:var(--surface);font:500 12.5px/1.2 var(--ui);color:var(--ink);cursor:pointer;transition:background .2s,border-color .2s,color .2s,transform .15s}
+#fd-app .mbtypes button span{font:700 17px var(--ui);color:var(--c)}
+#fd-app .mbtypes button:active{transform:scale(.96)}
+#fd-app .mbtypes button.on{border-color:var(--c);background:var(--s);color:var(--c);font-weight:650}
+#fd-app .mbtip{margin-top:10px;padding:9px 12px;border-radius:12px;background:var(--s);color:var(--ink);font-size:13px;line-height:1.45;border-left:3px solid var(--c);animation:fdin .25s ease both}
+#fd-app .mbgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+#fd-app .mbgrid .f span{font-size:12.5px;color:var(--muted)}
+#fd-app .mbgrid input.bad{border-color:var(--err);animation:mbshake .35s}
+@keyframes mbshake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+#fd-app .mbdone{display:flex;align-items:center;gap:12px;width:100%;margin-top:12px;padding:10px 12px;border-radius:14px;border:1.5px solid var(--line);background:var(--surface);cursor:pointer;text-align:left;font:inherit;color:inherit;transition:border-color .2s,background .2s}
+#fd-app .mbdone>i{flex:none;width:44px;height:26px;border-radius:99px;background:#d9d2ca;position:relative;transition:background .25s}
+#fd-app .mbdone>i::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .25s cubic-bezier(.3,.7,.2,1)}
+#fd-app .mbdone.on{border-color:#cfe5d6;background:#f3faf5}#fd-app .mbdone.on>i{background:var(--ok)}#fd-app .mbdone.on>i::after{left:21px}
+#fd-app .mbdone b{display:block;font-size:14px}#fd-app .mbdone small{display:block;color:var(--muted);font-size:12px}
+#fd-app .mbck{display:flex;gap:10px;align-items:flex-start;margin-top:10px;font-size:13.5px;cursor:pointer}
+#fd-app .mbck input{width:18px;height:18px;flex:none;margin:1px 0 0;accent-color:var(--accent)}
+#fd-app .mbinfo{margin-top:10px;font-size:13px;color:var(--muted);line-height:1.45;padding:8px 12px;border-radius:12px;background:var(--bg)}
+#fd-app .mbinfo.ok{background:#f3f1ff;color:#3f3478}
+#fd-app .mbdact{display:flex;align-items:center;gap:8px;margin-top:16px}
+@media(max-width:900px){#fd-app .mbcols{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:600px){
+  #fd-app .mbhr{width:100%}#fd-app .mbsw{flex:1}#fd-app .mbsw button{padding:7px 8px}
+  #fd-app .mbkpi{grid-template-columns:1fr 1fr}#fd-app .mbkpi b{font-size:17px}
+  #fd-app .mbtop{flex-wrap:wrap}#fd-app input.mbtitle{flex-basis:100%;font-size:18px}#fd-app .mbtacts{margin-left:auto}
+  #fd-app .mbh{grid-template-columns:28px minmax(0,1fr)}#fd-app .mbh .btn{grid-column:2;justify-self:start}
+  #fd-app .mbcard{padding:12px 10px}
+  #fd-app dialog.mbdlg{width:100vw;max-width:100vw;max-height:92dvh;margin:auto 0 0;border-radius:22px 22px 0 0;transform:translateY(40px)}
+  #fd-app dialog.mbdlg.in{transform:none}#fd-app dialog.mbdlg.out{transform:translateY(40px)}
+  #fd-app .mbdf{padding:16px 14px calc(16px + env(safe-area-inset-bottom))}
+  #fd-app .mbtypes button{font-size:11.5px;padding:8px 2px}
+  #fd-app .mbgrid{grid-template-columns:1fr 1fr}
+  #fd-app .mbdact .btn{flex:1}#fd-app .mbdact span{display:none}
+}
+@media(max-width:380px){#fd-app .mbgrid{grid-template-columns:1fr}#fd-app .mbtypes{grid-template-columns:repeat(2,1fr)}}
+@media(prefers-reduced-motion:reduce){#fd-app .mb *,#fd-app dialog.mbdlg{animation:none!important;transition:none!important}}
+
 #fd-app .dbadd{display:grid;width:100%;min-width:0;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1.15fr) max-content;column-gap:12px;row-gap:12px;align-items:end;margin:4px 0 2px}
 #fd-app .dbadd .dbnote{grid-column:3 / -1}
 #fd-app .dbadd .f{display:flex;flex-direction:column;justify-content:flex-end;gap:6px;margin:0;min-width:0;font-size:12px;line-height:16px;color:var(--muted)}
@@ -4023,7 +4166,7 @@ setTimeout(evsArm, 5000);
 const jDesc = j => "№ "+j.number+" от "+fd(j.date)+" — "+shortCus(calc(j.snap.dr, j.snap));
 function deviceName(){ const u=navigator.userAgent||""; return /Android/i.test(u)?"Android":/iPhone|iPad/i.test(u)?"iPhone/iPad":/Windows/i.test(u)?"Windows":/Mac OS/i.test(u)?"Mac":"браузер"; }
 const online = () => !!(API_URL && pass());
-const pend = {suppliers:new Map(), customers:new Map(), products:new Map(), prices:new Map(), specs:new Map(), contracts:new Map(), journal:new Map(), costs:new Map(), doccosts:new Map(), psettings:new Map(), daytasks:new Map(), purchases:new Map(), pother:new Map(), debts:new Map(), cats:new Map(), invoices:new Map()};
+const pend = {suppliers:new Map(), customers:new Map(), products:new Map(), prices:new Map(), specs:new Map(), contracts:new Map(), journal:new Map(), costs:new Map(), doccosts:new Map(), psettings:new Map(), daytasks:new Map(), purchases:new Map(), pother:new Map(), debts:new Map(), cats:new Map(), invoices:new Map(), mboard:new Map()};
 const specOf = (c,p) => ((D.specs||{})[c]||{})[p] || {};
 function dirtySpec(c,p){ const x=specOf(c,p); pend.specs.set(c+"|"+p,{s:++stamp, del:!(x.spec||x.ste||x.art)}); undoNote("specs",c+"|"+p); changed(); }
 let serverOld=false;
@@ -4039,7 +4182,7 @@ const PENDK="frudom-docs-pend";
 function savePend(){ try{ const o={}; Object.keys(pend).forEach(t=>{ if(pend[t].size) o[t]=[...pend[t].entries()]; }); lsSet(PENDK, Object.keys(o).length?JSON.stringify(o):null); }catch(e){} }
 (function(){ try{ const o=JSON.parse(lsGet(PENDK)||"null"); if(!o) return; Object.keys(o).forEach(t=>{ if(!pend[t]) return; (o[t]||[]).forEach(([id,v])=>{ pend[t].set(id,v); if(v&&v.s>stamp) stamp=v.s; }); }); }catch(e){} })();
 function changed(){ if(dirtyBulk) return; saveLocal(); savePend(); if(!online()) return; setStatus("wait","Есть несохранённое"); clearTimeout(syncT); syncT=setTimeout(flush,1200); }
-const hasPending = () => Object.keys(pend).some(t=>pend[t].size && (t!=="pother" || D.poSrv) && (t!=="debts" || D.dbSrv) && (t!=="cats" || D.catSrv) && (t!=="invoices" || D.invSrv)) || evq.length>0;
+const hasPending = () => Object.keys(pend).some(t=>pend[t].size && (t!=="pother" || D.poSrv) && (t!=="debts" || D.dbSrv) && (t!=="mboard" || D.mbSrv) && (t!=="cats" || D.catSrv) && (t!=="invoices" || D.invSrv)) || evq.length>0;
 
 /* запрос к таблице: не дольше 45 секунд; при ошибке понятно, что случилось — нет интернета, Google не ответил или таблица вернула ошибку */
 async function apiFetch(url, opt){ const ac=window.AbortController?new AbortController():null, tm=ac&&setTimeout(()=>ac.abort(),(opt&&opt.tmo)||45000);
@@ -4055,8 +4198,8 @@ async function api(payload){
 function buildChanges(){
   if(evs.length && (Object.keys(pend).some(t=>pend[t].size) || evq.length)) evsTake();   /* тихие события — заодно с настоящим сохранением */
   const ch={}, sent={};
-  ["suppliers","customers","cats","products","contracts","journal","costs","doccosts","psettings","daytasks","purchases","pother","debts","invoices"].forEach(t=>{
-    if(!pend[t].size || (t==="pother" && !D.poSrv) || (t==="debts" && !D.dbSrv) || (t==="cats" && !D.catSrv) || (t==="invoices" && !D.invSrv)) return;   /* старый скрипт таблицы не знает этот лист — держим на устройстве */ const up=[], del=[]; sent[t]=new Map(pend[t]);
+  ["suppliers","customers","cats","products","contracts","journal","costs","doccosts","psettings","daytasks","purchases","pother","debts","invoices","mboard"].forEach(t=>{
+    if(!pend[t].size || (t==="pother" && !D.poSrv) || (t==="debts" && !D.dbSrv) || (t==="mboard" && !D.mbSrv) || (t==="cats" && !D.catSrv) || (t==="invoices" && !D.invSrv)) return;   /* старый скрипт таблицы не знает этот лист — держим на устройстве */ const up=[], del=[]; sent[t]=new Map(pend[t]);
     pend[t].forEach((v,id)=>{ if(v.del) del.push(id); else { const o = t==="journal" ? jRow(D.journal.find(x=>x.id===id)) : (D[t]||[]).find(x=>x.id===id); if(o) up.push(o); else del.push(id); } });
     ch[t]={upsert:up, del};
   });
@@ -4248,7 +4391,7 @@ $("#fd-enter").onclick=async()=>{
 };
 async function logout(){
   logEv("Выход","Выход из системы"); try{ await flush(); }catch(e){} try{ clearTimeout(prefsT); await pushPrefs(); }catch(e){}
-  lsSet(PKEY,null); lsSet(MKEY,null); lsSet(UKEY,null); evCache=null; delete D.costs; delete D.doccosts; delete D.psettings; delete D.zk; delete D.purchases; delete D.zkSrv; delete D.pother; delete D.poSrv; delete D.debts; delete D.dbSrv; pfLoaded=false; saveLocal();
+  lsSet(PKEY,null); lsSet(MKEY,null); lsSet(UKEY,null); evCache=null; delete D.costs; delete D.doccosts; delete D.psettings; delete D.zk; delete D.purchases; delete D.zkSrv; delete D.pother; delete D.poSrv; delete D.debts; delete D.dbSrv; delete D.mboard; delete D.mbSrv; pfLoaded=false; saveLocal();
   const nav=$("#fd-app nav.tabs"); nav.classList.remove("editing"); $("#tab-bar").hidden=true; prefsDirty=false;
   showLogin(); setStatus("local"); applyRole(); toast("info","Вы вышли из системы","");
 }
@@ -6408,7 +6551,7 @@ const PF = () => (D.pf = D.pf || {per:"month", sup:"", cus:"", from:"", to:""});
 const pfArr = k => (D[k] = Array.isArray(D[k]) ? D[k] : []);
 async function loadProfit(quiet){
   if(!me().admin) return;
-  try{ if(hasPending()) await flush(); const j=await api({action:"profit"}); if(hasPending()||syncBlocked)return; rememberBase(j); D.costs=j.costs||[]; D.doccosts=j.doccosts||[]; D.psettings=j.psettings||[]; if(Array.isArray(j.purchases)) zkMerge(j.purchases); else D.zkSrv=false; poMerge(j.pother); dbMerge(j.debts); pfLoaded=true; pfAt=Date.now(); saveLocal(); $("#pf-msg").textContent=""; if(!quiet) toast("ok","Данные о прибыли обновлены",""); }
+  try{ if(hasPending()) await flush(); const j=await api({action:"profit"}); if(hasPending()||syncBlocked)return; rememberBase(j); D.costs=j.costs||[]; D.doccosts=j.doccosts||[]; D.psettings=j.psettings||[]; if(Array.isArray(j.purchases)) zkMerge(j.purchases); else D.zkSrv=false; poMerge(j.pother); dbMerge(j.debts); mbMerge(j.mboard); pfLoaded=true; pfAt=Date.now(); saveLocal(); $("#pf-msg").textContent=""; if(!quiet) toast("ok","Данные о прибыли обновлены",""); }
   catch(e){ $("#pf-msg").textContent = /unknown action/.test(e.message) ? "Чтобы прибыль сохранялась в таблицу, обновите скрипт таблицы (новая версия). Пока данные хранятся только на этом устройстве." : "Не получилось загрузить: "+e.message; pfLoaded=true; }
   if(curTab==="profit") drawProfit();
   if(curTab==="purchase"){ drawPurchase(); drawHist(); zkpDraw(); }
