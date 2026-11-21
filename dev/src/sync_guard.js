@@ -1,5 +1,5 @@
 /* Server baselines survive reloads; pending edits are never used as an authoritative baseline. */
-const SYNC_TABLES=['suppliers','customers','products','contracts','journal','costs','doccosts','psettings','daytasks','prices','specs','purchases','pother','debts','cats','invoices'];
+const SYNC_TABLES=['suppliers','customers','products','contracts','journal','costs','doccosts','psettings','daytasks','prices','specs','purchases','pother','debts','cats','invoices','mboard'];
 const BASE = D.syncBase = D.syncBase || {};
 let conflictList = D.syncConflicts || [], syncBlocked = conflictList.length > 0, docSaving = false;
 const syncKey=(t,r)=>t==='prices'||t==='specs'?r.customerId+'|'+r.productId:r.id;
@@ -34,7 +34,7 @@ function conflictSummary(r,t){if(!r)return 'Запись удалена';if(t===
 /* Окно «Запись изменена»: по-человечески (13.11.2026) — что за запись, что именно отличается «в таблице / у вас», без служебного кода.
    Подписи полей — из листов таблицы (S в Code.gs, вставляет build.py), закупка и накладная раскрываются по товарам. */
 const CF_LBL=/*__SYNC_LABELS__*/{};
-const CF_TBL={suppliers:'Поставщик',customers:'Заказчик',products:'Товар',contracts:'Договор',journal:'Накладная',costs:'Закупочная цена',doccosts:'Закупка по накладной',psettings:'Налог для прибыли',daytasks:'Задача на день',prices:'Цена для заказчика',specs:'Код товара для заказчика',purchases:'Закупка Саида',pother:'Расход / доход',debts:'Долг',cats:'Категория товаров',invoices:'Отдельный счёт'};
+const CF_TBL={suppliers:'Поставщик',customers:'Заказчик',products:'Товар',contracts:'Договор',journal:'Накладная',costs:'Закупочная цена',doccosts:'Закупка по накладной',psettings:'Налог для прибыли',daytasks:'Задача на день',prices:'Цена для заказчика',specs:'Код товара для заказчика',purchases:'Закупка Саида',pother:'Расход / доход',mboard:'Доска денег',debts:'Долг',cats:'Категория товаров',invoices:'Отдельный счёт'};
 const CF_MONEY=/^(price|sum|expense|paid|total|limit|cost|amount|maxSum|left)$/i, CF_DATE=/^(date|from|to|due|start|end|validTo)$/;
 const CF_SKIP=/^(id|updated|created|by|at|art|artOwn|seen|customerId|supplierId|productId|branchId|contractId|cat|grp|lines|snap|state|pays|spec|akt|eis)$/;
 function cfV(k,v){ if(v==null||v==='') return '—'; v=String(v);

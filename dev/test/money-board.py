@@ -1,0 +1,102 @@
+"""«Прибыль» → «Долги» → «Доска денег»: доска, шаги (сделано/план), связь с книжкой долгов, подсказки, заметки, сохранение в таблицу.
+ПК и телефон (PH=1). Запуск на чистом тестовом сервере (node test/server.js)."""
+import asyncio, os, json, urllib.request
+from playwright.async_api import async_playwright
+fails=[]
+def ok(c,m): print(('OK  ' if c else 'FAIL'),m); (None if c else fails.append(m))
+PH=os.environ.get('PH')=='1'; VW=(390,844) if PH else (1300,900); TG='тел' if PH else 'ПК'
+def rows(t):
+    d=json.load(urllib.request.urlopen('http://localhost:8787/dump')).get(t) or [[]]; h=d[0]; return [dict(zip(h,r)) for r in d[1:] if any(str(x) for x in r)]
+async def step(pg, k, s, who, done=True, note=""):
+    await pg.click('[data-mb="add"]'); await pg.wait_for_selector('#mb-dlg[open]'); await pg.wait_for_timeout(250)
+    await pg.click(f'#mb-dlg [data-mbk="{k}"]'); await pg.fill('#mb-sum', s); await pg.fill('#mb-who', who)
+    if note: await pg.fill('#mb-note', note)
+    on=await pg.get_attribute('#mb-dlg [data-mbd="done"]','aria-pressed')
+    if (on=='true')!=done: await pg.click('#mb-dlg [data-mbd="done"]')
+    await pg.click('#mb-dlg [data-mbd="save"]'); await pg.wait_for_timeout(600)
+async def main():
+    async with async_playwright() as p:
+        b=await p.chromium.launch(); ctx=await b.new_context(viewport={'width':VW[0],'height':VW[1]}, is_mobile=PH, has_touch=PH); pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
+        await pg.goto('http://localhost:8787/page'); await pg.click('#fd-who [data-who="Даниил"]'); await pg.fill('#fd-pass','1111'); await pg.click('#fd-enter'); await pg.wait_for_timeout(2500)
+        await pg.evaluate("location.hash='#pribyl'"); await pg.wait_for_timeout(2500)
+        await pg.click('#pv-seg [data-pv="debt"]'); await pg.wait_for_timeout(600)
+        ok(await pg.locator('#mb-sw [data-dbv="board"]').count()==1, f'{TG}: в «Долгах» переключатель «Книжка долгов | Доска денег»')
+        await pg.click('#mb-sw [data-dbv="board"]'); await pg.wait_for_timeout(500)
+        ok(await pg.locator('#mb-help.on').count()==1, f'{TG}: при первом заходе — подсказка «Как пользоваться»')
+        await pg.click('[data-mb="helpok"]'); await pg.wait_for_timeout(400)
+        ok(await pg.locator('#mb-help').is_hidden(), f'{TG}: «Понятно» прячет подсказку')
+        ok(await pg.locator('.mbempty').count()==1, f'{TG}: пустая доска — объяснение и «Создать доску»')
+        await pg.click('.mbempty [data-mb="new"]'); await pg.wait_for_timeout(500)
+        await pg.fill('#mb-title','Перчатки для Зоопарка'); await pg.keyboard.press('Enter'); await pg.wait_for_timeout(600)
+        ok(await pg.locator('#mb-dlg[open]').count()==1, f'{TG}: Enter в названии пустой доски сразу открывает «Новый шаг»')
+        await pg.click('#mb-dlg [data-mbd="close"]'); await pg.wait_for_timeout(400)
+        ok('Перчатки для Зоопарка' in (await pg.text_content('.mbchip.on')), f'{TG}: название доски в чипе')
+        ok(await pg.locator('.mbh').count()>=1 and 'первого шага' in (await pg.text_content('.mbhints')), f'{TG}: подсказка «Начните с первого шага»')
+        # пустая сумма — не сохраняется
+        await pg.click('[data-mb="add"]'); await pg.wait_for_timeout(300); await pg.click('#mb-dlg [data-mbd="save"]'); await pg.wait_for_timeout(300)
+        ok(await pg.locator('#mb-dlg[open]').count()==1, f'{TG}: без суммы шаг не сохраняется, окно остаётся')
+        await pg.keyboard.press('Escape'); await pg.wait_for_timeout(400)
+        await step(pg,'loan','300000','Таня',True,'на закупку перчаток')
+        D=await pg.evaluate("__fd.D().debts.filter(x=>x.name==='Таня').map(x=>({s:x.side,sum:x.sum,paid:x.paid,note:x.note}))")
+        ok(len(D)==1 and D[0]['s']=='Я должен' and float(D[0]['sum'])==300000, f'{TG}: «Взял в долг · Таня» создал долг «Я должен 300 000» в книжке ({D})')
+        await pg.wait_for_timeout(500); k=[x.replace('\xa0',' ') for x in await pg.locator('.mbkpi>div').all_text_contents()]
+        ok('300 000,00' in k[0] and '300 000,00' in k[2], f'{TG}: плитки «На руках» и «Долги» = 300 000 ({[x[:40] for x in k]})')
+        ok('ещё вернуть 300 000' in k[3], f'{TG}: «Останется в конце» предупреждает: из них ещё вернуть 300 000')
+        await step(pg,'out','268 400','Перчатки')
+        await step(pg,'in','412000','Зоопарк',False)
+        await pg.wait_for_timeout(500); txt=(await pg.text_content('.mbkpi')).replace('\xa0',' ')
+        ok('31 600,00' in txt and '412 000,00' in txt, f'{TG}: на руках 31 600, ещё придёт 412 000')
+        ok(await pg.locator('.mbs.plan').count()==1, f'{TG}: шаг в плане — пунктиром')
+        hb=pg.locator('.mbh [data-mb^="pre:repay"]')
+        ok(await hb.count()==1, f'{TG}: подсказка «Таня — ещё нужно вернуть… Запланировать возврат»')
+        await hb.click(); await pg.wait_for_timeout(400)
+        ok((await pg.input_value('#mb-who'))=='Таня' and '300' in (await pg.input_value('#mb-sum')), f'{TG}: возврат подставлен: Таня, 300 000')
+        li=await pg.text_content('#mb-li'); ok('Таня' in li and 'останется 0' in li, f'{TG}: в окне видно, какой долг уменьшится ({li.strip()[:70]})')
+        await pg.click('#mb-dlg [data-mbd="save"]'); await pg.wait_for_timeout(600)
+        ok(float((await pg.evaluate("__fd.D().debts.find(x=>x.name==='Таня').paid"))or 0)==0, f'{TG}: возврат в плане долг не трогает')
+        ok('по плану не хватает' not in (await pg.text_content('.mbb')).lower(), f'{TG}: план сходится')
+        sid=await pg.evaluate("(()=>{const r=__fd.D().mboard[0]; return JSON.parse(r.data).steps.find(s=>s.k==='repay').id})()")
+        await pg.click(f'[data-mbdone="{sid}"]'); await pg.wait_for_timeout(700)
+        d=await pg.evaluate("__fd.D().debts.find(x=>x.name==='Таня')")
+        ok(float(d['paid'])==300000 and d['closed']=='1', f'{TG}: кружок «сделано» у возврата погасил долг Тани полностью')
+        ok('рассчитались' in (await pg.text_content('.mbside')), f'{TG}: в блоке «Долги» — «рассчитались»')
+        await pg.locator('#fd-toasts .ta', has_text='Отменить').last.click(); await pg.wait_for_timeout(700)
+        d=await pg.evaluate("__fd.D().debts.find(x=>x.name==='Таня')")
+        ok(float(d['paid'])==0 and d['closed']!='1', f'{TG}: «Отменить» вернул долг (погашено {d["paid"]})')
+        # заметка
+        await pg.click('[data-mb="note"]'); await pg.wait_for_timeout(300); await pg.keyboard.type('Таня просила до 1 декабря'); await pg.wait_for_timeout(900)
+        ok(await pg.evaluate("JSON.parse(__fd.D().mboard[0].data).notes[0].t")=='Таня просила до 1 декабря', f'{TG}: заметка сохраняется сама')
+        # открыть долг в книжке
+        await pg.click('.mbdebt.go'); await pg.wait_for_timeout(600)
+        ok(await pg.locator('#db-list .dbc').count()>=1 and await pg.locator('#mb-sw [data-dbv="book"].on').count()==1, f'{TG}: нажатие на долг открывает книжку долгов')
+        await pg.click('#mb-sw [data-dbv="board"]'); await pg.wait_for_timeout(500)
+        # сохранение в таблицу
+        await pg.evaluate("__fd.flush && __fd.flush()"); await pg.wait_for_timeout(2500)
+        R=rows('Доска денег'); ok(len(R)==1 and R[0]['Доска']=='Перчатки для Зоопарка' and len(json.loads(R[0]['Шаги и заметки (не редактировать)'])['steps'])==4, f'{TG}: доска записана в лист «Доска денег» ({len(R)} строк)')
+        ok(any(r['Кто']=='Таня' for r in rows('Долги')), f'{TG}: долг Тани записан в лист «Долги»')
+        # удалить шаг займа -> долг без погашений убирается
+        lid=await pg.evaluate("(()=>{const r=__fd.D().mboard[0]; return JSON.parse(r.data).steps.find(s=>s.k==='loan').id})()")
+        await pg.click(f'[data-mbstep="{lid}"] .mbst'); await pg.wait_for_timeout(400)
+        b2=pg.locator('#mb-dlg [data-mbd="del"]'); await b2.click(); await b2.click(); await pg.wait_for_timeout(600)
+        ok(await pg.evaluate("!__fd.D().debts.some(x=>x.name==='Таня')"), f'{TG}: удалён шаг «Взял в долг» — долг без погашений убран из книжки')
+        await pg.locator('#fd-toasts .ta', has_text='Вернуть').last.click(); await pg.wait_for_timeout(600)
+        ok(await pg.evaluate("__fd.D().debts.some(x=>x.name==='Таня')"), f'{TG}: «Вернуть» вернул шаг и долг')
+        # закрыть доску
+        await pg.click('[data-mb="arch"]'); await pg.wait_for_timeout(500)
+        ok(await pg.locator('.mbchip.arch').count()==1 and await pg.locator('.mbempty').count()==1, f'{TG}: «Закрыть» убирает доску в «Закрытые»')
+        await pg.click('.mbchip.arch'); await pg.wait_for_timeout(500)
+        ok(await pg.locator('[data-mb="unarch"]').count()==1, f'{TG}: в «Закрытых» доску можно вернуть')
+        await pg.click('[data-mb="unarch"]'); await pg.wait_for_timeout(500)
+        # перезагрузка: всё на месте, вид «Доска» запомнен
+        await pg.evaluate("__fd.flush && __fd.flush()"); await pg.wait_for_timeout(2000)
+        await pg.reload(); await pg.wait_for_timeout(3000); await pg.evaluate("location.hash='#pribyl'"); await pg.wait_for_timeout(2500)
+        await pg.click('#pv-seg [data-pv="debt"]'); await pg.wait_for_timeout(800)
+        ok(await pg.locator('.mbs').count()==4, f'{TG}: после перезагрузки доска и 4 шага на месте')
+        ok(await pg.locator('#mb-help.on').count()==0, f'{TG}: подсказка «Как пользоваться» больше не мешает')
+        ok(await pg.evaluate("document.documentElement.scrollWidth")<=VW[0], f'{TG}: без прокрутки вбок')
+        await pg.screenshot(path=f'/tmp/mb-{TG}.png', full_page=True)
+        await pg.click('[data-mb="add"]'); await pg.wait_for_timeout(400); await pg.screenshot(path=f'/tmp/mb-dlg-{TG}.png'); await pg.keyboard.press('Escape')
+        ok(not errs, f'{TG}: без ошибок {errs[:2]}')
+        await b.close()
+    print('ИТОГ:', 'ошибок нет' if not fails else f'{len(fails)} ошибок')
+asyncio.run(main())
