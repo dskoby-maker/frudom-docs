@@ -53,7 +53,7 @@ async def main():
         ok('Рис круглый' in (await pg.text_content('#dc-zki .dzr:nth-child(1) .skpk-sel')), 'Enter выбрал первую подсказку, видна кнопка «Сменить»')
         inf=await pg.text_content('#dc-zki .dzr:nth-child(1) .dzinf'); ok('600,00' in inf and '60,00' in inf, f'себестоимость со склада видна сразу: {inf.strip()[:90]}')
         ok(await pg.locator('#dc-zki .dzr:nth-child(1) .dzc').count()==0, 'у товара «со склада» нет поля цены Саида')
-        ok(await pg.locator('#dc-zki .dzship input:checked').count()==1, 'галочка «Товар уже уехал» стоит (накладная на сегодня)')
+        ok(await pg.locator('#dc-zki .dzship.nochk').count()==1, 'подсказка «Со склада спишется сразу»')
         # лук: часть со склада — 3 кг, остальные 2 кг у Саида по 30
         await pg.click('#dc-zki .dzr:nth-child(3) [data-dzm="x"]'); await pg.wait_for_timeout(200)
         await pg.fill('#dc-zki .dzr:nth-child(3) .skpq','лук'); await pg.wait_for_timeout(150); await pg.click('#dc-zki .dzr:nth-child(3) [data-skpk]'); await pg.wait_for_timeout(250)

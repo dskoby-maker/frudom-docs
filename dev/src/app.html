@@ -1515,6 +1515,8 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .sklday{position:sticky;top:var(--dch,0px);z-index:1;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:12px 6px 6px;background:linear-gradient(var(--surface) 70%,transparent)}#fd-app .sklday:first-letter{text-transform:uppercase}
 #fd-app .sklr{display:grid;grid-template-columns:48px 210px minmax(0,1fr) 96px;gap:12px;align-items:start;padding:9px 6px;border-bottom:1px solid rgba(28,34,32,.06);font-size:13.5px;animation:fdin .25s ease both;animation-delay:var(--d,0ms)}
 #fd-app .sklr.pend{background:var(--warn-soft);border-radius:10px}
+#fd-app .skwall{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 12px;margin:0 0 10px;padding:10px 12px;border-radius:12px;background:var(--warn-soft);font-size:13.5px;color:#6b4a0f}#fd-app .skwall>span{flex:1 1 260px;line-height:1.4}
+#fd-app .dcard .dzship.nochk{cursor:default;background:rgba(46,125,80,.07)}#fd-app .dcard .dzship.nochk b{display:block}
 #fd-app .sklr.go{cursor:pointer;border-radius:10px;transition:background .15s}#fd-app .sklr.go:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
 @media (hover:hover){#fd-app .sklr.go:hover{background:rgba(28,34,32,.04)}#fd-app .sklr.go:hover .sklgo{color:var(--accent);transform:translateX(2px)}}
 #fd-app .sklr .sklw{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:4px 6px;text-align:right}
@@ -8282,7 +8284,7 @@ function dcZkDraw(j, keep){ const box=$("#dc-zki"); if(!box) return; const x=doc
     ${dzSaidHtml(j)}
     <div class="dzl">${x.lines.map(row).join("")}</div>
     <label class="dzr dzx"><span><b>Прочие расходы</b><small>доставка, грузчики, телега</small></span><input class="dze" inputmode="decimal" value="${esc(val("_exp", dc&&dc.expense?String(dc.expense).replace(".",","):""))}" placeholder="0"><em>₽</em></label>
-    ${any?`<label class="dzship"><input type="checkbox" class="dzshipc"${DZ.ship?" checked":""}><span><b>Товар уже уехал — сразу списать со склада</b><small>Снимите галочку, если поставка ещё не уехала: товар только зарезервируется, отгрузить можно будет кнопкой «Отгрузить».</small></span></label>`:""}
+    ${any?`<p class="dzship nochk"><span><b>Со склада спишется сразу</b><small>Как только нажмёте «Сохранить закупку», остаток на складе уменьшится — отдельно отгружать не нужно.</small></span></p>`:""}
     <div class="dzs-sum" id="dc-zks"></div>
     <div class="row dzact"><button type="button" class="btn pri" data-zkc="save">Сохранить закупку</button><span class="muted" id="dc-zkmsg"></span></div>`;
   dcZkSum(j, box); }
@@ -8363,7 +8365,7 @@ document.addEventListener("click", async e=>{ const b=e.target.closest("#fd-dcar
     let left=r2(v); P.forEach((o,i)=>{ const w=o.l.net*o.dq/o.l.qty, part=i===P.length-1?left:r2(v*w/pb); left=r2(left-part); const el=box.querySelector(`.dzc[data-k="${dzKey(o.l)}"]`), be=box.querySelector(`.dzb[data-k="${dzKey(o.l)}"]`), bq=be&&+num(be.value)>0?+num(be.value):0; if(el){ el.value=String(Math.round(part/(bq||o.dq)*100)/100).replace(".",","); el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); } });
     pcFromKg("dz"); dcZkSum(j, box); $("#dc-zkmsg").textContent="Разнесено — проверьте и нажмите «Сохранить закупку»."; return; }
   if(a==="save"){ const ch=dzChanges(j); if(ch.err){ toast("err","Склад: проверьте строку", ch.err); $("#dc-zkmsg").textContent=ch.err; return; }
-    const cv={}, bv={}; box.querySelectorAll(".dzc").forEach(el=>cv[el.dataset.k]=el.value); box.querySelectorAll(".dzb").forEach(el=>bv[el.dataset.k]=el.value); const ev0=box.querySelector(".dze").value, ship=!!(box.querySelector(".dzshipc")||{}).checked;
+    const cv={}, bv={}; box.querySelectorAll(".dzc").forEach(el=>cv[el.dataset.k]=el.value); box.querySelectorAll(".dzb").forEach(el=>bv[el.dataset.k]=el.value); const ev0=box.querySelector(".dze").value, ship=true;   /* склад без резерва — списываем сразу */
     let rep=null;
     if(ch.list.length){ b.disabled=true; const t0=b.textContent; b.textContent="Провожу по складу…";
       try{ rep=await dzApply(j, ch.list, ship); }
@@ -8525,12 +8527,12 @@ function bzDraw(keep){ const box=$("#bz-zki"); if(!box||!BZ) return; const G=bzD
     const fr = o.zfOk && zfOn("bz",o.k);
     return `<div class="dzr${st?" sk":""}${fr?" free":""}"><span><b>${esc(o.name)}</b><small>${esc(qfmt(o.qty,o.unit))} · ${o.docs.length} ${plural(o.docs.length,["накладная","накладные","накладных"])}${o.mixed?` · <span class="miss">цены в накладных разные</span>`:""}</small></span>${o.zfOk?zfLbl():""}${pc.cell}${zt}${pc.sub}${o.zfOk?`<div class="dzbq">${zfBtn("bz",o.k,o.name)}</div>`:""}${bzSrcHtml(o)||old}</div>`; };
   const any=BZ.s&&BZ.rows.some(o=>{ const s=bzSt(o); return s && !s.lock && (s.m||s.m0); });
-  if(BZ.ship==null) BZ.ship=G.every(j=>j.date<=todayISO());
+  BZ.ship=true;   /* склад без резерва: списываем сразу */
   box.innerHTML=`<div class="dzh"><b>${BZ.mg?"Одна закупка на весь день у заказчика":"Закупка на комплект"}</b><small class="muted">${BZ.mg?`Объединено ${BZ.mg} ${plural(BZ.mg,["строка","строки","строк"])}, ${G.length} ${docsWord(G.length)}. Впишите, сколько Саид потратил всего, и нажмите «Записать одной суммой» — сумма разделится по накладным пропорционально их сумме. Или укажите цену за товар — она пойдёт во все накладные. `:`Одна цена за товар — сразу во все ${G.length} ${docsWord(G.length)}. `} Пустое поле — цена из «Закупочных цен».${dzOn()?" Если товар взяли со склада — нажмите «Со склада» под товаром.":""}</small></div>
     <div class="dzbulk"><label>Вся закупка одной суммой<input class="bzs" inputmode="decimal" value="${esc(V._bulk||"")}" placeholder="0"> ₽</label><button type="button" class="btn sm pri" data-bzk="one" title="Записать закупку всего комплекта этой суммой — делится по накладным пропорционально сумме">Записать одной суммой</button><button type="button" class="btn sm" data-bzk="spread">Разнести по товарам</button></div>${oneInfo(G,"data-bzk")}
     <div class="dzl">${BZ.rows.map(row).join("")}</div>
     <label class="dzr dzx"><span><b>Прочие расходы</b><small>на весь комплект · делятся по накладным пропорционально сумме</small></span><input class="bze" inputmode="decimal" value="${esc(V._exp!=null?V._exp:(exp0?String(exp0).replace(".",","):""))}" placeholder="0"><em>₽</em></label>
-    ${any?`<label class="dzship"><input type="checkbox" class="bzshipc"${BZ.ship?" checked":""}><span><b>Товар уже уехал — сразу списать со склада</b><small>Снимите галочку, если поставка ещё не уехала: товар только зарезервируется, отгрузить можно будет кнопкой «Отгрузить» в накладной.</small></span></label>`:""}
+    ${any?`<p class="dzship nochk"><span><b>Со склада спишется сразу</b><small>Как только нажмёте «Сохранить закупку», остаток на складе уменьшится — отдельно отгружать не нужно.</small></span></p>`:""}
     <div class="dzs-sum" id="bz-zks"></div>
     <div class="row dzact"><button type="button" class="btn pri" data-bzk="save">Сохранить закупку</button><span class="muted" id="bz-msg"></span></div>`;
   bzSum(); }

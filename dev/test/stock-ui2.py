@@ -58,11 +58,11 @@ async def main():
         await pg.click('#d-save'); await pg.wait_for_timeout(2500)
         sn=json.loads([r for r in rows('Журнал') if r['ID']=='du2'][0]['Данные документа (не редактировать)']); l0=sn['dr']['lines'][0]
         ok(l0.get('stk',{}).get('m')=='s' and l0.get('stkA')==1, 'курага сама стала «Со склада» по настройке товара')
-        await until(pg,"(document.getElementById('fd-toasts')||{textContent:''}).textContent.includes('зарезервирован')")
+        ok(await until(pg,"(document.getElementById('fd-toasts')||{textContent:''}).textContent.includes('списано со склада')"), 'после сохранения сразу списано со склада')
         # 4. журнал: значок и фильтр
         await pg.evaluate(TAB+"('journal')"); await pg.wait_for_timeout(600)
         ok(await pg.locator('#jr-body .skjb').count()>=1, 'в журнале значок склада')
-        await pg.select_option('#jr-sk','wait'); await pg.wait_for_timeout(300); n1=await pg.locator('#jr-body .skjb').count(); ok(n1>=1, 'фильтр «Ждут отгрузки» показывает документ')
+        await pg.select_option('#jr-sk','wait'); await pg.wait_for_timeout(300); n1=await pg.locator('#jr-body .skjb').count(); ok(n1==0, 'ничего не ждёт отгрузки — всё списано сразу')
         await pg.screenshot(path=f'{SHOT}/u2-journal.png'); await pg.select_option('#jr-sk','')
         # 5. закупка Саида: строка «В склад»
         await pg.evaluate(TAB+"('purchase')"); await pg.wait_for_timeout(1500); await pg.evaluate("document.querySelector('#zkx-said').open=true")
@@ -77,10 +77,8 @@ async def main():
         await pg.evaluate(f"(()=>{{const c=__fd.D().cal||{{}}; }})()")
         await pg.evaluate(TAB+"('calendar')"); await pg.wait_for_timeout(600)
         await pg.evaluate(f"(()=>{{ const b=document.querySelector('[data-d=\"{today}\"]'); b&&b.click(); }})()"); await pg.wait_for_timeout(400)
-        ok(await pg.locator('#cal-sk [data-skday]').count()==1, 'в Календаре кнопка «Отгрузить со склада»')
-        await pg.click('#cal-sk [data-skday]'); await pg.wait_for_timeout(400); await pg.screenshot(path=f'{SHOT}/u2-day.png')
-        await pg.click('#sk-dlg [data-sk="dayShipSave"]'); await pg.wait_for_timeout(2500)
-        M=[m for m in rows('Склад: движения') if m['Код операции']=='ship' and m['ID документа']=='du2']; ok(len(M)>=2, f'отгружено за день: {len(M)} движ.')
+        ok(await pg.locator('#cal-sk [data-skday]').count()==0, 'в Календаре нечего отгружать — уже списано')
+        M=[m for m in rows('Склад: движения') if m['Код операции']=='ship' and m['ID документа']=='du2']; ok(len(M)>=2, f'списано сразу: {len(M)} движ.')
         # 7. отмена прихода в карточке партии
         await pg.evaluate(TAB+"('stock')"); await pg.wait_for_timeout(500)
         await pg.click('#sk-list .skrow >> text=Чернослив'); await pg.wait_for_timeout(300); await pg.locator('#sk-dlg [data-skbatch]').first.click(); await pg.wait_for_timeout(300)

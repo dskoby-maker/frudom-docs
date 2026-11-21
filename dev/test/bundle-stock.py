@@ -52,7 +52,7 @@ async def main():
         inf=(await pg.text_content(f'{R}:nth-child(2) .dzinf')).replace(' ',' '); ok('По накладным: № 1 — 5 кг' in inf, f'видно, в какую накладную пойдёт склад: {inf[-60:]}')
         await pg.fill(f'{R}:nth-child(2) .bzc','150'); await pg.wait_for_timeout(150)
         zks=(await pg.text_content('#bz-zks')).replace(' ',' '); ok('3 850,00' in zks, f'живой расчёт: 1000 + 600 + 15×150 = 3 850: {zks[:50]}')
-        ok(await pg.locator('#bz-zki .bzshipc:checked').count()==1, 'галочка «Товар уже уехал» стоит')
+        ok(await pg.locator('#bz-zki .dzship.nochk').count()==1, 'подсказка «Со склада спишется сразу»')
         await pg.screenshot(path=f'{SHOT}/bzs-before.png')
         await pg.click('#bz-zki [data-bzk="save"]')
         for _ in range(60):
