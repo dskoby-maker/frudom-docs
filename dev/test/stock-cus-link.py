@@ -77,8 +77,9 @@ async def main():
         # накладная Б со склада — резерв на «Макфа»
         await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300); await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
         await save_doc(pg,'cl-b',B,{'m':'s'})
-        resb=[r for r in rows('Склад: резервы') if 'cl-b' in json.dumps(r)]
-        ok(resb and mk in json.dumps(resb, ensure_ascii=False), f'резерв накладной Б — на «Макфа» (общая связь): {len(resb)}')
+        await pg.wait_for_timeout(2500)
+        resb=[r for r in rows('Склад: движения')+rows('Склад: резервы') if 'cl-b' in json.dumps(r)]
+        ok(resb and mk in json.dumps(resb, ensure_ascii=False), f'накладная Б списана с «Макфа» (общая связь): {len(resb)}')
         ok(await pg.evaluate(f"__sk.item('p-mac','{A}').id==='{st}' && __sk.item('p-mac','{B}').id==='{mk}'"), 'на сайте: А → Ситно, Б → Макфа')
 
         # строка в форме для А: значок склада и окно показывают «Ситно», «Связь только для …»
@@ -101,8 +102,8 @@ async def main():
         sl=json.loads([r for r in rows('Склад: товары') if r['Товар на складе'].startswith('Макароны фас Ситно')][0][col[0]])
         ok(sorted(sl)==sorted(['p-mac@'+A,'p-mac@'+B]), f'связали для Б из карточки склада: {sl}')
         await pg.wait_for_timeout(1500)
-        resb=[r for r in rows('Склад: резервы') if 'cl-b' in json.dumps(r)]
-        ok(resb and st in json.dumps(resb, ensure_ascii=False), 'резерв накладной Б сам переехал на «Ситно»')
+        mvb=[r for r in rows('Склад: движения') if 'cl-b' in json.dumps(r) and r['Код операции']=='ship']
+        ok(mvb and all(mk in json.dumps(r, ensure_ascii=False) for r in mvb), 'уже списанная накладная Б остаётся списанной с «Макфа» (склад без резерва)')
         await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
 
         # «для всех» у Макфа снимает свою связь А с Ситно
