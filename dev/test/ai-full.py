@@ -33,7 +33,7 @@ async def main():
                 sc=await ev("AC_RUN.screen()"); ok(sc['tab']=='doc' and sc.get('screen_text') and 'new_document_form' in sc, 'экран: вкладка и форма')
                 ok('советник' in await ev("acSystem()"), 'в инструкции — советы')
                 n=await ev("AC_TOOLS.length"); sz=await ev("JSON.stringify(AC_TOOLS).length"); ok(sz<16000, f'описание инструментов не раздуто: {n} шт., {sz} знаков')
-            await pg.click('#ac-fab'); await pg.wait_for_timeout(300)
+            await pg.evaluate("document.querySelector('#fd-app nav.tabs [data-tab=\"ai\"]').click()"); await pg.wait_for_selector('#ac-pan:not([hidden])')
             await pg.fill('#ac-in', 'Где я сейчас?'); await pg.keyboard.press('Enter')
             await pg.wait_for_function("document.querySelector('#ac-pan').innerText.includes('Вы на вкладке')", timeout=15000)
             ok('Новый документ' in await pg.inner_text('#ac-pan') or 'Календарь' in await pg.inner_text('#ac-pan'), f'{W}: помощник видит экран')

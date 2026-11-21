@@ -287,17 +287,15 @@ function acMd(t){ let h=esc(t);
 
 const AC_IC=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>`;
 const AC_SUG=["Кто сколько мне должен?","Куда уходила картошка 12 числа?","Сколько заработали в этом месяце?","По какой цене продавали помидоры Цирку в октябре?","Что Гриша везёт завтра?","Сколько осталось по договорам МОК?"];
-function acEl(){ let b=document.getElementById("ac-fab"); if(b) return;
+function acEl(){ let b=document.getElementById("ac-pan"); if(b) return;
   const st=document.createElement("style"); st.textContent=`
-#ac-fab{font-family:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif!important;position:fixed;right:16px;bottom:16px;z-index:60;display:flex;align-items:center;gap:7px;height:40px;padding:0 15px 0 12px;border:0;border-radius:20px;background:#5b2a4e;color:#fff;font:600 14px/1 inherit;font-family:inherit;box-shadow:0 5px 18px rgba(60,20,50,.26);cursor:pointer}
-#ac-fab svg{width:19px;height:19px}#ac-fab b{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;border-radius:9px;background:#d9534f;color:#fff;font-size:11px;line-height:18px;text-align:center;padding:0 4px}
 #ac-pan .acrm{margin:0 0 4px;padding:10px 12px;border-radius:12px;background:#fff8e6;border:1px solid #f0dfb0;font-size:14px}#ac-pan .acrm b{display:block;margin-bottom:4px}
 #ac-pan .acrm div{display:flex;gap:8px;align-items:flex-start;margin:4px 0}#ac-pan .acrm div span{flex:1}#ac-pan .acrm button{border:1px solid #e6d29c;background:#fff;border-radius:8px;padding:3px 8px;font:inherit;font-size:12.5px;cursor:pointer}
 #ac-pan .acchk{border:1px dashed #d8c8d2;background:#fff;border-radius:12px;padding:8px 12px;font:inherit;font-size:13.5px;color:#5b2a4e;cursor:pointer;text-align:left}
 #ac-pan .acfs{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px}#ac-pan .acfs:empty{display:none}#ac-pan .acfs span{display:inline-flex;align-items:center;gap:6px;background:#f3e9ef;color:#5b2a4e;border-radius:8px;padding:4px 8px;font-size:13px;max-width:100%}
 #ac-pan .acfs span i{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}#ac-pan .acfs span.err{background:#fdecea;color:#a3322a}#ac-pan .acfs button{border:0;background:none;font-size:16px;color:inherit;cursor:pointer;padding:0}
 #ac-att{width:44px;height:44px;flex:none;align-self:flex-end;border:1px solid #e0d7dd;border-radius:12px;background:#fff;color:#5b2a4e;cursor:pointer}#ac-att svg{width:20px;height:20px}
-#ac-list .am .acfn{display:block;font-size:12.5px;opacity:.85;margin-bottom:4px}#ac-fab[hidden],#ac-pan[hidden]{display:none}
+#ac-list .am .acfn{display:block;font-size:12.5px;opacity:.85;margin-bottom:4px}#ac-pan[hidden]{display:none}
 #ac-pan{font-family:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;position:fixed;right:16px;bottom:16px;z-index:61;width:min(440px,calc(100vw - 32px));height:min(680px,calc(100vh - 32px));display:flex;flex-direction:column;background:#fbfaf8;border-radius:18px;box-shadow:0 18px 60px rgba(40,20,40,.3);overflow:hidden;font-size:15px;color:#29232a}
 #ac-pan .ach0{display:flex;align-items:center;gap:10px;padding:14px 14px 12px 16px;border-bottom:1px solid #ece6ea;background:#fff}
 #ac-pan .ach0 b{font-size:16px;flex:1}#ac-pan .ach0 small{display:block;font-weight:400;color:#8a7f87;font-size:12px;margin-top:2px}
@@ -319,14 +317,13 @@ function acEl(){ let b=document.getElementById("ac-fab"); if(b) return;
 #ac-in{flex:1;resize:none;min-height:42px;max-height:140px;border:1px solid #e0d7dd;border-radius:12px;padding:10px 12px;font:inherit;font-size:16px;line-height:1.35}
 #ac-in:focus{outline:none;border-color:#5b2a4e}
 #ac-go{width:44px;height:44px;flex:none;align-self:flex-end;border:0;border-radius:12px;background:#5b2a4e;color:#fff;font-size:20px;cursor:pointer}#ac-go:disabled{opacity:.45;cursor:default}
-@media (max-width:640px){#ac-pan{right:0;bottom:0;width:100vw;height:100dvh;border-radius:0}#ac-fab{right:12px;width:42px;height:42px;padding:0;justify-content:center;border-radius:21px}#ac-fab span{display:none}}
-@media print{#ac-fab,#ac-pan{display:none!important}}`;
+@media (max-width:640px){#ac-pan{right:0;bottom:0;width:100vw;height:100dvh;border-radius:0}}
+@media print{#ac-pan{display:none!important}}`;
   document.head.appendChild(st);
-  b=document.createElement("button"); b.type="button"; b.id="ac-fab"; b.hidden=true; b.innerHTML=AC_IC+"<span>Спросить</span>"; b.title="Помощник: спросите о накладных, ценах, долгах"; b.onclick=()=>acShow(true);
   const p=document.createElement("section"); p.id="ac-pan"; p.hidden=true; p.setAttribute("aria-label","Помощник");
   p.innerHTML=`<div class="ach0"><b>Помощник<small id="ac-use">Claude · отвечает по данным сайта</small></b><button type="button" class="acnew" data-acnew>Новый разговор</button><button type="button" class="acx" data-acx aria-label="Закрыть">×</button></div>
     <div id="ac-list"></div><div class="acfs" id="ac-fs"></div><form id="ac-f"><button type="button" id="ac-att" aria-label="Приложить файл" title="Приложить файл: заявку, накладную, фото, Excel, Word"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.6 8.6a5 5 0 0 1-7.1-7.1l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l7.9-7.9"/></svg></button><input type="file" id="ac-fin" multiple hidden><textarea id="ac-in" rows="1" placeholder="Спросите: куда уходила картошка 12 числа?" autocomplete="off"></textarea><button id="ac-go" type="submit" aria-label="Отправить">➤</button></form>`;
-  document.body.appendChild(b); document.body.appendChild(p);
+  document.body.appendChild(p);
   const inp=p.querySelector("#ac-in"), grow=()=>{ inp.style.height="auto"; inp.style.height=Math.min(140,inp.scrollHeight)+"px"; };
   inp.addEventListener("input",grow);
   inp.addEventListener("keydown",e=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); p.querySelector("#ac-f").requestSubmit(); } if(e.key==="Escape") acShow(false); });
@@ -338,7 +335,7 @@ function acEl(){ let b=document.getElementById("ac-fab"); if(b) return;
   p.addEventListener("paste",e=>{ const F=[...((e.clipboardData||{}).files||[])]; if(F.length){ e.preventDefault(); F.forEach(acAddFile); } });
   p.addEventListener("click",e=>{ const t=e.target.closest("[data-acx],[data-acnew],[data-acdoc],[data-accus],[data-acsug],[data-acfx],[data-acrm],[data-acchk]"); if(!t) return;
     if(t.dataset.acfx!==undefined){ AC.files.splice(+t.dataset.acfx,1); acFilesDraw(); return; }
-    if(t.dataset.acrm){ acMemSet(acMem().filter(x=>x.id!==t.dataset.acrm)); acDraw(false); acFab(); return; }
+    if(t.dataset.acrm){ acMemSet(acMem().filter(x=>x.id!==t.dataset.acrm)); acDraw(false); tkfSync(); return; }
     if(t.dataset.acchk!==undefined){ acAsk("Что я забыл и где могут быть ошибки? Кратко, по важности."); return; }
     if(t.dataset.acx!==undefined) acShow(false);
     else if(t.dataset.acnew!==undefined){ if(AC.busy) return; AC.view=[]; AC.msgs=[]; AC.files=[]; acFilesDraw(); acSave(); acDraw(true); inp.focus(); }
@@ -346,7 +343,7 @@ function acEl(){ let b=document.getElementById("ac-fab"); if(b) return;
     else if(t.dataset.acdoc){ const j=D.journal.find(x=>x.id===t.dataset.acdoc); if(j) docCard(j, isArch(j)); else toast("warn","Накладной нет на этом устройстве",""); }
     else if(t.dataset.accus){ if(typeof pvLedger==="function"){ acProfitReady().then(()=>pvLedger(t.dataset.accus)); } } });
 }
-function acShow(on){ acEl(); AC.open=!!on; const p=document.getElementById("ac-pan"); p.hidden=!on; document.getElementById("ac-fab").hidden=on||!acOk(); acFab();
+function acShow(on){ acEl(); AC.open=!!on; const p=document.getElementById("ac-pan"); p.hidden=!on; { const f=document.getElementById("tkf-fab"); if(f) f.hidden=on||!tkfOk(); } tkfSync();
   if(on){ if(!AC.view.length) acLoad(); acDraw(true); acFilesDraw(); acUseDraw(); if(Date.now()-AC.useAt>60000){ AC.useAt=Date.now(); apiFetch(API_URL,{method:"POST", body:JSON.stringify({key:pass(), user:curUser(), action:"aiChat", op:"use"})}).then(j=>{ if(j.use){ AC.use=j.use; acUseDraw(); } }).catch(()=>{}); } setTimeout(()=>{ const i=document.getElementById("ac-in"); if(i && matchMedia("(hover:hover)").matches) i.focus(); },50); } }
 function acDraw(down){ const box=document.getElementById("ac-list"); if(!box) return;
   const due=acDue(); let h = due.length ? `<div class="acrm"><b>Напоминания</b>${due.map(x=>`<div><span>${esc(x.t)}${x.d<todayISO()?` <small>(${esc(fd(x.d))})</small>`:""}</span><button type="button" data-acrm="${esc(x.id)}">Готово</button></div>`).join("")}</div>` : "";
@@ -369,7 +366,82 @@ async function acAddFile(f){ if(AC.files.length>=5){ toast("warn","Не боль
   }catch(e){ x.err=String(e.message||e); }
   x.busy=0; acFilesDraw(); if(x.err){ toast("warn","Файл «"+f.name+"» не приложен", x.err); AC.files.splice(AC.files.indexOf(x),1); setTimeout(acFilesDraw,2500); } }
 function acFilesDraw(){ const b=document.getElementById("ac-fs"); if(!b) return; b.innerHTML=AC.files.map((f,i)=>`<span class="${f.err?"err":""}">📎 <i>${esc(f.name)}</i>${f.busy?" …":""}<button type="button" data-acfx="${i}" aria-label="Убрать">×</button></span>`).join(""); }
-/* кнопка — только у Даниила, после входа; в «Почте ФД» нет; на телефоне — над нижним меню */
-function acFab(){ const f=document.getElementById("ac-fab"); if(!f) return; const n=acDue().length; let b=f.querySelector("b"); if(n){ if(!b){ b=document.createElement("b"); f.appendChild(b); } b.textContent=n; } else if(b) b.remove();
-  const mb=document.getElementById("mbar"), h=mb && !mb.hidden && getComputedStyle(mb).display!=="none" ? mb.getBoundingClientRect().height : 0; f.style.bottom=(h ? h+12 : 16)+"px"; }
-setInterval(()=>{ try{ const ok=acOk(); if(!ok && !document.getElementById("ac-fab")) return; acEl(); const f=document.getElementById("ac-fab"); f.hidden=!ok||AC.open; if(!ok && AC.open) acShow(false); if(ok) acFab(); }catch(e){} }, 1500);
+/* ===== кнопка «Задачи» справа внизу (вместо прежней кнопки помощника; помощник — вкладка «Помощник» в «Ещё»).
+   Только у Даниила. Нажатие — окошко: задачи на сегодня из календаря, «Мои задачи» (галочка — сделано, строка — добавить),
+   напоминания помощника на сегодня. Цифра на кнопке — сколько всего открыто на сегодня. ===== */
+const TKF={open:false};
+const TKF_IC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="17" rx="2.5"/><path d="M8 9.5l1.6 1.6L12.5 8M8 15.5l1.6 1.6 2.9-3.1M15 10h2M15 16h2"/></svg>';
+const tkfOk = () => { try{ return typeof MAILAPP!=="undefined" && MAILAPP ? false : !!(me() && me().admin && pass()); }catch(e){ return false; } };
+function tkfData(){ const t=isoToday(), day=DTS().filter(x=>x.date===t).sort((a,b)=>String(a.created).localeCompare(String(b.created)));
+  const p=tkPrefs(), my=p.tasks.filter(x=>!x.done), rem=(typeof acDue==="function"?acDue():[]);
+  return {day, my, rem, n:day.length+my.length+rem.length}; }
+function tkfEl(){ if(document.getElementById("tkf-fab")) return;
+  const st=document.createElement("style"); st.textContent=`
+#tkf-fab{font-family:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;position:fixed;right:16px;bottom:16px;z-index:60;display:flex;align-items:center;gap:6px;height:38px;padding:0 13px 0 11px;border:1px solid rgba(91,42,78,.16);border-radius:19px;background:rgba(255,255,255,.94);color:#5b2a4e;font-weight:600;font-size:13.5px;box-shadow:0 4px 16px rgba(60,20,50,.16);cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:transform .18s,box-shadow .18s}
+#tkf-fab:hover{box-shadow:0 6px 20px rgba(60,20,50,.22)}#tkf-fab:active{transform:scale(.95)}#tkf-fab[hidden],#tkf-pan[hidden]{display:none}
+#tkf-fab svg{width:18px;height:18px}#tkf-fab b{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;border-radius:9px;background:#5b2a4e;color:#fff;font-size:11px;line-height:18px;text-align:center;padding:0 5px;box-shadow:0 0 0 2px #fff}
+#tkf-fab.on{background:#5b2a4e;color:#fff}#tkf-fab.on b{background:#fff;color:#5b2a4e;box-shadow:0 0 0 2px #5b2a4e}
+#tkf-pan{font-family:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;position:fixed;right:16px;z-index:61;width:min(360px,calc(100vw - 32px));max-height:min(560px,calc(100vh - 120px));display:flex;flex-direction:column;background:#fff;color:#2b2430;border-radius:18px;box-shadow:0 18px 50px rgba(40,15,35,.22),0 0 0 1px rgba(91,42,78,.08);overflow:hidden;transform-origin:bottom right;animation:tkfIn .2s cubic-bezier(.2,.8,.3,1)}
+#tkf-pan.out{animation:tkfOut .14s ease-in forwards}
+@keyframes tkfIn{from{opacity:0;transform:translateY(8px) scale(.96)}}@keyframes tkfOut{to{opacity:0;transform:translateY(6px) scale(.97)}}
+.tkfh{display:flex;align-items:center;gap:8px;padding:14px 14px 8px 16px}.tkfh b{font-size:16px;flex:1}.tkfh b small{display:block;font-weight:400;font-size:12px;color:#8a7f8c;margin-top:2px}
+.tkfh button{border:0;background:none;color:#5b2a4e;font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:6px 8px;border-radius:8px}.tkfh button:hover{background:#f5eef3}.tkfh .tkfx{font-size:20px;line-height:1;color:#8a7f8c;padding:4px 8px}
+.tkfadd{display:flex;gap:6px;padding:0 14px 10px}.tkfadd input{flex:1;min-width:0;width:auto!important;height:38px;border:1px solid #e6dde3;border-radius:10px;padding:0 11px;font:inherit;font-size:14px;background:#fbf9fa}
+.tkfadd input:focus{outline:none;border-color:#5b2a4e;background:#fff}.tkfadd button{height:38px;border:0;border-radius:10px;background:#5b2a4e;color:#fff;font:inherit;font-weight:600;font-size:13px;padding:0 13px;cursor:pointer}
+.tkfb{overflow:auto;padding:0 8px 10px;overscroll-behavior:contain}.tkfs{font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#9a8f9c;padding:10px 8px 4px;display:flex;justify-content:space-between}
+.tkfr{display:flex;align-items:flex-start;gap:10px;padding:8px;border-radius:10px;cursor:pointer;transition:background .15s,opacity .25s}.tkfr:hover{background:#f7f2f5}
+.tkfr .tkfd{flex:none;width:8px;height:8px;border-radius:50%;margin:6px 3px 0;background:var(--c,#5b2a4e)}.tkfr span{flex:1;min-width:0;font-size:14px;line-height:1.35;overflow-wrap:anywhere}.tkfr span small{display:block;font-size:12px;color:#8a7f8c;margin-top:1px}
+.tkfr input{flex:none;width:18px!important;height:18px;margin:1px 2px 0;accent-color:#5b2a4e;cursor:pointer}.tkfr.gone{opacity:0}.tkfr i{flex:none;color:#b7aab5;font-style:normal;margin-top:1px}
+.tkfr button{flex:none;border:1px solid #e6dde3;background:#fff;border-radius:8px;font:inherit;font-size:12px;padding:3px 8px;color:#5b2a4e;cursor:pointer}
+.tkfe{padding:18px 10px 14px;text-align:center;color:#8a7f8c;font-size:13.5px}.tkfe b{display:block;color:#2f7d4f;font-size:15px;margin-bottom:3px}
+@media (max-width:640px){#tkf-fab{right:12px;width:42px;height:42px;padding:0;justify-content:center;border-radius:21px}#tkf-fab span{display:none}
+ #tkf-pan{left:8px;right:8px;width:auto;max-height:min(70vh,560px);border-radius:18px;transform-origin:bottom center}.tkfr{padding:10px 8px}}
+@media print{#tkf-fab,#tkf-pan{display:none!important}}`;
+  document.head.appendChild(st);
+  const b=document.createElement("button"); b.type="button"; b.id="tkf-fab"; b.hidden=true; b.innerHTML=TKF_IC+"<span>Задачи</span>"; b.title="Задачи на сегодня и мои задачи"; b.setAttribute("aria-expanded","false");
+  b.onclick=()=>tkfShow(!TKF.open);
+  const p=document.createElement("section"); p.id="tkf-pan"; p.hidden=true; p.setAttribute("aria-label","Задачи");
+  document.body.appendChild(b); document.body.appendChild(p);
+  p.addEventListener("click",e=>{ const t=e.target;
+    if(t.closest(".tkfx")){ tkfShow(false); return; }
+    if(t.closest("[data-tkfall]")){ tkfShow(false); showTab("tasks"); return; }
+    if(t.closest("[data-tkfadd]")){ tkfAdd(); return; }
+    const rm=t.closest("[data-tkfrm]"); if(rm){ acMemSet(acMem().filter(x=>x.id!==rm.dataset.tkfrm)); tkfDraw(); tkfSync(); return; }
+    if(t.matches("input[type=checkbox]")) return;
+    const my=t.closest("[data-tkfmy]"); if(my){ const c=my.querySelector("input"); c.checked=!c.checked; c.dispatchEvent(new Event("change",{bubbles:true})); return; }
+    const d=t.closest("[data-tkfday]"); if(d){ tkfShow(false); try{ CAL().sel=isoToday(); }catch(x){} showTab("calendar"); setTimeout(()=>{ const el=document.querySelector(`#dt-list [data-dt="${CSS.escape(d.dataset.tkfday)}"]`)||document.getElementById("dt-list"); if(el) el.scrollIntoView({block:"center",behavior:"smooth"}); },200); } });
+  p.addEventListener("change",e=>{ const c=e.target.closest("[data-tkfmy] input"); if(!c) return; const row=c.closest("[data-tkfmy]"), pr=tkPrefs(), x=pr.tasks.find(y=>y.id===row.dataset.tkfmy); if(!x) return;
+    x.done=c.checked; if(x.done) x.dd=isoToday(); else delete x.dd; x.u=Date.now(); setPrefs(pr,true); tkfSync(); if(curTab==="tasks") drawTasks();
+    if(x.done){ row.classList.add("gone"); toast("ok","Задача выполнена",x.t,{action:{label:"Вернуть", fn:()=>{ const q=tkPrefs(), y=q.tasks.find(z=>z.id===x.id); if(y){ y.done=false; delete y.dd; y.u=Date.now(); setPrefs(q,true); } tkfSync(); if(TKF.open) tkfDraw(); if(curTab==="tasks") drawTasks(); }}}); setTimeout(()=>{ if(TKF.open) tkfDraw(); },280); } });
+  p.addEventListener("keydown",e=>{ if(e.key==="Enter" && e.target.id==="tkf-in"){ e.preventDefault(); tkfAdd(); } if(e.key==="Escape"){ e.stopPropagation(); tkfShow(false); b.focus(); } });
+  document.addEventListener("pointerdown",e=>{ if(TKF.open && !e.target.closest("#tkf-pan,#tkf-fab,#fd-toasts")) tkfShow(false); }, true);
+}
+function tkfAdd(){ const inp=document.getElementById("tkf-in"); if(!inp) return; const v=inp.value.trim(); if(!v){ inp.focus(); return; }
+  const p=tkPrefs(); p.tasks.unshift({id:uid(), t:v, d:isoToday(), u:Date.now()}); setPrefs(p,true); inp.value=""; tkfDraw(); tkfSync(); if(curTab==="tasks") drawTasks();
+  const i2=document.getElementById("tkf-in"); if(i2) i2.focus(); }
+function tkfDraw(){ const p=document.getElementById("tkf-pan"); if(!p) return; const D0=tkfData(), keep=document.getElementById("tkf-in"), val=keep?keep.value:"";
+  const dt=new Date(), wd=["воскресенье","понедельник","вторник","среда","четверг","пятница","суббота"][dt.getDay()];
+  const day=D0.day.map(x=>{ const c=x.customerId?cusNm(x.customerId):(x.customerName||""), hue=(typeof dtHue==="function" && x.customerId)?dtHue(x.customerId):"";
+      return `<div class="tkfr" data-tkfday="${esc(x.id)}" role="button" tabindex="0"><i class="tkfd" style="${hue!==""&&hue!=null?`--c:hsl(${hue} 50% 55%)`:"--c:#c9bcc6"}"></i><span>${esc(fmtPlain(x.text||"").slice(0,160))}${c||x.addr?`<small>${esc([c,x.addr].filter(Boolean).join(" · "))}</small>`:""}</span><i aria-hidden="true">›</i></div>`; }).join("");
+  const my=D0.my.map(x=>`<label class="tkfr" data-tkfmy="${esc(x.id)}"><input type="checkbox" aria-label="Сделано"><span>${esc(x.t)}<small>добавлено ${esc(fd(x.d))}</small></span></label>`).join("");
+  const rem=D0.rem.map(x=>`<div class="tkfr"><i class="tkfd" style="--c:#d9a400"></i><span>${esc(x.t)}</span><button type="button" data-tkfrm="${esc(x.id)}">Готово</button></div>`).join("");
+  p.innerHTML=`<div class="tkfh"><b>Задачи<small>сегодня, ${dt.getDate()} ${["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"][dt.getMonth()]}, ${wd}</small></b><button type="button" data-tkfall>Все ›</button><button type="button" class="tkfx" aria-label="Закрыть">×</button></div>
+    <div class="tkfadd"><input id="tkf-in" placeholder="Новая задача…" maxlength="300" autocomplete="off"><button type="button" data-tkfadd>Добавить</button></div>
+    <div class="tkfb">${D0.n ? (day?`<div class="tkfs"><span>В календаре на сегодня</span><span>${D0.day.length}</span></div>${day}`:"")+(my?`<div class="tkfs"><span>Мои задачи</span><span>${D0.my.length}</span></div>${my}`:"")+(rem?`<div class="tkfs"><span>Напоминания помощника</span><span>${D0.rem.length}</span></div>${rem}`:"")
+      : `<div class="tkfe"><b>✓ Всё сделано</b>На сегодня задач нет. Впишите выше, что нужно не забыть.</div>`}</div>`;
+  const ni=document.getElementById("tkf-in"); if(ni && val) ni.value=val; }
+function tkfShow(on){ tkfEl(); const p=document.getElementById("tkf-pan"), b=document.getElementById("tkf-fab");
+  if(on){ TKF.open=true; p.classList.remove("out"); p.hidden=false; tkfDraw(); tkfPlace(); b.classList.add("on"); b.setAttribute("aria-expanded","true");
+    if(matchMedia("(hover:hover)").matches) setTimeout(()=>{ const i=document.getElementById("tkf-in"); if(i) i.focus({preventScroll:true}); },60); }
+  else if(TKF.open){ TKF.open=false; b.classList.remove("on"); b.setAttribute("aria-expanded","false"); p.classList.add("out"); setTimeout(()=>{ if(!TKF.open){ p.hidden=true; p.classList.remove("out"); } },150); } }
+function tkfPlace(){ const f=document.getElementById("tkf-fab"), p=document.getElementById("tkf-pan"); if(!f) return;
+  const mb=document.getElementById("mbar"), h=mb && !mb.hidden && getComputedStyle(mb).display!=="none" ? mb.getBoundingClientRect().height : 0;
+  const fb=h ? h+12 : 16; f.style.bottom=fb+"px"; if(p) p.style.bottom=(fb+(f.offsetHeight||40)+10)+"px"; }
+function tkfSync(){ const f=document.getElementById("tkf-fab"); if(!f) return; let n=0; try{ n=tkfData().n; }catch(e){}
+  let b=f.querySelector("b"); if(n){ if(!b){ b=document.createElement("b"); f.appendChild(b); } b.textContent=n>99?"99+":n; } else if(b) b.remove();
+  f.title=n?"Задачи на сегодня: "+n:"Задачи — на сегодня ничего"; tkfPlace(); }
+/* кнопка видна, пока Даниил вошёл и не открыт помощник во весь экран */
+setInterval(()=>{ try{ const ok=tkfOk(); if(!ok && !document.getElementById("tkf-fab")) return; tkfEl(); const f=document.getElementById("tkf-fab"), acOpen=typeof AC!=="undefined" && AC.open;
+  f.hidden=!ok||acOpen; if((!ok||acOpen) && TKF.open) tkfShow(false); if(ok){ tkfSync(); if(TKF.open && !document.activeElement?.closest?.("#tkf-pan")) tkfDraw(); } }catch(e){} }, 1500);
+/* вкладка «Помощник» (в «Ещё» на телефоне, в строке вкладок на ПК) открывает окно помощника, текущая вкладка не меняется */
+function acOpenTab(){ if(!acOk()){ toast("warn","Помощник недоступен","Он есть только у Даниила."); return; } tkfShow(false); acShow(true); }

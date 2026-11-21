@@ -90,7 +90,7 @@ public class NotifySettingsActivity extends Activity {
         LinearLayout kinds = card();
         for (String[] k : Notifier.KINDS) {
             if ((k[0].equals("bank") || k[0].equals("debt")) && !s.getBoolean("admin", true)) continue;   // деньги видит только Даниил
-            kinds.addView(sw(k[1], k[2], s.getBoolean("on_" + k[0], true), on -> s.edit().putBoolean("on_" + k[0], on).apply()));
+            kinds.addView(sw(k[1], k[2], s.getBoolean("on_" + k[0], true), on -> { s.edit().putBoolean("on_" + k[0], on).apply(); Notifier.alarm(this); }));
         }
         setEnabled(kinds, en); root.addView(kinds);
 
@@ -109,14 +109,14 @@ public class NotifySettingsActivity extends Activity {
 
         root.addView(section("Когда"));
         LinearLayout when = card();
-        int qf = s.getInt("qFrom", 22 * 60), qt = s.getInt("qTo", 8 * 60), mo = s.getInt("morning", 9 * 60);
+        int qf = s.getInt("qFrom", 22 * 60), qt = s.getInt("qTo", 8 * 60), mo = s.getInt("morning", Notifier.MORNING_DEF);
         when.addView(sw("Не беспокоить ночью", "С " + Notifier.hm(qf) + " до " + Notifier.hm(qt) + " — всё новое придёт утром", s.getBoolean("quiet", true), on -> { s.edit().putBoolean("quiet", on).apply(); build(); }));
         LinearLayout row = new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL);
         row.addView(button("С " + Notifier.hm(qf), false, v -> time(qf, m -> s.edit().putInt("qFrom", m).apply())), new LinearLayout.LayoutParams(0, -2, 1));
         row.addView(button("До " + Notifier.hm(qt), false, v -> time(qt, m -> s.edit().putInt("qTo", m).apply())), new LinearLayout.LayoutParams(0, -2, 1));
         if (s.getBoolean("quiet", true)) when.addView(row);
-        when.addView(text("Утренняя сводка (долги и задачи на сегодня) — не раньше " + Notifier.hm(mo), 15, INK, false));
-        when.addView(button("Изменить время сводки: " + Notifier.hm(mo), false, v -> time(mo, m -> s.edit().putInt("morning", m).apply())));
+        when.addView(text("Утренняя сводка — задачи на сегодня (календарь и «Мои задачи») и долги — придёт в " + Notifier.hm(mo) + ", даже в «тихие часы»", 15, INK, false));
+        when.addView(button("Изменить время сводки: " + Notifier.hm(mo), false, v -> time(mo, m -> { s.edit().putInt("morning", m).remove("morningDone").apply(); Notifier.alarm(this); })));
         when.addView(text("Сводка по долгам:", 15, INK, false));
         RadioGroup dg = new RadioGroup(this);
         RadioButton d1 = new RadioButton(this); d1.setText("каждый день"); d1.setTextSize(16); d1.setId(2001); dg.addView(d1);

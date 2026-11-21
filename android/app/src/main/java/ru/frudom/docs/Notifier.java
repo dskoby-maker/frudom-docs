@@ -1,6 +1,7 @@
 package ru.frudom.docs;
 
 import android.Manifest;
+import android.app.AlarmManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -37,13 +38,14 @@ import java.util.Locale;
  *  Настройки — в SharedPreferences «notify» (экран NotifySettingsActivity). */
 public final class Notifier {
     static final String P = "notify";
-    static final int JOB = 7701, JOB_W = 7702;
+    static final int JOB = 7701, JOB_W = 7702, ALARM = 7703;
+    static final int MORNING_DEF = 6 * 60;                     // утренняя сводка по умолчанию — в 6:00
     /* виды уведомлений: ключ, название, пояснение */
     static final String[][] KINDS = {
         {"bank",  "Деньги пришли из банка", "Каждое новое поступление на счёт ИП: сумма, плательщик, назначение"},
         {"debt",  "Долги по накладным", "Сводка: что не оплачено больше 30 дней — один раз утром"},
         {"staff", "Что сделали сотрудники", "Документы, склад, задачи — действия Натальи, Гриши и Склада"},
-        {"tasks", "Задачи на сегодня", "Утром — список невыполненных задач на день"},
+        {"tasks", "Задачи на сегодня", "Утром (по умолчанию в 6:00) — задачи из календаря на сегодня и «Мои задачи»"},
     };
     static final long[] PERIODS = {15, 60, 180, 360};          // минуты
     static final String[] PERIOD_NAMES = {"Каждые 15 минут", "Раз в час", "Раз в 3 часа", "Раз в 6 часов"};
@@ -73,6 +75,7 @@ public final class Notifier {
     }
 
     static void schedule(Context c, boolean replace) {
+        alarm(c);
         JobScheduler js = (JobScheduler) c.getSystemService(Context.JOB_SCHEDULER_SERVICE);
         if (js == null) return;
         if ((!enabled(c) && !QuickWidget.has(c)) || !hasAccount(c)) { js.cancel(JOB); return; }   // виджету тоже нужна проверка раз в час
@@ -89,7 +92,51 @@ public final class Notifier {
     static void cancel(Context c) {
         JobScheduler js = (JobScheduler) c.getSystemService(Context.JOB_SCHEDULER_SERVICE);
         if (js != null) js.cancel(JOB);
+        alarm(c);
     }
+
+    /** Будильник утренней сводки (задачи на сегодня и долги) — точно в заданное время (по умолчанию 6:00), даже в «тихие часы»
+     *  и когда приложение закрыто. Обычная проверка раз в час не попадает ровно в 6:00, поэтому отдельный будильник.
+     *  retryMin > 0 — повторить через столько минут (утром не было связи). */
+    static void alarm(Context c) { alarm(c, 0); }
+    static void alarm(Context c, int retryMin) {
+        AlarmManager am = (AlarmManager) c.getSystemService(Context.ALARM_SERVICE);
+        if (am == null) return;
+        PendingIntent pi = PendingIntent.getBroadcast(c, ALARM, new Intent(c, MorningReceiver.class).setAction("ru.frudom.docs.MORNING"),
+            PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        if (!hasAccount(c) || !enabled(c) || (!on(c, "tasks") && !on(c, "debt"))) { am.cancel(pi); return; }
+        long at;
+        if (retryMin > 0) at = System.currentTimeMillis() + retryMin * 60_000L;
+        else {
+            int mor = prefs(c).getInt("morning", MORNING_DEF);
+            Calendar k = Calendar.getInstance(); k.set(Calendar.HOUR_OF_DAY, mor / 60); k.set(Calendar.MINUTE, mor % 60); k.set(Calendar.SECOND, 0); k.set(Calendar.MILLISECOND, 0);
+            String today = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+            if (k.getTimeInMillis() <= System.currentTimeMillis() + 30_000L || today.equals(prefs(c).getString("morningDone", ""))) k.add(Calendar.DAY_OF_YEAR, 1);
+            at = k.getTimeInMillis();
+            SharedPreferences s = prefs(c); long cur = s.getLong("morningAt", 0);
+            boolean pending = PendingIntent.getBroadcast(c, ALARM, new Intent(c, MorningReceiver.class).setAction("ru.frudom.docs.MORNING"), PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE) != null;
+            if (pending && cur > System.currentTimeMillis() && (cur == at || s.getInt("morningTry", 0) > 0)) return;   // уже стоит (или ждём повтора)
+        }
+        try {
+            if (Build.VERSION.SDK_INT >= 31 && !am.canScheduleExactAlarms()) am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi);
+            else if (Build.VERSION.SDK_INT >= 23) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at, pi);
+            else am.setExact(AlarmManager.RTC_WAKEUP, at, pi);
+        } catch (Exception e) { try { am.set(AlarmManager.RTC_WAKEUP, at, pi); } catch (Exception ignored) {} }
+        prefs(c).edit().putLong("morningAt", at).apply();
+    }
+
+    /** сработал будильник: присылаем утреннюю сводку; нет связи — пробуем снова через 10 минут (до 6 раз), потом — завтра */
+    static void morning(Context c) {
+        SharedPreferences s = prefs(c);
+        if (!hasAccount(c) || !enabled(c)) { alarm(c); return; }
+        String res = check(c, false, true);
+        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+        if (lastOk) { s.edit().putString("morningDone", today).putInt("morningTry", 0).apply(); alarm(c); return; }
+        int n = s.getInt("morningTry", 0) + 1;
+        if (n <= 6) { s.edit().putInt("morningTry", n).apply(); alarm(c, 10); } else { s.edit().putInt("morningTry", 0).apply(); alarm(c); }
+    }
+
+    static boolean lastOk = false;
 
     static boolean canNotify(Context c) {
         if (Build.VERSION.SDK_INT >= 33 && c.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return false;
@@ -121,20 +168,23 @@ public final class Notifier {
 
     /** Одна проверка. force — по кнопке «Проверить сейчас»: без тихих часов, сводки утра показываются сразу.
      *  Возвращает понятный текст для экрана настроек. */
-    static synchronized String check(Context c, boolean force) {
+    static String check(Context c, boolean force) { return check(c, force, false); }
+    /** morningOnly — по утреннему будильнику: только задачи и долги, без «тихих часов» */
+    static synchronized String check(Context c, boolean force, boolean morningOnly) {
+        lastOk = false;
         SharedPreferences s = prefs(c);
         String now = new SimpleDateFormat("dd.MM HH:mm", new Locale("ru")).format(new Date());
         if (!hasAccount(c)) return save(s, now, "Нет входа: откройте приложение и войдите на сайте");
         if (QuickWidget.has(c)) widgetSync(c);
         if (!force && !enabled(c)) return "Уведомления выключены";
-        if (!force && quietNow(c)) return save(s, now, "Тихие часы — проверю позже");
+        if (!force && !morningOnly && quietNow(c)) return save(s, now, "Тихие часы — проверю позже");
         StringBuilder kinds = new StringBuilder();
-        for (String[] k : KINDS) if (on(c, k[0])) kinds.append(kinds.length() > 0 ? "," : "").append(k[0]);
+        for (String[] k : KINDS) if (on(c, k[0]) && (!morningOnly || k[0].equals("tasks") || k[0].equals("debt"))) kinds.append(kinds.length() > 0 ? "," : "").append(k[0]);
         if (kinds.length() == 0) return save(s, now, "Все виды уведомлений выключены");
         JSONObject r;
         try {
             String q = "?action=notes&user=" + enc(s.getString("user", "")) + "&key=" + enc(s.getString("key", "")) + "&kinds=" + enc(kinds.toString())
-                + "&evAfter=" + enc(s.getString("evAfter", "")) + (on(c, "bank") ? "&sync=1" : "") + "&device=" + enc("Android");
+                + "&evAfter=" + enc(s.getString("evAfter", "")) + (on(c, "bank") && !morningOnly ? "&sync=1" : "") + "&device=" + enc("Android");
             r = new JSONObject(get(s.getString("url", "") + q));
         } catch (Exception e) { return save(s, now, "Нет связи с таблицей (" + e.getClass().getSimpleName() + ") — попробую позже"); }
         if (!r.optBoolean("ok")) {
@@ -144,10 +194,11 @@ public final class Notifier {
             return save(s, now, "Таблица ответила ошибкой: " + er);
         }
         channels(c);
+        lastOk = true;
         String today = r.optString("today");
-        int mor = s.getInt("morning", 9 * 60);
+        int mor = s.getInt("morning", MORNING_DEF);
         Calendar k = Calendar.getInstance(); int m = k.get(Calendar.HOUR_OF_DAY) * 60 + k.get(Calendar.MINUTE);
-        boolean morning = force || m >= mor;
+        boolean morning = force || morningOnly || m >= mor;
         boolean debtDay = force || !"mon".equals(s.getString("debtWhen", "day")) || k.get(Calendar.DAY_OF_WEEK) == Calendar.MONDAY;
         boolean first = !s.getBoolean("init", false);
         LinkedHashSet<String> seen = new LinkedHashSet<>(Arrays.asList(s.getString("seen", "").split("\n")));
