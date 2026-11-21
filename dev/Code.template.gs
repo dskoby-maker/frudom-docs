@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 49;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 50;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -832,7 +832,15 @@ function notes_(p, me) {
   }
   if (want.tasks) {
     const L = read_('daytasks').filter(r => notesIso_(r.date) === today && !/^(1|true|да|TRUE)$/i.test(String(r.done || '').trim()));
-    if (L.length) items.push({ t: 'tasks', id: 'tasks-' + today, title: 'Задачи на сегодня: ' + L.length, text: L.slice(0, 6).map(r => (r.customerName ? r.customerName + ' — ' : '') + String(r.text || '').slice(0, 80)).join('\n') + (L.length > 6 ? '\n…и ещё ' + (L.length - 6) : ''), go: 'calendar' });
+    /* «Мои задачи» (личные, из настроек пользователя; Code.gs ≥ 50) — невыполненные */
+    let M = []; try { const pr = JSON.parse((read_('uprefs').find(r => r.id === me.name) || {}).data || '{}') || {}; M = (Array.isArray(pr.tasks) ? pr.tasks : []).filter(x => x && !x.done && String(x.t || '').trim()); } catch (e) {}
+    const plain = t => String(t || '').replace(/\*\*|__|~~|\*/g, '').replace(/\s+/g, ' ').trim();
+    const dl = L.slice(0, 6).map(r => '• ' + (r.customerName ? r.customerName + ' — ' : '') + plain(r.text).slice(0, 80));
+    if (L.length > 6) dl.push('…и ещё ' + (L.length - 6));
+    const ml = M.slice(0, 6).map(x => '• ' + plain(x.t).slice(0, 80));
+    if (M.length > 6) ml.push('…и ещё ' + (M.length - 6));
+    const n = L.length + M.length;
+    if (n) items.push({ t: 'tasks', id: 'tasks-' + today, title: 'Задачи на сегодня: ' + n, text: (dl.length ? (M.length ? 'В календаре:\n' : '') + dl.join('\n') : '') + (ml.length ? (dl.length ? '\n' : '') + 'Мои задачи:\n' + ml.join('\n') : ''), go: L.length ? 'calendar' : 'tasks' });
   }
   /* новые письма для приложения «Почта ФД» (Code.gs ≥ 36): сначала забрать почту из ящиков (не чаще раза в минуту), потом —
      входящие за 3 дня: Даниилу и Наталье — непрочитанные (по ним приложение и убирает уведомление, когда письмо прочитали где угодно),

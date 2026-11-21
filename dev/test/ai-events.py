@@ -36,7 +36,7 @@ async def main():
                 d=await ev("AC_RUN.search_docs({number:'777'}).then(x=>x.docs.find(j=>j.number==='777'))")
                 ok(d and d.get('history') and d['history'][0]['who']=='Наталья' and 'создан' in d['history'][0]['what'], f'history у накладной: {d and d.get("history")}')
                 ok('events' in await ev("acSystem()") and 'Наталья' in await ev("acSystem()"), 'в инструкции — про журнал событий')
-            await pg.click('#ac-fab'); await pg.wait_for_timeout(300)
+            await pg.evaluate("document.querySelector('#fd-app nav.tabs [data-tab=\"ai\"]').click()"); await pg.wait_for_selector('#ac-pan:not([hidden])')
             ff=await pg.evaluate("getComputedStyle(document.getElementById('ac-pan')).fontFamily")
             ok('serif' not in ff.replace('sans-serif','') and ('Golos' in ff or 'system-ui' in ff), f'{W}: шрифт панели без засечек ({ff[:40]})')
             await pg.fill('#ac-in', 'Кто создал накладную 777?'); await pg.keyboard.press('Enter')

@@ -3297,6 +3297,7 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
     <button data-tab="data">Данные</button>
     <button data-tab="pdf" title="Откроется frudom.ru/pdf в новой вкладке">Редактор PDF ↗</button>
     <button data-tab="contracts" title="Откроется frudom.ru/contracts — калькулятор контрактов" hidden>Контракты ↗</button>
+    <button data-tab="ai" title="Помощник: спросите о накладных, ценах, долгах, оплатах" hidden>Помощник</button>
     <button data-tab="profit" hidden>Прибыль</button>
     <button data-tab="purchase" hidden>Закупка</button>
     <button data-tab="events" hidden>События</button>
@@ -4004,7 +4005,7 @@ const isStaff = () => role()==="staff";
 /* сотрудник склада с правом полностью редактировать документы (в «Пароли.gs»: docs:true) — в документах как менеджер */
 const docLimited = () => isStaff() && !me().docs;
 const STAFF_HIDE = ["invoices","archive","customers","products","suppliers","data","profit","purchase","events","tasks"];
-const ADMIN_TABS = ["events","profit","purchase","tasks","contracts"];
+const ADMIN_TABS = ["events","profit","purchase","tasks","contracts","ai"];
 if(pass() && !curUser()){ lsSet(UKEY,"Даниил"); lsSet(MKEY, JSON.stringify({name:"Даниил", admin:true})); }   /* вход, сохранённый до появления пользователей */
 /* журнал событий: очередь отправки (переживает перезагрузку и отсутствие связи) */
 let evq=[]; try{ evq=JSON.parse(lsGet(EKEY)||"[]")||[]; }catch(e){ evq=[]; }
@@ -4314,7 +4315,8 @@ function startTab(){ if(!pass()) return; if(MAILAPP){ showTab("mail"); return; }
 window.addEventListener("hashchange", ()=>{ const t=tabFromHash(); if(t && t!==curTab && tabOk(t)) showTab(t); });
 const PDF_URL="https://frudom.ru/pdf", CONTRACTS_URL="https://frudom.ru/contracts";
 /* вкладка «Редактор PDF»: по нажатию открываем frudom.ru/pdf в новой вкладке (и показываем страницу с кнопкой — если браузер не дал открыть) */
-function goTab(t){ if(t==="contracts"){ let w=null; try{ w=window.open(CONTRACTS_URL,"_blank"); if(w) w.opener=null; }catch(e){} logEv("Вход","Открыт калькулятор контрактов"); if(!w) location.href=CONTRACTS_URL; return; }
+function goTab(t){ if(t==="ai"){ if(typeof acOpenTab==="function") acOpenTab(); try{ closeSheet(); }catch(e){} return; }
+  if(t==="contracts"){ let w=null; try{ w=window.open(CONTRACTS_URL,"_blank"); if(w) w.opener=null; }catch(e){} logEv("Вход","Открыт калькулятор контрактов"); if(!w) location.href=CONTRACTS_URL; return; }
   if(t==="pdf"){ let w=null; try{ w=window.open(PDF_URL,"_blank","noopener"); }catch(e){} logEv("Вход","Открыт редактор PDF"); if(curTab!=="pdf") showTab("pdf"); return; } showTab(t); }
 document.querySelectorAll("#fd-app nav.tabs button[data-tab]").forEach(b=>b.onclick=()=>{ if($("#fd-app nav.tabs").classList.contains("editing")) return; goTab(b.dataset.tab); });
 /* «‹ Назад»: переход в другую вкладку из задач/прибыли запоминает, откуда пришли (кнопка сверху, «Назад» браузера/телефона) */
@@ -9803,9 +9805,10 @@ const TAB_ICON={
   mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3.5 6.5l8.5 6.5 8.5-6.5"/>',
   pdf:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h1.5a1.5 1.5 0 0 1 0 3H9v-5M14 16v-5h2M14 13.5h1.5"/>',
   contracts:'<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M9 7h6M9 11h6M9 15h2M14 17.5l1.5 1.5 3-3.5"/>',
+  ai:'<path d="M12 3.5l1.7 4.6 4.6 1.7-4.6 1.7L12 16.1l-1.7-4.6L5.7 9.8l4.6-1.7z"/><path d="M18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>',
   more:'<circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/>'};
 const TAB_COLOR={doc:"#6a2c4e,#9b3d6f",order:"#b4532a,#e07a3f",driver:"#1f6f8b,#2fa3c4",calendar:"#c0392b,#ec6a5a",journal:"#3d4f9f,#6576d3",archive:"#6b6b6b,#9a9a9a",
-  customers:"#2f7d4f,#4cb377",products:"#8a5a12,#d39a2c",suppliers:"#4a3a8f,#7d67d6",data:"#455a64,#78909c",profit:"#0f7a5f,#28b38c",purchase:"#5d7a1f,#8db33a",events:"#7a3d8f,#b061cc",tasks:"#b8860b,#e6b422",stock:"#1f5f7a,#3a93b8",invoices:"#8a4b6b,#c27a9e",pdf:"#b3261e,#e5534b",mail:"#1f5f9f,#3f8fd8",contracts:"#6a2c4e,#a14f7b"};
+  customers:"#2f7d4f,#4cb377",products:"#8a5a12,#d39a2c",suppliers:"#4a3a8f,#7d67d6",data:"#455a64,#78909c",profit:"#0f7a5f,#28b38c",purchase:"#5d7a1f,#8db33a",events:"#7a3d8f,#b061cc",tasks:"#b8860b,#e6b422",stock:"#1f5f7a,#3a93b8",invoices:"#8a4b6b,#c27a9e",pdf:"#b3261e,#e5534b",mail:"#1f5f9f,#3f8fd8",contracts:"#6a2c4e,#a14f7b",ai:"#5b2a4e,#8e4bb0"};
 const svgI = id => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${TAB_ICON[id]||TAB_ICON.more}</svg>`;
 const visTabs = () => [...document.querySelectorAll("#fd-app nav.tabs button[data-tab]")].filter(b=>!b.hidden).map(b=>({id:b.dataset.tab, name:b.textContent.trim()}));
 const SHORTN={doc:"Документ", customers:"Заказчики", pdf:"PDF", contracts:"Контракты"};
