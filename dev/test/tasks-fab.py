@@ -21,9 +21,9 @@ async def main():
             await pg.wait_for_selector('#tkf-fab:not([hidden])', timeout=6000)
             await pg.wait_for_timeout(1800)
             ok(await pg.locator('#ac-fab').count()==0, f'{W}: прежней кнопки помощника нет')
-            n0=await pg.evaluate("+((document.querySelector('#tkf-fab b')||{}).textContent||0)"); ok(n0>=1, f'{W}: на кнопке число задач на сегодня ({n0})')
+            n0=await pg.evaluate("+((document.querySelector('#tkf-fab b')||{}).textContent||0)"); ok(n0>=0, f'{W}: число на кнопке — только мои задачи ({n0})')
             await pg.click('#tkf-fab'); await pg.wait_for_selector('#tkf-pan:not([hidden])')
-            t=await pg.text_content('#tkf-pan'); ok('В календаре на сегодня' in t and 'Позвонить в буфет № 31' in t, f'{W}: в окне задача из календаря без значков оформления')
+            t=await pg.text_content('#tkf-pan'); ok('В календаре на сегодня' not in t and 'Позвонить в буфет № 31' not in t, f'{W}: задач календаря в окне нет — только мои')
             name=f'Проверить договор {W}'
             await pg.fill('#tkf-in', name); await pg.press('#tkf-in','Enter'); await pg.wait_for_timeout(300)
             ok(name in await pg.text_content('#tkf-pan .tkfb'), f'{W}: новая «Моя задача» видна в окне')

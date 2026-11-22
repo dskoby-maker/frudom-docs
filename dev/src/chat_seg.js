@@ -373,9 +373,8 @@ function acFilesDraw(){ const b=document.getElementById("ac-fs"); if(!b) return;
 const TKF={open:false};
 const TKF_IC='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="17" rx="2.5"/><path d="M8 9.5l1.6 1.6L12.5 8M8 15.5l1.6 1.6 2.9-3.1M15 10h2M15 16h2"/></svg>';
 const tkfOk = () => { try{ return typeof MAILAPP!=="undefined" && MAILAPP ? false : !!(me() && me().admin && pass()); }catch(e){ return false; } };
-function tkfData(){ const t=isoToday(), day=DTS().filter(x=>x.date===t).sort((a,b)=>String(a.created).localeCompare(String(b.created)));
-  const p=tkPrefs(), my=p.tasks.filter(x=>!x.done), rem=(typeof acDue==="function"?acDue():[]);
-  return {day, my, rem, n:day.length+my.length+rem.length}; }
+/* в окне — только «Мои задачи» из вкладки «Задачи» (просьба Даниила, 23.11.2026): без задач календаря и напоминаний помощника */
+function tkfData(){ const p=tkPrefs(), my=p.tasks.filter(x=>!x.done); return {day:[], my, rem:[], n:my.length}; }
 function tkfEl(){ if(document.getElementById("tkf-fab")) return;
   const st=document.createElement("style"); st.textContent=`
 #tkf-fab{font-family:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;position:fixed;right:16px;bottom:16px;z-index:60;display:flex;align-items:center;gap:6px;height:38px;padding:0 13px 0 11px;border:1px solid rgba(91,42,78,.16);border-radius:19px;background:rgba(255,255,255,.94);color:#5b2a4e;font-weight:600;font-size:13.5px;box-shadow:0 4px 16px rgba(60,20,50,.16);cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:transform .18s,box-shadow .18s}
@@ -399,7 +398,7 @@ function tkfEl(){ if(document.getElementById("tkf-fab")) return;
  #tkf-pan{left:8px;right:8px;width:auto;max-height:min(70vh,560px);border-radius:18px;transform-origin:bottom center}.tkfr{padding:10px 8px}}
 @media print{#tkf-fab,#tkf-pan{display:none!important}}`;
   document.head.appendChild(st);
-  const b=document.createElement("button"); b.type="button"; b.id="tkf-fab"; b.hidden=true; b.innerHTML=TKF_IC+"<span>Задачи</span>"; b.title="Задачи на сегодня и мои задачи"; b.setAttribute("aria-expanded","false");
+  const b=document.createElement("button"); b.type="button"; b.id="tkf-fab"; b.hidden=true; b.innerHTML=TKF_IC+"<span>Задачи</span>"; b.title="Мои задачи"; b.setAttribute("aria-expanded","false");
   b.onclick=()=>tkfShow(!TKF.open);
   const p=document.createElement("section"); p.id="tkf-pan"; p.hidden=true; p.setAttribute("aria-label","Задачи");
   document.body.appendChild(b); document.body.appendChild(p);
@@ -426,10 +425,10 @@ function tkfDraw(){ const p=document.getElementById("tkf-pan"); if(!p) return; c
       return `<div class="tkfr" data-tkfday="${esc(x.id)}" role="button" tabindex="0"><i class="tkfd" style="${hue!==""&&hue!=null?`--c:hsl(${hue} 50% 55%)`:"--c:#c9bcc6"}"></i><span>${esc(fmtPlain(x.text||"").slice(0,160))}${c||x.addr?`<small>${esc([c,x.addr].filter(Boolean).join(" · "))}</small>`:""}</span><i aria-hidden="true">›</i></div>`; }).join("");
   const my=D0.my.map(x=>`<label class="tkfr" data-tkfmy="${esc(x.id)}"><input type="checkbox" aria-label="Сделано"><span>${esc(x.t)}<small>добавлено ${esc(fd(x.d))}</small></span></label>`).join("");
   const rem=D0.rem.map(x=>`<div class="tkfr"><i class="tkfd" style="--c:#d9a400"></i><span>${esc(x.t)}</span><button type="button" data-tkfrm="${esc(x.id)}">Готово</button></div>`).join("");
-  p.innerHTML=`<div class="tkfh"><b>Задачи<small>сегодня, ${dt.getDate()} ${["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"][dt.getMonth()]}, ${wd}</small></b><button type="button" data-tkfall>Все ›</button><button type="button" class="tkfx" aria-label="Закрыть">×</button></div>
+  p.innerHTML=`<div class="tkfh"><b>Мои задачи<small>сегодня, ${dt.getDate()} ${["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"][dt.getMonth()]}, ${wd}</small></b><button type="button" data-tkfall>Все ›</button><button type="button" class="tkfx" aria-label="Закрыть">×</button></div>
     <div class="tkfadd"><input id="tkf-in" placeholder="Новая задача…" maxlength="300" autocomplete="off"><button type="button" data-tkfadd>Добавить</button></div>
-    <div class="tkfb">${D0.n ? (day?`<div class="tkfs"><span>В календаре на сегодня</span><span>${D0.day.length}</span></div>${day}`:"")+(my?`<div class="tkfs"><span>Мои задачи</span><span>${D0.my.length}</span></div>${my}`:"")+(rem?`<div class="tkfs"><span>Напоминания помощника</span><span>${D0.rem.length}</span></div>${rem}`:"")
-      : `<div class="tkfe"><b>✓ Всё сделано</b>На сегодня задач нет. Впишите выше, что нужно не забыть.</div>`}</div>`;
+    <div class="tkfb">${D0.n ? (day?`<div class="tkfs"><span>В календаре на сегодня</span><span>${D0.day.length}</span></div>${day}`:"")+my+(rem?`<div class="tkfs"><span>Напоминания помощника</span><span>${D0.rem.length}</span></div>${rem}`:"")
+      : `<div class="tkfe"><b>✓ Всё сделано</b>Открытых задач нет. Впишите выше, что нужно не забыть.</div>`}</div>`;
   const ni=document.getElementById("tkf-in"); if(ni && val) ni.value=val; }
 function tkfShow(on){ tkfEl(); const p=document.getElementById("tkf-pan"), b=document.getElementById("tkf-fab");
   if(on){ TKF.open=true; p.classList.remove("out"); p.hidden=false; tkfDraw(); tkfPlace(); b.classList.add("on"); b.setAttribute("aria-expanded","true");
@@ -440,7 +439,7 @@ function tkfPlace(){ const f=document.getElementById("tkf-fab"), p=document.getE
   const fb=h ? h+12 : 16; f.style.bottom=fb+"px"; if(p) p.style.bottom=(fb+(f.offsetHeight||40)+10)+"px"; }
 function tkfSync(){ const f=document.getElementById("tkf-fab"); if(!f) return; let n=0; try{ n=tkfData().n; }catch(e){}
   let b=f.querySelector("b"); if(n){ if(!b){ b=document.createElement("b"); f.appendChild(b); } b.textContent=n>99?"99+":n; } else if(b) b.remove();
-  f.title=n?"Задачи на сегодня: "+n:"Задачи — на сегодня ничего"; tkfPlace(); }
+  f.title=n?"Мои задачи: "+n:"Мои задачи — всё сделано"; tkfPlace(); }
 /* кнопка видна, пока Даниил вошёл и не открыт помощник во весь экран */
 setInterval(()=>{ try{ const ok=tkfOk(); if(!ok && !document.getElementById("tkf-fab")) return; tkfEl(); const f=document.getElementById("tkf-fab"), acOpen=typeof AC!=="undefined" && AC.open;
   f.hidden=!ok||acOpen; if((!ok||acOpen) && TKF.open) tkfShow(false); if(ok){ tkfSync(); if(TKF.open && !document.activeElement?.closest?.("#tkf-pan")) tkfDraw(); } }catch(e){} }, 1500);
