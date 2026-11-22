@@ -270,9 +270,9 @@ function skLogOpen(r){ if(r.dataset.sklgb) skBatchCard(r.dataset.sklgb); else if
 document.addEventListener("click", e=>{ const t=e.target; if(!t.closest || t.closest("button,a,select,input")) return; const r=t.closest(".sklr.go"); if(r) skLogOpen(r); });
 document.addEventListener("keydown", e=>{ if(e.key!=="Enter"||!e.target.classList||!e.target.classList.contains("sklr")||!e.target.classList.contains("go")) return; e.preventDefault(); skLogOpen(e.target); });
 /* ---------- «Куда ушёл товар» (22.11.2026, просьба Даниила): история склада наглядно — откуда пришло, кому и когда ушло, сколько осталось ---------- */
-const SKFL={v:(()=>{ try{ return localStorage.getItem("frudom-skflv")||"flow"; }catch(e){ return "flow"; } })(), g:"item", k:"", cus:"", a:"", b:"", open:{}, n:20, anim:true};
+const SKFL={v:(()=>{ try{ return localStorage.getItem("frudom-skflv")||"flow"; }catch(e){ return "flow"; } })(), g:(()=>{ try{ return localStorage.getItem("frudom-skflg")||"day"; }catch(e){ return "day"; } })(), ym:"", day:"", nd:7, k:"", cus:"", a:"", b:"", open:{}, n:20, anim:true};
 const skfHue = k => { let h=2166136261; for(const c of String(k)){ h^=c.charCodeAt(0); h=Math.imul(h,16777619); } return Math.round(((h>>>0)%1000)*0.137508*1000)%360; };
-const skfRange = () => { if(!SKFL.a){ const t=todayISO(); SKFL.a=pvAddD(t,-29); SKFL.b=t; } return SKFL.a==="all"?["0000-00-00","9999-99-99"]:[SKFL.a,SKFL.b]; };
+const skfRange = () => { if(SKFL.g==="day"){ if(!SKFL.ym) SKFL.ym=todayISO().slice(0,7); const [y,m]=SKFL.ym.split("-").map(Number); return [SKFL.ym+"-01", SKFL.ym+"-"+String(new Date(y,m,0).getDate()).padStart(2,"0")]; } if(!SKFL.a){ const t=todayISO(); SKFL.a=pvAddD(t,-29); SKFL.b=t; } return SKFL.a==="all"?["0000-00-00","9999-99-99"]:[SKFL.a,SKFL.b]; };
 const skfKind = t => t==="in"||t==="init"?"in" : t==="ship"?"out" : t==="ret"?"ret" : t==="wo"?"wo" : "adj";
 function skfCus(m){ const j=m.docId&&D.journal.find(x=>x.id===m.docId), cid=j&&j.customerId; return cid?{k:"c:"+cid, n:cusNm(cid)||m.party||"Заказчик", j}:{k:"p:"+(m.party||"—"), n:m.party||"Заказчик", j:j||null}; }
 function skfData(X, q){ const [d1,d2]=skfRange(), F=SKFL;
@@ -293,7 +293,7 @@ function skfData(X, q){ const [d1,d2]=skfRange(), F=SKFL;
   const cus={}; L.filter(x=>x.k==="out"||x.k==="ret").forEach(x=>{ const c=cus[x.c.k]||(cus[x.c.k]={k:x.c.k, n:x.c.n, v:0, s:0, docs:{}, items:{}, last:""}); const sg=x.k==="ret"?-1:1; c.v+=sg*x.v; c.s+=sg*x.s;
     const dk=x.m.docId||x.m.doc||x.m.id, dd=c.docs[dk]||(c.docs[dk]={k:dk, j:x.c.j, doc:x.m.doc||"", at:x.m.at, L:[]}); dd.L.push(x); if(String(x.m.at||"")>dd.at) dd.at=x.m.at;
     const ik=x.m.itemId+"|"+skK(x.m.unit), ii=c.items[ik]||(c.items[ik]={n:(X.item[x.m.itemId]||{}).name||x.m.itemName||"Товар", u:x.m.unit, q:0}); ii.q=r3(ii.q+sg*x.q); if(String(x.m.at||"")>c.last) c.last=String(x.m.at||""); });
-  return {T, items:Object.values(items).sort((a,b)=>b.last.localeCompare(a.last)), cus:Object.values(cus).filter(c=>Object.values(c.items).some(i=>i.q>0)).sort((a,b)=>b.last.localeCompare(a.last)), all:M.length}; }
+  return {T, L, items:Object.values(items).sort((a,b)=>b.last.localeCompare(a.last)), cus:Object.values(cus).filter(c=>Object.values(c.items).some(i=>i.q>0)).sort((a,b)=>b.last.localeCompare(a.last)), all:M.length}; }
 const skfM = v => fm(r2(v)).replace(/,00$/,"");
 const skfWhen = at => { const d=new Date(at); if(isNaN(d)) return ""; const day=skDay(at), t=todayISO(); return (day===t?"сегодня":day===pvAddD(t,-1)?"вчера":d.toLocaleDateString("ru-RU",{day:"numeric",month:"short"}))+", "+d.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}); };
 function skfDocLbl(j, doc){ return j ? "накладная № "+esc(j.number)+" от "+fd(j.date) : esc(doc||"накладная"); }
@@ -327,21 +327,68 @@ function skfCusCard(c, X, k){ const open=!!SKFL.open["c:"+c.k], D2=Object.values
       <div class="skfa"><button type="button" class="btn ghost sm" data-skfcus="${esc(c.k)}">${SKFL.cus===c.k?"Показать всех заказчиков":"Только этот заказчик"}</button></div></div></div></article>`; }
 function skFlowHtml(q, X){ const F=SKFL, R=skfData(X, q), t=R.T;
   if(!RPG.reg.skfl){ rpgReg("skfl", { presets:()=>{ const t=todayISO(), P=pvRpPresets(); return [["Сегодня",t,t],["7 дней",pvAddD(t,-6),t],["30 дней",pvAddD(t,-29),t],P[0],P[1],["Всё время","all","all"]]; },
-    get:()=>{ skfRange(); return SKFL.a==="all"?{a:"all"}:{a:SKFL.a,b:SKFL.b}; }, set:(a,b)=>{ SKFL.a=a; SKFL.b=a==="all"?"":b; SKFL.n=20; SKFL.anim=true; skDrawList(); },
+    get:()=>{ skfRange(); return SKFL.a==="all"?{a:"all"}:{a:SKFL.a,b:SKFL.b}; }, set:(a,b)=>{ SKFL.a=a; SKFL.b=a==="all"?"":b; SKFL.n=20; SKFL.ym=""; SKFL.day=""; SKFL.nd=7; SKFL.anim=true; skDrawList(); },
     dots:()=>{ try{ return new Set(skIdx().S.moves.filter(m=>!SK_NOSTOCK[m.type]).map(m=>skDay(m.at))); }catch(e){ return new Set(); } } }); }
   const cn=F.cus?((R.cus.find(c=>c.k===F.cus)||{}).n||F.cus.replace(/^[cp]:/,"")):"";
   const tile=(k,lbl,val,sub)=>`<button type="button" class="skft${F.k===k?" on":""}" data-skfk="${k}"><small>${lbl}</small><b>${val}</b><span>${sub}</span></button>`;
-  const list=F.g==="cus" ? R.cus.map((c,i)=>skfCusCard(c,X,i)).join("") : R.items.map((o,i)=>skfItemCard(o,X,i)).join("");
-  const empty=!(F.g==="cus"?R.cus.length:R.items.length);
-  return `<div class="skflow${F.anim?" anim":""}"><div class="skf-top">${rpgBar("skfl")}<div class="skfg" style="--i:${F.g==="cus"?1:0}"><i></i><button type="button" data-skfg="item" class="${F.g!=="cus"?"on":""}">По товарам</button><button type="button" data-skfg="cus" class="${F.g==="cus"?"on":""}">По заказчикам</button></div></div>
-    <div class="skfts">${tile("in","Пришло на склад", skfM(t.in.v)+" ₽", t.in.n+" "+plural(t.in.n,["приход","прихода","приходов"]))}${tile("out","Ушло заказчикам", skfM(t.out.v)+" ₽", t.out.docs.size+" "+plural(t.out.docs.size,["накладная","накладные","накладных"])+" · "+t.cus.size+" "+plural(t.cus.size,["заказчик","заказчика","заказчиков"])+(t.out.s?" · продано на "+skfM(t.out.s)+" ₽":""))}${tile("wo","Списано", skfM(t.wo.v)+" ₽", t.wo.n?t.wo.n+" "+plural(t.wo.n,["раз","раза","раз"]):"ничего")}</div>
+  const list=F.g==="day" ? "" : F.g==="cus" ? R.cus.map((c,i)=>skfCusCard(c,X,i)).join("") : R.items.map((o,i)=>skfItemCard(o,X,i)).join("");
+  const empty=F.g!=="day" && !(F.g==="cus"?R.cus.length:R.items.length);
+  return `<div class="skflow${F.anim?" anim":""}"><div class="skf-top${F.g==="day"?" day":""}">${F.g==="day"?`<span class="skfhint">Сначала когда, потом куда, что, сколько и на какую сумму</span>`:rpgBar("skfl")}<div class="skfg three" style="--i:${["day","item","cus"].indexOf(F.g)}"><i></i><button type="button" data-skfg="day" class="${F.g==="day"?"on":""}">По дням</button><button type="button" data-skfg="item" class="${F.g==="item"?"on":""}">По товарам</button><button type="button" data-skfg="cus" class="${F.g==="cus"?"on":""}">По заказчикам</button></div></div>
+    ${F.g==="day"?skfCalHtml(R.L):""}<div class="skfts">${tile("in","Пришло на склад", skfM(t.in.v)+" ₽", t.in.n+" "+plural(t.in.n,["приход","прихода","приходов"]))}${tile("out","Ушло заказчикам", skfM(t.out.s||t.out.v)+" ₽", t.out.docs.size+" "+plural(t.out.docs.size,["накладная","накладные","накладных"])+" · "+t.cus.size+" "+plural(t.cus.size,["заказчик","заказчика","заказчиков"])+(t.out.s?" · себестоимость "+skfM(t.out.v)+" ₽":""))}${tile("wo","Списано", skfM(t.wo.v)+" ₽", t.wo.n?t.wo.n+" "+plural(t.wo.n,["раз","раза","раз"]):"ничего")}</div>
     ${F.k||F.cus?`<div class="skff">Показано: ${F.k?`<b>${({in:"только приходы",out:"только то, что ушло заказчикам",wo:"только списания"})[F.k]}</b>`:""}${F.cus?`${F.k?" · ":""}<b style="--h:${skfHue(F.cus)}"><i class="skfdot"></i>${esc(cn)}</b>`:""}<button type="button" class="skfx0" data-skfreset="1">Показать всё ×</button></div>`:""}
-    ${empty?`<div class="skempty"><b>${R.all?"За этот период ничего не нашлось":"Движений по складу пока нет"}</b><span>${R.all?"Поменяйте период, поиск или снимите фильтр.":"Здесь будет видно, откуда пришёл товар и кому ушёл."}</span></div>`:`<div class="skfls">${list}</div>`}</div>`; }
+    ${F.g==="day"?skfDaysHtml(R.L, X):empty?`<div class="skempty"><b>${R.all?"За этот период ничего не нашлось":"Движений по складу пока нет"}</b><span>${R.all?"Поменяйте период, поиск или снимите фильтр.":"Здесь будет видно, откуда пришёл товар и кому ушёл."}</span></div>`:`<div class="skfls">${list}</div>`}</div>`; }
+/* «По дням» — сначала КОГДА, потом КУДА, ЧТО, СКОЛЬКО и НА КАКУЮ СУММУ; сверху календарь месяца (23.11.2026, просьба Даниила) */
+const skfMon = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
+const skfK = v => { v=Math.abs(v); return v>=1e6?String(Math.round(v/1e5)/10).replace(".",",")+" млн":v>=1e3?String(Math.round(v/100)/10).replace(".",",")+"к":String(Math.round(v)); };
+const skfLineSum = x => x.k==="out" ? (x.s||x.v) : x.v;
+function skfOps(L, X){ const O={};
+  L.forEach(x=>{ const m=x.m, b=X.batch[m.batchId]; let key;
+    if(x.k==="out"||x.k==="ret") key=x.k+"|"+(m.docId||m.doc||m.id)+"|"+x.d;
+    else if(x.k==="in") key="in|"+((b&&b.op)||m.id);
+    else key=x.k+"|"+m.id;
+    const o=O[key]||(O[key]={key, k:x.k, at:m.at, d:x.d, c:x.c, b, m, L:[], tot:0}); if(String(m.at||"")<String(o.at||"")) o.at=m.at;
+    o.L.push({n:(X.item[m.itemId]||{}).name||m.itemName||"Товар", q:x.q, u:m.unit, s:skfLineSum(x), id:m.itemId}); o.tot+=skfLineSum(x); });
+  return Object.values(O).sort((a,b)=>String(b.at||"").localeCompare(String(a.at||""))); }
+function skfCalHtml(L){ const F=SKFL; if(!F.ym) F.ym=todayISO().slice(0,7);
+  const [y,mo]=F.ym.split("-").map(Number), first=new Date(y,mo-1,1), days=new Date(y,mo,0).getDate(), sh=(first.getDay()+6)%7, t=todayISO(), z=n=>String(n).padStart(2,"0");
+  const A={}; L.forEach(x=>{ if(!x.d.startsWith(F.ym)) return; const o=A[x.d]||(A[x.d]={out:0,in:0,wo:0,n:new Set()}); if(x.k==="out") o.out+=skfLineSum(x); else if(x.k==="in") o.in+=x.v; else if(x.k==="wo") o.wo+=x.v; o.n.add(x.k+(x.m.docId||x.m.id)); });
+  let cells=""; for(let i=0;i<sh;i++) cells+=`<span class="skfcd e"></span>`;
+  for(let d=1; d<=days; d++){ const iso=F.ym+"-"+z(d), a=A[iso], we=((sh+d-1)%7)>=5;
+    cells+=`<button type="button" class="skfcd${a?" has":""}${iso===t?" td":""}${F.day===iso?" sel":""}${we?" we":""}" data-skfday="${iso}" ${a?"":"disabled"} aria-label="${d} ${skfMon[mo-1]}${a?" — операций: "+a.n.size:""}"><b>${d}</b>${a?`<span class="skfcs">${a.out?`<em class="o">−${skfK(a.out)}</em>`:""}${a.in?`<em class="i">+${skfK(a.in)}</em>`:""}</span><span class="skfcp">${a.out?`<i class="o"></i>`:""}${a.in?`<i class="i"></i>`:""}${a.wo?`<i class="w"></i>`:""}</span>`:""}</button>`; }
+  const mt=Object.values(A).reduce((s,a)=>({o:s.o+a.out, i:s.i+a.in}),{o:0,i:0});
+  return `<div class="skfcal"><div class="skfcalh"><button type="button" class="skfnav" data-skfym="-1" aria-label="Прошлый месяц">‹</button><b>${skfMon[mo-1]} ${y}</b><button type="button" class="skfnav" data-skfym="1" aria-label="Следующий месяц">›</button><span class="skfcalt">${mt.o?`ушло на <b>${skfM(mt.o)} ₽</b>`:""}${mt.o&&mt.i?" · ":""}${mt.i?`пришло на <b>${skfM(mt.i)} ₽</b>`:""}</span>${F.ym!==t.slice(0,7)?`<button type="button" class="btn ghost sm" data-skfym="0">Сегодня</button>`:""}</div>
+    <div class="skfcw">${["Пн","Вт","Ср","Чт","Пт","Сб","Вс"].map(w=>`<span>${w}</span>`).join("")}</div><div class="skfcg">${cells}</div>
+    <div class="skfleg"><span><i class="o"></i>ушло заказчикам</span><span><i class="i"></i>пришло</span><span><i class="w"></i>списано</span></div></div>`; }
+function skfOpHtml(o, k){ const m=o.m, tm=new Date(o.at), hm=isNaN(tm)?"":tm.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
+  let where="", go="", sub="";
+  if(o.k==="out"){ where=`<b style="--h:${skfHue(o.c.k)}"><i class="skfdot"></i>${esc(o.c.n)}</b>`; sub=skfDocLbl(o.c.j, m.doc); go=m.docId?`data-skdoc="${esc(m.docId)}"`:""; }
+  else if(o.k==="ret"){ where=`<b>Возврат от «${esc(o.c.n)}»</b>`; sub=skfDocLbl(o.c.j, m.doc); go=m.docId?`data-skdoc="${esc(m.docId)}"`:""; }
+  else if(o.k==="in"){ const sup=(o.b&&o.b.supplier)||(m.party&&!skIdLike(m.party)?m.party:""); where=`<b>${m.type==="init"?"Начальный остаток":"Приход"}${sup?" от "+esc(sup):""}</b>`; sub=o.b&&o.b.docRef?"накл. "+esc(o.b.docRef):""; go=o.b?`data-skbatch="${esc(o.b.id)}"`:""; }
+  else if(o.k==="wo"){ where=`<b>Списано</b>`; sub=esc(m.reason||""); go=o.b?`data-skbatch="${esc(o.b.id)}"`:""; }
+  else { where=`<b>${esc(SK_T[m.type]||"Изменение")}</b>`; sub=esc(m.reason||""); go=o.b?`data-skbatch="${esc(o.b.id)}"`:""; }
+  const sign=o.k==="in"||o.k==="ret"?"+":o.k==="adj"?"":"−";
+  return `<div class="skfo k-${o.k}" style="--d:${Math.min(k,14)*26}ms"><div class="skfoh${go?" go":""}" ${go} ${go?`role="button" tabindex="0"`:""}><span class="skfot">${hm}</span><span class="skfoi" aria-hidden="true">${o.k==="in"||o.k==="ret"?"↓":o.k==="out"?"→":o.k==="wo"?"×":"↻"}</span><span class="skfow">${where}${sub?`<small>${sub}</small>`:""}</span><span class="skfos">${o.tot?sign+skfM(o.tot)+" ₽":""}${o.k==="out"&&o.L.some(l=>l.s)?`<small>${o.m.price?"продажа":"себестоимость"}</small>`:o.k==="in"?`<small>закупка</small>`:""}</span>${go?`<i class="skfgo" aria-hidden="true">›</i>`:`<i class="skfgo"></i>`}</div>
+    <div class="skfols">${o.L.map(l=>`<div class="skfol"><span class="skfon">${esc(l.n)}</span><span class="skfoq">${sign}${skQf(l.q,l.u)}</span><span class="skfom">${l.s?skfM(l.s)+" ₽":"—"}</span></div>`).join("")}</div></div>`; }
+function skfDaysHtml(L, X){ const F=SKFL, LL=F.day?L.filter(x=>x.d===F.day):L, O=skfOps(LL, X), t=todayISO();
+  const D={}; O.forEach(o=>{ (D[o.d]||(D[o.d]=[])).push(o); });
+  const ds=Object.keys(D).sort().reverse(), lim=F.day?ds.length:Math.min(ds.length, F.nd||7);
+  const dn=d=>{ const w=new Date(d+"T12:00:00").toLocaleDateString("ru-RU",{weekday:"long", day:"numeric", month:"long"}); return (d===t?"Сегодня · ":d===pvAddD(t,-1)?"Вчера · ":"")+w.charAt(0).toUpperCase()+w.slice(1); };
+  const sumK=(A,k)=>A.filter(o=>o.k===k).reduce((s,o)=>s+o.tot,0);
+  let k=0; const body=ds.slice(0,lim).map(d=>{ const A=D[d], so=sumK(A,"out"), si=sumK(A,"in"), no=A.filter(o=>o.k==="out").length;
+    return `<section class="skfday"><div class="skfdh"><b>${esc(dn(d))}</b><span>${no?`${no} ${plural(no,["отгрузка","отгрузки","отгрузок"])} на <b>${skfM(so)} ₽</b>`:""}${no&&si?" · ":""}${si?`пришло на <b>${skfM(si)} ₽</b>`:""}</span></div>${A.map(o=>skfOpHtml(o, k++)).join("")}</section>`; }).join("");
+  return (F.day?`<div class="skff">Показан день: <b>${fd(F.day)}</b><button type="button" class="skfx0" data-skfday="${F.day}">Все дни ×</button></div>`:"")
+    + (ds.length?`<div class="skfdays">${body}</div>${ds.length>lim?`<div class="skmv-more"><span class="muted">Показано дней: ${lim} из ${ds.length}</span><button type="button" class="btn ghost sm" data-skfnd="7">Ещё 7 дней</button><button type="button" class="btn ghost sm" data-skfnd="all">Все</button></div>`:""}`
+      : `<div class="skempty"><b>${F.day?"В этот день движений нет":"За этот период ничего не нашлось"}</b><span>Выберите другой день в календаре или поменяйте период.</span></div>`); }
+document.addEventListener("click", e=>{ const t=e.target; if(!t.closest || !t.closest("#sk-list")) return; const F=SKFL;
+  const d=t.closest("[data-skfday]"); if(d){ F.day=F.day===d.dataset.skfday?"":d.dataset.skfday; F.nd=7; skfRedraw(true); if(F.day){ const el=$("#sk-list .skfdays"); if(el) setTimeout(()=>el.scrollIntoView({behavior:"smooth", block:"start"}), 60); } return; }
+  const y=t.closest("[data-skfym]"); if(y){ const n=+y.dataset.skfym; if(!n) F.ym=todayISO().slice(0,7); else { const [a,b]=F.ym.split("-").map(Number), dt=new Date(a,b-1+n,1); F.ym=dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0"); }
+    if(F.day && !F.day.startsWith(F.ym)) F.day=""; const c=$("#sk-list .skfcal"); if(c){ c.classList.remove("slide-l","slide-r"); void c.offsetWidth; } skfRedraw(false); const c2=$("#sk-list .skfcal"); if(c2) c2.classList.add(n<0?"slide-r":"slide-l"); return; }
+  const nd=t.closest("[data-skfnd]"); if(nd){ F.nd=nd.dataset.skfnd==="all"?1e9:(F.nd||7)+7; skfRedraw(false); return; } });
 function skfSwitch(){ return `<div class="skfvw" style="--i:${SKFL.v==="log"?1:0}"><i></i><button type="button" data-skfv="flow" class="${SKFL.v!=="log"?"on":""}">Куда ушёл товар</button><button type="button" data-skfv="log" class="${SKFL.v==="log"?"on":""}">Все действия</button></div>`; }
 function skfRedraw(anim){ SKFL.anim=!!anim; skDrawList(); }
 document.addEventListener("click", e=>{ const t=e.target; if(!t.closest || !t.closest("#sk-list")) return; const F=SKFL;
   const v=t.closest("[data-skfv]"); if(v){ if(F.v===v.dataset.skfv) return; F.v=v.dataset.skfv; try{ localStorage.setItem("frudom-skflv",F.v); }catch(_){} const s=t.closest(".skfvw"); if(s) s.style.setProperty("--i", F.v==="log"?1:0); setTimeout(()=>skfRedraw(true), 160); return; }
-  const g=t.closest("[data-skfg]"); if(g){ if(F.g===g.dataset.skfg) return; F.g=g.dataset.skfg; const s=t.closest(".skfg"); if(s) s.style.setProperty("--i", F.g==="cus"?1:0); setTimeout(()=>skfRedraw(true), 160); return; }
+  const g=t.closest("[data-skfg]"); if(g){ if(F.g===g.dataset.skfg) return; F.g=g.dataset.skfg; try{ localStorage.setItem("frudom-skflg",F.g); }catch(_){} const s=t.closest(".skfg"); if(s) s.style.setProperty("--i", ["day","item","cus"].indexOf(F.g)); setTimeout(()=>skfRedraw(true), 160); return; }
   const k=t.closest("[data-skfk]"); if(k){ F.k=F.k===k.dataset.skfk?"":k.dataset.skfk; skfRedraw(true); return; }
   const c=t.closest("[data-skfcus]"); if(c){ e.stopPropagation(); F.cus=F.cus===c.dataset.skfcus?"":c.dataset.skfcus; skfRedraw(true); return; }
   if(t.closest("[data-skfreset]")){ F.k=""; F.cus=""; skfRedraw(true); return; }
