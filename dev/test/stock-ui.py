@@ -10,7 +10,7 @@ def rows(sheet):
 SHOT=os.environ.get('SHOTS','/tmp')
 TAB="(t=>{document.querySelector('nav.tabs button[data-tab=\"journal\"]').click(); document.querySelector('nav.tabs button[data-tab=\"'+t+'\"]').click()})"
 async def login(b, vw, who='Даниил', pw='1111'):
-    ctx=await b.new_context(viewport={'width':vw[0],'height':vw[1]}); pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
+    ctx=await b.new_context(viewport={'width':vw[0],'height':vw[1]}); pg=await ctx.new_page(); await pg.add_init_script("localStorage.setItem('frudom-skflv','log')"); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
     pg.on('dialog', lambda d: asyncio.ensure_future(d.accept()))
     await pg.goto('http://localhost:8787/page'); await pg.click(f'#fd-who [data-who="{who}"]'); await pg.fill('#fd-pass',pw); await pg.click('#fd-enter'); await pg.wait_for_timeout(2500)
     return ctx, pg, errs

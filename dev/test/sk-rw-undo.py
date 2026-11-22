@@ -14,6 +14,7 @@ async def main():
         b=await p.chromium.launch(executable_path=os.environ.get("BROWSER_EXECUTABLE_PATH") or None)
         W=int(os.environ.get('W','1300')); tag='ph' if W<600 else 'pc'
         pg=await b.new_page(viewport={'width':W,'height':900}); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
+        await pg.add_init_script("localStorage.setItem('frudom-skflv','log')")
         await pg.goto('http://localhost:8787/page'); await pg.click('#fd-who [data-who="Даниил"]'); await pg.fill('#fd-pass','1111'); await pg.click('#fd-enter'); await pg.wait_for_timeout(2500)
         await pg.evaluate(TAB+"('stock')"); await pg.wait_for_timeout(1200)
         nm='Макароны фас Ситно 500гх15шт рожки '+tag

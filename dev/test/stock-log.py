@@ -10,7 +10,7 @@ async def main():
     async with async_playwright() as p:
         b=await p.chromium.launch(executable_path=os.environ.get("BROWSER_EXECUTABLE_PATH"))
         for vw in [(1300,900),(390,844)]:
-            W=vw[0]; ctx=await b.new_context(viewport={'width':vw[0],'height':vw[1]}); pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
+            W=vw[0]; ctx=await b.new_context(viewport={'width':vw[0],'height':vw[1]}); pg=await ctx.new_page(); await pg.add_init_script("localStorage.setItem('frudom-skflv','log')"); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e)))
             await pg.goto('http://localhost:8787/page'); await pg.click('#fd-who [data-who="Даниил"]'); await pg.fill('#fd-pass','1111'); await pg.click('#fd-enter'); await pg.wait_for_timeout(2500)
             # 14 приходов одного товара → 15+ записей истории и 14 движений
             rows=[{"newName":f"Гречка {W}","unit":"кг","qty":str(i+1),"price":"50","date":"2026-11-05","supplier":"Рынок","docRef":f"Н{i}"} for i in range(14)]
