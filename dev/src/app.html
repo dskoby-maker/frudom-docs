@@ -5297,7 +5297,10 @@ async function addSheets(st, sheets, land){
   const W=land?297:210, H=land?210:297, o=land?"l":"p";
   const page=()=>{ if(!st.pdf) st.pdf=new window.jspdf.jsPDF({orientation:o, unit:"mm", format:"a4", compress:true}); else st.pdf.addPage("a4", o); };
   for(const sh of sheets){
-    const cv=await window.html2canvas(sh,{scale:2.5, backgroundColor:"#ffffff", logging:false});
+    /* html2canvas копирует всю страницу (журнал — тысячи строк) на каждый лист — берём только сам лист, его родителей и стили */
+    const skip=el=>{ if(el===sh || el.contains(sh) || sh.contains(el)) return false; const t=el.tagName; return !(t==="HEAD"||t==="STYLE"||t==="LINK"||t==="META"||t==="TITLE"||t==="BASE"||(el.closest&&el.closest("head"))); };
+    await new Promise(r=>setTimeout(r,0));   /* дать браузеру перерисовать «Готовлю PDF…» между листами */
+    const cv=await window.html2canvas(sh,{scale:2.5, backgroundColor:"#ffffff", logging:false, ignoreElements:skip});
     // Страницы уже разделены layout(). Один готовый лист — одна страница PDF,
     // с пропорциональным уменьшением целиком, без разрезания строк и подписей.
     const scale=Math.min(W/cv.width,H/cv.height),wmm=cv.width*scale,hmm=cv.height*scale;
@@ -5333,7 +5336,7 @@ window.addEventListener("resize",()=>{ if(!$("#pv").hidden) fitSheets(); });
 /* комплект документов одним PDF */
 async function comboPdf(kinds, k){
   await pdfLibs();
-  const box=document.createElement("div"); box.style.cssText="position:absolute;left:0;top:0;z-index:-1;pointer-events:none";
+  const box=document.createElement("div"); box.style.cssText="position:absolute;left:-20000px;top:0;pointer-events:none";
   $("#fd-app").appendChild(box); const st={};
   try{
     for(const kind of kinds){ const K=KINDS[kind];
@@ -5636,7 +5639,7 @@ $("#o-editing").addEventListener("click",e=>{ if(e.target.closest("#o-edcancel")
 $("#o-clear").onclick=()=>{ if(typeof drTick==="function") drTick(true); const had=!!O().did && drArr().some(r=>r.id==="o-"+O().did); delete O().did; O().qty={}; O().num={}; if(had) toast("info","Заявка очищена","Прежняя заявка осталась в «Черновиках» — её можно продолжить или удалить."); saveLocal(); renderOrderGrid(); $("#o-done").innerHTML=""; $("#o-msg").textContent=""; };
 async function manyPdf(kinds, ks, name){
   await pdfLibs();
-  const box=document.createElement("div"); box.style.cssText="position:absolute;left:0;top:0;z-index:-1;pointer-events:none";
+  const box=document.createElement("div"); box.style.cssText="position:absolute;left:-20000px;top:0;pointer-events:none";
   $("#fd-app").appendChild(box); const st={};
   try{ for(const k of ks) for(const kind of kinds){ const K=KINDS[kind];
       box.innerHTML=pagesFor(kind,k).map(h=>`<div class="sheet ${K.o}" style="box-shadow:none;margin:0">${h}</div>`).join("");
@@ -6541,7 +6544,7 @@ function dpSave(){ const M=dpMem(); dpGroups().forEach(g=>{ const r=g.ix.map(i=>
   try{ localStorage.setItem(DP_LS, JSON.stringify(M)); }catch(e){} }
 const dpTitle = () => "Документы на "+fd(DP.iso);
 async function dpPdf(b){ const items=dpItems(); if(!items.length) return; const h=b.innerHTML; b.disabled=true; b.innerHTML="<span>Готовлю PDF…</span>";
-  try{ await pdfLibs(); const box=document.createElement("div"); box.style.cssText="position:absolute;left:0;top:0;z-index:-1;pointer-events:none"; $("#fd-app").appendChild(box); const st={};
+  try{ await pdfLibs(); const box=document.createElement("div"); box.style.cssText="position:absolute;left:-20000px;top:0;pointer-events:none"; $("#fd-app").appendChild(box); const st={};
     try{ for(const {kind,k} of items){ const K=KINDS[kind]; box.innerHTML=pagesFor(kind,k).map(x=>`<div class="sheet ${K.o}" style="box-shadow:none;margin:0">${x}</div>`).join(""); await addSheets(st, box.querySelectorAll(".sheet"), K.o==="landscape"); } }
     finally{ box.remove(); }
     st.pdf.save(fileSafe(dpTitle()+" — "+dpCounts().d+" накл")+".pdf");
