@@ -54,6 +54,7 @@ async def main():
     ok(await pg.locator('#fd-dcard[open]').count()==1, 'нажатие на отгрузку открывает накладную')
     await pg.keyboard.press('Escape'); await pg.wait_for_timeout(500)
     await pg.screenshot(path=f'/tmp/skdays-{"ph" if PH else "pc"}.png')
+    await pg.locator("#sk-list .skfcal").scroll_into_view_if_needed(); await pg.locator("#sk-list .skfcal").screenshot(path=f"/tmp/skdays-cal-{'ph' if PH else 'pc'}.png")
     sw=await pg.evaluate("[document.documentElement.scrollWidth, innerWidth]"); ok(sw[0]<=sw[1], f'без прокрутки вбок {sw}')
     ok(not errs, f'ошибок JS нет {errs[:2]}')
     await b.close()

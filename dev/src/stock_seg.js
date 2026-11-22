@@ -339,7 +339,7 @@ function skFlowHtml(q, X){ const F=SKFL, R=skfData(X, q), t=R.T;
     ${F.g==="day"?skfDaysHtml(R.L, X):empty?`<div class="skempty"><b>${R.all?"За этот период ничего не нашлось":"Движений по складу пока нет"}</b><span>${R.all?"Поменяйте период, поиск или снимите фильтр.":"Здесь будет видно, откуда пришёл товар и кому ушёл."}</span></div>`:`<div class="skfls">${list}</div>`}</div>`; }
 /* «По дням» — сначала КОГДА, потом КУДА, ЧТО, СКОЛЬКО и НА КАКУЮ СУММУ; сверху календарь месяца (23.11.2026, просьба Даниила) */
 const skfMon = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
-const skfK = v => { v=Math.abs(v); return v>=1e6?String(Math.round(v/1e5)/10).replace(".",",")+" млн":v>=1e3?String(Math.round(v/100)/10).replace(".",",")+"к":String(Math.round(v)); };
+const skfK = v => { v=Math.abs(v); return v>=1e6?String(Math.round(v/1e5)/10).replace(".",",")+"м":v>=1e4?Math.round(v/1e3)+"к":v>=1e3?String(Math.round(v/100)/10).replace(".",",")+"к":String(Math.round(v)); };
 const skfLineSum = x => x.k==="out" ? (x.s||x.v) : x.v;
 function skfOps(L, X){ const O={};
   L.forEach(x=>{ const m=x.m, b=X.batch[m.batchId]; let key;
