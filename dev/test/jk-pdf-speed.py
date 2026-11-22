@@ -23,9 +23,11 @@ async def main():
         for k in ['invoice','torg12','upd']:
             await pg.evaluate(f"document.querySelector('[data-jk=\"spd1\"] [data-jkk=\"{k}\"]').click()")
         await pg.wait_for_timeout(200)
+        await pg.evaluate("document.querySelector('[data-jkd=\"spd1\"]').click()"); await pg.wait_for_timeout(1500)
+        ok(await pg.evaluate("!document.querySelector('#pv').hidden"), 'открылся просмотр')
         t0=time.time()
         async with pg.expect_download(timeout=120000) as dl:
-            await pg.evaluate("document.querySelector('[data-jkd=\"spd1\"]').click()")
+            await pg.evaluate("document.querySelector('#pv-pdf').click()")
             await pg.wait_for_timeout(300)
             box=await pg.evaluate("(()=>{const s=[...document.querySelectorAll('#fd-app > div')].find(d=>d.querySelector('.sheet')&&!d.closest('#pv')); if(!s) return null; const r=s.getBoundingClientRect(); return [r.left, r.right];})()")
         d=await dl.value; dt=time.time()-t0

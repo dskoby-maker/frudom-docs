@@ -7478,13 +7478,13 @@ const jCtrHtml = t => t ? `<div class="jctr" title="${esc(t)}">${esc(t)}</div>` 
    под каждой — маленькая отметка; отметили хоть одну — справа появляется значок «скачать», всё отмеченное одним PDF (порядок счёт → ТОРГ → УПД).
    Отметки живут до перезагрузки страницы (JK), перерисовка журнала их не теряет. */
 const JK={}, JK_ORD=["nakl","invoice","torg12","upd"];
-const IC_JKDL='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>';
+const IC_JKDL='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V4h10v5"/><rect x="4" y="9" width="16" height="8" rx="2"/><path d="M7 14h10v6H7z"/></svg>';
 const jkKinds = pv => pv ? [["nakl","Накладная"],["invoice","Счёт"],["torg12","ТОРГ‑12"]] : [["invoice","Счёт"],["torg12","ТОРГ‑12"],["upd","УПД"]];
 const jkLbl = k => ({nakl:"Накладная",invoice:"Счёт",torg12:"ТОРГ‑12",upd:"УПД"})[k]||k;
 function jkHtml(j, pv){ const sel=JK[j.id]||[], T12=`ТОРГ<span class="jmh">‑12</span>`;
-  const col=([k,l])=>{ const on=sel.includes(k); return `<span class="jkc"><button class="btn sm" data-p="${k}" data-id="${j.id}">${k==="torg12"?T12:esc(l)}</button><button type="button" class="jkb${on?" on":""}" data-jkk="${k}" aria-pressed="${on}" title="Отметить «${esc(l)}» — скачать одним PDF" aria-label="Отметить «${esc(l)}» для скачивания"></button></span>`; };
+  const col=([k,l])=>{ const on=sel.includes(k); return `<span class="jkc"><button class="btn sm" data-p="${k}" data-id="${j.id}">${k==="torg12"?T12:esc(l)}</button><button type="button" class="jkb${on?" on":""}" data-jkk="${k}" aria-pressed="${on}" title="Отметить «${esc(l)}» — открыть вместе для печати или PDF" aria-label="Отметить «${esc(l)}»"></button></span>`; };
   return `<span class="jdocs jk${sel.length?" has":""}" data-jk="${j.id}">${jkKinds(pv).map(col).join("")}<button type="button" class="jkd" data-jkd="${j.id}" ${sel.length?"":'tabindex="-1" '}title="${esc(jkTip(sel))}" aria-label="${esc(jkTip(sel))}">${IC_JKDL}${sel.length>1?`<b>${sel.length}</b>`:""}</button></span>`; }
-const jkTip = sel => sel.length ? "Скачать одним PDF: "+JK_ORD.filter(k=>sel.includes(k)).map(jkLbl).join(" + ") : "Отметьте документы, чтобы скачать";
+const jkTip = sel => sel.length ? "Открыть для печати или PDF: "+JK_ORD.filter(k=>sel.includes(k)).map(jkLbl).join(" + ") : "Отметьте документы, чтобы открыть";
 function jkSync(box){ const id=box.dataset.jk, sel=JK[id]||[], d=box.querySelector(".jkd");
   box.querySelectorAll("[data-jkk]").forEach(b=>{ const on=sel.includes(b.dataset.jkk); b.classList.toggle("on",on); b.setAttribute("aria-pressed",on); });
   box.classList.toggle("has", sel.length>0);
@@ -7497,10 +7497,9 @@ function jkClick(e){ const k=e.target.closest("[data-jkk]"), d=!k&&e.target.clos
     document.querySelectorAll(`[data-jk="${CSS.escape(id)}"]`).forEach(jkSync); return true; }
   const sel=JK[id]||[]; if(!sel.length || d.classList.contains("busy")) return true;
   const j=D.journal.find(x=>x.id===id); if(!j||!j.snap) return true;
-  d.classList.add("busy"); d.disabled=true;
-  comboPdf(sel, calc(j.snap.dr, j.snap)).then(()=>{ toast("ok","PDF скачан", sel.map(jkLbl).join(" + ")+" № "+j.number); d.classList.add("ok"); setTimeout(()=>d.classList.remove("ok"),1200); })
-    .catch(err=>toast("err","Не получилось сделать PDF", (err&&err.message||err)+". Откройте документ и нажмите «Печать» → «Сохранить как PDF»."))
-    .finally(()=>{ d.classList.remove("busy"); d.disabled=false; });
+  /* не скачиваем сразу — открываем просмотр: там «Печать» и «Скачать PDF» (просьба Даниила, 22.11.2026) */
+  const kk=calc(j.snap.dr, j.snap), ks=JK_ORD.filter(x=>sel.includes(x));
+  showPreviewSet(ks.map(kind=>({kind,k:kk})), ks.map(x=>KSHORT[x]).join(" и ")+" № "+j.number+" от "+fd(j.date)+(shortCus(kk)?" — "+shortCus(kk):""));
   return true; }
 function jRowHtml(j, kid, arch){ const w=jWho(j), pv=!!(j.snap.c&&j.snap.c.priv);
   const T12=`ТОРГ<span class="jmh">‑12</span>`;
