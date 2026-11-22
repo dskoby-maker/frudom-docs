@@ -1601,6 +1601,22 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 @media (max-width:640px){#fd-app .skfcd{min-height:46px;padding:4px 5px}#fd-app .skfcs em.i{display:none}#fd-app .skfcs em{font-size:10.5px}#fd-app .skfcp{top:5px;right:4px}#fd-app .skfcalt{flex-basis:100%;text-align:left;order:5}
   #fd-app .skfoh{grid-template-columns:44px minmax(0,1fr) auto;gap:4px 8px;padding:10px}#fd-app .skfoh .skfoi,#fd-app .skfoh .skfgo{display:none}
   #fd-app .skfols{padding:4px 10px 6px 62px}#fd-app .skfol{grid-template-columns:minmax(0,1fr) auto auto;gap:8px}#fd-app .skfg.three button{padding:8px 4px;font-size:13px}}
+/* ровнее (23.11.2026): точки — внизу клетки, суммы не вылезают, строки товаров — во всю ширину */
+#fd-app .skfcd{display:flex;flex-direction:column;align-items:flex-start;overflow:hidden}
+#fd-app .skfcd .skfcs{width:100%}#fd-app .skfcs em{white-space:nowrap;overflow:hidden;text-overflow:clip;letter-spacing:-.2px}
+#fd-app .skfcp{position:static;margin-top:auto;padding-top:3px;display:flex;gap:3px}
+#fd-app .skfdh{background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border-radius:10px;padding:8px 10px;margin:0 -2px}
+#fd-app .skfol{grid-template-areas:"n q s"}#fd-app .skfon{grid-area:n}#fd-app .skfoq{grid-area:q}#fd-app .skfom{grid-area:s}
+@media (max-width:640px){
+  #fd-app .skfcg,#fd-app .skfcw{gap:3px}#fd-app .skfcd{min-height:50px;padding:5px 4px 4px;align-items:center;text-align:center}#fd-app .skfcd b{font-size:13px}
+  #fd-app .skfcs{justify-items:center}#fd-app .skfcs em{font-size:10px}#fd-app .skfcp{justify-content:center}
+  #fd-app .skfcalh{gap:6px}#fd-app .skfcalh>b{flex:1;min-width:0;font-size:15px}#fd-app .skfnav{width:36px;height:36px}
+  #fd-app .skfoh{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"t s" "w s";gap:2px 10px;padding:10px 12px 8px}
+  #fd-app .skfoh .skfot{grid-area:t;font-size:12.5px;font-weight:600;color:var(--muted)}#fd-app .skfoh .skfow{grid-area:w}#fd-app .skfoh .skfos{grid-area:s;align-self:center}
+  #fd-app .skfols{padding:2px 12px 6px}
+  #fd-app .skfol{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"n q" "n s";gap:0 12px;padding:7px 0}
+  #fd-app .skfon{align-self:center;line-height:1.3}#fd-app .skfoq,#fd-app .skfom{text-align:right}#fd-app .skfom{font-size:12.5px}
+  #fd-app .skfdh{padding:8px 10px;margin:0}}
 @media (prefers-reduced-motion:reduce){#fd-app .skfcal .skfcg,#fd-app .skflow .skfo{animation:none!important}}
 @media (prefers-reduced-motion:reduce){#fd-app .skfvw>i,#fd-app .skfg>i,#fd-app .skfx,#fd-app .skfch{transition:none}#fd-app .skflow .skfcard,#fd-app .skflow .skfbar,#fd-app .skfr{animation:none!important}}
 #fd-app .sklday{position:sticky;top:var(--dch,0px);z-index:1;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:12px 6px 6px;background:linear-gradient(var(--surface) 70%,transparent)}#fd-app .sklday:first-letter{text-transform:uppercase}
