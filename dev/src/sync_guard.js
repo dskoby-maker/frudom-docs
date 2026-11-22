@@ -46,27 +46,38 @@ const cfJ=s=>{ if(s&&typeof s==='object') return s; try{ return JSON.parse(s||'{
 function cfPName(pid, docId){ const p=typeof prod==='function'&&prod(pid); if(p) return p.name;
   const j=(D.journal||[]).find(x=>x.id===docId), pp=j&&j.snap&&j.snap.prods&&j.snap.prods[pid]; return pp?pp.name:'товар'; }
 function cfPUnit(pid){ const p=typeof prod==='function'&&prod(pid); return p&&p.unit||'ед.'; }
-/* что отличается: [{l, a (в таблице), b (у вас)}] */
-function cfRows(t, a, b, id){ const R=[], add=(l,x,y)=>{ if(String(x)!==String(y)) R.push({l, a:x, b:y}); };
-  if(!a||!b) return R;
-  if(t==='doccosts'){ const A=cfJ(a.lines), B=cfJ(b.lines), ks=[...new Set([...Object.keys(A),...Object.keys(B)])];
-    ks.filter(k=>!k.startsWith('_')).forEach(pid=>add('Закупка «'+cfPName(pid,id)+'», ₽ за '+cfPUnit(pid), A[pid]!=null?fm(A[pid])+' ₽':'не вписана', B[pid]!=null?fm(B[pid])+' ₽':'не вписана'));
-    const sub=(o,k)=>cfJ(o[k]); ['_bq','_free'].forEach(k=>{ const x=sub(A,k), y=sub(B,k); [...new Set([...Object.keys(x),...Object.keys(y)])].forEach(pid=>{
-      if(k==='_bq') add('Куплено фактически «'+cfPName(pid,id)+'»', x[pid]!=null?String(x[pid]).replace('.',',')+' '+cfPUnit(pid):'как в накладной', y[pid]!=null?String(y[pid]).replace('.',',')+' '+cfPUnit(pid):'как в накладной');
-      else add('«'+cfPName(pid,id)+'» — бесплатно', x[pid]?'да':'нет', y[pid]?'да':'нет'); }); });
-    const pay=o=>{ const p=cfJ(o._pay); return +p.s?fm(p.s)+' ₽'+(p.d?', '+fd(String(p.d).slice(0,10)):''):'не оплачена'; }; add('Оплата накладной', pay(A), pay(B));
-    const src=o=>{ const L=Array.isArray(o._src)?o._src:[]; return L.length?L.map(x=>(x.n||'')+' — '+fm(x.s)+' ₽').join('; '):'—'; }; add('Закупка одной суммой / от кого', src(A), src(B));
-    add('Прочие расходы', cfV('expense',a.expense), cfV('expense',b.expense)); add('Примечание', cfV('note',a.note), cfV('note',b.note));
-    return R; }
-  if(t==='journal'){ const sa=cfJ(a.snap), sb=cfJ(b.snap), da=sa.dr||{}, db=sb.dr||{};
-    add('Номер', a.number||'—', b.number||'—'); add('Дата', fd(a.date)||'—', fd(b.date)||'—'); add('Сумма', fm(a.sum)+' ₽', fm(b.sum)+' ₽');
-    add('Адрес доставки', da.ship||'—', db.ship||'—'); add('Заказчик', (sa.c||{}).name||'—', (sb.c||{}).name||'—');
-    const ln=(s,d)=>{ const m={}; (d.lines||[]).forEach(l=>{ if(!l.productId&&!l.name) return; const k=l.productId||l.name, pr=(s.prods||{})[l.productId]||{}; m[k]={n:pr.name||l.name||'товар', v:String(l.qty||0).replace('.',',')+' '+(pr.unit||'')+' × '+fm(l.price)+' ₽'}; }); return m; };
-    const la=ln(sa,da), lb=ln(sb,db); [...new Set([...Object.keys(la),...Object.keys(lb)])].forEach(k=>add('«'+(la[k]||lb[k]).n+'»', la[k]?la[k].v:'нет в накладной', lb[k]?lb[k].v:'нет в накладной'));
-    add('В архиве', ((sa.meta||{}).arch)?'да':'нет', ((sb.meta||{}).arch)?'да':'нет');
-    add('Комментарий', ((sa.meta||{}).cm||{}).t||'—', ((sb.meta||{}).cm||{}).t||'—');
-    return R; }
-  const L=CF_LBL[t]||{}; [...new Set([...Object.keys(a),...Object.keys(b)])].forEach(k=>{ if(k.startsWith('_')||CF_SKIP.test(k)) return; const lb=L[k]; if(!lb||/^ID|\(не /.test(lb)) return; add(lb, cfV(k,a[k]), cfV(k,b[k])); });
+/* запись простыми словами: [[подпись, значение]] — из этого списка и «что отличается», и «вся запись целиком» (22.11.2026) */
+const cfT=v=>{ if(!v) return '—'; const d=new Date(v); return isNaN(d)?String(v):d.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); };
+function cfCard(t, o, pre){ const L=CF_LBL[t]||{}, out=[]; Object.keys(o||{}).forEach(k=>{ if(k.startsWith('_')||CF_SKIP.test(k)||/^(stamp|sign)$/.test(k)) return;
+    if(k==='branches'){ const B=Array.isArray(o[k])?o[k]:cfJ(o[k]); const arr=Array.isArray(B)?B:[]; out.push([pre+'подразделения', arr.length?arr.map(x=>x.label||x.name||'без названия').join(', '):'нет']); return; }
+    const lb=L[k]; if(!lb||/^ID|\(не /.test(lb)) return; const v=o[k]; if(v&&typeof v==='object') return; out.push([pre+lb.replace(/\s*\(.*\)\s*$/,'').toLowerCase(), cfV(k,v)]); });
+  return out; }
+function cfMap(t, r, id){ if(!r) return []; const M=[], add=(l,v)=>M.push([l, v==null||v===''?'—':String(v)]);
+  if(t==='journal'){ const sn=cfJ(r.snap), d=sn.dr||{}, m=sn.meta||d.meta||{}, c=sn.c||{}, sp=sn.s||{};
+    add('Номер', r.number); add('Дата', fd(r.date)); add('Сумма', fm(r.sum)+' ₽');
+    add('Поставщик', sp.name||r.supplierName); add('Заказчик', c.name||r.customerName);
+    if(d.branchId){ const br=(Array.isArray(c.branches)?c.branches:cfJ(c.branches)); const b=Array.isArray(br)&&br.find(x=>x.id===d.branchId); add('Подразделение', b?(b.label||b.name):'выбрано'); }
+    add('Адрес доставки', d.ship); add('Основание (договор)', d.basis); if(d.nds) add('НДС', d.nds==='none'?'без НДС':d.nds);
+    (d.lines||[]).forEach(l=>{ if(!l.productId&&!l.name) return; const pr=(sn.prods||{})[l.productId]||{}; add('Товар «'+(pr.name||l.name||'товар')+'»', String(l.qty||0).replace('.',',')+' '+(pr.unit||'')+' × '+fm(l.price)+' ₽'); });
+    add('Комментарий', (m.cm||{}).t); add('Отмечено «Важное»', (m.cm||{}).imp?'да':'нет'); add('В архиве', m.arch?'да':'нет');
+    add('Комплект', m.batch?'в комплекте с другими накладными':'отдельная накладная');
+    add('Отправлено в ЕИС / на Портал', m.sent?('да · '+(m.sent.by||'')+' · '+cfT(m.sent.at)):'нет');
+    add('Пометки на следующую поставку', (m.owe||[]).length?(m.owe||[]).length+' шт.':'нет');
+    add('Скачан PDF', m.dl?cfT(m.dl):'нет'); add('Печать со склада', m.pr?cfT(m.pr)+(m.prn?' · '+m.prn+' раз':''):'нет');
+    const h=m.hist||[], hl=h[h.length-1]; add('История правок', h.length?h.length+' записей, последняя — '+(hl.by||'')+' '+cfT(hl.at):'нет');
+    cfCard('customers', c, 'Реквизиты заказчика: ').forEach(x=>add(x[0], x[1])); cfCard('suppliers', sp, 'Реквизиты поставщика: ').forEach(x=>add(x[0], x[1]));
+    add('Последнее сохранение', cfT(r.updated)); return M; }
+  if(t==='doccosts'){ const A=cfJ(r.lines);
+    Object.keys(A).filter(k=>!k.startsWith('_')).forEach(pid=>add('Закупка «'+cfPName(pid,id)+'», ₽ за '+cfPUnit(pid), A[pid]!=null&&A[pid]!==''?fm(A[pid])+' ₽':'не вписана'));
+    const bq=cfJ(A._bq), fr=cfJ(A._free); Object.keys(bq).forEach(pid=>add('Куплено фактически «'+cfPName(pid,id)+'»', String(bq[pid]).replace('.',',')+' '+cfPUnit(pid))); Object.keys(fr).forEach(pid=>add('«'+cfPName(pid,id)+'» — бесплатно', fr[pid]?'да':'нет'));
+    const p=cfJ(A._pay); add('Оплата накладной', +p.s?fm(p.s)+' ₽'+(p.d?', '+fd(String(p.d).slice(0,10)):''):'не оплачена');
+    const L=Array.isArray(A._src)?A._src:[]; add('Закупка одной суммой / от кого', L.length?L.map(x=>(x.n||'')+' — '+fm(x.s)+' ₽').join('; '):'—');
+    add('Прочие расходы', cfV('expense',r.expense)); add('Примечание', cfV('note',r.note)); add('Последнее сохранение', cfT(r.updated)); return M; }
+  const L=CF_LBL[t]||{}; Object.keys(r).forEach(k=>{ if(k.startsWith('_')||CF_SKIP.test(k)) return; const lb=L[k]; if(!lb||/^ID|\(не /.test(lb)) return; add(lb, cfV(k,r[k])); });
+  if(r.updated) add('Последнее сохранение', cfT(r.updated)); return M; }
+/* что отличается: [{l, a (в таблице), b (у вас)}]; время сохранения само по себе — не отличие */
+function cfRows(t, a, b, id){ if(!a||!b) return []; const A=new Map(cfMap(t,a,id)), B=new Map(cfMap(t,b,id)), R=[];
+  [...new Set([...A.keys(),...B.keys()])].forEach(l=>{ if(l==='Последнее сохранение') return; const x=A.has(l)?A.get(l):(t==='journal'&&/^Товар/.test(l)?'нет в накладной':'—'), y=B.has(l)?B.get(l):(t==='journal'&&/^Товар/.test(l)?'нет в накладной':'—'); if(x!==y) R.push({l, a:x, b:y}); });
   return R; }
 function cfName(t, r, id){ if(!r) return ''; const s=x=>String(x||'').trim();
   if(t==='journal') return '№ '+s(r.number)+' · '+(cusNm(r.customerId)||'')+' · '+fd(r.date);
@@ -84,13 +95,18 @@ function cfHtml(x, n){ const t=x.table, cur=x.current, mine=localRow(t,x.id), an
   const body = !cur ? `<div class="cf-note">В таблице эту запись <b>удалили</b>, а у вас в ней есть несохранённые правки.</div>`
     : !mine ? `<div class="cf-note">У вас эта запись <b>удалена</b>, а в таблице её за это время изменили.</div>`
     : R.length ? `<div class="cf-tbl"><div class="cf-h"><span></span><span>В таблице сейчас</span><span>У вас</span></div>${R.map(r=>`<div class="cf-r"><b>${esc(r.l)}</b><span class="cf-a">${esc(r.a)}</span><span class="cf-b">${esc(r.b)}</span></div>`).join('')}</div>`
-    : `<div class="cf-note">Отличаются только служебные данные — смело нажимайте «Оставить как в таблице».</div>`;
+    : `<div class="cf-note">Всё, что видно в документе, совпадает — отличается только время сохранения. Смело нажимайте «Оставить как в таблице».</div>`;
   return `<div class="cf-top"><span class="cf-ic" aria-hidden="true">!</span><div><h2>Эту запись уже изменили</h2><p>Пока у вас были несохранённые правки, ту же запись поменяли с другого устройства или другой человек. Ваши правки целы — выберите, что оставить.</p></div></div>
     <div class="cf-what"><small>${esc(CF_TBL[t]||'Запись')}</small><b>${esc(cfName(t, any, x.id)||'')}</b></div>
     ${body}
     <div class="cf-btns"><button type="button" data-choice="server" class="cf-btn">Оставить как в таблице</button><button type="button" data-choice="mine" class="cf-btn pri">Сохранить мой вариант</button><button type="button" data-choice="later" class="cf-btn ghost">Решить позже</button></div>
     <p class="cf-hint">«Оставить как в таблице» — ваши правки этой записи отменятся. «Сохранить мой вариант» — в таблицу запишется ваше.${n>1?` Ещё таких записей: ${n-1} — спрошу по очереди.`:''}</p>
-    <details class="cf-raw"><summary>Подробно (для проверки)</summary><div class="cf-two"><div><b>В таблице</b><pre>${esc(cur?JSON.stringify(cur,null,1):'удалена')}</pre></div><div><b>У вас</b><pre>${esc(mine?JSON.stringify(mine,null,1):'удалена')}</pre></div></div></details>`; }
+    ${cfFull(t, cur, mine, x.id)}`; }
+/* «Вся запись целиком» — простыми словами, отличия подсвечены */
+function cfFull(t, cur, mine, id){ const A=new Map(cfMap(t,cur,id)), B=new Map(cfMap(t,mine,id)), ks=[...new Set([...A.keys(),...B.keys()])]; if(!ks.length) return '';
+  const rows=ks.map(l=>{ const x=cur?(A.get(l)||'—'):'запись удалена', y=mine?(B.get(l)||'—'):'запись удалена', df=x!==y && l!=='Последнее сохранение';
+    return `<div class="cf-r${df?' cf-df':''}"><b>${esc(l)}</b><span class="cf-a">${esc(x)}</span><span class="cf-b">${esc(y)}</span></div>`; }).join('');
+  return `<details class="cf-raw"><summary>Показать всю запись целиком</summary><div class="cf-tbl cf-all"><div class="cf-h"><span></span><span>В таблице сейчас</span><span>У вас</span></div>${rows}</div></details>`; }
 function cfCss(){ if(document.getElementById('cf-css')) return; const s=document.createElement('style'); s.id='cf-css';
   s.textContent=`#fd-conflict{box-sizing:border-box;width:min(720px,calc(100vw - 24px));max-height:90vh;overflow:auto;border:0;border-radius:18px;padding:22px;font:15px/1.4 var(--ui,system-ui,Arial);color:#1c2220;background:#fff;box-shadow:0 30px 70px -20px rgba(48,32,44,.45)}
 #fd-conflict::backdrop{background:rgba(28,22,26,.4)}
@@ -105,7 +121,7 @@ function cfCss(){ if(document.getElementById('cf-css')) return; const s=document
 #fd-conflict .cf-btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}#fd-conflict .cf-btn{flex:1 1 auto;padding:11px 14px;border-radius:10px;border:1px solid rgba(28,34,32,.15);background:#fff;font:600 14px var(--ui,system-ui,Arial);cursor:pointer;color:#1c2220}
 #fd-conflict .cf-btn.pri{background:#6a2c4e;border-color:#6a2c4e;color:#fff}#fd-conflict .cf-btn.ghost{flex:0 1 auto;background:transparent;border-color:transparent;color:#5f6662}
 #fd-conflict .cf-hint{margin:10px 0 0;font-size:12.5px;color:#7a807c}
-#fd-conflict .cf-raw{margin-top:12px;font-size:12px;color:#7a807c}#fd-conflict .cf-raw summary{cursor:pointer}#fd-conflict .cf-two{display:flex;flex-wrap:wrap;gap:10px}#fd-conflict .cf-two>div{flex:1 1 240px;min-width:0}
+#fd-conflict .cf-raw{margin-top:12px;font-size:13px;color:#7a807c}#fd-conflict .cf-all{margin-top:8px;max-height:50vh;overflow:auto;color:#1c2220}#fd-conflict .cf-all .cf-r:not(.cf-df) .cf-b{color:#5f6662;font-weight:400}#fd-conflict .cf-all .cf-r:not(.cf-df) b{font-weight:500}#fd-conflict .cf-df{background:#fff4e0}#fd-conflict .cf-raw summary{cursor:pointer}#fd-conflict .cf-two{display:flex;flex-wrap:wrap;gap:10px}#fd-conflict .cf-two>div{flex:1 1 240px;min-width:0}
 #fd-conflict pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:200px;overflow:auto;background:rgba(28,34,32,.04);padding:8px;border-radius:8px}
 @media (max-width:560px){#fd-conflict{padding:16px}#fd-conflict .cf-h{display:none}#fd-conflict .cf-r{grid-template-columns:1fr 1fr;row-gap:2px}#fd-conflict .cf-r b{grid-column:1/-1}#fd-conflict .cf-a::before{content:"в таблице: ";font-size:12px;color:#7a807c;font-weight:400}#fd-conflict .cf-b::before{content:"у вас: ";font-size:12px;color:#7a807c;font-weight:400}#fd-conflict .cf-btn{flex:1 1 100%}}`;
   document.head.appendChild(s); }
