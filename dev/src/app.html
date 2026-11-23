@@ -1273,6 +1273,11 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .skh-pr:hover{background:rgba(106,44,78,.06)}#fd-app .skh-pr span{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fd-app .skh-pr b{text-align:right;font-variant-numeric:tabular-nums}
 #fd-app .skh-pr em{font-style:normal;font-size:11.5px;font-weight:600;text-align:right}#fd-app .skh-pr em.up{color:var(--err)}#fd-app .skh-pr em.dn{color:var(--ok)}#fd-app .okc{color:var(--ok)}
 #fd-app .skh-note{font-size:12px;margin:8px 0 0}
+/* кг ↔ шт рядом с количеством (23.11.2026) */
+.dc-t td.num .lnalt{display:block;font-size:11.5px;color:var(--muted);font-weight:500;white-space:nowrap}
+#fd-app .skalt{color:var(--muted);font-weight:500;font-size:.86em;white-space:nowrap;font-variant-numeric:tabular-nums}
+#fd-app :is(.skh-kpi,.skh-q,.skfq,.skfoq,.skmq,.skfr8,.skh-tip,.skt b) .skalt{display:block;font-size:11.5px;font-weight:500;color:var(--muted);margin-top:1px}
+#fd-app :is(.skh-kpi,.skt b) .skalt{font-size:12px}
 /* график остатков */
 #fd-app .skh-stk{margin-bottom:12px}#fd-app .skh-cp{margin:2px 0 8px}
 #fd-app .skh-cw{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;align-items:stretch}
@@ -7999,7 +8004,14 @@ const posWord = n => n%10===1&&n%100!==11?"позиция":(n%10>=2&&n%10<=4&&(n
 /* название товара в окне накладной / комплекта — нажатие открывает карточку товара (pdCard), «‹ Назад» возвращает к документу (16.11.2026) */
 const dcPName = l => (l.pid && prod(l.pid) && typeof pdCard==="function") ? `<button type="button" class="dc-pn" data-dcpd="${esc(l.pid)}" title="Карточка товара"><b>${esc(l.name)}</b><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>` : `<b>${esc(l.name)}</b>`;
 document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("#fd-dcard [data-dcpd]"); if(!b) return; e.preventDefault(); e.stopPropagation(); pdCard(b.dataset.dcpd); });
-const linesTable = k => `<div class="dc-tw"><table class="dc-t"><thead><tr><th>Товар</th><th class="num">Кол-во</th><th class="num">Цена, ₽</th><th class="num">Сумма, ₽</th></tr></thead><tbody>${k.lines.map(l=>`<tr><td>${dcPName(l)}<small class="dc-m">${esc(nq3(l.qty))}&nbsp;${esc(l.unit||"")} × ${fm(l.price)}</small></td><td class="num">${esc(nq3(l.qty))}&nbsp;${esc(l.unit||"")}</td><td class="num">${fm(l.price)}</td><td class="num"><b>${fm(l.sum)}</b></td></tr>`).join("")}</tbody></table></div>`;
+/* кг ↔ шт в окне накладной (23.11.2026, просьба Даниила): вес 1 шт — из названия («500гх15шт» → 0,5 кг), иначе у связанного товара склада. Только на экране */
+function lnAlt(l){ const q=+l.qty, u=String(l.unit||"").toLowerCase().replace(/\.$/,"").trim(); if(!(q>0) || (u!=="шт" && u!=="кг")) return "";
+  let w=0; try{ const nw=typeof pdNameW==="function"?pdNameW(l.name):null; if(nw && nw.u==="кг") w=nw.w;
+    if(!w && l.productId && typeof skItemOf==="function" && typeof SK_READY!=="undefined" && SK_READY){ const it=skItemOf(l.productId); const p=it&&skPcW(it.id); if(p) w=p.w; } }catch(e){}
+  if(!(w>0)) return ""; if(u==="шт") return "≈ "+String(Math.round(q*w*1000)/1000).replace(".",",")+" кг";
+  const n=q/w, k=Math.round(n); return (Math.abs(n-k)<0.01?String(k):"≈ "+String(Math.round(n*10)/10).replace(".",","))+" шт"; }
+const lnAltH = l => { const a=lnAlt(l); return a?`<small class="lnalt">${esc(a)}</small>`:""; };
+const linesTable = k => `<div class="dc-tw"><table class="dc-t"><thead><tr><th>Товар</th><th class="num">Кол-во</th><th class="num">Цена, ₽</th><th class="num">Сумма, ₽</th></tr></thead><tbody>${k.lines.map(l=>`<tr><td>${dcPName(l)}<small class="dc-m">${esc(nq3(l.qty))}&nbsp;${esc(l.unit||"")}${(a=>a?" ("+esc(a)+")":"")(lnAlt(l))} × ${fm(l.price)}</small></td><td class="num">${esc(nq3(l.qty))}&nbsp;${esc(l.unit||"")}${lnAltH(l)}</td><td class="num">${fm(l.price)}</td><td class="num"><b>${fm(l.sum)}</b></td></tr>`).join("")}</tbody></table></div>`;
 /* общий вид всплывающей карточки: плавное появление, закрытие крестиком / Esc / кликом мимо */
 // окна: тень под шапкой при прокрутке; --dch — высота шапки (для внутренних липких заголовков)
 /* сжатая шапка окна: высокая шапка (подпись + длинное название) прилипает только нижней полоской,

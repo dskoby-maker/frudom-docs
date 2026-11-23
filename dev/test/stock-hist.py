@@ -62,7 +62,7 @@ async def main():
         txt=(await pg.text_content('#sk-dlg')).replace(' ',' ')
         ok('История товара' in txt, 'открылось окно «История товара»')
         kpi=await pg.evaluate("[...document.querySelectorAll('#sk-dlg .skh-kpi b')].map(b=>b.textContent)")
-        ok(kpi==['25,5 кг','30 кг','4 кг','0,5 кг'], f'итоги: сейчас 25,5 · пришло 30 · ушло 4 · списано 0,5 → {kpi}')
+        ok([k.split('≈')[0].strip() for k in kpi]==['25,5 кг','30 кг','4 кг','0,5 кг'] and '56,7 шт' in kpi[0], f'итоги: сейчас 25,5 · пришло 30 · ушло 4 · списано 0,5 → {kpi}')
         ok(await pg.locator('#sk-dlg .skh-spark').count()==1, 'график цены закупки')
         pr=await pg.evaluate("[...document.querySelectorAll('#sk-dlg .skh-pr')].map(r=>r.textContent)")
         ok(len(pr)==2 and '160,00' in pr[0] and '+6,7%' in pr[0] and '150,00' in pr[1], f'цены приходов с изменением: {pr}')
