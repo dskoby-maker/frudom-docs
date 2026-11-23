@@ -8012,9 +8012,13 @@ function dcMini(d, st){ const h=d.querySelector(":scope>.dc-head"); if(!h) retur
   if(!over){ if(m) m.remove(); d.classList.remove("cmp"); return; }
   const key=t.textContent+"|"+!!h.querySelector(".dc-back");
   if(!m || m.dataset.k!==key){ if(m) m.remove(); const b=h.querySelector(".dc-back");
-    h.insertAdjacentHTML("beforeend", `<div class="dc-mini" aria-hidden="true">${b?b.outerHTML.replace('class="dc-back"','class="dc-back" tabindex="-1"'):""}<b>${esc(t.textContent)}</b><button type="button" class="dc-x" data-dc="close" tabindex="-1" aria-label="Закрыть">×</button></div>`);
+    h.insertAdjacentHTML("beforeend", `<div class="dc-mini" aria-hidden="true">${b?b.outerHTML.replace('class="dc-back"','class="dc-back" tabindex="-1"'):""}<b>${esc(t.textContent)}</b><button type="button" class="dc-x" data-dcmini tabindex="-1" aria-label="Закрыть">×</button></div>`);
     m=h.querySelector(":scope>.dc-mini"); m.dataset.k=key; }
   const on=st>over-6; d.classList.toggle("cmp", on); m.setAttribute("aria-hidden", on?"false":"true"); }
+/* × в сжатой шапке нажимает настоящий × этого окна (у окон склада, деклараций и др. свои обработчики) — 23.11.2026, не закрывалась «История товара» */
+document.addEventListener("click", e=>{ const b=e.target.closest&&e.target.closest("[data-dcmini]"); if(!b) return; e.preventDefault(); e.stopPropagation();
+  const d=b.closest("dialog"), h=b.closest(".dc-head"), x=h&&[...h.querySelectorAll(".dc-x")].find(z=>!z.closest(".dc-mini"));
+  if(x) x.click(); else if(d) d.close(); }, true);
 function dcFit(d){
   const st=d.scrollTop, sc=d.classList.contains("scrolled");
   d.classList.toggle("scrolled", st>(sc?2:4));
