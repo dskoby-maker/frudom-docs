@@ -34,7 +34,7 @@ async def main():
         # накладная — фасоль 4 кг со склада, отгрузка
         await pg.evaluate("(()=>{const D=__fd.D(); Object.assign(D.draft,{id:'dh1', customerId:window.__cid, number:'', lines:[{productId:'p-fas',qty:'4',price:'200',stk:{m:'s'},lid:'L1'}]}); })()")
         await pg.evaluate(TAB+"('doc')"); await pg.wait_for_timeout(400); await pg.click('#d-save'); await pg.wait_for_timeout(2500)
-        await S('ship',{'docId':'dh1','lines':[{'lineId':'L1','qty':'4'}]})
+        await pg.wait_for_timeout(1500)  # со склада списывается сразу при сохранении (21.11.2026)
         st=await pg.evaluate("(()=>{const S=JSON.parse(localStorage.getItem(Object.keys(localStorage).find(k=>k.startsWith('frudom-stock:')))); return S.batches.filter(b=>b.itemId==='"+it+"').map(b=>b.id)})()")
         await S('wo',{'batchId':st[0],'qty':'0.5','reason':'порвалась пачка'})
         await S('batch',{'batchId':st[1],'price':'160'})
