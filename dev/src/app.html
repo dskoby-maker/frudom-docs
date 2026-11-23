@@ -3803,7 +3803,7 @@ html.fd-dark :is(#fd-app .card,dialog.dcard,#tkf-pan,#tkf-fab){box-shadow:0 0 0 
     <div class="card">
       <h2>Журнал документов <small id="jr-count"></small></h2>
       <div class="jf">
-        <label class="f">Период<select id="jr-per"><option value="all">Всё время</option><option value="today">Сегодня</option><option value="yday">Вчера</option><option value="week">Эта неделя</option><option value="month">Этот месяц</option><option value="pmonth">Прошлый месяц</option><option value="custom">Свой период…</option></select></label>
+        <label class="f">Период<select id="jr-per"><option value="14d">14 дней</option><option value="all">Всё время</option><option value="today">Сегодня</option><option value="yday">Вчера</option><option value="week">Эта неделя</option><option value="month">Этот месяц</option><option value="pmonth">Прошлый месяц</option><option value="custom">Свой период…</option></select></label>
         <label class="f" id="jr-fromw" hidden>с<input type="date" id="jr-from"></label><label class="f" id="jr-tow" hidden>по<input type="date" id="jr-to"></label>
         <label class="f">Поставщик<select id="jr-sup"></select></label>
         <label class="f">Заказчик<select id="jr-cus"></select></label>
@@ -7585,6 +7585,7 @@ $("#ev-refresh").onclick=()=>{ evShow=50; loadEvents(); };
 const dtShort = iso => { const d=new Date(iso); if(isNaN(d)) return ""; const p=n=>String(n).padStart(2,"0"); return p(d.getDate())+"."+p(d.getMonth()+1)+" "+p(d.getHours())+":"+p(d.getMinutes()); };
 const jIso = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
 function jRange(f){ const n=new Date(), d0=new Date(n.getFullYear(),n.getMonth(),n.getDate());
+  if(f.per==="14d"){ const a=new Date(d0); a.setDate(a.getDate()-13); const t=jIso(d0), mx=(D.journal||[]).reduce((m,j)=>j.date&&j.date>m&&j.date<"9000"?j.date:m, t); return [jIso(a), mx]; }
   if(f.per==="today") return [jIso(d0), jIso(d0)];
   if(f.per==="yday"){ const y=new Date(d0); y.setDate(y.getDate()-1); return [jIso(y), jIso(y)]; }
   if(f.per==="week"){ const m=new Date(d0); m.setDate(m.getDate()-((m.getDay()+6)%7)); const s=new Date(m); s.setDate(s.getDate()+6); return [jIso(m), jIso(s)]; }
@@ -7592,7 +7593,8 @@ function jRange(f){ const n=new Date(), d0=new Date(n.getFullYear(),n.getMonth()
   if(f.per==="pmonth") return [jIso(new Date(n.getFullYear(),n.getMonth()-1,1)), jIso(new Date(n.getFullYear(),n.getMonth(),0))];
   if(f.per==="custom") return [f.from||"0000", f.to||"9999"];
   return ["0000","9999"]; }
-const JF = () => (D.jf = D.jf || {per:"all", sup:"", cus:"", br:"", q:"", from:"", to:"", sort:"cr_d"});
+/* по умолчанию — последние 14 дней (и документы на будущие даты), у всех один раз (23.11.2026, просьба Даниила) */
+const JF = () => { D.jf = D.jf || {per:"14d", sup:"", cus:"", br:"", q:"", from:"", to:"", sort:"cr_d", v14:1}; if(!D.jf.v14){ D.jf.per="14d"; D.jf.from=D.jf.to=""; D.jf.v14=1; } return D.jf; };
 const jCreated = j => (j.snap&&j.snap.meta&&j.snap.meta.created) || j.updated || j.date || "";
 function jSorter(s){ const num=j=>parseInt(j.number,10)||0, who=j=>norm(jWho(j).main+" "+jWho(j).pt), tie=(a,b)=>jCreated(b).localeCompare(jCreated(a));
   return ({ cr_d:(a,b)=>jCreated(b).localeCompare(jCreated(a)), cr_a:(a,b)=>jCreated(a).localeCompare(jCreated(b)),
@@ -7704,7 +7706,7 @@ function jfmSync(){ const box=$("#jr-q")&&$("#jr-q").closest(".jf"), b=$("#jr-mo
   const n=["sup","cus","br","sk","gov","pay"].filter(k=>f[k]).length, open=(()=>{ try{ return localStorage.getItem(JFM_K)==="1"; }catch(e){ return false; } })();
   box.classList.toggle("open", open); b.setAttribute("aria-expanded", open?"true":"false"); b.classList.toggle("on", n>0);
   const em=$("#jr-moren"); em.hidden=!n; em.textContent=n||"";
-  box.classList.toggle("jfact", !!(n || f.q || (f.per&&f.per!=="all") || f.imp || f.cm || (f.sort&&f.sort!=="cr_d"))); }
+  box.classList.toggle("jfact", !!(n || f.q || (f.per&&f.per!=="14d") || f.imp || f.cm || (f.sort&&f.sort!=="cr_d"))); }
 document.addEventListener("click", e=>{ if(!e.target.closest || !e.target.closest("#jr-more")) return; let o=false; try{ o=localStorage.getItem(JFM_K)!=="1"; localStorage.setItem(JFM_K, o?"1":"0"); }catch(x){}
   jfmSync(); const box=$("#jr-q").closest(".jf"); if(o){ box.classList.add("jfin"); setTimeout(()=>box.classList.remove("jfin"),400); } });
 /* таблица журнала шире своего окошка — разрешить перенос кнопок (класс jw); следит за размером окна и таблицы */
@@ -7844,7 +7846,7 @@ $("#jr-cm").onclick=()=>{ const b=$("#jr-cm"), f=JF(); b.classList.remove("pop")
   const body=$("#jr-body"); body.classList.add("jimpon"); jfSet("cm", !f.cm); setTimeout(()=>body.classList.remove("jimpon"), 450); };
 $("#jr-imp").onclick=()=>{ const b=$("#jr-imp"), f=JF(); b.classList.remove("pop"); void b.offsetWidth; b.classList.add("pop");
   const body=$("#jr-body"); body.classList.add("jimpon"); jfSet("imp", !f.imp); setTimeout(()=>body.classList.remove("jimpon"), 450); };
-$("#jr-reset").onclick=()=>{ D.jf={per:"all",sup:"",cus:"",br:"",q:"",from:"",to:"",sort:"cr_d"}; saveLocal(); $("#jr-q").value=""; renderJournal(); };
+$("#jr-reset").onclick=()=>{ D.jf={per:"14d",sup:"",cus:"",br:"",q:"",from:"",to:"",sort:"cr_d",v14:1}; saveLocal(); $("#jr-q").value=""; renderJournal(); };
 /* ================= XML УПД для Портала поставщиков (zakupki.mos.ru) — 13.11.2026 =================
    Схема «mini ON_NSCHFDOPPR_1_997_01_05_01_02» из руководства Портала «Импорт сведений электронного исполнения контракта на форму УПД».
    Файл не отправляется сам: на Портале — исполнение контракта → «Доступные действия» → «Импортировать XML УПД в текущее исполнение»,

@@ -57,7 +57,7 @@ function cxToDoc(pid, back){ const dr=D.draft; if(!dr) return; const L=dr.lines=
   const go=()=>{ showTab("doc"); setTimeout(()=>{ const q=document.querySelector(`#d-lines .line[data-i="${i}"] .qty`); if(q){ q.scrollIntoView({block:"center", behavior:"smooth"}); q.focus({preventScroll:true}); } }, 120); };
   if(back) tabBackFrom(back, go); else go();
   toast("ok","Товар добавлен в «Новый документ»","«"+((prod(pid)||{}).name||"")+"» — впишите количество."); }
-function cxJournalFind(q, back){ tabBackFrom(back, ()=>{ showTab("journal"); JF().q=q; saveLocal(); renderJournal(); const i=$("#jr-q"); if(i) i.value=q; }); }
+function cxJournalFind(q, back){ tabBackFrom(back, ()=>{ showTab("journal"); JF().q=q; JF().per="all"; saveLocal(); renderJournal(); const i=$("#jr-q"); if(i) i.value=q; }); }
 cxReg(t=>{ const row=t.closest("#pd-body .nmr[data-id]"); if(!row) return null; const p=prod(row.dataset.id); if(!p) return null;
   const lim=docLimited(), a=pArt(p), L=cxList(), open=PDL.open===p.id;
   L.it("edit", open?"Свернуть":"Изменить", "edit", ()=>{ pdToggle(p.id); if(!open) setTimeout(()=>{ const i=document.querySelector(`#pd-body .nmr[data-id="${CSS.escape(p.id)}"] input[data-k="name"]`); i&&i.focus({preventScroll:true}); }, 60); }, {kbd:"Enter"})
