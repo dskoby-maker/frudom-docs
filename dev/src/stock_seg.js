@@ -685,6 +685,8 @@ document.addEventListener("click", async e=>{
   const idl=t.closest("[data-skidecl]"); if(idl){ e.stopPropagation(); skItemDecl(idl.dataset.skidecl); return; }
   const iup=t.closest("[data-skiup]"); if(iup){ e.stopPropagation(); const it=skIdx().item[iup.dataset.skiup]; if(it) dForm({chips:[{t:it.name, item:it.id}]}, ()=>{ if(curTab==="stock") skDrawList(); }); return; }
   const hff=t.closest("[data-skhff]"); if(hff){ SKH.f=hff.dataset.skhff; SKH.n=20; skModalRefresh(); return; }
+  const hcp=t.closest("[data-skhcp]"); if(hcp){ SKH.cp=hcp.dataset.skhcp; skModalRefresh(); return; }
+  const hch=t.closest("[data-skhch]"); if(hch){ skhGoDay(hch); return; }
   const hmo=t.closest("[data-skhmore]"); if(hmo){ SKH.n=hmo.dataset.skhmore==="all"?1e9:SKH.n+20; skModalRefresh(); return; }
   const itb=t.closest("[data-skitem]"); if(itb){ skItemCard(itb.dataset.skitem); return; }
   const bb=t.closest("[data-skbatch]"); if(bb){ skBatchCard(bb.dataset.skbatch); return; }
@@ -1398,7 +1400,7 @@ let SKH=null;
 const SKH_F=[["","Все"],["in","Пришло"],["out","Ушло"],["wo","Списания и правки"],["price","Цена"]];
 const skhKind = m => m.kind==="log" ? (/цена/i.test(m.action)?"price":"wo") : (m.type==="in"||m.type==="init"||m.type==="ret"||m.type==="rwin") ? "in" : (m.type==="ship"||m.type==="direct") ? "out" : "wo";
 const SKH_SKIP=/^(Приход|Начальный остаток|Отгрузка|Списание|Возврат|Инвентаризация|Перевзвешивание|Исправление прихода|Остаток закрыт|Резерв|Новый товар склада)/;
-function skItemHist(id, f){ SKH={id, f:f||"", n:20}; SK_RE=()=>skItemHist(id, SKH.f); skModal(skItemHistHtml, true); }
+function skItemHist(id, f){ SKH={id, f:f||"", n:20, cp:(SKH&&SKH.cp)||"all"}; SK_RE=()=>skItemHist(id, SKH.f); skModal(skItemHistHtml, true); }
 function skhRows(it){ const X=skIdx(), B=X.byItem[it.id]||[];
   const mv=X.S.moves.filter(m=>m.itemId===it.id).map(m=>Object.assign({kind:"mv"}, m));
   const lg=X.S.log.filter(l=>l.itemId===it.id && !SKH_SKIP.test(l.action||"")).map(l=>Object.assign({kind:"log"}, l));
@@ -1407,6 +1409,62 @@ function skhPrices(B){ return B.filter(b=>!b.cancel && b.kind!=="rw" && b.price!
 function skhSpark(P){ if(P.length<2) return ""; const W=260, H=54, ps=P.map(x=>x.p), mn=Math.min(...ps), mx=Math.max(...ps), sp=mx-mn||1;
   const pt=P.map((x,i)=>[Math.round(6+i*(W-12)/(P.length-1)), Math.round(H-8-(x.p-mn)/sp*(H-16))]);
   return `<svg class="skh-spark" viewBox="0 0 ${W} ${H}" role="img" aria-label="Цена закупки по приходам: от ${fm(mn)} до ${fm(mx)} ₽"><polyline points="${pt.map(p=>p.join(",")).join(" ")}" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${pt.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="${i===pt.length-1?3.5:2.5}"><title>${fd(P[i].d)} — ${fm(P[i].p)} ₽</title></circle>`).join("")}</svg>`; }
+/* ===== график остатков в «Истории товара» (23.11.2026, просьба Даниила) =====
+   Остаток восстанавливается назад от текущего: остаток до движения = после − количество. Только основная единица товара. */
+var SKHC=null;
+const SKH_CP=[["30","30 дней"],["90","3 месяца"],["all","Всё"]];
+const skhIx = iso => Math.round(Date.UTC(+iso.slice(0,4), +iso.slice(5,7)-1, +iso.slice(8,10))/864e5);
+const skhIso = ix => new Date(ix*864e5).toISOString().slice(0,10);
+function skhStock(it, B){ const X=skIdx(), U=skUnitsOf(it.id);
+  const mv=X.S.moves.filter(m=>m.itemId===it.id && !SK_NOSTOCK[m.type] && m.at && +m.qty && skDay(m.at));
+  if(!mv.length) return null;
+  const cnt={}; mv.forEach(m=>{ const k=skK(m.unit); cnt[k]=(cnt[k]||0)+1; });
+  const big=U.slice().sort((a,b)=>b.fact-a.fact)[0], uk=big&&big.fact>0?skK(big.unit):Object.keys(cnt).sort((a,b)=>cnt[b]-cnt[a])[0];
+  const M=mv.filter(m=>skK(m.unit)===uk).sort((a,b)=>String(a.at).localeCompare(String(b.at)));
+  if(!M.length) return null;
+  const unit=M[0].unit, end=r3((U.find(u=>skK(u.unit)===uk)||{fact:0}).fact), today=skhIx(todayISO());
+  const G={}; M.forEach(m=>{ const ix=skhIx(skDay(m.at)), g=G[ix]||(G[ix]={ix, d:skDay(m.at), L:[]}); g.L.push(m); });
+  const days=Object.values(G).sort((a,b)=>a.ix-b.ix); let v=end;
+  for(let i=days.length-1;i>=0;i--){ days[i].v=r3(v); v=r3(v-days[i].L.reduce((s,m)=>s+(+m.qty),0)); }
+  const v0=v, cp=SKH.cp||"all", first=days[0].ix, from=cp==="all"? Math.min(first-1, today-13) : today-(+cp)+1;
+  let sv=v0; days.forEach(g=>{ if(g.ix<from) sv=g.v; });
+  const Q=[{ix:from, v:sv, start:1}].concat(days.filter(g=>g.ix>=from && g.ix<=today)), span=today+1-from;
+  const vs=Q.map(p=>p.v), mx=Math.max(...vs, 0), mn=Math.min(...vs), top=skhNice(mx*1.08);
+  const other=Object.keys(cnt).filter(k=>k!==uk).map(k=>(mv.find(m=>skK(m.unit)===k)||{}).unit).filter(Boolean);
+  return {Q, G, from, today, span, top, mx, mn, end, unit, other, n:Q.slice(1).reduce((s,g)=>s+g.L.length,0)}; }
+const skhNice = v => { if(!(v>0)) return 1; const e=Math.pow(10,Math.floor(Math.log10(v))); return [1,1.2,1.5,2,2.5,3,4,5,6,8,10].map(k=>k*e).find(k=>k>=v-1e-9); };
+const skhVal = (S, ix) => { let v=S.Q[0].v; S.Q.forEach(q=>{ if(q.ix<=ix) v=q.v; }); return v; };
+const skhY = (S, v) => Math.round((100-2-(Math.max(0,v)/S.top)*94)*10)/10;
+function skhStockHtml(it, B){ const S=skhStock(it, B); SKHC=S; if(!S) return "";
+  const {Q, from, span, unit}=S, W=1000, H=100, x=ix=>Math.round((ix-from)/span*W*10)/10, y=v=>skhY(S,v);
+  let d=`M0,${y(Q[0].v)}`; Q.forEach((p,i)=>{ if(i) d+=` H${x(p.ix)} V${y(p.v)}`; }); d+=` H${W}`;
+  const area=d+` V${H} H0 Z`;
+  const mxp=Q.reduce((a,p)=>p.v>a.v?p:a, Q[0]);
+  const dl=ix=>new Date(ix*864e5).toLocaleDateString("ru-RU",{day:"numeric",month:"short",timeZone:"UTC"}).replace(".","");
+  let zd=0; for(let i=from;i<=S.today;i++) if(skhVal(S,i)<=0.0005) zd++;
+  return `<div class="skbox skh-stk"><div class="skbh"><b>Остаток на складе</b><small class="muted">сейчас <b>${skQf(S.end,unit)}</b></small></div>
+    <div class="pfchips skh-cp">${SKH_CP.map(([k,t])=>`<button type="button" data-skhcp="${k}" class="${(SKH.cp||"all")===k?"on":""}">${t}</button>`).join("")}</div>
+    <div class="skh-cw"><div class="skh-ya"><span>${skQf(r3(S.top),unit)}</span><span>0</span></div>
+      <div class="skh-ch" data-skhch role="img" aria-label="Остаток ${esc(it.name)}: сейчас ${skQf(S.end,unit)}, максимум ${skQf(S.mx,unit)}">
+        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="${W}" y1="${y(S.top/2)}" y2="${y(S.top/2)}" class="g"/><path d="${area}" class="a"/><path d="${d}" class="l"/></svg>
+        <span class="skh-vl" hidden></span><span class="skh-dot" style="left:100%;top:${y(S.end)}%"></span>
+        <div class="skh-tip" hidden></div></div></div>
+    <div class="skh-xa"><span>${dl(from)}</span><span>${dl(from+Math.floor(span/2))}</span><span>сегодня</span></div>
+    <p class="muted skh-note">${S.n?`${S.n} ${plural(S.n,["движение","движения","движений"])} за период · `:""}макс. ${skQf(S.mx,unit)}${mxp.start?"":` (${fd(mxp.d)})`} · мин. ${skQf(Math.max(0,S.mn),unit)}${zd?` · без остатка ${zd} ${plural(zd,["день","дня","дней"])}`:""}${S.other.length?` · показано в «${esc(unit)}», есть ещё в ${S.other.map(esc).join(", ")}`:""}. Наведите или нажмите на график — остаток на тот день.</p></div>`; }
+function skhTipShow(el, cx){ const S=SKHC; if(!S) return; const r=el.getBoundingClientRect(), f=Math.min(.9999,Math.max(0,(cx-r.left)/r.width)), ix=S.from+Math.floor(f*S.span);
+  const v=skhVal(S, ix), g=S.G[ix], tip=el.querySelector(".skh-tip"), vl=el.querySelector(".skh-vl"), dot=el.querySelector(".skh-dot"), fx=(ix-S.from+.5)/S.span;
+  const sm={}; (g?g.L:[]).forEach(m=>{ const k=m.type==="init"?"in":m.type; sm[k]=r3((sm[k]||0)+(+m.qty)); });
+  const ch=Object.keys(sm).map(k=>`<span>${esc(k==="in"?"Приход":SK_T[k]||k)} <em class="${sm[k]>0?"pos":"neg"}">${sm[k]>0?"+":"−"}${skQf(Math.abs(sm[k]),S.unit)}</em></span>`).join("");
+  tip.innerHTML=`<small>${ix===S.today?"Сегодня, ":""}${new Date(ix*864e5).toLocaleDateString("ru-RU",{day:"numeric",month:"long",timeZone:"UTC"})}</small><b>${skQf(v,S.unit)}</b>${ch||`<span class="muted">без движений</span>`}${g?`<span class="muted skh-tgo">нажмите — к этому дню ↓</span>`:""}`;
+  tip.hidden=false; vl.hidden=false; vl.style.left=(fx*100)+"%"; dot.style.left=(fx*100)+"%"; dot.style.top=skhY(S,v)+"%";
+  tip.style.left=(fx*100)+"%"; tip.classList.toggle("r", fx>.5); el.dataset.d=g?g.d:""; }
+function skhTipHide(el){ const S=SKHC; if(!S) return; el.querySelector(".skh-tip").hidden=true; el.querySelector(".skh-vl").hidden=true; const dot=el.querySelector(".skh-dot"); dot.style.left="100%"; dot.style.top=skhY(S,S.end)+"%"; el.dataset.d=""; }
+document.addEventListener("pointermove", e=>{ const el=e.target.closest&&e.target.closest("[data-skhch]"); if(el) skhTipShow(el, e.clientX); });
+document.addEventListener("pointerdown", e=>{ const el=e.target.closest&&e.target.closest("[data-skhch]"); if(!el) return; const was=!el.querySelector(".skh-tip").hidden?el.dataset.d:"\u0000"; skhTipShow(el, e.clientX); el.dataset.pd=was===el.dataset.d?"1":""; });
+document.addEventListener("pointerout", e=>{ const el=e.target.closest&&e.target.closest("[data-skhch]"); if(el && e.pointerType==="mouse" && !el.contains(e.relatedTarget)) skhTipHide(el); });
+/* нажатие на график — к этому дню в ленте ниже */
+function skhGoDay(el){ const d=el.dataset.d; if(!d || el.dataset.pd!=="1") return; SKH.f=""; SKH.n=1e9; skModalRefresh();
+  setTimeout(()=>{ const g=document.querySelector(`.skh-d[data-iso="${d}"]`); if(!g) return; g.scrollIntoView({behavior:"smooth", block:"start"}); g.classList.remove("jflash"); void g.offsetWidth; g.classList.add("jflash"); }, 60); }
 /* в журнале склада связи записаны ID позиций — показываем названия */
 const skhIds = t => String(t||"").split(/,\s*/).map(x=>{ const p=prod(x.trim()); return p&&p.name?p.name:x; }).join(", ");
 function skItemHistHtml(){ const X=skIdx(), it=X.item[SKH.id]; if(!it) return skHead("История товара","Товар не найден","Обновите страницу.");
@@ -1427,11 +1485,12 @@ function skItemHistHtml(){ const X=skIdx(), it=X.item[SKH.id]; if(!it) return sk
     return `<div class="skh-r k-${skhKind(m)}"><span class="skh-t">${hm}</span><span class="skh-i" aria-hidden="true"></span><span class="skh-m">${where}${det?`<small>${det}</small>`:""}</span><span class="skh-q"><b class="${st?(q>0?"pos":"neg"):""}">${sign}${skQf(Math.abs(q),m.unit)}</b>${m.cost!==""&&m.cost!=null&&st?`<small>${m.type==="in"||m.type==="init"?"цена":"себест."} ${fm(+m.cost)} ₽</small>`:""}${m.price?`<small>продажа ${fm(+m.price)} ₽</small>`:""}</span><span class="skh-w">${esc(m.by||"")}</span></div>`; };
   return skHead("История товара", esc(it.name), (it.alt?"Другие названия: "+esc(it.alt)+" · ":"")+"всё, что приходило, уходило и менялось", "")
     + `<div class="skh-kpi"><div><small>Сейчас на складе</small><b>${now}</b></div><div><small>Пришло</small><b>${inS}</b></div><div><small>Ушло заказчикам</small><b>${outS}</b></div><div><small>Списано</small><b>${woS}</b></div></div>`
+    + skhStockHtml(it, B)
     + (P.length?`<div class="skbox skh-price"><div class="skbh"><b>Цена закупки</b>${last?`<small class="muted">последняя <b>${fm(last.p)} ₽/${esc(last.u)}</b>${ch!=null&&Math.abs(ch)>=0.05?` <span class="${ch>0?"miss":"okc"}">${ch>0?"▲":"▼"} ${String(Math.abs(Math.round(ch*10)/10)).replace(".",",")}%</span>`:""}</small>`:""}</div>
         <div class="skh-pw">${skhSpark(P)}<div class="skh-pl">${P.slice().reverse().slice(0,6).map((x,i,A)=>{ const nx=A[i+1], d=nx&&nx.p?(x.p-nx.p)/nx.p*100:null; return `<button type="button" class="skh-pr" data-skbatch="${x.id}"><span>${fd(x.d)}${x.sup?` · ${esc(x.sup)}`:""}</span><b>${fm(x.p)} ₽</b>${d!=null&&Math.abs(d)>=0.05?`<em class="${d>0?"up":"dn"}">${d>0?"+":"−"}${String(Math.abs(Math.round(d*10)/10)).replace(".",",")}%</em>`:`<em></em>`}</button>`; }).join("")}${P.length>6?`<small class="muted">и ещё ${P.length-6} ${plural(P.length-6,["приход","прихода","приходов"])} раньше</small>`:""}</div></div>
         <p class="muted skh-note">Мин. ${fm(Math.min(...P.map(x=>x.p)))} ₽ · средняя ${fm(r2(P.reduce((a,x)=>a+x.p*x.q,0)/Math.max(1e-9,P.reduce((a,x)=>a+x.q,0))))} ₽ (по весу приходов) · макс. ${fm(Math.max(...P.map(x=>x.p)))} ₽</p></div>`:"")
     + `<div class="pfchips skh-f">${SKH_F.map(([k,t])=>{ const n=k==="price"?cnt("price"):cnt(k); return k&&!n?"":`<button type="button" data-skhff="${k}" class="${F===k?"on":""}">${t} <em>${n}</em></button>`; }).join("")}</div>`
-    + (days.length?`<div class="skh-list">${days.map(g=>`<div class="skh-d"><div class="skh-dh">${dname(g.d)}</div>${g.L.map(row).join("")}</div>`).join("")}</div>`:`<div class="skempty"><b>Записей нет</b><span>${F?"Выберите «Все».":"С этим товаром ещё ничего не происходило."}</span></div>`)
+    + (days.length?`<div class="skh-list">${days.map(g=>`<div class="skh-d" data-iso="${g.d}"><div class="skh-dh">${dname(g.d)}</div>${g.L.map(row).join("")}</div>`).join("")}</div>`:`<div class="skempty"><b>Записей нет</b><span>${F?"Выберите «Все».":"С этим товаром ещё ничего не происходило."}</span></div>`)
     + (LF.length>SKH.n?`<div class="skmv-more"><span class="muted">Показано ${SKH.n} из ${LF.length}</span><button type="button" class="btn ghost sm" data-skhmore="20">Ещё 20</button><button type="button" class="btn ghost sm" data-skhmore="all">Все</button></div>`:"")
     + (old?`<p class="muted skh-note">Движения старше ${keep} дней по складу показаны в остатках итогом, здесь — только за последние ${keep} дней.</p>`:"")
     + `<div class="dc-acts"><button class="btn" data-skitem="${it.id}">Карточка товара</button><button class="btn pri" data-sk="close">Закрыть</button></div>`; }
