@@ -3303,6 +3303,63 @@ dialog .ndr-a{display:flex;gap:6px;flex:none}
 #fd-app .mbnote.add{display:grid;place-items:center;align-content:center;gap:4px;min-height:96px;border:2px dashed var(--line);background:none;color:var(--accent);font:600 14px var(--ui);cursor:pointer;box-shadow:none;text-align:center}
 #fd-app .mbnote.add small{font-weight:400;color:var(--muted);font-size:12px}
 #fd-app .mbnote.add:hover{border-color:var(--accent)}
+/* ===== Кредиты (cr_seg.js, 23.11.2026) ===== */
+#fd-app .mbsw3>i{width:calc(33.333% - 2px)}
+#fd-app .mbsw button em{display:inline-block;min-width:18px;height:18px;margin-left:6px;padding:0 5px;border-radius:99px;background:#fbeed7;color:#9a5b00;font:600 11px/18px var(--ui);font-style:normal;vertical-align:1px}
+#fd-app .cr.anim .crc,#fd-app .cr.anim .mbempty{animation:mbin .34s cubic-bezier(.3,.7,.2,1) both;animation-delay:var(--d,0ms)}
+#fd-app .crkpi{margin-top:12px}#fd-app .crkpi>div span{overflow:hidden;text-overflow:ellipsis}
+#fd-app .crkpi .neg{box-shadow:inset 3px 0 0 var(--err)}
+#fd-app .crbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:14px 0 10px}
+#fd-app .crl{display:grid;gap:10px}
+#fd-app .crc{border:1px solid var(--line);border-radius:18px;background:var(--surface);overflow:hidden;transition:box-shadow .25s,border-color .25s}
+#fd-app .crc:hover{border-color:#ddd3ca}#fd-app .crc.open{box-shadow:0 8px 26px rgba(40,24,32,.08);border-color:#e2d6dc}
+#fd-app .crc.flash{animation:mbflash 1.4s ease}
+#fd-app .crh{display:grid;grid-template-columns:44px minmax(0,1fr) auto 20px;gap:12px;align-items:center;padding:14px 14px 10px;cursor:pointer;outline:none}
+#fd-app .crh:focus-visible{box-shadow:inset 0 0 0 2px var(--accent);border-radius:18px}
+#fd-app .cri{width:44px;height:44px;border-radius:14px;background:var(--s);color:var(--c);display:grid;place-items:center;font:700 19px var(--ui)}
+#fd-app .crt{min-width:0}#fd-app .crt b{display:block;font-size:15.5px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fd-app .crt small{display:block;color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fd-app .crown{font-style:normal;font-weight:600;color:#1E6F8C}#fd-app .crown.me{color:#6A2C4E}
+#fd-app .crnx{display:inline-block;margin-top:5px;padding:2px 9px;border-radius:99px;background:#f1eeea;color:#4a4440;font-size:12.5px;font-weight:500;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fd-app .crnx.soon{background:#fff3df;color:#9a5b00}#fd-app .crnx.late{background:#fde8e4;color:var(--err)}
+#fd-app .crok{display:inline-block;margin-top:5px;padding:2px 9px;border-radius:99px;background:#e9f5ec;color:var(--ok);font-size:12.5px;font-weight:600}
+#fd-app .crd{text-align:right;white-space:nowrap}#fd-app .crd small{display:block;color:var(--muted);font-size:11.5px}#fd-app .crd b{font-size:17px;font-variant-numeric:tabular-nums}
+#fd-app .crch{color:var(--muted);font-style:normal;font-size:16px;transition:transform .3s cubic-bezier(.3,.7,.2,1)}#fd-app .crc.open .crch{transform:rotate(180deg)}
+#fd-app .crpb{height:4px;margin:0 14px 12px;border-radius:9px;background:#eee8e1;overflow:hidden}#fd-app .crpb i{display:block;height:100%;background:var(--c);border-radius:9px;transition:width .6s cubic-bezier(.3,.7,.2,1)}
+#fd-app .crb{display:grid;grid-template-rows:0fr;transition:grid-template-rows .32s cubic-bezier(.3,.7,.2,1)}#fd-app .crb>div{min-height:0;overflow:hidden}
+#fd-app .crc:not(.open) .crb>div{visibility:hidden;transition:visibility 0s .32s}#fd-app .crc.open .crb{grid-template-rows:1fr}#fd-app .crc.open .crb>div{padding:0 14px 14px}
+#fd-app .crk2{margin-top:2px}
+#fd-app .crw{background:#fff3df;color:#7a4a00}
+#fd-app .crbtn{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
+#fd-app .crsch{margin-top:10px;border:1px solid var(--line);border-radius:14px;max-height:340px;overflow:auto;font-variant-numeric:tabular-nums}
+#fd-app .crsr{display:grid;grid-template-columns:1.2fr repeat(4,1fr);gap:8px;padding:7px 12px;font-size:13px;text-align:right}#fd-app .crsr>span:first-child{text-align:left}
+#fd-app .crsr+.crsr{border-top:1px solid #f1ece6}
+#fd-app .crsh{position:sticky;top:0;background:var(--surface);color:var(--muted);font-size:12px;z-index:1}
+#fd-app .crst{font-weight:650;background:#faf8f5}
+#fd-app .crsn{display:block;padding:8px 12px;color:var(--muted);font-size:12px}
+#fd-app .crops{margin-top:14px}#fd-app .crops ul{list-style:none;margin:0;padding:0}
+#fd-app .crop{display:grid;grid-template-columns:82px minmax(0,1fr) auto 28px;gap:10px;align-items:center;padding:8px 4px;border-top:1px solid #f1ece6}
+#fd-app .crod{color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
+#fd-app .crot{min-width:0}#fd-app .crot b{display:block;font-size:14px;font-weight:600}#fd-app .crot small{display:block;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#fd-app .crot em{font-style:normal;color:#1E6F8C}
+#fd-app .crx{width:28px;height:28px;border-radius:50%;border:0;background:none;color:var(--muted);font:17px var(--ui);cursor:pointer;opacity:.5;transition:opacity .2s,background .2s}
+#fd-app .crop:hover .crx,#fd-app .crx:focus-visible,#fd-app .crx.armed{opacity:1}#fd-app .crx:hover{background:#fde8e4;color:var(--err)}#fd-app .crx.armed{background:var(--err);color:#fff;width:auto;padding:0 8px;border-radius:99px}
+#fd-app .crfoot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}
+#fd-app .crnote{color:var(--muted);font-size:13px}
+#fd-app .crkind{display:grid;width:100%;margin-bottom:10px}#fd-app .crkind button,#fd-app .crown2 button{padding:8px 10px}
+#fd-app .crwide{grid-column:1/-1}#fd-app .crown2{display:grid;width:100%;margin-top:2px}
+#fd-app .crhint{display:block;margin-top:6px;color:var(--muted);font-size:12px;line-height:1.4}
+#fd-app .crdlg select{width:100%}
+@media(max-width:600px){
+  #fd-app .mbsw3 button{padding:7px 4px;font-size:12px}
+  #fd-app .crh{grid-template-columns:38px minmax(0,1fr);gap:4px 10px;padding:12px 12px 8px;align-items:start}#fd-app .crch{display:none}#fd-app .crd{grid-column:2;display:flex;align-items:baseline;gap:6px;text-align:left;flex-wrap:wrap}#fd-app .crd small{display:inline}
+  #fd-app .cri{width:38px;height:38px;border-radius:12px;font-size:16px}
+  #fd-app .crd b{font-size:15px}
+  #fd-app .crpb{margin:0 12px 10px}#fd-app .crc.open .crb>div{padding:0 10px 12px}
+  #fd-app .crsr{grid-template-columns:1.1fr 1fr 1fr 1fr;font-size:12px;padding:6px 8px}#fd-app .crsr>span:nth-child(4){display:none}
+  #fd-app .crop{grid-template-columns:minmax(0,1fr) auto 28px}#fd-app .crod{grid-column:1/-1;margin-bottom:-6px}
+  #fd-app .crbtn .btn{flex:1 1 auto}
+}
+@media(prefers-reduced-motion:reduce){#fd-app .crb,#fd-app .crch,#fd-app .crpb i{transition:none}#fd-app .cr.anim .crc{animation:none}}
 /* окно шага */
 #fd-app dialog.mbdlg{border:0;padding:0;border-radius:22px;width:min(520px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;background:var(--surface);color:var(--ink);box-shadow:0 24px 60px rgba(0,0,0,.25);opacity:0;transform:translateY(14px) scale(.98);transition:opacity .2s,transform .22s cubic-bezier(.3,.7,.2,1)}
 #fd-app dialog.mbdlg.in{opacity:1;transform:none}#fd-app dialog.mbdlg.out{opacity:0;transform:translateY(10px) scale(.98)}
@@ -4381,7 +4438,7 @@ setTimeout(evsArm, 5000);
 const jDesc = j => "№ "+j.number+" от "+fd(j.date)+" — "+shortCus(calc(j.snap.dr, j.snap));
 function deviceName(){ const u=navigator.userAgent||""; return /Android/i.test(u)?"Android":/iPhone|iPad/i.test(u)?"iPhone/iPad":/Windows/i.test(u)?"Windows":/Mac OS/i.test(u)?"Mac":"браузер"; }
 const online = () => !!(API_URL && pass());
-const pend = {suppliers:new Map(), customers:new Map(), products:new Map(), prices:new Map(), specs:new Map(), contracts:new Map(), journal:new Map(), costs:new Map(), doccosts:new Map(), psettings:new Map(), daytasks:new Map(), purchases:new Map(), pother:new Map(), debts:new Map(), cats:new Map(), invoices:new Map(), mboard:new Map()};
+const pend = {suppliers:new Map(), customers:new Map(), products:new Map(), prices:new Map(), specs:new Map(), contracts:new Map(), journal:new Map(), costs:new Map(), doccosts:new Map(), psettings:new Map(), daytasks:new Map(), purchases:new Map(), pother:new Map(), debts:new Map(), cats:new Map(), invoices:new Map(), mboard:new Map(), credits:new Map()};
 const specOf = (c,p) => ((D.specs||{})[c]||{})[p] || {};
 function dirtySpec(c,p){ const x=specOf(c,p); pend.specs.set(c+"|"+p,{s:++stamp, del:!(x.spec||x.ste||x.art)}); undoNote("specs",c+"|"+p); changed(); }
 let serverOld=false;
@@ -4397,7 +4454,7 @@ const PENDK="frudom-docs-pend";
 function savePend(){ try{ const o={}; Object.keys(pend).forEach(t=>{ if(pend[t].size) o[t]=[...pend[t].entries()]; }); lsSet(PENDK, Object.keys(o).length?JSON.stringify(o):null); }catch(e){} }
 (function(){ try{ const o=JSON.parse(lsGet(PENDK)||"null"); if(!o) return; Object.keys(o).forEach(t=>{ if(!pend[t]) return; (o[t]||[]).forEach(([id,v])=>{ pend[t].set(id,v); if(v&&v.s>stamp) stamp=v.s; }); }); }catch(e){} })();
 function changed(){ if(dirtyBulk) return; saveLocal(); savePend(); if(!online()) return; setStatus("wait","Есть несохранённое"); clearTimeout(syncT); syncT=setTimeout(flush,1200); }
-const hasPending = () => Object.keys(pend).some(t=>pend[t].size && (t!=="pother" || D.poSrv) && (t!=="debts" || D.dbSrv) && (t!=="mboard" || D.mbSrv) && (t!=="cats" || D.catSrv) && (t!=="invoices" || D.invSrv)) || evq.length>0;
+const hasPending = () => Object.keys(pend).some(t=>pend[t].size && (t!=="pother" || D.poSrv) && (t!=="debts" || D.dbSrv) && (t!=="mboard" || D.mbSrv) && (t!=="credits" || D.crSrv) && (t!=="cats" || D.catSrv) && (t!=="invoices" || D.invSrv)) || evq.length>0;
 
 /* запрос к таблице: не дольше 45 секунд; при ошибке понятно, что случилось — нет интернета, Google не ответил или таблица вернула ошибку */
 async function apiFetch(url, opt){ const ac=window.AbortController?new AbortController():null, tm=ac&&setTimeout(()=>ac.abort(),(opt&&opt.tmo)||45000);
@@ -4413,8 +4470,8 @@ async function api(payload){
 function buildChanges(){
   if(evs.length && (Object.keys(pend).some(t=>pend[t].size) || evq.length)) evsTake();   /* тихие события — заодно с настоящим сохранением */
   const ch={}, sent={};
-  ["suppliers","customers","cats","products","contracts","journal","costs","doccosts","psettings","daytasks","purchases","pother","debts","invoices","mboard"].forEach(t=>{
-    if(!pend[t].size || (t==="pother" && !D.poSrv) || (t==="debts" && !D.dbSrv) || (t==="mboard" && !D.mbSrv) || (t==="cats" && !D.catSrv) || (t==="invoices" && !D.invSrv)) return;   /* старый скрипт таблицы не знает этот лист — держим на устройстве */ const up=[], del=[]; sent[t]=new Map(pend[t]);
+  ["suppliers","customers","cats","products","contracts","journal","costs","doccosts","psettings","daytasks","purchases","pother","debts","invoices","mboard","credits"].forEach(t=>{
+    if(!pend[t].size || (t==="pother" && !D.poSrv) || (t==="debts" && !D.dbSrv) || (t==="mboard" && !D.mbSrv) || (t==="credits" && !D.crSrv) || (t==="cats" && !D.catSrv) || (t==="invoices" && !D.invSrv)) return;   /* старый скрипт таблицы не знает этот лист — держим на устройстве */ const up=[], del=[]; sent[t]=new Map(pend[t]);
     pend[t].forEach((v,id)=>{ if(v.del) del.push(id); else { const o = t==="journal" ? jRow(D.journal.find(x=>x.id===id)) : (D[t]||[]).find(x=>x.id===id); if(o) up.push(o); else del.push(id); } });
     ch[t]={upsert:up, del};
   });
@@ -4606,7 +4663,7 @@ $("#fd-enter").onclick=async()=>{
 };
 async function logout(){
   logEv("Выход","Выход из системы"); try{ await flush(); }catch(e){} try{ clearTimeout(prefsT); await pushPrefs(); }catch(e){}
-  lsSet(PKEY,null); lsSet(MKEY,null); lsSet(UKEY,null); evCache=null; delete D.costs; delete D.doccosts; delete D.psettings; delete D.zk; delete D.purchases; delete D.zkSrv; delete D.pother; delete D.poSrv; delete D.debts; delete D.dbSrv; delete D.mboard; delete D.mbSrv; pfLoaded=false; saveLocal();
+  lsSet(PKEY,null); lsSet(MKEY,null); lsSet(UKEY,null); evCache=null; delete D.costs; delete D.doccosts; delete D.psettings; delete D.zk; delete D.purchases; delete D.zkSrv; delete D.pother; delete D.poSrv; delete D.debts; delete D.dbSrv; delete D.mboard; delete D.mbSrv; delete D.credits; delete D.crSrv; pfLoaded=false; saveLocal();
   const nav=$("#fd-app nav.tabs"); nav.classList.remove("editing"); $("#tab-bar").hidden=true; prefsDirty=false;
   showLogin(); setStatus("local"); applyRole(); toast("info","Вы вышли из системы","");
 }
@@ -6778,7 +6835,7 @@ const PF = () => (D.pf = D.pf || {per:"month", sup:"", cus:"", from:"", to:""});
 const pfArr = k => (D[k] = Array.isArray(D[k]) ? D[k] : []);
 async function loadProfit(quiet){
   if(!me().admin) return;
-  try{ if(hasPending()) await flush(); const j=await api({action:"profit"}); if(hasPending()||syncBlocked)return; rememberBase(j); D.costs=j.costs||[]; D.doccosts=j.doccosts||[]; D.psettings=j.psettings||[]; if(Array.isArray(j.purchases)) zkMerge(j.purchases); else D.zkSrv=false; poMerge(j.pother); dbMerge(j.debts); mbMerge(j.mboard); pfLoaded=true; pfAt=Date.now(); saveLocal(); $("#pf-msg").textContent=""; if(!quiet) toast("ok","Данные о прибыли обновлены",""); }
+  try{ if(hasPending()) await flush(); const j=await api({action:"profit"}); if(hasPending()||syncBlocked)return; rememberBase(j); D.costs=j.costs||[]; D.doccosts=j.doccosts||[]; D.psettings=j.psettings||[]; if(Array.isArray(j.purchases)) zkMerge(j.purchases); else D.zkSrv=false; poMerge(j.pother); dbMerge(j.debts); mbMerge(j.mboard); crMerge(j.credits); pfLoaded=true; pfAt=Date.now(); saveLocal(); $("#pf-msg").textContent=""; if(!quiet) toast("ok","Данные о прибыли обновлены",""); }
   catch(e){ $("#pf-msg").textContent = /unknown action/.test(e.message) ? "Чтобы прибыль сохранялась в таблицу, обновите скрипт таблицы (новая версия). Пока данные хранятся только на этом устройстве." : "Не получилось загрузить: "+e.message; pfLoaded=true; }
   if(curTab==="profit") drawProfit();
   if(curTab==="purchase"){ drawPurchase(); drawHist(); zkpDraw(); }
@@ -11018,6 +11075,7 @@ function autoTasks(){
     live.filter(j=>j.date>=d120 && !isPriv(j.customerId)).forEach(j=>{ const p=payOf(j); if(p.st==="paid") return; const age=daysSince(j.date); if(age<=30) return; if(!debt.has(j.customerId)) debt.set(j.customerId,{s:0,n:0,age:0,L:[]}); const g=debt.get(j.customerId); g.s=r2(g.s+p.left); g.n++; g.age=Math.max(g.age,age); g.L.push(j); });
     [...debt.entries()].sort((a,b)=>b[1].s-a[1].s).forEach(([cid,g])=>add("Деньги",{key:"debt-"+cid+"-"+g.n+"-"+Math.floor(g.s/1000)+"-"+(g.age>60?2:1), lvl:g.age>60?"err":"warn", title:cusNm(cid)+" не оплатил "+fm(g.s)+" ₽", text:g.n+" "+plural(g.n,["накладная","накладные","накладных"])+" старше 30 дней, самой старой "+g.age+" "+plural(g.age,["день","дня","дней"])+". Если деньги пришли — отметьте оплату, иначе напомните заказчику.", act:"Открыть", go:{fn:()=>pvLedger(cid)}})); }
   /* деньги: поступления из банка ждут решения */
+  try{ if(typeof crTasks==="function") crTasks().forEach(x=>add("Деньги",x)); }catch(e){}   /* платежи по кредитам: просрочены или через 3 дня и меньше */
   try{ if(typeof bnIsWait==="function"){ const W=(BNK().ops||[]).filter(bnIsWait); if(W.length) add("Деньги",{key:"bank-wait-"+W.map(o=>o.id).join(",").slice(0,400), lvl:"warn", title:"Поступления ждут разнесения: "+W.length, text:"Сайт не смог сам понять, за какие накладные эти платежи. На "+fm(r2(W.reduce((a,o)=>a+(+o.sum||0),0)))+" ₽.", act:"Разнести", go:{tab:"profit", click:'#pv-seg [data-pv="bank"]'}}); } }catch(e){}
   skAutoTasks(add);
   return T;

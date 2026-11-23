@@ -99,7 +99,7 @@ function pvInit(){
   $("#pv-bank").addEventListener("click", pvBankClick);
   const debt=$("#pv-debt");
   debt.addEventListener("click", dbClick);
-  debt.addEventListener("click", mbClick); debt.addEventListener("input", mbInput); debt.addEventListener("keydown", mbKey); debt.addEventListener("focusout", mbBlur);
+  debt.addEventListener("click", mbClick); debt.addEventListener("input", mbInput); debt.addEventListener("keydown", mbKey); debt.addEventListener("focusout", mbBlur); debt.addEventListener("click", crClick); debt.addEventListener("keydown", crKey);
   debt.addEventListener("input", dbInput);
   debt.addEventListener("focusin", e=>{ if(e.target.id==="db-name"){ dbSugOpen(); if(matchMedia("(max-width:720px)").matches) setTimeout(()=>e.target.scrollIntoView({behavior:"smooth", block:"start"}), 250); } });
   debt.addEventListener("focusout", e=>{ if(e.target.id==="db-name") setTimeout(dbSugClose, 120); });
@@ -1146,7 +1146,7 @@ function dbKpiHtml(){
       <div class="${net<0?"neg":"pos"} go" data-dbf="${lateN?"late":"open"}" role="button" tabindex="0" title="${lateN?"Показать просроченные":"Показать все открытые"}"><small>Разница</small><b>${net<0?"−":""}${fm(Math.abs(net))} ₽</b><span>${Math.abs(net)<0.005?"всё ровно":net<0?"вы должны больше":"вам должны больше"}${lateN?" · просрочено "+lateN:""}</span></div></div>`;
 }
 function dbDraw(){
-  const box=$("#pv-debt"); if(!box) return; if(PV().dv==="board") return mbDraw();
+  const box=$("#pv-debt"); if(!box) return; if(PV().dv==="board") return mbDraw(); if(PV().dv==="credit") return crDraw();
   if(!DBUI.date) DBUI.date=todayISO(); if(!DBUI.payDate) DBUI.payDate=todayISO();
   const ae=document.activeElement, fid=ae && box.contains(ae) && ae.id ? ae.id : "", pos=fid?ae.selectionStart:null;
   const all=pfArr("debts"), inn=r2(all.filter(x=>x.side!==DB_OUT).reduce((a,x)=>a+dbLeft(x),0)), out=r2(all.filter(x=>x.side===DB_OUT).reduce((a,x)=>a+dbLeft(x),0)), net=r2(inn-out);

@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 51;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 52;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -52,6 +52,8 @@ const S = {
     ['closed','Закрыт'],['id','ID (не менять)'],['pays','Погашения (не редактировать)'],['by','Кто добавил']]},
   mboard: { title: 'Доска денег', key: 'id', cols: [
     ['title','Доска'],['ord','Порядок'],['arch','Закрыта'],['upd','Изменено'],['by','Кто менял'],['id','ID (не менять)'],['data','Шаги и заметки (не редактировать)']]},
+  credits: { title: 'Кредиты', key: 'id', cols: [
+    ['title','Кредит'],['kind','Вид'],['bank','Банк'],['own','Чей'],['debt','Долг сейчас'],['next','Ближайший платёж'],['nsum','Сумма платежа'],['arch','Закрыт'],['ord','Порядок'],['upd','Изменено'],['by','Кто менял'],['id','ID (не менять)'],['data','Настройки и операции (не редактировать)']]},
   purchases: { title: 'Закупки', key: 'id', cols: [
     ['date','Дата закупки'],['points','Точки'],['total','Потрачено'],['status','Статус'],['text','Сообщения закупщика'],['updated','Изменено'],['id','ID (не менять)'],['state','Выбор накладных (не редактировать)']]},
   daytasks: { title: 'Задачи на день', key: 'id', cols: [
@@ -841,8 +843,12 @@ function notes_(p, me) {
     if (L.length > 6) dl.push('…и ещё ' + (L.length - 6));
     const ml = M.slice(0, 6).map(x => '• ' + plain(x.t).slice(0, 80));
     if (M.length > 6) ml.push('…и ещё ' + (M.length - 6));
-    const n = L.length + M.length;
-    if (n) items.push({ t: 'tasks', id: 'tasks-' + today, title: 'Задачи на сегодня: ' + n, text: (dl.length ? (M.length ? 'В календаре:\n' : '') + dl.join('\n') : '') + (ml.length ? (dl.length ? '\n' : '') + 'Мои задачи:\n' + ml.join('\n') : ''), go: L.length ? 'calendar' : 'tasks' });
+    /* платежи по кредитам (Code.gs ≥ 52, только Даниилу): просроченные и в ближайшие 3 дня — дату и сумму пишет сайт в «Ближайший платёж» */
+    let C = []; if (me.admin) { const t0 = new Date(today + 'T00:00:00'); C = read_('credits').filter(r => !/^(1|true|да|TRUE)$/i.test(String(r.arch || '').trim()) && notesIso_(r.next) && +String(r.nsum || '').replace(',', '.') > 0)
+      .map(r => ({ r: r, d: Math.round((new Date(notesIso_(r.next) + 'T00:00:00') - t0) / 864e5) })).filter(x => x.d <= 3).sort((a, b) => a.d - b.d); }
+    const cl = C.slice(0, 5).map(x => '• ' + x.r.title + ' — ' + String(x.r.nsum).replace('.', ',') + ' ₽, ' + (x.d < 0 ? 'просрочен' : x.d === 0 ? 'сегодня' : x.d === 1 ? 'завтра' : 'через ' + x.d + ' дн.'));
+    const n = L.length + M.length + C.length;
+    if (n) items.push({ t: 'tasks', id: 'tasks-' + today, title: L.length + M.length ? 'Задачи на сегодня: ' + n : 'Платёж по кредиту', text: (dl.length ? (M.length || cl.length ? 'В календаре:\n' : '') + dl.join('\n') : '') + (ml.length ? (dl.length ? '\n' : '') + 'Мои задачи:\n' + ml.join('\n') : '') + (cl.length ? (dl.length || ml.length ? '\n' : '') + 'Кредиты:\n' + cl.join('\n') : ''), go: L.length ? 'calendar' : M.length ? 'tasks' : 'profit' });
   }
   /* новые письма для приложения «Почта ФД» (Code.gs ≥ 36): сначала забрать почту из ящиков (не чаще раза в минуту), потом —
      входящие за 3 дня: Даниилу и Наталье — непрочитанные (по ним приложение и убирает уведомление, когда письмо прочитали где угодно),
@@ -962,7 +968,7 @@ function handle_(p) {
       return { ok: true, documents };
     }
     if (p.action === 'login')   { log_(me, [{ action: 'Вход', text: 'Вход в систему' + (p.device ? ' (' + String(p.device).slice(0, 60) + ')' : '') }]); return { ok: true, me: me }; }
-    if (p.action === 'profit')  { if (!me.admin) return { ok: false, error: 'forbidden' }; return { ok: true, costs: read_('costs'), doccosts: read_('doccosts'), psettings: read_('psettings'), purchases: read_('purchases'), pother: read_('pother'), debts: read_('debts'), mboard: read_('mboard') }; }
+    if (p.action === 'profit')  { if (!me.admin) return { ok: false, error: 'forbidden' }; return { ok: true, costs: read_('costs'), doccosts: read_('doccosts'), psettings: read_('psettings'), purchases: read_('purchases'), pother: read_('pother'), debts: read_('debts'), mboard: read_('mboard'), credits: read_('credits') }; }
     if (p.action === 'setPrefs') { upsertList_('uprefs', { upsert: [{ id: me.name, data: prefsMerge_((read_('uprefs').find(r => r.id === me.name) || {}).data, String(p.data || '')), updated: new Date().toISOString() }] }); return { ok: true }; }
     if (p.action === 'events')  { if (!me.admin) return { ok: false, error: 'forbidden' }; return { ok: true, events: readEvents_(+p.limit || 1000) }; }
     if (p.action === 'sync') { const g = guardChanges_(p.changes, p.base, p.protocol, me); if (g.error) return g; syncIn_(g.changes, me); return { ok: true, concurrency: 1, accepted: syncState_(g.changes, me) }; }
@@ -1225,6 +1231,7 @@ function applySync_(ch, me) {
     if (ch.pother) { const sn = nameMap_('suppliers'); (ch.pother.upsert || []).forEach(o => o.supplierName = o.supplierId ? (sn[o.supplierId] || '') : 'Общие'); upsertList_('pother', ch.pother); }
     if (ch.debts) upsertList_('debts', ch.debts);
     if (ch.mboard) upsertList_('mboard', ch.mboard);
+    if (ch.credits) upsertList_('credits', ch.credits);
     if (ch.psettings) { const sn = nameMap_('suppliers'); (ch.psettings.upsert || []).forEach(o => o.name = sn[o.id] || ''); upsertList_('psettings', ch.psettings); }
   }
   if (me && ev.length) log_(me, ev);
@@ -1933,7 +1940,7 @@ function sameValue_(a,b) { return String(a == null ? '' : a) === String(b == nul
 function guardChanges_(input, base, protocol, me) {
   const changes = JSON.parse(JSON.stringify(input || {})), conflicts = [];
   if (protocol !== 1) return { ok: false, error: 'Обновите страницу: для сохранения нужна новая версия сайта.' };
-  const allowed = lim_(me) ? ['journal','daytasks'] : me.role === 'staff' ? ['suppliers','products','cats','prices','journal','daytasks'] : ['suppliers','customers','products','cats','prices','specs','contracts','journal','daytasks','invoices'].concat(me.admin ? ['costs','doccosts','psettings','purchases','pother','debts','mboard'] : []);
+  const allowed = lim_(me) ? ['journal','daytasks'] : me.role === 'staff' ? ['suppliers','products','cats','prices','journal','daytasks'] : ['suppliers','customers','products','cats','prices','specs','contracts','journal','daytasks','invoices'].concat(me.admin ? ['costs','doccosts','psettings','purchases','pother','debts','mboard','credits'] : []);
   for (const t of Object.keys(changes)) {
     if (t === 'events') continue;
     if (!allowed.includes(t)) return { ok: false, error: 'forbidden' };
