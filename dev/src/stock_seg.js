@@ -304,6 +304,7 @@ function skfEvRow(x, X, k){ const m=x.m, b=X.batch[m.batchId], cls=x.k, sign=x.k
   else if(x.k==="in"){ main=`<b>${m.type==="init"?"Начальный остаток":"Приход"}${b&&b.supplier?" от "+esc(b.supplier):m.party&&!skIdLike(m.party)?" от "+esc(m.party):""}</b>`; sub=[b&&b.docRef?"накл. "+esc(b.docRef):m.doc&&!skIdLike(m.doc)?esc(m.doc):"", +m.cost?"цена "+skfM(+m.cost)+" ₽":""].filter(Boolean).join(" · "); go=b?`data-skbatch="${esc(b.id)}"`:""; }
   else if(x.k==="wo"){ main=`<b>Списано</b>`; sub=esc(m.reason||"без причины"); go=b?`data-skbatch="${esc(b.id)}"`:""; }
   else { main=`<b>${esc(SK_T[m.type]||m.typeName||"Изменение")}</b>`; sub=esc(m.reason||""); go=b?`data-skbatch="${esc(b.id)}"`:""; }
+  const bl=skfBal(X)[m.id]; if(bl) sub+=(sub?" · ":"")+`было ${skQf(bl.b,m.unit)} → стало ${skQf(bl.a,m.unit)}`;
   return `<div class="skfr k-${cls}${go?" go":""}" ${go} ${go?`role="button" tabindex="0"`:""} style="--d:${Math.min(k,12)*28}ms"><span class="skfw">${esc(skfWhen(m.at))}</span><span class="skfi" aria-hidden="true">${x.k==="in"||x.k==="ret"?"↓":x.k==="out"?"→":x.k==="wo"?"×":"↻"}</span><span class="skfm">${main}${sub?`<small>${sub}</small>`:""}</span><span class="skfq ${sign==="+"?"pos":"neg"}">${sign}${skQf(x.q, m.unit)}</span>${go?`<i class="skfgo" aria-hidden="true">›</i>`:`<i class="skfgo"></i>`}</div>`; }
 function skfItemCard(o, X, k){ const open=!!SKFL.open["i:"+o.id], tot=Math.max(o.out+o.wo+o.rest, 1e-9), u=o.unit, pc=v=>Math.max(0,v/tot*100);
   const seg=o.cus.map(c=>`<i class="skfs" style="--w:${pc(c.q)}%;--h:${skfHue(c.k)}" title="${esc(c.n)} — ${skQf(c.q,u)}"></i>`).join("")+(o.wo?`<i class="skfs wo" style="--w:${pc(o.wo)}%" title="Списано — ${skQf(o.wo,u)}"></i>`:"")+(o.rest>0?`<i class="skfs rest" style="--w:${pc(o.rest)}%" title="Сейчас на складе — ${skQf(o.rest,u)}"></i>`:"");
@@ -341,13 +342,22 @@ function skFlowHtml(q, X){ const F=SKFL, R=skfData(X, q), t=R.T;
 const skfMon = ["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"];
 const skfK = v => { v=Math.abs(v); return v>=1e6?String(Math.round(v/1e5)/10).replace(".",",")+"м":v>=1e4?Math.round(v/1e3)+"к":v>=1e3?String(Math.round(v/100)/10).replace(".",",")+"к":String(Math.round(v)); };
 const skfLineSum = x => x.k==="out" ? (x.s||x.v) : x.v;
+/* было → стало на складе в момент движения (23.11.2026, просьба Даниила): от нынешнего остатка товара в этих единицах назад по движениям */
+function skfBal(X){ if(X._bal) return X._bal; const B={}, G={};
+  X.S.moves.forEach((m,i)=>{ if(SK_NOSTOCK[m.type]||!m.itemId) return; const b=X.batch[m.batchId], uk=m.itemId+"|"+skK((b&&b.unit)||m.unit); (G[uk]=G[uk]||[]).push([m,i]); });
+  Object.entries(G).forEach(([uk,A])=>{ const [id]=uk.split("|"), uu=skUnitsOf(id).find(z=>skK(z.unit)===uk.slice(id.length+1)); let cur=uu?uu.fact:0;
+    A.sort((x,y)=>String(y[0].at||"").localeCompare(String(x[0].at||""))||y[1]-x[1]).forEach(([m])=>{ const q=+m.qty||0; B[m.id]={a:r3(cur), b:r3(cur-q)}; cur-=q; }); });
+  return X._bal=B; }
 function skfOps(L, X){ const O={};
   L.forEach(x=>{ const m=x.m, b=X.batch[m.batchId]; let key;
     if(x.k==="out"||x.k==="ret") key=x.k+"|"+(m.docId||m.doc||m.id)+"|"+x.d;
     else if(x.k==="in") key="in|"+((b&&b.op)||m.id);
     else key=x.k+"|"+m.id;
     const o=O[key]||(O[key]={key, k:x.k, at:m.at, d:x.d, c:x.c, b, m, L:[], tot:0}); if(String(m.at||"")<String(o.at||"")) o.at=m.at;
-    o.L.push({n:(X.item[m.itemId]||{}).name||m.itemName||"Товар", q:x.q, u:m.unit, s:skfLineSum(x), id:m.itemId}); o.tot+=skfLineSum(x); });
+    const bl=skfBal(X)[m.id], lk=m.itemId+"|"+skK(m.unit), l=o.L.find(z=>z.lk===lk);
+    if(l){ l.q=r3(l.q+x.q); l.s+=skfLineSum(x); if(bl){ if(String(m.at||"")<l.f){ l.f=String(m.at||""); l.b0=bl.b; } if(String(m.at||"")>=l.t){ l.t=String(m.at||""); l.a0=bl.a; } } }
+    else o.L.push({lk, n:(X.item[m.itemId]||{}).name||m.itemName||"Товар", q:x.q, u:m.unit, s:skfLineSum(x), id:m.itemId, f:String(m.at||""), t:String(m.at||""), b0:bl?bl.b:null, a0:bl?bl.a:null});
+    o.tot+=skfLineSum(x); });
   return Object.values(O).sort((a,b)=>String(b.at||"").localeCompare(String(a.at||""))); }
 function skfCalHtml(L){ const F=SKFL; if(!F.ym) F.ym=todayISO().slice(0,7);
   const [y,mo]=F.ym.split("-").map(Number), first=new Date(y,mo-1,1), days=new Date(y,mo,0).getDate(), sh=(first.getDay()+6)%7, t=todayISO(), z=n=>String(n).padStart(2,"0");
@@ -368,7 +378,7 @@ function skfOpHtml(o, k){ const m=o.m, tm=new Date(o.at), hm=isNaN(tm)?"":tm.toL
   else { where=`<b>${esc(SK_T[m.type]||"Изменение")}</b>`; sub=esc(m.reason||""); go=o.b?`data-skbatch="${esc(o.b.id)}"`:""; }
   const sign=o.k==="in"||o.k==="ret"?"+":o.k==="adj"?"":"−";
   return `<div class="skfo k-${o.k}" style="--d:${Math.min(k,14)*26}ms"><div class="skfoh${go?" go":""}" ${go} ${go?`role="button" tabindex="0"`:""}><span class="skfot">${hm}</span><span class="skfoi" aria-hidden="true">${o.k==="in"||o.k==="ret"?"↓":o.k==="out"?"→":o.k==="wo"?"×":"↻"}</span><span class="skfow">${where}${sub?`<small>${sub}</small>`:""}</span><span class="skfos">${o.tot?sign+skfM(o.tot)+" ₽":""}${o.k==="out"&&o.L.some(l=>l.s)?`<small>${o.m.price?"продажа":"себестоимость"}</small>`:o.k==="in"?`<small>закупка</small>`:""}</span>${go?`<i class="skfgo" aria-hidden="true">›</i>`:`<i class="skfgo"></i>`}</div>
-    <div class="skfols">${o.L.map(l=>`<div class="skfol"><span class="skfon">${esc(l.n)}</span><span class="skfoq">${sign}${skQf(l.q,l.u)}</span><span class="skfom">${l.s?skfM(l.s)+" ₽":"—"}</span></div>`).join("")}</div></div>`; }
+    <div class="skfols">${o.L.map(l=>`<div class="skfol"><span class="skfon">${esc(l.n)}${l.b0!=null?`<small class="skfob">было <b>${skQf(l.b0,l.u)}</b> → стало <b>${skQf(l.a0,l.u)}</b></small>`:""}</span><span class="skfoq">${sign}${skQf(l.q,l.u)}</span><span class="skfom">${l.s?skfM(l.s)+" ₽":"—"}</span></div>`).join("")}</div></div>`; }
 function skfDaysHtml(L, X){ const F=SKFL, LL=F.day?L.filter(x=>x.d===F.day):L, O=skfOps(LL, X), t=todayISO();
   const D={}; O.forEach(o=>{ (D[o.d]||(D[o.d]=[])).push(o); });
   const ds=Object.keys(D).sort().reverse(), lim=F.day?ds.length:Math.min(ds.length, F.nd||7);
