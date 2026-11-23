@@ -3678,7 +3678,7 @@ html.fd-dark :is(#fd-app .card,dialog.dcard,#tkf-pan,#tkf-fab){box-shadow:0 0 0 
         <label class="f">Номер документа<input id="d-num" inputmode="numeric"><span id="d-numinfo" class="ctrinfo"></span></label>
         <label class="f">Дата<input id="d-date" type="date"></label>
         <div class="f ldw" id="d-ldw" hidden><span class="ldsp" aria-hidden="true">&nbsp;</span><button type="button" class="btn ldbtn" id="d-lastdocs" title="Все документы этого заказчика: открыть любую накладную и вернуться назад"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg><span>Последние документы</span><b id="d-ldn"></b></button></div>
-        <label class="f wide">Основание (договор, контракт)<input id="d-basis" placeholder="ЭЗК-26-91390881 от 30.09.2026"></label>
+        <label class="f wide">Основание (договор, контракт)<input id="d-basis" placeholder="Например: Договор поставки № 15 от 01.11.2026 — можно оставить пустым"></label>
         <label class="f wide">Адрес доставки (грузополучатель)<select id="d-shipsel"></select></label>
         <label class="f wide" id="d-shipwrap">Другой адрес<input id="d-ship" placeholder="Впишите адрес доставки"></label>
         <div class="f wide shipw" id="d-shipw" hidden role="alert"></div>
@@ -5065,8 +5065,16 @@ $("#d-ctr").onchange=e=>{ D.draft.noCtr = !e.target.value; applyCtr(e.target.val
 const dl=$("#d-lines");
 /* ===== госконтракты: цены фиксированные, сверка строк документа с прайсом заказчика ===== */
 /* госзаказчик = не частник. Частники: ООО/АО/ЗАО/ПАО/ИП, «Частное лицо», «Цены из моего прайса», НДС в документах */
-function isGovCus(cid){ const c=cus(cid); if(!c.id || isPriv(cid) || c.plist==="1" || parseInt(c.vat,10)>0) return false;
-  const n=String(c.name||"").trim(); return !(/^(ООО|АО|ЗАО|ПАО|ОАО|НАО|ИП)(?=[\s«"'„]|$)/i.test(n) || /^Частн/i.test(n)); }
+/* госзаказчик (цены по контракту фиксированные): 23.11.2026 — раньше госзаказчиком считался любой, чьё название не начинается с ООО/АО/ИП,
+   и новый частник «Кондитерская Мневники» получал «не по контракту». Теперь — только по признакам бюджетника:
+   казначейский счёт, документы в ЕИС / на Портале, форма учреждения в названии (ГБУ, ФГБУ, ГУП…) или «государственное / муниципальное / бюджетное…». */
+const GOV_RX_FORM = /(^|[^А-ЯЁA-Z])(ФГУП|ГУП|МУП|ФГБУ|ФГАУ|ФГБОУ|ФГАОУ|ФГБНУ|ФГКУ|ФКУ|ГБУЗ|ГАУЗ|ГБУ|ГАУ|ГКУ|МБУ|МАУ|МКУ|ГБОУ|ГАОУ|ГБПОУ|ГАПОУ|ГОБУ|МБОУ|МАОУ|МКОУ|МБДОУ|ГБДОУ|МАДОУ|МБУК|ГБУК|ГАУК)(?![А-ЯЁA-Z])/;
+const GOV_RX_WORD = /государствен|муниципальн|федеральн|бюджетн|казённ|казенн|учреждени|университет|больниц|поликлиник|(^|[^А-ЯЁ])МГУ([^А-ЯЁ]|$)/i;
+function isGovCus(cid){ const c=cus(cid); if(!c.id || isPriv(cid) || c.priv || c.plist==="1" || parseInt(c.vat,10)>0) return false;
+  const n=String(c.name||"").trim(); if(/^(ООО|АО|ЗАО|ПАО|ОАО|НАО|ИП)(?=[\s«"'„]|$)/i.test(n) || /^Частн/i.test(n)) return false;
+  if(c.acct==="treasury" || /^03\d{18}$/.test(String(c.rs||"").replace(/\s/g,""))) return true;
+  if(c.gov==="eis" || c.gov==="pp") return true;
+  return GOV_RX_FORM.test(n) || GOV_RX_WORD.test(n); }
 /* строки, где цена не как в контракте или товара нет в прайсе контракта */
 function ctrIssues(dr){ dr=dr||D.draft; if(!dr || !isGovCus(dr.customerId)) return []; const out=[];
   (dr.lines||[]).forEach((l,i)=>{ if(!l.productId) return; const v=custPrice(dr.customerId,l.productId);
