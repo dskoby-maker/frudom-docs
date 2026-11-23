@@ -1480,6 +1480,12 @@ document.addEventListener("pointerout", e=>{ const el=e.target.closest&&e.target
 /* нажатие на график — к этому дню в ленте ниже */
 function skhGoDay(el){ const d=el.dataset.d; if(!d || el.dataset.pd!=="1") return; SKH.f=""; SKH.n=1e9; skModalRefresh();
   setTimeout(()=>{ const g=document.querySelector(`.skh-d[data-iso="${d}"]`); if(!g) return; g.scrollIntoView({behavior:"smooth", block:"start"}); g.classList.remove("jflash"); void g.offsetWidth; g.classList.add("jflash"); }, 60); }
+/* цены строки истории — отдельными «чипами» под описанием: «цена 40,32 ₽/шт · 403,20 ₽/кг», «продажа 292 ₽/кг» (23.11.2026) */
+function skhPcs(id, m, b, st){ const u=String(m.unit||"").replace(/\.$/,""), out=[];
+  if(st && m.cost!=="" && m.cost!=null){ const alt=skAltP(id,+m.cost,m.unit,b).replace(/^≈\s*/,"");
+    out.push(`<span class="skh-p"><i>${m.type==="in"||m.type==="init"?"цена":"себестоимость"}</i> <b>${fm(+m.cost)} ₽/${esc(u)}</b>${alt?` <s>·</s> ${esc(alt)}`:""}</span>`); }
+  if(+m.price){ const alt=skAltP(id,+m.price,m.unit,b).replace(/^≈\s*/,""); out.push(`<span class="skh-p"><i>продажа</i> <b>${fm(+m.price)} ₽/${esc(u)}</b>${alt?` <s>·</s> ${esc(alt)}`:""}</span>`); }
+  return out.length?`<span class="skh-ps">${out.join("")}</span>`:""; }
 /* в журнале склада связи записаны ID позиций — показываем названия */
 const skhIds = t => String(t||"").split(/,\s*/).map(x=>{ const p=prod(x.trim()); return p&&p.name?p.name:x; }).join(", ");
 function skItemHistHtml(){ const X=skIdx(), it=X.item[SKH.id]; if(!it) return skHead("История товара","Товар не найден","Обновите страницу.");
@@ -1497,7 +1503,7 @@ function skItemHistHtml(){ const X=skIdx(), it=X.item[SKH.id]; if(!it) return sk
     const q=+m.qty, st=!SK_NOSTOCK[m.type], sign=st?(q>0?"+":"−"):"", b=X.batch[m.batchId], party=skIdLike(m.party)?"":m.party||"", doc=m.doc&&!(!m.docId&&skIdLike(m.doc))?m.doc:"";
     const where = m.type==="ship"||m.type==="direct" ? (party?`<b>${esc(party)}</b>`:"<b>Отгрузка</b>") : m.type==="in"||m.type==="init" ? `<b>${esc(SK_T[m.type])}${b&&b.supplier?" от "+esc(b.supplier):""}</b>` : `<b>${esc(SK_T[m.type]||m.typeName||"")}</b>`;
     const det=[m.type==="ship"||m.type==="direct"?esc(SK_T[m.type]):"", doc?(m.docId?`<a href="#" data-skdoc="${m.docId}">${esc(doc)}</a>`:esc(doc)):"", b&&(m.type==="in"||m.type==="init")&&b.docRef&&!doc?"накл. "+esc(b.docRef):"", m.reason?esc(m.reason):""].filter(Boolean).join(" · ");
-    return `<div class="skh-r k-${skhKind(m)}"><span class="skh-t">${hm}</span><span class="skh-i" aria-hidden="true"></span><span class="skh-m">${where}${det?`<small>${det}</small>`:""}</span><span class="skh-q"><b class="${st?(q>0?"pos":"neg"):""}">${sign}${skQf(Math.abs(q),m.unit)}</b>${st?skAltH(it.id,q,m.unit,b):""}${m.cost!==""&&m.cost!=null&&st?`<small>${m.type==="in"||m.type==="init"?"цена":"себест."} ${fm(+m.cost)} ₽${(t=>t?" ("+t+")":"")(skAltP(it.id,+m.cost,m.unit,b))}</small>`:""}${m.price?`<small>продажа ${fm(+m.price)} ₽</small>`:""}</span><span class="skh-w">${esc(m.by||"")}</span></div>`; };
+    return `<div class="skh-r k-${skhKind(m)}"><span class="skh-t">${hm}</span><span class="skh-i" aria-hidden="true"></span><span class="skh-m">${where}${det?`<small>${det}</small>`:""}${skhPcs(it.id,m,b,st)}</span><span class="skh-q"><b class="${st?(q>0?"pos":"neg"):""}">${sign}${skQf(Math.abs(q),m.unit)}</b>${st?skAltH(it.id,q,m.unit,b):""}</span><span class="skh-w">${esc(m.by||"")}</span></div>`; };
   return skHead("История товара", esc(it.name), (it.alt?"Другие названия: "+esc(it.alt)+" · ":"")+"всё, что приходило, уходило и менялось", "")
     + `<div class="skh-kpi"><div><small>Сейчас на складе</small><b>${now}</b></div><div><small>Пришло</small><b>${inS}</b></div><div><small>Ушло заказчикам</small><b>${outS}</b></div><div><small>Списано</small><b>${woS}</b></div></div>`
     + skhStockHtml(it, B)
