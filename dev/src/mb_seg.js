@@ -72,7 +72,8 @@ function mbHints(r, o, k){ const H=[], td=todayISO();
   if(!H.length){ const nx=o.steps.filter(s=>!s.done).sort((a,b)=>(a.date||"9").localeCompare(b.date||"9"))[0]; if(nx) H.push({ic:"→", ok:1, t:`Следующий шаг: ${MB_T[nx.k].s}${nx.who?" · "+nx.who:""} — ${fm(+nx.sum||0)} ₽${nx.date?", "+fd(nx.date):""}. Когда сделаете — нажмите на кружок слева.`}); }
   return H; }
 /* ---- отрисовка ---- */
-function mbSwitch(v){ return `<div class="fdseg mbsw" id="mb-sw" style="--x:${v==="board"?"100%":"0"}"><i></i><button type="button" data-dbv="book" class="${v==="board"?"":"on"}" aria-pressed="${v!=="board"}">Книжка долгов</button><button type="button" data-dbv="board" class="${v==="board"?"on":""}" aria-pressed="${v==="board"}">Доска денег</button></div>`; }
+function mbSwitch(v){ const L=[["book","Книжка долгов"],["board","Доска денег"],["credit","Кредиты"]], i=Math.max(0,L.findIndex(x=>x[0]===v)), n=typeof crSoon==="function"?crSoon().length:0;
+  return `<div class="fdseg mbsw mbsw3" id="mb-sw" style="--x:${i*100}%"><i></i>${L.map(([k,t])=>`<button type="button" data-dbv="${k}" class="${k===L[i][0]?"on":""}" aria-pressed="${k===L[i][0]}">${t}${k==="credit"&&n?`<em title="Платежи в ближайшие 3 дня или просроченные">${n}</em>`:""}</button>`).join("")}</div>`; }
 function mbList(){ return mbRows().filter(r=>!+r.arch).sort((a,b)=>(+a.ord||0)-(+b.ord||0)||(a.id).localeCompare(b.id)); }
 function mbDraw(){
   const box=$("#pv-debt"); if(!box) return;
@@ -222,7 +223,7 @@ function mbDel(){ const r=mbFind(MBU.cur); if(!r) return; const o=mbObj(r);
 let mbNT=0;
 function mbNoteSet(id, v){ const r=mbFind(MBU.cur); if(!r) return; const n=mbObj(r).notes.find(x=>x.id===id); if(!n) return; n.t=v; clearTimeout(mbNT); mbNT=setTimeout(()=>mbSave(r), 600); }
 /* ---- события ---- */
-function mbClick(e){ const box=e.target.closest(".mb"); const sw=e.target.closest("[data-dbv]"); if(sw){ const v=sw.dataset.dbv; if((PV().dv||"book")===v) return; PV().dv=v; saveLocal(); MBU.anim=true; if(v==="board") mbDraw(); else dbDraw(); return; }
+function mbClick(e){ const box=e.target.closest(".mb"); const sw=e.target.closest("[data-dbv]"); if(sw){ const v=sw.dataset.dbv; if((PV().dv||"book")===v) return; PV().dv=v; saveLocal(); MBU.anim=true; CRU.anim=true; if(v==="board") mbDraw(); else if(v==="credit") crDraw(); else dbDraw(); return; }
   if(!box) return;
   const bb=e.target.closest("[data-mbb]"); if(bb){ if(MBU.cur===bb.dataset.mbb) return; MBU.cur=bb.dataset.mbb; MBU.anim=true; for(let i=0;i<4;i++) delete MBU["k"+i]; mbDraw(); return; }
   const dn=e.target.closest("[data-mbdone]"); if(dn){ e.stopPropagation(); mbToggle(dn.dataset.mbdone); return; }
