@@ -32,11 +32,17 @@ function crLoan(r){ const o=crObj(r), i=crN(o.rate)/1200, day=o.day||(o.first||"
   const paidM=new Set(P.map(x=>x.m).filter(Boolean)); let ym=crYm(o.first||todayISO()); while(paidM.has(ym)) ym=crYmAdd(ym,1);
   const endYm=o.end?crYm(o.end):"", nLeft=endYm?Math.max(1, crYmDiff(ym,endYm)+1):0;
   let pmt=crN(o.pmt); const auto=!pmt; if(!pmt && bal>0.004 && nLeft) pmt=i?r2(bal*i/(1-Math.pow(1+i,-nLeft))):r2(bal/nLeft);
-  const pct=r2(bal*i), next=bal>0.004?crDue(ym,day):"", nsum=bal>0.004?Math.min(pmt||r2(bal+pct), r2(bal+pct)):0;
+  /* платёж и дата последнего платежа вписаны — график должен закончиться в дату банка: подбираем настоящую ставку (в платёж банка часто входит страховка/подписка) */
+  let ie=i, fit=false, tot=false; const sumK=crN(o.sum);
+  if(!auto && pmt>0 && nLeft>1 && bal>0.004){ const f=r=>r>1e-9?bal*r/(1-Math.pow(1+r,-nLeft)):bal/nLeft;
+    if(f(0)>=pmt-0.01) ie=0; else { let lo=0, hi=0.5; for(let t=0;t<80;t++){ const md=(lo+hi)/2; if(f(md)>pmt) hi=md; else lo=md; } ie=(lo+hi)/2; }
+    fit=Math.abs(ie-i)*1200>0.3;
+    tot=i>0.003 && ie*1200<2 && bal>=pmt*nLeft*0.95 && (!sumK || sumK<bal*0.95); }
+  const pct=r2(bal*ie), next=bal>0.004?crDue(ym,day):"", nsum=bal>0.004?Math.min(pmt||r2(bal+pct), r2(bal+pct)):0;
   const S=[]; let b=bal, m=ym, bad=false;
-  if(pmt>0) for(let k=0;k<600 && b>0.004;k++){ const p=r2(b*i); let s=pmt; if(s<=p+0.004){ bad=true; break; } if(s>b+p) s=r2(b+p); const body=r2(s-p); b=Math.max(0,r2(b-body)); S.push({m, d:crDue(m,day), s, p, body, b}); m=crYmAdd(m,1); }
+  if(pmt>0) for(let k=0;k<600 && b>0.004;k++){ const p=r2(b*ie); let s=pmt; if(s<=p+0.004){ bad=true; break; } if(s>b+p || (fit && k===nLeft-1)) s=r2(b+p); const body=r2(s-p); b=Math.max(0,r2(b-body)); S.push({m, d:crDue(m,day), s, p, body, b}); m=crYmAdd(m,1); }
   const paid=r2(P.concat(X).reduce((a,x)=>a+crN(x.s),0)), pctPaid=r2(P.reduce((a,x)=>a+crN(x.pct),0)), pctLeft=r2(S.reduce((a,x)=>a+x.p,0)), sum=crN(o.sum)||crN(o.bal0);
-  return {kind:"loan", o, i, day, bal, debt:bal, ym, next, pmt, auto, pct, nsum, S, bad, paid, pctPaid, pctLeft, end:S.length?S[S.length-1].d:"", sum, pc:sum>0?Math.min(100,Math.max(0,(sum-bal)/sum*100)):0, done:bal<=0.004, late:!!next && next<todayISO()}; }
+  return {kind:"loan", o, i, ie, fit, tot, nLeft, day, bal, debt:bal, ym, next, pmt, auto, pct, nsum, S, bad, paid, pctPaid, pctLeft, end:S.length?S[S.length-1].d:"", sum, pc:sum>0?Math.min(100,Math.max(0,(sum-bal)/sum*100)):0, done:bal<=0.004, late:!!next && next<todayISO()}; }
 /* ---- расчёт кредитной карты ---- */
 function crCard(r){ const o=crObj(r), S=t=>r2(o.ops.filter(x=>x.t===t).reduce((a,x)=>a+crN(x.s),0)), td=todayISO();
   const debt=Math.max(0, r2(crN(o.bal0)+S("spend")+S("fee")-S("cpay"))), lim=crN(o.limit), day=o.day||1;
@@ -121,6 +127,7 @@ function crBodyHtml(r, k, arch){ const o=k.o, card=r.kind==="card", td=todayISO(
   const sch=!card && k.S.length?`<button type="button" class="lnk" data-cra="sched">${CRU.sched[r.id]?"Скрыть график":"График платежей · "+k.S.length+" ›"}</button>`:"";
   return `${tiles}
     ${k.auto&&!card&&k.pmt?`<div class="mbinfo">Платёж не вписан — сайт посчитал его сам по остатку, ставке и дате окончания: ${fm(k.pmt)} ₽ в месяц. Если в банке другой — впишите его в «Изменить».</div>`:""}
+    ${!card&&k.tot?`<div class="mbinfo crw">${crTotTxt(k)}</div>`:!card&&k.fit?`<div class="mbinfo">${crFitTxt(k)}</div>`:""}
     ${k.bad?`<div class="mbinfo crw">Платёж ${fm(k.pmt)} ₽ не больше процентов за месяц (${fm(k.pct)} ₽) — долг так не уменьшится. Проверьте ставку и платёж в «Изменить».</div>`:""}
     <div class="crbtn">${btns}<span style="flex:1"></span>${sch}${arch?"":`<button type="button" class="btn ghost sm" data-cra="edit">Изменить</button>`}</div>
     ${CRU.sched[r.id]&&!card?crSchedHtml(k):""}
@@ -179,8 +186,11 @@ function crEdPrev(){ const e=CRU.ed; if(!e) return ""; if(!crN(e.bal0) && !(e.ki
   const k=crCalc(crEdTmp());
   if(e.kind==="card") return `<div class="mbinfo ok">Долг ${fm(k.debt)} ₽${k.lim?" · доступно "+fm(Math.max(0,k.avail))+" ₽":""}${k.debt>0.004&&!k.noMin&&k.next?" · минимальный платёж "+fm(k.minFull)+" ₽ до "+crDt(k.next):""}.</div>`;
   if(k.bad) return `<div class="mbinfo crw">Платёж не больше процентов за месяц (${fm(k.pct)} ₽) — проверьте ставку и платёж.</div>`;
+  const ex=k.tot?`<div class="mbinfo crw">${crTotTxt(k)}${crN(e.sum)>0?` <button type="button" class="btn sm" data-crd="tot">Поставить ${fm(crN(e.sum))} ₽</button>`:""}</div>`:k.fit?`<div class="mbinfo">${crFitTxt(k)}</div>`:"";
   if(!k.pmt) return `<div class="mbinfo">Впишите платёж в месяц или дату последнего платежа — тогда сайт посчитает, когда кредит закончится.</div>`;
-  return `<div class="mbinfo ok">${k.auto?"Платёж ≈ "+fm(k.pmt)+" ₽ в месяц · ":""}Ближайший — ${fm(k.nsum)} ₽ ${crDt(k.next)}, из них проценты ≈ ${fm(k.pct)} ₽ · закончится ${crDt(k.end)} (${k.S.length} ${plural(k.S.length,["платёж","платежа","платежей"])}) · процентов всего ≈ ${fm(k.pctLeft)} ₽.</div>`; }
+  return `<div class="mbinfo ok">${k.auto?"Платёж ≈ "+fm(k.pmt)+" ₽ в месяц · ":""}Ближайший — ${fm(k.nsum)} ₽ ${crDt(k.next)}, из них проценты ≈ ${fm(k.pct)} ₽ · закончится ${crDt(k.end)} (${k.S.length} ${plural(k.S.length,["платёж","платежа","платежей"])}) · процентов всего ≈ ${fm(k.pctLeft)} ₽.</div>${ex}`; }
+function crTotTxt(k){ return `Похоже, в «Долг» вписана сумма всех платежей вместе с процентами (${fm(k.bal)} ₽ ≈ ${fm(k.pmt)} × ${k.nLeft}). Сюда нужен остаток основного долга — без процентов: в приложении банка «Остаток долга» или, если платежей ещё не было, «Сумма кредита».`; }
+function crFitTxt(k){ const r=(k.ie*1200).toFixed(1).replace(".",","); return `График подогнан под ваш платёж и дату последнего платежа ${crDt(k.o.end)}. С таким платежом выходит ≈ ${r}% годовых${k.i>0?`, а не ${String(k.o.rate).replace(".",",")}%`:""} — в платёж банка, видимо, входит ещё страховка или подписка. Проценты в «Заплатил» сайт считает по ${r}%.`; }
 function crEdSave(){ crEdRead(); const e=CRU.ed; if(!e) return; const bad=(id,t,m)=>{ const i=$("#"+id); if(i){ i.classList.add("bad"); i.focus(); setTimeout(()=>i.classList.remove("bad"),900); } toast("warn",t,m||""); };
   if(!(e.title||"").trim()) return bad("cre-title","Впишите название","Например, «Сбер на машину».");
   if(e.kind==="loan"){ if(!(crN(e.bal0)>0)) return bad("cre-bal0","Сколько осталось долга?","В приложении банка — «остаток основного долга».");
@@ -236,6 +246,7 @@ function crDlgClick(ev){ const d=$("#cr-dlg"); if(ev.target===d){ if(d._down) cr
   if(ev.target.id==="cro-rec"){ crOpRead(); return; }
   const b=ev.target.closest("[data-crd]"); if(!b) return; const a=b.dataset.crd;
   if(a==="close"){ crClose(); return; }
+  if(a==="tot" && CRU.ed){ crEdRead(); CRU.ed.bal0=String(crN(CRU.ed.sum)); const i=$("#cre-bal0"); if(i) i.value=crMoney(CRU.ed.bal0); const pv=$("#cre-prev"); if(pv) pv.innerHTML=crEdPrev(); return; }
   if(a==="save"){ if(CRU.op) crOpSave(); else crEdSave(); return; }
   if(a==="del" && CRU.ed){ if(!armed(b,"Точно удалить?")) return; crDel(CRU.ed.id); crClose(); } }
 function crDlgSave(){ if(CRU.op) crOpSave(); else if(CRU.ed) crEdSave(); }

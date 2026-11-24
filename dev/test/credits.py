@@ -61,6 +61,17 @@ async def main():
             # «Сайт нашёл сам»
             ok(await pg.locator('#mb-sw [data-dbv="credit"] em').count()==1, f'{W}: на «Кредиты» — значок с числом ближайших платежей')
             ok(not errs, f'{W}: без ошибок {errs[:2]}')
+            # как в Т-Банке: 700 000, 34,9%, платёж 45 560, 24 платежа 02.12.2026–02.11.2028 (в платёж входит страховка)
+            K=f'Т-Банк {W}'
+            await pg.click('[data-cra="new:loan"]'); await pg.wait_for_selector('#cr-dlg[open]'); await pg.wait_for_timeout(300)
+            await pg.fill('#cre-title', K); await pg.fill('#cre-bal0','1093059,78'); await pg.fill('#cre-sum','700000'); await pg.fill('#cre-rate','34,9'); await pg.fill('#cre-pmt','45560')
+            await pg.fill('#cre-first','2026-12-02'); await pg.fill('#cre-end','2028-11-02'); await pg.wait_for_timeout(200)
+            prev=N(await pg.text_content('#cre-prev')); ok('сумма всех платежей' in prev, f'{W}: вписали «Всего заплатите» — предупреждение')
+            await pg.click('[data-crd="tot"]'); await pg.wait_for_timeout(200)
+            ok(await pg.input_value('#cre-bal0')=='700 000', f'{W}: кнопка поставила 700 000')
+            prev=N(await pg.text_content('#cre-prev')); ok('2 ноября 2028' in prev and '24 платежа' in prev and 'подогнан' in prev, f'{W}: закончится 2 ноября 2028, 24 платежа ({prev[:160]})')
+            await pg.click('[data-crd="save"]'); await pg.wait_for_timeout(700)
+            kc=pg.locator('.crc', has_text=K); t=N(await kc.text_content()); ok('2 ноября 2028' in t and 'страховка' in t, f'{W}: на карточке — 2 ноября 2028 и пояснение')
             await pg.wait_for_timeout(2500); await ctx.close()
         ctx,pg,errs=await login(b,1300); await pg.evaluate("document.querySelector('nav.tabs button[data-tab=\"tasks\"]').click()"); await pg.wait_for_timeout(4000)
         t=N(await pg.text_content('#tab-tasks')); ok('Платёж по кредиту' in t and 'Сбер ' in t, 'вкладка «Задачи» → «Сайт нашёл сам»: платёж по кредиту через 2 дня')
