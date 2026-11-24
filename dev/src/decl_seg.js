@@ -23,9 +23,11 @@ function dMatch(p){ const S=stems(p.name||""), strong=[], weak=[];
 
 /* ---------- библиотека (раздел «Декларации» на складе) ---------- */
 let SKDL={f:"all"};
+/* поиск без окончаний: «апельсинов», «яблоко», «смородину» находят «апельсины», «яблоки», «смородина» */
+const dStem = w => w.length>4 ? w.replace(/(ами|ями|ого|его|ов|ев|ей|ом|ем|ой|ий|ый|ая|ое|ые|ие|ую|ы|и|а|я|о|е|у|ю|ь)$/,"") : w;
 function skDeclList(q){ const L0=skD().files.slice().sort((a,b)=>String(b.at).localeCompare(String(a.at))), words=skK(q).split(" ").filter(Boolean);
   const hay=f=>skK([dGoods(f).join(" "), f.num, f.maker, f.name, f.note, f.itemName, ...[...dProds(f)].map(id=>(prod(id)||{}).name||"")].join(" "));
-  const byQ=L0.filter(f=>!words.length || words.every(w=>hay(f).includes(w)));
+  const byQ=L0.filter(f=>{ if(!words.length) return true; const h=hay(f); return words.every(w=>h.includes(dStem(w))); });
   const C={all:byQ.length, ok:byQ.filter(f=>dState(f)==="ok").length, warn:byQ.filter(f=>dState(f)==="warn").length, bad:byQ.filter(f=>dState(f)==="bad").length, nodate:byQ.filter(f=>!f.validTo).length};
   const L=byQ.filter(f=>SKDL.f==="all" || (SKDL.f==="nodate"?!f.validTo:dState(f)===SKDL.f));
   const chip=(k,t)=>C[k]||k==="all"||SKDL.f===k?`<button type="button" data-dlf="${k}" class="${SKDL.f===k?"on":""}">${t} <em>${C[k]}</em></button>`:"";
