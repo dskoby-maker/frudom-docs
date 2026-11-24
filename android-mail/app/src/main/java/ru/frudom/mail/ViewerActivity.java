@@ -265,7 +265,7 @@ public class ViewerActivity extends Activity {
         final String b64;
         try { b64 = Base64.encodeToString(Files.readAllBytes(orig.toPath()), Base64.NO_WRAP); } catch (Exception x) { toPdf(); return; }
         web = new WebView(this); web.setBackgroundColor(0xFF2B2824); WebSettings ws = web.getSettings();
-        ws.setJavaScriptEnabled(true); ws.setBlockNetworkLoads(true); ws.setAllowFileAccess(false); ws.setBuiltInZoomControls(true); ws.setDisplayZoomControls(false); ws.setUseWideViewPort(true); ws.setLoadWithOverviewMode(true);
+        ws.setJavaScriptEnabled(true); ws.setBlockNetworkLoads(true); ws.setAllowFileAccess(false); ws.setBuiltInZoomControls(true); ws.setDisplayZoomControls(false);
         web.addJavascriptInterface(new Object() {
             @JavascriptInterface public String data() { return b64; }
             @JavascriptInterface public void done(boolean ok, String err) { ui.post(() -> docxEnd(ok)); }
@@ -276,14 +276,14 @@ public class ViewerActivity extends Activity {
             + "<div id=box></div><script src='jszip.min.js'></script><script src='docx-preview.min.js'></script><script>"
             + "(async()=>{try{const s=atob(FD.data()),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);const b=document.getElementById('box');"
             + "await docx.renderAsync(u.buffer,b,b,{inWrapper:true,breakPages:true,renderHeaders:true,renderFooters:true,renderFootnotes:true,useBase64URL:true,experimental:true});"
-            + "const sec=b.querySelector('section.docx');if(!sec)throw new Error('empty');const z=Math.min(1,(innerWidth-12)/sec.offsetWidth);if(z<1)b.style.zoom=z;FD.done(true,'')}catch(e){FD.done(false,String(e))}})()</script>";
+            + "const sec=b.querySelector('section.docx');if(!sec)throw new Error('empty');const fit=()=>{const w=document.documentElement.clientWidth||innerWidth;if(w<50)return;b.style.zoom=1;const z=Math.min(1,(w-12)/sec.offsetWidth);b.style.zoom=z};fit();addEventListener('resize',fit);setTimeout(fit,300);FD.done(true,'')}catch(e){FD.done(false,String(e))}})()</script>";
         web.loadDataWithBaseURL("file:///android_asset/docx/", html, "text/html", "utf-8", null);
         stage.addView(web, 0, new FrameLayout.LayoutParams(-1, -1)); web.setVisibility(View.INVISIBLE);
         ui.postDelayed(() -> { if (!dead && !docxDone) docxEnd(false); }, 15000);
     }
     void docxEnd(boolean ok) {
         if (dead || docxDone) return; docxDone = true;
-        if (ok) { for (int i = stage.getChildCount() - 1; i >= 0; i--) if (stage.getChildAt(i) != web) stage.removeViewAt(i); web.setVisibility(View.VISIBLE); info.setText(MailApi.size(orig.length())); return; }
+        if (ok) { for (int i = stage.getChildCount() - 1; i >= 0; i--) if (stage.getChildAt(i) != web) stage.removeViewAt(i); web.setVisibility(View.VISIBLE); web.evaluateJavascript("dispatchEvent(new Event('resize'))", null); info.setText(MailApi.size(orig.length())); return; }
         if (web != null) { stage.removeView(web); web.destroy(); web = null; }
         toPdf();
     }
