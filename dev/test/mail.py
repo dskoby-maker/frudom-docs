@@ -18,10 +18,18 @@ def mkpdf():
         c.save(); return f.getvalue()
     except Exception: return b'%PDF-1.4 test'
 PDFB=mkpdf()
+def mkdocx():
+    try:
+        import io, docx; d=docx.Document(); d.add_heading('Заявка на поставку',1); d.add_paragraph('Помидоры тест — 10 кг')
+        t=d.add_table(rows=2, cols=2); t.cell(0,0).text='Товар'; t.cell(0,1).text='Кол-во'; t.cell(1,0).text='Огурцы тест'; t.cell(1,1).text='5 кг'
+        f=io.BytesIO(); d.save(f); return f.getvalue()
+    except Exception: return None
+DOCXB=mkdocx()
+DXL=os.environ.get('DOCXLIB','/tmp/dxl')  # папка с docx-preview-0.4.1 и jszip-3.10.1 из npm pack
 PX='k'*24
 M_RU=[{'uid':11,'date':'2026-11-12T06:15:00.000Z','from':{'n':'МГУ Комбинат','a':'zakaz@msu.ru'},'to':[{'n':'','a':'frudom.ru@mail.ru'}],'cc':[],'replyTo':'','subject':'Заявка на 14.11',
   'msgid':'<m11@msu.ru>','inReply':'','refs':'','text':'Добрый день!\nПрошу поставить:\nПомидоры тест 10 кг\nОгурцы тест 5 кг\n\nС уважением, Комбинат питания','html':'',
-  'atts':[{'name':'заявка.pdf','mime':'application/pdf','size':len(PDFB),'data':b64(PDFB)},{'name':'счёт.docx','mime':'application/vnd.openxmlformats-officedocument.wordprocessingml.document','size':7,'data':b64('PK docx')},{'name':'фото.png','mime':'image/png','size':80,'data':'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR4nGP8z8DAwMDAxMDAwMDAAAANHQEDK+mmyAAAAABJRU5ErkJggg=='}]},
+  'atts':[{'name':'заявка.pdf','mime':'application/pdf','size':len(PDFB),'data':b64(PDFB)},{'name':'счёт.docx','mime':'application/vnd.openxmlformats-officedocument.wordprocessingml.document','size':7,'data':b64('PK docx')},{'name':'фото.png','mime':'image/png','size':80,'data':'iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR4nGP8z8DAwMDAxMDAwMDAAAANHQEDK+mmyAAAAABJRU5ErkJggg=='}]+([{'name':'договор.docx','mime':'application/vnd.openxmlformats-officedocument.wordprocessingml.document','size':len(DOCXB),'data':b64(DOCXB)}] if DOCXB else [])},
   {'uid':12,'date':'2026-11-11T08:00:00.000Z','from':{'n':'Рассылка','a':'news@shop.ru'},'to':[{'n':'','a':'frudom.ru@mail.ru'}],'cc':[],'replyTo':'','subject':'Скидки недели','msgid':'<n12@shop.ru>','inReply':'','refs':'',
   'text':'Только сегодня скидки','html':'<p>Только <b>сегодня</b> скидки <img src="https://track.example/x.png"></p>','atts':[]}]
 M_TW=[{'uid':3,'date':'2026-11-12T09:30:00.000Z','from':{'n':'Цирк бухгалтерия','a':'buh@circus.ru'},'to':[{'n':'','a':'info@frudom.ru'}],'cc':[{'n':'Кассир','a':'kassa@circus.ru'}],'replyTo':'','subject':'Акт сверки за октябрь',
@@ -34,6 +42,9 @@ async def login(b, who, pw, W=1300, H=900):
     if PJ:
         await pg.route('**/pdf.js/*/pdf.min.js', lambda r: r.fulfill(path=PJ+'/pdf.min.js', content_type='text/javascript'))
         await pg.route('**/pdf.js/*/pdf.worker.min.js', lambda r: r.fulfill(path=PJ+'/pdf.worker.min.js', content_type='text/javascript'))
+    if os.path.isdir(DXL+'/docx-preview-0.4.1'):
+        await pg.route('**/docx-preview@*/dist/docx-preview.min.js', lambda r: r.fulfill(path=DXL+'/docx-preview-0.4.1/dist/docx-preview.min.js', content_type='text/javascript'))
+        await pg.route('**/jszip/3.10.1/jszip.min.js', lambda r: r.fulfill(path=DXL+'/jszip-3.10.1/dist/jszip.min.js', content_type='text/javascript'))
     await ctx.add_init_script("try{localStorage.setItem('frudom-mlav', JSON.stringify({'@msu.ru':{u:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR4nGP8z8DAwMDAxMDAwMDAAAANHQEDK+mmyAAAAABJRU5ErkJggg==',f:1,t:Date.now()}}))}catch(e){}")
     await pg.goto('http://localhost:8787/page'); await pg.click(f'#fd-who [data-who="{who}"]'); await pg.fill('#fd-pass',pw); await pg.click('#fd-enter'); await pg.wait_for_timeout(2500)
     return ctx, pg, errs
@@ -146,6 +157,17 @@ async def main():
         await pg.click('#ml-view [data-mlatt="1"][data-how="view"]')
         ok(await until(pg,"!!document.querySelector('dialog.mlvw .mlvpdf canvas, dialog.mlvw iframe.mlvifr')", 80), 'Word-вложение показывается на сайте (превращено в PDF)')
         await pg.click('dialog.mlvw .dc-x'); await pg.wait_for_timeout(400)
+        if DOCXB and os.path.isdir(DXL+'/docx-preview-0.4.1'):
+            await pg.evaluate("window.__attPdf=0; const F=window.fetch; window.fetch=function(u,o){ try{ if(o&&o.body&&/attPdf/.test(o.body)) window.__attPdf++; }catch(e){} return F.apply(this,arguments); }")
+            await pg.click('#ml-view [data-mlatt="3"][data-how="view"]')
+            ok(await until(pg,"!!document.querySelector('dialog.mlvw .mlvdocx section.docx')", 60), 'настоящий Word открывается сразу на сайте')
+            t=await pg.text_content('dialog.mlvw .mlvdocx'); ok('Заявка на поставку' in t and 'Огурцы тест' in t, 'видно текст и таблицу из Word')
+            ok(await pg.evaluate("window.__attPdf")==0, 'без превращения в PDF на сервере')
+            ok(await pg.locator('dialog.mlvw [data-mlv="print"]').count()==1 and await pg.locator('dialog.mlvw [data-mlv="rr"]').count()==0, 'у Word есть «Печать», без поворота')
+            z0=await pg.evaluate("getComputedStyle(document.querySelector('dialog.mlvw .mlvdocx')).zoom"); await pg.click('dialog.mlvw [data-mlv="zi"]'); await pg.wait_for_timeout(200)
+            ok(await pg.evaluate("getComputedStyle(document.querySelector('dialog.mlvw .mlvdocx')).zoom")!=z0, 'увеличение работает')
+            await pg.screenshot(path=f'{SHOT}/mail-docx.png')
+            await pg.click('dialog.mlvw .dc-x'); await pg.wait_for_timeout(400)
         # наведение — быстрые кнопки; правая кнопка — меню
         row=pg.locator('#ml-list .mlr:has-text("Скидки недели")'); await row.hover(); await pg.wait_for_timeout(300)
         ok(await pg.evaluate("getComputedStyle(document.querySelector('#ml-list .mlr:hover .mlqa')).opacity")=='1', 'при наведении на письмо — быстрые кнопки')
