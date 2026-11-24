@@ -25,6 +25,13 @@ const ctx={ SpreadsheetApp:{getActive:()=>ss}, LockService:{getScriptLock:()=>({
       if(cv.fail) return {getResponseCode:()=>500, getContentText:()=>'{}'};
       if(m[2]==='copy'){ if(!files[m[1]]) return {getResponseCode:()=>404, getContentText:()=>'{}'}; const nid='g'+(++fileN); files[nid]={getBytes:()=>Buffer.alloc(0)}; cv.last=JSON.parse(o.payload); return {getResponseCode:()=>200, getContentText:()=>JSON.stringify({id:nid})}; }
       cv.n++; cv.exp=m[1]; return {getResponseCode:()=>200, getBlob:()=>({getBytes:()=>FAKE_PDF})}; }
+    if(/api-seller\.ozon\.ru/.test(url)){ const z=ctx.__oz||{}, h=(o&&o.headers)||{}, R=(c,b)=>({getResponseCode:()=>c,getContentText:()=>JSON.stringify(b)});   /* тестовый Озон: ctx.__oz = {keys:{clientId:apiKey}, types, days:{дата:[начисления]}, products, page} */
+      if(!z.keys||z.keys[h['Client-Id']]!==h['Api-Key']) return R(403,{code:7,message:'Invalid Api-Key'});
+      const b=JSON.parse(o.payload||'{}'); (ctx.__ozCalls=ctx.__ozCalls||[]).push({path:url.replace(/^https:\/\/[^/]+/,''), b});
+      if(/accrual\/types/.test(url)) return R(200, z.types||{types:[]});
+      if(/accrual\/by-day/.test(url)){ const L=(z.days||{})[b.date]||[], per=z.page||1000, st=b.last_id?+b.last_id:0; return R(200,{accruals:L.slice(st,st+per), last_id:st+per<L.length?String(st+per):''}); }
+      if(/product\/info\/list/.test(url)) return R(200,{items:(z.products||[]).filter(p=>(b.sku||[]).includes(p.sku))});
+      return R(404,{message:'not found'}); }
     const tbFake=(u,tok)=>{ const tb=ctx.__tb||{}, T=(tb.tokens||{})[tok]; globalThis.__tbCalls=(globalThis.__tbCalls||0)+1;   /* тестовый Т-Бизнес: ctx.__tb = {tokens:{токен:{accounts, ops}}, sslFail, proxy:{key}} */
       if(!T) return {code:401, text:'{"errorMessage":"unauthorized"}'};
       if(/bank-accounts/.test(u)) return {code:200, text:JSON.stringify(T.accounts.map(a=>({accountNumber:a,currency:'643',name:'Расчётный'})))};
