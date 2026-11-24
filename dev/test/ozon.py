@@ -79,6 +79,19 @@ async def main():
         await pg.check('#oz-al'); await pg.wait_for_timeout(400)
         ok(await pg.locator('#oz .ozr[data-ozp] small:has-text("общие")').count()==2, 'общие расходы разложены по товарам')
         await pg.uncheck('#oz-al'); await pg.wait_for_timeout(300)
+        # контроль цен
+        g=pg.locator('#oz .ozguard .ozgr[data-ozp="смесь"]')
+        ok(await g.count()==1 and 'low' in (await g.get_attribute('class')), 'контроль цен: смесь ниже цели 50 ₽/шт')
+        gt=(await g.inner_text()).replace('\xa0',' '); ok('961' in gt and '1 053' in gt, 'цена без убытка 961, для цели 1 053')
+        ok(await pg.locator('#oz .ozalarm').count()==0, 'в минус ничего — красной плашки нет')
+        inp=pg.locator('#oz input[data-ozc="смесь"]'); await inp.fill('500'); await inp.press('Tab'); await pg.wait_for_timeout(600)
+        ok(await pg.locator('#oz .ozalarm').count()==1 and '1 146' in (await pg.locator('#oz .ozalarm').inner_text()).replace('\xa0',' '), 'себестоимость 500 — «в минус», поднять до 1 146')
+        ok('без убытка от 1 146' in (await pg.locator('#oz .ozr[data-ozp="смесь"]').inner_text()).replace('\xa0',' '), 'в таблице под ценой — «без убытка от …»')
+        await pg.click('#oz .ozalarm'); await pg.wait_for_timeout(500)
+        await pg.fill('#fd-dcard #oz-target', '100'); await pg.press('#fd-dcard #oz-target', 'Tab'); await pg.wait_for_timeout(700)
+        ok((await pg.evaluate("__oz.prefs().ozTarget"))==100 and 'цель 100' in await pg.locator('#fd-dcard').inner_text(), 'цель с 1 шт меняется в окне «Контроль цен»')
+        await pg.keyboard.press('Escape'); await pg.wait_for_timeout(400)
+        inp=pg.locator('#oz input[data-ozc="смесь"]'); await inp.fill('400'); await inp.press('Tab'); await pg.wait_for_timeout(500)
         # --- Seller API ---
         today=T.isoformat()
         acc=[{'accrual_id':1,'accrued_category':'POSTING','date':today,'unit_number':'9001-0001-1','total_amount':{'amount':455.5,'currency_code':'RUB'},
@@ -93,6 +106,7 @@ async def main():
         await box.locator('.ozkc').fill('123456'); await box.locator('.ozkk').fill('wrong-key-0000000000000000')
         await box.locator('[data-ozkey="save"]').click(); await pg.wait_for_timeout(800)
         ok(await pg.locator('#fd-toasts, .toast').filter(has_text='не принял').count()>0 or 'не принял' in await pg.content(), 'неверный ключ — понятная ошибка')
+        await pg.evaluate("document.querySelectorAll('#fd-toasts .fd-toast').forEach(t=>t.remove())")
         await box.locator('.ozkk').fill('aaaa-bbbb-cccc-dddd-eeee-ffff'); await box.locator('[data-ozkey="save"]').click(); await pg.wait_for_timeout(2500)
         await pg.locator('#oz input[data-ozc="смесь"]').count()  # тот же магазин: Excel-дни не перезаписываются API
         await pg.evaluate("__oz.OZ.d.days.fd={}"); 
