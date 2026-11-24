@@ -1947,7 +1947,13 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .tbl .acts{white-space:nowrap;text-align:right}
 /* журнал/календарь/архив на ПК: если таблица не влезает (узкое окно, увеличенный масштаб) — класс jw (jFit), кнопки строки переносятся, а не уезжают за край */
 @media(min-width:701px){#fd-app table.jt.jw>tbody>tr>td.acts{white-space:normal;line-height:1.9}#fd-app table.jt.jw>tbody>tr>td.acts :is(.btn,details.more){white-space:nowrap;vertical-align:middle}#fd-app table.jt.jw>tbody>tr>td.acts details.more{display:inline-block}#fd-app table.jt.jw>tbody>tr>td.jpr{width:96px}}
-#fd-app .mldsep{display:flex;align-items:center;gap:10px;flex-wrap:wrap;row-gap:2px;padding:16px 4px 6px;font-size:14px}
+#fd-app /* почта: перетащить файлы в письмо */
+#fd-app .mlcomp{position:relative;transition:box-shadow .18s}
+#fd-app .mlcomp.mldrag{box-shadow:0 0 0 2px #6a2c4e inset;border-radius:14px}
+#fd-app .mlcomp.mldrag::after{content:"Отпустите — файл прикрепится к письму";position:absolute;inset:0;display:grid;place-items:center;border-radius:14px;background:rgba(106,44,78,.08);border:2px dashed #6a2c4e;color:#6a2c4e;font-weight:650;font-size:16px;pointer-events:none;z-index:5;animation:mldin .15s ease-out}
+@keyframes mldin{from{opacity:0}to{opacity:1}}
+#fd-app .mlcdh{font-size:12.5px;color:#8a8f8c;align-self:center}
+.mldsep{display:flex;align-items:center;gap:10px;flex-wrap:wrap;row-gap:2px;padding:16px 4px 6px;font-size:14px}
 #fd-app .mll>.mldsep:first-child,#fd-app .mll>.mlnote+.mldsep{padding-top:2px}
 #fd-app .mldsep i{width:9px;height:9px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 4px var(--accent-soft);flex:none}
 #fd-app .mldsep b{font-weight:600;color:var(--ink);letter-spacing:-.005em}
