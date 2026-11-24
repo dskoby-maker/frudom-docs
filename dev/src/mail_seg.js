@@ -92,7 +92,9 @@ function mlTake(j){ if(Array.isArray(j.tags)){ ML.tags={}; j.tags.forEach(t=>{ i
   if(Array.isArray(j.folders)){ ML.folders=j.folders; ML.fldSrv=true; } else if(Array.isArray(j.rows) && ML.fldSrv!==true){ ML.fldSrv=false; ML.folders=(getPrefs().mlFolders||[]); }
   if(Array.isArray(j.rows)){ ML.rows=j.rows; if(j.now) ML.chAt=j.now; } if(Array.isArray(j.acc)) ML.acc=j.acc; if(j.proxy!=null) ML.proxy=!!j.proxy; }
 function mlBadge(){ const n=ML.rows.filter(mlUnIn).length; document.querySelectorAll('#fd-app nav.tabs button[data-tab="mail"], #mbar [data-mt="mail"]').forEach(b=>{ if(n) b.dataset.n=n>99?"99+":n; else delete b.dataset.n; }); }
-function renderMail(){ if(!$("#ml")) return; mlDraw(); if(!ML.loaded || Date.now()-ML.at>120000) mlLoad(false, ML.loaded); }
+async function renderMail(){ if(!$("#ml")) return; if(!ML.loaded && !ML.rest) await mlCacheLoad(); if(curTab!=="mail" && !(typeof MAILAPP!=="undefined" && MAILAPP)) return; mlDraw();
+  if(ML.rest===1){ ML.rest=2; mlListFresh(); }
+  if(!ML.loaded || Date.now()-ML.at>120000) mlLoad(false, ML.loaded); }
 setInterval(()=>{ if(online() && ML.acc.length && !document.hidden) mlLoad(false, true); }, 300000);
 /* ---------- отрисовка ---------- */
 function mlList(){ const q=ML.q.trim().toLowerCase(), all=ML.f==="all", uf=ML.f.startsWith("u:")?ML.f.slice(2):"";
@@ -189,7 +191,9 @@ async function mlOpen(id){ if(mlMob()) mlLayer("v"); ML.sel=id; ML.comp=null; ML
   if(ML.view && ML.view.id!==id) ML.view=null; const vw=$("#ml-view"); if(vw && $("#ml-list")){ vw.innerHTML=mlViewHtml(); mlListMark(); } else mlDraw(); mlScrollView();
   mlEv("Открыто письмо "+mlEvW(r)+(r.box?" · "+r.box:""), "mo:"+id);
   if(mlUnread(r) && !mlRO()){ r.read="1"; mlSet([{id, read:1}]); }
-  try{ const j=await api({action:"mail", op:"get", id}); if(ML.sel!==id) return; ML.view={id, text:j.text||"", html:j.html||"", err:j.err||""}; }
+  const bc=await mlBodyGet(id); if(ML.sel!==id) return;
+  if(bc) ML.view={id, text:bc.text||"", html:bc.html||"", err:""};
+  else try{ const j=await mlBodyFetch(id); if(ML.sel!==id) return; ML.view={id, text:j.text||"", html:j.html||"", err:j.err||""}; }
   catch(e){ if(ML.sel!==id) return; ML.view={id, text:r.snippet||"", html:"", err:"Полный текст не загрузился: "+e.message}; }
   if(ML.comp){ mlBadge(); mlListMark(); return; }   /* уже пишут ответ — форму не перерисовываем, набранное не трогаем */
   const v=$("#ml-view"); if(v){ v.innerHTML=mlViewHtml(); mlCompFocus(); v.classList.add("fresh"); setTimeout(()=>v.classList.remove("fresh"),300); } mlBadge(); mlListMark(); }
@@ -909,3 +913,68 @@ function mlFldMenu(L, x, y, before){ mlMenuClose(); if(mlRO() || !L.length) retu
   m.addEventListener("click", e=>{ const b=e.target.closest("[data-mlfp]"); if(!b) return; e.stopPropagation(); mlMenuClose(); const id=b.dataset.mlfp;
     if(id==="+"){ mlFldNew(f=>{ if(before) before(); mlBulkUi(L, "fld:"+f.id); }); return; }
     if(before) before(); mlBulkUi(L, "fld:"+id); }); }
+
+/* ===== Почта в памяти устройства и тихая подгрузка (24.11.2026, просьба Даниила — «каждый раз 20 секунд») =====
+   Список писем (по пользователю) и открытые письма хранятся в IndexedDB «frudom-mail»: при входе во «Почту» список
+   показывается сразу, письмо, которое уже открывали, — без загрузки (текст письма не меняется). Свежие отметки
+   догоняет mlPoll, новые письма — обычная проверка ящиков в фоне.
+   Когда человек ничего не делает 30 с (вкладка открыта, нет сохранения), сайт тихо проверяет ящики (раз в 4 мин)
+   и заранее загружает тексты последних писем; любое нажатие — подгрузка сразу останавливается. */
+const MLDB={p:null, idx:null, mem:new Map(), saveT:0};
+const ML_BMAX=600, ML_BBYTES=40*1048576, ML_PRE_N=60, ML_IDLE=30000;
+function mldb(){ if(MLDB.p) return MLDB.p;
+  MLDB.p=new Promise(ok=>{ try{ const r=indexedDB.open("frudom-mail",1); r.onupgradeneeded=()=>{ const d=r.result; ["kv","body"].forEach(n=>{ if(!d.objectStoreNames.contains(n)) d.createObjectStore(n); }); };
+    r.onsuccess=()=>ok(r.result); r.onerror=()=>ok(null); r.onblocked=()=>ok(null); }catch(e){ ok(null); } }); return MLDB.p; }
+async function mldbOp(st, mode, fn){ const d=await mldb(); if(!d) return null;
+  return new Promise(ok=>{ try{ const q=fn(d.transaction(st, mode).objectStore(st)); q.onsuccess=()=>ok(q.result==null?null:q.result); q.onerror=()=>ok(null); }catch(e){ ok(null); } }); }
+const mldbGet = (st,k) => mldbOp(st, "readonly", s=>s.get(k));
+const mldbPut = (st,k,v) => mldbOp(st, "readwrite", s=>s.put(v,k));
+const mldbDel = (st,k) => mldbOp(st, "readwrite", s=>s.delete(k));
+/* список писем этого пользователя */
+const mlListKey = () => "list:"+curUser();
+async function mlCacheLoad(){ ML.rest=-1; const v=await mldbGet("kv", mlListKey());
+  if(ML.loaded || !v || !Array.isArray(v.rows)){ ML.rest=0; return; }
+  mlTake({rows:v.rows, acc:v.acc, tags:v.tags, folders:v.folders, proxy:v.proxy}); if(v.chAt) ML.chAt=v.chAt;
+  ML.at=v.at||0; ML.loaded=true; ML.rest=1; mlBadge(); }
+/* после показа из памяти — тихо свежий список из таблицы (быстро, без проверки ящиков); не мешает, если человек уже что-то делает */
+async function mlListFresh(){ if(!online()) return; try{ const j=await api({action:"mail", op:"list"}); if(ML.sync) return;
+  const keep={}; Object.keys(ML.pend).forEach(id=>{ const r=ML.rows.find(x=>x.id===id); if(r) keep[id]=r; });
+  mlTake(j); if(Array.isArray(j.rows)) ML.rows=ML.rows.map(r=>keep[r.id]||r);
+  const ae=document.activeElement, typing=ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.closest && ae.closest("#ml,#ml-ov");
+  mlBadge(); if((curTab==="mail" || (typeof MAILAPP!=="undefined" && MAILAPP)) && !typing && !ML.comp) mlDraw(); else ML.drawLater=1; }catch(e){} }
+function mlSaveSoon(){ clearTimeout(MLDB.saveT); MLDB.saveT=setTimeout(mlSaveNow, 1500); }
+function mlSaveNow(){ if(!ML.loaded || !ML.rows.length || !curUser()) return;
+  const tags=Object.keys(ML.tags||{}).map(id=>Object.assign({id}, ML.tags[id]));
+  mldbPut("kv", mlListKey(), {rows:ML.rows, acc:ML.acc, tags, folders:ML.fldSrv?ML.folders:undefined, proxy:ML.proxy, chAt:ML.chAt, at:ML.at, saved:Date.now()}); }
+{ const t0=mlTake; mlTake=function(j){ t0(j); if(j && Array.isArray(j.rows)) mlSaveSoon(); };
+  const c0=mlChMerge; mlChMerge=function(j){ const n=c0(j); if(n) mlSaveSoon(); return n; };
+  const s0=mlSet; mlSet=function(L){ mlSaveSoon(); return s0(L); }; }
+addEventListener("pagehide", mlSaveNow);
+/* тексты писем: в памяти страницы + на устройстве, старые убираются (не больше 600 писем и 40 МБ) */
+async function mlBodyIdx(){ if(MLDB.idx) return MLDB.idx; MLDB.idx=(await mldbGet("kv","bidx"))||{}; return MLDB.idx; }
+async function mlBodyGet(id){ if(MLDB.mem.has(id)) return MLDB.mem.get(id); const v=await mldbGet("body", id);
+  if(v){ MLDB.mem.set(id, v); const I=await mlBodyIdx(); if(I[id]){ I[id][0]=Date.now(); mlIdxSaveSoon(); } } return v; }
+async function mlBodyHas(id){ return MLDB.mem.has(id) || !!(await mlBodyIdx())[id]; }
+async function mlBodyPut(id, j){ if(!j || j.err || (!j.text && !j.html)) return; const v={text:j.text||"", html:j.html||""}, n=v.text.length+v.html.length;
+  MLDB.mem.set(id, v); while(MLDB.mem.size>80) MLDB.mem.delete(MLDB.mem.keys().next().value);
+  await mldbPut("body", id, v); const I=await mlBodyIdx(); I[id]=[Date.now(), n];
+  const ids=Object.keys(I); let tot=ids.reduce((a,k)=>a+(I[k][1]||0),0);
+  if(ids.length>ML_BMAX || tot>ML_BBYTES){ ids.sort((a,b)=>I[a][0]-I[b][0]); for(const k of ids){ if(Object.keys(I).length<=ML_BMAX*0.9 && tot<=ML_BBYTES*0.9) break; tot-=I[k][1]||0; delete I[k]; MLDB.mem.delete(k); mldbDel("body", k); } }
+  mlIdxSaveSoon(); }
+let mlIdxT=0; function mlIdxSaveSoon(){ clearTimeout(mlIdxT); mlIdxT=setTimeout(()=>{ if(MLDB.idx) mldbPut("kv","bidx",MLDB.idx); }, 1000); }
+async function mlBodyFetch(id){ const j=await api({action:"mail", op:"get", id}); mlBodyPut(id, j); return j; }
+/* тихая подгрузка, пока на сайте ничего не делают */
+const MLIDLE={last:Date.now(), run:false, n:0};
+["pointerdown","keydown","wheel","touchstart","input"].forEach(e=>addEventListener(e, ()=>{ MLIDLE.last=Date.now(); }, {passive:true, capture:true}));
+const mlIdleOk = () => !document.hidden && online() && !!curUser() && !!pass() && Date.now()-MLIDLE.last>=ML_IDLE
+  && !(typeof flushing!=="undefined" && flushing) && !(typeof docSaving!=="undefined" && docSaving) && !(navigator.connection && navigator.connection.saveData);
+async function mlIdleTick(){ if(MLIDLE.run || !mlIdleOk()) return; MLIDLE.run=true;
+  try{ if(!ML.loaded && !ML.rest) await mlCacheLoad();
+    if(!mlIdleOk()) return;
+    if(!ML.sync && ML.err!=="old" && (!ML.loaded || ML.acc.length || !ML.at) && Date.now()-(ML.at||0)>240000){ MLIDLE.n++; await mlLoad(false, true); }
+    const L=ML.rows.filter(r=>!mlSpam(r) && !mlMinor(r)).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0, ML_PRE_N);
+    for(const r of L){ if(!mlIdleOk()) break; if(await mlBodyHas(r.id)) continue;
+      try{ await mlBodyFetch(r.id); }catch(e){ break; } await new Promise(ok=>setTimeout(ok, 500)); } }
+  finally{ MLIDLE.run=false; } }
+setInterval(mlIdleTick, 15000);
+window.__mlCache={idle:()=>{ MLIDLE.last=0; return mlIdleTick(); }, has:mlBodyHas, st:MLIDLE};
