@@ -91,12 +91,43 @@ async function ozXlsx(file){ const buf=await file.arrayBuffer(), u8=new Uint8Arr
   recs.forEach(x=>{ const sc=x.sc||(x.art?sch[ozOrd(x.id)]||"":""); (days[x.d]=days[x.d]||[]).push([x.grp, x.type, x.art, sc, x.type==="Выручка"?x.q:0, x.s]); tot+=x.s; });
   const ds=Object.keys(days).sort(); if(!per) per=[ds[0], ds[ds.length-1]];
   return {per, days, names, sku, n:recs.length, tot:r2(tot)}; }
+/* общие данные для всех устройств (Code.gs ≥ 54): файл на Диске; изменённые дни — OZ.d.dirty {магазин:{дата:1}} */
+const ozShareOk=()=>(D.srvVer||0)>=54;
+function ozDirty(sid,d){ const X=OZ.d.dirty=OZ.d.dirty||{}; (X[sid]=X[sid]||{})[d]=1; }
+let ozPushT=0, ozPushing=false;
+function ozPush(){ clearTimeout(ozPushT); ozPushT=setTimeout(ozPushNow, 1200); }
+async function ozPushNow(){ if(!OZ.d||!ozShareOk()||!online()||ozPushing) return; const X=OZ.d.dirty||{}; if(!Object.keys(X).some(s=>Object.keys(X[s]).length)) return;
+  ozPushing=true; const days={}, sent={};
+  Object.keys(X).forEach(sid=>{ const D=OZ.d.days[sid]||{}; days[sid]={}; sent[sid]=Object.keys(X[sid]); sent[sid].forEach(d=>{ days[sid][d]=D[d]||null; }); });
+  try{ const j=await api({action:"ozon", op:"save", data:JSON.stringify({days, names:OZ.d.names, sku:OZ.d.sku, types:OZ.d.types})});
+    if(j&&j.ok){ Object.keys(sent).forEach(sid=>{ sent[sid].forEach(d=>{ if(X[sid]) delete X[sid][d]; }); if(X[sid]&&!Object.keys(X[sid]).length) delete X[sid]; }); ozSave(); OZ.pullAt=0; }
+    else { OZ.perr=j&&j.error||"нет ответа"; ozPush(); } }
+  catch(e){ OZ.perr=e.message; setTimeout(ozPush, 30e3); }
+  ozPushing=false; }
+async function ozPull(force){ if(!OZ.d||!ozShareOk()||!online()||OZ.pulling) return; if(!force && Date.now()-(OZ.pullAt||0)<60e3) return;
+  OZ.pulling=true; OZ.pullAt=Date.now();
+  try{ const j=await api({action:"ozon", op:"data"}); if(j&&j.ok&&j.data){ const S=j.data, X=OZ.d.dirty||{}; let ch=0;
+      ["names","sku"].forEach(k=>{ const v=S[k]||{}; Object.keys(v).forEach(x=>{ if(OZ.d[k][x]!==v[x]){ OZ.d[k][x]=v[x]; ch++; } }); });
+      Object.keys(S.types||{}).forEach(sid=>{ if(!OZ.d.types[sid]){ OZ.d.types[sid]=S.types[sid]; ch++; } });
+      const W=S.wiped||{}, WS=OZ.d.wseen=OZ.d.wseen||{};   /* «Удалить данные магазина» на другом устройстве — убрать и здесь */
+      Object.keys(W).forEach(sid=>{ if(WS[sid]===W[sid]) return; WS[sid]=W[sid]; const C=OZ.d.days[sid]||{};
+        Object.keys(C).forEach(d=>{ if((+C[d].at||0)<W[sid]){ delete C[d]; if(X[sid]) delete X[sid][d]; ch++; } }); });
+      const sids=new Set([...Object.keys(S.days||{}), ...Object.keys(OZ.d.days)]);
+      sids.forEach(sid=>{ const I=(S.days||{})[sid]||{}, C=OZ.d.days[sid]=OZ.d.days[sid]||{}, mine=X[sid]||{};
+        Object.keys(I).forEach(d=>{ if(mine[d]) return; const x=I[d], e=C[d]; if(!x||!Array.isArray(x.r)) return;
+          if(e && e.s==="x" && x.s!=="x") return; if(e && e.s===x.s && (+e.at||0)>=(+x.at||0)) return; C[d]=x; ch++; });
+        /* у себя есть, на сервере нет — отправим (данные, загруженные до общего хранения) */
+        Object.keys(C).forEach(d=>{ if(!I[d] && !mine[d]){ ozDirty(sid,d); } }); });
+      if(ch){ ozSave(); if(curTab==="ozon") ozDraw(); }
+      ozPush(); } }
+  catch(e){}
+  OZ.pulling=false; }
 async function ozUpload(file, sid){ await ozLoad(); let R;
   try{ R=await ozXlsx(file); }catch(e){ toast("err","Не получилось прочитать отчёт", e.message); return; }
   const D=OZ.d.days[sid]=OZ.d.days[sid]||{};
-  for(let d=R.per[0]; d<=R.per[1]; d=ozAdd(d,1)) delete D[d];
-  Object.keys(R.days).forEach(d=>{ D[d]={s:"x", at:Date.now(), f:file.name, r:ozAgg(R.days[d])}; });
-  Object.assign(OZ.d.names, R.names); Object.assign(OZ.d.sku, R.sku); ozSave();
+  for(let d=R.per[0]; d<=R.per[1]; d=ozAdd(d,1)){ delete D[d]; ozDirty(sid,d); }
+  Object.keys(R.days).forEach(d=>{ D[d]={s:"x", at:Date.now(), f:file.name, r:ozAgg(R.days[d])}; ozDirty(sid,d); });
+  Object.assign(OZ.d.names, R.names); Object.assign(OZ.d.sku, R.sku); ozSave(); ozPush();
   OZU.st=sid; OZU.per="c"; OZU.a=R.per[0]; OZU.b=R.per[1]; ozUiSave();
   logEv("Данные","Озон: загружен отчёт по начислениям «"+ozStName(sid)+"» за "+fd(R.per[0])+" – "+fd(R.per[1]));
   toast("ok","Отчёт загружен", ozStName(sid)+" · "+fd(R.per[0])+" – "+fd(R.per[1])+" · "+R.n+" "+plural(R.n,["начисление","начисления","начислений"])+" · итого "+fm(R.tot)+" ₽ — сверьте с «Итого» в кабинете.");
@@ -169,11 +200,11 @@ async function ozSync(force){ if(OZ.busy||!online()) return; await ozLoad(); con
             const L=ozArr(r.body); acc[bd.date].push(...L); if(L.length && (!OZ.raw||OZ.raw.date<bd.date)) OZ.raw={store:k.id, date:bd.date, body:r.body};
             const lid=ozLid(r.body); if(lid && L.length && lid!==bd.last_id) next.push({date:bd.date, last_id:lid}); });
           bodies=next; }
-        part.forEach(d=>{ DD[d]={s:"a", at:Date.now(), r:ozParseDay(acc[d], k.id)}; }); ozSave(); }
+        part.forEach(d=>{ DD[d]={s:"a", at:Date.now(), r:ozParseDay(acc[d], k.id)}; ozDirty(k.id,d); }); ozSave(); }
       await ozNames(k.id); }
     OZ.at=Date.now(); }
   catch(e){ OZ.err=e.message; }
-  OZ.busy=""; ozSave(); ozDraw(); }
+  OZ.busy=""; ozSave(); ozPush(); ozDraw(); }
 async function ozNames(sid){ const DD=OZ.d.days[sid]||{}, need=new Set();
   Object.values(DD).forEach(x=>(x.r||[]).forEach(r=>{ if(String(r[2]).startsWith("sku:") && !OZ.d.sku[r[2].slice(4)]) need.add(r[2].slice(4)); }));
   if(!need.size) return; const L=[...need].slice(0,1000);
@@ -227,7 +258,7 @@ const ozPN=v=>v==null?"—":v.toLocaleString("ru-RU");
 /* ---- вкладка ---- */
 function renderOzon(){ if(!me().admin) return; const box=$("#oz"); if(!box) return;
   if(!OZ.d){ box.innerHTML=`<div class="ozbusy"><span class="spin"></span> Загружаю…</div>`; ozLoad().then(()=>{ if(curTab==="ozon") renderOzon(); }); return; }
-  ozDraw();
+  ozDraw(); ozPull();
   if(OZ.keys==null){ ozKeysLoad().then(()=>{ if(curTab!=="ozon") return; ozDraw(); ozSync(false); }); }
   else if(Date.now()-OZ.at>10*60e3) ozSync(false); }
 function ozBusyTxt(){ const el=$("#oz-st"); if(el && OZ.busy) el.innerHTML=`<span class="spin"></span> ${esc(OZ.busy)}`; }
@@ -351,7 +382,7 @@ function ozKeysOpen(){ const S=ozStores(), K=OZ.keys||[], ok=ozSrvOk();
     :`<p class="muted ozkh">Кабинет Озона → Настройки → Seller API → «Сгенерировать ключ», роль <b>Admin read only</b> (только чтение — сайт ничего не меняет в магазине). Скопируйте Client-Id и ключ. Ключ хранится в настройках скрипта таблицы, сайт видит только 4 последних знака.</p>`
     +S.map(s=>{ const k=K.find(x=>x.id===s.id); return `<div class="ozk" data-ozks="${esc(s.id)}"><div class="ozkh2"><input type="text" class="ozkn" value="${esc(s.n)}" aria-label="Название магазина" autocomplete="off"><span class="${k?"ok":"muted"}">${k?"подключён · Client-Id "+esc(k.cid)+" · ключ …"+esc(k.tail):"не подключён"}</span></div>
       <div class="ozkf"><input type="text" class="ozkc" inputmode="numeric" placeholder="Client-Id" value="${k?esc(k.cid):""}" autocomplete="off"><input type="text" class="ozkk ozsec" placeholder="${k?"новый Api-Key (если меняете)":"Api-Key"}" autocomplete="off" spellcheck="false"><button type="button" class="btn sm pri" data-ozkey="save">${k?"Заменить":"Подключить"}</button>${k?`<button type="button" class="btn sm ghost" data-ozkey="del">Отключить</button>`:""}</div>
-      <div class="ozkd"><button type="button" class="btn sm ghost" data-ozkey="wipe">Удалить загруженные данные магазина с этого устройства</button></div></div>`; }).join("")
+      <div class="ozkd"><button type="button" class="btn sm ghost" data-ozkey="wipe">Удалить загруженные данные магазина</button></div></div>`; }).join("")
     +`<button type="button" class="btn sm ghost" data-ozkey="add">+ Ещё магазин</button>${OZ.raw?`<p class="muted ozkh">Если суммы не сходятся с кабинетом — <button type="button" class="btn sm ghost" data-ozkey="raw">скачайте ответ Озона за ${fd(OZ.raw.date)}</button> и пришлите его Claude.</p>`:""}`;
   CARD_RE=null; openCard(ozHead("Озон", "Подключение магазинов", "Начисления будут приходить сами — каждый раз, когда вы открываете вкладку"), true, ()=>{});
   const d=$("#fd-dcard"); if(!d) return; d.insertAdjacentHTML("beforeend", `<div class="ozd ozkeys">${body}</div>`);
@@ -360,7 +391,7 @@ function ozKeysOpen(){ const S=ozStores(), K=OZ.keys||[], ok=ozSrvOk();
   d.addEventListener("click", async e=>{ const b=e.target.closest("[data-ozkey]"); if(!b) return; const a=b.dataset.ozkey, box=b.closest("[data-ozks]"), id=box&&box.dataset.ozks;
     if(a==="add"){ const p=getPrefs(), L=ozStores().slice(); L.push({id:"s"+Date.now().toString(36), n:"Магазин "+(L.length+1)}); p.ozSt=L; setPrefs(p,true); ozKeysOpen(); ozDraw(); return; }
     if(a==="raw"){ const bl=new Blob([JSON.stringify(OZ.raw,null,1)],{type:"application/json"}), u=URL.createObjectURL(bl), x=document.createElement("a"); x.href=u; x.download="ozon-"+OZ.raw.store+"-"+OZ.raw.date+".json"; document.body.appendChild(x); x.click(); x.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000); return; }
-    if(a==="wipe"){ if(!armed(b,"Точно удалить? Нажмите ещё раз")) return; delete OZ.d.days[id]; ozSave(); toast("ok","Данные «"+ozStName(id)+"» удалены с этого устройства"); ozDraw(); return; }
+    if(a==="wipe"){ if(!armed(b,"Точно удалить? Нажмите ещё раз")) return; delete OZ.d.days[id]; if(OZ.d.dirty) delete OZ.d.dirty[id]; ozSave(); if(ozShareOk()) api({action:"ozon", op:"wipe", id}).then(j=>{ if(j&&j.ok&&j.wat){ (OZ.d.wseen=OZ.d.wseen||{})[id]=j.wat; ozSave(); } }).catch(()=>{}); toast("ok","Данные «"+ozStName(id)+"» удалены"+(ozShareOk()?" на всех устройствах":" с этого устройства")); ozDraw(); return; }
     if(a==="del"){ if(!armed(b,"Точно отключить?")) return; try{ const j=await api({action:"ozon", op:"del", id}); if(!j||j.ok===false) throw new Error(j&&j.error||"нет ответа"); OZ.keys=j.keys||[]; logEv("Данные","Озон: отключён ключ «"+ozStName(id)+"»"); ozKeysOpen(); ozDraw(); }catch(x){ toast("err","Не получилось", x.message); } return; }
     if(a==="save"){ const c=box.querySelector(".ozkc").value.trim(), k=box.querySelector(".ozkk").value.trim(); if(!c||!k){ toast("err","Впишите Client-Id и Api-Key"); return; }
       b.disabled=true; b.textContent="Проверяю…";
@@ -390,4 +421,4 @@ document.addEventListener("change", e=>{ const t=e.target; if(!t.matches||!t.mat
   setTimeout(()=>{ ozDraw(); const d=$("#fd-dcard"); if(d && d.contains(t)){ d.querySelectorAll(`input[data-ozc]`).forEach(x=>{ if(x.dataset.ozc===art) x.classList.toggle("miss", nw==null); }); } }, 0); });
 document.addEventListener("keydown", e=>{ const t=e.target; if(e.key!=="Enter"||!t.matches||!t.matches("input[data-ozc]")) return; e.preventDefault();
   const L=[...(t.closest("dialog")||document.getElementById("oz")).querySelectorAll("input[data-ozc]")], i=L.indexOf(t); (L[i+1]||t).focus(); if(!L[i+1]) t.blur(); });
-window.__oz={prefs:()=>getPrefs(), OZ, OZU, calc:()=>ozCalc()};   /* для тестов (dev/test/ozon.py) */
+window.__oz={pull:f=>ozPull(f), prefs:()=>getPrefs(), OZ, OZU, calc:()=>ozCalc()};   /* для тестов (dev/test/ozon.py) */

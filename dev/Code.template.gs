@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 53;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 54;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -564,6 +564,25 @@ function ozKeysSet_(o) { PropertiesService.getScriptProperties().setProperty('OZ
 function ozView_() { const k = ozKeys_(); return Object.keys(k).map(id => ({ id: id, name: k[id].n || '', cid: k[id].c || '', tail: String(k[id].k || '').slice(-4) })); }
 function ozOpt_(K, body) { return { method: 'post', contentType: 'application/json', headers: { 'Client-Id': String(K.c), 'Api-Key': String(K.k) }, payload: JSON.stringify(body || {}), muteHttpExceptions: true }; }
 function ozRes_(r) { const c = r.getResponseCode(), t = r.getContentText(); let j = null; try { j = JSON.parse(t); } catch (e) { j = null; } return { code: c, body: j, text: j ? '' : String(t).slice(0, 300) }; }
+/* данные Озона общие для всех устройств: один JSON-файл на Диске (папка «Документы ФД — Озон», id файла — свойство OZ_FILE) */
+function ozFolder_() { const pr = PropertiesService.getScriptProperties(), id = pr.getProperty('ozFolder');
+  if (id) { try { const f = DriveApp.getFolderById(id); if (!f.isTrashed()) return f; } catch (e) {} }
+  const f = DriveApp.createFolder('Документы ФД — Озон'); pr.setProperty('ozFolder', f.getId()); return f; }
+function ozDataGet_() { const id = PropertiesService.getScriptProperties().getProperty('OZ_FILE'); if (!id) return null;
+  try { return JSON.parse(DriveApp.getFileById(id).getBlob().getDataAsString('UTF-8')); } catch (e) { return null; } }
+function ozDataPut_(o) { const pr = PropertiesService.getScriptProperties(), old = pr.getProperty('OZ_FILE');
+  const f = ozFolder_().createFile(Utilities.newBlob(JSON.stringify(o), 'application/json', 'ozon-data.json'));
+  pr.setProperty('OZ_FILE', f.getId()); if (old) { try { DriveApp.getFileById(old).setTrashed(true); } catch (e) {} } }
+function ozMerge_(cur, inc) { /* день из Excel (s:"x") не заменяется днём из API (s:"a"); иначе — более свежий; null — удалить день */
+  cur.days = cur.days || {}; ['names', 'sku', 'types'].forEach(k => { cur[k] = cur[k] || {}; const v = inc[k] || {};
+    Object.keys(v).forEach(x => { if (k === 'types' && v[x] && typeof v[x] === 'object') cur.types[x] = Object.assign(cur.types[x] || {}, v[x]); else if (v[x] != null) cur[k][x] = v[x]; }); });
+  let n = 0; Object.keys(inc.days || {}).forEach(sid => { const C = cur.days[sid] = cur.days[sid] || {}, I = inc.days[sid] || {};
+    Object.keys(I).forEach(d => { if (!/^\d{4}-\d\d-\d\d$/.test(d)) return; const x = I[d], e = C[d];
+      if (x === null) { if (e) { delete C[d]; n++; } return; }
+      if (!x || typeof x !== 'object' || !Array.isArray(x.r)) return;
+      if (e && e.s === 'x' && x.s !== 'x') return; if (e && e.s === x.s && (+e.at || 0) > (+x.at || 0)) return;
+      C[d] = x; n++; }); });
+  return n; }
 function ozon_(p, me) {
   if (!me.admin) return { ok: false, error: 'forbidden' };
   const op = String(p.op || 'keys');
@@ -582,6 +601,14 @@ function ozon_(p, me) {
       return { ok: true, keys: ozView_(), test: t.code < 300 ? t.body : null };
     }
     if (op === 'del') { const keys = ozKeys_(); delete keys[String(p.id || '')]; ozKeysSet_(keys); return { ok: true, keys: ozView_() }; }
+    if (op === 'data') return { ok: true, ver: CODE_VER, data: ozDataGet_() || { days: {} } };
+    if (op === 'save' || op === 'wipe') { const lock = LockService.getScriptLock(); if (!lock.tryLock(20000)) return { ok: false, error: 'таблица занята, повторю позже' };
+      try { const cur = ozDataGet_() || { days: {} }; let n = 0;
+        let wat = 0; if (op === 'wipe') { const id = String(p.id || ''); if (cur.days && cur.days[id]) { delete cur.days[id]; n = 1; } wat = Date.now(); cur.wiped = cur.wiped || {}; cur.wiped[id] = wat; }
+        else { let inc = p.data; if (typeof inc === 'string') { try { inc = JSON.parse(inc); } catch (e) { return { ok: false, error: 'данные не прочитались' }; } }
+          n = ozMerge_(cur, inc || {}); }
+        cur.at = new Date().toISOString(); cur.by = me.name; ozDataPut_(cur); return { ok: true, ver: CODE_VER, n: n, at: cur.at, wat: wat }; }
+      finally { lock.releaseLock(); } }
     if (op === 'call') {  /* bodies — до 40 запросов одного вида, идут параллельно */
       const K = ozKeys_()[String(p.id || '')], path = String(p.path || '');
       if (!K) return { ok: false, error: 'у этого магазина не подключён ключ Озона' };

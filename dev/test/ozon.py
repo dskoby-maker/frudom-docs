@@ -140,4 +140,4 @@ async def main():
         ok(await pg2.locator('nav.tabs button[data-tab="ozon"]').is_hidden(), 'Наталья: вкладки «Озон» нет')
         await b.close()
     print('ИТОГ:', 'всё прошло' if not fails else f'ошибок {len(fails)}')
-asyncio.run(main())
+if __name__=='__main__': asyncio.run(main())
