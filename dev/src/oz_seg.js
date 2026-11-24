@@ -9,7 +9,7 @@
    — в личных настройках, на всех устройствах.
    Прибыль = пришло на счёт − налог − закупка (кол-во × себестоимость). Общие расходы магазина (хранение, реклама, кросс-докинг…) в «пришло» уже вычтены;
    по товарам их можно разложить пропорционально продажам (галочка «Разложить общие расходы»). */
-const OZ_DEF_ST=[{id:"fd", n:"Frudom / ФД"},{id:"is", n:"Исток"}];
+const OZ_DEF_ST=[{id:"fd", n:"Frudom / ФД"}];   /* «Исток» закрыт (24.11.2026) — один магазин; ещё один можно добавить в «Подключение» */
 const OZ_PER=[["m0","Этот месяц"],["m1","Прошлый месяц"],["d7","7 дней"],["d30","30 дней"],["y","С начала года"],["c","Свои даты"]];
 const OZ_SCH=[["all","Все схемы"],["FBO","FBO"],["RFBS","realFBS"]];
 const OZ_SORT=[["profit","Больше прибыль"],["loss","Меньше прибыль"],["unit","Прибыль за 1 шт"],["sales","Больше продажи"],["qty","Больше штук"],["name","По названию"]];
@@ -48,7 +48,7 @@ function ozRange(){ const t=todayISO(), ym=t.slice(0,7), P=OZU.per;
   if(P==="c" && /^\d{4}-\d\d-\d\d$/.test(OZU.a) && /^\d{4}-\d\d-\d\d$/.test(OZU.b)) return OZU.a<=OZU.b?[OZU.a, OZU.b]:[OZU.b, OZU.a];
   return [ym+"-01", t]; }
 const ozPerTxt=()=>{ const [a,b]=ozRange(); return a===b?fd(a):fd(a)+" – "+fd(b); };
-const ozSel=()=>OZU.st==="all"?ozStores().map(s=>s.id):[OZU.st];
+const ozSel=()=>OZU.st==="all"||!ozStores().some(s=>s.id===OZU.st)?ozStores().map(s=>s.id):[OZU.st];
 /* ---- «Отчёт по начислениям» из кабинета (Excel) ---- */
 function ozIso(v){ if(v==null||v==="") return "";
   if(typeof v==="number" && isFinite(v)) return new Date(Date.UTC(1899,11,30)+Math.round(v)*864e5).toISOString().slice(0,10);
@@ -127,6 +127,7 @@ function ozFindP(o, dep){ if(!o||typeof o!=="object"||dep>6) return null; if(o.s
 function ozArt(p){ if(!p) return ""; const o=p.offer_id||p.offerId, sk=p.sku!=null?String(p.sku):"", D=OZ.d;
   if(o){ if(sk) D.sku[sk]=String(o); if(p.name) D.names[o]=String(p.name); return String(o); }
   if(sk){ if(p.name) D.names["sku:"+sk]=String(p.name); return "sku:"+sk; } return ""; }
+const ozPrice=p=>{ for(const k of ["seller_price","price","sale_price","customer_price","item_price","price_seller"]) if(p&&p[k]!=null&&ozAmt(p[k])) return p[k]; return 0; };
 function ozParseDay(L, sid){ const T=Object.assign({}, OZ_EN, OZ.d.types[sid]||{}), out=[], ps={};
   L.forEach(a=>{ const P=a&&a.posting||{}, s=ozSchN(P.delivery_schema||P.schema||a.delivery_schema); if(s&&a.unit_number){ ps[a.unit_number]=s; ps[ozOrd(a.unit_number)]=s; } });
   L.forEach(a=>{ if(!a||typeof a!=="object") return;
@@ -139,8 +140,11 @@ function ozParseDay(L, sid){ const T=Object.assign({}, OZ_EN, OZ.d.types[sid]||{
     const add=(type, art, q, s)=>out.push([ozGrp(type), type, art||"", art?sch:"", q, s]);
     let fs=0; fees.forEach(f=>{ const nm=T[f.t]||f.nm||("Начисление "+f.t); add(nm, f.pi>=0?arts[f.pi]:one, 0, f.s); fs+=f.s; });
     let left=r2(tot-fs);
-    if(prods.length && Math.abs(left)>=0.01){ const w=prods.map(p=>{ const q=+(p.quantity!=null?p.quantity:p.qty!=null?p.qty:1)||1; return {q, v:ozAmt(p.seller_price!=null?p.seller_price:p.price)*q}; }), W=w.reduce((s,x)=>s+x.v,0);
-      prods.forEach((p,i)=>add("Выручка", arts[i], left<0?-w[i].q:w[i].q, r2(W?left*w[i].v/W:left/prods.length))); left=0; }
+    if(prods.length && Math.abs(left)>=0.01){ const w=prods.map(p=>{ const q=+(p.quantity!=null?p.quantity:p.qty!=null?p.qty:1)||1; return {q, v:ozAmt(ozPrice(p))*q}; }), W=w.reduce((s,x)=>s+x.v,0), sg=left<0?-1:1;
+      if(W>0 && Math.abs(left)<=W*1.5){   /* есть цена продавца: выручка = цена × кол-во, а остаток (комиссия, которую Озон не расписал отдельной строкой) — отдельно */
+        prods.forEach((p,i)=>{ const rv=r2(sg*w[i].v), d=r2(left*w[i].v/W-rv); add("Выручка", arts[i], sg*w[i].q, rv); if(Math.abs(d)>=0.01) add(d<0?"Вознаграждение за продажу (без расшифровки)":"Прочие компенсации Озона", arts[i], 0, d); }); }
+      else prods.forEach((p,i)=>add("Выручка", arts[i], sg*w[i].q, r2(W?left*w[i].v/W:left/prods.length)));
+      left=0; }
     if(Math.abs(left)>=0.005){ const tid=String(a.type_id!=null?a.type_id:a.accrual_type_id!=null?a.accrual_type_id:""), nm=T[tid]||a.type_name||a.name||(String(a.accrued_category||"").toUpperCase()==="NON_ITEM"?"Прочие начисления":"Прочее"); add(nm, one, 0, left); } });
   return ozAgg(out); }
 function ozTypesParse(b, M, dep){ if(!b||typeof b!=="object"||dep>6) return;
@@ -199,9 +203,27 @@ function ozCalc(){ const [a,b]=ozRange(), S=ozSel(), D0=OZ.d||{days:{},names:{},
     else RF.forEach(x=>{ un+=x.s; }); }
   const L=Object.values(P).filter(p=>p.q||Math.abs(p.sales)>=1||Math.abs(p.net)>=1), sales=L.reduce((s,p)=>s+p.sales,0);
   L.forEach(p=>{ p.c=ozCost(p.art); p.miss=p.c==null && p.q>0; p.cost=p.c==null?0:p.c*p.q; p.tax=p.net*rate; p.prof=p.net-p.tax-p.cost;
-    p.share=sales&&p.sales>0?un*p.sales/sales:0; p.profA=p.prof+p.share*(1-rate); p.P=OZU.al?p.profA:p.prof; });
+    p.share=sales&&p.sales>0?un*p.sales/sales:0; p.profA=p.prof+p.share*(1-rate); p.P=OZU.al?p.profA:p.prof; ozGuard(p, rate); });
   const cost=L.reduce((s,p)=>s+p.cost,0), q=L.reduce((s,p)=>s+p.q,0), tax=tot*rate;
-  return {a, b, L, T, tot, un, sales, held:tot-sales, tax, rate, cost, q, prof:tot-tax-cost, miss:L.filter(p=>p.miss), byS, byD, cov, rows:rows.length}; }
+  const G=L.filter(p=>p.g&&p.g.st), loss=G.filter(p=>p.g.st==="loss"), low=G.filter(p=>p.g.st==="low");
+  return {a, b, L, T, tot, un, sales, held:tot-sales, tax, rate, cost, q, prof:tot-tax-cost, miss:L.filter(p=>p.miss), byS, byD, cov, rows:rows.length, loss, low}; }
+/* ---- контроль цены продажи (просьба Даниила 24.11.2026: «чтобы не продавать в минус») ----
+   По фактическим удержаниям за период: процент от цены (вознаграждение Озона, эквайринг, оплата рекламы за заказ) и деньги за 1 шт
+   (логистика, доставка, упаковка…). Тогда на руки за 1 шт = цена × (1 − %) − за шт; прибыль = на руки × (1 − налог) − себестоимость.
+   Цена без убытка: прибыль = 0; цена для цели: прибыль = «хочу с 1 шт» (prefs.ozTarget, по умолчанию 50 ₽). */
+const ozTarget=()=>{ const t=getPrefs().ozTarget; return t==null||t===""||!isFinite(+t)?50:+t; };
+const OZ_PCT=/вознагражд|комисси|commission|эквайр|acquiring|оплатой за заказ/i;
+function ozGuard(p, rate){ p.g=null; if(!(p.q>0) || !(p.sales>0)) return;
+  let pct=0; Object.entries(p.types).forEach(([t,v])=>{ if(OZ_PCT.test(t)) pct+=v; });
+  const r=Math.max(0, -pct/p.sales), fix=-(p.net-p.sales-pct)/p.q+(OZU.al&&p.share?-p.share/p.q:0), price=p.sales/p.q;
+  const g=p.g={r, fix, price, net1:p.net/p.q, noCom:r<0.05 && !!p.sch.FBO};
+  if(p.c==null || r>=0.95) return;
+  g.unit=p.P/p.q;
+  if(g.noCom){ g.st=g.unit<0?"loss":g.unit<ozTarget()?"low":"ok"; return; }   /* комиссия не видна (разбор ответа API) — цены не советуем, чтобы не подсказать неверную */
+  const need=v=>((p.c+v)/(1-rate)+fix)/(1-r);
+  g.p0=Math.ceil(need(0)); g.pt=Math.ceil(need(ozTarget()));
+  g.st=price<g.p0-0.5?"loss":price<g.pt-0.5?"low":"ok"; }
+const ozPN=v=>v==null?"—":v.toLocaleString("ru-RU");
 /* ---- вкладка ---- */
 function renderOzon(){ if(!me().admin) return; const box=$("#oz"); if(!box) return;
   if(!OZ.d){ box.innerHTML=`<div class="ozbusy"><span class="spin"></span> Загружаю…</div>`; ozLoad().then(()=>{ if(curTab==="ozon") renderOzon(); }); return; }
@@ -219,13 +241,14 @@ function ozDraw(){ const box=$("#oz"); if(!box||!OZ.d) return; const foc=documen
   box.innerHTML=`<div class="ozhead"><div><h2>Озон <small>видно только вам</small></h2><small class="muted">Сколько вы зарабатываете с маркетплейса: что пришло от Озона минус налог и закупка товара.</small></div>
     <div class="ozacts">${hasKey?`<button type="button" class="btn sm" data-oz="sync"${OZ.busy?" disabled":""}>Обновить из Озона</button>`:""}<label class="btn sm">Загрузить отчёт Excel<input type="file" id="oz-file" accept=".xlsx,.xls" hidden></label><button type="button" class="btn sm ghost" data-oz="keys">${hasKey?"Подключение":"Подключить Озон API"}</button></div></div>
   <div class="ozbar">
-    <div class="pfchips ozst">${ozChips([["all","Все магазины"]].concat(S.map(s=>[s.id,s.n])), OZU.st, "ozst")}</div>
+    ${S.length>1?`<div class="pfchips ozst">${ozChips([["all","Все магазины"]].concat(S.map(s=>[s.id,s.n])), OZU.st, "ozst")}</div>`:""}
     <div class="pfchips ozper">${ozChips(OZ_PER, OZU.per, "ozper")}</div>
     ${OZU.per==="c"?`<div class="ozdates"><label>с <input type="date" id="oz-a" value="${esc(ozRange()[0])}"></label><label>по <input type="date" id="oz-b" value="${esc(ozRange()[1])}"></label></div>`:""}
     <div class="pfchips ozsch">${ozChips(OZ_SCH, OZU.sch, "ozsch")}</div>
   </div>
   <div class="ozst-line" id="oz-st">${st}</div>${covTxt?`<div class="ozcovs">${covTxt}</div>`:""}
   ${!any?ozHello(hasKey):`
+  ${C.loss.length?`<div class="ozalarm" data-ozk="price" role="button" tabindex="0"><b>В минус продаётся ${C.loss.length} ${plural(C.loss.length,["товар","товара","товаров"])}</b><span>${C.loss.slice(0,3).map(p=>esc(p.name)+(p.g.p0?" — поднять до "+ozPN(p.g.p0)+" ₽":"")).join(" · ")}${C.loss.length>3?"…":""}</span><i aria-hidden="true">›</i></div>`:""}
   <div class="oztiles">
     ${ozTile("sales","", "Продажи", ozR(C.sales), C.q+" шт · "+ozPerTxt())}
     ${ozTile("held","neg", "Удержал Озон", ozR(C.held), ozPct(-C.held, C.sales)+" от продаж · комиссия, логистика, реклама")}
@@ -236,6 +259,7 @@ function ozDraw(){ const box=$("#oz"); if(!box||!OZ.d) return; const foc=documen
   </div>
   <div class="ozformula">Пришло на счёт <b>${fm(C.tot)}</b> − налог <b>${fm(C.tax)}</b> − закупка <b>${fm(C.cost)}</b> = <b class="${C.prof<0?"neg":"pos"}">${fm(C.prof)} ₽</b>${OZU.sch!=="all"?`<small>Выбрана одна схема: общие расходы магазина (хранение, реклама и т. п.) не учтены — они не относятся к схеме.</small>`:""}</div>
   ${C.miss.length?`<div class="ozmiss" data-ozk="miss" role="button" tabindex="0"><b>Впишите себестоимость ${C.miss.length} ${plural(C.miss.length,["товара","товаров","товаров"])}</b><span>${C.miss.slice(0,4).map(p=>esc(p.name)).join(", ")}${C.miss.length>4?"…":""}</span><i aria-hidden="true">›</i></div>`:""}
+  ${ozGuardCard(C)}
   <section class="card ozprods"><div class="ozph"><h3>Товары <small>${L.length}</small></h3>
     <div class="ozpt"><input type="search" id="oz-q" placeholder="Найти товар или артикул" value="${esc(OZU.q)}" autocomplete="off"><select id="oz-sort" data-native aria-label="Порядок">${OZ_SORT.map(([v,t])=>`<option value="${v}"${OZU.sort===v?" selected":""}>${t}</option>`).join("")}</select>
     <label class="ozal" title="Хранение, реклама, кросс-докинг и другие расходы без товара делятся по товарам пропорционально продажам"><input type="checkbox" id="oz-al"${OZU.al?" checked":""}> Разложить общие расходы (${fm(C.un)})</label></div></div>
@@ -254,7 +278,7 @@ function ozTable(L, C){ if(!L.length) return `<div class="pvempty sm"><b>${OZU.q
   const u=(v,q)=>q?fm(v/q):"—";
   return `<div class="ozt" role="table"><div class="ozr ozrh" role="row"><span>Товар</span><span class="n">Продано</span><span class="n">Цена</span><span class="n">Удержал Озон, шт</span><span class="n">На руки, шт</span><span class="n">Налог, шт</span><span class="n">Закупка, шт</span><span class="n">Прибыль, шт</span><span class="n">Прибыль</span></div>
   ${L.map(p=>`<div class="ozr${p.P<0?" loss":""}" role="row" data-ozp="${esc(p.art)}" tabindex="0"><span class="ozn"><b>${esc(p.name)}</b><small>${esc(p.art.startsWith("sku:")?"":p.art)}${ozSchB(p)}${OZU.st==="all"&&ozStores().length>1?" · "+Object.keys(p.st).map(s=>esc(ozStName(s))).join(", "):""}</small></span>
-    <span class="n" data-l="Продано"><b>${p.q} шт</b></span><span class="n" data-l="Цена">${u(p.sales,p.q)}</span><span class="n neg" data-l="Удержал Озон, шт">${u(p.net-p.sales,p.q)}</span><span class="n" data-l="На руки, шт"><b>${u(p.net,p.q)}</b></span><span class="n neg" data-l="Налог, шт">${u(-p.tax,p.q)}</span>
+    <span class="n" data-l="Продано"><b>${p.q} шт</b></span><span class="n" data-l="Цена">${u(p.sales,p.q)}${p.g&&p.g.p0&&p.g.st!=="ok"?`<small class="ozmin ${p.g.st}" title="${p.g.st==="loss"?"Ниже этой цены — убыток":"Для прибыли "+ozTarget()+" ₽ с 1 шт"}">${p.g.st==="loss"?"без убытка от ":"цель от "}${(p.g.st==="loss"?p.g.p0:p.g.pt).toLocaleString("ru-RU")}</small>`:""}</span><span class="n neg" data-l="Удержал Озон, шт">${u(p.net-p.sales,p.q)}</span><span class="n" data-l="На руки, шт"><b>${u(p.net,p.q)}</b></span><span class="n neg" data-l="Налог, шт">${u(-p.tax,p.q)}</span>
     <span class="n ozci" data-l="Закупка, шт"><input type="text" inputmode="decimal" data-money data-ozc="${esc(p.art)}" value="${p.c==null?"":esc(String(p.c))}" placeholder="${p.q?"впишите":"—"}" aria-label="Себестоимость 1 шт: ${esc(p.name)}" class="${p.miss?"miss":""}"></span>
     <span class="n ${p.P<0?"neg":"pos"}" data-l="Прибыль, шт">${p.miss?"?":u(p.P,p.q)}</span><span class="n ${p.P<0?"neg":"pos"}" data-l="Прибыль"><b>${p.miss?"?":fm(p.P)}</b>${OZU.al&&p.share?`<small>общие ${fm(p.share)}</small>`:""}</span></div>`).join("")}</div>`; }
 function ozExp(C){ const L=Object.values(C.T).filter(t=>t.grp!=="Продажи"&&Math.abs(t.s)>=0.5).sort((a,b)=>a.s-b.s), max=Math.max(1,...L.map(t=>Math.abs(t.s)));
@@ -262,6 +286,15 @@ function ozExp(C){ const L=Object.values(C.T).filter(t=>t.grp!=="Продажи"
   const G={}; L.forEach(t=>(G[t.grp]=G[t.grp]||[]).push(t));
   return Object.entries(G).sort((a,b)=>a[1].reduce((s,t)=>s+t.s,0)-b[1].reduce((s,t)=>s+t.s,0)).map(([g,ts])=>`<div class="ozg"><div class="ozgh"><b>${esc(g)}</b><span>${fm(ts.reduce((s,t)=>s+t.s,0))}</span></div>
     ${ts.map(t=>`<div class="ozx" data-ozt="${esc(t.type)}" role="button" tabindex="0"><span>${esc(t.type)}${t.un&&Math.abs(t.un)>=0.5&&Math.abs(t.un-t.s)<0.5?` <em class="ozsb">общий</em>`:""}</span><i style="--w:${Math.round(Math.abs(t.s)/max*100)}%"></i><b class="${t.s<0?"neg":"pos"}">${fm(t.s)}</b><i class="ozgo" aria-hidden="true">›</i></div>`).join("")}</div>`).join(""); }
+function ozGuardRow(p){ const g=p.g, up=g.st==="ok"||!g.p0?0:Math.max(0,(g.st==="loss"?g.p0:g.pt)-g.price);
+  return `<div class="ozgr ${g.st}" data-ozp="${esc(p.art)}" role="button" tabindex="0"><span class="ozgn"><b>${esc(p.name)}</b><small>${g.st==="loss"?"продаёте в минус: "+fm(g.unit)+" с 1 шт":g.st==="low"?"прибыль "+fm(g.unit)+" с 1 шт — меньше цели":"прибыль "+fm(g.unit)+" с 1 шт"}${g.noCom?" · комиссия Озона в данных не видна — загрузите отчёт Excel, чтобы посчитать нужную цену":""}</small></span>
+    <span class="ozgp"><small>сейчас</small><b>${fm(g.price)}</b></span><span class="ozgp"><small>без убытка</small><b class="${g.st==="loss"?"neg":""}">${ozPN(g.p0)}</b></span><span class="ozgp"><small>цель ${ozTarget()} ₽/шт</small><b>${ozPN(g.pt)}</b></span>
+    <span class="ozgu">${up?"+"+Math.ceil(up).toLocaleString("ru-RU")+" ₽":g.p0||g.st==="ok"?"✓":"?"}</span></div>`; }
+function ozGuardCard(C){ const bad=C.loss.concat(C.low).sort((a,b)=>a.g.unit-b.g.unit), ok=C.L.filter(p=>p.g&&p.g.st==="ok").length, noc=C.L.filter(p=>p.q>0&&p.c==null).length;
+  if(!bad.length && !ok) return "";
+  return `<section class="card ozguard${C.loss.length?" bad":bad.length?" warn":" good"}"><div class="ozph"><h3>Контроль цен <small>${C.loss.length?C.loss.length+" в минус":""}${C.loss.length&&C.low.length?" · ":""}${C.low.length?C.low.length+" ниже цели":""}${!bad.length?"всё в порядке":""}</small></h3><button type="button" class="btn sm ghost" data-ozk="price">Все цены и настройка ›</button></div>
+    ${bad.length?bad.slice(0,6).map(ozGuardRow).join("")+(bad.length>6?`<button type="button" class="btn sm ghost" data-ozk="price">Ещё ${bad.length-6} ›</button>`:""):`<p class="ozok">Все ${ok} ${plural(ok,["товар","товара","товаров"])} с себестоимостью продаются с прибылью не меньше ${ozTarget()} ₽ с 1 шт.</p>`}
+    ${noc?`<p class="muted ozgn">Без себестоимости цену не проверить: ${noc} ${plural(noc,["товар","товара","товаров"])}.</p>`:""}</section>`; }
 /* ---- окна подробностей («провалиться и вернуться») ---- */
 const ozHead=(kick, h, sub)=>`<div class="dc-head"><div><div class="dc-kicker">${kick}</div><h3>${h}</h3>${sub?`<div class="dc-sub">${sub}</div>`:""}</div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>`;
 const ozPr=(p, val, sub)=>`<div class="ozd-r" data-ozp="${esc(p.art)}" role="button" tabindex="0"><span><b>${esc(p.name)}</b><small>${sub}</small></span><b class="${val<0?"neg":""}">${fm(val)}</b><i aria-hidden="true">›</i></div>`;
@@ -277,6 +310,10 @@ function ozDetail(k){ const C=ozCalc(), kick="Озон · "+esc(ozPerTxt())+(OZU
       +Object.entries(C.byS).map(([s,v])=>`<div class="ozd-r static"><span><b>${esc(ozStName(s))}</b><small>пришло ${fm(v)}</small></span><b>${fm(v*C.rate)}</b></div>`).join(""); }
   else if(k==="cost"||k==="miss"){ const L=C.L.filter(p=>p.q>0&&(k==="cost"||p.miss)).sort((a,b)=>(b.miss-a.miss)||b.cost-a.cost); h=k==="miss"?"Нет себестоимости":"Закупка — "+ozR(C.cost); sub="Впишите, сколько вам стоит 1 шт (закупка + фасовка + упаковка) — сайт запомнит";
     body=L.map(p=>`<div class="ozd-r ozd-c"><span data-ozp="${esc(p.art)}" role="button" tabindex="0"><b>${esc(p.name)}</b><small>${p.q} шт${p.c!=null?" × "+fm(p.c)+" = "+fm(p.cost):""} · на руки ${p.q?fm(p.net/p.q):"—"} за шт</small></span><input type="text" inputmode="decimal" data-money data-ozc="${esc(p.art)}" value="${p.c==null?"":esc(String(p.c))}" placeholder="₽ за 1 шт" class="${p.miss?"miss":""}"></div>`).join("")||`<div class="pvempty sm"><b>У всех товаров себестоимость вписана</b></div>`; }
+  else if(k==="price"){ const L=C.L.filter(p=>p.g&&p.g.st).sort((a,b)=>({loss:0,low:1,ok:2}[a.g.st]-{loss:0,low:1,ok:2}[b.g.st])||(a.g.unit-b.g.unit));
+    h="Контроль цен"; sub="Какой должна быть цена на Озоне, чтобы не уйти в минус и получать "+ozTarget()+" ₽ с 1 шт";
+    body=`<label class="ozd-tax">Хочу зарабатывать с 1 шт не меньше, ₽ <input type="text" inputmode="decimal" id="oz-target" value="${esc(String(ozTarget()))}"></label><p class="muted ozgn">Расчёт по удержаниям этого периода: комиссия и эквайринг — процентом от цены, логистика и доставка — за штуку, налог ${(+C.rate*100).toLocaleString("ru-RU")}%. ${OZU.al?"Общие расходы (хранение, реклама) учтены.":"Хранение и реклама магазина не учтены — включите «Разложить общие расходы», чтобы учесть."}</p>`
+      +(L.map(p=>ozGuardRow(p)).join("")||`<div class="pvempty sm"><b>Впишите себестоимость товаров — без неё цену не посчитать</b></div>`); }
   else if(k==="prof"){ h="Чистая прибыль — "+ozR(C.prof); sub="По товарам: на руки − налог − закупка"+(OZU.al?" − доля общих расходов":"");
     const L=C.L.slice().sort((a,b)=>b.P-a.P);
     body=L.map(p=>ozPr(p, p.P, p.miss?"нет себестоимости — прибыль завышена":(p.q+" шт · "+(p.q?fm(p.P/p.q):"—")+" за шт"))).join("")
@@ -291,7 +328,10 @@ function ozProd(art){ const C=ozCalc(), p=C.L.find(x=>x.art===art); if(!p){ toas
     <div class="ozd-r static"><span><b>Налог ${(+C.rate*100).toLocaleString("ru-RU")}%</b></span><b class="neg">${fm(-p.tax)}</b></div>
     <div class="ozd-r static"><span><b>Закупка</b><small>${p.c==null?"себестоимость не вписана":p.q+" × "+fm(p.c)}</small></span><b class="neg">${fm(-p.cost)}</b></div>
     ${OZU.al&&p.share?`<div class="ozd-r static"><span><b>Доля общих расходов</b><small>пропорционально продажам, после налога</small></span><b class="neg">${fm(p.share*(1-C.rate))}</b></div>`:""}
-    <div class="ozd-r static tot"><span><b>Прибыль</b></span><b class="${p.P<0?"neg":"pos"}">${p.miss?"?":fm(p.P)}</b></div>`;
+    <div class="ozd-r static tot"><span><b>Прибыль</b></span><b class="${p.P<0?"neg":"pos"}">${p.miss?"?":fm(p.P)}</b></div>
+    ${p.g&&p.g.p0?`<div class="ozd-h">Цена продажи</div><div class="ozd-r static"><span><b>Сейчас продаёте по</b><small>Озон удерживает ${Math.round(p.g.r*100)}% от цены + ${fm(p.g.fix)} за шт</small></span><b>${fm(p.g.price)}</b></div>
+      <div class="ozd-r static"><span><b>Цена без убытка</b><small>ниже — каждая продажа в минус</small></span><b class="${p.g.st==="loss"?"neg":""}">${p.g.p0.toLocaleString("ru-RU")} ₽</b></div>
+      <div class="ozd-r static"><span><b>Цена для прибыли ${ozTarget()} ₽ с 1 шт</b><small>${p.g.st==="ok"?"уже продаёте не дешевле":"поднять на "+(p.g.pt-p.g.price).toLocaleString("ru-RU",{maximumFractionDigits:0})+" ₽"}</small></span><b>${p.g.pt.toLocaleString("ru-RU")} ₽</b></div>`:""}`;
   CARD_RE=()=>ozProd(art); openCard(ozHead("Озон · товар · "+esc(ozPerTxt()), esc(p.name), esc(p.art.startsWith("sku:")?"":"Артикул "+p.art)+" "+ozSchB(p))+`<div class="ozd">${body}</div>`, true, ()=>{}); ozDlg(); }
 function ozType(type){ const C=ozCalc(), t=C.T[type]; if(!t){ toast("info","За этот период таких начислений нет"); return; }
   const L=Object.entries(t.arts).map(([a,v])=>({p:C.L.find(x=>x.art===a)||{art:a, name:(OZ.d.names[a]||a), q:0}, v})).sort((a,b)=>a.v-b.v);
@@ -303,6 +343,7 @@ function ozDlg(){ const d=$("#fd-dcard"); if(!d||d._oz) return; d._oz=1;
     const k=e.target.closest("[data-ozk2]"); if(k){ ozDetail(k.dataset.ozk2); return; }
     const g=e.target.closest("[data-ozgo]"); if(g){ const v=g.dataset.ozgo; navReset(); try{ d.close(); }catch(x){} if(v.startsWith("st:")) OZU.st=v.slice(3); else { OZU.per="c"; OZU.a=OZU.b=v.slice(2); } ozUiSave(); ozDraw(); return; } });
   d.addEventListener("keydown", e=>{ if(e.key==="Enter" && e.target.matches("[role=button]")){ e.preventDefault(); e.target.click(); } });
+  const tg=d.querySelector("#oz-target"); if(tg) tg.addEventListener("change", ()=>{ const v=String(tg.value).replace(",",".").replace(/\s/g,"").trim(), p=getPrefs(); if(v===""||!isFinite(+v)||+v<0){ toast("err","Впишите сумму, например 50"); return; } p.ozTarget=+v; setPrefs(p,true); ozDraw(); ozDetail("price"); });
   const tx=d.querySelector("#oz-tax"); if(tx) tx.addEventListener("change", ()=>{ const v=String(tx.value).replace(",",".").trim(), p=getPrefs(); if(v===""||!isFinite(+v)||+v<0||+v>50){ toast("err","Ставка — число от 0 до 50"); return; } p.ozTax=+v; setPrefs(p,true); ozDraw(); toast("ok","Ставка налога: "+(+v)+"%"); }); }
 /* ---- подключение Seller API ---- */
 function ozKeysOpen(){ const S=ozStores(), K=OZ.keys||[], ok=ozSrvOk();
