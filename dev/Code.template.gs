@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 52;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 53;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -553,6 +553,46 @@ function bankSync_(sids) {
 function bankProxyView_() { const x = tbProxy_(); return x && x.url ? { url: x.url, tail: String(x.key || '').slice(-4) } : null; }
 function bankKeysView_() { const keys = tbKeys_(), sn = nameMap_('suppliers');
   return Object.keys(keys).map(sid => ({ supplierId: sid, name: sn[sid] || '', tail: String(keys[sid].k || '').slice(-4), acc: (keys[sid].acc || []).map(a => '…' + a.slice(-4)), last: keys[sid].last || '', err: keys[sid].err || '' })); }
+/* ===== OZON (вкладка «Озон» на сайте, Code.gs ≥ 53) — только Даниил =====
+   Ключи магазинов — свойство скрипта OZON_KEYS = {ID магазина: {n: название, c: Client-Id, k: Api-Key}}; сайт видит только последние 4 знака ключа.
+   Скрипт только пересылает запросы в Seller API (белый список путей, только чтение) и отдаёт ответ как есть —
+   разбирает и считает прибыль сайт: так разбор можно поправить без обновления скрипта. В таблицу ничего не пишется. */
+const OZ_URL = 'https://api-seller.ozon.ru';
+const OZ_PATHS = ['/v1/finance/accrual/by-day', '/v1/finance/accrual/types', '/v1/finance/accrual/postings', '/v3/product/info/list', '/v1/finance/cash-flow-statement/list', '/v3/finance/transaction/list', '/v3/finance/transaction/totals'];
+function ozKeys_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('OZON_KEYS') || '{}') || {}; } catch (e) { return {}; } }
+function ozKeysSet_(o) { PropertiesService.getScriptProperties().setProperty('OZON_KEYS', JSON.stringify(o)); }
+function ozView_() { const k = ozKeys_(); return Object.keys(k).map(id => ({ id: id, name: k[id].n || '', cid: k[id].c || '', tail: String(k[id].k || '').slice(-4) })); }
+function ozOpt_(K, body) { return { method: 'post', contentType: 'application/json', headers: { 'Client-Id': String(K.c), 'Api-Key': String(K.k) }, payload: JSON.stringify(body || {}), muteHttpExceptions: true }; }
+function ozRes_(r) { const c = r.getResponseCode(), t = r.getContentText(); let j = null; try { j = JSON.parse(t); } catch (e) { j = null; } return { code: c, body: j, text: j ? '' : String(t).slice(0, 300) }; }
+function ozon_(p, me) {
+  if (!me.admin) return { ok: false, error: 'forbidden' };
+  const op = String(p.op || 'keys');
+  try {
+    if (op === 'keys') return { ok: true, ver: CODE_VER, keys: ozView_() };
+    if (op === 'key') {   /* сохранить ключ магазина: сначала пробный запрос — Озон должен принять Client-Id и Api-Key */
+      const id = String(p.id || '').replace(/[^\w-]/g, '').slice(0, 30), c = String(p.clientId || '').trim(), k = String(p.apiKey || '').trim();
+      if (!id) return { ok: false, error: 'не выбран магазин' };
+      if (!/^\d{3,12}$/.test(c)) return { ok: false, error: 'Client-Id — это число (обычно 6–7 цифр)' };
+      if (!/^[\w-]{20,}$/.test(k)) return { ok: false, error: 'это не похоже на Api-Key Озона' };
+      const K = { n: String(p.name || '').slice(0, 60), c: c, k: k };
+      const t = ozRes_(UrlFetchApp.fetch(OZ_URL + '/v1/finance/accrual/types', ozOpt_(K, {})));
+      if (t.code === 401 || t.code === 403) return { ok: false, error: 'Озон не принял ключ (' + t.code + '): проверьте Client-Id и Api-Key, у ключа должен быть доступ к финансам' + (t.body && t.body.message ? ' — ' + t.body.message : '') };
+      if (!t.code || t.code >= 500) return { ok: false, error: 'Озон не ответил (' + (t.code || 'нет связи') + ')' };
+      const keys = ozKeys_(); keys[id] = K; ozKeysSet_(keys);
+      return { ok: true, keys: ozView_(), test: t.code < 300 ? t.body : null };
+    }
+    if (op === 'del') { const keys = ozKeys_(); delete keys[String(p.id || '')]; ozKeysSet_(keys); return { ok: true, keys: ozView_() }; }
+    if (op === 'call') {  /* bodies — до 40 запросов одного вида, идут параллельно */
+      const K = ozKeys_()[String(p.id || '')], path = String(p.path || '');
+      if (!K) return { ok: false, error: 'у этого магазина не подключён ключ Озона' };
+      if (OZ_PATHS.indexOf(path) < 0) return { ok: false, error: 'этот запрос к Озону сайту не разрешён' };
+      const B = (Array.isArray(p.bodies) ? p.bodies : [p.body || {}]).slice(0, 40);
+      const R = UrlFetchApp.fetchAll(B.map(b => Object.assign({ url: OZ_URL + path }, ozOpt_(K, b))));
+      return { ok: true, res: R.map(ozRes_) };
+    }
+    return { ok: false, error: 'неизвестное действие' };
+  } catch (e) { return { ok: false, error: String(e.message || e).slice(0, 300) }; }
+}
 function bank_(p, me) {
   if (!me.admin) return { ok: false, error: 'forbidden' };
   const op = String(p.op || 'list');
@@ -932,6 +972,7 @@ function handle_(p) {
   if (p.action === 'vprices') return vprices_(p, me);   // цены других поставщиков: свой лист, своя короткая блокировка
   if (p.action === 'drafts') return drafts_(p, me);   // черновики документов: свой лист, своя короткая блокировка, без общей синхронизации
   if (p.action === 'mail') return mail_(p, me);         // почта (Code.gs ≥ 30): ящики через посредника в Яндекс Облаке, своя короткая блокировка
+  if (p.action === 'ozon') return ozon_(p, me);         // Озон: начисления магазинов по Seller API (только Даниил, только чтение, без блокировки)
   if (p.action === 'bank') return bank_(p, me);         // Т-Бизнес: поступления на счёт (только Даниил), блокировка — только на запись в лист      // настройки ИИ («Данные» → «ИИ»), только Даниил, без общей блокировки
   if (p.action === 'aiKey') { if (!me.admin) return { ok: false, error: 'forbidden' }; const k = String(p.gkey || '').trim();
     if (!/^[\w.\-]{20,}$/.test(k)) return { ok: false, error: 'это не похоже на ключ Gemini' }; PropertiesService.getScriptProperties().setProperty('GEMINI_KEY', k); return { ok: true }; }
