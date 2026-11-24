@@ -286,7 +286,7 @@ function mlCompHtml(){ const C=ML.comp; C.k=C.k||Math.random().toString(36).slic
 ${esc(C.text)}</textarea></label>
     <div class="mlcf">${(C.fwdAtts||[]).map(x=>`<label class="mlchip"><input type="checkbox" data-mlfa="${x.i}"${x.on?" checked":""}> ${ML_IC.clip} ${esc(x.n)} <small>${x.s?mlSize(x.s):""}</small></label>`).join("")}
       ${C.files.map((f,i)=>`<span class="mlchip">${ML_IC.clip} ${esc(f.name)} <small>${mlSize(f.size)}</small><button type="button" data-mlfx="${i}" aria-label="Убрать">×</button></span>`).join("")}
-      <label class="btn ghost sm">${ML_IC.clip} Прикрепить файл<input type="file" id="mlc-file" multiple hidden></label>${sum>2.3e6?`<span class="neg" style="font-size:12.5px">вложения больше 2,3 МБ — так не уйдёт</span>`:""}</div>
+      <label class="btn ghost sm">${ML_IC.clip} Прикрепить файл<input type="file" id="mlc-file" multiple hidden></label>${mlMob()?"":`<span class="mlcdh">или перетащите файлы сюда</span>`}${sum>2.3e6?`<span class="neg" style="font-size:12.5px">вложения больше 2,3 МБ — так не уйдёт</span>`:""}</div>
     <div class="mlcb"><button type="button" class="btn pri" data-ml="send" ${C.busy?"disabled":""}>${C.busy?`<i class="spin"></i>Отправляю…`:"Отправить"}</button><button type="button" class="btn ghost" data-ml="cclose">Отмена</button></div></div>`; }
 function mlCompRead(){ const C=ML.comp; if(!C) return; const form=document.querySelector('.mlcomp[data-ck="'+(C.k||"")+'"]'); if(!form) return;   /* поля именно этого письма (а не прошлого черновика) */
   const ae=document.activeElement; C.foc = ae && form.contains(ae) && ae.id ? {id:ae.id, s:ae.selectionStart, e:ae.selectionEnd, t:ae.scrollTop} : null;
@@ -391,6 +391,17 @@ document.addEventListener("click", e=>{ const root=e.target.closest&&e.target.cl
 });
 document.addEventListener("input", e=>{ if(e.target.id==="ml-q"){ ML.q=e.target.value; const pos=e.target.selectionStart; mlDraw(); const q=$("#ml-q"); if(q){ q.focus(); try{ q.setSelectionRange(pos,pos); }catch(x){} } }
   if(e.target.id==="mla-email" && ML.edit && !ML.edit.id){ const p=mlPreFor(e.target.value); if(p && p!==ML.edit.pre){ mlAccRead(); ML.edit.pre=p; ML.edit.ih=ML_PRE[p].ih; ML.edit.sh=ML_PRE[p].sh; const pos=e.target.selectionStart; mlDraw(); const x=$("#mla-email"); if(x){ x.focus(); try{ x.setSelectionRange(pos,pos); }catch(y){} } } } });
+/* перетащить файлы в письмо (24.11.2026, просьба Даниила): пока открыт ответ / новое письмо, файл можно бросить в любое место почты */
+const mlDropZone = t => ML.comp && !mlRO() && t && t.closest && t.closest("#ml, #ml-ov");
+const mlHasFiles = e => [...((e.dataTransfer||{}).types||[])].includes("Files");
+let mlDragN=0;
+function mlDragUi(on){ const f=document.querySelector('.mlcomp[data-ck="'+((ML.comp||{}).k||"")+'"]'); if(f) f.classList.toggle("mldrag", !!on); }
+document.addEventListener("dragenter", e=>{ if(!mlHasFiles(e) || !mlDropZone(e.target)) return; e.preventDefault(); mlDragN++; mlDragUi(true); });
+document.addEventListener("dragover", e=>{ if(!mlHasFiles(e) || !mlDropZone(e.target)) return; e.preventDefault(); e.dataTransfer.dropEffect="copy"; mlDragUi(true); });
+document.addEventListener("dragleave", e=>{ if(!mlHasFiles(e) || !mlDropZone(e.target)) return; mlDragN=Math.max(0, mlDragN-1); if(!mlDragN) mlDragUi(false); });
+document.addEventListener("drop", e=>{ if(!mlHasFiles(e) || !mlDropZone(e.target)) return; e.preventDefault(); mlDragN=0; mlDragUi(false);
+  const L=[...(e.dataTransfer.files||[])].filter(f=>f && f.size>=0 && f.name); if(!L.length) return;
+  mlCompRead(); ML.comp.files.push(...L); mlDraw(); toast("ok", L.length===1?"Файл прикреплён":"Прикреплено файлов: "+L.length, L.map(f=>f.name).join(", ").slice(0,140)); });
 document.addEventListener("change", e=>{ if(e.target.id==="mlc-file"){ mlCompRead(); ML.comp.files.push(...e.target.files); mlDraw(); } });
 document.addEventListener("keydown", e=>{ if(e.target.id==="ml-q" && e.key==="Escape"){ e.target.value=""; ML.q=""; mlDraw(); }
   if((e.ctrlKey||e.metaKey) && e.key==="Enter" && e.target.id==="mlc-text"){ e.preventDefault(); mlSend(); } });
