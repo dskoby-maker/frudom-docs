@@ -40,8 +40,8 @@ async def main():
         # --- отчёт Excel ---
         f=tempfile.mktemp(suffix='.xlsx'); tot=mk_xlsx(f)
         await pg.set_input_files('#oz-file', f); await pg.wait_for_timeout(800)
-        ok(await pg.locator('#fd-dcard .ozpick button').count()==2, 'спрашивает, какой это магазин')
-        await pg.click('#fd-dcard .ozpick button:first-child'); await pg.wait_for_timeout(900)
+        ok(await pg.locator('#fd-dcard .ozpick').count()==0, 'один магазин — не спрашивает, какой'); await pg.wait_for_timeout(900)
+        ok(await pg.locator('#oz .ozst').count()==0, 'один магазин — без выбора магазина')
         txt=lambda k: pg.locator(f'#oz [data-ozk="{k}"] b').inner_text()
         num=lambda s: float(s.replace(' ','').replace(' ','').replace('₽','').replace('−','-').replace(',','.'))
         ok(num(await txt('tot'))==round(tot), f'«Пришло на счёт» = сумме отчёта ({tot})')
@@ -89,12 +89,13 @@ async def main():
         api_tot=455.5-12+800-2736
         ev("__oz="+json.dumps({'keys':{'123456':'aaaa-bbbb-cccc-dddd-eeee-ffff'},'types':{'types':[{'id':'Storage','name':'Размещение товаров на складах'}]},'days':{today:acc},'products':[{'sku':333,'offer_id':'финики','name':'Финики 1 кг'}],'page':2}, ensure_ascii=False)+"; __ozCalls=[]; 1")
         await pg.click('#oz [data-oz="keys"]'); await pg.wait_for_timeout(500)
-        box=pg.locator('#fd-dcard [data-ozks="is"]')
+        box=pg.locator('#fd-dcard [data-ozks="fd"]')
         await box.locator('.ozkc').fill('123456'); await box.locator('.ozkk').fill('wrong-key-0000000000000000')
         await box.locator('[data-ozkey="save"]').click(); await pg.wait_for_timeout(800)
         ok(await pg.locator('#fd-toasts, .toast').filter(has_text='не принял').count()>0 or 'не принял' in await pg.content(), 'неверный ключ — понятная ошибка')
         await box.locator('.ozkk').fill('aaaa-bbbb-cccc-dddd-eeee-ffff'); await box.locator('[data-ozkey="save"]').click(); await pg.wait_for_timeout(2500)
-        await pg.click('#oz [data-ozst="is"]'); await pg.wait_for_timeout(500)
+        await pg.locator('#oz input[data-ozc="смесь"]').count()  # тот же магазин: Excel-дни не перезаписываются API
+        await pg.evaluate("__oz.OZ.d.days.fd={}"); 
         await pg.click('#oz [data-ozper="m0"]'); await pg.wait_for_timeout(2500)
         ok(abs(num(await txt('tot'))-round(api_tot))<=1, f'Озон API: «Пришло» = сумме начислений ({api_tot})')
         names=await pg.locator('#oz .ozr[data-ozp] .ozn b').all_inner_texts()
@@ -112,7 +113,6 @@ async def main():
         sw=await pg.evaluate("document.documentElement.scrollWidth"); ok(sw<=vw[0], f'нет прокрутки вбок ({sw})')
         # настоящий отчёт
         if os.environ.get('OZXLSX'):
-            await pg.click('#oz [data-ozst="fd"]'); await pg.wait_for_timeout(300)
             await pg.set_input_files('#oz-file', os.environ['OZXLSX']); await pg.wait_for_timeout(2500)
             wb=openpyxl.load_workbook(os.environ['OZXLSX'], read_only=True); ws=wb.worksheets[0]; s=0
             for i,r in enumerate(ws.iter_rows(values_only=True)):

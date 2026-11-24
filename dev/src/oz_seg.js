@@ -9,7 +9,7 @@
    — в личных настройках, на всех устройствах.
    Прибыль = пришло на счёт − налог − закупка (кол-во × себестоимость). Общие расходы магазина (хранение, реклама, кросс-докинг…) в «пришло» уже вычтены;
    по товарам их можно разложить пропорционально продажам (галочка «Разложить общие расходы»). */
-const OZ_DEF_ST=[{id:"fd", n:"Frudom / ФД"},{id:"is", n:"Исток"}];
+const OZ_DEF_ST=[{id:"fd", n:"Frudom / ФД"}];   /* «Исток» закрыт (24.11.2026) — один магазин; ещё один можно добавить в «Подключение» */
 const OZ_PER=[["m0","Этот месяц"],["m1","Прошлый месяц"],["d7","7 дней"],["d30","30 дней"],["y","С начала года"],["c","Свои даты"]];
 const OZ_SCH=[["all","Все схемы"],["FBO","FBO"],["RFBS","realFBS"]];
 const OZ_SORT=[["profit","Больше прибыль"],["loss","Меньше прибыль"],["unit","Прибыль за 1 шт"],["sales","Больше продажи"],["qty","Больше штук"],["name","По названию"]];
@@ -48,7 +48,7 @@ function ozRange(){ const t=todayISO(), ym=t.slice(0,7), P=OZU.per;
   if(P==="c" && /^\d{4}-\d\d-\d\d$/.test(OZU.a) && /^\d{4}-\d\d-\d\d$/.test(OZU.b)) return OZU.a<=OZU.b?[OZU.a, OZU.b]:[OZU.b, OZU.a];
   return [ym+"-01", t]; }
 const ozPerTxt=()=>{ const [a,b]=ozRange(); return a===b?fd(a):fd(a)+" – "+fd(b); };
-const ozSel=()=>OZU.st==="all"?ozStores().map(s=>s.id):[OZU.st];
+const ozSel=()=>OZU.st==="all"||!ozStores().some(s=>s.id===OZU.st)?ozStores().map(s=>s.id):[OZU.st];
 /* ---- «Отчёт по начислениям» из кабинета (Excel) ---- */
 function ozIso(v){ if(v==null||v==="") return "";
   if(typeof v==="number" && isFinite(v)) return new Date(Date.UTC(1899,11,30)+Math.round(v)*864e5).toISOString().slice(0,10);
@@ -219,7 +219,7 @@ function ozDraw(){ const box=$("#oz"); if(!box||!OZ.d) return; const foc=documen
   box.innerHTML=`<div class="ozhead"><div><h2>Озон <small>видно только вам</small></h2><small class="muted">Сколько вы зарабатываете с маркетплейса: что пришло от Озона минус налог и закупка товара.</small></div>
     <div class="ozacts">${hasKey?`<button type="button" class="btn sm" data-oz="sync"${OZ.busy?" disabled":""}>Обновить из Озона</button>`:""}<label class="btn sm">Загрузить отчёт Excel<input type="file" id="oz-file" accept=".xlsx,.xls" hidden></label><button type="button" class="btn sm ghost" data-oz="keys">${hasKey?"Подключение":"Подключить Озон API"}</button></div></div>
   <div class="ozbar">
-    <div class="pfchips ozst">${ozChips([["all","Все магазины"]].concat(S.map(s=>[s.id,s.n])), OZU.st, "ozst")}</div>
+    ${S.length>1?`<div class="pfchips ozst">${ozChips([["all","Все магазины"]].concat(S.map(s=>[s.id,s.n])), OZU.st, "ozst")}</div>`:""}
     <div class="pfchips ozper">${ozChips(OZ_PER, OZU.per, "ozper")}</div>
     ${OZU.per==="c"?`<div class="ozdates"><label>с <input type="date" id="oz-a" value="${esc(ozRange()[0])}"></label><label>по <input type="date" id="oz-b" value="${esc(ozRange()[1])}"></label></div>`:""}
     <div class="pfchips ozsch">${ozChips(OZ_SCH, OZU.sch, "ozsch")}</div>
