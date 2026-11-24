@@ -466,21 +466,21 @@ const MLV_I={zo:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" str
 const MLV_Z=[0.25,0.33,0.5,0.67,0.75,0.9,1,1.25,1.5,1.75,2,2.5,3,4,5];
 async function mlViewer(r, i){ const x=mlAtts(r)[i]; if(!x) return; mlEv("Открыто вложение «"+(x.n||"файл")+"» — "+mlEvW(r), "mav"+r.id+":"+i, 600000); const kind=mlKind(x.n, x.m||"");
   if(!kind){ toast("info","Этот файл на сайте не посмотреть","Нажмите «⤓», чтобы скачать."); return; }
-  const pages=kind==="pdf"||kind==="office"||kind==="img", V={z:1, rot:0, items:[], fs:kind==="text"||kind==="sheet"||kind==="csv"};
+  const dx=kind==="office" && mlDocxOk(x.n), pages=kind==="pdf"||(kind==="office"&&!dx)||kind==="img", V={z:1, rot:0, items:[], fs:kind==="text"||kind==="sheet"||kind==="csv"||dx};
   const v=document.createElement("dialog"); v.className="mlvw"+(pages?" pg":" doc"); v.setAttribute("aria-label", x.n);
   const B=(a,t,ic,txt)=>`<button type="button" class="mlvbt" data-mlv="${a}" title="${t}" aria-label="${t}">${ic}${txt?`<span>${txt}</span>`:""}</button>`;
   v.innerHTML=`<div class="mlvbar"><div class="mlvt"><b>${esc(x.n)}</b><small>Вложение${x.s?" · "+mlSize(x.s):""}<span class="mlvpc"></span></small></div>
     <div class="mlvtools"><span class="mlvgrp">${B("zo","Уменьшить",MLV_I.zo)}<button type="button" class="mlvbt mlvzp" data-mlv="fit" title="По ширине экрана">100%</button>${B("zi","Увеличить",MLV_I.zi)}</span>
     ${pages?`<span class="mlvgrp">${B("rl","Повернуть влево",MLV_I.rl)}${B("rr","Повернуть вправо",MLV_I.rr)}</span>`:""}
-    <span class="mlvgrp">${pages?`<button type="button" class="mlvbt" data-mlv="print" title="Печать" aria-label="Печать">${D_PRN}<span>Печать</span></button>`:""}${B("dl","Скачать",MLV_I.dl,"Скачать")}<button type="button" class="mlvbt mlvx dc-x" data-mlv="close" title="Закрыть (Esc)" aria-label="Закрыть">×</button></span></div></div>
-    <div class="mlvb" tabindex="-1"><div class="mlvl"><i class="spin"></i> ${kind==="office"?"Готовлю просмотр (Word/Excel/PowerPoint превращаются в PDF — до 20 секунд)…":"Загружаю…"}</div></div>`;
+    <span class="mlvgrp">${pages||dx?`<button type="button" class="mlvbt" data-mlv="print" title="Печать" aria-label="Печать">${D_PRN}<span>Печать</span></button>`:""}${B("dl","Скачать",MLV_I.dl,"Скачать")}<button type="button" class="mlvbt mlvx dc-x" data-mlv="close" title="Закрыть (Esc)" aria-label="Закрыть">×</button></span></div></div>
+    <div class="mlvb" tabindex="-1"><div class="mlvl"><i class="spin"></i> ${dx?"Открываю документ…":kind==="office"?"Готовлю просмотр (Word/Excel/PowerPoint превращаются в PDF — до 20 секунд)…":"Загружаю…"}</div></div>`;
   document.getElementById("fd-app").appendChild(v); let url=null; const body=v.querySelector(".mlvb");
   const bye=()=>{ try{ v.close(); }catch(e){} v.remove(); if(url) setTimeout(()=>URL.revokeObjectURL(url),1000); };
   v.addEventListener("cancel",e=>{ e.preventDefault(); bye(); }); v.addEventListener("close",()=>v.remove());
   /* раскладка: ширина страницы на экране = ширина «по экрану» × увеличение; при повороте на 90° меняются местами ширина и высота */
   const fitW=()=>Math.max(160, Math.min(body.clientWidth-(innerWidth<=600?16:48), 1100));
   const lay=()=>{ const zl=v.querySelector(".mlvzp"); if(zl) zl.textContent=Math.round(V.z*100)+"%";
-    if(V.fs){ const t=body.querySelector(".mlvtxt,.mlvsheet"); if(t) t.style.fontSize=(13*V.z).toFixed(1)+"px"; return; }
+    if(V.fs){ const dc=body.querySelector(".mlvdocx"); if(dc){ dc.style.zoom=V.z; return; } const t=body.querySelector(".mlvtxt,.mlvsheet"); if(t) t.style.fontSize=(13*V.z).toFixed(1)+"px"; return; }
     const side=V.rot%180!==0, W=fitW()*V.z;
     V.items.forEach(it=>{ const a=it.h/it.w, ew=side?W/a:W, eh=side?W:W*a, ww=W, wh=side?W/a:W*a;
       it.wrap.style.width=ww+"px"; it.wrap.style.height=wh+"px"; it.el.style.width=ew+"px"; it.el.style.height=eh+"px"; it.el.style.transform=`translate(-50%,-50%) rotate(${V.rot}deg)`; });
@@ -494,7 +494,7 @@ async function mlViewer(r, i){ const x=mlAtts(r)[i]; if(!x) return; mlEv("Отк
   const rotate=d=>{ const top=body.scrollTop/(body.scrollHeight||1); V.rot=(V.rot+d+360)%360; lay(); body.scrollTop=top*body.scrollHeight; };
   v.addEventListener("click",e=>{ const b=e.target.closest("[data-mlv]"); if(!b) return; const a=b.dataset.mlv;
     if(a==="close") bye(); else if(a==="zi") step(1); else if(a==="zo") step(-1); else if(a==="fit"){ V.z=1; lay(); body.scrollLeft=0; }
-    else if(a==="rl") rotate(-90); else if(a==="rr") rotate(90); else if(a==="dl") mlAtt(r, i, "get"); else if(a==="print") mlvPrint(V, x.n); });
+    else if(a==="rl") rotate(-90); else if(a==="rr") rotate(90); else if(a==="dl") mlAtt(r, i, "get"); else if(a==="print"){ if(V.docx) mlvPrintDocx(V.docx, x.n); else mlvPrint(V, x.n); } });
   v.addEventListener("keydown",e=>{ if(e.target.closest("input,textarea,select")) return; const k=e.key;
     if(k==="+"||k==="="){ e.preventDefault(); step(1); } else if(k==="-"||k==="_"){ e.preventDefault(); step(-1); } else if(k==="0"){ e.preventDefault(); V.z=1; lay(); }
     else if((k==="r"||k==="к")&&pages&&!e.ctrlKey&&!e.metaKey){ e.preventDefault(); rotate(e.shiftKey?-90:90); } });
@@ -512,6 +512,9 @@ async function mlViewer(r, i){ const x=mlAtts(r)[i]; if(!x) return; mlEv("Отк
   v.showModal(); body.focus(); requestAnimationFrame(()=>v.classList.add("in"));
   const addPage=(el, w, h)=>{ const wrap=document.createElement("div"); wrap.className="mlvpg"; el.classList.add("mlvel"); wrap.appendChild(el); body.querySelector(".mlvpdf").appendChild(wrap); const it={wrap, el, w, h}; V.items.push(it); lay(); return it; };
   try{ let f;
+    /* Word (.docx) — сразу на сайте, без превращения в PDF на сервере; не получилось — как раньше, через PDF */
+    if(dx){ try{ const fd=await mlAttGet(r, i); if(!v.isConnected) return; await mlDocxRender(fd, body); V.docx=body.querySelector(".mlvdocx"); const sec=V.docx.querySelector("section.docx"); if(sec){ const fz=Math.min(1,(body.clientWidth-16)/(sec.offsetWidth||800)); if(fz<1) V.z=Math.max(0.25,+fz.toFixed(2)); } lay(); return; }
+      catch(e){ if(!v.isConnected) return; body.innerHTML=`<div class="mlvl"><i class="spin"></i> Готовлю просмотр через PDF — до 20 секунд…</div>`; V.fs=false; V.docx=null; } }
     if(kind==="office"){ let j; try{ j=await apiFetch(API_URL,{method:"POST", tmo:120000, body:JSON.stringify({key:pass(), user:curUser(), action:"mail", op:"attPdf", id:r.id, i})}); }
         catch(e){ if(/unknown op/.test(e.message)) throw new Error("для просмотра Word и Excel обновите Code.gs — а пока нажмите «Скачать»"); throw e; }
       const bin=atob(j.data), u8=new Uint8Array(bin.length); for(let k=0;k<bin.length;k++) u8[k]=bin.charCodeAt(k); f=new File([u8], j.name||"файл.pdf", {type:"application/pdf"}); }
@@ -536,6 +539,21 @@ async function mlViewer(r, i){ const x=mlAtts(r)[i]; if(!x) return; mlEv("Отк
     catch(e){ url=URL.createObjectURL(f); body.innerHTML=`<iframe class="mlvifr" src="${url}" title="${esc(x.n)}"></iframe>`; v.classList.add("ifr"); }
   }catch(e){ if(v.isConnected) body.innerHTML=`<div class="mlvl"><b>Не получилось показать файл.</b> ${esc(e.message||"")}</div>`; } }
 /* печать страниц так, как они повёрнуты на экране */
+/* Word на сайте: библиотека docx-preview рисует страницы прямо в браузере (нужен JSZip — он уже есть для чтения заявок) */
+const mlDocxOk=n=>/\.(docx|docm|dotx)$/i.test(n||"");
+const DOCX_LIB="https://cdn.jsdelivr.net/npm/docx-preview@0.4.1/dist/docx-preview.min.js";
+function mlDocxLib(){ if(window.docx&&window.docx.renderAsync) return Promise.resolve(window.docx);
+  return new Promise((ok,bad)=>{ const sc=document.createElement("script"); sc.src=DOCX_LIB; sc.onload=()=>window.docx&&window.docx.renderAsync?ok(window.docx):bad(new Error("нет библиотеки Word")); sc.onerror=()=>bad(new Error("не загрузилась библиотека Word")); document.head.appendChild(sc); }); }
+async function mlDocxRender(f, body){ await ftLib("jszip/3.10.1/jszip.min.js",()=>window.JSZip,"Word"); const L=await mlDocxLib();
+  const box=document.createElement("div"); box.className="mlvdocx";
+  await Promise.race([L.renderAsync(await f.arrayBuffer(), box, box, {inWrapper:true, breakPages:true, ignoreLastRenderedPageBreak:false, renderHeaders:true, renderFooters:true, renderFootnotes:true, useBase64URL:true, experimental:true}),
+    new Promise((_,bad)=>setTimeout(()=>bad(new Error("долго")), 15000))]);
+  if(!box.querySelector("section")) throw new Error("пустой документ"); body.innerHTML=""; body.appendChild(box); }
+/* печать Word, показанного на сайте: те же страницы в скрытой рамке */
+function mlvPrintDocx(box, name){ const f=document.createElement("iframe"); f.setAttribute("aria-hidden","true"); f.style.cssText="position:fixed;left:-4000px;top:0;width:900px;height:1200px;border:0;visibility:hidden";
+  document.body.appendChild(f); const d=f.contentWindow.document; d.open();
+  d.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(name||"Документ")}</title><style>@page{margin:0}html,body{margin:0;background:#fff}.docx-wrapper{background:#fff!important;padding:0!important;display:block!important}.docx-wrapper>section.docx{box-shadow:none!important;margin:0 auto!important;break-after:page;page-break-after:always}.docx-wrapper>section.docx:last-child{break-after:auto;page-break-after:auto}</style></head><body>${box.innerHTML}</body></html>`); d.close();
+  setTimeout(()=>{ f.contentWindow.focus(); f.contentWindow.print(); setTimeout(()=>f.remove(), 60000); }, 300); }
 async function mlvPrint(V, name){ if(!V.items.length){ toast("info","Ещё загружается","Подождите секунду."); return; }
   const urls=V.items.map(it=>{ const s=it.el, sw=s.naturalWidth||s.width, sh=s.naturalHeight||s.height, side=V.rot%180!==0, c=document.createElement("canvas");
     c.width=side?sh:sw; c.height=side?sw:sh; const g=c.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,c.width,c.height); g.translate(c.width/2,c.height/2); g.rotate(V.rot*Math.PI/180); g.drawImage(s,-sw/2,-sh/2,sw,sh);
