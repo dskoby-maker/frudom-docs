@@ -31,6 +31,7 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.JavascriptInterface;
 import android.webkit.MimeTypeMap;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -61,7 +62,8 @@ import java.util.Locale;
 
 /** «Почта ФД» — просмотр вложения без скачивания, как на сайте (mlViewer):
  *  PDF — страницы (увеличение двумя пальцами, двойным нажатием и кнопками), фото — с увеличением,
- *  Word / Excel / PowerPoint / RTF / ODT — сначала в PDF через Google Диск (как на сайте), текст — как есть.
+ *  Word (.docx) — сразу на телефоне (docx-preview из assets/docx, как на сайте); не вышло — через PDF.
+ *  Старые .doc / Excel / PowerPoint / RTF / ODT — сначала в PDF через Google Диск (как на сайте), текст — как есть.
  *  Сверху: печать, сохранить в «Загрузки», отправить, открыть другим приложением. */
 public class ViewerActivity extends Activity {
     final Handler ui = new Handler(Looper.getMainLooper());
@@ -158,6 +160,7 @@ public class ViewerActivity extends Activity {
         String e = ext(name);
         if (mime.equals("application/pdf") || e.equals("pdf")) { pdf = orig; showPdf(); return; }
         if (mime.startsWith("image/") || (" " + IMG + " ").contains(" " + e + " ")) { showImage(); return; }
+        if (e.equals("docx") || e.equals("docm") || e.equals("dotx")) { showDocx(); return; }
         if ((" " + OFFICE + " ").contains(" " + e + " ")) { toPdf(); return; }
         if (mime.startsWith("text/") || (" " + TEXT + " ").contains(" " + e + " ") || e.equals("html") || e.equals("htm")) { showText(); return; }
         fail("Такой файл здесь не показать.\n«" + name + "» можно открыть другим приложением или сохранить.");
@@ -253,6 +256,36 @@ public class ViewerActivity extends Activity {
         hs.addView(pages, new FrameLayout.LayoutParams(baseW, -1));
         stage.addView(hs, new FrameLayout.LayoutParams(-1, -1));
         gestures(); findViewWithTagZb().setVisibility(View.VISIBLE); setZoom(1f);
+    }
+
+    /* ---------- Word прямо на телефоне ---------- */
+    boolean docxDone;
+    void showDocx() {
+        busy("Открываю «" + name + "»…"); docxDone = false;
+        final String b64;
+        try { b64 = Base64.encodeToString(Files.readAllBytes(orig.toPath()), Base64.NO_WRAP); } catch (Exception x) { toPdf(); return; }
+        web = new WebView(this); web.setBackgroundColor(0xFF2B2824); WebSettings ws = web.getSettings();
+        ws.setJavaScriptEnabled(true); ws.setBlockNetworkLoads(true); ws.setAllowFileAccess(false); ws.setBuiltInZoomControls(true); ws.setDisplayZoomControls(false);
+        web.addJavascriptInterface(new Object() {
+            @JavascriptInterface public String data() { return b64; }
+            @JavascriptInterface public void done(boolean ok, String err) { ui.post(() -> docxEnd(ok)); }
+        }, "FD");
+        String html = "<!doctype html><meta charset=utf-8><meta name=viewport content='width=device-width,initial-scale=1'>"
+            + "<style>html,body{margin:0;background:#2B2824}.docx-wrapper{background:#2B2824!important;padding:10px 0 24px!important}.docx-wrapper>section.docx{margin:0 auto 14px!important;box-shadow:0 4px 18px rgba(0,0,0,.4)}"
+            + "@media print{@page{margin:0}html,body,.docx-wrapper{background:#fff!important;padding:0!important}#box{zoom:1!important}.docx-wrapper>section.docx{box-shadow:none!important;margin:0!important;break-after:page}.docx-wrapper>section.docx:last-child{break-after:auto}}</style>"
+            + "<div id=box></div><script src='jszip.min.js'></script><script src='docx-preview.min.js'></script><script>"
+            + "(async()=>{try{const s=atob(FD.data()),u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);const b=document.getElementById('box');"
+            + "await docx.renderAsync(u.buffer,b,b,{inWrapper:true,breakPages:true,renderHeaders:true,renderFooters:true,renderFootnotes:true,useBase64URL:true,experimental:true});"
+            + "const sec=b.querySelector('section.docx');if(!sec)throw new Error('empty');const fit=()=>{const w=document.documentElement.clientWidth||innerWidth;if(w<50)return;b.style.zoom=1;const z=Math.min(1,(w-12)/sec.offsetWidth);b.style.zoom=z};fit();addEventListener('resize',fit);setTimeout(fit,300);FD.done(true,'')}catch(e){FD.done(false,String(e))}})()</script>";
+        web.loadDataWithBaseURL("file:///android_asset/docx/", html, "text/html", "utf-8", null);
+        stage.addView(web, 0, new FrameLayout.LayoutParams(-1, -1)); web.setVisibility(View.INVISIBLE);
+        ui.postDelayed(() -> { if (!dead && !docxDone) docxEnd(false); }, 15000);
+    }
+    void docxEnd(boolean ok) {
+        if (dead || docxDone) return; docxDone = true;
+        if (ok) { for (int i = stage.getChildCount() - 1; i >= 0; i--) if (stage.getChildAt(i) != web) stage.removeViewAt(i); web.setVisibility(View.VISIBLE); web.evaluateJavascript("dispatchEvent(new Event('resize'))", null); info.setText(MailApi.size(orig.length())); return; }
+        if (web != null) { stage.removeView(web); web.destroy(); web = null; }
+        toPdf();
     }
 
     /* ---------- текст ---------- */

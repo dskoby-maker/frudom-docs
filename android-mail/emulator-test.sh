@@ -30,6 +30,9 @@ adb shell input keyevent 4; sleep 1
 adb shell am start -W -n ru.frudom.mail/.MainActivity --ez demo true --es att d1:1; sleep 5    # просмотр фото
 adb exec-out screencap -p > shot10.png
 adb shell input keyevent 4; sleep 1
+adb shell am start -W -n ru.frudom.mail/.MainActivity --ez demo true --es att d1:3; sleep 8    # Word сразу на телефоне
+adb exec-out screencap -p > shot11.png
+adb shell input keyevent 4; sleep 1
 adb shell am force-stop ru.frudom.mail
 adb shell am start -W -n ru.frudom.mail/.MainActivity; sleep 25          # без входа — вход сайтом
 adb shell pidof ru.frudom.mail >/dev/null || { adb shell am start -W -n ru.frudom.mail/.MainActivity; sleep 25; }

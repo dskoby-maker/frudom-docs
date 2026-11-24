@@ -21,6 +21,8 @@ final class Demo {
         String n = A.optJSONObject(i) == null ? "файл.pdf" : A.optJSONObject(i).optString("n");
         Thread.sleep(400);
         if (n.endsWith(".png")) return new JSONObject().put("name", n).put("mime", "image/png").put("data", Base64.encodeToString(png(), Base64.NO_WRAP));
+        if (n.endsWith(".docx")) { try (java.io.InputStream in = c.getAssets().open("docx/demo.docx")) { java.io.ByteArrayOutputStream o = new java.io.ByteArrayOutputStream(); byte[] b = new byte[8192]; int k; while ((k = in.read(b)) > 0) o.write(b, 0, k);
+            return new JSONObject().put("name", n).put("mime", "application/vnd.openxmlformats-officedocument.wordprocessingml.document").put("data", Base64.encodeToString(o.toByteArray(), Base64.NO_WRAP)); } }
         if (n.endsWith(".pdf")) return new JSONObject().put("name", n).put("mime", "application/pdf").put("data", Base64.encodeToString(pdf(n), Base64.NO_WRAP));
         return new JSONObject().put("name", n).put("mime", "application/octet-stream").put("data", Base64.encodeToString("PK demo".getBytes(), Base64.NO_WRAP));
     }
