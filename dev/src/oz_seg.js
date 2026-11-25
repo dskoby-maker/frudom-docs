@@ -216,12 +216,14 @@ async function ozCall(sid, path, bodies){ const j=await api({action:"ozon", op:"
 async function ozKeysLoad(){ if(!ozSrvOk()){ OZ.keys=[]; return; } try{ const j=await api({action:"ozon", op:"keys"}); if(j&&j.ok!==false){ OZ.keys=j.keys||[]; OZ.kerr=""; } else OZ.kerr=j&&j.error||"нет ответа"; }catch(e){ OZ.kerr=e.message; } }
 const ozArr=b=>b?(Array.isArray(b.accruals)?b.accruals:b.result&&Array.isArray(b.result.accruals)?b.result.accruals:Array.isArray(b.result)?b.result:[]):[];
 const ozLid=b=>b&&(b.last_id||(b.result&&b.result.last_id))||"";
-async function ozSync(force, rng){ if(OZ.busy||!online()) return; await ozLoad(); const K=(OZ.keys||[]).filter(k=>ozSel().includes(k.id)); if(!K.length) return;
+/* день из Excel, скачанного до конца этого дня, — неполный: его можно обновить из API */
+const ozXOld=(d,x)=>x&&x.s==="x"&&(+x.at||0)<Date.parse(ozAdd(d,1)+"T00:00:00+03:00");
+async function ozSync(force, rng, quiet){ if(OZ.busy||!online()) return; await ozLoad(); const K=(OZ.keys||[]).filter(k=>ozSel().includes(k.id)); if(!K.length) return;
   if(!rng && OZU.v==="pay") rng=ozPayRng();
-  const [a,b]=rng||ozRange(), t=todayISO(), old=ozAdd(t,-3); OZ.busy="Загружаю начисления из Озона…"; OZ.err=""; ozDraw();
+  const [a,b]=rng||ozRange(), t=todayISO(), old=ozAdd(t,-3); OZ.busy="Загружаю начисления из Озона…"; OZ.err=""; OZ.quiet=!!quiet; if(!quiet) ozDraw(); else ozBusyTxt();
   try{ for(const k of K){ const DD=OZ.d.days[k.id]=OZ.d.days[k.id]||{};
       if(!OZ.d.types[k.id]){ try{ const R=await ozCall(k.id, "/v1/finance/accrual/types", [{}]); const M={}; if(R[0]&&R[0].code<300) ozTypesParse(R[0].body, M, 0); OZ.d.types[k.id]=M; }catch(e){} }
-      const need=[]; for(let d=a; d<=b && d<=t; d=ozAdd(d,1)){ const x=DD[d]; if(x&&x.s==="x") continue; if(!force && x && (d<old || Date.now()-x.at<30*60e3)) continue; need.push(d); }
+      const need=[]; for(let d=a; d<=b && d<=t; d=ozAdd(d,1)){ const x=DD[d]; if(x&&x.s==="x"&&!(d>=old&&ozXOld(d,x))) continue; if(!force && x && x.s!=="x" && (d<old || Date.now()-x.at<4*60e3)) continue; need.push(d); }
       for(let i=0;i<need.length;i+=7){ OZ.busy=`Загружаю «${ozStName(k.id)}»: ${Math.min(i+7,need.length)} из ${need.length} ${plural(need.length,["день","дня","дней"])}…`; ozBusyTxt();
         const part=need.slice(i,i+7), acc={}; part.forEach(d=>acc[d]=[]); let bodies=part.map(d=>({date:d})), guard=0;
         while(bodies.length && guard++<40){ const R=await ozCall(k.id, "/v1/finance/accrual/by-day", bodies), next=[];
@@ -233,7 +235,20 @@ async function ozSync(force, rng){ if(OZ.busy||!online()) return; await ozLoad()
       await ozNames(k.id); }
     OZ.at=Date.now(); }
   catch(e){ OZ.err=e.message; }
-  OZ.busy=""; ozSave(); ozPush(); ozDraw(); }
+  OZ.busy=""; OZ.quiet=false; ozSave(); ozPush();
+  const typing=document.activeElement&&document.activeElement.closest&&document.activeElement.closest("#oz input, #fd-dcard input");
+  if(quiet && (curTab!=="ozon" || typing)){ const el=$("#oz-st"); if(el) el.innerHTML=""; ozAutoTxt(); return; }
+  ozDraw(); }
+/* ---- сам обновляется из Озона раз в 5 минут, пока сайт открыт у Даниила (просьба 25.11.2026) ---- */
+const OZ_AUTO=5*60e3;
+function ozAutoTxt(){ const el=$("#oz-auto"); if(el) el.textContent=OZ.at?"обновлено в "+new Date(OZ.at).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}):""; }
+async function ozAutoTick(){ try{ if(!me||!me()||!me().admin||document.hidden||!online()||OZ.busy) return;
+    if(!OZ.d){ await ozLoad(); if(!OZ.d) return; }
+    if(OZ.keys==null){ await ozKeysLoad(); if(curTab==="ozon") ozDraw(); }
+    if(!(OZ.keys||[]).length || Date.now()-OZ.at<OZ_AUTO-5e3) return;
+    const t=todayISO(); await ozSync(false, [ozAdd(t,-3), t], true); }catch(e){} }
+setInterval(ozAutoTick, 60e3);
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) setTimeout(ozAutoTick, 3000); });
 async function ozNames(sid){ const DD=OZ.d.days[sid]||{}, need=new Set();
   Object.values(DD).forEach(x=>(x.r||[]).forEach(r=>{ if(String(r[2]).startsWith("sku:") && !OZ.d.sku[r[2].slice(4)]) need.add(r[2].slice(4)); }));
   if(!need.size) return; const L=[...need].slice(0,1000);
@@ -292,7 +307,7 @@ function renderOzon(){ if(!me().admin) return; const box=$("#oz"); if(!box) retu
   if(!OZ.d){ box.innerHTML=`<div class="ozbusy"><span class="spin"></span> Загружаю…</div>`; ozLoad().then(()=>{ if(curTab==="ozon") renderOzon(); }); return; }
   ozDraw(); ozPull();
   if(OZ.keys==null){ ozKeysLoad().then(()=>{ if(curTab!=="ozon") return; ozDraw(); ozSync(false); }); }
-  else if(Date.now()-OZ.at>10*60e3) ozSync(false); }
+  else if(Date.now()-OZ.at>OZ_AUTO) ozSync(false); }
 function ozBusyTxt(){ const el=$("#oz-st"); if(el && OZ.busy) el.innerHTML=`<span class="spin"></span> ${esc(OZ.busy)}`; }
 function ozChips(list, cur, attr){ return list.map(([v,t])=>`<button type="button" data-${attr}="${esc(v)}" class="${cur===v?"on":""}" aria-pressed="${cur===v}">${esc(t)}</button>`).join(""); }
 function ozTile(k, cls, small, big, sub){ return `<div class="oztile ${cls}" data-ozk="${k}" role="button" tabindex="0" title="Подробнее"><i class="pkgo" aria-hidden="true">›</i><small>${small}</small><b>${big}</b>${sub?`<span>${sub}</span>`:""}</div>`; }
@@ -302,7 +317,8 @@ function ozDraw(){ const box=$("#oz"); if(!box||!OZ.d) return; const foc=documen
   const st=OZ.busy?`<span class="spin"></span> ${esc(OZ.busy)}`:OZ.err?`<span class="ozerr">Не получилось загрузить из Озона: ${esc(OZ.err)}</span>`:"";
   if(OZU.sch==="all"&&C.TL.length){ const tg=ozParts().tg; if(tg){ C.tanya+=tg; C.cost+=tg; C.prof-=tg; } }
   const L=ozList(C), mpct=C.sales?Math.round(C.prof/C.sales*100):0;
-  box.innerHTML=`<div class="ozhead"><div><h2>Озон <small>видно только вам</small></h2><small class="muted">Сколько вы зарабатываете с маркетплейса: что пришло от Озона минус налог и закупка товара.</small></div>
+  box.innerHTML=`<div class="ozhead"><div><h2>Озон <small>видно только вам</small></h2><small class="muted">Сколько вы зарабатываете с маркетплейса: что пришло от Озона минус налог и закупка товара.</small>
+    ${hasKey?`<small class="ozautol"><i aria-hidden="true"></i>Сам обновляется из Озона каждые 5 минут, пока сайт открыт · <span id="oz-auto">${OZ.at?"обновлено в "+new Date(OZ.at).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}):""}</span></small>`:`<small class="ozautol off">Подключите Озон API — тогда сайт сам будет забирать данные каждые 5 минут и отчёты загружать не нужно.${OZ.kerr?" Ошибка: "+esc(OZ.kerr):""}</small>`}</div>
     <div class="ozacts">${hasKey?`<button type="button" class="btn sm" data-oz="sync"${OZ.busy?" disabled":""}>Обновить из Озона</button>`:""}<label class="btn sm">Загрузить отчёт Excel<input type="file" id="oz-file" accept=".xlsx,.xls" hidden></label><button type="button" class="btn sm ghost" data-oz="keys">${hasKey?"Подключение":"Подключить Озон API"}</button></div></div>
   <div class="pfchips ozv">${ozChips([["sum","Сводка за период"],["pay","Выплаты на р/с"]], OZU.v==="pay"?"pay":"sum", "ozv")}<button type="button" class="btn sm ghost ozownb" data-oz="own">Товар Тани${ozOwnN()?" · "+ozOwnN():""}</button></div>
   ${OZU.v==="pay"?`<div class="ozst-line" id="oz-st">${st}</div>${ozPayList()}`:`<div class="ozbar">
@@ -581,4 +597,4 @@ document.addEventListener("change", e=>{ const t=e.target; if(!t.matches||!t.mat
   setTimeout(()=>{ ozDraw(); const d=$("#fd-dcard"); if(d && d.contains(t)){ d.querySelectorAll(`input[data-ozc]`).forEach(x=>{ if(x.dataset.ozc===art) x.classList.toggle("miss", nw==null); }); } }, 0); });
 document.addEventListener("keydown", e=>{ const t=e.target; if(e.key!=="Enter"||!t.matches||!t.matches("input[data-ozc]")) return; e.preventDefault();
   const L=[...(t.closest("dialog")||document.getElementById("oz")).querySelectorAll("input[data-ozc]")], i=L.indexOf(t); (L[i+1]||t).focus(); if(!L[i+1]) t.blur(); });
-window.__oz={pull:f=>ozPull(f), ru:ozRu, pers:n=>ozPers(n), pay:k=>{ const p=ozPers(30).find(x=>x.k===k); return p&&ozPay(p); }, prefs:()=>getPrefs(), OZ, OZU, calc:()=>ozCalc()};   /* для тестов (dev/test/ozon.py) */
+window.__oz={pull:f=>ozPull(f), ru:ozRu, pers:n=>ozPers(n), pay:k=>{ const p=ozPers(30).find(x=>x.k===k); return p&&ozPay(p); }, prefs:()=>getPrefs(), OZ, OZU, calc:()=>ozCalc(), auto:()=>ozAutoTick()};   /* для тестов (dev/test/ozon.py) */
