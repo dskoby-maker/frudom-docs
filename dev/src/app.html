@@ -25,7 +25,7 @@
 #fd-app nav.tabs button{border:1px solid transparent;background:none;color:var(--muted);font:500 14px var(--ui);padding:7px 13px;cursor:pointer;white-space:nowrap;border-radius:10px;transition:background .15s,color .15s,box-shadow .15s,border-color .15s;user-select:none;-webkit-user-select:none}
 #fd-app nav.tabs button:hover{background:#ebe8e3;color:var(--ink)}
 #fd-app nav.tabs button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
-#fd-app nav.tabs .tabedit{margin-left:auto;color:var(--muted);font-size:15px;padding:7px 10px}
+#fd-app nav.tabs .tabedit{display:none!important;margin-left:auto;color:var(--muted);font-size:15px;padding:7px 10px}
 #fd-app nav.tabs.editing button[data-tab]{background:var(--surface);border-color:var(--line);color:var(--ink);cursor:grab;touch-action:none;box-shadow:0 1px 2px rgba(0,0,0,.05)}
 #fd-app nav.tabs.editing button[data-tab]::before{content:"⠿";margin-right:6px;color:var(--muted);font-size:12px}
 #fd-app nav.tabs.editing button.dragging{cursor:grabbing;border-color:var(--accent);box-shadow:0 8px 20px rgba(0,0,0,.15);transform:scale(1.05);z-index:2;position:relative}
@@ -3847,7 +3847,7 @@ html.fd-dark :is(#fd-app .card,dialog.dcard,#tkf-pan,#tkf-fab){box-shadow:0 0 0 
     <button data-tab="tasks" hidden>Задачи</button>
     <button class="tabedit" id="tab-edit" type="button" title="Поменять вкладки местами" aria-label="Поменять вкладки местами">✎</button>
   </nav>
-  <div class="tabbar" id="tab-bar" hidden><span>Перетащите вкладки в удобном порядке — он сохранится для вас на всех устройствах.</span><button class="btn ghost sm" id="tab-reset" type="button">Как было</button><button class="btn pri sm" id="tab-done" type="button">Готово</button></div>
+  <div class="tabbar" id="tab-bar" hidden><span>Перетащите вкладки в удобном порядке (или правой кнопкой по вкладке — «Сдвинуть влево / вправо») — он сохранится для вас на всех устройствах.</span><button class="btn ghost sm" id="tab-reset" type="button">Как было</button><button class="btn pri sm" id="tab-done" type="button">Готово</button></div>
 </div></header>
 <nav class="mbar" id="mbar" hidden aria-label="Разделы"></nav>
 <div class="tsheet" id="tsheet" hidden>
@@ -10346,13 +10346,16 @@ function dragOver(cont, items, dragEl, x, y, st){
   const hit=items.find(b=>b!==dragEl && !b.hidden && px>=b.offsetLeft && px<b.offsetLeft+b.offsetWidth && py>=b.offsetTop && py<b.offsetTop+b.offsetHeight)||null;
   if(st.block && st.block!==hit) st.block=null;
   if(!hit || hit===st.block) return null; st.block=hit; return hit; }
+/* вкладки двигают и из меню правой кнопкой (tabs-ctx, cx_seg.js) */
+let TABMV=null;
 (function(){
   const nav=$("#fd-app nav.tabs"); let drag=null;
   const saveOrder=()=>{ const p=getPrefs(); p.tabs=[...nav.querySelectorAll("button[data-tab]")].map(b=>b.dataset.tab); setPrefs(p,true); };
+  TABMV={nav, save:saveOrder, flip:m=>flip(nav,m)};
   $("#tab-edit").onclick=()=>{ const on=!nav.classList.contains("editing"); nav.classList.toggle("editing",on); $("#tab-bar").hidden=!on; if(!on){ saveOrder(); toast("ok","Порядок вкладок сохранён","Он будет таким же на всех ваших устройствах."); } };
   $("#tab-done").onclick=()=>$("#tab-edit").click();
   $("#tab-reset").onclick=()=>{ const p=getPrefs(); delete p.tabs; setPrefs(p,true); flip(nav, applyTabOrder); };
-  nav.addEventListener("pointerdown",e=>{ if(!nav.classList.contains("editing")) return; const b=e.target.closest("button[data-tab]"); if(!b) return; e.preventDefault(); try{ b.setPointerCapture(e.pointerId); }catch(x){} drag={b, id:e.pointerId, st:{}}; b.classList.add("dragging"); });
+  nav.addEventListener("pointerdown",e=>{ if(!nav.classList.contains("editing") || e.button) return; const b=e.target.closest("button[data-tab]"); if(!b) return; e.preventDefault(); try{ b.setPointerCapture(e.pointerId); }catch(x){} drag={b, id:e.pointerId, st:{}}; b.classList.add("dragging"); });
   nav.addEventListener("pointermove",e=>{ if(!drag || e.pointerId!==drag.id) return; e.preventDefault();
     const L=[...nav.querySelectorAll("button[data-tab]")], over=dragOver(nav, L, drag.b, e.clientX, e.clientY, drag.st); if(!over) return;
     const after=L.indexOf(over)>L.indexOf(drag.b);
