@@ -52,6 +52,7 @@ async def main():
         tl=await pg.eval_on_selector_all('#fd-dcard .oztile b','L=>L.map(x=>x.textContent)')
         ok(num(tl[0])==tot and abs(num(tl[1])-tan)<0.01, f'в окне: выплата {tot}, Тане 400 − доля общих = {tan} ({tl[:2]})')
         ok('Доля общих расходов магазина' in await pg.inner_text('#fd-dcard .ozd'), 'в расчёте с Таней — строка «Доля общих расходов магазина»')
+        await pg.click('#fd-dcard [data-ozrfm="sum"]'); await pg.wait_for_timeout(500)
         rf=pg.locator('#fd-dcard #oz-rfz'); await rf.fill('500'); await rf.press('Tab'); await pg.wait_for_timeout(700)
         want=round(tot-tan-tot*0.08-500,2)
         tl=await pg.eval_on_selector_all('#fd-dcard .oztile b','L=>L.map(x=>x.textContent)')
