@@ -168,7 +168,7 @@ function dPickMin(pos, date){ const ok=f=>dState(f,date)!=="bad", C=new Map(), r
 function skDeclDocs(docs){ if(!SK_READY) return; docs=(docs||[]).filter(j=>j&&j.snap); if(!docs.length) return;
   const date=docs.map(j=>j.date).sort()[0], pos=dDocPositions(docs), sel={}, extra={};
   dPickMin(pos, date).forEach((ids,pid)=>{ sel[pid]=new Set(ids); extra[pid]=new Set(); });
-  SKDD={docs, date, pos, sel, extra, cover:true, keep:true, busy:""}; { const M=SKDD; SK_RE=function r(){ SKDD=M; SK_RE=r; skModal(dDocHtml, true); }; } skModal(dDocHtml, true); if(!SK || !SK.at) skLoad(true); }
+  SKDD={docs, date, pos, sel, extra, cover:false, keep:true, busy:""}; { const M=SKDD; SK_RE=function r(){ SKDD=M; SK_RE=r; skModal(dDocHtml, true); }; } skModal(dDocHtml, true); if(!SK || !SK.at) skLoad(true); }
 function dDocHtml(){ const M=SKDD, files=skD().files, by=id=>files.find(f=>f.id===id), j0=M.docs[0], nums=M.docs.map(j=>j.number);
   const lbl=(M.docs.length>1?"Комплект № "+(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", ")):"Документ № "+j0.number)+" от "+fd(M.date)+" · "+jWho(j0).main;
   const all=new Set(); M.pos.forEach(p=>M.sel[p.id].forEach(id=>all.add(id))); const none=M.pos.filter(p=>!M.sel[p.id].size).length;
@@ -184,7 +184,7 @@ function dDocHtml(){ const M=SKDD, files=skD().files, by=id=>files.find(f=>f.id=
   return skHead("Декларации", "Декларации к документу", esc(lbl), "Декларации к документу")
    + `<div class="dd-sum"><span>Товаров: <b>${M.pos.length}</b></span><span>Деклараций выбрано: <b>${all.size}</b></span>${none?`<span class="miss">без декларации: ${none}</span>`:`<span class="pos">✓ на все товары</span>`}</div>`
    + `<div class="dd-list">${rows||`<p class="muted">В документе нет товаров.</p>`}</div>`
-   + `<div class="mi-bar"><div class="dd-opts"><label class="chk"><input type="checkbox" class="dd-cover"${M.cover?" checked":""}> Первая страница — список товаров и деклараций</label><label class="chk"><input type="checkbox" class="dd-keep"${M.keep?" checked":""}> Запомнить выбор для этих товаров</label></div>
+   + `<div class="mi-bar"><div class="dd-opts"><label class="chk"><input type="checkbox" class="dd-keep"${M.keep?" checked":""}> Запомнить выбор для этих товаров</label></div>
        <div class="dc-acts"><button class="btn" data-dd="zip"${all.size&&!M.busy?"":" disabled"}>ZIP-архив</button><button class="btn pri" data-dd="pdf"${all.size&&!M.busy?"":" disabled"}>${M.busy?`<i class="spin"></i>${esc(M.busy)}`:"Скачать одним PDF"+(all.size?" · "+all.size:"")}</button></div></div>`; }
 function dDocRedraw(){ if(!SKM||SKM.render!==dDocHtml) return; const d=SKM.d, st=d.scrollTop; d.innerHTML=dDocHtml(); d.scrollTop=st; }
 const DFC={};
