@@ -8,6 +8,7 @@ def ok(c,m): print(('OK  ' if c else 'FAIL'),m); (None if c else fails.append(m)
 def rows(sheet):
     d=json.load(urllib.request.urlopen('http://localhost:8787/dump')).get(sheet) or [[]]; h=d[0]; return [dict(zip(h,r)) for r in d[1:]]
 TAB="(t=>{document.querySelector('nav.tabs button[data-tab=\"journal\"]').click(); document.querySelector('nav.tabs button[data-tab=\"'+t+'\"]').click()})"
+PJ=os.environ.get('PDFJS_DIR','/tmp/pj/package/build')
 PDFLIB=os.environ.get('PDFLIB','/tmp/claude-0/pl/package/dist/pdf-lib.min.js')
 def img(color):
     b=io.BytesIO(); Image.new('RGB',(600,800),color).save(b,'JPEG'); return b.getvalue()
@@ -25,6 +26,8 @@ async def main():
         b=await p.chromium.launch(executable_path=os.environ.get("BROWSER_EXECUTABLE_PATH"))
         for vw in [(1300,900),(390,844)]:
             W=vw[0]; ctx=await b.new_context(viewport={'width':vw[0],'height':vw[1]}, accept_downloads=True); pg=await ctx.new_page(); errs=[]; pg.on('pageerror',lambda e:errs.append(str(e))); pg.on('dialog', lambda d: asyncio.ensure_future(d.accept()))
+            await pg.route('**/pdf.js/*/pdf.min.js', lambda r: r.fulfill(path=PJ+'/pdf.min.js', content_type='text/javascript'))
+            await pg.route('**/pdf.js/*/pdf.worker.min.js', lambda r: r.fulfill(path=PJ+'/pdf.worker.min.js', content_type='text/javascript'))
             await pg.route('**/pdf-lib.min.js', lambda r: r.fulfill(path=PDFLIB, content_type='application/javascript'))
             await pg.goto('http://localhost:8787/page'); await pg.click('#fd-who [data-who="Даниил"]'); await pg.fill('#fd-pass','1111'); await pg.click('#fd-enter'); await pg.wait_for_timeout(2500)
             # товары документов
@@ -81,11 +84,18 @@ async def main():
             ok(sel.get(f'po{W}')==1, f'{W}: огурцы — декларация по названию выбрана сама')
             ok(sel.get(f'pa{W}')==0, f'{W}: яблоки — истёкшая декларация не выбрана сама')
             ok(sel.get(f'pk{W}')==0 and 'нет декларации' in await pg.text_content('#sk-dlg'), f'{W}: капуста — «нет декларации»')
+            ok(await pg.evaluate("!document.querySelector('#sk-dlg .dd-fold').classList.contains('on')"), f'{W}: выбор по товарам свёрнут')
+            t=await pg.text_content('#sk-dlg .dd-auto'); ok('Не ко всем товарам' in t and 'Капуста' in t and 'Огурцы' in t and 'по названию' in t, f'{W}: сомнения перечислены (капуста без декларации, огурцы по названию)')
+            await pg.click('#sk-dlg [data-dd="tog"]'); await pg.wait_for_timeout(450)
             await pg.check(f'#sk-dlg input[data-ddp="pa{W}"]'); await pg.wait_for_timeout(200)
             sw=await pg.evaluate("(d=>{ const r=d.getBoundingClientRect(), R=r.left+d.clientLeft+d.clientWidth+2; return ![...d.querySelectorAll('*')].some(e=>!e.closest('#fd-toasts') && e.getBoundingClientRect().width>0 && e.getBoundingClientRect().right>R); })(document.querySelector('#sk-dlg'))"); ok(sw, f'{W}: окно деклараций без прокрутки вбок')
             await pg.screenshot(path=f'/tmp/claude-0/decl-doc-{W}.png')
-            async with pg.expect_download() as dl: await pg.click('#sk-dlg [data-dd="pdf"]')
+            await pg.click('#sk-dlg [data-dd="view"]')
+            ok(await until(pg,"!document.querySelector('#pv').hidden && !document.querySelector('.dpv-load') && document.querySelectorAll('#pv-pages .sheet.dpv').length===3"), f'{W}: открылся просмотр — 3 листа')
+            ok(await pg.evaluate("document.querySelector('#pv-signw').hidden && document.querySelector('#pv-scanw').hidden"), f'{W}: в просмотре нет «С печатью и подписью»')
+            async with pg.expect_download() as dl: await pg.click('#pv-pdf')
             d=await dl.value; data=open(await d.path(),'rb').read()
+            await pg.click('#pv-close'); ok(await until(pg,"document.querySelector('#pv').hidden && !!document.querySelector('#sk-dlg .dd-auto')"), f'{W}: «Закрыть» — снова окно деклараций')
             ok(d.suggested_filename.endswith('.pdf') and pages(data)==3, f'{W}: один PDF без титула: 1 + 2 страницы = {pages(data)} ({d.suggested_filename})')
             await pg.wait_for_timeout(1500)
             R=[r for r in rows('Склад: декларации') if r.get('№ декларации')==f'ЕАЭС N RU Д-RU.1-{W}']

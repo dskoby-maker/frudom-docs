@@ -169,23 +169,48 @@ function skDeclDocs(docs){ if(!SK_READY) return; docs=(docs||[]).filter(j=>j&&j.
   const date=docs.map(j=>j.date).sort()[0], pos=dDocPositions(docs), sel={}, extra={};
   dPickMin(pos, date).forEach((ids,pid)=>{ sel[pid]=new Set(ids); extra[pid]=new Set(); });
   SKDD={docs, date, pos, sel, extra, cover:false, keep:true, busy:""}; { const M=SKDD; SK_RE=function r(){ SKDD=M; SK_RE=r; skModal(dDocHtml, true); }; } skModal(dDocHtml, true); if(!SK || !SK.at) skLoad(true); }
+/* сомнения в подборе: нет декларации, истекла к поставке, подобрана только по названию, срок не указан, истекает ≤ 30 дней */
+function dDoubts(M){ const files=skD().files, by=id=>files.find(f=>f.id===id), out=[];
+  M.pos.forEach(p=>{ const ids=[...M.sel[p.id]], fs=ids.map(by).filter(Boolean);
+    if(!fs.length){ out.push({p, lvl:"err", t:"нет декларации"}); return; }
+    const live=fs.filter(f=>dState(f,M.date)!=="bad");
+    if(!live.length){ out.push({p, lvl:"err", t:"декларация истекла к дате поставки ("+fd(fs[0].validTo)+")"}); return; }
+    const link=live.filter(f=>dProds(f).has(p.id) || M.extra[p.id].has(f.id));
+    if(!link.length) out.push({p, lvl:"warn", t:"подобрана по названию «"+dTitle(live[0]).slice(0,60)+"» — проверьте, что это та декларация"});
+    const f=link[0]||live[0];
+    if(!f.validTo) out.push({p, lvl:"warn", t:"в декларации"+(f.num?" № "+f.num:"")+" не указан срок действия"});
+    else if(dState(f,M.date)==="warn") out.push({p, lvl:"warn", t:"декларация"+(f.num?" № "+f.num:"")+" действует только до "+fd(f.validTo)});
+    else if(dState(f)==="bad") out.push({p, lvl:"warn", t:"декларация"+(f.num?" № "+f.num:"")+" уже истекла сегодня ("+fd(f.validTo)+"), на дату поставки — действовала"}); });
+  return out; }
+const dSelList = M => { const ids=[]; M.pos.forEach(p=>M.sel[p.id].forEach(id=>{ if(!ids.includes(id)) ids.push(id); })); return ids.map(id=>skD().files.find(f=>f.id===id)).filter(Boolean); };
 function dDocHtml(){ const M=SKDD, files=skD().files, by=id=>files.find(f=>f.id===id), j0=M.docs[0], nums=M.docs.map(j=>j.number);
   const lbl=(M.docs.length>1?"Комплект № "+(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", ")):"Документ № "+j0.number)+" от "+fd(M.date)+" · "+jWho(j0).main;
-  const all=new Set(); M.pos.forEach(p=>M.sel[p.id].forEach(id=>all.add(id))); const none=M.pos.filter(p=>!M.sel[p.id].size).length;
+  const list=dSelList(M), none=M.pos.filter(p=>!M.sel[p.id].size).length, Dq=dDoubts(M), nErr=Dq.filter(x=>x.lvl==="err").length;
   const opt=(p,f,kind)=>{ const st=dState(f,M.date), on=M.sel[p.id].has(f.id);
     return `<label class="dd-o${on?" on":""}${st==="bad"?" bad":""}"><input type="checkbox" data-ddp="${p.id}" value="${f.id}"${on?" checked":""}><span><b>${esc(dTitle(f))}</b><small>${[f.num?"№ "+esc(f.num):"", kind==="s"?"привязана":kind==="w"?"по названию":"выбрана вручную"].filter(Boolean).join(" · ")}</small></span>${dBadge(f, M.date)}</label>`; };
   const rows=M.pos.map((p,i)=>{ const m=dMatch(p), shown=new Set(), parts=[];
     m.strong.forEach(f=>{ shown.add(f.id); parts.push(opt(p,f,"s")); }); m.weak.slice(0,4).forEach(f=>{ if(shown.has(f.id)) return; shown.add(f.id); parts.push(opt(p,f,"w")); });
     M.extra[p.id].forEach(id=>{ const f=by(id); if(f && !shown.has(id)){ shown.add(id); parts.push(opt(p,f,"m")); } });
     const rest=files.filter(f=>!shown.has(f.id));
-    return `<div class="dd-p${M.sel[p.id].size?"":" miss"}" style="--d:${Math.min(i,10)*25}ms"><div class="dd-ph"><b>${esc(p.name)}</b><small>${esc(qfmt(p.qty,p.unit))}</small>${M.sel[p.id].size?"":`<em>нет декларации</em>`}</div>
+    return `<div class="dd-p${M.sel[p.id].size?"":" miss"}" data-pid="${esc(p.id)}" style="--d:${Math.min(i,10)*25}ms"><div class="dd-ph"><b>${esc(p.name)}</b><small>${esc(qfmt(p.qty,p.unit))}</small>${M.sel[p.id].size?"":`<em>нет декларации</em>`}</div>
       ${parts.length?`<div class="dd-os">${parts.join("")}</div>`:""}
       <div class="dd-more">${rest.length?`<select class="dd-pick" data-ddp="${p.id}"><option value="">Другая декларация…</option>${rest.map(f=>`<option value="${f.id}">${esc(dTitle(f).slice(0,70))}${f.num?" · № "+esc(f.num):""}${f.validTo?" · до "+fd(f.validTo):""}</option>`).join("")}</select>`:""}<button type="button" class="btn ghost sm" data-dd="new" data-p="${p.id}">+ Новая декларация</button></div></div>`; }).join("");
+  const chips=list.map(f=>`<span class="dd-c"><b>${esc(dTitle(f).slice(0,48))}</b>${f.num?`<small>№ ${esc(f.num)}${f.validTo?" · до "+fd(f.validTo):""}</small>`:f.validTo?`<small>до ${fd(f.validTo)}</small>`:""}</span>`).join("");
+  const cnt=n=>n+" "+plural(n,["декларация","декларации","деклараций"]), tw=n=>n+" "+plural(n,["товару","товарам","товарам"]);
+  let top;
+  if(!M.pos.length) top="";
+  else if(!Dq.length) top=`<div class="dd-auto ok"><i aria-hidden="true">✓</i><div><b>${M.touched?"Декларации выбраны ко всем "+tw(M.pos.length):"Сайт сам подобрал декларации ко всем "+tw(M.pos.length)+" этого документа"} — ${cnt(list.length)}</b>
+      <span>Все привязаны к этим товарам и действуют на дату поставки ${fd(M.date)}.</span><div class="dd-cs">${chips}</div></div></div>`;
+  else top=`<div class="dd-auto ${nErr?"err":"warn"}"><i aria-hidden="true">!</i><div><b>${nErr?"Не ко всем товарам есть декларация — проверьте":"Подобрано "+cnt(list.length)+", но есть сомнения — проверьте"}</b>
+      <ul class="dd-dq">${Dq.map(x=>`<li class="${x.lvl}"><button type="button" data-dd="fix" data-p="${esc(x.p.id)}"><b>${esc(x.p.name)}</b> — ${esc(x.t)}<i aria-hidden="true">›</i></button></li>`).join("")}</ul>
+      ${list.length?`<div class="dd-cs">${chips}</div>`:""}</div></div>`;
   return skHead("Декларации", "Декларации к документу", esc(lbl), "Декларации к документу")
-   + `<div class="dd-sum"><span>Товаров: <b>${M.pos.length}</b></span><span>Деклараций выбрано: <b>${all.size}</b></span>${none?`<span class="miss">без декларации: ${none}</span>`:`<span class="pos">✓ на все товары</span>`}</div>`
-   + `<div class="dd-list">${rows||`<p class="muted">В документе нет товаров.</p>`}</div>`
-   + `<div class="mi-bar"><div class="dd-opts"><label class="chk"><input type="checkbox" class="dd-keep"${M.keep?" checked":""}> Запомнить выбор для этих товаров</label></div>
-       <div class="dc-acts"><button class="btn" data-dd="zip"${all.size&&!M.busy?"":" disabled"}>ZIP-архив</button><button class="btn pri" data-dd="pdf"${all.size&&!M.busy?"":" disabled"}>${M.busy?`<i class="spin"></i>${esc(M.busy)}`:"Скачать одним PDF"+(all.size?" · "+all.size:"")}</button></div></div>`; }
+   + top
+   + (M.pos.length?`<button type="button" class="dd-tog" data-dd="tog" aria-expanded="${M.open?"true":"false"}"><span>${M.open?"Скрыть выбор по товарам":"Показать выбор по товарам"}</span><small>${M.pos.length} ${plural(M.pos.length,["товар","товара","товаров"])} · ${cnt(list.length)}${none?" · без декларации: "+none:""}</small><i aria-hidden="true">⌄</i></button>`:"")
+   + `<div class="dd-fold${M.open||!M.pos.length?" on":""}"><div><div class="dd-list">${rows||`<p class="muted">В документе нет товаров.</p>`}</div>
+       <div class="dd-opts"><label class="chk"><input type="checkbox" class="dd-keep"${M.keep?" checked":""}> Запомнить выбор для этих товаров</label></div></div></div>`
+   + `<div class="mi-bar"><div class="dd-opts dd-note muted">${list.length?"Откроется просмотр — там «Печать» и «Скачать PDF»":""}</div>
+       <div class="dc-acts"><button class="btn" data-dd="zip"${list.length&&!M.busy?"":" disabled"}>ZIP-архив</button><button class="btn pri" data-dd="view"${list.length&&!M.busy?"":" disabled"}>${M.busy?`<i class="spin"></i>${esc(M.busy)}`:"Открыть"+(list.length?" · "+list.length:"")}</button></div></div>`; }
 function dDocRedraw(){ if(!SKM||SKM.render!==dDocHtml) return; const d=SKM.d, st=d.scrollTop; d.innerHTML=dDocHtml(); d.scrollTop=st; }
 const DFC={};
 async function dFetch(id){ if(DFC[id]) return DFC[id]; const j=await api({action:"stock", op:"fileGet", d:{id}}); const bin=atob(j.data), u8=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i]=bin.charCodeAt(i); return DFC[id]={name:j.name, mime:j.mime, u8}; }
@@ -206,24 +231,68 @@ function dDownload(blob, name){ const url=URL.createObjectURL(blob), a=document.
 async function dRemember(){ const M=SKDD; if(!M.keep || !dSrvOk()) return; const add={};
   M.pos.forEach(p=>M.sel[p.id].forEach(id=>{ const f=skD().files.find(x=>x.id===id); if(f && !dProds(f).has(p.id)) (add[id]=add[id]||new Set()).add(p.id); }));
   for(const id of Object.keys(add)){ const f=skD().files.find(x=>x.id===id); try{ await skSend("fileEdit",{id, prods:[...new Set(dJ(f.prods).concat([...add[id]]))]},"Декларация: привязка к позициям"); }catch(e){} } }
-async function dBuild(kind){ const M=SKDD, ids=[]; M.pos.forEach(p=>M.sel[p.id].forEach(id=>{ if(!ids.includes(id)) ids.push(id); })); if(!ids.length) return;
-  const list=ids.map(id=>skD().files.find(f=>f.id===id)).filter(Boolean);
-  try{ M.busy="Загружаю файлы 0/"+list.length; dDocRedraw(); const got=[];
-    for(let i=0;i<list.length;i++){ M.busy="Загружаю файлы "+(i+1)+"/"+list.length; dDocRedraw(); got.push(Object.assign({f:list[i]}, await dFetch(list[i].id))); }
-    if(kind==="zip"){ M.busy="Собираю архив"; dDocRedraw(); const z=new EisZip(), used={};
+async function dGot(list, busy){ const got=[]; for(let i=0;i<list.length;i++){ busy("Загружаю файлы "+(i+1)+"/"+list.length); got.push(Object.assign({f:list[i]}, await dFetch(list[i].id))); } return got; }
+async function dPdfMake(got, busy){ const L=await dLib(), out=await L.PDFDocument.create(), skipped=[];
+  for(const g of got){ try{ let u=g.u8, m=g.mime;
+      if(!dDirect(m, g.name)){ busy("Превращаю в PDF: "+g.name); const p=await dPdfOf({id:g.f.id}); u=p.u8; m="application/pdf"; }
+      await dAddToPdf(out, u, m, g.name); }catch(e){ skipped.push(Object.assign({why:e.message}, g)); } }
+  if(!out.getPageCount()) throw new Error("ни один файл не удалось вставить в PDF — скачайте ZIP-архивом");
+  return {blob:new Blob([await out.save()],{type:"application/pdf"}), skipped}; }
+const dSkipTxt = sk => "Не вставились: "+sk.map(g=>"«"+g.name+"» — "+g.why).join("; ")+". Их можно скачать ZIP-архивом.";
+async function dBuild(kind){ const M=SKDD, list=dSelList(M); if(!list.length) return;
+  const busy=t=>{ M.busy=t; dDocRedraw(); };
+  try{ const got=await dGot(list, busy);
+    if(kind==="zip"){ busy("Собираю архив"); const z=new EisZip(), used={};
       got.forEach((g,i)=>{ let n=String(i+1).padStart(2,"0")+" "+(g.f.num?g.f.num.replace(/[\\/:*?"<>|]+/g," ")+" ":"")+g.name; if(used[n]) n=i+"_"+n; used[n]=1; z.file(n.slice(0,150), g.u8); });
       dDownload(await z.generateAsync({type:"blob", mimeType:"application/zip"}), dFileName(M,"zip")); toast("ok","Архив скачан", list.length+" "+plural(list.length,["файл","файла","файлов"])+"."); }
-    else { M.busy="Собираю PDF"; dDocRedraw(); const L=await dLib(), out=await L.PDFDocument.create(), skipped=[];
-      if(M.cover){ const img=await out.embedJpg(await dCover(M, list)), pg=out.addPage([595.28,841.89]); pg.drawImage(img,{x:0,y:0,width:595.28,height:841.89}); }
-      for(const g of got){ try{ let u=g.u8, m=g.mime;
-          if(!dDirect(m, g.name)){ M.busy="Превращаю в PDF: "+g.name; dDocRedraw(); const p=await dPdfOf({id:g.f.id}); u=p.u8; m="application/pdf"; }
-          await dAddToPdf(out, u, m, g.name); }catch(e){ skipped.push(Object.assign({why:e.message}, g)); } }
-      if(out.getPageCount()===(M.cover?1:0)) throw new Error("ни один файл не удалось вставить в PDF — скачайте ZIP-архивом");
-      dDownload(new Blob([await out.save()],{type:"application/pdf"}), dFileName(M,"pdf"));
-      toast(skipped.length?"warn":"ok", skipped.length?"PDF скачан, но не всё вошло":"PDF скачан", skipped.length?"Не вставились: "+skipped.map(g=>"«"+g.name+"» — "+g.why).join("; ")+". Их можно скачать ZIP-архивом.":list.length+" "+plural(list.length,["декларация","декларации","деклараций"])+" в одном файле.", skipped.length?{ms:14000}:{}); }
+    else { busy("Собираю PDF"); const r=await dPdfMake(got, busy); dDownload(r.blob, dFileName(M,"pdf"));
+      toast(r.skipped.length?"warn":"ok", r.skipped.length?"PDF скачан, но не всё вошло":"PDF скачан", r.skipped.length?dSkipTxt(r.skipped):list.length+" "+plural(list.length,["декларация","декларации","деклараций"])+" в одном файле.", r.skipped.length?{ms:14000}:{}); }
     logEv("Склад","Скачаны декларации ("+list.length+") к "+(M.docs.length>1?"комплекту":"документу")+" № "+M.docs.map(j=>j.number).join(", "));
     M.busy=""; dDocRedraw(); dRemember();
   }catch(e){ M.busy=""; dDocRedraw(); toast("err","Не получилось собрать декларации", e.message); } }
+
+/* просмотр деклараций в стандартном окне сайта (#pv): листы-картинки, там же «Печать» и «Скачать PDF» */
+async function dImgs(F){ if(!dDirect(F.mime, F.name)) F=await dPdfOf({id:F.f.id});
+  if(/^image\//.test(F.mime||"")){ if(/heic|heif/i.test(F.mime)) throw new Error("фото HEIC браузер не показывает — скачайте ZIP-архивом"); return [URL.createObjectURL(new Blob([F.u8],{type:F.mime}))]; }
+  const P=await adPdfJs(), doc=await P.getDocument({data:F.u8.slice()}).promise, out=[];
+  for(let i=1;i<=doc.numPages;i++){ const pg=await doc.getPage(i), v=pg.getViewport({scale:1.8}), c=document.createElement("canvas"); c.width=v.width; c.height=v.height; const x=c.getContext("2d"); x.fillStyle="#fff"; x.fillRect(0,0,c.width,c.height);
+    await pg.render({canvasContext:x, viewport:v}).promise; out.push(await new Promise(ok=>c.toBlob(b=>ok(URL.createObjectURL(b)),"image/jpeg",0.9))); }
+  return out; }
+function dPrintImgs(pages, title){ const html=`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title||"Декларации")}</title><style>@page{size:A4;margin:6mm}html,body{margin:0;padding:0;background:#fff}
+    .p{height:285mm;display:flex;align-items:center;justify-content:center;break-after:page;page-break-after:always}.p:last-child{break-after:auto;page-break-after:auto}.p img{max-width:100%;max-height:100%;object-fit:contain}</style></head>
+    <body>${pages.map(u=>`<div class="p"><img src="${u}"></div>`).join("")}</body></html>`;
+  const f=document.createElement("iframe"); f.setAttribute("aria-hidden","true"); f.style.cssText="position:fixed;left:-4000px;top:0;width:900px;height:1200px;border:0;visibility:hidden";
+  document.body.appendChild(f); const d=f.contentWindow.document; d.open(); d.write(html); d.close();
+  return Promise.all([...d.images].map(im=>im.complete?0:new Promise(ok=>{ im.onload=im.onerror=ok; }))).then(()=>{ f.contentWindow.focus(); f.contentWindow.print(); setTimeout(()=>f.remove(), 60000); }); }
+async function dPreview(){ const M=SKDD, list=dSelList(M); if(!list.length || M.busy) return;
+  const title=dFileName(M,"pdf").replace(/\.pdf$/,""), docTxt=(M.docs.length>1?"комплекту":"документу")+" № "+M.docs.map(j=>j.number).join(", ");
+  const reopen=()=>{ SKDD=M; SK_RE=function r(){ SKDD=M; SK_RE=r; skModal(dDocHtml, true); }; skModal(dDocHtml, true); };
+  const C={title, pages:[], o:"portrait", decl:{M, list, imgs:[], skipped:[], loading:true,
+    close(){ C.decl.imgs.forEach(u=>/^blob:/.test(u)&&URL.revokeObjectURL(u)); C.decl.gone=1; setTimeout(reopen, 60); },
+    async print(){ if(C.decl.loading){ toast("info","Декларации ещё загружаются","Подождите пару секунд и нажмите «Печать» ещё раз."); return; }
+      if(!C.decl.imgs.length){ toast("err","Нечего печатать", dSkipTxt(C.decl.skipped)); return; }
+      logEv("Склад","Распечатаны декларации ("+list.length+") к "+docTxt); await dPrintImgs(C.decl.imgs, title); },
+    async pdf(btn){ const txt=btn.textContent; btn.disabled=true; const busy=t=>btn.textContent=t;
+      try{ const got=await dGot(list, busy); busy("Собираю PDF"); const r=await dPdfMake(got, busy); dDownload(r.blob, title+".pdf");
+        logEv("Склад","Скачаны декларации ("+list.length+") к "+docTxt);
+        toast(r.skipped.length?"warn":"ok", r.skipped.length?"PDF скачан, но не всё вошло":"PDF скачан", r.skipped.length?dSkipTxt(r.skipped):list.length+" "+plural(list.length,["декларация","декларации","деклараций"])+" в одном файле.", r.skipped.length?{ms:14000}:{}); }
+      catch(e){ toast("err","Не получилось сделать PDF", e.message); }
+      finally{ btn.disabled=false; btn.textContent=txt; } } }};
+  dRemember(); skClose(); cur=C;
+  $("#pv-title").textContent="Декларации к "+docTxt+" · "+list.length;
+  $("#pv-warn").hidden=true; $("#pv-xml").hidden=$("#pv-eis-setup").hidden=$("#pv-signw").hidden=$("#pv-scanw").hidden=true;
+  const box=$("#pv-pages"); box.innerHTML=`<div class="dpv-load"><i class="spin"></i><span>Загружаю декларации 0 из ${list.length}…</span></div>`;
+  $("#pv").hidden=false; document.body.style.overflow="hidden";
+  for(let i=0;i<list.length;i++){ if(cur!==C || C.decl.gone) return; const f=list[i];
+    const ld=box.querySelector(".dpv-load span"); if(ld) ld.textContent="Загружаю декларации "+(i+1)+" из "+list.length+"…";
+    try{ const F=Object.assign({f}, await dFetch(f.id)), im=await dImgs(F); if(cur!==C || C.decl.gone){ im.forEach(u=>URL.revokeObjectURL(u)); return; }
+      C.decl.imgs.push(...im);
+      const html=im.map((u,k)=>`<div class="sheet portrait dpv"><img src="${u}" alt="${esc(dTitle(f))}${im.length>1?", стр. "+(k+1):""}"><span class="dpv-cap">${esc(dTitle(f).slice(0,60))}${f.num?" · № "+esc(f.num):""}${im.length>1?" · стр. "+(k+1)+" из "+im.length:""}</span></div>`).join("");
+      (box.querySelector(".dpv-load")||box.lastChild||box).insertAdjacentHTML(box.querySelector(".dpv-load")?"beforebegin":"beforeend", html); fitSheets(); }
+    catch(e){ C.decl.skipped.push({name:f.name||dTitle(f), why:e.message}); } }
+  C.decl.loading=false; const ld=box.querySelector(".dpv-load"); if(ld) ld.remove();
+  if(C.decl.skipped.length){ $("#pv-warn").hidden=false; $("#pv-warn").textContent="Не показались: "+C.decl.skipped.map(g=>"«"+g.name+"» — "+g.why).join("; ")+". Их можно скачать ZIP-архивом в окне деклараций."; }
+  fitSheets(); }
 
 /* ---------- обработчики ---------- */
 document.addEventListener("click", e=>{ const t=e.target; if(!t.closest) return;
@@ -243,19 +312,22 @@ document.addEventListener("click", e=>{ const t=e.target; if(!t.closest) return;
     return; }
   const dd=t.closest("[data-dd]"); if(dd && SKDD){ const a=dd.dataset.dd;
     if(a==="pdf"||a==="zip"){ dBuild(a); return; }
+    if(a==="view"){ dPreview(); return; }
+    if(a==="tog"){ const M=SKDD; M.open=!M.open; const fo=dd.parentElement.querySelector(".dd-fold"); if(fo) fo.classList.toggle("on", M.open); dd.setAttribute("aria-expanded", M.open?"true":"false"); dd.querySelector("span").textContent=M.open?"Скрыть выбор по товарам":"Показать выбор по товарам"; return; }
+    if(a==="fix"){ const M=SKDD; M.open=true; dDocRedraw(); const el=SKM&&SKM.d.querySelector(`.dd-p[data-pid="${CSS.escape(dd.dataset.p)}"]`); if(el){ setTimeout(()=>{ el.scrollIntoView({behavior:"smooth", block:"center"}); el.classList.remove("dd-flash"); void el.offsetWidth; el.classList.add("dd-flash"); }, 60); } return; }
     if(a==="new"){ const M=SKDD, p=M.pos.find(x=>x.id===dd.dataset.p); const back=()=>{ SKDD=M; skModal(dDocHtml, true); const nf=skD().files[skD().files.length-1]; if(nf && p && dProds(nf).has(p.id)) M.sel[p.id].add(nf.id); dDocRedraw(); };
       skClose(true); dForm({chips:p?[{t:p.name, pid:p.id}]:[]}, back); return; } } });
 document.addEventListener("change", e=>{ const t=e.target; if(!t.closest) return;
   if(t.classList.contains("dcf-in") && SKDF){ dFormRead(); SKDF.files=[...(t.files||[])]; SKDF.ai=null; dRedraw(); return; }
   if(SKDD && t.closest("#sk-dlg")){ const M=SKDD;
-    if(t.dataset.ddp && t.type==="checkbox"){ if(t.checked) M.sel[t.dataset.ddp].add(t.value); else M.sel[t.dataset.ddp].delete(t.value); dDocRedraw(); return; }
-    if(t.classList.contains("dd-pick") && t.value){ M.extra[t.dataset.ddp].add(t.value); M.sel[t.dataset.ddp].add(t.value); dDocRedraw(); return; }
+    if(t.dataset.ddp && t.type==="checkbox"){ M.touched=1; if(t.checked) M.sel[t.dataset.ddp].add(t.value); else M.sel[t.dataset.ddp].delete(t.value); dDocRedraw(); return; }
+    if(t.classList.contains("dd-pick") && t.value){ M.touched=1; M.extra[t.dataset.ddp].add(t.value); M.sel[t.dataset.ddp].add(t.value); dDocRedraw(); return; }
     if(t.classList.contains("dd-cover")){ M.cover=t.checked; return; } if(t.classList.contains("dd-keep")){ M.keep=t.checked; return; } } });
 document.addEventListener("input", e=>{ const t=e.target; if(!SKDF || !t.classList || !t.classList.contains("dcf-q")) return; SKDF.q=t.value; const s=$("#dcf-sug"); if(s) s.innerHTML=dSugHtml(); });
 document.addEventListener("keydown", e=>{ const t=e.target; if(!SKDF || !t.classList) return;
   if(t.classList.contains("dcf-q")){ if(e.key==="Enter"||e.key===","){ if(!t.value.trim()) { if(e.key==="Enter") e.preventDefault(); return; } e.preventDefault(); SKDF.q=t.value; dFormRead(); dAddText(t.value); dRedraw(".dcf-q"); return; }
     if(e.key==="Backspace" && !t.value && SKDF.chips.length){ dFormRead(); SKDF.chips.pop(); dRedraw(".dcf-q"); } } }, true);
-window.__decl = { form: dForm, docs: skDeclDocs, st: () => ({F:SKDF, M:SKDD}), match: dMatch, pick: (pos,date)=>Object.fromEntries(dPickMin(pos,date)) };
+window.__decl = { form: dForm, docs: skDeclDocs, st: () => ({F:SKDF, M:SKDD}), match: dMatch, doubts: ()=>SKDD&&dDoubts(SKDD), preview: dPreview, pick: (pos,date)=>Object.fromEntries(dPickMin(pos,date)) };
 
 /* печать декларации без скачивания: PDF → картинки страниц (pdf.js), фото — как есть, Word/Excel — сначала в PDF на сервере; печать через скрытую рамку (в приложении Android её ловит мост) */
 const D_PRN='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/></svg>';
@@ -269,12 +341,6 @@ async function dPrint(id){ if(DPRN) return; DPRN=true; const t=toast("info","Г�
       for(let i=1;i<=doc.numPages;i++){ const pg=await doc.getPage(i), v=pg.getViewport({scale:2}), c=document.createElement("canvas"); c.width=v.width; c.height=v.height; const x=c.getContext("2d"); x.fillStyle="#fff"; x.fillRect(0,0,c.width,c.height);
         await pg.render({canvasContext:x, viewport:v}).promise; pages.push(c.toDataURL("image/jpeg",0.92)); } }
     if(!pages.length) throw new Error("в файле нет страниц");
-    const html=`<!doctype html><html><head><meta charset="utf-8"><title>${esc(F.name||"Декларация")}</title><style>@page{size:A4;margin:6mm}html,body{margin:0;padding:0;background:#fff}
-      .p{height:285mm;display:flex;align-items:center;justify-content:center;break-after:page;page-break-after:always}.p:last-child{break-after:auto;page-break-after:auto}.p img{max-width:100%;max-height:100%;object-fit:contain}</style></head>
-      <body>${pages.map(u=>`<div class="p"><img src="${u}"></div>`).join("")}</body></html>`;
-    const f=document.createElement("iframe"); f.setAttribute("aria-hidden","true"); f.style.cssText="position:fixed;left:-4000px;top:0;width:900px;height:1200px;border:0;visibility:hidden";
-    document.body.appendChild(f); const d=f.contentWindow.document; d.open(); d.write(html); d.close();
-    await Promise.all([...d.images].map(im=>im.complete?0:new Promise(ok=>{ im.onload=im.onerror=ok; })));
-    typeof t==="function"&&t(); f.contentWindow.focus(); f.contentWindow.print(); setTimeout(()=>{ f.remove(); pages.forEach(u=>/^blob:/.test(u)&&URL.revokeObjectURL(u)); }, 60000);
+    typeof t==="function"&&t(); await dPrintImgs(pages, F.name||"Декларация"); setTimeout(()=>pages.forEach(u=>/^blob:/.test(u)&&URL.revokeObjectURL(u)), 60000);
   }catch(e){ typeof t==="function"&&t(); toast("err","Не получилось распечатать", e.message); }
   finally{ DPRN=false; } }
