@@ -500,8 +500,15 @@ function ozPay(per){ const X=ozParts(per), A=X.A, rate=A.rate, tax=A.tot*rate, m
   const myCost=myL.reduce((s,z)=>s+z.sum,0), myMiss=myL.filter(z=>z.miss).map(z=>z.p), rfAuto=rfL.reduce((s,z)=>s+z.sum,0), rfMiss=rfL.filter(z=>z.miss).map(z=>z.p);
   const rfCost=rfm==="sum"&&rfz!=null?+rfz:rfAuto, approx=myMiss.length>0||(rfm==="sum"?rfz==null&&X.RF.L.length>0:rfMiss.length>0);
   const tg=X.tg*ozTgK(rate), tanyaG=X.F.tanya, tanya=tanyaG+tg, tMiss=X.F.TL.filter(p=>p.miss), c=A.cov[Object.keys(A.cov)[0]]||{days:0,n:0};
-  return {per, X, W:A.tot, tax, tanya, tanyaG, tg, tMiss, myCost, myMiss, myL, rfL, rfm, approx, rfz:rfz!=null?+rfz:null, rfAuto, rfMiss, rfCost, net:A.tot-tanya-tax-myCost-rfCost, miss:c.days-c.n, none:!c.n, sold:A.q,
-    paid:ozPrefK("ozTpd", per.k), open:per.b>=todayISO()}; }
+  const x={per, X, W:A.tot, tax, tanya, tanyaG, tg, tMiss, myCost, myMiss, myL, rfL, rfm, approx, rfz:rfz!=null?+rfz:null, rfAuto, rfMiss, rfCost, net:A.tot-tanya-tax-myCost-rfCost, miss:c.days-c.n, none:!c.n, sold:A.q,
+    paid:ozPrefK("ozTpd", per.k), open:per.b>=todayISO()};
+  x.sc=ozSch(x); return x; }
+/* чистыми по схемам (просьба Даниила 25.11.2026: «сколько заработал на realFBS чистыми»):
+   схема = что Озон перечислил за её товары − налог − закупка; общие расходы магазина (ваша часть, без доли Тани) делятся между FBO и realFBS по доле в выплате */
+function ozSch(x){ const X=x.X, rate=X.A.rate, my=X.gen-X.tg, wf=Math.max(0, X.fm), wr=Math.max(0, X.rf), w=wf+wr, kf=w>0?wf/w:(X.rf?0:1), kr=w>0?wr/w:(X.rf?1:0);
+  const one=(inn, cost, k, miss)=>{ const g=my*k, n0=inn*(1-rate)-cost; return {inn, tax:inn*rate, cost, k, g, gTax:g*rate, n0, net:n0+g*(1-rate), miss}; };
+  const F=one(X.fm, x.myCost, kf, x.myMiss.length>0), R=one(X.rf, x.rfCost, kr, x.rfm==="sum"?x.rfz==null&&X.RF.L.length>0:x.rfMiss.length>0);
+  return {F, R, rest:x.net-F.net-R.net}; }
 function ozPayList(){ const n=ozPayN(), P=ozPers(n), used=new Set(), t=todayISO(), hasT=ozOwnN()>0;
   const rows=P.map(per=>{ const x=ozPay(per); x.fact=x.open?null:ozPayFact(per, x.W, used); return x; });
   const wait=rows.filter(x=>!x.open&&!x.none&&x.per.pay>=t), wsum=wait.reduce((s,x)=>s+x.W,0), tOwe=rows.filter(x=>!x.open&&x.tanya>0.5&&!x.paid);
@@ -515,7 +522,7 @@ function ozPayList(){ const n=ozPayN(), P=ozPers(n), used=new Set(), t=todayISO(
       const tt=x.tanya>0.5||x.tMiss.length;
       return `<div class="ozpay ${st[0]}" data-ozpay="${p.k}" role="button" tabindex="0"><div class="ozpy1">${per}<b>${fm(x.W)} ₽</b></div>
         <div class="ozpy2"><em class="ozps ${st[0]}">${st[1]}</em>${x.miss>0&&!x.open?`<em class="ozps warn">нет ${x.miss} ${plural(x.miss,["дня","дней","дней"])}</em>`:""}</div>
-        <div class="ozpy3"><div class="me"><small>Вам чистыми</small><b class="${x.net<0?"neg":""}">${appr}${fm(x.net)}</b></div>${tt?`<div class="t${x.paid?" paid":""}"><small>Тане${x.paid?" · <i>отдал ✓</i>":""}</small><b>${x.tMiss.length?"? ":""}${fm(x.tanya)}</b></div>`:"<div></div>"}</div></div>`; }).join("")}</div>
+        <div class="ozpy3"><div class="me"><small>Вам чистыми</small><b class="${x.net<0?"neg":""}">${appr}${fm(x.net)}</b>${x.X.RF.L.length?`<small class="ozpyrf">из них realFBS <b class="${x.sc.R.net<0?"neg":""}">${x.sc.R.miss?"≈ ":""}${fm(x.sc.R.net)}</b></small>`:""}</div>${tt?`<div class="t${x.paid?" paid":""}"><small>Тане${x.paid?" · <i>отдал ✓</i>":""}</small><b>${x.tMiss.length?"? ":""}${fm(x.tanya)}</b></div>`:"<div></div>"}</div></div>`; }).join("")}</div>
   <button type="button" class="btn sm ghost" data-oz="paymore">Показать ещё 8 выплат</button>`; }
 function ozPayCard(k){ const per=ozPers(ozPayN()+12).find(p=>p.k===k); if(!per){ toast("info","Выплата не найдена"); return; }
   const x=ozPay(per), X=x.X, A=X.A, R={a:per.a, b:per.b}, rate=A.rate, pr=(L, cap)=>L.length?`<div class="ozd-h">${cap}</div>`+L.slice().sort((a,b)=>b.net-a.net).map(p=>ozPr(p, p.net, p.q+" шт · на руки "+(p.q?fm(p.net/p.q):"—")+" за шт")).join(""):"";
@@ -539,6 +546,7 @@ function ozPayCard(k){ const per=ozPers(ozPayN()+12).find(p=>p.k===k); if(!per){
       +`<div class="ozpaid">${x.paid?`<span class="ok">✓ Отдал Тане ${fm(+x.paid.s||x.tanya)} ₽ · ${fd(String(x.paid.at||"").slice(0,10))}</span><button type="button" class="btn sm ghost" data-ozpaid="off">Снять отметку</button>`:`<button type="button" class="btn sm pri" data-ozpaid="on"${x.open?" disabled title=\"Неделя ещё идёт\"":""}>Отдал Тане ${fm(x.tanya)} ₽</button>`}<button type="button" class="btn sm ghost" data-oz="own">Товар Тани и как считать ›</button></div>`
       :`<p class="muted">В этой выплате нет продаж товара Тани со склада FBO. <button type="button" class="btn sm ghost" data-oz="own">Отметить товар Тани ›</button></p>`}
     ${ozZBlock(per, x)}
+    ${ozSchBlock(x)}
     <div class="ozd-h">Ваши деньги</div>
     ${line("Выплата", "", x.W)}${x.tanya?line("− Тане", "", -x.tanya):""}${line("− Налог "+(+rate*100).toLocaleString("ru-RU")+"%", "со всей выплаты: "+fm(x.W)+" × "+(+rate*100).toLocaleString("ru-RU")+"%", -x.tax)}
     ${line("− Закупка FBO", x.myMiss.length?"не вписана у "+x.myMiss.length+" "+plural(x.myMiss.length,["товара","товаров","товаров"]):my.length?"по каждому товару — выше":"", -x.myCost)}
@@ -548,6 +556,17 @@ function ozPayCard(k){ const per=ozPers(ozPayN()+12).find(p=>p.k===k); if(!per){
     <div class="ozd-h">За какие товары эти деньги</div>${pr(X.F.TL, "FBO · товар Тани")}${pr(my, "FBO · ваш товар")}${pr(X.RF.L, "realFBS")}`;
   CARD_RE=()=>ozPayCard(k); openCard(ozHead("Озон · выплата на р/с", fm(x.W)+" ₽ за "+ozPerName(per), x.open?"неделя ещё идёт":(fact?"пришла "+(fact.d?fd(fact.d):""):"Озон перечислит ≈ "+fd(per.pay)))+`<div class="ozd" data-ozr="${per.a}_${per.b}" data-ozpk="${per.k}">${body}</div>`, true, ()=>{}); ozDlg();
   const d=$("#fd-dcard"); if(d){ d._ozpk=k; } }
+/* блок «Чистыми по схемам» в окне выплаты */
+function ozSchBlock(x){ const S=x.sc, rate=x.X.A.rate, pc=v=>ozPN(Math.round(v*1000)/10)+"%", tr=(+rate*100).toLocaleString("ru-RU")+"%";
+  const ln=(lab, v, cls)=>`<div class="ozsr${cls?" "+cls:""}"><span>${lab}</span><b class="${v<0?"neg":""}">${fm(v)}</b></div>`;
+  const card=(id, name, s, q)=>`<div class="ozsc ${s.net<0?"bad":"good"}" data-ozsc="${id}"><div class="ozsch"><small>${name}</small><b class="${s.net<0?"neg":""}">${s.miss?"≈ ":""}${fm(s.net)}</b><span>чистыми${s.miss?" · не вся закупка вписана":""}</span></div>
+    ${ln("Озон перечислил"+(q!=null?" · "+q+" шт":""), s.inn)}${ln("− Налог "+tr, -s.tax)}${ln("− Закупка", -s.cost)}${ln("Чистыми до общих расходов", s.n0, "sub")}
+    ${Math.abs(s.g)>=0.5?ln("− Доля общих расходов ("+pc(s.k)+")"+(rate?" после налога":""), s.g*(1-rate))+ln("Чистыми", s.net, "tot"):""}</div>`;
+  if(!x.X.RF.L.length && !x.X.F.L.some(p=>!p.tanya) && Math.abs(x.X.rf)<0.5) return "";
+  return `<div class="ozd-h">Чистыми по схемам</div>
+    <div class="ozscs">${card("F", "FBO · ваш товар", S.F, x.myL.reduce((s,z)=>s+z.p.q,0))}${card("R", "realFBS", S.R, x.X.RF.q)}</div>
+    ${Math.abs(S.rest)>=0.5?`<p class="muted ozgn">Ещё ${fm(S.rest)} ₽ — разница по товару Тани (её цена отличается от того, что перечислил Озон).</p>`:""}
+    <p class="muted ozgn">Общие расходы магазина (хранение, реклама, отзывы…) делятся между FBO и realFBS по тому, сколько каждая схема принесла в выплату${x.X.tg?"; доля Тани в них — уже у неё":""}. FBO + realFBS = «Вам чистыми».</p>`; }
 /* раздел «Закупка» в окне выплаты: FBO — по каждому товару, realFBS — одной суммой или по товарам */
 function ozZRow(s, z){ const p=z.p;
   return `<div class="ozd-r ozd-c ozz"><span data-ozp="${esc(z.key)}" role="button" tabindex="0"><b>${esc(p.name)}</b><small>${p.q} шт${z.c!=null?" × "+fm(z.c)+" = "+fm(z.sum)+(z.own?"":" · себестоимость с вкладки"):" · впишите цену за 1 шт"}</small></span>
