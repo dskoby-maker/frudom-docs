@@ -1453,6 +1453,31 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .dcf-meta{margin-top:14px}
 #fd-app .dd-sum{display:flex;flex-wrap:wrap;gap:6px 16px;margin:12px 0 4px;font-size:14px}#fd-app .dd-sum .pos{color:var(--ok);font-weight:600}
 #fd-app .dd-list{display:grid;gap:8px;margin-top:8px}
+/* декларации к документу: итог подбора, свёрнутый выбор, просмотр (25.11.2026) */
+#fd-app .dd-auto{display:grid;grid-template-columns:30px minmax(0,1fr);gap:12px;margin:12px 0 10px;padding:14px 16px;border-radius:16px;border:1px solid rgba(46,107,69,.18);background:rgba(46,107,69,.06);animation:fdin .3s ease both}
+#fd-app .dd-auto>i{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:700;color:#fff;background:var(--ok)}
+#fd-app .dd-auto b{display:block;font-size:15px;line-height:1.35}#fd-app .dd-auto>div>span{display:block;color:var(--muted);font-size:13px;margin-top:3px}
+#fd-app .dd-auto.warn{border-color:rgba(183,121,31,.3);background:rgba(183,121,31,.07)}#fd-app .dd-auto.warn>i{background:#b7791f}
+#fd-app .dd-auto.err{border-color:rgba(179,38,30,.28);background:rgba(179,38,30,.05)}#fd-app .dd-auto.err>i{background:var(--err)}
+#fd-app .dd-cs{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}#fd-app .dd-c{display:inline-flex;flex-direction:column;max-width:100%;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,.8);border:1px solid rgba(28,34,32,.07)}
+#fd-app .dd-c b{font-size:13px;font-weight:600;display:inline}#fd-app .dd-c small{font-size:11.5px;color:var(--muted)}
+#fd-app .dd-dq{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:4px}
+#fd-app .dd-dq button{all:unset;box-sizing:border-box;display:flex;gap:6px;align-items:baseline;width:100%;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.75);font-size:13.5px;line-height:1.35;cursor:pointer;transition:background .2s}
+#fd-app .dd-dq button:hover,#fd-app .dd-dq button:focus-visible{background:#fff}#fd-app .dd-dq button b{display:inline;font-size:13.5px}
+#fd-app .dd-dq button i{font-style:normal;margin-left:auto;padding-left:8px;color:var(--muted)}#fd-app .dd-dq li.err button{color:var(--err)}#fd-app .dd-dq li.err button b{color:var(--err)}
+#fd-app .dd-tog{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;flex-wrap:wrap;width:100%;padding:10px 14px;border-radius:12px;background:rgba(242,243,239,.8);cursor:pointer;font-size:14px;font-weight:600;transition:background .2s}
+#fd-app .dd-tog:hover,#fd-app .dd-tog:focus-visible{background:rgba(232,233,228,.95)}#fd-app .dd-tog small{font-weight:400;color:var(--muted);font-size:12.5px}
+#fd-app .dd-tog i{font-style:normal;margin-left:auto;transition:transform .3s}#fd-app .dd-tog[aria-expanded="true"] i{transform:rotate(180deg)}
+#fd-app .dd-fold{display:grid;grid-template-rows:0fr;transition:grid-template-rows .35s ease}#fd-app .dd-fold>div{overflow:hidden;min-height:0}#fd-app .dd-fold.on{grid-template-rows:1fr}
+#fd-app .dd-fold .dd-opts{margin:10px 0 2px}
+#fd-app .dd-p.dd-flash{animation:ddflash 1.4s ease}@keyframes ddflash{0%,40%{box-shadow:0 0 0 3px rgba(122,38,74,.35)}100%{box-shadow:0 0 0 0 rgba(122,38,74,0)}}
+#fd-app .dd-note{font-size:12.5px}
+#fd-app .sheet.portrait.dpv{padding:0;min-height:0;position:relative;box-sizing:border-box;width:auto;max-width:210mm}#fd-app .sheet.dpv img{display:block;width:100%;height:auto}
+#fd-app .sheet.dpv .dpv-cap{position:absolute;left:8px;top:8px;max-width:calc(100% - 16px);padding:3px 9px;border-radius:8px;background:rgba(28,34,32,.72);color:#fff;font-size:12px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#fd-app #pv-pages.snap .dpv-cap{display:none}
+#fd-app .dpv-load{display:flex;align-items:center;justify-content:center;gap:10px;color:#fff;padding:40px 10px;font-size:15px}
+#fd-app .dpv-load .spin{display:inline-block;width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:fdspin .8s linear infinite}
+@media (prefers-reduced-motion: reduce){#fd-app .dd-fold,#fd-app .dd-tog i{transition:none}#fd-app .dd-p.dd-flash,#fd-app .dd-auto{animation:none}}
 #fd-app .dd-p{padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.82);border:1px solid rgba(28,34,32,.07);animation:fdin .28s ease both;animation-delay:var(--d)}#fd-app .dd-p.miss{border-color:rgba(179,38,30,.25);background:rgba(179,38,30,.03)}
 #fd-app .dd-ph{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}#fd-app .dd-ph small{color:var(--muted)}#fd-app .dd-ph em{font-style:normal;font-size:12px;font-weight:600;color:var(--err);margin-left:auto}
 #fd-app .dd-os{display:grid;gap:4px;margin-top:8px}
@@ -5585,7 +5610,7 @@ function addSig(k){ if(!k||k.sig!==undefined||!D.signOn||!signAllowed()) return 
   return Object.assign({}, k, {sig:{stamp:s.stamp||"", sign:s.sign||"", rot:-12+(h%15), all:(cus(k.dr.customerId)||{}).signs==="3"}}); }
 const wrapSig = f => (k,P) => f(addSig(k),P);
 const KINDS={nakl:{t:"Накладная", f:wrapSig(docNakl), o:"portrait"}, invoice:{t:"Счёт на оплату", f:wrapSig(docInvoice), o:"portrait"}, torg12:{t:"ТОРГ‑12", f:wrapSig(docTorg12), o:"landscape"}, upd:{t:"УПД", f:wrapSig(docUPD), o:"landscape"}};
-function syncSignUI(){ const sid=(cur&&cur.k&&cur.k.dr.supplierId)||D.draft.supplierId, ok=signAllowed();
+function syncSignUI(){ if(cur&&cur.decl){ $("#pv-signw").hidden=$("#pv-scanw").hidden=true; return; } const sid=(cur&&cur.k&&cur.k.dr.supplierId)||D.draft.supplierId, ok=signAllowed();
   $("#pv-signw").hidden=!(ok && cur && hasSign(cur.k.dr.supplierId)); $("#pv-sign").checked=!!D.signOn;
   $("#d-signw").hidden=!(ok && hasSign(D.draft.supplierId)); $("#d-sign").checked=!!D.signOn;
   $("#pv-scanw").hidden=$("#pv-signw").hidden || !D.signOn; $("#pv-scan").checked=!!D.scanLook; $("#d-scanw").hidden=$("#d-signw").hidden || !D.signOn; $("#d-scan").checked=!!D.scanLook; }
@@ -5738,6 +5763,7 @@ function markDownloaded(id, kinds, silent){
   dirty("journal", j.id); if(curTab==="journal") renderJournal();
 }
 $("#pv-pdf").onclick=async()=>{
+  if(cur&&cur.decl){ cur.decl.pdf($("#pv-pdf")); return; }   /* декларации: PDF собирается из самих файлов */
   const btn=$("#pv-pdf"), txt=btn.textContent; btn.disabled=true; btn.textContent="Готовлю PDF…";
   try{ await pdfLibs(); const box=$("#pv-pages"); box.classList.add("snap"); fitSheets(1); const st={};
     if(cur.set){ for(const sh of box.querySelectorAll(".sheet")) await addSheets(st, [sh], sh.classList.contains("landscape")); }
@@ -5794,8 +5820,9 @@ function pdfKSync(){ const a=pdfKGet(), go=$("#d-pdfgo"); if(!go) return;
 document.querySelectorAll("#fd-app [data-pdfk]").forEach(b=>b.onclick=()=>{ const k=b.dataset.pdfk, a=pdfKGet(), on=a.includes(k);
   const nx=on?a.filter(x=>x!==k):a.concat(k); try{ localStorage.setItem("frudom-pdfk", JSON.stringify(PDFK_ALL.filter(x=>nx.includes(x)))); }catch(e){} pdfKSync(); });
 pdfKSync();
-$("#pv-close").onclick=()=>{ $("#pv").hidden=true; document.body.style.overflow=""; };
+$("#pv-close").onclick=()=>{ $("#pv").hidden=true; document.body.style.overflow=""; if(cur&&cur.decl){ const c=cur; cur=null; c.decl.close(); } };
 $("#pv-print").onclick=()=>{
+  if(cur&&cur.decl){ cur.decl.print(); return; }
   const css=$("#fd-doc-css").textContent;
   if(curUser()==="Склад" && cur && cur.k && cur.k.dr){ const M=cur.set?setDocs(cur.set):new Map([[cur.k.dr.id,[cur.kind]]]);
     M.forEach((kinds,id)=>{ const j=D.journal.find(x=>x.id===id); if(!j||!j.snap) return; const m=j.snap.meta=j.snap.meta||{}; m.pr=new Date().toISOString(); m.prn=(+m.prn||0)+1; m.prk=[...new Set([...(m.prk||[]), ...kinds])];
