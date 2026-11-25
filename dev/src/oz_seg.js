@@ -543,7 +543,7 @@ function ozPayCard(k){ const per=ozPers(ozPayN()+12).find(p=>p.k===k); if(!per){
     ${X.F.TL.length?X.F.TL.map(p=>tm==="net"?ozTRow(p, X, x.tg):`<div class="ozd-r ozd-c"><span data-ozp="${esc(p.key)}" role="button" tabindex="0"><b>${esc(p.name)}</b><small>${p.q} шт${tm==="net"?"":p.c!=null?" × "+fm(p.c)+" = "+fm(p.cost):" · впишите её цену за 1 шт"}</small></span>${tm==="net"?`<b>${fm(p.cost)}</b>`:`<input type="text" inputmode="decimal" data-money data-ozc="${esc(p.key)}" value="${p.c==null?"":esc(String(p.c))}" placeholder="её цена" class="${p.miss?"miss":""}">`}</div>`).join("")
       +(Math.abs(x.tg)>=0.5?line("Её товар", tm==="net"?"Озон перечислил"+(ozTtax()?" − налог":""):"по её цене", x.tanyaG)+line("Доля общих расходов магазина", "её товар — "+ozPN(Math.round(X.tk*1000)/10)+"% выплаты: "+fm(X.gen)+" × "+ozPN(Math.round(X.tk*1000)/10)+"%"+(tm==="net"&&ozTtax()?" − налог":""), x.tg):"")
       +line("Отдать Тане", tm==="net"?"сколько на самом деле вышло за её товар после всех расходов"+(ozTtax()?" и налога":""):"по её цене за 1 шт"+(Math.abs(X.tg)>=0.5?", минус её доля общих расходов":""), x.tanya, "tot")
-      +`<div class="ozpaid">${x.paid?`<span class="ok">✓ Отдал Тане ${fm(+x.paid.s||x.tanya)} ₽ · ${fd(String(x.paid.at||"").slice(0,10))}</span><button type="button" class="btn sm ghost" data-ozpaid="off">Снять отметку</button>`:`<button type="button" class="btn sm pri" data-ozpaid="on"${x.open?" disabled title=\"Неделя ещё идёт\"":""}>Отдал Тане ${fm(x.tanya)} ₽</button>`}<button type="button" class="btn sm ghost" data-oz="own">Товар Тани и как считать ›</button></div>`
+      +`<div class="ozpaid">${x.paid?`<span class="ok">✓ Отдал Тане ${fm(+x.paid.s||x.tanya)} ₽ · ${fd(String(x.paid.at||"").slice(0,10))}</span><button type="button" class="btn sm ghost" data-ozpaid="off">Снять отметку</button>`:`<button type="button" class="btn sm pri" data-ozpaid="on"${x.open?" disabled title=\"Неделя ещё идёт\"":""}>Отдал Тане ${fm(x.tanya)} ₽</button>`}<button type="button" class="btn sm ghost" data-oztpdf><svg viewBox="0 0 24 24" aria-hidden="true" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;margin-right:5px"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>Отчёт для Тани (PDF)</button><button type="button" class="btn sm ghost" data-oz="own">Товар Тани и как считать ›</button></div>`
       :`<p class="muted">В этой выплате нет продаж товара Тани со склада FBO. <button type="button" class="btn sm ghost" data-oz="own">Отметить товар Тани ›</button></p>`}
     ${ozZBlock(per, x)}
     ${ozSchBlock(x)}
@@ -581,6 +581,60 @@ function ozZBlock(per, x){ const X=x.X, hd=(t, v)=>`<div class="ozzh"><b>${t}</b
     ${x.rfm==="sum"?`<label class="ozd-tax ozrfz">Закупка realFBS за ${ozPerName(per)}, ₽ <input type="text" inputmode="decimal" data-money id="oz-rfz" value="${x.rfz==null?"":esc(String(x.rfz))}" placeholder="${x.rfAuto?"≈ "+fm(x.rfAuto):"одной суммой"}"></label>
       <p class="muted ozgn">Сколько всего потратили на закупку для realFBS за эти дни. Пока пусто — считаю по себестоимости проданных товаров${x.rfAuto?": "+fm(x.rfAuto)+" ₽":""}.</p>`
       :x.rfL.length?x.rfL.slice().sort((a,b)=>b.p.q-a.p.q).map(z=>ozZRow("R", z)).join(""):`<p class="muted ozgn">Продаж realFBS в этой выплате нет.</p>`}`; }
+/* ---- отчёт для Тани в PDF (просьба Даниила 25.11.2026: «скачать отчёт для Тани, где всё разложено понятно») ---- */
+function ozTRep(x){ const X=x.X, per=x.per, rate=X.A.rate, tr=(+rate*100).toLocaleString("ru-RU")+"%", tm=ozTm(), G=ozGen({a:per.a, b:per.b}), M=["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+  const yr=per.b.slice(0,4), pk=ozPN(Math.round(X.tk*1000)/10)+"%", q=X.F.TL.reduce((s,p)=>s+p.q,0), dd=d=>{ const t=String(d||"").slice(0,10); return t?+t.slice(8)+" "+M[+t.slice(5,7)-1]+" "+t.slice(0,4):""; };
+  const fact=x.open?null:ozPayFact(per, x.W, new Set()), sg=v=>`<b style="color:${v<0?"#B04A3E":"#1F2A27"}">${fm(v)}</b>`;
+  const row=(a, b, st)=>`<div data-b style="display:flex;justify-content:space-between;gap:16px;padding:7px 0;border-top:1px solid #E7E4DE;${st||""}"><span>${a}</span>${b}</div>`;
+  const h2=t=>`<div style="font-weight:700;font-size:16px;line-height:1.3;margin:26px 0 8px;color:#5A2E52">${t}</div>`;
+  const items=X.F.TL.slice().sort((a,b)=>b.net-a.net).map(p=>{ const sh=X.ft>0?x.tg*p.net/X.ft:0, tot=tm==="net"?p.cost+sh:p.cost, u=p.q?tot/p.q:0, d=p.tc!=null&&p.q?u-p.tc:null;
+    const T=Object.entries(p.types||{}).filter(([,v])=>Math.abs(v)>=0.005).sort((a,b)=>b[1]-a[1]);
+    return `<div data-b style="border:1px solid #E2DED7;border-radius:12px;padding:14px 16px;margin:0 0 12px">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:baseline"><b style="font-size:15px">${esc(p.name)}</b><span style="color:#6B706C;white-space:nowrap">${esc(ozBase(p.key))}</span></div>
+      <div style="color:#6B706C;margin:2px 0 8px">Продано: <b style="color:#1F2A27">${p.q} шт</b>${p.q&&p.sales?` · покупатели заплатили в среднем ${fm(p.sales/p.q)} ₽ за 1 шт`:""}</div>
+      <div style="font-size:12.5px;color:#6B706C;margin:6px 0 2px">Что начислил и удержал Озон:</div>
+      ${T.map(([t,v])=>row(esc(t)+(p.q?` <span style="color:#8A8F8B">· ${fm(v/p.q)} за 1 шт</span>`:""), sg(v), "font-size:13px;padding:4px 0")).join("")}
+      ${row("<b>Озон перечислил за этот товар</b>", sg(p.net), "border-top:1.5px solid #CFCAC1")}
+      ${tm==="net"?row("− Налог "+tr, sg(-p.net*rate))+(Math.abs(sh)>=0.005?row("− Доля общих расходов магазина", sg(sh)):""):row(`По цене Тани: ${p.q} шт × ${p.c!=null?fm(p.c):"—"} ₽`, sg(tot))}
+      ${row("<b>Тане за этот товар</b>", `<b style="font-size:16px;color:#2F6B4F">${fm(tot)} ₽</b>`, "border-top:1.5px solid #CFCAC1")}
+      ${p.q?`<div style="color:#6B706C;font-size:12.5px;margin-top:4px">За 1 шт вышло <b style="color:#1F2A27">${fm(u)} ₽</b>${d!=null?` · себестоимость ${fm(p.tc)} ₽ → <b style="color:${d<0?"#B04A3E":"#2F6B4F"}">${d<0?"":"+"}${fm(d)} ₽ за 1 шт</b>`:""}</div>`:""}</div>`; }).join("");
+  const gen=Math.abs(x.tg)>=0.005?`${h2("Общие расходы магазина и доля Тани")}
+    <div data-b style="color:#4A504C;margin-bottom:6px">Это расходы Озона без привязки к товару — реклама, отзывы, хранение и т. п. Они делятся по доле выплаты: товар Тани принёс <b>${pk}</b> выплаты (${fm(X.ft)} из ${fm(X.ft+X.fm+X.rf)} ₽ за все товары), поэтому на неё приходится ${pk} этих расходов.</div>
+    ${G.L.map(t=>row(esc(t.type), sg(t.v), "font-size:13px;padding:5px 0")).join("")}${Math.abs(G.rest)>=0.5?row("Прочее", sg(G.rest), "font-size:13px;padding:5px 0"):""}
+    ${row("<b>Всего общих расходов за неделю</b>", sg(X.gen), "border-top:1.5px solid #CFCAC1")}
+    ${row(`<b>Доля Тани: ${fm(X.gen)} × ${pk}</b>${tm==="net"?" − налог с этой суммы":""}`, sg(x.tg))}`:"";
+  const sum=tm==="net"?`${row("Озон перечислил за товар Тани", sg(x.X.ft))}${row("− Налог "+tr+" (каждый платит свой налог)", sg(-X.ft*rate))}${Math.abs(x.tg)>=0.005?row("− Доля общих расходов магазина ("+pk+")", sg(x.tg)):""}`
+    :`${row("Товар Тани по её цене", sg(x.tanyaG))}${Math.abs(x.tg)>=0.005?row("− Доля общих расходов магазина ("+pk+")", sg(x.tg)):""}`;
+  return `<div class="oztr" style="width:794px;box-sizing:border-box;padding:44px 48px 40px;background:#fff;color:#1F2A27;font:13.5px/1.45 'Golos Text',system-ui,sans-serif">
+    <div data-b style="display:flex;justify-content:space-between;gap:20px;align-items:flex-start">
+      <div><div style="font-size:12px;color:#8A5A80;font-weight:700;letter-spacing:.6px;text-transform:uppercase">Озон · отчёт по товару Тани</div>
+        <div style="font-size:24px;font-weight:700;margin-top:6px">Продажи за ${ozPerName(per)} ${yr}</div>
+        <div style="color:#6B706C;margin-top:4px">Магазин «${esc(ozStName(ozSel()[0]||"")||"Фруктовый Дом")}» · склад Озона (FBO)</div></div>
+      <div style="text-align:right;color:#6B706C;font-size:12.5px;white-space:nowrap">Подготовлено ${dd(todayISO())}<br>${x.open?"неделя ещё идёт":fact?"Озон перечислил "+dd(fact.d||per.pay):"Озон перечислит ≈ "+dd(per.pay)}</div></div>
+    <div data-b style="display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:12px;margin:24px 0 6px">
+      <div style="background:#EAF4EE;border-radius:14px;padding:14px 16px"><div style="color:#4A6B5A;font-size:12.5px">Тане к выплате</div><div style="font-size:28px;font-weight:700;color:#2F6B4F;margin-top:2px">${fm(x.tanya)} ₽</div><div style="color:#4A6B5A;font-size:12.5px">${x.paid?"✓ отдано "+dd(String(x.paid.at||"").slice(0,10)):"ещё не отдано"}</div></div>
+      <div style="background:#F5F3EF;border-radius:14px;padding:14px 16px"><div style="color:#6B706C;font-size:12.5px">Продано товара Тани</div><div style="font-size:22px;font-weight:700;margin-top:4px">${q} шт</div><div style="color:#6B706C;font-size:12.5px">${X.F.TL.length} ${plural(X.F.TL.length,["товар","товара","товаров"])}</div></div>
+      <div style="background:#F5F3EF;border-radius:14px;padding:14px 16px"><div style="color:#6B706C;font-size:12.5px">Вся выплата Озона</div><div style="font-size:22px;font-weight:700;margin-top:4px">${fm(x.W)} ₽</div><div style="color:#6B706C;font-size:12.5px">за все товары магазина</div></div></div>
+    ${h2("Как посчитано")}${sum}${row("<b>Тане к выплате</b>", `<b style="font-size:18px;color:#2F6B4F">${fm(x.tanya)} ₽</b>`, "border-top:2px solid #1F2A27;padding-top:9px")}
+    ${h2("По каждому товару")}${items}${gen}
+    <div data-b style="margin-top:26px;padding-top:12px;border-top:1px solid #E7E4DE;color:#8A8F8B;font-size:11.5px">Суммы — из начислений Озона за ${ozPerName(per)} ${yr}. Озон платит за неделю с понедельника по воскресенье, примерно через месяц. Плюсы — начислено, минусы — удержано Озоном.</div></div>`; }
+async function ozTPdf(k, btn){ const per=ozPers(ozPayN()+12).find(p=>p.k===k); if(!per) return; const x=ozPay(per); if(!x.X.F.TL.length){ toast("info","В этой выплате нет товара Тани"); return; }
+  const txt=btn&&btn.innerHTML; if(btn){ btn.disabled=true; btn.textContent="Готовлю PDF…"; }
+  const box=document.createElement("div"); box.style.cssText="position:absolute;left:-20000px;top:0;pointer-events:none";
+  try{ await pdfLibs(); box.innerHTML=ozTRep(x); $("#fd-app").appendChild(box); const root=box.firstElementChild; try{ await document.fonts.ready; }catch(e){}
+    const top=root.getBoundingClientRect().top, H=root.offsetHeight, W=root.offsetWidth, brk=[...root.querySelectorAll("[data-b]")].map(e=>Math.round(e.getBoundingClientRect().bottom-top)).filter(v=>v>0).sort((a,b)=>a-b);
+    const skip=el=>{ if(el===root || el.contains(root) || root.contains(el)) return false; const t=el.tagName; return !(t==="HEAD"||t==="STYLE"||t==="LINK"||t==="META"||t==="TITLE"||(el.closest&&el.closest("head"))); };
+    const cv=await window.html2canvas(root,{scale:2, backgroundColor:"#ffffff", logging:false, ignoreElements:skip}), sc=cv.width/W;
+    const pdf=new window.jspdf.jsPDF({orientation:"p", unit:"mm", format:"a4", compress:true}), mm=210/W, TOP=12, BOT=10;
+    let y=0, n=0; while(y<H-2){ const room=(297-(n?TOP:0)-BOT)/mm; let end=Math.min(H, y+room); if(end<H){ const c=brk.filter(b=>b>y+40&&b<=end); if(c.length) end=c[c.length-1]; }
+      const pc=document.createElement("canvas"); pc.width=cv.width; pc.height=Math.ceil((end-y)*sc); const g=pc.getContext("2d"); g.fillStyle="#fff"; g.fillRect(0,0,pc.width,pc.height); g.drawImage(cv,0,Math.round(y*sc),cv.width,pc.height,0,0,cv.width,pc.height);
+      if(n) pdf.addPage("a4","p"); pdf.addImage(pc.toDataURL("image/jpeg",0.92),"JPEG",0,n?TOP:0,210,(end-y)*mm); y=end; n++; }
+    if(n>1) for(let i=1;i<=n;i++){ pdf.setPage(i); pdf.setFontSize(8); pdf.setTextColor(150); pdf.text(i+" / "+n, 200, 292, {align:"right"}); }
+    const name="Отчёт для Тани — Озон "+ozPerName(per)+" "+per.b.slice(0,4); pdf.save(fileSafe(name)+".pdf");
+    logEv("Прибыль", "Озон: скачан отчёт для Тани за "+ozPerName(per)+" ("+fm(x.tanya)+" ₽)"); toast("ok","Отчёт для Тани скачан", fileSafe(name)+".pdf");
+  }catch(e){ toast("err","Не получилось сделать PDF", e.message||String(e)); }
+  finally{ box.remove(); if(btn){ btn.disabled=false; btn.innerHTML=txt; } } }
+window.__ozTRep=k=>{ const per=ozPers(30).find(p=>p.k===k); return per?ozTRep(ozPay(per)):""; };   /* для тестов */
 /* строка товара Тани в выплате: сколько вышло за 1 шт после всех расходов — и сравнение с её себестоимостью */
 function ozTRow(p, X, tg){ const sh=X.ft>0?tg*p.net/X.ft:0, tot=p.cost+sh, u=p.q?tot/p.q:0, d=p.tc!=null&&p.q?u-p.tc:null;
   return `<div class="ozd-r ozd-c ozt1"><span data-ozp="${esc(p.key)}" role="button" tabindex="0"><b>${esc(p.name)}</b><small>${p.q} шт · за 1 шт вышло <b>${fm(u)}</b>${p.tc!=null?` · себестоимость ${fm(p.tc)} → <b class="${d<0?"neg":"pos"}">${d<0?"":"+"}${fm(d)}</b>`:""}</small>
@@ -616,6 +670,7 @@ function ozDlgClick(e, d){ const t=e.target;
     if(pd.dataset.ozpaid==="off"){ if(!armed(pd,"Точно снять? Нажмите ещё раз")) return true; ozPrefSet("ozTpd", k, null); }
     else { ozPrefSet("ozTpd", k, {s:r2(x.tanya), at:new Date().toISOString(), by:curUser()}); logEv("Прибыль", "Озон: отдал Тане "+fm(x.tanya)+" ₽ за выплату "+ozPerName(per)); toast("ok","Отмечено: отдали Тане "+fm(x.tanya)+" ₽"); }
     ozDraw(); ozPayCard(k); return true; }
+  const tp=t.closest("[data-oztpdf]"); if(tp){ if(d._ozpk) ozTPdf(d._ozpk, tp); return true; }
   const o=t.closest('[data-oz="own"]'); if(o){ ozOwnOpen(); return true; }
   return false; }
 document.addEventListener("change", e=>{ const t=e.target, d=$("#fd-dcard"); if(!d||!d.contains(t)) return;
