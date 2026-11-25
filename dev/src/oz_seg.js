@@ -343,12 +343,14 @@ function ozDraw(){ const box=$("#oz"); if(!box||!OZ.d) return; const foc=documen
   ${ozSplit(C)}
   ${C.miss.length?`<div class="ozmiss" data-ozk="miss" role="button" tabindex="0"><b>Впишите себестоимость ${C.miss.length} ${plural(C.miss.length,["товара","товаров","товаров"])}</b><span>${C.miss.slice(0,4).map(p=>esc(p.name)).join(", ")}${C.miss.length>4?"…":""}</span><i aria-hidden="true">›</i></div>`:""}
   ${ozGuardCard(C)}
+  <div id="oz-ag">${ozAgHtml()}</div>
   <section class="card ozprods"><div class="ozph"><h3>Товары <small>${L.length}</small></h3>
     <div class="ozpt"><input type="search" id="oz-q" placeholder="Найти товар или артикул" value="${esc(OZU.q)}" autocomplete="off"><select id="oz-sort" data-native aria-label="Порядок">${OZ_SORT.map(([v,t])=>`<option value="${v}"${OZU.sort===v?" selected":""}>${t}</option>`).join("")}</select>
     <label class="ozal" title="Хранение, реклама, кросс-докинг и другие расходы без товара делятся по товарам пропорционально продажам"><input type="checkbox" id="oz-al"${OZU.al?" checked":""}> Разложить общие расходы (${fm(C.un)})</label></div></div>
     ${ozTable(L, C)}
   </section>
   <section class="card ozexp"><div class="ozph"><h3>Куда ушли деньги <small>удержания Озона за период</small></h3></div>${ozExp(C)}</section>`}`}`;
+  ozAgTick();
   if(fk){ const el=box.querySelector(`[data-ozc="${CSS.escape(fk)}"]`); if(el){ el.focus(); try{ el.select(); }catch(e){} } } else if(fid && /^oz-/.test(fid)){ const el=document.getElementById(fid); if(el&&el.focus){ el.focus(); if(el.type==="search"){ const v=el.value; el.setSelectionRange(v.length,v.length); } } } }
 function ozHello(hasKey){ return `<div class="ozhello"><b>Данных за этот период пока нет</b>
   <div class="ozhw"><div><span>1</span><p><b>Загрузить отчёт из кабинета</b>Озон → Финансы → Начисления → выберите период → «Скачать отчёт» (Excel). Нажмите здесь «Загрузить отчёт Excel» — сайт всё посчитает. Работает сразу.</p></div>
@@ -372,7 +374,7 @@ function ozExp(C){ const L=Object.values(C.T).filter(t=>t.grp!=="Продажи"
 function ozGuardRow(p){ const g=p.g, up=g.st==="ok"||!g.p0?0:Math.max(0,(g.st==="loss"?g.p0:g.pt)-g.price);
   return `<div class="ozgr ${g.st}" data-ozp="${esc(p.key)}" role="button" tabindex="0"><span class="ozgn"><b>${esc(p.name)}${ozTB(p)}</b><small>${g.st==="loss"?"продаёте в минус: "+fm(g.unit)+" с 1 шт":g.st==="low"?"прибыль "+fm(g.unit)+" с 1 шт — меньше цели":"прибыль "+fm(g.unit)+" с 1 шт"}${g.noCom?" · комиссия Озона в данных не видна — загрузите отчёт Excel, чтобы посчитать нужную цену":""}</small></span>
     <span class="ozgp"><small>сейчас</small><b>${fm(g.price)}</b></span><span class="ozgp"><small>без убытка</small><b class="${g.st==="loss"?"neg":""}">${ozPN(g.p0)}</b></span><span class="ozgp"><small>цель ${ozTarget()} ₽/шт</small><b>${ozPN(g.pt)}</b></span>
-    <span class="ozgu">${up?"+"+Math.ceil(up).toLocaleString("ru-RU")+" ₽":g.p0||g.st==="ok"?"✓":"?"}</span></div>`; }
+    <span class="ozgu">${up?"+"+Math.ceil(up).toLocaleString("ru-RU")+" ₽":g.p0||g.st==="ok"?"✓":"?"}${up&&g.pt&&!g.noCom&&!p.tanya&&ozAgOk()&&(OZ.keys||[]).length&&!/^sku:/.test(p.art)?`<button type="button" class="btn sm ozgset" data-ozag="price" data-art="${esc(ozBase(p.key))}" data-price="${g.pt}" data-name="${esc(p.name)}" title="Поменять цену в кабинете Озона">Поставить ${ozPN(g.pt)} ₽</button>`:""}</span></div>`; }
 function ozGuardCard(C){ const bad=C.loss.concat(C.low).sort((a,b)=>a.g.unit-b.g.unit), ok=C.L.filter(p=>p.g&&p.g.st==="ok").length, noc=C.L.filter(p=>p.q>0&&p.c==null).length;
   if(!bad.length && !ok) return "";
   return `<section class="card ozguard${C.loss.length?" bad":bad.length?" warn":" good"}"><div class="ozph"><h3>Контроль цен <small>${C.loss.length?C.loss.length+" в минус":""}${C.loss.length&&C.low.length?" · ":""}${C.low.length?C.low.length+" ниже цели":""}${!bad.length?"всё в порядке":""}</small></h3><button type="button" class="btn sm ghost" data-ozk="price">Все цены и настройка ›</button></div>
@@ -427,7 +429,7 @@ function ozType(type){ let C=ozCalc(); if(!C.T[type]) C=ozCalc({sch:"all"}); con
   const body=(Math.abs(t.un)>=0.5?`<div class="ozd-r static"><span><b>Без товара — на весь магазин</b><small>${t.grp==="Услуги FBO"?"хранение и операции на складах Озона":"начислено магазину целиком"}</small></span><b class="${t.un<0?"neg":""}">${fm(t.un)}</b></div>`:"")+L.map(x=>ozPr(x.p, x.v, x.p.q?x.p.q+" шт · "+fm(x.v/x.p.q)+" за шт":"")).join("");
   CARD_RE=()=>ozType(type); openCard(ozHead("Озон · "+esc(t.grp)+" · "+esc(ozPerTxt()), esc(type)+" — "+fm(t.s)+" ₽", "По каким товарам")+`<div class="ozd">${body}</div>`, true, ()=>{}); ozDlg(); }
 function ozDlg(){ const d=$("#fd-dcard"); if(!d||d._oz) return; d._oz=1;
-  d.addEventListener("click", e=>{ const p=e.target.closest("[data-ozp]"); if(p && !e.target.closest("input")){ const r=p.closest("[data-ozr]"), rr=r&&r.dataset.ozr.split("_"); ozProd(p.dataset.ozp, rr?{a:rr[0], b:rr[1]}:undefined); return; }
+  d.addEventListener("click", e=>{ const ag=e.target.closest("[data-ozag]"); if(ag){ ozAgClick(ag); return; } const p=e.target.closest("[data-ozp]"); if(p && !e.target.closest("input")){ const r=p.closest("[data-ozr]"), rr=r&&r.dataset.ozr.split("_"); ozProd(p.dataset.ozp, rr?{a:rr[0], b:rr[1]}:undefined); return; }
     if(ozDlgClick(e, d)) return;
     const t=e.target.closest("[data-ozt]"); if(t){ ozType(t.dataset.ozt); return; }
     const k=e.target.closest("[data-ozk2]"); if(k){ ozDetail(k.dataset.ozk2); return; }
@@ -438,7 +440,7 @@ function ozDlg(){ const d=$("#fd-dcard"); if(!d||d._oz) return; d._oz=1;
 /* ---- подключение Seller API ---- */
 function ozKeysOpen(){ const S=ozStores(), K=OZ.keys||[], ok=ozSrvOk();
   const body=!ok?`<div class="ozhello"><b>Нужно обновить скрипт таблицы</b><p class="muted">Сайт обращается к Озону через скрипт таблицы (Code.gs версии 53 и новее). Пока его нет, работает загрузка отчёта Excel.</p><button type="button" class="btn sm" id="srvOldHow">Как обновить</button></div>`
-    :`<p class="muted ozkh">Кабинет Озона → Настройки → Seller API → «Сгенерировать ключ», роль <b>Admin read only</b> (только чтение — сайт ничего не меняет в магазине). Скопируйте Client-Id и ключ. Ключ хранится в настройках скрипта таблицы, сайт видит только 4 последних знака.</p>`
+    :`<p class="muted ozkh">Кабинет Озона → Настройки → Seller API → «Сгенерировать ключ», роль <b>Admin</b> — чтобы помощник мог включать и выключать акции и менять цены по вашей кнопке (с ролью <b>Admin read only</b> работает только подсчёт). Скопируйте Client-Id и ключ. Ключ хранится в настройках скрипта таблицы, сайт видит только 4 последних знака.</p>`
     +S.map(s=>{ const k=K.find(x=>x.id===s.id); return `<div class="ozk" data-ozks="${esc(s.id)}"><div class="ozkh2"><input type="text" class="ozkn" value="${esc(s.n)}" aria-label="Название магазина" autocomplete="off"><span class="${k?"ok":"muted"}">${k?"подключён · Client-Id "+esc(k.cid)+" · ключ …"+esc(k.tail):"не подключён"}</span></div>
       <div class="ozkf"><input type="text" class="ozkc" inputmode="numeric" placeholder="Client-Id" value="${k?esc(k.cid):""}" autocomplete="off"><input type="text" class="ozkk ozsec" placeholder="${k?"новый Api-Key (если меняете)":"Api-Key"}" autocomplete="off" spellcheck="false"><button type="button" class="btn sm pri" data-ozkey="save">${k?"Заменить":"Подключить"}</button>${k?`<button type="button" class="btn sm ghost" data-ozkey="del">Отключить</button>`:""}</div>
       <div class="ozkd"><button type="button" class="btn sm ghost" data-ozkey="wipe">Удалить загруженные данные магазина</button></div></div>`; }).join("")
@@ -586,6 +588,7 @@ document.addEventListener("change", e=>{ const t=e.target, d=$("#fd-dcard"); if(
     const pe=t.closest("[data-ozper]"); if(pe){ OZU.per=pe.dataset.ozper; if(OZU.per==="c"&&!OZU.a){ const r=ozRange(); OZU.a=r[0]; OZU.b=r[1]; } ozUiSave(); ozDraw(); ozSync(false); return; }
     const sc=t.closest("[data-ozsch]"); if(sc){ OZU.sch=OZU.sch===sc.dataset.ozsch&&sc.matches(".ozspc")?"all":sc.dataset.ozsch; ozUiSave(); ozDraw(); return; }
     const vv=t.closest("[data-ozv]"); if(vv){ OZU.v=vv.dataset.ozv; ozUiSave(); ozDraw(); ozSync(false); if(OZU.v==="pay" && typeof bnSync==="function" && !BNK().ops.length) bnSync(true).then(()=>{ if(curTab==="ozon") ozDraw(); }).catch(()=>{}); return; }
+    const ag=t.closest("[data-ozag]"); if(ag){ ozAgClick(ag); return; }
     const py=t.closest("[data-ozpay]"); if(py){ ozPayCard(py.dataset.ozpay); return; }
     const k=t.closest("[data-ozk]"); if(k){ ozDetail(k.dataset.ozk); return; }
     const ty=t.closest("[data-ozt]"); if(ty){ ozType(ty.dataset.ozt); return; }
@@ -604,4 +607,69 @@ document.addEventListener("change", e=>{ const t=e.target; if(!t.matches||!t.mat
   setTimeout(()=>{ ozDraw(); const d=$("#fd-dcard"); if(d && d.contains(t)){ d.querySelectorAll(`input[data-ozc]`).forEach(x=>{ if(x.dataset.ozc===art) x.classList.toggle("miss", nw==null); }); } }, 0); });
 document.addEventListener("keydown", e=>{ const t=e.target; if(e.key!=="Enter"||!t.matches||!t.matches("input[data-ozc]")) return; e.preventDefault();
   const L=[...(t.closest("dialog")||document.getElementById("oz")).querySelectorAll("input[data-ozc]")], i=L.indexOf(t); (L[i+1]||t).focus(); if(!L[i+1]) t.blur(); });
-window.__oz={pull:f=>ozPull(f), ru:ozRu, pers:n=>ozPers(n), pay:k=>{ const p=ozPers(30).find(x=>x.k===k); return p&&ozPay(p); }, prefs:()=>getPrefs(), OZ, OZU, calc:()=>ozCalc(), auto:()=>ozAutoTick()};   /* для тестов (dev/test/ozon.py) */
+/* ---- Озон-помощник (Code.gs ≥ 55, просьба Даниила 25.11.2026): раз в 6 часов сам проверяет акции ----
+   Сайт считает экономику товара (себестоимость, % и деньги Озона за 1 шт, налог) и отправляет скрипту (agGuard),
+   скрипт по расписанию сравнивает цены акций и советует / сам выходит из убыточных акций и входит в выгодные. */
+const ozAgOk=()=>(D.srvVer||0)>=55;
+const OZAG={s:null, at:0, busy:"", err:"", gAt:0, gSig:"", t:0};
+async function ozAgApi(op, extra){ const j=await api(Object.assign({action:"ozon", op}, extra||{})); if(!j||j.ok===false) throw new Error(j&&j.error||"нет ответа"); if(j.cfg){ OZAG.s=j; OZAG.at=Date.now(); OZAG.err=""; } return j; }
+async function ozAgLoad(force){ if(!ozAgOk()||!online()||!(OZ.keys||[]).length) return; if(!force&&Date.now()-OZAG.at<120e3) return; OZAG.at=Date.now();
+  try{ await ozAgApi("agStatus"); }catch(e){ OZAG.err=e.message; } ozAgPaint(); }
+function ozAgGuard(){ const t=todayISO(), C=ozCalc({a:ozAdd(t,-29), b:t, sch:"all"}), M={};
+  C.L.forEach(p=>{ const g=p.g; if(!g||g.p0==null||g.noCom||p.tanya) return; const a=ozBase(p.key); if(!a||/^sku:/.test(a)) return;
+    const x={n:p.name, c:p.c, r:Math.round(g.r*1e4)/1e4, fix:Math.round(g.fix*100)/100, p0:g.p0, pt:g.pt, t:ozOwnT(a)?1:0};
+    if(!M[a]||x.p0>M[a].p0) M[a]=x; });
+  return {M, rate:C.rate}; }
+async function ozAgGuardPush(){ if(!ozAgOk()||!OZ.d||!online()||!(OZ.keys||[]).length) return; const G=ozAgGuard(); if(!Object.keys(G.M).length) return;
+  const sig=JSON.stringify([G.M, G.rate, ozTarget()]); if(sig===OZAG.gSig && Date.now()-OZAG.gAt<6*3600e3) return; if(Date.now()-OZAG.gAt<60e3) return;
+  OZAG.gAt=Date.now(); try{ await api({action:"ozon", op:"agGuard", items:JSON.stringify(G.M), rate:G.rate, target:ozTarget()}); OZAG.gSig=sig; }catch(e){} }
+function ozAgTick(){ clearTimeout(OZAG.t); OZAG.t=setTimeout(()=>{ ozAgGuardPush().then(()=>ozAgLoad(false)); }, 2500); }
+const ozAgWhen=iso=>{ if(!iso) return ""; const d=new Date(iso), t=todayISO(), di=d.toLocaleDateString("sv-SE"), hm=d.toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"});
+  return (di===t?"сегодня":di===ozAdd(t,-1)?"вчера":di===ozAdd(t,1)?"завтра":d.toLocaleDateString("ru-RU",{day:"numeric",month:"short"}))+" в "+hm; };
+const ozAgMode=c=>!c||!c.on?["off","Выключен"]:c.mode==="auto"?["auto","Сам включает и выключает акции"]:["adv","Только советует"];
+function ozAgProp(x){ const off=x.k==="off";
+  return `<div class="ozagp ${off?"off":"on"}"><i class="ozagk" aria-hidden="true">${off?"−":"+"}</i><span class="ozagt"><b>${esc(x.name)}</b><small>${off?"Убрать из акции":"Добавить в акцию"} «${esc(x.title)}» · ${esc(x.why)}${x.man?`<em> · ${esc(x.man)}</em>`:""}</small></span>
+    <span class="ozagb">${x.man?"":`<button type="button" class="btn sm pri" data-ozag="do" data-id="${esc(x.id)}">${off?"Убрать":"Добавить"}</button>`}<button type="button" class="btn sm ghost" data-ozag="skip" data-id="${esc(x.id)}" title="Не предлагать 2 недели">Не надо</button></span></div>`; }
+function ozAgLogRow(m){ const can=m.ok&&!m.undone&&!m.undo&&Date.now()-Date.parse(m.at)<7*864e5, what=m.k==="price"?"Цена "+ozPN(m.ap)+" ₽"+(m.prev?" (была "+ozPN(m.prev)+")":""):m.k==="on"?"Добавлен в акцию «"+m.title+"»":"Убран из акции «"+m.title+"»";
+  return `<div class="ozagl${m.ok?"":" bad"}${m.undone?" und":""}"><span><b>${esc(m.name||m.art)}</b><small>${m.undo?"Отмена · ":""}${esc(what)} · ${esc(ozAgWhen(m.at))} · ${esc(m.by==="помощник"?"помощник сам":m.by||"")}${m.ok?"":" · не получилось: "+esc(m.err)}${m.undone?" · отменено":""}</small></span>${can?`<button type="button" class="btn sm ghost" data-ozag="undo" data-id="${esc(m.lid)}">Отменить</button>`:""}</div>`; }
+function ozAgHtml(){ if(!(OZ.keys||[]).length) return "";
+  if(!ozAgOk()) return `<section class="card ozag"><div class="ozph"><h3>Помощник по Озону</h3></div><p class="muted">Помощник раз в 6 часов проверяет акции и сам выходит из убыточных. Для него нужно обновить скрипт таблицы (Code.gs версии 55).</p></section>`;
+  const S=OZAG.s; if(!S) return `<section class="card ozag"><div class="ozph"><h3>Помощник по Озону</h3></div><p class="muted">${OZAG.err?"Не получилось узнать, что с помощником: "+esc(OZAG.err):`<span class="spin"></span> Загружаю…`}</p></section>`;
+  const c=S.cfg||{}, md=ozAgMode(c), r=S.run, P=S.props||[], L=(S.log||[]).slice(0,3), nx=c.on&&S.trig&&r?new Date(Date.parse(r.at)+6*3600e3).toISOString():"";
+  return `<section class="card ozag ${md[0]}"><div class="ozph"><h3>Помощник по Озону <em class="ozagm ${md[0]}">${md[1]}</em></h3>
+      <span class="ozaga"><button type="button" class="btn sm" data-ozag="run"${OZAG.busy?" disabled":""}>${OZAG.busy?`<span class="spin"></span> ${esc(OZAG.busy)}`:"Проверить сейчас"}</button><button type="button" class="btn sm ghost" data-ozag="set">Настройки</button></span></div>
+    <p class="ozags">${r?`Проверял ${esc(ozAgWhen(r.at))}: акций ${r.acts}, предложений ${r.n}${r.done?", сделал сам "+r.done:""}`:"Ещё ни разу не проверял"}${nx?` · следующая проверка ≈ ${esc(ozAgWhen(nx))}`:c.on&&S.trig===false?` · <b class="neg">расписание не стоит</b>`:""}${S.guard?` · себестоимость ${S.guard.n} ${plural(S.guard.n,["товара","товаров","товаров"])}`:""}</p>
+    ${r&&r.err?`<p class="ozagw bad">Не получилось проверить: ${esc(r.err)}</p>`:""}${r&&r.note?`<p class="ozagw">${esc(r.note)}</p>`:""}
+    ${!c.on?`<p class="muted ozagi">Помощник выключен. В «Настройки» включите «Только советует» — первую неделю он будет только предлагать, а вы решаете.</p>`:""}
+    ${P.length?`<div class="ozagh">Предлагаю <small>${P.length}</small></div>${P.slice(0,5).map(ozAgProp).join("")}${P.length>5?`<button type="button" class="btn sm ghost" data-ozag="all">Все предложения (${P.length}) ›</button>`:""}`:r&&!r.err?`<p class="ozok">По акциям всё в порядке — менять нечего.</p>`:""}
+    ${L.length?`<div class="ozagh">Сделано <button type="button" class="btn sm ghost" data-ozag="log">Вся история ›</button></div>${L.map(ozAgLogRow).join("")}`:""}</section>`; }
+function ozAgPaint(){ const el=$("#oz-ag"); if(el) el.innerHTML=ozAgHtml(); const d=$("#fd-dcard"); if(d&&d.open&&d._ozagRe&&d.querySelector(".ozagset,.ozagw2")) d._ozagRe(); }
+function ozAgSet(){ const S=OZAG.s||{}, c=S.cfg||{}, md=ozAgMode(c)[0];
+  const body=`<div class="ozd ozagset"><p>Каждые 6 часов помощник сам (даже когда сайт закрыт) смотрит все акции магазина и сравнивает цену по акции с вашей себестоимостью и расходами Озона:</p>
+    <ul><li><b>Убрать из акции</b> — если по цене акции товар продаётся в минус.</li><li><b>Добавить в акцию</b> — если даже по максимальной цене акции прибыль не меньше вашей цели (${ozTarget()} ₽ с 1 шт).</li></ul>
+    <p class="muted">Товар без себестоимости помощник не трогает. Товар Тани и акции, где Озон просит выделить остаток, — только советует. Каждое действие записывается в «События», его можно отменить.</p>
+    <div class="ozd-h">Как работать</div><div class="pfchips">${ozChips([["off","Выключен"],["adv","Только советует"],["auto","Сам включает и выключает"]], md, "ozagmode")}</div>
+    <label class="ozd-tax">Не больше изменений за одну проверку <input type="text" inputmode="numeric" id="oz-agmax" value="${esc(String(c.max||10))}"></label>
+    <p class="muted">Советуем первую неделю «Только советует»: посмотрите, что он предлагает, и нажимайте «Убрать / Добавить» сами. Цель прибыли с 1 шт меняется в «Контроль цен → Все цены и настройка».</p>
+    ${c.on&&S.trig===false?`<p class="ozagw bad">Расписание не стоит — выключите и включите помощника ещё раз. Если не поможет: Apps Script → функция authorize → «Выполнить» → «Разрешить».</p>`:""}</div>`;
+  CARD_RE=()=>ozAgSet(); openCard(ozHead("Озон", "Помощник по акциям", "Проверка каждые 6 часов"), true, ()=>{}); const d=$("#fd-dcard"); if(!d) return; d.insertAdjacentHTML("beforeend", body); d._ozagRe=d._re=()=>ozAgSet(); ozDlg();
+  const mx=d.querySelector("#oz-agmax"); if(mx) mx.addEventListener("change", async()=>{ const v=Math.round(+String(mx.value).replace(/\s/g,"")); if(!(v>=1&&v<=50)){ toast("err","Число от 1 до 50"); return; } try{ await ozAgApi("agCfg", {max:v}); toast("ok","Сохранено: не больше "+v+" изменений за проверку"); ozAgPaint(); }catch(e){ toast("err","Не сохранилось", e.message); } }); }
+function ozAgWin(kind){ const S=OZAG.s||{}, P=S.props||[], L=S.log||[];
+  const body=kind==="log"?(L.length?L.map(ozAgLogRow).join(""):`<div class="pvempty sm"><b>Помощник ещё ничего не менял</b></div>`):P.map(ozAgProp).join("")||`<div class="pvempty sm"><b>Предложений нет</b></div>`;
+  CARD_RE=()=>ozAgWin(kind); openCard(ozHead("Озон · помощник", kind==="log"?"Что сделано":"Предлагаю — "+P.length, kind==="log"?"Последние 80 действий: акции и цены. Отменить можно в течение 7 дней":"Нажмите «Убрать / Добавить» — помощник сделает это в кабинете Озона"), true, ()=>{});
+  const d=$("#fd-dcard"); if(!d) return; d.insertAdjacentHTML("beforeend", `<div class="ozd ozagw2">${body}</div>`); d._ozagRe=d._re=()=>ozAgWin(kind); ozDlg(); }
+async function ozAgClick(b){ const a=b.dataset.ozag, id=b.dataset.id;
+  if(a==="set"){ ozAgSet(); return; } if(a==="all"||a==="log"){ ozAgWin(a); return; }
+  if(OZAG.busy){ toast("info","Помощник занят — подождите"); return; }
+  const go=async(lab, op, extra, ok)=>{ OZAG.busy=lab; ozAgPaint(); try{ const j=await ozAgApi(op, extra); if(ok) ok(j); }catch(e){ toast("err","Не получилось", e.message); } finally{ OZAG.busy=""; ozAgPaint(); } };
+  if(a==="run"){ await ozAgGuardPush(); go("Проверяю акции…", "agRun", {}, j=>{ const r=j.last||{}; if(r.err) toast("err","Помощник не смог проверить", r.err); else toast("ok","Проверено", "Акций "+r.acts+", предложений "+r.n+(r.done?", сделано "+r.done:"")); }); return; }
+  if(a==="skip"){ go("Сохраняю…", "agSkip", {pid:id, days:14}, ()=>toast("ok","Не буду предлагать это 2 недели")); return; }
+  if(a==="do"){ const x=((OZAG.s||{}).props||[]).find(y=>y.id===id); if(!x) return; if(!armed(b, x.k==="off"?"Убрать? Ещё раз":"Добавить? Ещё раз")) return;
+    go("Меняю в Озоне…", "agDo", {ids:id}, j=>{ const m=(j.made||[])[0]; if(m&&m.ok) toast("ok", m.k==="off"?"Убран из акции":"Добавлен в акцию", m.name+" · «"+m.title+"»", {action:{label:"Отменить", fn:()=>ozAgClick(Object.assign(document.createElement("b"),{dataset:{ozag:"undo2", id:m.lid}}))}}); else toast("err","Озон не принял", m?m.err:"нет ответа"); }); return; }
+  if(a==="undo"||a==="undo2"){ if(a==="undo"&&!armed(b,"Точно отменить?")) return;
+    go("Отменяю…", "agUndo", {lid:id}, j=>{ const m=(j.made||[])[0]; if(m&&m.ok) toast("ok","Отменено", m.name); else toast("err","Не получилось отменить", m?m.err:""); }); return; }
+  if(a==="price"){ const art=b.dataset.art, pr=+b.dataset.price, nm=b.dataset.name||art; if(!armed(b,"Поставить "+fm(pr)+" ₽ на Озоне? Ещё раз")) return;
+    go("Меняю цену…", "agPrice", {art, price:pr, name:nm}, j=>{ const m=(j.made||[])[0]; if(m&&m.ok) toast("ok","Цена на Озоне: "+fm(pr)+" ₽", nm+(m.prev?" · была "+fm(m.prev)+" ₽":"")+". Озон обновляет цену на витрине до нескольких минут.", {action:{label:"Вернуть", fn:()=>ozAgClick(Object.assign(document.createElement("b"),{dataset:{ozag:"undo2", id:m.lid}}))}}); else toast("err","Озон не принял цену", m?m.err:""); }); return; } }
+document.addEventListener("click", async e=>{ const m=e.target.closest&&e.target.closest("[data-ozagmode]"); if(!m) return; const v=m.dataset.ozagmode;
+  try{ const j=await ozAgApi("agCfg", v==="off"?{on:0}:{on:1, mode:v==="auto"?"auto":"advise"}); if(j.warn) toast("err","Помощник не включился", j.warn); else toast("ok","Помощник: "+ozAgMode(j.cfg)[1]); ozAgPaint(); }catch(x){ toast("err","Не сохранилось", x.message); } });
+window.__oz={pull:f=>ozPull(f), ru:ozRu, pers:n=>ozPers(n), pay:k=>{ const p=ozPers(30).find(x=>x.k===k); return p&&ozPay(p); }, prefs:()=>getPrefs(), OZ, OZU, calc:()=>ozCalc(), auto:()=>ozAutoTick(), ag:OZAG, agGuard:()=>ozAgGuard(), agPush:()=>{ OZAG.gAt=0; OZAG.gSig=""; return ozAgGuardPush(); }, agLoad:()=>ozAgLoad(true), cost:(k,v)=>ozCostSet(k,v)};   /* для тестов (dev/test/ozon.py) */
