@@ -152,9 +152,22 @@ let SKDD=null;
 function dDocPositions(docs){ const m=new Map(); docs.forEach(j=>{ const P=(j.snap&&j.snap.prods)||{}; ((j.snap&&j.snap.dr&&j.snap.dr.lines)||[]).forEach(l=>{ if(!l.productId || !(+l.qty>0)) return;
     const p=P[l.productId]||prod(l.productId)||{}; const o=m.get(l.productId)||{id:l.productId, name:l.name||p.name||"", unit:p.unit||"", qty:0}; o.qty=r3(o.qty+(+l.qty||0)); m.set(l.productId,o); }); });
   return [...m.values()]; }
+/* как можно меньше деклараций, но на все товары: сначала та, что закрывает больше товаров документа
+   (привязанная или по названию), при равенстве — со сроком действия, потом с бо́льшим числом привязок и более похожая по названию */
+function dPickMin(pos, date){ const ok=f=>dState(f,date)!=="bad", C=new Map(), res=new Map();
+  pos.forEach(p=>{ const m=dMatch(p); res.set(p.id,[]);
+    m.strong.filter(ok).forEach(f=>{ const c=C.get(f.id)||C.set(f.id,{f, P:new Set(), s:0, w:0}).get(f.id); c.P.add(p.id); c.s++; });
+    m.weak.filter(ok).forEach(f=>{ const c=C.get(f.id)||C.set(f.id,{f, P:new Set(), s:0, w:0}).get(f.id); if(!c.P.has(p.id)){ c.P.add(p.id); c.w+=f.__sc||0; } }); });
+  const left=new Set(pos.map(p=>p.id)); let L=[...C.values()];
+  while(left.size && L.length){ let best=null, bn=0;
+    L.forEach(c=>{ const n=[...c.P].filter(id=>left.has(id)).length; if(!n) return;
+      const better=!best || n>bn || (n===bn && ((!!c.f.validTo)-(!!best.f.validTo) || c.s-best.s || c.w-best.w || String(c.f.validTo||"").localeCompare(String(best.f.validTo||"")))>0);
+      if(better){ best=c; bn=n; } });
+    if(!best) break; best.P.forEach(id=>{ if(left.has(id)){ left.delete(id); res.get(id).push(best.f.id); } }); L=L.filter(c=>c!==best); }
+  return res; }
 function skDeclDocs(docs){ if(!SK_READY) return; docs=(docs||[]).filter(j=>j&&j.snap); if(!docs.length) return;
   const date=docs.map(j=>j.date).sort()[0], pos=dDocPositions(docs), sel={}, extra={};
-  pos.forEach(p=>{ const m=dMatch(p), ok=f=>dState(f,date)!=="bad"; const st=m.strong.filter(ok); sel[p.id]=new Set((st.length?st:m.weak.filter(ok).slice(0,1)).map(f=>f.id)); extra[p.id]=new Set(); });
+  dPickMin(pos, date).forEach((ids,pid)=>{ sel[pid]=new Set(ids); extra[pid]=new Set(); });
   SKDD={docs, date, pos, sel, extra, cover:true, keep:true, busy:""}; { const M=SKDD; SK_RE=function r(){ SKDD=M; SK_RE=r; skModal(dDocHtml, true); }; } skModal(dDocHtml, true); if(!SK || !SK.at) skLoad(true); }
 function dDocHtml(){ const M=SKDD, files=skD().files, by=id=>files.find(f=>f.id===id), j0=M.docs[0], nums=M.docs.map(j=>j.number);
   const lbl=(M.docs.length>1?"Комплект № "+(nums.length>2?nums[0]+"–"+nums[nums.length-1]:nums.join(", ")):"Документ № "+j0.number)+" от "+fd(M.date)+" · "+jWho(j0).main;
@@ -242,7 +255,7 @@ document.addEventListener("input", e=>{ const t=e.target; if(!SKDF || !t.classLi
 document.addEventListener("keydown", e=>{ const t=e.target; if(!SKDF || !t.classList) return;
   if(t.classList.contains("dcf-q")){ if(e.key==="Enter"||e.key===","){ if(!t.value.trim()) { if(e.key==="Enter") e.preventDefault(); return; } e.preventDefault(); SKDF.q=t.value; dFormRead(); dAddText(t.value); dRedraw(".dcf-q"); return; }
     if(e.key==="Backspace" && !t.value && SKDF.chips.length){ dFormRead(); SKDF.chips.pop(); dRedraw(".dcf-q"); } } }, true);
-window.__decl = { form: dForm, docs: skDeclDocs, st: () => ({F:SKDF, M:SKDD}), match: dMatch };
+window.__decl = { form: dForm, docs: skDeclDocs, st: () => ({F:SKDF, M:SKDD}), match: dMatch, pick: (pos,date)=>Object.fromEntries(dPickMin(pos,date)) };
 
 /* печать декларации без скачивания: PDF → картинки страниц (pdf.js), фото — как есть, Word/Excel — сначала в PDF на сервере; печать через скрытую рамку (в приложении Android её ловит мост) */
 const D_PRN='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 9V3h10v6"/><rect x="3" y="9" width="18" height="8" rx="2"/><path d="M7 14h10v7H7z"/></svg>';
