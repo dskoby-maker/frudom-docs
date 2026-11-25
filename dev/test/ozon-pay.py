@@ -56,7 +56,7 @@ async def main():
         rf=pg.locator('#fd-dcard #oz-rfz'); await rf.fill('500'); await rf.press('Tab'); await pg.wait_for_timeout(700)
         want=round(tot-tan-tot*0.08-500,2)
         tl=await pg.eval_on_selector_all('#fd-dcard .oztile b','L=>L.map(x=>x.textContent)')
-        ok(abs(num(tl[3])-want)<0.01, f'вам чистыми = выплата − Тане − налог − закупка realFBS 500 = {want} ({tl[3]})')
+        ok(abs(num(tl[4])-want)<0.01, f'вам чистыми = выплата − Тане − налог − закупка realFBS 500 = {want} ({tl[4]})')
         if ph:
             sw=await pg.evaluate("(()=>{const d=document.querySelector('#fd-dcard'), R=d.getBoundingClientRect().right; return [d.scrollWidth,d.clientWidth,[...d.querySelectorAll('*')].filter(e=>e.getBoundingClientRect().right>R+1).map(e=>e.tagName+'.'+e.className).slice(0,5)]})()")
             ok(sw[0]<=sw[1]+2, f'окно выплаты без прокрутки вбок {sw}')
