@@ -86,7 +86,7 @@ async def main():
             await pg.screenshot(path=f'/tmp/claude-0/decl-doc-{W}.png')
             async with pg.expect_download() as dl: await pg.click('#sk-dlg [data-dd="pdf"]')
             d=await dl.value; data=open(await d.path(),'rb').read()
-            ok(d.suggested_filename.endswith('.pdf') and pages(data)==4, f'{W}: один PDF: титул + 1 + 2 страницы = {pages(data)} ({d.suggested_filename})')
+            ok(d.suggested_filename.endswith('.pdf') and pages(data)==3, f'{W}: один PDF без титула: 1 + 2 страницы = {pages(data)} ({d.suggested_filename})')
             await pg.wait_for_timeout(1500)
             R=[r for r in rows('Склад: декларации') if r.get('№ декларации')==f'ЕАЭС N RU Д-RU.1-{W}']
             ok(f'po{W}' in R[0].get('Позиции документов (ID)',''), f'{W}: «запомнить выбор» — огурцы теперь привязаны')
