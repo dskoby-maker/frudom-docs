@@ -19,7 +19,8 @@ function mkSheet(name){ const data=[]; const sh={name,data,
 const ss={ getId:()=>'SS1', getSheetByName:n=>sheets[n]||null, insertSheet:n=>(sheets[n]=mkSheet(n)) };
 const ctx={ SpreadsheetApp:{getActive:()=>ss}, LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){},tryLock(){return true}})},
   ContentService:{MimeType:{JSON:'json'}, createTextOutput:t=>({t, setMimeType(){return this}})}, JSON, String, Math, Object, parseInt, Date, isNaN, Array, Session:{getScriptTimeZone:()=>'Europe/Moscow'}, PropertiesService:{getScriptProperties:()=>({getProperty:k=>props[k]||null,setProperty:(k,v)=>{props[k]=v;},deleteProperty:k=>{delete props[k];}})},
-  ScriptApp:{ getOAuthToken:()=>'tok-test' },
+  ScriptApp:{ getOAuthToken:()=>'tok-test', getProjectTriggers:()=>(ctx.__trig||[]).map(h=>({getHandlerFunction:()=>h})),
+    newTrigger:h=>({timeBased:()=>({everyHours:n=>({create:()=>{ if(ctx.__trigFail) throw new Error('нет разрешения'); (ctx.__trig=ctx.__trig||[]).push(h); return {}; }})})}) },
   UrlFetchApp:{ fetchAll:L=>{ ctx.__fetchAll=(ctx.__fetchAll||0)+1; return L.map(q=>ctx.UrlFetchApp.fetch(q.url,q)); }, fetch:(url,o)=>{ if(/googleapis\.com\/drive\/v3\/files\//.test(url)){   /* тестовый Google Диск: копия в формат Google → PDF; ctx.__conv = {n, fail} */
       const cv=ctx.__conv=ctx.__conv||{n:0}, m=url.match(/files\/([^/?]+)\/(copy|export)/)||[];
       if(cv.fail) return {getResponseCode:()=>500, getContentText:()=>'{}'};
@@ -30,7 +31,21 @@ const ctx={ SpreadsheetApp:{getActive:()=>ss}, LockService:{getScriptLock:()=>({
       const b=JSON.parse(o.payload||'{}'); (ctx.__ozCalls=ctx.__ozCalls||[]).push({path:url.replace(/^https:\/\/[^/]+/,''), b});
       if(/accrual\/types/.test(url)) return R(200, z.types||{types:[]});
       if(/accrual\/by-day/.test(url)){ const L=(z.days||{})[b.date]||[], per=z.page||1000, st=b.last_id?+b.last_id:0; return R(200,{accruals:L.slice(st,st+per), last_id:st+per<L.length?String(st+per):''}); }
-      if(/product\/info\/list/.test(url)) return R(200,{items:(z.products||[]).filter(p=>(b.sku||[]).includes(p.sku))});
+      if(/product\/info\/list/.test(url)) return R(200,{items:(z.products||[]).filter(p=>b.product_id?(b.product_id||[]).includes(String(p.id)):(b.sku||[]).includes(p.sku))});
+      /* акции (Озон-помощник): z.actions, z.aprod {id акции: [товары]}, z.acand {id: [кандидаты]}, z.prices {артикул: {price, old_price, min_price}} */
+      if(/\/v1\/actions$/.test(url)) return R(200,{result:z.actions||[]});
+      const pg=(L)=>{ const st=b.offset||0; return L.slice(st, st+(b.limit||100)); };
+      if(/\/v1\/actions\/products$/.test(url)) return R(200,{result:{products:pg((z.aprod||{})[b.action_id]||[]), total:((z.aprod||{})[b.action_id]||[]).length}});
+      if(/\/v1\/actions\/candidates$/.test(url)) return R(200,{result:{products:pg((z.acand||{})[b.action_id]||[]), total:((z.acand||{})[b.action_id]||[]).length}});
+      if(/actions\/products\/(activate|deactivate)$/.test(url)){ const on=/activate$/.test(url)&&!/deactivate$/.test(url), A=z.aprod=z.aprod||{}, C=z.acand=z.acand||{}, aid=b.action_id; A[aid]=A[aid]||[]; C[aid]=C[aid]||[];
+        const ids=on?(b.products||[]).map(x=>x.product_id):(b.product_ids||[]), okI=[], rej=[];
+        ids.forEach((id,i)=>{ if((z.reject||[]).includes(id)){ rej.push({product_id:id, reason:'тестовый отказ'}); return; }
+          if(on){ const k=C[aid].findIndex(x=>x.id===id); const x=k>=0?C[aid].splice(k,1)[0]:{id}; x.action_price=b.products[i].action_price; A[aid].push(x); }
+          else { const k=A[aid].findIndex(x=>x.id===id); if(k>=0){ const x=A[aid].splice(k,1)[0]; x.max_action_price=x.max_action_price||x.action_price; x.action_price=0; C[aid].push(x); } }
+          okI.push(id); });
+        return R(200,{result:{product_ids:okI, rejected:rej}}); }
+      if(/v5\/product\/info\/prices/.test(url)){ const P=z.prices||{}; return R(200,{items:((b.filter||{}).offer_id||[]).filter(a=>P[a]).map(a=>({offer_id:a, product_id:1, price:P[a]}))}); }
+      if(/v1\/product\/import\/prices/.test(url)){ const P=z.prices=z.prices||{}; return R(200,{result:(b.prices||[]).map(x=>{ if(!P[x.offer_id]) return {offer_id:x.offer_id, updated:false, errors:[{message:'нет товара'}]}; P[x.offer_id]=Object.assign({},P[x.offer_id],{price:+x.price, old_price:+x.old_price}); return {offer_id:x.offer_id, updated:true, errors:[]}; })}); }
       return R(404,{message:'not found'}); }
     const tbFake=(u,tok)=>{ const tb=ctx.__tb||{}, T=(tb.tokens||{})[tok]; globalThis.__tbCalls=(globalThis.__tbCalls||0)+1;   /* тестовый Т-Бизнес: ctx.__tb = {tokens:{токен:{accounts, ops}}, sslFail, proxy:{key}} */
       if(!T) return {code:401, text:'{"errorMessage":"unauthorized"}'};

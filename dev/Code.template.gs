@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 54;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 55;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -106,6 +106,7 @@ function authorize() {
   DriveApp.getRootFolder().getName();
   UrlFetchApp.fetch('https://generativelanguage.googleapis.com/', { muteHttpExceptions: true });   // доступ в интернет — для чтения сканов заявок (Gemini)
   ScriptApp.getOAuthToken();   // декларации Word/Excel → PDF через Google Диск
+  ScriptApp.getProjectTriggers();   // расписание: Озон-помощник каждые 6 часов
   const f = photoFolder_();
   Logger.log('Доступ к Диску есть. Папка для фото: ' + f.getName());
   return 'ok';
@@ -609,6 +610,7 @@ function ozon_(p, me) {
           n = ozMerge_(cur, inc || {}); }
         cur.at = new Date().toISOString(); cur.by = me.name; ozDataPut_(cur); return { ok: true, ver: CODE_VER, n: n, at: cur.at, wat: wat }; }
       finally { lock.releaseLock(); } }
+    if (/^ag[A-Z]/.test(op)) return ozAgent_(p, me, op);   /* Озон-помощник */
     if (op === 'call') {  /* bodies — до 40 запросов одного вида, идут параллельно */
       const K = ozKeys_()[String(p.id || '')], path = String(p.path || '');
       if (!K) return { ok: false, error: 'у этого магазина не подключён ключ Озона' };
@@ -620,6 +622,161 @@ function ozon_(p, me) {
     return { ok: false, error: 'неизвестное действие' };
   } catch (e) { return { ok: false, error: String(e.message || e).slice(0, 300) }; }
 }
+/* ===== Озон-помощник (Code.gs ≥ 55) — раз в 6 часов сам проверяет акции магазина =====
+   Настройки — свойство скрипта OZ_AGENT {on, mode: 'advise' (только советует) | 'auto' (сам включает/выключает), max — не больше N изменений за проверку, sid — магазин}.
+   Состояние — файл ozon-agent.json в папке «Документы ФД — Озон» (свойство OZ_AG_FILE):
+   {guard: {at, by, rate, target, items: {артикул: {n, c, r, fix, p0, pt, t}}}, run: {…последняя проверка}, props: [предложения], log: [что сделано], skip: {ключ: до какого времени не предлагать}}.
+   Экономику товара (себестоимость, % и деньги Озона за 1 шт, налог) считает сайт и присылает (op agGuard) — скрипт только сравнивает с ней цены акций.
+   Правила: из акции выйти, если цена по акции ниже цены без убытка; в акцию войти, если максимальная цена акции даёт прибыль не меньше цели.
+   Товар без себестоимости — не трогается; товар Тани и акции, где нужен остаток, — только совет. Ставит триггер ozAgentTick (нужно разрешение authorize). */
+const OZ_AG_DEF = { on: false, mode: 'advise', max: 10, sid: '' };
+function ozAgCfg_() { let c = {}; try { c = JSON.parse(PropertiesService.getScriptProperties().getProperty('OZ_AGENT') || '{}') || {}; } catch (e) { c = {}; } return Object.assign({}, OZ_AG_DEF, c); }
+function ozAgGet_() { const id = PropertiesService.getScriptProperties().getProperty('OZ_AG_FILE'); let s = null;
+  if (id) { try { s = JSON.parse(DriveApp.getFileById(id).getBlob().getDataAsString('UTF-8')); } catch (e) { s = null; } }
+  s = s || {}; s.props = s.props || []; s.log = s.log || []; s.skip = s.skip || {}; return s; }
+function ozAgPut_(s) { const pr = PropertiesService.getScriptProperties(), old = pr.getProperty('OZ_AG_FILE'), now = Date.now();
+  s.log = (s.log || []).slice(0, 300); Object.keys(s.skip || {}).forEach(k => { if (s.skip[k] < now) delete s.skip[k]; });
+  const f = ozFolder_().createFile(Utilities.newBlob(JSON.stringify(s), 'application/json', 'ozon-agent.json'));
+  pr.setProperty('OZ_AG_FILE', f.getId()); if (old) { try { DriveApp.getFileById(old).setTrashed(true); } catch (e) {} } }
+function ozAgEdit_(fn) { const lock = LockService.getScriptLock(); if (!lock.tryLock(20000)) throw new Error('таблица занята, повторите через минуту');
+  try { const s = ozAgGet_(), r = fn(s); ozAgPut_(s); return r; } finally { lock.releaseLock(); } }
+function ozAgKey_(cfg) { const keys = ozKeys_(), sid = cfg.sid && keys[cfg.sid] ? cfg.sid : Object.keys(keys)[0]; return sid ? { sid: sid, K: keys[sid] } : null; }
+/* прибыль с 1 шт при цене x: (x·(1 − % Озона) − деньги Озона за шт)·(1 − налог) − себестоимость — та же формула, что «Контроль цен» на сайте */
+function ozAgUnit_(g, x, rate) { return Math.round(((x * (1 - (+g.r || 0)) - (+g.fix || 0)) * (1 - rate) - (+g.c || 0)) * 100) / 100; }
+function ozAgErr_(r, path) { return path + ': Озон ответил ' + (r.code || 'нет связи') + (r.body && r.body.message ? ' — ' + r.body.message : r.text ? ' — ' + r.text : ''); }
+function ozAgPages_(K, path, aid, cap) { const out = []; let last = '', off = 0;
+  for (let i = 0; i < 10 && out.length < cap; i++) { const b = { action_id: aid, limit: 100 }; if (last) b.last_id = last; else b.offset = off;
+    const r = ozRes_(UrlFetchApp.fetch(OZ_URL + path, ozOpt_(K, b))); if (r.code !== 200 || !r.body) throw new Error(ozAgErr_(r, path));
+    const R = r.body.result || {}, L = R.products || []; L.forEach(x => out.push(x));
+    if (L.length < 100) break; if (R.last_id && R.last_id !== last) last = R.last_id; else if (!R.last_id) off += L.length; else break; }
+  return out; }
+function ozAgOffers_(K, ids) { const M = {}, L = []; for (let i = 0; i < ids.length; i += 100) L.push(ids.slice(i, i + 100));
+  if (!L.length) return M;
+  UrlFetchApp.fetchAll(L.map(ch => Object.assign({ url: OZ_URL + '/v3/product/info/list' }, ozOpt_(K, { product_id: ch.map(String) })))).forEach(r => { const j = ozRes_(r);
+    const items = j.body ? (j.body.items || (j.body.result && j.body.result.items) || []) : []; items.forEach(x => { if (x && x.id != null) M[String(x.id)] = { art: String(x.offer_id || ''), name: String(x.name || '') }; }); });
+  return M; }
+function ozAgRun_(who) {
+  const cfg = ozAgCfg_(), key = ozAgKey_(cfg), st0 = ozAgGet_(), now = Date.now();
+  const run = { at: new Date().toISOString(), by: who, acts: 0, seen: 0, n: 0, done: 0, err: '', note: '', mode: cfg.on ? cfg.mode : 'off' };
+  let props = [], made = [];
+  try {
+    if (!key) throw new Error('не подключён ключ Озона');
+    const G = (st0.guard && st0.guard.items) || {}, rate = st0.guard ? +st0.guard.rate || 0 : 0.08, target = st0.guard && st0.guard.target != null ? +st0.guard.target : 50;
+    const gAge = st0.guard ? (now - Date.parse(st0.guard.at)) / 864e5 : 999;
+    if (gAge > 14) run.note = st0.guard ? 'Себестоимость с сайта старше 14 дней — откройте вкладку «Озон», чтобы помощник считал по свежим данным' : 'Сайт ещё не прислал себестоимость товаров — откройте вкладку «Озон»';
+    const A = ozRes_(UrlFetchApp.fetch(OZ_URL + '/v1/actions', ozGet_(key.K)));
+    if (A.code !== 200 || !A.body) throw new Error(ozAgErr_(A, '/v1/actions'));
+    const acts = (A.body.result || []).filter(a => a && a.id != null && (!a.date_end || !(Date.parse(a.date_end) < now))).slice(0, 25);
+    run.acts = acts.length;
+    const rows = [];
+    acts.forEach(a => {
+      if (a.participating_products_count !== 0) ozAgPages_(key.K, '/v1/actions/products', +a.id, 500).forEach(p => rows.push({ a: a, p: p, on: true }));
+      if (a.potential_products_count !== 0) ozAgPages_(key.K, '/v1/actions/candidates', +a.id, 500).forEach(p => rows.push({ a: a, p: p, on: false }));
+    });
+    run.seen = rows.length;
+    const ids = []; rows.forEach(x => { const id = String(x.p.id != null ? x.p.id : x.p.product_id); x.pid = id; if (ids.indexOf(id) < 0) ids.push(id); });
+    const OF = gAge > 14 ? {} : ozAgOffers_(key.K, ids), seenK = {};
+    if (gAge <= 14) rows.forEach(x => {
+      const o = OF[x.pid], art = o && o.art, g = art && G[art], k = x.a.id + '|' + x.pid; if (!g || g.p0 == null || seenK[k]) return; seenK[k] = 1;
+      if (st0.skip[k] && st0.skip[k] > now) return;
+      const base = { aid: String(x.a.id), title: String(x.a.title || 'Акция ' + x.a.id), end: String(x.a.date_end || ''), pid: x.pid, art: art, name: g.n || o.name || art, p0: g.p0, pt: g.pt, c: g.c };
+      if (x.on) { const ap = +x.p.action_price; if (!(ap > 0)) return; const u = ozAgUnit_(g, ap, rate); if (u >= -0.5) return;
+        props.push(Object.assign(base, { k: 'off', ap: ap, u: u, why: 'по акции ' + ap + ' ₽ — минус ' + Math.abs(Math.round(u)) + ' ₽ с каждой продажи (без убытка от ' + g.p0 + ' ₽)' }));
+      } else { const mx = +x.p.max_action_price; if (!(mx > 0)) return; const u = ozAgUnit_(g, mx, rate); if (u < target) return;
+        const pr = Object.assign(base, { k: 'on', ap: mx, u: u, why: 'можно по ' + mx + ' ₽ — прибыль ≈ ' + Math.round(u) + ' ₽ с 1 шт (цель ' + target + ' ₽)' });
+        if (+x.p.min_stock > 0) { pr.stock = Math.max(+x.p.min_stock, +x.p.stock || 0); pr.man = 'для этой акции Озон просит выделить остаток (' + pr.stock + ' шт) — проверьте и включите сами'; }
+        props.push(pr); }
+      if (g.t) props[props.length - 1].man = 'товар Тани — помощник только советует';
+    });
+    props.forEach(x => { x.id = x.k + ':' + x.aid + ':' + x.pid; });
+    props.sort((a, b) => (a.k === b.k ? (a.k === 'off' ? a.u - b.u : b.u - a.u) : a.k === 'off' ? -1 : 1));
+    run.n = props.length;
+    if (cfg.on && cfg.mode === 'auto') { const todo = props.filter(x => !x.man).slice(0, Math.max(0, +cfg.max || 0));
+      if (todo.length) { made = ozAgExec_(key.K, todo, who === 'auto' ? 'помощник' : who); const okIds = made.filter(m => m.ok).map(m => m.id); props = props.filter(x => okIds.indexOf(x.id) < 0); run.done = okIds.length; } }
+  } catch (e) { run.err = String(e.message || e).slice(0, 300); }
+  const prevIds = (st0.props || []).map(x => x.id);
+  ozAgEdit_(s => { s.run = run; if (!run.err) s.props = props; made.slice().reverse().forEach(m => s.log.unshift(m)); });
+  const fresh = props.filter(x => prevIds.indexOf(x.id) < 0);
+  const ev = made.map(m => ({ action: 'Озон', text: (m.ok ? (m.k === 'on' ? 'Добавил в акцию' : 'Убрал из акции') : 'Не получилось ' + (m.k === 'on' ? 'добавить в акцию' : 'убрать из акции')) + ' «' + m.title + '»: ' + m.name + ' (' + m.art + ') — ' + m.why + (m.ok ? '' : ' · ' + m.err) }));
+  if (fresh.length) ev.push({ action: 'Озон', text: 'Помощник предлагает ' + fresh.length + ' ' + (fresh.length === 1 ? 'изменение' : 'изменений') + ' по акциям: ' + fresh.slice(0, 3).map(x => (x.k === 'on' ? '+ ' : '− ') + x.name).join('; ') + (fresh.length > 3 ? '…' : '') + ' — вкладка «Озон»' });
+  if (run.err && who === 'auto') ev.push({ action: 'Озон', text: 'Помощник не смог проверить акции: ' + run.err });
+  try { if (ev.length) log_({ name: 'Озон-помощник' }, ev); } catch (e) {}
+  return run;
+}
+function ozGet_(K) { return { method: 'get', headers: { 'Client-Id': String(K.c), 'Api-Key': String(K.k) }, muteHttpExceptions: true }; }
+function ozAgExec_(K, L, who) { const out = [], grp = {};
+  L.forEach(x => { (grp[x.k + '|' + x.aid] = grp[x.k + '|' + x.aid] || []).push(x); });
+  Object.keys(grp).forEach(gk => { const G = grp[gk], on = G[0].k === 'on', aid = +G[0].aid;
+    const body = on ? { action_id: aid, products: G.map(x => { const o = { product_id: +x.pid, action_price: +x.ap }; if (x.stock) o.stock = +x.stock; return o; }) } : { action_id: aid, product_ids: G.map(x => +x.pid) };
+    let r; try { r = ozRes_(UrlFetchApp.fetch(OZ_URL + '/v1/actions/products/' + (on ? 'activate' : 'deactivate'), ozOpt_(K, body))); } catch (e) { r = { code: 0, body: null, text: String(e.message || e) }; }
+    const R = (r.body && r.body.result) || {}, okIds = (R.product_ids || []).map(String), rej = {}; (R.rejected || []).forEach(j => { rej[String(j.product_id)] = String(j.reason || 'отклонено'); });
+    G.forEach(x => { const ok = r.code === 200 && !rej[String(x.pid)] && (!R.product_ids || okIds.indexOf(String(x.pid)) >= 0);
+      out.push(Object.assign({}, x, { lid: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), at: new Date().toISOString(), by: who, ok: ok, err: ok ? '' : (rej[String(x.pid)] || ozAgErr_(r, 'акция')).slice(0, 200) })); }); });
+  return out; }
+function ozAgTrig_() { return ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'ozAgentTick'); }
+/* триггер: каждые 6 часов. Ставится сам при включении помощника на сайте (нужно разрешение — функция authorize) */
+function ozAgentTick() { const cfg = ozAgCfg_(); if (!cfg.on) return 'off'; return JSON.stringify(ozAgRun_('auto')); }
+function ozAgView_(s) { const cfg = ozAgCfg_(); let trig = null; try { trig = ozAgTrig_(); } catch (e) { trig = null; }
+  return { ok: true, ver: CODE_VER, cfg: cfg, trig: trig, run: s.run || null, props: s.props || [], log: (s.log || []).slice(0, 80),
+    guard: s.guard ? { at: s.guard.at, by: s.guard.by, n: Object.keys(s.guard.items || {}).length, target: s.guard.target } : null }; }
+function ozAgent_(p, me, op) {
+  if (op === 'agStatus') return ozAgView_(ozAgGet_());
+  if (op === 'agGuard') { let it = p.items; if (typeof it === 'string') { try { it = JSON.parse(it); } catch (e) { return { ok: false, error: 'данные не прочитались' }; } }
+    if (!it || typeof it !== 'object') return { ok: false, error: 'нет данных' }; const clean = {};
+    Object.keys(it).slice(0, 3000).forEach(a => { const g = it[a] || {}; if (!a || !isFinite(+g.p0)) return;
+      clean[String(a).slice(0, 80)] = { n: String(g.n || '').slice(0, 120), c: +g.c || 0, r: Math.max(0, Math.min(0.95, +g.r || 0)), fix: +g.fix || 0, p0: Math.round(+g.p0), pt: isFinite(+g.pt) ? Math.round(+g.pt) : null, t: g.t ? 1 : 0 }; });
+    ozAgEdit_(s => { s.guard = { at: new Date().toISOString(), by: me.name, rate: Math.max(0, Math.min(0.5, +p.rate || 0)), target: isFinite(+p.target) ? +p.target : 50, items: clean }; });
+    return { ok: true, n: Object.keys(clean).length }; }
+  if (op === 'agCfg') { const c = ozAgCfg_();
+    if (p.on != null) c.on = String(p.on) === '1' || p.on === true; if (p.mode === 'auto' || p.mode === 'advise') c.mode = p.mode;
+    if (p.max != null && isFinite(+p.max)) c.max = Math.max(1, Math.min(50, Math.round(+p.max))); if (p.sid != null) c.sid = String(p.sid).slice(0, 30);
+    let warn = '';
+    if (c.on) { try { if (!ozAgTrig_()) ScriptApp.newTrigger('ozAgentTick').timeBased().everyHours(6).create(); }
+      catch (e) { warn = 'Расписание не поставилось: нужно разрешение. В Apps Script выберите функцию authorize → «Выполнить» → «Разрешить», потом включите помощника ещё раз. (' + String(e.message || e).slice(0, 120) + ')'; c.on = false; } }
+    PropertiesService.getScriptProperties().setProperty('OZ_AGENT', JSON.stringify(c));
+    try { log_(me, [{ action: 'Озон', text: 'Помощник по Озону: ' + (c.on ? (c.mode === 'auto' ? 'сам включает и выключает акции' : 'только советует') + ', не больше ' + c.max + ' изменений за проверку' : 'выключен') }]); } catch (e) {}
+    const v = ozAgView_(ozAgGet_()); v.warn = warn; return v; }
+  if (op === 'agRun') { const r = ozAgRun_(me.name); const v = ozAgView_(ozAgGet_()); v.last = r; return v; }
+  if (op === 'agSkip') { const id = String(p.pid || ''), days = Math.max(1, Math.min(90, +p.days || 14));
+    ozAgEdit_(s => { const x = s.props.find(y => y.id === id); if (!x) return; s.skip[x.aid + '|' + x.pid] = Date.now() + days * 864e5; s.props = s.props.filter(y => y.id !== id); });
+    return ozAgView_(ozAgGet_()); }
+  const key = ozAgKey_(ozAgCfg_()); if (!key) return { ok: false, error: 'не подключён ключ Озона' };
+  if (op === 'agDo') { const ids = (Array.isArray(p.ids) ? p.ids : String(p.ids || '').split(',')).map(String);
+    const s0 = ozAgGet_(), L = s0.props.filter(x => ids.indexOf(x.id) >= 0); if (!L.length) return { ok: false, error: 'предложение уже неактуально — нажмите «Проверить сейчас»' };
+    const made = ozAgExec_(key.K, L, me.name), ok = made.filter(m => m.ok).map(m => m.id);
+    ozAgEdit_(s => { s.props = s.props.filter(x => ok.indexOf(x.id) < 0); made.slice().reverse().forEach(m => s.log.unshift(m)); });
+    try { log_(me, made.map(m => ({ action: 'Озон', text: (m.ok ? (m.k === 'on' ? 'Добавил в акцию' : 'Убрал из акции') : 'Не получилось изменить акцию') + ' «' + m.title + '»: ' + m.name + ' (' + m.art + ')' + (m.ok ? '' : ' — ' + m.err) }))); } catch (e) {}
+    const v = ozAgView_(ozAgGet_()); v.made = made; return v; }
+  if (op === 'agUndo') { const lid = String(p.lid || ''), s0 = ozAgGet_(), x = s0.log.find(y => y.lid === lid);
+    if (!x || !x.ok || x.undone) return { ok: false, error: 'это действие уже отменено или не найдено' };
+    let made;
+    if (x.k === 'price') made = [ozAgPriceSet_(key.K, x.art, x.prev, x.prevOld, me.name, x.name)];
+    else { const back = Object.assign({}, x, { k: x.k === 'on' ? 'off' : 'on', why: 'отмена: ' + x.why }); delete back.stock; made = ozAgExec_(key.K, [back], me.name); }
+    const m = made[0];
+    ozAgEdit_(s => { const y = s.log.find(z => z.lid === lid); if (y && m.ok) y.undone = { at: m.at, by: me.name }; m.undo = lid; s.log.unshift(m); });
+    try { log_(me, [{ action: 'Озон', text: (m.ok ? 'Отменил: ' : 'Не получилось отменить: ') + x.name + ' (' + x.art + ')' + (m.ok ? '' : ' — ' + m.err) }]); } catch (e) {}
+    const v = ozAgView_(ozAgGet_()); v.made = made; return v; }
+  if (op === 'agPrice') { const art = String(p.art || '').trim(), price = Math.round(+p.price);
+    if (!art || !(price > 0)) return { ok: false, error: 'нет артикула или цены' };
+    const cur = ozAgPrices_(key.K, [art])[art]; if (!cur) return { ok: false, error: 'Озон не нашёл товар с артикулом ' + art };
+    if (cur.min && price < cur.min) return { ok: false, error: 'новая цена ' + price + ' ₽ ниже минимальной цены в кабинете (' + cur.min + ' ₽)' };
+    const m = ozAgPriceSet_(key.K, art, price, cur.old > price ? cur.old : 0, me.name, String(p.name || art)); m.prev = cur.price; m.prevOld = cur.old;
+    ozAgEdit_(s => { s.log.unshift(m); });
+    try { log_(me, [{ action: 'Озон', text: (m.ok ? 'Цена на Озоне: ' : 'Не получилось поменять цену: ') + m.name + ' (' + art + ') ' + cur.price + ' → ' + price + ' ₽' + (m.ok ? '' : ' — ' + m.err) }]); } catch (e) {}
+    const v = ozAgView_(ozAgGet_()); v.made = [m]; return v; }
+  return { ok: false, error: 'неизвестное действие помощника' };
+}
+function ozAgPrices_(K, arts) { const r = ozRes_(UrlFetchApp.fetch(OZ_URL + '/v5/product/info/prices', ozOpt_(K, { filter: { offer_id: arts, visibility: 'ALL' }, limit: 100 }))), M = {};
+  const L = r.body ? (r.body.items || (r.body.result && r.body.result.items) || []) : [];
+  L.forEach(x => { const P = x.price && typeof x.price === 'object' ? x.price : x; M[String(x.offer_id)] = { price: Math.round(+P.price || 0), old: Math.round(+P.old_price || 0), min: Math.round(+P.min_price || 0) }; });
+  return M; }
+function ozAgPriceSet_(K, art, price, old, who, name) {
+  const body = { prices: [{ offer_id: art, price: String(price), old_price: String(old || 0), currency_code: 'RUB' }] };
+  let r; try { r = ozRes_(UrlFetchApp.fetch(OZ_URL + '/v1/product/import/prices', ozOpt_(K, body))); } catch (e) { r = { code: 0, body: null, text: String(e.message || e) }; }
+  const R = r.body && Array.isArray(r.body.result) ? r.body.result[0] : null, errs = R && Array.isArray(R.errors) ? R.errors : [];
+  const ok = r.code === 200 && (!R || R.updated !== false) && !errs.length;
+  return { lid: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), k: 'price', at: new Date().toISOString(), by: who, art: art, name: name || art, ap: price, title: 'Цена товара', why: 'новая цена ' + price + ' ₽',
+    ok: ok, err: ok ? '' : (errs.map(e => e.message || e.code).join('; ') || ozAgErr_(r, 'цена')).slice(0, 200) }; }
 function bank_(p, me) {
   if (!me.admin) return { ok: false, error: 'forbidden' };
   const op = String(p.op || 'list');
