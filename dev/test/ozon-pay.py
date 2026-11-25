@@ -32,6 +32,8 @@ async def main():
         ok(await pg.locator('#fd-dcard [data-ozowna="смесь"]').count()==1, 'окно «Товар Тани»: смесь продавалась с FBO')
         ok(await pg.locator('#fd-dcard [data-ozowna="курага"]').count()==0, 'realFBS-товара в списке нет')
         await pg.click('#fd-dcard [data-ozowna="смесь"] [data-ozown="t"]'); await pg.wait_for_timeout(500)
+        ok(await pg.locator('#fd-dcard [data-oztm="net"].on').count()==1, 'по умолчанию — «Сколько вышло за её товар»')
+        await pg.click('#fd-dcard [data-oztm="price"]'); await pg.wait_for_timeout(400)
         inp=pg.locator('#fd-dcard input[data-ozc="смесь~t"]'); await inp.fill('400'); await inp.press('Tab'); await pg.wait_for_timeout(500)
         pr=await pg.evaluate("__oz.prefs()"); ok(pr.get('ozOwn',{}).get('смесь')=='t' and pr.get('ozTp',{}).get('смесь')==400, 'смесь — товар Тани, её цена 400 (в личных настройках)')
         await pg.keyboard.press('Escape'); await pg.wait_for_timeout(400)
@@ -69,7 +71,13 @@ async def main():
         # режим «всё, что перечислил Озон»
         await pg.evaluate("(()=>{ const p=__oz.prefs(); })()")
         await pg.click('#oz [data-oz="own"]'); await pg.wait_for_timeout(400); await pg.click('#fd-dcard [data-oztm="net"]'); await pg.wait_for_timeout(400)
-        x=await pg.evaluate(f"__oz.pay('{k}').tanya"); ok(abs(x-(458*0.92+tg))<0.01, f'режим «всё, что перечислил Озон, минус налог»: Тане {x}')
+        x=await pg.evaluate(f"__oz.pay('{k}').tanya"); ok(abs(x-(458+tg)*0.92)<0.01, f'режим «всё, что перечислил Озон, минус налог»: Тане {x}')
+        await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
+        await pg.click('#oz [data-ozpay="'+k+'"]'); await pg.wait_for_timeout(600)
+        t1=await pg.inner_text('#fd-dcard .ozt1'); u=(458+tg)*0.92
+        ok('за 1 шт вышло' in t1 and 'себестоимость 400' in t1, f'в выплате у товара Тани — «за 1 шт вышло … · себестоимость 400 → …» ({t1[:120]!r})')
+        await pg.keyboard.press('Escape'); await pg.wait_for_timeout(300)
+        await pg.click('#oz [data-oz="own"]'); await pg.wait_for_timeout(400)
         await pg.click('#fd-dcard [data-oztg="me"]'); await pg.wait_for_timeout(400)
         x=await pg.evaluate(f"__oz.pay('{k}').tanya"); ok(abs(x-458*0.92)<0.01, f'«Все на мне» — Тане без доли общих: {x}')
         await pg.click('#fd-dcard [data-oztg="split"]'); await pg.wait_for_timeout(300)
