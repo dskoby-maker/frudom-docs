@@ -38,7 +38,7 @@ async def main():
         want=round(tot-tot*0.08-410-600,2)
         ok(x[0]==600 and not x[1] and abs(x[2]-want)<0.01, f'realFBS по товарам: 2 × 300 = 600, вам чистыми {want} без «примерно» {x}')
         tl=await pg.eval_on_selector_all('#fd-dcard .oztile span','L=>L.map(x=>x.textContent)')
-        ok('после Тани, налога и закупки' in tl[3], 'плитка «Вам чистыми» — без «не вся закупка вписана»')
+        ok('после Тани, налога и закупки' in tl[4], 'плитка «Вам чистыми» — без «не вся закупка вписана»')
         ok('− Закупка FBO' in await pg.inner_text('#fd-dcard .ozd') and '− Закупка realFBS' in await pg.inner_text('#fd-dcard .ozd'), 'в «Ваших деньгах» две строки закупки')
         # своя цена в этой выплате не меняет уже вписанную себестоимость на вкладке
         await pg.fill('#fd-dcard input[data-ozz="F:смесь"]','450'); await pg.press('#fd-dcard input[data-ozz="F:смесь"]','Tab'); await pg.wait_for_timeout(700)
