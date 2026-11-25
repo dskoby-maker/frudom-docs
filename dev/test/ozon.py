@@ -37,6 +37,8 @@ async def main():
         await pg.click('#fd-who [data-who="Даниил"]'); await pg.fill('#fd-pass','1111'); await pg.click('#fd-enter'); await pg.wait_for_timeout(2500)
         await pg.evaluate("document.querySelector('nav.tabs button[data-tab=ozon]').click()"); await pg.wait_for_timeout(800)
         ok(await pg.locator('#oz .ozhello').count()==1, 'пусто — подсказка «как загрузить»')
+        ru=await pg.evaluate("[__oz.ru('Logistic'), __oz.ru('RfbsClientDeliveryCharge'), __oz.ru('SomeNewServiceFee'), __oz.ru('Выручка')]")
+        ok(all(not any(c.isascii() and c.isalpha() for c in x.replace('realFBS','')) for x in ru[:2]) and ru[3]=='Выручка' and 'услуга' in ru[2], 'коды Озона по-русски: '+str(ru))
         # --- отчёт Excel ---
         f=tempfile.mktemp(suffix='.xlsx'); tot=mk_xlsx(f)
         await pg.set_input_files('#oz-file', f); await pg.wait_for_timeout(800)

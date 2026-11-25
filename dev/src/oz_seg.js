@@ -17,6 +17,28 @@ const OZU=(()=>{ let u={}; try{ u=JSON.parse(localStorage.getItem("frudom-oz-ui"
 const OZ={d:null, keys:null, kerr:"", busy:"", err:"", raw:null, at:0, ld:null};
 const OZ_RFX=/realfbs|rfbs|за доставку от покупателя/i;
 const OZ_EN={SaleCommission:"Вознаграждение за продажу", Acquiring:"Эквайринг", LastMile:"Последняя миля", Logistic:"Логистика", Logistics:"Логистика", ReturnLogistic:"Обратная логистика", DirectFlowLogistic:"Логистика", ReturnFlowLogistic:"Обратная логистика", Storage:"Размещение на складе", CrossDocking:"Кросс-докинг", Promotion:"Продвижение и реклама", DefectRate:"Превышение индекса ошибок", Delivery:"Доставка до места выдачи", Packaging:"Упаковка товара"};
+/* коды начислений Озона из API (Logistic, RfbsDomesticDelivery…) — по-русски; старые сохранённые дни тоже переводятся при показе */
+const OZ_RU={Logistic:"Логистика (доставка со склада до покупателя)", Logistics:"Логистика (доставка со склада до покупателя)", DirectFlowLogistic:"Логистика (доставка со склада до покупателя)",
+  RfbsDomesticDelivery:"Доставка realFBS силами партнёров Озона", RfbsClientDeliveryCharge:"Покупатель заплатил за доставку realFBS", RfbsDomesticAgentFee:"Агентский сбор Озона за доставку realFBS",
+  LastMile:"Последняя миля (до покупателя)", LastMileCourier:"Курьер до покупателя (последняя миля)", ReturnFlowLogistic:"Обратная логистика (возвраты и невыкупы)", ReturnLogistic:"Обратная логистика (возвраты и невыкупы)",
+  DeliveryToHandoverPlaceByOzon:"Доставка Озоном до места сдачи заказа", Delivery:"Доставка до места выдачи", PickUpPointReturnAcceptance:"Приём возврата в пункте выдачи",
+  Placements:"Хранение товаров на складе Озона", Placement:"Хранение товаров на складе Озона", Storage:"Хранение товаров на складе Озона", TemporaryPlacementsAgent:"Временное хранение товаров",
+  SupplyInbound:"Приёмка поставки на склад Озона", CrossDock:"Кросс-докинг (доставка поставки на склад)", CrossDocking:"Кросс-докинг (доставка поставки на склад)",
+  ItemPacking:"Упаковка товара на складе Озона", PackingFee:"Сборка и упаковка заказа", PackageCost:"Упаковочный материал (пакет, коробка)", Packaging:"Упаковка товара",
+  AcceleratedReviewCollection:"Ускоренный сбор отзывов", Promotion:"Продвижение и реклама", PremiumSubscription:"Подписка Premium",
+  Acquiring:"Эквайринг (приём оплаты от покупателя)", SaleCommission:"Вознаграждение Озона за продажу", Compensation:"Компенсации и корректировки Озона",
+  Disposal:"Утилизация товара", DefectFineErrors:"Штраф за ошибки (индекс ошибок)", DefectRate:"Штраф за ошибки (индекс ошибок)"};
+const OZ_RUW={rfbs:"realFBS", fbo:"FBO", fbs:"FBS", domestic:"по России", delivery:"доставка", deliver:"доставка", agent:"агент", fee:"сбор", fees:"сборы", charge:"плата", client:"покупатель", customer:"покупатель",
+  return:"возврат", returns:"возвраты", flow:"поток", logistic:"логистика", logistics:"логистика", last:"последняя", mile:"миля", courier:"курьер", pick:"", up:"", pickup:"самовывоз", point:"пункт выдачи",
+  acceptance:"приёмка", handover:"передача", place:"место", places:"места", by:"", to:"до", ozon:"Озон", placement:"хранение", placements:"хранение", temporary:"временное", supply:"поставка", inbound:"приёмка",
+  cross:"кросс", dock:"докинг", item:"товар", items:"товары", packing:"упаковка", package:"упаковка", cost:"стоимость", accelerated:"ускоренный", review:"отзывы", reviews:"отзывы", collection:"сбор",
+  promotion:"продвижение", premium:"Premium", subscription:"подписка", acquiring:"эквайринг", sale:"продажа", sales:"продажи", commission:"комиссия", compensation:"компенсация", disposal:"утилизация",
+  defect:"брак", fine:"штраф", fines:"штрафы", errors:"ошибки", error:"ошибка", storage:"хранение", service:"услуга", services:"услуги", processing:"обработка", cancellation:"отмена", cancel:"отмена",
+  non:"не", redistribution:"перераспределение", booking:"бронирование", surplus:"излишки", expiration:"срок годности", marketplace:"маркетплейс", partner:"партнёр", partners:"партнёры", stars:"звёзды",
+  points:"баллы", discount:"скидка", bonus:"бонус", penalty:"штраф", sorting:"сортировка", transfer:"перевод", warehouse:"склад", shipment:"отгрузка", order:"заказ", orders:"заказы", other:"прочее"};
+function ozRu(n){ n=String(n||""); if(!/^[A-Za-z][A-Za-z0-9_]*$/.test(n)) return n; if(OZ_RU[n]) return OZ_RU[n];
+  const w=n.replace(/_/g," ").replace(/([a-z0-9])([A-Z])/g,"$1 $2").replace(/([A-Z]+)([A-Z][a-z])/g,"$1 $2").toLowerCase().split(/\s+/).filter(Boolean);
+  const r=w.map(x=>x in OZ_RUW?OZ_RUW[x]:x).filter(Boolean).join(" "); return r? r[0].toUpperCase()+r.slice(1) : n; }
 function ozUiSave(){ try{ localStorage.setItem("frudom-oz-ui", JSON.stringify(OZU)); }catch(e){} }
 const ozAdd=(iso,n)=>{ const d=new Date(iso+"T00:00:00Z"); d.setUTCDate(d.getUTCDate()+n); return d.toISOString().slice(0,10); };
 const ozR=x=>Math.round(+x||0).toLocaleString("ru-RU")+" ₽";
@@ -169,14 +191,14 @@ function ozParseDay(L, sid){ const T=Object.assign({}, OZ_EN, OZ.d.types[sid]||{
     const rest=Object.assign({}, a); delete rest.total_amount; delete rest.amount; delete rest.products; if(rest.posting){ rest.posting=Object.assign({}, rest.posting); delete rest.posting.products; } ozFees(rest, fees, -1, 0);
     prods.forEach((p,i)=>{ if(p.commission==null) return; const has=fees.some(f=>f.pi===i && /комисс|вознагр|commission/i.test(T[f.t]||f.nm||f.t)); if(!has) fees.push({t:"SaleCommission", s:-Math.abs(ozAmt(p.commission)), pi:i}); });
     const add=(type, art, q, s)=>out.push([ozGrp(type), type, art||"", art?sch:"", q, s]);
-    let fs=0; fees.forEach(f=>{ const nm=T[f.t]||f.nm||("Начисление "+f.t); add(nm, f.pi>=0?arts[f.pi]:one, 0, f.s); fs+=f.s; });
+    let fs=0; fees.forEach(f=>{ const nm=ozRu(T[f.t]||f.nm||("Начисление "+f.t)); add(nm, f.pi>=0?arts[f.pi]:one, 0, f.s); fs+=f.s; });
     let left=r2(tot-fs);
     if(prods.length && Math.abs(left)>=0.01){ const w=prods.map(p=>{ const q=+(p.quantity!=null?p.quantity:p.qty!=null?p.qty:1)||1; return {q, v:ozAmt(ozPrice(p))*q}; }), W=w.reduce((s,x)=>s+x.v,0), sg=left<0?-1:1;
       if(W>0 && Math.abs(left)<=W*1.5){   /* есть цена продавца: выручка = цена × кол-во, а остаток (комиссия, которую Озон не расписал отдельной строкой) — отдельно */
         prods.forEach((p,i)=>{ const rv=r2(sg*w[i].v), d=r2(left*w[i].v/W-rv); add("Выручка", arts[i], sg*w[i].q, rv); if(Math.abs(d)>=0.01) add(d<0?"Вознаграждение за продажу (без расшифровки)":"Прочие компенсации Озона", arts[i], 0, d); }); }
       else prods.forEach((p,i)=>add("Выручка", arts[i], sg*w[i].q, r2(W?left*w[i].v/W:left/prods.length)));
       left=0; }
-    if(Math.abs(left)>=0.005){ const tid=String(a.type_id!=null?a.type_id:a.accrual_type_id!=null?a.accrual_type_id:""), nm=T[tid]||a.type_name||a.name||(String(a.accrued_category||"").toUpperCase()==="NON_ITEM"?"Прочие начисления":"Прочее"); add(nm, one, 0, left); } });
+    if(Math.abs(left)>=0.005){ const tid=String(a.type_id!=null?a.type_id:a.accrual_type_id!=null?a.accrual_type_id:""), nm=ozRu(T[tid]||a.type_name||a.name||"")||(String(a.accrued_category||"").toUpperCase()==="NON_ITEM"?"Прочие начисления":"Прочее"); add(nm, one, 0, left); } });
   return ozAgg(out); }
 function ozTypesParse(b, M, dep){ if(!b||typeof b!=="object"||dep>6) return;
   if(Array.isArray(b)){ b.forEach(x=>ozTypesParse(x, M, dep+1)); return; }
@@ -216,12 +238,12 @@ function ozCalc(){ const [a,b]=ozRange(), S=ozSel(), D0=OZ.d||{days:{},names:{},
   const am=x=>x&&x.startsWith("sku:")&&D0.sku[x.slice(4)]?D0.sku[x.slice(4)]:x, nm=x=>D0.names[x]||(x.startsWith("sku:")?"SKU "+x.slice(4):x);
   const rows=[], cov={}; S.forEach(sid=>{ const DD=D0.days[sid]||{}, c=cov[sid]={n:0, x:0, a:0, days:0};
     for(let d=a; d<=b; d=ozAdd(d,1)){ if(d<=todayISO()) c.days++; const x=DD[d]; if(!x) continue; c.n++; c[x.s==="x"?"x":"a"]++;
-      (x.r||[]).forEach(r=>rows.push({sid, d, grp:r[0], type:r[1], art:am(r[2]), sch:r[3], q:r[4], s:r[5]})); } });
+      (x.r||[]).forEach(r=>{ const ty=ozRu(r[1]); rows.push({sid, d, grp:ty!==r[1]?ozGrp(ty):r[0], type:ty, raw:r[1], art:am(r[2]), sch:r[3], q:r[4], s:r[5]}); }); } });
   const maj={}; rows.forEach(x=>{ if(x.art&&x.sch&&x.type==="Выручка"){ const m=maj[x.art]=maj[x.art]||{}; m[x.sch]=(m[x.sch]||0)+Math.abs(x.q)+1; } });
   const schOf=x=>x.sch||(maj[x.art]?Object.entries(maj[x.art]).sort((p,q)=>q[1]-p[1])[0][0]:"");
   const pass=x=>OZU.sch==="all"||(OZU.sch==="RFBS"?/FBS/.test(schOf(x)):schOf(x)===OZU.sch);
   const P={}, T={}, byS={}, byD={}, RF=[]; let tot=0, un=0;
-  rows.forEach(x=>{ const rf=!x.art && OZ_RFX.test(x.type);   /* доставка realFBS без товара (партнёры Озона, деньги покупателя за доставку) — раскладываем по товарам realFBS */
+  rows.forEach(x=>{ const rf=!x.art && (OZ_RFX.test(x.type)||OZ_RFX.test(x.raw||""));   /* доставка realFBS без товара (партнёры Озона, деньги покупателя за доставку) — раскладываем по товарам realFBS */
     if(rf? !(OZU.sch==="all"||OZU.sch==="RFBS") : x.art?!pass(x):OZU.sch!=="all") return;
     if(rf){ RF.push(x); }
     tot+=x.s; byS[x.sid]=(byS[x.sid]||0)+x.s; byD[x.d]=(byD[x.d]||0)+x.s;
@@ -421,4 +443,4 @@ document.addEventListener("change", e=>{ const t=e.target; if(!t.matches||!t.mat
   setTimeout(()=>{ ozDraw(); const d=$("#fd-dcard"); if(d && d.contains(t)){ d.querySelectorAll(`input[data-ozc]`).forEach(x=>{ if(x.dataset.ozc===art) x.classList.toggle("miss", nw==null); }); } }, 0); });
 document.addEventListener("keydown", e=>{ const t=e.target; if(e.key!=="Enter"||!t.matches||!t.matches("input[data-ozc]")) return; e.preventDefault();
   const L=[...(t.closest("dialog")||document.getElementById("oz")).querySelectorAll("input[data-ozc]")], i=L.indexOf(t); (L[i+1]||t).focus(); if(!L[i+1]) t.blur(); });
-window.__oz={pull:f=>ozPull(f), prefs:()=>getPrefs(), OZ, OZU, calc:()=>ozCalc()};   /* для тестов (dev/test/ozon.py) */
+window.__oz={pull:f=>ozPull(f), ru:ozRu, prefs:()=>getPrefs(), OZ, OZU, calc:()=>ozCalc()};   /* для тестов (dev/test/ozon.py) */
