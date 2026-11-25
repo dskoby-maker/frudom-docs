@@ -246,3 +246,29 @@ cxReg(t=>{ const row=t.closest("#ct-body .ctc[data-id]"); if(!row) return null; 
   if(x.ikz) L.it("cpi","Скопировать ИКЗ","num",()=>jcxCopy(String(x.ikz)));
   const s=sup(x.supplierId);
   return {row, items:L.done(), label:"Договор «"+(ctrNm(x)||"")+"»", head:cxHead(ctrNm(x)||x.basis||"Договор", [s?supSurname(s.id):"", n?n+" "+plural(n,["позиция","позиции","позиций"])+" по договору":"товары по договору не заполнены"].filter(Boolean).join(" · "), x.sum?fm(x.sum).replace(/,00$/,"")+" ₽":"")}; });
+
+/* ---------- Вкладки сверху (25.11.2026, просьба Даниила): карандаш убран, всё — правой кнопкой ---------- */
+Object.assign(JCX_I, { move:'<path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/>',
+  left:'<path d="M15 6l-6 6 6 6"/>', right:'<path d="M9 6l6 6-6 6"/>', first:'<path d="M17 6l-6 6 6 6M7 6v12"/>', last:'<path d="M7 6l6 6-6 6M17 6v12"/>',
+  newt:'<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>', link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+  undo:'<path d="M3 10h11a6 6 0 0 1 0 12h-3"/><path d="M7 6l-4 4 4 4"/>' });
+function cxTabUrl(id){ if(id==="pdf") return PDF_URL; if(id==="contracts") return CONTRACTS_URL; const s=TAB_SLUG[id]; return s ? location.href.split("#")[0]+"#"+s : ""; }
+function cxTabMove(b, where){ if(!TABMV) return; const nav=TABMV.nav, L=[...nav.querySelectorAll("button[data-tab]")].filter(x=>!x.hidden), i=L.indexOf(b); if(i<0) return;
+  const to = where==="l" ? L[i-1] : where==="r" ? L[i+1]?.nextSibling : where==="f" ? L[0] : L[L.length-1]?.nextSibling;
+  if(where==="l" && !L[i-1] || where==="r" && i>=L.length-1 || where==="f" && i===0 || where==="e" && i===L.length-1) return;
+  TABMV.flip(()=>nav.insertBefore(b, to||$("#tab-edit"))); TABMV.save();
+  toast("ok","Вкладка «"+b.textContent.replace("↗","").trim()+"» перенесена","Порядок сохранён на всех ваших устройствах."); }
+cxReg(t=>{ const b=t.closest("#fd-app nav.tabs button[data-tab]"); if(!b || b.hidden || !TABMV) return null;
+  const nav=TABMV.nav, id=b.dataset.tab, nm=b.textContent.replace("↗","").trim(), ed=nav.classList.contains("editing"), url=cxTabUrl(id), ext=id==="pdf"||id==="contracts";
+  const L0=[...nav.querySelectorAll("button[data-tab]")].filter(x=>!x.hidden), i=L0.indexOf(b), L=cxList();
+  if(!ext && id!==curTab && !ed) L.it("open","Открыть","open",()=>goTab(id));
+  if(url) L.it("newt", ext?"Открыть ↗":"Открыть в новой вкладке браузера","newt",()=>window.open(url,"_blank","noopener"));
+  if(url && !ext) L.it("link","Скопировать ссылку на вкладку","link",()=>jcxCopy(url));
+  L.sep();
+  L.it("move","Переместить вкладки…","move",()=>openSheet(true), {sub:"все вкладки плитками — перетаскивайте"});
+  if(i>0) L.it("l","Сдвинуть влево","left",()=>cxTabMove(b,"l"));
+  if(i<L0.length-1) L.it("r","Сдвинуть вправо","right",()=>cxTabMove(b,"r"));
+  if(i>1) L.it("f","В начало","first",()=>cxTabMove(b,"f"));
+  if(i<L0.length-2) L.it("e","В конец","last",()=>cxTabMove(b,"e"));
+  if((getPrefs().tabs||[]).length){ L.sep().it("reset","Вернуть порядок как было","undo",()=>{ const p=getPrefs(); delete p.tabs; setPrefs(p,true); TABMV.flip(applyTabOrder); toast("ok","Порядок вкладок — как было"); }); }
+  return {row:b, items:L.done(), label:"Действия с вкладкой", head:cxHead(nm, i+1+" из "+L0.length, "")}; });
