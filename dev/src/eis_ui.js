@@ -59,14 +59,14 @@ function eisSetup(k){
 }
 $('#pv-eis-setup').onclick=()=>eisSetup(cur.k);
 // Дата документа для ЕИС — не раньше сегодняшней (иначе ЕИС не примет); дата отгрузки может быть раньше (задним числом).
-function eisDates(k,done){
+function eisDates(k,done,preview){
   const today=new Date().toLocaleDateString('ru-RU',{timeZone:'Europe/Moscow'}).split('.').reverse().join('-');
   const doc=k.dr.date>today?k.dr.date:today,ship=k.dr.date;
   const d=document.createElement('dialog');d.id='fd-eis-dates';d.style.cssText='box-sizing:border-box;max-width:calc(100vw - 24px);width:min(440px,94vw);border:0;border-radius:16px;padding:22px;font:15px Arial;color:#29232a';
   d.innerHTML='<h3 style="margin-top:0">XML для ЕИС</h3><p style="margin:0 0 12px">УПД № '+esc(k.dr.number)+' — '+esc(shortCus(k))+'</p>'
     +'<label style="display:block;margin:10px 0">Дата документа (УПД) — не раньше сегодняшней<br><input type="date" id="eis-ddoc" min="'+today+'" value="'+doc+'" style="font:inherit;padding:6px;margin-top:4px;width:100%;box-sizing:border-box"></label>'
     +'<label style="display:block;margin:10px 0">Дата отгрузки (передачи товара) — можно задним числом<br><input type="date" id="eis-dship" value="'+ship+'" style="font:inherit;padding:6px;margin-top:4px;width:100%;box-sizing:border-box"></label>'
-    +'<p id="eis-derr" style="color:#b3261e;min-height:1.2em;margin:6px 0"></p><div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn" id="eis-dno">Отмена</button><button class="btn pri" id="eis-dok">Скачать XML</button></div>';
+    +eisMergeHtml(preview)+'<p id="eis-derr" style="color:#b3261e;min-height:1.2em;margin:6px 0"></p><div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn" id="eis-dno">Отмена</button><button class="btn pri" id="eis-dok">Скачать XML</button></div>';
   document.body.appendChild(d);const q=x=>d.querySelector(x),close=()=>{d.close();d.remove();};
   q('#eis-dno').onclick=close;d.addEventListener('cancel',()=>d.remove());
   q('#eis-dok').onclick=()=>{const a=q('#eis-ddoc').value,b=q('#eis-dship').value;
@@ -75,16 +75,25 @@ function eisDates(k,done){
     try{done(a,b);close();}catch(e){q('#eis-derr').textContent=e.message;}};
   d.showModal();
 }
+// Предупреждение до скачивания: какие строки накладной сайт объединит в одну позицию контракта.
+function eisMergeHtml(preview){
+  let w=[];try{w=(preview&&preview().warnings)||[];}catch(e){return '';}
+  if(!w.length)return '';
+  return '<div id="eis-merge" style="background:#fff6d6;border:1px solid #e8c44a;border-radius:10px;padding:10px 12px;margin:10px 0;font-size:14px;line-height:1.4"><b>Внимание: в XML строки будут объединены</b><br>В контракте это одна позиция, поэтому ЕИС примет их только одной строкой. В накладной на сайте всё остаётся как есть.<ul style="margin:6px 0 0;padding-left:18px">'+w.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>';
+}
 $('#pv-xml').onclick=()=>{
   try{
     const {cfg}=eisConfig(cur.k);if(!cfg){eisSetup(cur.k);return;}
     const sup=(D.suppliers||[]).find(x=>x.id===cur.k.dr.supplierId),base=Object.assign({},cur.k,{s:Object.assign({},cur.k.s,{eisLogin:(sup&&sup.eisLogin)||cur.k.s.eisLogin||''})});
+    const mk=(docDate,shipDate)=>Object.assign({},base,{dr:Object.assign({},base.dr,{date:docDate}),shipDate});
     eisDates(cur.k,(docDate,shipDate)=>{
-      const k=Object.assign({},base,{dr:Object.assign({},base.dr,{date:docDate}),shipDate});
+      const k=mk(docDate,shipDate);
       const r=Eis.generate(cfg,k),a=document.createElement('a'),url=URL.createObjectURL(new Blob([r.bytes],{type:'application/xml'}));a.href=url;a.download=r.filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);
       logEv('XML','Скачан XML для ЕИС: УПД № '+cur.k.dr.number+' от '+fd(docDate)+', отгрузка '+fd(shipDate)+' — '+shortCus(cur.k),cur.k.dr.id);
       $('#pv-warn').hidden=false;$('#pv-warn').textContent='Скачан XML для ЕИС: документ от '+fd(docDate)+', дата отгрузки '+fd(shipDate)+'. В личном кабинете поставщика: контракт → «Загрузить документ из файла» → «Документ о приемке/счет-фактура». Проверьте товары, суммы, адрес и подписанта, затем подпишите.';
-      toast('ok','XML для ЕИС скачан','Документ от '+fd(docDate)+', отгрузка '+fd(shipDate)+'.');
-    });
+      const mw=r.warnings||[];
+      if(mw.length){$('#pv-warn').textContent+=' Объединено в XML: '+mw.join(' ');toast('warn','XML для ЕИС скачан — строки объединены',mw.join(' '));}
+      else toast('ok','XML для ЕИС скачан','Документ от '+fd(docDate)+', отгрузка '+fd(shipDate)+'.');
+    },()=>Eis.generate(cfg,Object.assign(mk(cur.k.dr.date,cur.k.dr.date),{allowPast:true})));
   }catch(e){eisWarn(e.message);}
 };
