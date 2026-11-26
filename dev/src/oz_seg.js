@@ -13,7 +13,7 @@ const OZ_DEF_ST=[{id:"fd", n:"Frudom / ФД"}];   /* «Исток» закрыт
 const OZ_PER=[["m0","Этот месяц"],["m1","Прошлый месяц"],["d7","7 дней"],["d30","30 дней"],["y","С начала года"],["c","Свои даты"]];
 const OZ_SCH=[["all","Все схемы"],["FBO","FBO"],["RFBS","realFBS"]];
 const OZ_SORT=[["profit","Больше прибыль"],["loss","Меньше прибыль"],["unit","Прибыль за 1 шт"],["sales","Больше продажи"],["qty","Больше штук"],["name","По названию"]];
-const OZU=(()=>{ let u={}; try{ u=JSON.parse(localStorage.getItem("frudom-oz-ui")||"{}")||{}; }catch(e){} return Object.assign({st:"all", sch:"all", per:"m0", a:"", b:"", sort:"profit", q:"", al:false, f:""}, u); })();
+const OZU=(()=>{ let u={}; try{ u=JSON.parse(localStorage.getItem("frudom-oz-ui")||"{}")||{}; }catch(e){} return Object.assign({st:"all", sch:"all", per:"m0", a:"", b:"", sort:"profit", q:"", al:false, f:"", ps:"all", pw:"all"}, u); })();
 const OZ={d:null, keys:null, kerr:"", busy:"", err:"", raw:null, at:0, ld:null};
 const OZ_RFX=/realfbs|rfbs|за доставку от покупателя/i;
 const OZ_EN={SaleCommission:"Вознаграждение за продажу", Acquiring:"Эквайринг", LastMile:"Последняя миля", Logistic:"Логистика", Logistics:"Логистика", ReturnLogistic:"Обратная логистика", DirectFlowLogistic:"Логистика", ReturnFlowLogistic:"Обратная логистика", Storage:"Размещение на складе", CrossDocking:"Кросс-докинг", Promotion:"Продвижение и реклама", DefectRate:"Превышение индекса ошибок", Delivery:"Доставка до места выдачи", Packaging:"Упаковка товара"};
@@ -349,6 +349,7 @@ function ozDraw(){ const box=$("#oz"); if(!box||!OZ.d) return; const foc=documen
   <section class="card ozprods"><div class="ozph"><h3>Товары <small>${L.length}</small></h3>
     <div class="ozpt"><input type="search" id="oz-q" placeholder="Найти товар или артикул" value="${esc(OZU.q)}" autocomplete="off"><select id="oz-sort" data-native aria-label="Порядок">${OZ_SORT.map(([v,t])=>`<option value="${v}"${OZU.sort===v?" selected":""}>${t}</option>`).join("")}</select>
     <label class="ozal" title="Хранение, реклама, кросс-докинг и другие расходы без товара делятся по товарам пропорционально продажам"><input type="checkbox" id="oz-al"${OZU.al?" checked":""}> Разложить общие расходы (${fm(C.un)})</label></div></div>
+    ${ozPFilt(C)}${L.length&&(OZU.ps!=="all"||OZU.pw!=="all")?ozPSum(L):""}
     ${ozTable(L, C)}
   </section>
   <section class="card ozexp"><div class="ozph"><h3>Куда ушли деньги <small>удержания Озона за период</small></h3></div>${ozExp(C)}</section>`}`}`;
@@ -357,11 +358,22 @@ function ozDraw(){ const box=$("#oz"); if(!box||!OZ.d) return; const foc=documen
 function ozHello(hasKey){ return `<div class="ozhello"><b>Данных за этот период пока нет</b>
   <div class="ozhw"><div><span>1</span><p><b>Загрузить отчёт из кабинета</b>Озон → Финансы → Начисления → выберите период → «Скачать отчёт» (Excel). Нажмите здесь «Загрузить отчёт Excel» — сайт всё посчитает. Работает сразу.</p></div>
   <div><span>2</span><p><b>Или подключить Озон API — всё будет приходить само</b>${ozSrvOk()?(hasKey?"Ключ подключён — нажмите «Обновить из Озона».":"В кабинете Озона: Настройки → Seller API → «Сгенерировать ключ» (роль «Admin read only»). Нажмите «Подключить Озон API» и вставьте Client-Id и ключ."):"Сначала обновите скрипт таблицы (Code.gs, версия 53) — без него сайт не может обращаться к Озону. Отчёт Excel работает и без этого."}</p></div></div></div>`; }
-function ozList(C){ const q=OZU.q.trim().toLowerCase(); let L=C.L.filter(p=>!q||(p.name+" "+p.art).toLowerCase().includes(q));
+/* фильтр таблицы «Товары»: схема (FBO / realFBS) и чей товар (мой / Тани) — 26.11.2026, просьба Даниила */
+const ozPS=(p,v)=>v==="all"||!!(p.sch&&p.sch[v]);
+const ozPW=(p,v)=>v==="all"||(v==="t"?!!p.tanya:!p.tanya);
+function ozPFilt(C){ const L=C.L, hasT=L.some(p=>p.tanya)||ozOwnN()>0, ps=OZU.ps||"all", pw=hasT?(OZU.pw||"all"):"all";
+  const n=(s,w)=>L.filter(p=>ozPS(p,s)&&ozPW(p,w)).length, ch=(attr,v,t,k)=>`<button type="button" data-${attr}="${v}" class="${(attr==="ozps"?ps:pw)===v?"on":""}" aria-pressed="${(attr==="ozps"?ps:pw)===v}">${t} <small>${k}</small></button>`;
+  return `<div class="ozpf"><span class="ozpfl">Схема</span><div class="pfchips">${ch("ozps","all","Все",n("all",pw))}${ch("ozps","FBO","FBO",n("FBO",pw))}${ch("ozps","RFBS","realFBS",n("RFBS",pw))}</div>
+    ${hasT?`<span class="ozpfl">Чьи</span><div class="pfchips">${ch("ozpw","all","Все",n(ps,"all"))}${ch("ozpw","me","Мои",n(ps,"me"))}${ch("ozpw","t","Тани",n(ps,"t"))}</div>`:""}</div>`; }
+function ozList(C){ const q=OZU.q.trim().toLowerCase(), ps=OZU.ps||"all", hasT=C.L.some(p=>p.tanya)||ozOwnN()>0, pw=hasT?(OZU.pw||"all"):"all";
+  let L=C.L.filter(p=>(!q||(p.name+" "+p.art).toLowerCase().includes(q))&&ozPS(p,ps)&&ozPW(p,pw));
   const by={profit:(a,b)=>b.P-a.P, loss:(a,b)=>a.P-b.P, unit:(a,b)=>(b.q?b.P/b.q:-1e9)-(a.q?a.P/a.q:-1e9), sales:(a,b)=>b.sales-a.sales, qty:(a,b)=>b.q-a.q, name:(a,b)=>a.name.localeCompare(b.name,"ru")}[OZU.sort]||((a,b)=>b.P-a.P);
   return L.sort(by); }
 const ozSchB=p=>Object.keys(p.sch).map(s=>`<em class="ozsb">${s==="RFBS"?"realFBS":esc(s)}</em>`).join("");
-function ozTable(L, C){ if(!L.length) return `<div class="pvempty sm"><b>${OZU.q?"Ничего не нашлось":"Продаж за период нет"}</b></div>`;
+/* итог по отобранным товарам */
+function ozPSum(L){ const t=L.reduce((a,p)=>(a.q+=p.q,a.net+=p.net,a.P+=(p.P||0),a.m+=p.miss?1:0,a),{q:0,net:0,P:0,m:0});
+  return `<div class="ozpsum">Показано ${L.length} ${plural(L.length,["товар","товара","товаров"])} · продано ${ozPN(t.q)} шт · на руки <b>${fm(t.net)}</b> · прибыль <b class="${t.P<0?"neg":""}">${t.m?"≈ ":""}${fm(t.P)}</b>${t.m?` <small>(без закупки: ${t.m})</small>`:""} <button type="button" class="linkbtn" data-ozpclr>Показать все ×</button></div>`; }
+function ozTable(L, C){ if(!L.length) return `<div class="pvempty sm"><b>${OZU.q||OZU.ps!=="all"||OZU.pw!=="all"?"Ничего не нашлось":"Продаж за период нет"}</b>${OZU.ps!=="all"||OZU.pw!=="all"?` <button type="button" class="linkbtn" data-ozpclr>Показать все товары</button>`:""}</div>`;
   const u=(v,q)=>q?fm(v/q):"—";
   return `<div class="ozt" role="table"><div class="ozr ozrh" role="row"><span>Товар</span><span class="n">Продано</span><span class="n">Цена</span><span class="n">Удержал Озон, шт</span><span class="n">На руки, шт</span><span class="n">Налог, шт</span><span class="n">Закупка, шт</span><span class="n">Прибыль, шт</span><span class="n">Прибыль</span></div>
   ${L.map(p=>`<div class="ozr${p.P<0?" loss":""}" role="row" data-ozp="${esc(p.key)}" tabindex="0"><span class="ozn"><b>${esc(p.name)}</b><small>${esc(p.art.startsWith("sku:")?"":p.art)}${ozSchB(p)}${ozTB(p)}${OZU.st==="all"&&ozStores().length>1?" · "+Object.keys(p.st).map(s=>esc(ozStName(s))).join(", "):""}</small></span>
@@ -695,6 +707,9 @@ document.addEventListener("change", e=>{ const t=e.target, d=$("#fd-dcard"); if(
   box.addEventListener("click", e=>{ const t=e.target;
     const s=t.closest("[data-ozst]"); if(s){ OZU.st=s.dataset.ozst; ozUiSave(); ozDraw(); ozSync(false); return; }
     const pe=t.closest("[data-ozper]"); if(pe){ OZU.per=pe.dataset.ozper; if(OZU.per==="c"&&!OZU.a){ const r=ozRange(); OZU.a=r[0]; OZU.b=r[1]; } ozUiSave(); ozDraw(); ozSync(false); return; }
+    const fps=t.closest("[data-ozps]"); if(fps){ OZU.ps=fps.dataset.ozps; ozUiSave(); ozDraw(); return; }
+    const fpw=t.closest("[data-ozpw]"); if(fpw){ OZU.pw=fpw.dataset.ozpw; ozUiSave(); ozDraw(); return; }
+    if(t.closest("[data-ozpclr]")){ OZU.ps="all"; OZU.pw="all"; ozUiSave(); ozDraw(); return; }
     const sc=t.closest("[data-ozsch]"); if(sc){ OZU.sch=OZU.sch===sc.dataset.ozsch&&sc.matches(".ozspc")?"all":sc.dataset.ozsch; ozUiSave(); ozDraw(); return; }
     const vv=t.closest("[data-ozv]"); if(vv){ OZU.v=vv.dataset.ozv; ozUiSave(); ozDraw(); ozSync(false); if(OZU.v==="pay" && typeof bnSync==="function" && !BNK().ops.length) bnSync(true).then(()=>{ if(curTab==="ozon") ozDraw(); }).catch(()=>{}); return; }
     const ag=t.closest("[data-ozag]"); if(ag){ ozAgClick(ag); return; }
