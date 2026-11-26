@@ -3952,6 +3952,18 @@ html.fd-dark :is(#fd-app .card,dialog.dcard,#tkf-pan,#tkf-fab){box-shadow:0 0 0 
   #fd-app #oz .ozsp{grid-template-columns:1fr 1fr}#fd-app #oz .ozsp>.ozspc+.ozspc{box-shadow:none}
   #fd-app #oz .ozprods,#fd-app #oz .ozexp,#fd-app #oz .ozguard,#fd-app #oz .ozag{padding:14px;border-radius:16px}
 }
+#fd-app .oact{display:flex;flex-direction:column;gap:18px}
+#fd-app .oact-save{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#fd-app .oact-save .btn{min-height:46px;padding:10px 26px;font-size:15px}
+#fd-app .oact-save #o-msg:empty{display:none}
+#fd-app .oact-dl{border-top:1px solid var(--line,rgba(0,0,0,.08));padding-top:16px}
+#fd-app .oact-dl h2{margin:0 0 10px}
+#fd-app .oact-row{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap}
+#fd-app .oact-k{display:flex;align-items:center;gap:8px 22px;flex-wrap:wrap}
+#fd-app .oact-k .chk{margin:0;min-height:40px;display:inline-flex;align-items:center}
+#fd-app .oact-row #o-go{min-height:42px;padding:8px 20px;background:var(--surface);color:var(--accent);border:1px solid rgba(106,44,78,.45);box-shadow:none}
+#fd-app .oact-row #o-go:hover{background:var(--accent-soft)}
+@media (max-width:560px){#fd-app .oact-save .btn,#fd-app .oact-row #o-go{width:100%;justify-content:center}#fd-app .oact-row{flex-direction:column;align-items:stretch}#fd-app .oact-k{justify-content:space-between;gap:8px}}
 </style>
 <style id="fd-doc-css">
 /*__DOC_CSS__*/
@@ -4099,9 +4111,13 @@ html.fd-dark :is(#fd-app .card,dialog.dcard,#tkf-pan,#tkf-fab){box-shadow:0 0 0 
       <div class="row"><button class="btn ghost" id="o-addaddr">+ Другой адрес</button><button class="btn ghost" id="o-clear">Очистить количества</button></div>
     </div>
     <div class="card">
-      <h2>Что скачать</h2>
-      <div class="row"><label class="chk"><input type="checkbox" id="o-k-invoice" checked>Счёт</label><label class="chk"><input type="checkbox" id="o-k-torg12" checked>ТОРГ‑12</label><label class="chk"><input type="checkbox" id="o-k-upd">УПД</label></div>
-      <div class="row"><button class="btn pri" id="o-save">Сохранить в журнал без PDF</button><button class="btn" id="o-go">Создать документы и скачать PDF</button><span class="muted" id="o-msg"></span></div>
+      <div class="oact">
+        <div class="oact-save"><button class="btn pri" id="o-save">Сохранить в журнал</button><span class="muted" id="o-msg"></span></div>
+        <div class="oact-dl">
+          <h2>Что скачать</h2>
+          <div class="oact-row"><div class="oact-k" role="group" aria-label="Что скачать"><label class="chk"><input type="checkbox" id="o-k-invoice" checked>Счёт</label><label class="chk"><input type="checkbox" id="o-k-torg12" checked>ТОРГ‑12</label><label class="chk"><input type="checkbox" id="o-k-upd">УПД</label></div><button class="btn" id="o-go">Сохранить и скачать PDF</button></div>
+        </div>
+      </div>
       <div class="done" id="o-done"></div>
     </div>
   </section>
@@ -5991,7 +6007,7 @@ const oPrice = (o,pid) => { if(o.edit && o.edit.price && o.edit.price[pid]!=null
 function oCtrLeft(o, pid){ const x=oCtr(o); if(!x) return null; const s=ctSpec(x).find(s=>s.pid===pid || (!s.pid && norm(s.name||"")===norm((prod(pid)||{}).name||""))); if(!s || !(+num(s.qty||"")>0)) return null;
   let used=0; const own=new Set(o.edit?Object.values(o.edit.ids):[]); D.journal.forEach(j=>{ if(j.snap && !isArch(j) && !own.has(j.id) && j.snap.dr.contractId===x.id) j.snap.dr.lines.forEach(l=>{ if(l.productId===pid) used+=+l.qty||0; }); });
   return r3(+num(s.qty)-used); }
-const oGoLabel = () => O().edit ? "Сохранить комплект и скачать PDF" : "Создать документы и скачать PDF";
+const oGoLabel = () => O().edit ? "Сохранить комплект и скачать PDF" : "Сохранить и скачать PDF";
 /* заказчик с несколькими ОП и одним адресом выгрузки (НМИЦ гематологии: бюджет / ОМС / внебюджет) — в заявке строки = ОП */
 function oBrMode(o){ const bl=branches(cus(o.customerId)); if(bl.length<2) return false; const set=new Set();
   bl.forEach(b=>{ const c=liveCus({customerId:o.customerId, branchId:b.id}), l=addrs(c); (l.length?l:[c.address||""]).forEach(a=>set.add(a)); }); return set.size<=1; }
@@ -6010,7 +6026,7 @@ function renderOrder(){
   const o=O(), x=oCtr(o), ed=$("#o-editing");
   ed.hidden=!o.edit; if(o.edit) ed.innerHTML=`<div><b>Правка комплекта № ${esc(o.edit.nums.length>2?o.edit.nums[0]+"–"+o.edit.nums[o.edit.nums.length-1]:o.edit.nums.join(", "))}</b><span>Поменяйте количества, номера или дату, добавьте адрес. Строка без количества — документ уйдёт в архив. Цены — как в документах комплекта.</span></div><button class="btn ghost sm" id="o-edcancel">Отменить правку</button>`;
   ["#o-cus","#o-sup","#o-br","#o-ctr"].forEach(id=>{ $(id).disabled=!!o.edit; });
-  $("#o-go").textContent=oGoLabel(); $("#o-save").textContent=o.edit?"Сохранить изменения комплекта":"Сохранить в журнал без PDF";
+  $("#o-go").textContent=oGoLabel(); $("#o-save").textContent=o.edit?"Сохранить изменения комплекта":"Сохранить в журнал";
   $("#o-cus").innerHTML=opts(D.customers, o.customerId); $("#o-sup").innerHTML=opts(D.suppliers, o.supplierId);
   { const cl=ctrs(o.customerId), sel=x?x.id:""; $("#o-ctrwrap").hidden=!cl.length && !o.edit;
     $("#o-ctr").innerHTML = cl.map(c=>ctrOpt(c, sel)).join("") + `<option value=""${!sel?" selected":""}>Без договора</option>`; }
