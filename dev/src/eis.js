@@ -54,10 +54,12 @@ const Eis = (() => {
   function autoPos(positions,l,taken,merge){
     const price=x=>Number(x.price||attr(x.link&&x.link.querySelector('НеЛПСвед'),'ЦенаИзКонтСНДС')),words=n=>String(n||'').toLowerCase().replace(/ё/g,'е').split('.')[0].match(/[а-я]+/g)||[];
     const all=positions.filter(x=>Math.abs(price(x)-Number(l.price))<0.006),byPrice=all.filter(x=>!taken.has(x.id));let c=byPrice.filter(x=>x.okei===l.okei);
-    if(all.length&&!byPrice.length&&merge)c=all.filter(x=>x.okei===l.okei);
+    const joining=!!(all.length&&!byPrice.length&&merge);if(joining)c=all.filter(x=>x.okei===l.okei);
     else if(all.length&&!byPrice.length)throw Error('Несколько строк накладной связаны с одной позицией ЕИС («'+l.name+'»). Объедините их в одну строку.');
     if(byPrice.length&&!c.length)throw Error('Единица измерения «'+l.name+'» отличается от контракта ЕИС ('+byPrice[0].unit+').');
     if(c.length>1){const nm=String(l.name).toLowerCase().replace(/ё/g,'е');const f=c.filter(x=>words(x.name).every(w=>nm.includes(w)));if(f.length)c=f;}
+    // Строка добавляется к уже занятой позиции, а подходят несколько с той же ценой: берём позицию с меньшим номером и предупреждаем.
+    if(c.length>1&&joining){c.sort((a,b)=>Number(a.num)-Number(b.num));l._alt=c.slice(1).map(x=>'№ '+(x.num||'?'));return c[0];}
     if(c.length>1)throw Error('Товар «'+l.name+'» по цене подходит к нескольким позициям контракта ('+c.map(x=>'№ '+(x.num||'?')).join(', ')+'). Нужна ручная настройка.');
     return c[0]||null;
   }
@@ -214,6 +216,7 @@ const Eis = (() => {
       const was=pairs.find(x=>x.pos.id===id);
       if(!was){used.add(id);pairs.push({l,pos,src:[l]});return;}
       if(Math.abs(Number(was.l.price)-Number(l.price))>0.006)throw Error('Строки «'+was.l.name+'» и «'+l.name+'» относятся к одной позиции контракта, но цены разные. Проверьте цены.');
+      if(l._alt)warnings.push('«'+l.name+'» по цене подходит и к позиции '+l._alt.join(', ')+' — сайт добавил её к позиции № '+(pos.num||'?')+'. Если нужно к другой — поправьте количество в ЕИС перед подписанием.');
       if(was.l.country!==l.country)warnings.push('У «'+was.l.name+'» и «'+l.name+'» разные страны происхождения — в объединённой строке указана '+(COUNTRIES[was.l.country]||was.l.country)+'.');
       const w=was.l;w.qty=Math.round((w.qty+l.qty)*1000)/1000;['net','vat','sum'].forEach(key=>{w[key]=Math.round((w[key]+l[key])*100)/100;});was.src.push(l);
     });
