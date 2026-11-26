@@ -183,6 +183,8 @@ const bnSup = sid => supShort(sup(sid).name||"") || "ИП";
 const BNV = () => { const B=BNK(); B.v=B.v||{view:"list", sup:"", day:""}; return B.v; };
 const bnIsWait = o => o.status==="wait" || o.status==="new" || !o.status;
 const bnIsOk = o => o.status==="auto" || o.status==="done";
+function bnWaitN(){ try{ const B=BNK(), V=BNV(), [d1,d2]=pvRange(); return B.ops.filter(o=>o.date>=d1 && o.date<=d2 && (!V.sup || o.supplierId===V.sup) && bnIsWait(o)).length; }catch(e){ return 0; } }
+function bnBadge(){ const bn=$("#pv-bkn"), n=bnWaitN(); if(bn){ bn.hidden=!n; bn.textContent=n; bn.title="Нужно решить за выбранный период"; } }
 function pvBankDraw(){
   const box=$("#pv-bank"); if(!box) return; const B=BNK(), V=BNV(), [d1,d2]=pvRange(), mon=pvMonth();
   if(!bnOk()){ box.innerHTML=`<div class="pvhead"><div><h2>Поступления</h2></div></div><div class="pvempty">${pvIco("bank","big")}<b>Нужно обновить скрипт таблицы</b><small>Поступления из Т-Бизнеса заработают после обновления Code.gs (версия 16).</small><button type="button" class="btn sm" id="srvOldHow">Как обновить</button></div>`; return; }
@@ -191,6 +193,7 @@ function pvBankDraw(){
   if(V.day && (V.day<d1 || V.day>d2)) V.day="";
   const cal = V.view==="cal" && mon!=="all";
   const inMon=B.ops.filter(o=>o.date>=d1 && o.date<=d2 && (!V.sup || o.supplierId===V.sup)), ops = cal && V.day ? inMon.filter(o=>o.date===V.day) : inMon;
+  setTimeout(bnBadge,0);
   const cnt={wait:0, ok:0, skip:0, all:ops.length}; ops.forEach(o=>{ if(bnIsWait(o)) cnt.wait++; else if(o.status==="skip") cnt.skip++; else cnt.ok++; });
   let st=B.f || (cnt.wait?"wait":"all"); if(st!=="all" && !cnt[st]) st="all";
   const L=ops.filter(o=>st==="all" || (st==="wait" && bnIsWait(o)) || (st==="ok" && bnIsOk(o)) || (st==="skip" && o.status==="skip"));
