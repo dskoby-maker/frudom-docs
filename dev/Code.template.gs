@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 56;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 57;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -618,6 +618,7 @@ function ozon_(p, me) {
         cur.at = new Date().toISOString(); cur.by = me.name; ozDataPut_(cur); return { ok: true, ver: CODE_VER, n: n, at: cur.at, wat: wat }; }
       finally { lock.releaseLock(); } }
     if (/^ag[A-Z]/.test(op)) return ozAgent_(p, me, op);   /* Озон-помощник */
+    if (op === 'api') return ozApi_(p, me);               /* управление магазином (Code.gs ≥ 57) */
     if (op === 'call') {  /* bodies — до 40 запросов одного вида, идут параллельно */
       const K = ozKeys_()[String(p.id || '')], path = String(p.path || '');
       if (!K) return { ok: false, error: 'у этого магазина не подключён ключ Озона' };
@@ -628,6 +629,24 @@ function ozon_(p, me) {
     }
     return { ok: false, error: 'неизвестное действие' };
   } catch (e) { return { ok: false, error: String(e.message || e).slice(0, 300) }; }
+}
+/* ===== Управление магазином Озона (Code.gs ≥ 57, просьба Даниила 26.11.2026) =====
+   Ключ теперь с ролью Admin — сайт может не только читать, но и менять: цены, остатки, архив, сборка и статусы заказов,
+   возвраты, чаты, отзывы, вопросы, акции. Скрипт пересылает запрос в Seller API как есть (любой путь вида /vN/…), разбирает сайт.
+   Запрос, который что-то меняет, сайт помечает полем w (что сделано, по-русски) — такие пишутся в «События».
+   PDF (этикетки заказов) отдаётся в base64. До 40 запросов одного вида — параллельно. */
+function ozApi_(p, me) {
+  const K = ozKeys_()[String(p.id || '')], path = String(p.path || ''), get = String(p.method || '').toLowerCase() === 'get';
+  if (!K) return { ok: false, error: 'у этого магазина не подключён ключ Озона' };
+  if (!/^\/v\d\/[a-z0-9_\-\/]{2,90}$/i.test(path) || path.indexOf('..') >= 0) return { ok: false, error: 'неверный запрос к Озону' };
+  const B = get ? [null] : (Array.isArray(p.bodies) ? p.bodies : [p.body || {}]).slice(0, 40);
+  const R = UrlFetchApp.fetchAll(B.map(b => Object.assign({ url: OZ_URL + path }, get ? ozGet_(K) : ozOpt_(K, b))));
+  const res = R.map(r => { let ct = ''; try { const h = r.getHeaders ? r.getHeaders() : {}; ct = String(h['Content-Type'] || h['content-type'] || ''); } catch (e) {}
+    if (/pdf|octet-stream/i.test(ct) && r.getResponseCode() === 200) return { code: 200, pdf: Utilities.base64Encode(r.getBlob().getBytes()) };
+    return ozRes_(r); });
+  if (p.w) { const ok = res.filter(r => r.code === 200).length;
+    try { log_(me, [{ action: 'Озон', text: String(p.w).slice(0, 400) + (ok === res.length ? '' : ' — Озон принял ' + ok + ' из ' + res.length) }]); } catch (e) {} }
+  return { ok: true, res: res };
 }
 /* ===== Озон-помощник (Code.gs ≥ 55) — раз в 6 часов сам проверяет акции магазина =====
    Настройки — свойство скрипта OZ_AGENT {on, mode: 'advise' (только советует) | 'auto' (сам включает/выключает), max — не больше N изменений за проверку, sid — магазин}.
