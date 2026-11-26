@@ -54,44 +54,55 @@ function bnInvMatch(op, cids, sum){ const linked=new Set();
     if(!L.length || L.length!==d.docs.length || L.some(x=>linked.has(x.j.id))) return;
     if(bnEq(bnSum(L),sum)) hit.push({r, L:L.sort((a,b)=>a.j.date<b.j.date?-1:a.j.date>b.j.date?1:jNumSort(a.j,b.j))}); });
   return hit.length===1 ? hit[0] : null; }
+/* итог для человека: зелёный — всё сходится, можно подтверждать; жёлтый — сумма сходится, но накладные подобраны по сумме; красный — разбираться */
+function bnVerdict(o, m){ if(!m || !m.docs || !m.docs.length) return "";
+  const sum=r2(+o.sum||0), due=r2(m.docs.reduce((a,u)=>a+(+u.s||0),0)), d=r2(sum-due), n=m.docs.length,
+    nw=n+" "+plural(n,["накладной","накладным","накладным"]), src=m.src||"";
+  const eq=bnEq(d,0), near=!eq && bnNear(due,sum), sure=src==="num"||src==="inv"||src==="one";
+  const IC_OK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+    IC_Q='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>';
+  const by=src==="inv"?(m.inv?"по счёту № "+esc(m.inv):"по счёту на оплату"):src==="one"?"одна накладная ровно на эту сумму":"по номерам из назначения платежа";
+  if(sure && (eq||near)) return `<div class="bnvd ok">${IC_OK}<div><b>Скорее всего всё в порядке</b><span>Пришло ${fm(sum)} ₽, по ${nw} — ${fm(due)} ₽: ${eq?"сумма сходится":"разница "+fm(Math.abs(d))+" ₽ — это округление"}. Накладные найдены ${by}. Можно нажимать «Подтвердить».</span></div></div>`;
+  if(eq||near) return `<div class="bnvd chk">${IC_Q}<div><b>Сумма сходится — проверьте накладные</b><span>Пришло ${fm(sum)} ₽ = ${fm(due)} ₽ по ${nw}, но ${src==="other"?"часть накладных у другого ИП":"номеров накладных в назначении нет — сайт подобрал их по сумме"}. Если это те накладные — нажмите «Подтвердить».</span></div></div>`;
+  return `<div class="bnvd bad">${IC_Q}<div><b>Нужно разобраться</b><span>Пришло ${fm(sum)} ₽, а по ${nw} — ${fm(due)} ₽: ${d<0?"недоплата":"переплата"} ${fm(Math.abs(d))} ₽. Узнайте у заказчика причину (недовезли, вернули товар, удержали штраф) или выберите другие накладные.</span></div></div>`; }
 function bnMatch(op){
   const sum=+op.sum||0, cids=bnCustomers(op), nums=bnNums(op.purpose);
   if(!cids.length) return {exact:false, cid:"", docs:[], why: op.payerInn ? "Заказчика с ИНН "+op.payerInn+" нет в справочнике" : "В платеже нет ИНН плательщика"};
   const due=bnDue(cids, op.supplierId), all=due.length?due:bnDue(cids,"");
-  const pack=(L,why,exact)=>({exact, cid:L[0]?L[0].j.customerId:cids[0], docs:L.map(x=>({id:x.j.id, s:String(r2(x.left))})), why});
+  const pack=(L,why,exact,src)=>({exact, src:src||"", cid:L[0]?L[0].j.customerId:cids[0], docs:L.map(x=>({id:x.j.id, s:String(r2(x.left))})), why});
   /* 1. номера накладных в назначении */
   const byNum=all.filter(x=>nums.has(String(+x.j.number||x.j.number)));
-  if(byNum.length && bnEq(bnSum(byNum),sum)) return pack(byNum,"Номера накладных в назначении платежа и сумма совпали",true);
-  if(byNum.length && bnNear(bnSum(byNum),sum)) return pack(byNum,"Номера накладных в назначении платежа совпали."+bnDiffTxt(bnSum(byNum),sum),true);
+  if(byNum.length && bnEq(bnSum(byNum),sum)) return pack(byNum,"Номера накладных в назначении платежа и сумма совпали",true,"num");
+  if(byNum.length && bnNear(bnSum(byNum),sum)) return pack(byNum,"Номера накладных в назначении платежа совпали."+bnDiffTxt(bnSum(byNum),sum),true,"num");
   /* 1б. те же номера, но накладные уже отмечены оплаченными или у другого ИП — только предложение */
   const ref=bnRefDocs(cids, nums, op.supplierId);
   if(ref.length){ const L=bnEq(bnSum(ref),sum) ? ref : bnSubset(ref,sum);
     if(L && L.length && L.some(x=>x.paid || x.other)){ const pd=L.filter(x=>x.paid), ot=L.filter(x=>x.other);
       return pack(L, "Номера из назначения: "+L.map(x=>"№ "+x.j.number).join(", ")+" — сумма совпала."
         +(pd.length?" Уже отмечены оплаченными: "+pd.map(x=>"№ "+x.j.number).join(", ")+" — при подтверждении платёж просто свяжется с ними, второй раз сумма не добавится.":"")
-        +(ot.length?" Другой ИП: "+ot.map(x=>"№ "+x.j.number+" ("+bnSup(x.j.supplierId)+")").join(", ")+".":""), false); } }
+        +(ot.length?" Другой ИП: "+ot.map(x=>"№ "+x.j.number+" ("+bnSup(x.j.supplierId)+")").join(", ")+".":""), false, ot.length?"other":"num"); } }
   /* 1в. отдельный «Счёт на оплату» этого заказчика ровно на сумму платежа (номера счёта в назначении может не быть) */
   const iv=bnInvMatch(op, cids, sum);
   if(iv){ const pd=iv.L.filter(x=>x.paid);
     return Object.assign(pack(iv.L, "Оплата счёта № "+iv.r.number+" от "+fd(iv.r.date)+(iv.r.place?" ("+iv.r.place+")":"")+": сумма совпала с его накладными ("+iv.L.length+")"
-      +(pd.length?". Накладные уже отмечены оплаченными ("+pd.length+" из "+iv.L.length+") — при подтверждении платёж просто свяжется с ними, второй раз сумма не добавится":""), !pd.length), {inv:String(iv.r.number)}); }
+      +(pd.length?". Накладные уже отмечены оплаченными ("+pd.length+" из "+iv.L.length+") — при подтверждении платёж просто свяжется с ними, второй раз сумма не добавится":""), !pd.length, "inv"), {inv:String(iv.r.number)}); }
   if(!all.length) return {exact:false, cid:cids[0], docs:[], why:"У заказчика нет неоплаченных накладных"};
   if(nums.size && !byNum.length && !ref.length && !(D.invoices||[]).some(r=>cids.includes(r.customerId) && nums.has(String(+r.number||r.number))) && !all.some(x=>bnEq(x.left,sum)))
     return {exact:false, cid:cids[0], docs:[], why:"В назначении № "+[...nums].slice(0,8).join(", ")+" — таких накладных у этого заказчика на сайте нет"+(bnMissing(op, cids[0]).length?". Если их просто не заводили — нажмите «Создать накладные…»: всё из платежа заполнится само.":" (может, они в архиве или у другого заказчика). Нажмите «Выбрать накладные…».")};
   /* 2. номер счёта на оплату → его накладные */
   const inv=(D.invoices||[]).filter(r=>cids.includes(r.customerId) && (!op.supplierId||r.supplierId===op.supplierId) && nums.has(String(+r.number||r.number)));
   for(const r of inv){ let d={}; try{ d=JSON.parse(r.data||"{}")||{}; }catch(e){} const ids=new Set(d.docs||[]), L=all.filter(x=>ids.has(x.j.id));
-    if(L.length && bnEq(bnSum(L),sum)) return pack(L,"Оплата счёта № "+r.number+": сумма совпала с его накладными",true);
-    if(L.length && L.length===ids.size && bnNear(bnSum(L),sum)) return pack(L,"Оплата счёта № "+r.number+"."+bnDiffTxt(bnSum(L),sum),true); }
+    if(L.length && bnEq(bnSum(L),sum)) return pack(L,"Оплата счёта № "+r.number+": сумма совпала с его накладными",true,"inv");
+    if(L.length && L.length===ids.size && bnNear(bnSum(L),sum)) return pack(L,"Оплата счёта № "+r.number+"."+bnDiffTxt(bnSum(L),sum),true,"inv"); }
   /* 3. одна накладная ровно на эту сумму */
   const one=all.filter(x=>bnEq(x.left,sum));
-  if(one.length===1 && (!nums.size || !byNum.length || byNum[0]===one[0])) return pack(one,"Одна неоплаченная накладная ровно на эту сумму",true);
+  if(one.length===1 && (!nums.size || !byNum.length || byNum[0]===one[0])) return pack(one,"Одна неоплаченная накладная ровно на эту сумму",true,"one");
   /* дальше — только предложения */
-  if(byNum.length){ const s=bnSum(byNum); return pack(byNum, "Номера из назначения: "+byNum.map(x=>"№ "+x.j.number).join(", ")+" — к оплате "+fm(s)+" ₽, пришло "+fm(sum)+" ₽", false); }
-  if(one.length>1) return pack([one[0]],"Таких накладных несколько ("+one.map(x=>"№ "+x.j.number).join(", ")+") — предлагаю самую раннюю",false);
+  if(byNum.length){ const s=bnSum(byNum); return pack(byNum, "Номера из назначения: "+byNum.map(x=>"№ "+x.j.number).join(", ")+" — к оплате "+fm(s)+" ₽, пришло "+fm(sum)+" ₽", false, "num"); }
+  if(one.length>1) return pack([one[0]],"Таких накладных несколько ("+one.map(x=>"№ "+x.j.number).join(", ")+") — предлагаю самую раннюю",false,"guess");
   let acc=0; const pre=[]; for(const x of all){ if(acc+x.left>sum+0.004) break; acc=r2(acc+x.left); pre.push(x); if(bnEq(acc,sum)) break; }
-  if(pre.length && bnEq(acc,sum)) return pack(pre,"Сумма ровно закрывает самые старые накладные ("+pre.length+")",false);
-  const sub=bnSubset(all,sum); if(sub) return pack(sub,"Сумма совпала с набором накладных",false);
+  if(pre.length && bnEq(acc,sum)) return pack(pre,"Сумма ровно закрывает самые старые накладные ("+pre.length+")",false,"guess");
+  const sub=bnSubset(all,sum); if(sub) return pack(sub,"Сумма совпала с набором накладных",false,"guess");
   /* частичная оплата: с самой старой */
   let rest=sum; const part=[]; for(const x of all){ if(rest<=0.004) break; const s=r2(Math.min(rest,x.left)); part.push({j:x.j,left:s}); rest=r2(rest-s); }
   const p=pack(part, "Точного совпадения нет — предлагаю закрыть с самой старой"+(rest>0.004?". Лишние "+fm(rest)+" ₽ некуда разнести":""), false); return p;
@@ -229,7 +240,7 @@ function bnCard(o, i){
       <div class="bns"><span>${fd(o.date)}</span><span>${esc(bnSup(o.supplierId))}</span>${man?`<span class="bnman">вручную</span>`:""}${o.payerInn&&!man?`<span>ИНН ${esc(o.payerInn)}</span>`:""}${cname&&!man?`<span class="bnc">→ ${esc(cname)}</span>`:""}<span class="bnst">${esc(BN_ST[st]||st)}</span></div>
       ${o.purpose?`<button type="button" class="bnp" data-bnpf title="${man?"Комментарий":"Назначение платежа — нажмите, чтобы прочитать целиком"}"><span>${esc(o.purpose)}</span></button>`:man?"":`<p class="bnp"><span>(без назначения)</span></p>`}
       ${applied ? `${/^Счёт № [^:]+:/.test(o.docsText||"")?`<div class="bnwhy">Оплата ${esc(o.docsText.match(/^Счёт № [^:]+/)[0].replace("Счёт","счёта"))}</div>`:""}<div class="bndocs">${used.map(u=>chip(u)).join("")}</div>${Math.abs(rest)>0.004 && Math.abs(rest)<=BN_TOL+0.004?`<div class="bnwhy">Разница ${fm(Math.abs(rest))} ₽ (${rest>0?"пришло больше":"пришло меньше"}) — округление в ЕИС / на Портале, накладные оплачены полностью</div>`:rest>0.004?`<div class="bnwhy">Не разнесено ${fm(rest)} ₽</div>`:""}` : ""}
-      ${wait && m ? `${mk.length&&!m.docs.length?"":`<div class="bnwhy">${esc(m.why)}</div>`}${m.docs.length?`<div class="bndocs">${m.docs.map(u=>chip(u,true)).join("")}</div>`:""}` : wait ? `<div class="bnwhy">Накладные не выбраны</div>` : ""}
+      ${wait && m ? `${bnVerdict(o,m)}${mk.length&&!m.docs.length?"":`<div class="bnwhy${/bnvd ok/.test(bnVerdict(o,m))?" bnwok":""}">${esc(m.why)}</div>`}${m.docs.length?`<div class="bndocs">${m.docs.map(u=>chip(u,true)).join("")}</div>`:""}` : wait ? `<div class="bnwhy">Накладные не выбраны</div>` : ""}
       ${mk.length ? `<div class="bnmk"><b>На сайте нет ${mk.length>1?mk.length+" "+plural(mk.length,["накладной","накладных","накладных"]):"накладной"} из этого платежа</b><div class="bnmc">${mk.map(r=>`<span>№ ${esc(r.num)}${r.date?` <small>от ${fd(r.date)}</small>`:""}${r.sum?` <b>${fm(r.sum)} ₽</b>`:""}</span>`).join("")}</div><small>Если их просто не заводили — «Создать ${mk.length>1?"накладные":"накладную"}» заполнит всё из платежа само.</small></div>` : ""}
       ${skipWhy ? `<div class="bnwhy bnmem">${esc(skipWhy)}</div>` : ""}
       <div class="bna">${man ? `<button type="button" class="btn ${wait?"pri":"ghost"} sm" data-bn="edit">${wait?"Выбрать накладные…":"Изменить…"}</button><button type="button" class="btn ghost sm danger" data-bn="del">Удалить приход</button>`

@@ -21,7 +21,7 @@ async def main():
     await pg.wait_for_timeout(2500)
     info=await pg.evaluate("""()=>{const D=__fd.D(), c=D.customers[0], s=D.suppliers[0]; c.inn='7729082090'; window.__cid=c.id; window.__sid=s.id;
       D.products.push({id:'bi-a', name:'Яблоки', code:'', unit:'кг', country:'', price:'100'}); D.prices[c.id]=D.prices[c.id]||{}; D.prices[c.id]['bi-a']='100'; return {sid:s.id, cid:c.id}; }""")
-    for i,q in enumerate(['12','30','8','5','40']):
+    for i,q in enumerate(['12','30','8','5','40','9']):
         await pg.evaluate(f"""()=>{{const D=__fd.D(); Object.assign(D.draft,{{id:'bid{i}', customerId:window.__cid, supplierId:window.__sid, number:'', lines:[{{productId:'bi-a',qty:'{q}',price:'100'}}]}}); }}""")
         await pg.evaluate(TAB+"('doc')"); await pg.wait_for_timeout(300); await pg.click('#d-save'); await pg.wait_for_timeout(1300)
     await pg.evaluate(TAB+"('profit')"); await pg.wait_for_timeout(2000)
@@ -32,6 +32,8 @@ async def main():
       ['bid3','bid4'].forEach(id=>{const j=D.journal.find(x=>x.id===id); __fd.setPay(j, __fd.payOf(j).tot, '2026-11-18', true);}); }""")
     ops=[{'operationId':'q1','operationDate':'2026-11-18T09:00:00Z','typeOfOperation':'Credit','accountAmount':5000,'payPurpose':PUR.format(n=2),'counterParty':{'inn':'7729082090','name':'УФК ПО Г. МОСКВЕ (МГУ)'}},
          {'operationId':'q2','operationDate':'2026-11-18T10:00:00Z','typeOfOperation':'Credit','accountAmount':4500,'payPurpose':PUR.format(n=3).replace('счету № 3','счету'),'counterParty':{'inn':'7729082090','name':'УФК ПО Г. МОСКВЕ (МГУ)'}}]
+    n2=await pg.evaluate("__fd.D().journal.find(j=>j.id==='bid5').number")
+    ops.append({'operationId':'q3','operationDate':'2026-11-18T11:00:00Z','typeOfOperation':'Credit','accountAmount':700,'payPurpose':f'Оплата по УПД № {n2}. Без НДС','counterParty':{'inn':'7729082090','name':'УФК ПО Г. МОСКВЕ (МГУ)'}})
     ev("__tb="+json.dumps({'tokens':{TOK:{'accounts':['40802810000000000019'],'ops':ops}}}))
     await pg.click('#pv-seg [data-pv="bank"]'); await pg.wait_for_timeout(500)
     await pg.click('#pv-bank [data-bn="keys"]'); await pg.wait_for_timeout(400)
@@ -45,6 +47,8 @@ async def main():
     c2=pg.locator('#pv-bank [data-bnop="tb-q2"]'); why=await c2.locator('.bnwhy').text_content()
     ok('Оплата счёта № 3' in why and '223' not in why and 'таких накладных' not in why, f'понятное объяснение: {why[:160]}')
     w1=await pg.locator('#pv-bank [data-bnop="tb-q1"]').text_content(); ok('счёта № 2' in w1, 'у разнесённого видно, что это счёт № 2')
+    ok(await c2.locator('.bnvd.ok').count()==1 and 'сумма сходится' in await c2.locator('.bnvd').text_content(), 'зелёная подсказка «Скорее всего всё в порядке»')
+    c3=pg.locator('#pv-bank [data-bnop="tb-q3"]'); ok(await c3.locator('.bnvd.bad').count()==1, 'недоплата — красная «Нужно разобраться»')
     await pg.screenshot(path=f'{SHOT}/bank-inv{"-ph" if PH else ""}.png', full_page=True)
     await c2.locator('[data-bn="ok"]').click(); await pg.wait_for_timeout(500)
     a=await pg.evaluate(PAY+"('bid3')"); op=await pg.evaluate("__fd.D().bank.ops.find(o=>o.opId==='q2')")
