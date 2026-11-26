@@ -45,19 +45,21 @@ function bnSubset(L, target){   /* единственный набор накл�
   const go=(i,acc,pick)=>{ if(n>1) return; if(acc===T){ n++; found=pick.slice(); return; } if(i>=V.length||acc>T) return; pick.push(i); go(i+1,acc+V[i],pick); pick.pop(); go(i+1,acc,pick); };
   go(0,0,[]); return n===1 ? found.map(i=>L[i]) : null; }
 /* счёт на оплату (inv_seg) с суммой ровно как платёж; накладные, уже связанные с другим платежом, не берём */
-function bnInvMatch(op, cids, sum){ const linked=new Set();
+function bnInvMatch(op, cids, sum, nums){ const linked=new Set();
   (BNK().ops||[]).forEach(o=>{ if(o.id!==op.id && (o.status==="auto"||o.status==="done")) bnDocsOf(o).forEach(u=>linked.add(u.id)); });
   const hit=[];
   (D.invoices||[]).forEach(r=>{ if(!cids.includes(r.customerId) || (op.supplierId && r.supplierId && r.supplierId!==op.supplierId)) return;
     let d={}; try{ d=JSON.parse(r.data||"{}")||{}; }catch(e){} if(d.arch || !(d.docs||[]).length) return;
     const L=d.docs.map(id=>D.journal.find(j=>j.id===id)).filter(j=>j && j.snap && !isArch(j)).map(j=>{ const p=payOf(j); return {j, left:p.tot, paid:p.s>0.004}; });
     if(!L.length || L.length!==d.docs.length || L.some(x=>linked.has(x.j.id))) return;
-    if(bnEq(bnSum(L),sum)) hit.push({r, L:L.sort((a,b)=>a.j.date<b.j.date?-1:a.j.date>b.j.date?1:jNumSort(a.j,b.j))}); });
+    const by=bnNear(bnSum(L),sum)?"docs":(+r.sum>0 && bnNear(+r.sum,sum))?"sum":"";   /* строки счёта могли править руками — тогда сверяем с суммой самого счёта */
+    if(by) hit.push({r, by, num:!!(nums&&nums.has(String(+r.number||r.number))), L:L.sort((a,b)=>a.j.date<b.j.date?-1:a.j.date>b.j.date?1:jNumSort(a.j,b.j))}); });
+  if(hit.length>1){ const n=hit.filter(h=>h.num); if(n.length===1) return n[0]; }
   return hit.length===1 ? hit[0] : null; }
 /* итог для человека: зелёный — всё сходится, можно подтверждать; жёлтый — сумма сходится, но накладные подобраны по сумме; красный — разбираться */
 function bnVerdict(o, m){ if(!m || !m.docs || !m.docs.length) return "";
-  const sum=r2(+o.sum||0), due=r2(m.docs.reduce((a,u)=>a+(+u.s||0),0)), d=r2(sum-due), n=m.docs.length,
-    nw=n+" "+plural(n,["накладной","накладным","накладным"]), src=m.src||"";
+  const sum=r2(+o.sum||0), due=m.due!=null?r2(m.due):r2(m.docs.reduce((a,u)=>a+(+u.s||0),0)), d=r2(sum-due), n=m.docs.length,
+    nw=m.due!=null?"счёту № "+esc(m.inv||""):n+" "+plural(n,["накладной","накладным","накладным"]), src=m.src||"";
   const eq=bnEq(d,0), near=!eq && bnNear(due,sum), sure=src==="num"||src==="inv"||src==="one";
   const IC_OK='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
     IC_Q='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>';
@@ -82,10 +84,12 @@ function bnMatch(op){
         +(pd.length?" Уже отмечены оплаченными: "+pd.map(x=>"№ "+x.j.number).join(", ")+" — при подтверждении платёж просто свяжется с ними, второй раз сумма не добавится.":"")
         +(ot.length?" Другой ИП: "+ot.map(x=>"№ "+x.j.number+" ("+bnSup(x.j.supplierId)+")").join(", ")+".":""), false, ot.length?"other":"num"); } }
   /* 1в. отдельный «Счёт на оплату» этого заказчика ровно на сумму платежа (номера счёта в назначении может не быть) */
-  const iv=bnInvMatch(op, cids, sum);
-  if(iv){ const pd=iv.L.filter(x=>x.paid);
-    return Object.assign(pack(iv.L, "Оплата счёта № "+iv.r.number+" от "+fd(iv.r.date)+(iv.r.place?" ("+iv.r.place+")":"")+": сумма совпала с его накладными ("+iv.L.length+")"
-      +(pd.length?". Накладные уже отмечены оплаченными ("+pd.length+" из "+iv.L.length+") — при подтверждении платёж просто свяжется с ними, второй раз сумма не добавится":""), !pd.length, "inv"), {inv:String(iv.r.number)}); }
+  let iv=bnInvMatch(op, cids, sum, nums); if(iv && !iv.num && (byNum.length||ref.length)) iv=null;   /* в назначении номера других накладных — счёт без своего номера не подсовываем */
+  if(iv){ const pd=iv.L.filter(x=>x.paid), ds=bnSum(iv.L), rs=r2(+iv.r.sum||0), hd="Оплата счёта № "+iv.r.number+" от "+fd(iv.r.date)+(iv.r.place?" ("+iv.r.place+")":"");
+    if(iv.by==="sum") return Object.assign(pack(iv.L, hd+": сумма счёта "+fm(rs)+" ₽"+(bnEq(rs,sum)?" совпала":" — разница "+fm(Math.abs(r2(sum-rs)))+" ₽, округление")+". Сумма его накладных ("+iv.L.length+") — "+fm(ds)+" ₽: строки счёта правили вручную."
+      +(pd.length?" Накладные уже отмечены оплаченными ("+pd.length+" из "+iv.L.length+") — при подтверждении платёж просто свяжется с ними, второй раз сумма не добавится.":" При подтверждении накладные счёта отметятся оплаченными."), false, "inv"), {inv:String(iv.r.number), due:rs});
+    return Object.assign(pack(iv.L, hd+": сумма совпала с его накладными ("+iv.L.length+")"+(bnEq(ds,sum)?"":"."+bnDiffTxt(ds,sum).replace(/\.$/,""))
+      +(pd.length?". Накладные уже отмечены оплаченными ("+pd.length+" из "+iv.L.length+") — при подтверждении платёж просто свяжется с ними, второй раз сумма не добавится":""), !pd.length && bnEq(ds,sum), "inv"), {inv:String(iv.r.number)}); }
   if(!all.length) return {exact:false, cid:cids[0], docs:[], why:"У заказчика нет неоплаченных накладных"};
   if(nums.size && !byNum.length && !ref.length && !(D.invoices||[]).some(r=>cids.includes(r.customerId) && nums.has(String(+r.number||r.number))) && !all.some(x=>bnEq(x.left,sum)))
     return {exact:false, cid:cids[0], docs:[], why:"В назначении № "+[...nums].slice(0,8).join(", ")+" — таких накладных у этого заказчика на сайте нет"+(bnMissing(op, cids[0]).length?". Если их просто не заводили — нажмите «Создать накладные…»: всё из платежа заполнится само.":" (может, они в архиве или у другого заказчика). Нажмите «Выбрать накладные…».")};
