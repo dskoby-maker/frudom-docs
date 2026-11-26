@@ -38,6 +38,15 @@ test('several site products of one contract position are merged into one XML lin
  assert.equal(a.lines.length,4);assert.equal(a.lines[1].qty,25.4);
  assert.deepEqual(w.Eis.generate(config,k).warnings,[]);
 });
+test('extra line with the same price as two taken positions joins the lower number with a warning',()=>{
+ const pos=(id,tech,num,name,price)=>({id,tech,ext:'',num,name,okei:'166',price,code:'01.00.00.000-0000000'+num,country:'643'});
+ const c={...config,catalog:{kind:'contract',register:'2000000000000000001',version:'1',number:'TEST-1',date:'2026-01-01',sinn:'000000000001',cinn:'0000000002',ckpp:'000000003',stages:[{id:'STAGE',tech:'2'}],places:['4'],positions:[pos('POS1','3','1','Фрукты & ягоды','100.12345678901'),pos('P10','5','10','Изделия макаронные','104.18'),pos('P15','6','15','Изделия макаронные','104.18')]},mapping:{p:'POS1',m1:'P15',m2:'P10'}};
+ const L=(pid,name,qty,sum)=>({pid,name,qty,price:104.18,net:sum,vat:0,sum,okei:'166',country:'643',unit:'кг'});
+ const a=structuredClone(k);a.lines.push(L('m1','Изделия макаронные (макароны фигурные)',25.4,2646.17),L('m2','Изделия макаронные (лапша)',18.9,1969),L('m3','Изделия макаронные (вермишель)',8,833.44));a.t={net:5648.86,vat:0,sum:5648.86};
+ const r=w.Eis.generate(c,a),rows=parse(r.main).querySelectorAll('ТаблСчФакт > СведТов'),links=[...parse(r.supplement).querySelectorAll('НедеталТРУ')].map(x=>x.getAttribute('ИдТРУ'));
+ assert.equal(rows.length,3);assert.deepEqual(links,['POS1','P15','P10']);assert.equal(rows[1].getAttribute('КолТов'),'25.4');assert.equal(rows[2].getAttribute('КолТов'),'26.9');assert.equal(rows[2].getAttribute('СтТовУчНал'),'2802.44');
+ assert(r.warnings.some(x=>/вермишель/.test(x)&&/№ 15/.test(x)&&/№ 10/.test(x)),r.warnings.join('|'));
+});
 test('rejects external entities and mixed XML pairs',()=>{assert.throws(()=>w.Eis.inspect('<!DOCTYPE x>'+main,pril),/сущност/);assert.throws(()=>w.Eis.inspect(main,pril.replace(id,id+'bad')),/одному/)});
 test('contract without externalSid and with trailing-zero prices: new positions get exact ids, no ВнешТехИдТРУ',()=>{
  const pos=(id,tech,num,name,price)=>({id,tech,ext:'',num,name,okei:'166',price,code:'01.00.00.000-0000000'+num,country:'643'});
