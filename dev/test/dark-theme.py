@@ -29,7 +29,7 @@ async def main():
             fl=await pg.evaluate("""(()=>{ const i=document.createElement('img'); i.src='data:image/gif;base64,R0lGODlhAQABAAAAACw='; document.getElementById('fd-app').appendChild(i);
                const s=document.createElement('div'); s.className='sheet'; const i2=document.createElement('img'); s.appendChild(i2); document.getElementById('fd-app').appendChild(s);
                const r=[getComputedStyle(i).filter, getComputedStyle(s).filter, getComputedStyle(i2).filter]; i.remove(); s.remove(); return r; })()""")
-            ok(fl[0].startswith('invert') and fl[1].startswith('invert') and fl[2]=='none', f'{W}: фото и листы документов — как раньше ({fl})')
+            ok(fl[0].endswith('invert(1)') and fl[1].endswith('invert(1)') and fl[2]=='none', f'{W}: фото и листы документов — как раньше ({fl})')
             ok(await pg.evaluate("document.documentElement.scrollWidth<=innerWidth"), f'{W}: без прокрутки вбок')
             for t in ['journal','doc','calendar','data']:
                 await pg.evaluate(TAB+f"('{t}')"); await pg.wait_for_timeout(700); await pg.screenshot(path=f'{SHOT}/dark-{W}-{t}.png')

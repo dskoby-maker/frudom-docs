@@ -3728,13 +3728,37 @@ html,body,#fd-app,#fd-app *,dialog,dialog *,.cpk-pop,.cpk-pop *{-webkit-tap-high
 /* ---------- тёмная тема (только у Даниила, «Данные» → «Оформление», 23.11.2026) ----------
    весь сайт переворачивается одним фильтром: светлое ↔ тёмное, оттенки сохраняются (сливовый остаётся сливовым, красный — красным);
    картинки, фото, PDF-страницы, листы документов и тёмные окна просмотра переворачиваются обратно — они выглядят как раньше */
-html.fd-dark{filter:invert(1) hue-rotate(180deg)}
-html.fd-dark :is(img,video,canvas,iframe,picture,.sheet,#pv,#fd-lb,.adstage,.fd-noinv),
-html.fd-dark :modal:not(.mlvw),html.fd-dark :popover-open{filter:invert(1) hue-rotate(180deg)}
+html.fd-dark{filter:invert(1) hue-rotate(180deg) contrast(.88) sepia(.22) saturate(.9)}
+html.fd-dark :is(img,video,canvas,iframe,picture,.sheet,#pv,#fd-lb,.adstage,.fd-noinv){filter:saturate(1.111) contrast(1.136) hue-rotate(180deg) invert(1)}
+html.fd-dark :modal:not(.mlvw),html.fd-dark :popover-open{filter:invert(1) hue-rotate(180deg) contrast(.88) sepia(.22) saturate(.9)}
 html.fd-dark :is(.sheet,#pv,#fd-lb,.adstage,.fd-noinv,dialog.mlvw) :is(img,video,canvas,iframe,picture,.sheet){filter:none}
 html.fd-dark #fd-app .ph.up img{filter:invert(1) hue-rotate(180deg) saturate(.6) brightness(1.08)}
-html.fd-dark #fd-app,html.fd-dark dialog,html.fd-dark :popover-open{--glass-sh:0 0 0 1px rgba(28,34,32,.06)}
-html.fd-dark :is(#fd-app .card,dialog.dcard,#tkf-pan,#tkf-fab){box-shadow:0 0 0 1px rgba(28,34,32,.07)!important}
+/* нюдовая палитра (26.11.2026, как в «Контрактах»): тёплый графит + песочный акцент. Цвета ниже записаны «до фильтра» —
+   после переворота они дают: фон #151311, карточки #1E1B18, поля #26221E, текст #EDE5DA, серый #9C9286, линии #332E28, акцент #E3D3BF */
+html.fd-dark #fd-app{--bg:#FFFDEF;--surface:#F6F2F0;--ink:#19181C;--muted:#79706A;--line:#E3DDD8;--accent:#38281B;--accent-ink:#F9F4F0;--accent-soft:#E5D8CE;
+  --ok:#2A5A00;--err:#D8422A;--warn:#8B4600;--warn-soft:#EDE7D9;
+  --glass:rgba(246,242,240,.94);--glass-hi:#F6F2F0;--glass-brd:rgba(227,221,216,.9);--glass-ln:rgba(56,40,27,.12);--glass-sh:0 0 0 1px rgba(56,40,27,.05);background:#FFFDEF}
+html.fd-dark dialog,html.fd-dark :popover-open{--glass-sh:0 0 0 1px rgba(56,40,27,.06)}
+html.fd-dark #fd-app::before{background:radial-gradient(900px 520px at 8% -6%,rgba(56,40,27,.05),transparent 62%),linear-gradient(180deg,#FFFDF2,#FFFDEF)}
+html.fd-dark #fd-app header.top{border-bottom-color:#E3DDD8;box-shadow:none}
+html.fd-dark #fd-app header.top::before{background:rgba(255,253,239,.82)}
+html.fd-dark :is(#fd-app .card,#fd-app dialog.dcard,#fd-toasts .fd-toast,#tkf-pan,#tkf-fab){background:#F6F2F0;border-color:#ECE7E3;box-shadow:0 0 0 1px rgba(56,40,27,.05)!important}
+html.fd-dark #fd-app .card:hover{box-shadow:0 0 0 1px rgba(56,40,27,.09)!important}
+html.fd-dark #fd-app nav.tabs button:hover{background:#EFEAE7}
+html.fd-dark #fd-app nav.tabs button[aria-selected="true"]{background:#38281B;color:#F9F4F0;box-shadow:none}
+html.fd-dark #fd-app .btn{background:#EFEAE7;border-color:#E3DDD8;box-shadow:none}
+html.fd-dark #fd-app .btn:hover{background:#E9E2DE;border-color:#DDD4CD}
+html.fd-dark #fd-app .btn.pri,html.fd-dark #fd-app .btn.pri:hover{background:#38281B;border-color:#38281B;color:#F9F4F0;box-shadow:none}
+html.fd-dark #fd-app .btn.pri:hover{background:#2B1E13}
+html.fd-dark #fd-app .btn.ghost{background:transparent;border-color:transparent}html.fd-dark #fd-app .btn.ghost:hover{background:#EFEAE7}
+html.fd-dark #fd-app :is(input,select,textarea),html.fd-dark #fd-app .cpk:not(.cpkw.ov>.cpk),html.fd-dark .cpk-pop .cpk{background:#EFEAE7;border-color:#E3DDD8}
+html.fd-dark #fd-app :is(input,select,textarea):focus{background:#EFEAE7;border-color:#38281B;box-shadow:0 0 0 4px rgba(56,40,27,.12)}
+html.fd-dark #fd-app :is(.status,.userchip){background:#F6F2F0;border-color:#E3DDD8;box-shadow:none}
+html.fd-dark #fd-app :is(.status,.userchip):hover{background:#EFEAE7}
+html.fd-dark #fd-app .tbl tbody tr:not(.dsep):not(.kids):hover{background:#EFEAE7}
+html.fd-dark #fd-app .dcard :is(.dc-tw,.dc-hist){background:#EFEAE7;border-color:#E3DDD8}html.fd-dark #fd-app .dcard .dc-t th{background:#E9E2DE}
+html.fd-dark #fd-app details.more .menu,html.fd-dark #fd-app .modal .bar{background:#F6F2F0;border-color:#E3DDD8}
+@media (max-width:700px){html.fd-dark #fd-app .mbar:not([hidden]){background:rgba(255,253,239,.86)!important;border-top-color:#E3DDD8!important;box-shadow:none!important}}
 @media print{html.fd-dark,html.fd-dark *{filter:none!important}}
 #fd-app .dksw{display:flex;align-items:center;gap:14px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface);cursor:pointer;width:100%;text-align:left;font:inherit;color:inherit}
 #fd-app .dksw b{display:block;font-size:15px}#fd-app .dksw small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
@@ -10496,7 +10520,7 @@ function renderData(){
 const DK_META = (()=>{ const m=document.querySelector('meta[name="theme-color"]'); return m?m.getAttribute("content"):null; })();
 function darkOn(){ try{ return !!(curUser() && me().admin && getPrefs().dark && $("#fd-login").hidden); }catch(e){ return false; } }
 function themeApply(){ const on=darkOn(), h=document.documentElement; h.classList.toggle("fd-dark", on);
-  const m=document.querySelector('meta[name="theme-color"]'); if(m && DK_META!=null) m.setAttribute("content", on?"#141215":DK_META);
+  const m=document.querySelector('meta[name="theme-color"]'); if(m && DK_META!=null) m.setAttribute("content", on?"#151311":DK_META);
   const c=$("#dk-card"); if(c) c.hidden=!(curUser() && me().admin);
   const t=$("#dk-tog"); if(t){ t.setAttribute("aria-checked", on?"true":"false"); $("#dk-sub").textContent=on?"Включена. Так же на всех ваших устройствах — и на телефоне, и на компьютере.":"Выключена. Включается на всех ваших устройствах — и на телефоне, и на компьютере."; } }
 $("#dk-tog").onclick=()=>{ if(!me().admin) return; const p=getPrefs(); if(p.dark) delete p.dark; else p.dark=1; setPrefs(p,true); themeApply();
