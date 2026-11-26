@@ -3850,7 +3850,7 @@ html.fd-dark :is(#fd-app .card,dialog.dcard,#tkf-pan,#tkf-fab){box-shadow:0 0 0 
 @media (prefers-reduced-motion:reduce){#fd-app .ozbx.ozflash{animation:none}}
 #fd-app .ozkh{font-size:13px;margin:0 0 10px}
 #fd-app .ozk{border:1px solid var(--line);border-radius:12px;padding:12px;margin:0 0 10px;display:grid;gap:8px}
-#fd-app .ozkh2{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}#fd-app .ozkh2 input{width:220px;height:36px;font-weight:600}#fd-app .ozkh2 span{font-size:12.5px}#fd-app .ozkh2 span.ok{color:var(--ok)}
+#fd-app .ozkh2 span.warn{color:var(--warn)}#fd-app .ozkh2{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center}#fd-app .ozkh2 input{width:220px;height:36px;font-weight:600}#fd-app .ozkh2 span{font-size:12.5px}#fd-app .ozkh2 span.ok{color:var(--ok)}
 #fd-app .ozkf{display:grid;grid-template-columns:140px minmax(0,1fr) auto auto;gap:8px;align-items:center}#fd-app .ozkf input{height:38px}
 #fd-app .ozsec{-webkit-text-security:disc}
 #fd-app .ozkd .btn{font-size:12px;color:var(--muted)}
@@ -4739,7 +4739,9 @@ function handleErr(e){ if(e.message==="auth"){ showLogin("Неверный па�
   else { setStatus("err","Не сохранено — нет связи, повторю"); if(Date.now()-netToastAt>60000){ netToastAt=Date.now(); toast("warn","Нет связи с Google Таблицей",(e&&e.message?"Причина: "+e.message+". ":"")+"Всё сохранено на этом устройстве и отправится автоматически, когда связь появится. Ничего делать не нужно."); } } }
 
 const NEED_VER=44;   /* «Состояние сервисов» само просит Code.gs ≥ 34, остальное работает и с 33 */   /* какая версия Code.gs нужна этому сайту (CODE_VER в Code.gs) */
-function srvVerCheck(v){ const el=$("#srvOld"); if(!el) return; const old=(+v||0)<NEED_VER; el.hidden=!old || docLimited(); D.srvVer=+v||0; }
+function srvVerCheck(v){ const el=$("#srvOld"); if(!el) return; const old=(+v||0)<NEED_VER; el.hidden=!old || docLimited(); const was=D.srvVer; D.srvVer=+v||0;
+  /* версия скрипта стала известна — вкладка «Озон» заново спрашивает ключи (раньше запоминала «не подключён») */
+  if(!was && D.srvVer && typeof OZ!=="undefined" && OZ.keys==null && typeof ozKeysLoad==="function" && me && me() && me().admin) ozKeysLoad().then(()=>{ if(curTab==="ozon" && typeof ozDraw==="function") ozDraw(); if(typeof ozSync==="function" && (OZ.keys||[]).length) ozSync(false); }); }
 document.addEventListener("click",e=>{ if(!e.target.closest || !e.target.closest("#srvOldHow")) return; openCard(`<div class="dc-head"><div><div class="dc-kicker">Code.gs</div><h3>Как обновить скрипт таблицы</h3></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
   <ol class="srvsteps"><li>GitHub → файл <b>dev/Code.template.gs</b> → кнопка «Copy raw file» (два квадратика).</li><li>Таблица «Документы ФД» → «Расширения» → «Apps Script» → файл <b>Код.gs</b> → Ctrl+A → Ctrl+V → «Сохранить». Файл «Пароли.gs» не трогать.</li><li>«Начать развёртывание» → «Управление развёртываниями» → карандаш → «Версия: новая версия» → «Развернуть».</li><li>Обновите эту страницу — жёлтая плашка исчезнет.</li></ol>
   <div class="dc-acts"><button class="btn pri" data-dc="close">Понятно</button></div>`, false, ()=>{}); });
