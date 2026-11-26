@@ -12,7 +12,10 @@ let bnBusy=false;
 
 /* ---------- сопоставление ---------- */
 function bnNums(purpose){
-  const s=" "+String(purpose||"").replace(/ /g," ")+" ", out=new Set();
+  const s=" "+String(purpose||"").replace(/\u00a0/g," ")
+    .replace(/(?:закон\w*\s*)?(?:№|N)?\s*\d{1,4}\s*[-–]\s*ФЗ/gi," ")   /* «Закона №223-ФЗ» — не номер накладной */
+    .replace(/(?:дог(?:овор)?\w*|контракт\w*|гпд)\.?\s*(?:поставки\s*)?(?:№|N)?\s*[A-Za-zА-Яа-яЁё]{0,4}[\-\/]?\d[\w\/\-–]*/gi," ")   /* номер договора */
+    .replace(/(?:икз|л\/с|р\/с|к\/с)\s*(?:№|N)?\s*[\d\s]{6,}/gi," ")+" ", out=new Set();
   const re=/(?:№|N\s?[°o]?|No\.?|номер\w*|накл\w*|упд|торг[\s\-]?12|сч(?:ет|ёт|\.|ету|ёту)?(?:\s?-?\s?фактур\w*)?|с\/ф|док\w*|тн|тов\.?\s?накл\w*)\s*[.:№N]?\s*((?:\d{1,6}(?:\s*(?:[,;]|и|-|–|по)\s*)?){1,30})/gi;
   let m; while((m=re.exec(s))){ const part=m[1]; const rng=/(\d{1,6})\s*(?:-|–|по)\s*(\d{1,6})/g; let r;
     while((r=rng.exec(part))){ const a=+r[1], b=+r[2]; if(b>a && b-a<=60) for(let i=a;i<=b;i++) out.add(String(i)); }
@@ -41,6 +44,16 @@ function bnSubset(L, target){   /* единственный набор накл�
   const T=Math.round(target*100), V=L.map(x=>Math.round(x.left*100)); if(L.length>22) return null; let found=null, n=0;
   const go=(i,acc,pick)=>{ if(n>1) return; if(acc===T){ n++; found=pick.slice(); return; } if(i>=V.length||acc>T) return; pick.push(i); go(i+1,acc+V[i],pick); pick.pop(); go(i+1,acc,pick); };
   go(0,0,[]); return n===1 ? found.map(i=>L[i]) : null; }
+/* счёт на оплату (inv_seg) с суммой ровно как платёж; накладные, уже связанные с другим платежом, не берём */
+function bnInvMatch(op, cids, sum){ const linked=new Set();
+  (BNK().ops||[]).forEach(o=>{ if(o.id!==op.id && (o.status==="auto"||o.status==="done")) bnDocsOf(o).forEach(u=>linked.add(u.id)); });
+  const hit=[];
+  (D.invoices||[]).forEach(r=>{ if(!cids.includes(r.customerId) || (op.supplierId && r.supplierId && r.supplierId!==op.supplierId)) return;
+    let d={}; try{ d=JSON.parse(r.data||"{}")||{}; }catch(e){} if(d.arch || !(d.docs||[]).length) return;
+    const L=d.docs.map(id=>D.journal.find(j=>j.id===id)).filter(j=>j && j.snap && !isArch(j)).map(j=>{ const p=payOf(j); return {j, left:p.tot, paid:p.s>0.004}; });
+    if(!L.length || L.length!==d.docs.length || L.some(x=>linked.has(x.j.id))) return;
+    if(bnEq(bnSum(L),sum)) hit.push({r, L:L.sort((a,b)=>a.j.date<b.j.date?-1:a.j.date>b.j.date?1:jNumSort(a.j,b.j))}); });
+  return hit.length===1 ? hit[0] : null; }
 function bnMatch(op){
   const sum=+op.sum||0, cids=bnCustomers(op), nums=bnNums(op.purpose);
   if(!cids.length) return {exact:false, cid:"", docs:[], why: op.payerInn ? "Заказчика с ИНН "+op.payerInn+" нет в справочнике" : "В платеже нет ИНН плательщика"};
@@ -57,6 +70,11 @@ function bnMatch(op){
       return pack(L, "Номера из назначения: "+L.map(x=>"№ "+x.j.number).join(", ")+" — сумма совпала."
         +(pd.length?" Уже отмечены оплаченными: "+pd.map(x=>"№ "+x.j.number).join(", ")+" — при подтверждении платёж просто свяжется с ними, второй раз сумма не добавится.":"")
         +(ot.length?" Другой ИП: "+ot.map(x=>"№ "+x.j.number+" ("+bnSup(x.j.supplierId)+")").join(", ")+".":""), false); } }
+  /* 1в. отдельный «Счёт на оплату» этого заказчика ровно на сумму платежа (номера счёта в назначении может не быть) */
+  const iv=bnInvMatch(op, cids, sum);
+  if(iv){ const pd=iv.L.filter(x=>x.paid);
+    return Object.assign(pack(iv.L, "Оплата счёта № "+iv.r.number+" от "+fd(iv.r.date)+(iv.r.place?" ("+iv.r.place+")":"")+": сумма совпала с его накладными ("+iv.L.length+")"
+      +(pd.length?". Накладные уже отмечены оплаченными ("+pd.length+" из "+iv.L.length+") — при подтверждении платёж просто свяжется с ними, второй раз сумма не добавится":""), !pd.length), {inv:String(iv.r.number)}); }
   if(!all.length) return {exact:false, cid:cids[0], docs:[], why:"У заказчика нет неоплаченных накладных"};
   if(nums.size && !byNum.length && !ref.length && !(D.invoices||[]).some(r=>cids.includes(r.customerId) && nums.has(String(+r.number||r.number))) && !all.some(x=>bnEq(x.left,sum)))
     return {exact:false, cid:cids[0], docs:[], why:"В назначении № "+[...nums].slice(0,8).join(", ")+" — таких накладных у этого заказчика на сайте нет"+(bnMissing(op, cids[0]).length?". Если их просто не заводили — нажмите «Создать накладные…»: всё из платежа заполнится само.":" (может, они в архиве или у другого заказчика). Нажмите «Выбрать накладные…».")};
@@ -80,7 +98,7 @@ function bnMatch(op){
 }
 
 /* ---------- применение ---------- */
-function bnApply(op, docs, status){
+function bnApply(op, docs, status, inv){
   const used=[];
   docs.forEach(d=>{ const j=D.journal.find(x=>x.id===d.id); if(!j) return; const p=payOf(j), want=r2(+d.s||0), add=r2(Math.max(0,Math.min(want, p.left))),
       pre=r2(Math.max(0,Math.min(want-add, p.s)));   /* pre — оплата уже стояла раньше, платёж только связывается с ней */
@@ -88,7 +106,7 @@ function bnApply(op, docs, status){
     if(add>0) setPay(j, r2(p.s+add), op.date, true);
     const u={id:j.id, s:String(add), n:String(j.number)}; if(pre>0) u.pre=String(pre); used.push(u); });
   op.status=status; op.docs=JSON.stringify(used); op.statusName=BN_ST[status];
-  op.docsText=used.map(u=>"№ "+u.n+" — "+fm(r2(+u.s + +(u.pre||0)))+" ₽"+(+u.pre>0?" (оплата уже стояла)":"")).join("; ");
+  op.docsText=(inv?"Счёт № "+inv+": ":"")+used.map(u=>"№ "+u.n+" — "+fm(r2(+u.s + +(u.pre||0)))+" ₽"+(+u.pre>0?" (оплата уже стояла)":"")).join("; ");
   if(used.length) logEv("Прибыль", (status==="auto"?"Банк: оплата разнесена автоматически":"Банк: оплата разнесена")+" — "+(op.payerName||"")+", "+fm(+op.sum)+" ₽ от "+fd(op.date)+" → "+op.docsText);
   bnQueue(op); return used.length;
 }
@@ -110,7 +128,7 @@ function bnAuto(){
   if(!pfLoaded) return 0; let n=0;
   BNK().ops.filter(op=>(op.status==="wait" || op.status==="new" || !op.status) && !bnIsMan(op) && !(getPrefs().bnKeep||{})[op.id] && bnSkipWhy(op)).forEach(op=>{ op.status="skip"; op.statusName=BN_ST.skip; bnQueue(op); });
   BNK().ops.filter(op=>op.status==="new" || !op.status).forEach(op=>{ const m=bnMatch(op);
-    if(m.exact && m.docs.length){ if(bnApply(op, m.docs, "auto")) n++; else { op.status="wait"; op.statusName=BN_ST.wait; bnQueue(op); } }
+    if(m.exact && m.docs.length){ if(bnApply(op, m.docs, "auto", m.inv)) n++; else { op.status="wait"; op.statusName=BN_ST.wait; bnQueue(op); } }
     else { op.status="wait"; op.statusName=BN_ST.wait; bnQueue(op); } });
   return n;
 }
@@ -210,7 +228,7 @@ function bnCard(o, i){
     <div class="bnm"><div class="bnt"><b title="${esc(o.payerName||"")}">${esc(bnName(o.payerName)||"Плательщик не указан")}</b><span class="bnsum">+${fm(+o.sum||0)} ₽</span></div>
       <div class="bns"><span>${fd(o.date)}</span><span>${esc(bnSup(o.supplierId))}</span>${man?`<span class="bnman">вручную</span>`:""}${o.payerInn&&!man?`<span>ИНН ${esc(o.payerInn)}</span>`:""}${cname&&!man?`<span class="bnc">→ ${esc(cname)}</span>`:""}<span class="bnst">${esc(BN_ST[st]||st)}</span></div>
       ${o.purpose?`<button type="button" class="bnp" data-bnpf title="${man?"Комментарий":"Назначение платежа — нажмите, чтобы прочитать целиком"}"><span>${esc(o.purpose)}</span></button>`:man?"":`<p class="bnp"><span>(без назначения)</span></p>`}
-      ${applied ? `<div class="bndocs">${used.map(u=>chip(u)).join("")}</div>${Math.abs(rest)>0.004 && Math.abs(rest)<=BN_TOL+0.004?`<div class="bnwhy">Разница ${fm(Math.abs(rest))} ₽ (${rest>0?"пришло больше":"пришло меньше"}) — округление в ЕИС / на Портале, накладные оплачены полностью</div>`:rest>0.004?`<div class="bnwhy">Не разнесено ${fm(rest)} ₽</div>`:""}` : ""}
+      ${applied ? `${/^Счёт № [^:]+:/.test(o.docsText||"")?`<div class="bnwhy">Оплата ${esc(o.docsText.match(/^Счёт № [^:]+/)[0].replace("Счёт","счёта"))}</div>`:""}<div class="bndocs">${used.map(u=>chip(u)).join("")}</div>${Math.abs(rest)>0.004 && Math.abs(rest)<=BN_TOL+0.004?`<div class="bnwhy">Разница ${fm(Math.abs(rest))} ₽ (${rest>0?"пришло больше":"пришло меньше"}) — округление в ЕИС / на Портале, накладные оплачены полностью</div>`:rest>0.004?`<div class="bnwhy">Не разнесено ${fm(rest)} ₽</div>`:""}` : ""}
       ${wait && m ? `${mk.length&&!m.docs.length?"":`<div class="bnwhy">${esc(m.why)}</div>`}${m.docs.length?`<div class="bndocs">${m.docs.map(u=>chip(u,true)).join("")}</div>`:""}` : wait ? `<div class="bnwhy">Накладные не выбраны</div>` : ""}
       ${mk.length ? `<div class="bnmk"><b>На сайте нет ${mk.length>1?mk.length+" "+plural(mk.length,["накладной","накладных","накладных"]):"накладной"} из этого платежа</b><div class="bnmc">${mk.map(r=>`<span>№ ${esc(r.num)}${r.date?` <small>от ${fd(r.date)}</small>`:""}${r.sum?` <b>${fm(r.sum)} ₽</b>`:""}</span>`).join("")}</div><small>Если их просто не заводили — «Создать ${mk.length>1?"накладные":"накладную"}» заполнит всё из платежа само.</small></div>` : ""}
       ${skipWhy ? `<div class="bnwhy bnmem">${esc(skipWhy)}</div>` : ""}
@@ -232,7 +250,7 @@ async function pvBankClick(e){
   if(a==="keys"){ bnKeysOpen(); return; }
   if(a==="man"){ if(!bnManOk()){ toast("err","Нужно обновить скрипт таблицы","Приходы вручную заработают после обновления Code.gs (версия 20) — иначе они не сохранятся в таблицу."); return; } bnPick(null, true); return; }
   const card=b.closest("[data-bnop]"), op=card&&BNK().ops.find(o=>o.id===card.dataset.bnop); if(!op) return;
-  if(a==="ok"){ const mm=bnMatch(op); const n=bnApply(op, mm.docs, "done"); saveLocal(); bnPush(); drawProfit(); toast(n?"ok":"err", n?"Оплата разнесена":"Нечего разносить", n?op.docsText:"Накладные уже оплачены."); return; }
+  if(a==="ok"){ const mm=bnMatch(op); const n=bnApply(op, mm.docs, "done", mm.inv); saveLocal(); bnPush(); drawProfit(); toast(n?"ok":"err", n?"Оплата разнесена":"Нечего разносить", n?op.docsText:"Накладные уже оплачены."); return; }
   if(a==="skip"){ op.status="skip"; op.statusName=BN_ST.skip; bnQueue(op); const inn=bnDigits(op.payerInn);
     if(inn && !bnCustomers(op).length && !bnOwnInn().has(inn)){   /* не заказчик — запоминаем плательщика */
       const p=getPrefs(); p.bnSkip=Object.assign({}, p.bnSkip||{}, {[inn]: op.payerName||inn}); setPrefs(p,true);
