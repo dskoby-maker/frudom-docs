@@ -524,6 +524,8 @@ function ozSch(x){ const X=x.X, rate=X.A.rate, my=X.gen-X.tg, wf=Math.max(0, X.f
   const one=(inn, cost, k, miss)=>{ const g=my*k, n0=inn*(1-rate)-cost; return {inn, tax:inn*rate, cost, k, g, gTax:g*rate, n0, net:n0+g*(1-rate), miss}; };
   const F=one(X.fm, x.myCost, kf, x.myMiss.length>0), R=one(X.rf, x.rfCost, kr, x.rfm==="sum"?x.rfz==null&&X.RF.L.length>0:x.rfMiss.length>0);
   return {F, R, rest:x.net-F.net-R.net}; }
+/* сколько товаров без закупки в выплате (realFBS одной суммой — 1) */
+const ozZkN=x=>x.myMiss.length+(x.rfm==="sum"?(x.rfz==null&&x.X.RF.L.length?1:0):x.rfMiss.length);
 function ozPayList(){ const n=ozPayN(), P=ozPers(n), used=new Set(), t=todayISO(), hasT=ozOwnN()>0;
   const rows=P.map(per=>{ const x=ozPay(per); x.fact=x.open?null:ozPayFact(per, x.W, used); return x; });
   const wait=rows.filter(x=>!x.open&&!x.none&&x.per.pay>=t), wsum=wait.reduce((s,x)=>s+x.W,0), tOwe=rows.filter(x=>!x.open&&x.tanya>0.5&&!x.paid);
@@ -531,12 +533,14 @@ function ozPayList(){ const n=ozPayN(), P=ozPers(n), used=new Set(), t=todayISO(
     <div class="oztiles"><div class="oztile static ok"><small>Ещё придёт</small><b>${ozR(wsum)}</b><span>${wait.length} ${plural(wait.length,["выплата","выплаты","выплат"])}</span></div>
     ${hasT?`<div class="oztile static${tOwe.length?" warn":""}"><small>Отдать Тане</small><b>${ozR(tOwe.reduce((s,x)=>s+x.tanya,0))}</b><span>${tOwe.length?"по "+tOwe.length+" "+plural(tOwe.length,["выплате","выплатам","выплатам"])+" · отмечайте «Отдал Тане»":"всё отдано"}</span></div>`:`<div class="oztile" data-oz="own" role="button" tabindex="0"><small>Товар Тани</small><b>не отмечен</b><span>отметьте её товары на FBO ›</span></div>`}
     <div class="oztile static"><small>Ставка налога</small><b>${(+ozTax()).toLocaleString("ru-RU")}%</b><span>с каждой выплаты</span></div></div></div>
+  ${(()=>{ const zr=rows.filter(x=>!x.none&&x.approx); if(!zr.length) return ""; const f=zr.find(x=>!x.open)||zr[0];
+    return `<div class="ozzkbar"><span><b>Заполните закупку</b> — в ${zr.length} ${plural(zr.length,["выплате","выплатах","выплатах"])} она вписана не вся, поэтому «Вам чистыми» там примерное (≈).</span><button type="button" class="btn sm" data-ozzk="${f.per.k}">Заполнить ›</button></div>`; })()}
   <div class="ozpays">${rows.map(x=>{ const p=x.per, sh=d=>fd(d).slice(0,5), st=x.none?["none","Нет данных"]:x.open?["now","Неделя идёт"]:x.fact?["got","Пришла "+(x.fact.d?sh(x.fact.d):"")]:p.pay>t?["wait","Ожидается ≈ "+sh(p.pay)]:p.pay===t?["wait","Придёт сегодня"]:["past","≈ "+sh(p.pay)+" · сверьте с р/с"];
       const per=`<span>${ozPerName(p)}</span>`, appr=x.approx?"≈ ":"";
       if(x.none) return `<div class="ozpay none" data-ozpay="${p.k}" role="button" tabindex="0"><div class="ozpy1">${per}<b>—</b></div><div class="ozpy2"><em class="ozps">${x.open?"Неделя идёт":"≈ "+sh(p.pay)}</em></div></div>`;
       const tt=x.tanya>0.5||x.tMiss.length;
       return `<div class="ozpay ${st[0]}" data-ozpay="${p.k}" role="button" tabindex="0"><div class="ozpy1">${per}<b>${fm(x.W)} ₽</b></div>
-        <div class="ozpy2"><em class="ozps ${st[0]}">${st[1]}</em>${x.miss>0&&!x.open?`<em class="ozps warn">нет ${x.miss} ${plural(x.miss,["дня","дней","дней"])}</em>`:""}</div>
+        <div class="ozpy2"><em class="ozps ${st[0]}">${st[1]}</em>${x.miss>0&&!x.open?`<em class="ozps warn">нет ${x.miss} ${plural(x.miss,["дня","дней","дней"])}</em>`:""}${x.approx?`<em class="ozps ozzkb" data-ozzk="${p.k}" role="button" tabindex="0" title="Без закупки «Вам чистыми» — примерно">Заполните закупку${ozZkN(x)?" · "+ozZkN(x):""}</em>`:""}</div>
         <div class="ozpy3"><div class="me"><small>Вам чистыми</small><b class="${x.net<0?"neg":""}">${appr}${fm(x.net)}</b>${x.X.RF.L.length?`<small class="ozpyrf">из них realFBS <b class="${x.sc.R.net<0?"neg":""}">${x.sc.R.miss?"≈ ":""}${fm(x.sc.R.net)}</b></small>`:""}</div>${tt?`<div class="t${x.paid?" paid":""}"><small>Тане${x.paid?" · <i>отдал ✓</i>":""}</small><b>${x.tMiss.length?"? ":""}${fm(x.tanya)}</b></div>`:"<div></div>"}</div></div>`; }).join("")}</div>
   <button type="button" class="btn sm ghost" data-oz="paymore">Показать ещё 8 выплат</button>`; }
 /* секция окна выплаты: заголовок + итог справа + короткая подсказка */
@@ -713,6 +717,8 @@ document.addEventListener("change", e=>{ const t=e.target, d=$("#fd-dcard"); if(
     const sc=t.closest("[data-ozsch]"); if(sc){ OZU.sch=OZU.sch===sc.dataset.ozsch&&sc.matches(".ozspc")?"all":sc.dataset.ozsch; ozUiSave(); ozDraw(); return; }
     const vv=t.closest("[data-ozv]"); if(vv){ OZU.v=vv.dataset.ozv; ozUiSave(); ozDraw(); ozSync(false); if(OZU.v==="pay" && typeof bnSync==="function" && !BNK().ops.length) bnSync(true).then(()=>{ if(curTab==="ozon") ozDraw(); }).catch(()=>{}); return; }
     const ag=t.closest("[data-ozag]"); if(ag){ ozAgClick(ag); return; }
+    const zk=t.closest("[data-ozzk]"); if(zk){ ozPayCard(zk.dataset.ozzk); setTimeout(()=>{ const b=$("#fd-dcard #ozs-zak"); if(!b) return; b.scrollIntoView({behavior:"smooth", block:"start"}); b.classList.remove("ozflash"); void b.offsetWidth; b.classList.add("ozflash");
+      const i=[...b.querySelectorAll("input[data-ozz], #oz-rfz")].find(e=>!e.value); if(i) i.focus({preventScroll:true}); }, 380); return; }
     const py=t.closest("[data-ozpay]"); if(py){ ozPayCard(py.dataset.ozpay); return; }
     const k=t.closest("[data-ozk]"); if(k){ ozDetail(k.dataset.ozk); return; }
     const ty=t.closest("[data-ozt]"); if(ty){ ozType(ty.dataset.ozt); return; }
