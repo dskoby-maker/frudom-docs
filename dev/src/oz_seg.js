@@ -216,7 +216,23 @@ const ozSrvOk=()=>(D.srvVer||0)>=53;
 async function ozCall(sid, path, bodies){ const j=await api({action:"ozon", op:"call", id:sid, path, bodies}); if(!j||j.ok===false) throw new Error(j&&j.error||"нет ответа"); return j.res||[]; }
 /* ключи берём только когда версия скрипта уже известна: раньше вкладка «Озон», открытая сразу при входе,
    спрашивала ключи до ответа таблицы, считала скрипт старым и запоминала «ключей нет» до перезагрузки (26.11.2026) */
-async function ozKeysLoad(){ if(!ozSrvOk()){ OZ.keys=(D.srvVer||0)>0?[]:null; return; } try{ const j=await api({action:"ozon", op:"keys"}); if(j&&j.ok!==false){ OZ.keys=j.keys||[]; OZ.kerr=""; } else OZ.kerr=j&&j.error||"нет ответа"; }catch(e){ OZ.kerr=e.message; } }
+/* ключи Озона: всегда спрашиваем таблицу (не по версии скрипта); последний ответ помним на устройстве —
+   пока таблица не ответила, ключ считается подключённым, а пустой ответ при запомненном ключе проверяется ещё раз (26.11.2026) */
+const OZK_LS="frudom-ozkeys";
+function ozKeysMem(){ try{ const v=JSON.parse(localStorage.getItem(OZK_LS)||"null"); return Array.isArray(v)?v:null; }catch(e){ return null; } }
+function ozKeysKeep(k){ try{ localStorage.setItem(OZK_LS, JSON.stringify((k||[]).map(x=>({id:x.id, name:x.name||"", cid:x.cid||"", tail:x.tail||""})))); }catch(e){} }
+/* ключ подключён к магазину, которого нет в списке магазинов (список поменялся) — магазин возвращается в список, иначе ключ «не виден» */
+function ozKeysStores(K){ const S=ozStores(), miss=(K||[]).filter(k=>!S.some(s=>s.id===k.id)); if(!miss.length) return;
+  const p=getPrefs(); p.ozSt=S.concat(miss.map(k=>({id:k.id, n:k.name||"Магазин Озон"}))); setPrefs(p,true); }
+async function ozKeysLoad(again){ const mem=ozKeysMem();
+  if(OZ.keys==null && mem && mem.length){ OZ.keys=mem; OZ.kmem=true; }
+  try{ const j=await api({action:"ozon", op:"keys"});
+    if(j&&j.ok!==false){ const K=j.keys||[];
+      if(!K.length && mem && mem.length && !again){ await new Promise(r=>setTimeout(r,2500)); return ozKeysLoad(true); }
+      OZ.keys=K; OZ.kerr=""; OZ.kmem=false; ozKeysKeep(K); ozKeysStores(K); if(j.ver && !D.srvVer && typeof srvVerCheck==="function") srvVerCheck(j.ver); }
+    else if(j && /неизвестн|unknown action/i.test(j.error||"") && !(mem&&mem.length)){ OZ.keys=[]; OZ.kerr=""; }
+    else OZ.kerr=j&&j.error||"нет ответа"; }
+  catch(e){ OZ.kerr=e.message; } }
 const ozArr=b=>b?(Array.isArray(b.accruals)?b.accruals:b.result&&Array.isArray(b.result.accruals)?b.result.accruals:Array.isArray(b.result)?b.result:[]):[];
 const ozLid=b=>b&&(b.last_id||(b.result&&b.result.last_id))||"";
 /* день из Excel, скачанного до конца этого дня, — неполный: его можно обновить из API */
@@ -321,7 +337,7 @@ function ozDraw(){ const box=$("#oz"); if(!box||!OZ.d) return; const foc=documen
   if(OZU.sch==="all"&&C.TL.length){ const tg=ozParts().tg*ozTgK(C.rate); if(tg){ C.tanya+=tg; C.cost+=tg; C.prof-=tg; } }
   const L=ozList(C), mpct=C.sales?Math.round(C.prof/C.sales*100):0;
   box.innerHTML=`<div class="ozhead"><div><h2>Озон <small>видно только вам</small></h2><small class="muted">Сколько вы зарабатываете с маркетплейса: что пришло от Озона минус налог и закупка товара.</small>
-    ${hasKey?`<small class="ozautol"><i aria-hidden="true"></i>Сам обновляется из Озона каждые 5 минут, пока сайт открыт · <span id="oz-auto">${OZ.at?"обновлено в "+new Date(OZ.at).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}):""}</span></small>`:OZ.keys==null&&ozSrvOk()?`<small class="ozautol off">${OZ.kerr?"Не удалось проверить ключ Озона ("+esc(OZ.kerr)+") — попробую ещё раз через минуту":"Проверяю ключ Озона…"}</small>`:`<small class="ozautol off">Подключите Озон API — тогда сайт сам будет забирать данные каждые 5 минут и отчёты загружать не нужно.${OZ.kerr?" Ошибка: "+esc(OZ.kerr):""}</small>`}</div>
+    ${hasKey?`<small class="ozautol"><i aria-hidden="true"></i>Сам обновляется из Озона каждые 5 минут, пока сайт открыт · <span id="oz-auto">${OZ.at?"обновлено в "+new Date(OZ.at).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}):""}</span></small>`:OZ.keys==null?`<small class="ozautol off">${OZ.kerr?"Не удалось проверить ключ Озона ("+esc(OZ.kerr)+") — попробую ещё раз через минуту":"Проверяю ключ Озона…"}</small>`:`<small class="ozautol off">Подключите Озон API — тогда сайт сам будет забирать данные каждые 5 минут и отчёты загружать не нужно.${OZ.kerr?" Ошибка: "+esc(OZ.kerr):""}</small>`}</div>
     <div class="ozacts">${hasKey?`<button type="button" class="btn sm" data-oz="sync"${OZ.busy?" disabled":""}>Обновить из Озона</button>`:""}<label class="btn sm">Загрузить отчёт Excel<input type="file" id="oz-file" accept=".xlsx,.xls" hidden></label><button type="button" class="btn sm ghost" data-oz="keys">${hasKey?"Подключение":"Подключить Озон API"}</button></div></div>
   <div class="pfchips ozv"><div class="pfchips ozseg ozvseg">${ozChips([["sum","Сводка за период"],["pay","Выплаты на р/с"]], OZU.v==="pay"?"pay":"sum", "ozv")}</div><button type="button" class="btn sm ghost ozownb" data-oz="own">Товар Тани${ozOwnN()?" · "+ozOwnN():""}</button></div>
   ${OZU.v==="pay"?`<div class="ozst-line" id="oz-st">${st}</div>${ozPayList()}`:`<div class="ozbar">
@@ -452,8 +468,8 @@ function ozDlg(){ const d=$("#fd-dcard"); if(!d||d._oz) return; d._oz=1;
   const tg=d.querySelector("#oz-target"); if(tg) tg.addEventListener("change", ()=>{ const v=String(tg.value).replace(",",".").replace(/\s/g,"").trim(), p=getPrefs(); if(v===""||!isFinite(+v)||+v<0){ toast("err","Впишите сумму, например 50"); return; } p.ozTarget=+v; setPrefs(p,true); ozDraw(); ozDetail("price"); });
   const tx=d.querySelector("#oz-tax"); if(tx) tx.addEventListener("change", ()=>{ const v=String(tx.value).replace(",",".").trim(), p=getPrefs(); if(v===""||!isFinite(+v)||+v<0||+v>50){ toast("err","Ставка — число от 0 до 50"); return; } p.ozTax=+v; setPrefs(p,true); ozDraw(); toast("ok","Ставка налога: "+(+v)+"%"); }); }
 /* ---- подключение Seller API ---- */
-async function ozKeysOpen(){ if(OZ.keys==null&&ozSrvOk()){ await ozKeysLoad(); if(OZ.keys!=null) ozDraw(); }
-  const S=ozStores(), K=OZ.keys||[], ok=ozSrvOk(), unk=OZ.keys==null;
+async function ozKeysOpen(){ if(OZ.keys==null||OZ.kmem){ await ozKeysLoad(); ozDraw(); }
+  const K=OZ.keys||[], S0=ozStores(), S=S0.concat(K.filter(k=>!S0.some(s=>s.id===k.id)).map(k=>({id:k.id, n:k.name||k.id}))), ok=ozSrvOk()||(OZ.keys!=null&&!OZ.kmem&&!!K.length)||OZ.keys==null, unk=OZ.keys==null;
   const body=!ok?`<div class="ozhello"><b>Нужно обновить скрипт таблицы</b><p class="muted">Сайт обращается к Озону через скрипт таблицы (Code.gs версии 53 и новее). Пока его нет, работает загрузка отчёта Excel.</p><button type="button" class="btn sm" id="srvOldHow">Как обновить</button></div>`
     :`<p class="muted ozkh">Кабинет Озона → Настройки → Seller API → «Сгенерировать ключ», роль <b>Admin</b> — чтобы помощник мог включать и выключать акции и менять цены по вашей кнопке (с ролью <b>Admin read only</b> работает только подсчёт). Скопируйте Client-Id и ключ. Ключ хранится в настройках скрипта таблицы, сайт видит только 4 последних знака.</p>`
     +S.map(s=>{ const k=K.find(x=>x.id===s.id); return `<div class="ozk" data-ozks="${esc(s.id)}"><div class="ozkh2"><input type="text" class="ozkn" value="${esc(s.n)}" aria-label="Название магазина" autocomplete="off"><span class="${k?"ok":unk?"warn":"muted"}">${k?"подключён · Client-Id "+esc(k.cid)+" · ключ …"+esc(k.tail):unk?"не удалось проверить"+(OZ.kerr?" ("+esc(OZ.kerr)+")":"")+" — закройте окно и откройте ещё раз":"не подключён"}</span></div>
@@ -802,4 +818,4 @@ async function ozAgClick(b){ const a=b.dataset.ozag, id=b.dataset.id;
     go("Меняю цену…", "agPrice", {art, price:pr, name:nm}, j=>{ const m=(j.made||[])[0]; if(m&&m.ok) toast("ok","Цена на Озоне: "+fm(pr)+" ₽", nm+(m.prev?" · была "+fm(m.prev)+" ₽":"")+". Озон обновляет цену на витрине до нескольких минут.", {action:{label:"Вернуть", fn:()=>ozAgClick(Object.assign(document.createElement("b"),{dataset:{ozag:"undo2", id:m.lid}}))}}); else toast("err","Озон не принял цену", m?m.err:""); }); return; } }
 document.addEventListener("click", async e=>{ const m=e.target.closest&&e.target.closest("[data-ozagmode]"); if(!m) return; const v=m.dataset.ozagmode;
   try{ const j=await ozAgApi("agCfg", v==="off"?{on:0}:{on:1, mode:v==="auto"?"auto":"advise"}); if(j.warn) toast("err","Помощник не включился", j.warn); else toast("ok","Помощник: "+ozAgMode(j.cfg)[1]); ozAgPaint(); }catch(x){ toast("err","Не сохранилось", x.message); } });
-window.__oz={pull:f=>ozPull(f), ru:ozRu, pers:n=>ozPers(n), pay:k=>{ const p=ozPers(30).find(x=>x.k===k); return p&&ozPay(p); }, prefs:()=>getPrefs(), OZ, OZU, calc:()=>ozCalc(), auto:()=>ozAutoTick(), ag:OZAG, agGuard:()=>ozAgGuard(), agPush:()=>{ OZAG.gAt=0; OZAG.gSig=""; return ozAgGuardPush(); }, agLoad:()=>ozAgLoad(true), cost:(k,v)=>ozCostSet(k,v)};   /* для тестов (dev/test/ozon.py) */
+window.__oz={pull:f=>ozPull(f), ru:ozRu, pers:n=>ozPers(n), pay:k=>{ const p=ozPers(30).find(x=>x.k===k); return p&&ozPay(p); }, prefs:()=>getPrefs(), OZ, OZU, calc:()=>ozCalc(), auto:()=>ozAutoTick(), ag:OZAG, agGuard:()=>ozAgGuard(), agPush:()=>{ OZAG.gAt=0; OZAG.gSig=""; return ozAgGuardPush(); }, agLoad:()=>ozAgLoad(true), cost:(k,v)=>ozCostSet(k,v), stores:()=>ozStores().map(s=>s.id), setSt:a=>{ const p=getPrefs(); p.ozSt=a; setPrefs(p,true); }};   /* для тестов (dev/test/ozon.py) */
