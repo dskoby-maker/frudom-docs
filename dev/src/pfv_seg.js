@@ -111,7 +111,7 @@ function pvDraw(){
   const bs=[...$("#pv-seg").querySelectorAll("button")], i=Math.max(0, bs.findIndex(b=>b.dataset.pv===f.v));
   bs.forEach((b,k)=>{ b.classList.toggle("on", k===i); b.setAttribute("aria-selected", k===i); });
   $("#pv-seg").style.setProperty("--i", i);
-  const bw=BNK().ops.filter(o=>o.status==="wait"||o.status==="new").length, bn=$("#pv-bkn"); if(bn){ bn.hidden=!bw; bn.textContent=bw; }
+  if(typeof bnBadge==="function") bnBadge();
   const dw=pfArr("debts").filter(x=>dbLeft(x)>0.004).length, dn=$("#pv-dbn"); if(dn){ dn.hidden=!dw; dn.textContent=dw; }
   if(f.v==="cus") pvCusDraw(); else if(f.v==="fin") pvFinDraw(); else if(f.v==="bank") pvBankDraw(); else if(f.v==="debt") dbDraw();
 }
