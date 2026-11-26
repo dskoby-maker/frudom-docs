@@ -29,6 +29,9 @@ const ctx={ SpreadsheetApp:{getActive:()=>ss}, LockService:{getScriptLock:()=>({
     if(/api-seller\.ozon\.ru/.test(url)){ const z=ctx.__oz||{}, h=(o&&o.headers)||{}, R=(c,b)=>({getResponseCode:()=>c,getContentText:()=>JSON.stringify(b)});   /* тестовый Озон: ctx.__oz = {keys:{clientId:apiKey}, types, days:{дата:[начисления]}, products, page} */
       if(!z.keys||z.keys[h['Client-Id']]!==h['Api-Key']) return R(403,{code:7,message:'Invalid Api-Key'});
       const b=JSON.parse(o.payload||'{}'); (ctx.__ozCalls=ctx.__ozCalls||[]).push({path:url.replace(/^https:\/\/[^/]+/,''), b});
+      /* управление магазином (Code.gs ≥ 57): z.api = {путь: ответ}, z.pdfPath — путь, который отдаёт PDF */
+      { const pth=url.replace(/^https:\/\/[^/]+/,''); if(z.pdfPath===pth) return {getResponseCode:()=>200, getHeaders:()=>({'Content-Type':'application/pdf'}), getBlob:()=>({getBytes:()=>Buffer.from('%PDF-1.4 test')}), getContentText:()=>''};
+        if(z.api&&z.api[pth]!=null) return R(200, z.api[pth]); }
       if(/accrual\/types/.test(url)) return R(200, z.types||{types:[]});
       if(/accrual\/by-day/.test(url)){ const L=(z.days||{})[b.date]||[], per=z.page||1000, st=b.last_id?+b.last_id:0; return R(200,{accruals:L.slice(st,st+per), last_id:st+per<L.length?String(st+per):''}); }
       if(/product\/info\/list/.test(url)) return R(200,{items:(z.products||[]).filter(p=>b.product_id?(b.product_id||[]).includes(String(p.id)):(b.sku||[]).includes(p.sku))});

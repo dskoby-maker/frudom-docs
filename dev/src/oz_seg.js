@@ -324,13 +324,15 @@ const ozPN=v=>v==null?"—":v.toLocaleString("ru-RU");
 /* ---- вкладка ---- */
 function renderOzon(){ if(!me().admin) return; const box=$("#oz"); if(!box) return;
   if(!OZ.d){ box.innerHTML=`<div class="ozbusy"><span class="spin"></span> Загружаю…</div>`; ozLoad().then(()=>{ if(curTab==="ozon") renderOzon(); }); return; }
-  ozDraw(); ozPull();
+  ozDraw(true); ozPull();
   if(OZ.keys==null){ ozKeysLoad().then(()=>{ if(curTab!=="ozon") return; ozDraw(); ozSync(false); }); }
   else if(Date.now()-OZ.at>OZ_AUTO) ozSync(false); }
 function ozBusyTxt(){ const el=$("#oz-st"); if(el && OZ.busy) el.innerHTML=`<span class="spin"></span> ${esc(OZ.busy)}`; }
 function ozChips(list, cur, attr){ return list.map(([v,t])=>`<button type="button" data-${attr}="${esc(v)}" class="${cur===v?"on":""}" aria-pressed="${cur===v}">${esc(t)}</button>`).join(""); }
 function ozTile(k, cls, small, big, sub){ return `<div class="oztile ${cls}" data-ozk="${k}" role="button" tabindex="0" title="Подробнее"><i class="pkgo" aria-hidden="true">›</i><small>${small}</small><b>${big}</b>${sub?`<span>${sub}</span>`:""}</div>`; }
-function ozDraw(){ const box=$("#oz"); if(!box||!OZ.d) return; const foc=document.activeElement, fk=foc&&foc.dataset&&foc.dataset.ozc, fid=foc&&foc.id;
+function ozDraw(force){ const box=$("#oz"); if(!box||!OZ.d) return;
+  if(ozmIs(OZU.v) && !force && box.querySelector(`[data-ozmv="${OZU.v}"]`)){ const st=$("#oz-st"); if(st) st.innerHTML=OZ.busy?`<span class="spin"></span> ${esc(OZ.busy)}`:""; return; }   /* раздел управления не перерисовывается от фоновой загрузки */
+  const foc=document.activeElement, fk=foc&&foc.dataset&&foc.dataset.ozc, fid=foc&&foc.id;
   const C=ozCalc(), S=ozStores(), keys=OZ.keys||[], hasKey=keys.length>0, any=Object.values(OZ.d.days).some(x=>Object.keys(x).length);
   const covTxt=Object.entries(C.cov).map(([sid,c])=>{ const miss=c.days-c.n; return miss>0&&c.days?`<span class="ozcov warn">${esc(ozStName(sid))}: нет данных за ${miss} ${plural(miss,["день","дня","дней"])}${keys.some(k=>k.id===sid)?"":" — загрузите отчёт"}</span>`:c.n?`<span class="ozcov">${esc(ozStName(sid))}: ${c.x?"отчёт Excel":""}${c.x&&c.a?" + ":""}${c.a?"Озон API":""}</span>`:""; }).join("");
   const st=OZ.busy?`<span class="spin"></span> ${esc(OZ.busy)}`:OZ.err?`<span class="ozerr">Не получилось загрузить из Озона: ${esc(OZ.err)}</span>`:"";
@@ -339,8 +341,8 @@ function ozDraw(){ const box=$("#oz"); if(!box||!OZ.d) return; const foc=documen
   box.innerHTML=`<div class="ozhead"><div><h2>Озон <small>видно только вам</small></h2><small class="muted">Сколько вы зарабатываете с маркетплейса: что пришло от Озона минус налог и закупка товара.</small>
     ${hasKey?`<small class="ozautol"><i aria-hidden="true"></i>Сам обновляется из Озона каждые 5 минут, пока сайт открыт · <span id="oz-auto">${OZ.at?"обновлено в "+new Date(OZ.at).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}):""}</span></small>`:OZ.keys==null?`<small class="ozautol off">${OZ.kerr?"Не удалось проверить ключ Озона ("+esc(OZ.kerr)+") — попробую ещё раз через минуту":"Проверяю ключ Озона…"}</small>`:`<small class="ozautol off">Подключите Озон API — тогда сайт сам будет забирать данные каждые 5 минут и отчёты загружать не нужно.${OZ.kerr?" Ошибка: "+esc(OZ.kerr):""}</small>`}</div>
     <div class="ozacts">${hasKey?`<button type="button" class="btn sm" data-oz="sync"${OZ.busy?" disabled":""}>Обновить из Озона</button>`:""}<label class="btn sm">Загрузить отчёт Excel<input type="file" id="oz-file" accept=".xlsx,.xls" hidden></label><button type="button" class="btn sm ghost" data-oz="keys">${hasKey?"Подключение":"Подключить Озон API"}</button></div></div>
-  <div class="pfchips ozv"><div class="pfchips ozseg ozvseg">${ozChips([["sum","Сводка за период"],["pay","Выплаты на р/с"]], OZU.v==="pay"?"pay":"sum", "ozv")}</div><button type="button" class="btn sm ghost ozownb" data-oz="own">Товар Тани${ozOwnN()?" · "+ozOwnN():""}</button></div>
-  ${OZU.v==="pay"?`<div class="ozst-line" id="oz-st">${st}</div>${ozPayList()}`:`<div class="ozbar">
+  <div class="pfchips ozv"><div class="pfchips ozseg ozvseg">${ozChips([["sum","Сводка"],["pay","Выплаты на р/с"]].concat(OZM_V), ozmIs(OZU.v)||OZU.v==="pay"?OZU.v:"sum", "ozv")}</div><button type="button" class="btn sm ghost ozownb" data-oz="own">Товар Тани${ozOwnN()?" · "+ozOwnN():""}</button></div>
+  ${OZU.v==="pay"?`<div class="ozst-line" id="oz-st">${st}</div>${ozPayList()}`:ozmIs(OZU.v)?`<div class="ozst-line" id="oz-st">${st}</div>${ozmShell()}`:`<div class="ozbar">
     ${S.length>1?`<div class="pfchips ozseg ozst">${ozChips([["all","Все магазины"]].concat(S.map(s=>[s.id,s.n])), OZU.st, "ozst")}</div>`:""}
     <div class="pfchips ozseg ozper">${ozChips(OZ_PER, OZU.per, "ozper")}</div>
     ${OZU.per==="c"?`<div class="ozdates"><label>с <input type="date" id="oz-a" value="${esc(ozRange()[0])}"></label><label>по <input type="date" id="oz-b" value="${esc(ozRange()[1])}"></label></div>`:""}
@@ -369,7 +371,7 @@ function ozDraw(){ const box=$("#oz"); if(!box||!OZ.d) return; const foc=documen
     ${ozTable(L, C)}
   </section>
   <section class="card ozexp"><div class="ozph"><h3>Куда ушли деньги <small>удержания Озона за период</small></h3></div>${ozExp(C)}</section>`}`}`;
-  ozAgTick();
+  ozAgTick(); if(ozmIs(OZU.v)) setTimeout(()=>ozmLoad(OZU.v), 0);
   if(fk){ const el=box.querySelector(`[data-ozc="${CSS.escape(fk)}"]`); if(el){ el.focus(); try{ el.select(); }catch(e){} } } else if(fid && /^oz-/.test(fid)){ const el=document.getElementById(fid); if(el&&el.focus){ el.focus(); if(el.type==="search"){ const v=el.value; el.setSelectionRange(v.length,v.length); } } } }
 function ozHello(hasKey){ return `<div class="ozhello"><b>Данных за этот период пока нет</b>
   <div class="ozhw"><div><span>1</span><p><b>Загрузить отчёт из кабинета</b>Озон → Финансы → Начисления → выберите период → «Скачать отчёт» (Excel). Нажмите здесь «Загрузить отчёт Excel» — сайт всё посчитает. Работает сразу.</p></div>
@@ -731,7 +733,7 @@ document.addEventListener("change", e=>{ const t=e.target, d=$("#fd-dcard"); if(
     const fpw=t.closest("[data-ozpw]"); if(fpw){ OZU.pw=fpw.dataset.ozpw; ozUiSave(); ozDraw(); return; }
     if(t.closest("[data-ozpclr]")){ OZU.ps="all"; OZU.pw="all"; ozUiSave(); ozDraw(); return; }
     const sc=t.closest("[data-ozsch]"); if(sc){ OZU.sch=OZU.sch===sc.dataset.ozsch&&sc.matches(".ozspc")?"all":sc.dataset.ozsch; ozUiSave(); ozDraw(); return; }
-    const vv=t.closest("[data-ozv]"); if(vv){ OZU.v=vv.dataset.ozv; ozUiSave(); ozDraw(); ozSync(false); if(OZU.v==="pay" && typeof bnSync==="function" && !BNK().ops.length) bnSync(true).then(()=>{ if(curTab==="ozon") ozDraw(); }).catch(()=>{}); return; }
+    const vv=t.closest("[data-ozv]"); if(vv){ OZU.v=vv.dataset.ozv; ozUiSave(); if(ozmIs(OZU.v)){ ozmOpen(); ozDraw(true); return; } ozDraw(); ozSync(false); if(OZU.v==="pay" && typeof bnSync==="function" && !BNK().ops.length) bnSync(true).then(()=>{ if(curTab==="ozon") ozDraw(); }).catch(()=>{}); return; }
     const ag=t.closest("[data-ozag]"); if(ag){ ozAgClick(ag); return; }
     const zk=t.closest("[data-ozzk]"); if(zk){ ozPayCard(zk.dataset.ozzk); setTimeout(()=>{ const b=$("#fd-dcard #ozs-zak"); if(!b) return; b.scrollIntoView({behavior:"smooth", block:"start"}); b.classList.remove("ozflash"); void b.offsetWidth; b.classList.add("ozflash");
       const i=[...b.querySelectorAll("input[data-ozz], #oz-rfz")].find(e=>!e.value); if(i) i.focus({preventScroll:true}); }, 380); return; }
