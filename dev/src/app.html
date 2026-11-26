@@ -2527,6 +2527,21 @@ body.invdrag,body.invdrag *{cursor:grabbing!important;user-select:none!important
 #fd-app .calgrid .cnd{display:inline-flex;align-items:center;gap:3px;background:#FFF1D6;color:#8a5200;font-size:11px;font-weight:700;border-radius:9px;padding:1px 7px 1px 5px;box-shadow:inset 0 0 0 1px rgba(194,122,14,.28)}#fd-app .calgrid .cnd svg{width:11px;height:11px}
 #fd-app .calgrid button.nd:not(.sel){border-color:rgba(194,122,14,.45);box-shadow:inset 0 -3px 0 rgba(194,122,14,.35)}
 #fd-app .calgrid button.sel .cnd{background:#FFE3A8;color:#6b3f00;box-shadow:none}
+#fd-app .calqb{all:unset;box-sizing:border-box;cursor:pointer;display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;color:var(--muted);box-shadow:inset 0 0 0 1px var(--line);background:var(--surface);transition:color .15s,background .15s,box-shadow .15s}#fd-app .calqb svg{width:15px;height:15px}#fd-app .calqb:hover,#fd-app .calqb:focus-visible{color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}#fd-app .calqb.on{color:#fff;background:var(--accent);box-shadow:none}
+#fd-app .calqw{margin:10px 0 12px;animation:fdin .2s ease}#fd-app .calqf{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;padding:0 6px 0 12px;background:var(--surface)}#fd-app .calqf:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}#fd-app .calqf svg{width:16px;height:16px;color:var(--muted);flex:none}#fd-app .calqf input,#fd-app .calqf input:focus,#fd-app .calqf input:hover{border:0;box-shadow:none;background:transparent;height:42px;padding:0;flex:1;min-width:0;outline:none;border-radius:0}#fd-app .calqf input::-webkit-search-cancel-button{display:none}
+#fd-app .calqx{all:unset;cursor:pointer;width:30px;height:30px;display:grid;place-items:center;border-radius:8px;color:var(--muted);font-size:20px;flex:none}#fd-app .calqx:hover{background:var(--bg2,#f1efe9);color:var(--ink,#222)}
+#fd-app .calqh,#fd-app .calqs{font-size:13px;color:var(--muted);padding:8px 2px 2px}#fd-app .calqs span{opacity:.8}#fd-app .calql{all:unset;cursor:pointer;color:var(--accent);text-decoration:underline}
+#fd-app .calql2{max-height:340px;overflow:auto;margin-top:6px;display:flex;flex-direction:column;gap:6px;overscroll-behavior:contain}
+#fd-app .calqd{border:1px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}#fd-app .calqd.on{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 12%,transparent)}
+#fd-app .calqdh{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:7px 12px;font-size:12.5px;font-weight:600;color:var(--muted);background:color-mix(in srgb,var(--line) 30%,transparent)}#fd-app .calqdh span{font-weight:600;min-width:20px;text-align:center;padding:1px 7px;border-radius:999px;background:var(--surface)}#fd-app .calqdh:hover{color:var(--accent)}
+#fd-app .calqi{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:10px;width:100%;padding:8px 12px;border-top:1px solid var(--line)}#fd-app .calqi:hover,#fd-app .calqi:focus-visible{background:color-mix(in srgb,var(--accent) 6%,transparent)}
+#fd-app .calqk{font-size:12px;font-weight:600;color:var(--accent);white-space:nowrap}#fd-app .calqi.t .calqk{color:#8a5a00}#fd-app .calqi span{min-width:0;display:flex;flex-direction:column}#fd-app .calqi b{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fd-app .calqi small{font-size:12.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#fd-app .calqi em{font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums}#fd-app .calqi u{text-decoration:none;color:var(--muted)}#fd-app .calqi mark{background:#FFE9A8;color:inherit;border-radius:3px;padding:0 1px}
+#fd-app .calqm{margin-top:8px}
+#fd-app .calgrid button.qhit{box-shadow:inset 0 0 0 2px #E2A92B}#fd-app .calgrid button.qhit::after{content:attr(data-qn);position:absolute;top:6px;right:8px;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#E2A92B;color:#fff;font:700 10.5px/16px var(--ui);text-align:center}#fd-app .calgrid button.qdim{opacity:.45}#fd-app .calgrid button{position:relative}
+#fd-app .dt.calqfl{animation:calqfl 1.6s ease}@keyframes calqfl{0%,40%{box-shadow:0 0 0 3px #E2A92B}100%{box-shadow:0 0 0 0 transparent}}
+@media(max-width:700px){#fd-app .calqb{align-self:flex-end;width:auto;height:44px;padding:0 14px;border-radius:12px;display:inline-flex;gap:6px;font:500 14px var(--ui)}#fd-app .calqb::after{content:"Поиск"}#fd-app .calhead>label.f{flex:1 1 150px;min-width:0!important}#fd-app .calqb svg{width:17px;height:17px}}
+@media(max-width:560px){#fd-app .calqi{grid-template-columns:minmax(0,1fr) auto;row-gap:2px}#fd-app .calqk{grid-column:1/-1}#fd-app .calqi u{display:none}#fd-app .calgrid button.qhit::after{top:3px;right:3px}}
+@media(prefers-reduced-motion:reduce){#fd-app .calqw,#fd-app .dt.calqfl{animation:none}}
 #fd-app .calnd{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;background:#FFF4E0;color:#7a4a00;font-size:13px;box-shadow:inset 0 0 0 1px rgba(194,122,14,.3);transition:background .15s,transform .15s}
 #fd-app .calnd svg{width:15px;height:15px}#fd-app .calnd b{font-weight:700}#fd-app .calnd i{font-style:normal;opacity:.6}#fd-app .calnd:hover{background:#FFEBC4}#fd-app .calnd:focus-visible{outline:2px solid var(--warn)}
 #fd-app .calnd.late{background:#FDE8E4;color:#9b2a1e;box-shadow:inset 0 0 0 1px rgba(179,38,30,.28)}#fd-app .calnd.late:hover{background:#FBD9D2}
@@ -4094,7 +4109,8 @@ html.fd-dark :is(#fd-app .card,dialog.dcard,#tkf-pan,#tkf-fab){box-shadow:0 0 0 
   <section class="tab" id="tab-calendar" hidden>
     <div class="card">
       <div class="calhead"><button class="btn ghost" id="cal-prev" aria-label="Предыдущий месяц">‹</button><h2 id="cal-title"></h2><button class="btn ghost" id="cal-next" aria-label="Следующий месяц">›</button>
-        <button class="btn ghost sm" id="cal-today">Сегодня</button><button class="hq" type="button" data-hq="Календарь" aria-label="Подсказка">?</button><button type="button" class="calnd" id="cal-nodoc" hidden></button><span style="flex:1"></span><label class="f" style="min-width:180px">Заказчик<select id="cal-cus"></select></label></div>
+        <button class="btn ghost sm" id="cal-today">Сегодня</button><button class="hq" type="button" data-hq="Календарь" aria-label="Подсказка">?</button><button type="button" class="calqb" id="cal-qb" aria-label="Поиск по всем дням" title="Поиск по всем дням: заказчик, № накладной, товар, адрес, задача" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg></button><button type="button" class="calnd" id="cal-nodoc" hidden></button><span style="flex:1"></span><label class="f" style="min-width:180px">Заказчик<select id="cal-cus"></select></label></div>
+      <div class="calqw" id="cal-qw" hidden><div class="calqf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg><input id="cal-qi" type="search" autocomplete="off" data-noarrow placeholder="Найти по всем дням: заказчик, № накладной, товар, адрес, задача…" aria-label="Поиск по всем дням"><button type="button" class="calqx" id="cal-qx" aria-label="Закрыть поиск">×</button></div><div class="calqr" id="cal-qr" aria-live="polite"></div></div>
       <div class="calgrid" id="cal-grid"></div>
     </div>
     <div class="card" id="cal-day">
@@ -6384,7 +6400,7 @@ function renderCalendar(){
   for(let i=0;i<42;i++){ const d=new Date(start); d.setDate(start.getDate()+i); const iso=jIso(d), L=byDate[iso]||[], sum=r2(L.reduce((a,j)=>a+(+j.sum||0),0));
     if(i>=35 && d.getMonth()!==m-1) break;
     const pt=dayPoints(iso, L, c.cus); h+=`<button type="button" data-d="${iso}" class="${d.getMonth()!==m-1?"out ":""}${d.getDay()%6===0?"we ":""}${iso===today?"today ":""}${iso===c.sel?"sel ":""}${ndBy[iso]?"nd":""}" aria-label="${d.getDate()} ${MONG[d.getMonth()]}${pt?", точек: "+pt:""}${ndBy[iso]?", без документов: "+ndBy[iso]:""}"><span class="dn">${d.getDate()}</span>${pt||ndBy[iso]?`<span class="cnr">${pt?`<span class="cn" title="Точек: ${pt}">${pt}</span>`:""}${ndBy[iso]?`<span class="cnd" title="Без документов: ${ndBy[iso]}">${IDOC}${ndBy[iso]}</span>`:""}</span>`:""}${L.length&&!staff?`<span class="cs">${fm(sum)} ₽</span>`:""}</button>`; }
-  $("#cal-grid").innerHTML=h; drawCalDay(); drawDayTasks(); renderDriver();
+  $("#cal-grid").innerHTML=h; try{ if(CALQ.open) calQDraw(); else calQMark(); }catch(e){} drawCalDay(); drawDayTasks(); renderDriver();
 }
 /* ---------- задачи на день (общие для всех, включая водителя) ---------- */
 const DTS = () => (D.daytasks = D.daytasks || []);
@@ -6986,6 +7002,61 @@ const calShift = n => { const c=CAL(), [y,m]=c.ym.split("-").map(Number), d=new 
 $("#cal-prev").onclick=()=>calShift(-1); $("#cal-next").onclick=()=>calShift(1);
 $("#cal-today").onclick=()=>{ const c=CAL(); c.sel=todayISO(); c.ym=c.sel.slice(0,7); saveLocal(); renderCalendar(); };
 $("#cal-cus").onchange=e=>{ CAL().cus=e.target.value; saveLocal(); renderCalendar(); };
+/* ---- поиск по всем дням календаря (26.11.2026, просьба Даниила): маленькая лупа в шапке календаря.
+   Ищет в накладных (№, заказчик, подразделение, адрес, товары, комментарий) и задачах на день (текст, заказчик, точка) — за всё время,
+   с учётом выбранного заказчика. Дни с найденным подсвечиваются в сетке; результаты — по дням, нажатие открывает день (и накладную). ---- */
+const CALQ = {q:"", open:false, n:30, sel:""};
+const calQNorm = t => String(t||"").toLowerCase().replace(/ё/g,"е").replace(/\s+/g," ");
+const calQWords = q => calQNorm(q).split(" ").map(w=>w.replace(/^№/,"")).filter(Boolean);
+function calQDocTxt(j){ const sn=j.snap||{}, dr=sn.dr||{}, c=cus(j.customerId)||{};
+  let br=""; try{ const b=(c.branches?branches(c):[]).find(x=>x.id===dr.branchId); br=b?b.name:""; }catch(e){}
+  const pn=(dr.lines||[]).map(l=>{ const p=(sn.prods||{})[l.productId]||prod(l.productId)||{}; return p.name||l.src||""; }).join(" · ");
+  const cm=((sn.meta||{}).cm||{}).t||"";
+  return {pn, all:calQNorm(["№"+j.number, j.number, cusNm(j.customerId), (sn.c||{}).name, c.name, br, dr.ship, (sn.c||{}).address, pn, cm].join(" | "))}; }
+function calQFind(){ const W=calQWords(CALQ.q); if(!W.length) return null; const cf=CAL().cus, by={};
+  const hit=t=>W.every(w=>t.includes(w)), put=(d,x)=>{ (by[d]=by[d]||[]).push(x); };
+  D.journal.forEach(j=>{ if(!j.snap||isArch(j)||!j.date||(cf&&j.customerId!==cf)) return; const t=calQDocTxt(j); if(!hit(t.all)) return;
+    const pm=W.length?(t.pn.split(" · ").filter(n=>W.some(w=>calQNorm(n).includes(w))).slice(0,3).join(", ")):""; put(j.date,{k:"d", j, pm}); });
+  DTS().forEach(x=>{ if(!x.date||isAuto(x)||(cf&&x.customerId&&x.customerId!==cf)) return;
+    const t=calQNorm([fmtPlain(x.text), cusNm(x.customerId), x.addr, x.by].join(" | ")); if(hit(t)) put(x.date,{k:"t", x}); });
+  const days=Object.keys(by).sort().reverse(); let nd=0, nt=0; days.forEach(d=>by[d].forEach(r=>r.k==="d"?nd++:nt++));
+  return {by, days, nd, nt}; }
+function calQMark(){ const R=CALQ.open?calQFind():null; $("#cal-grid").querySelectorAll("[data-d]").forEach(b=>{ const L=R&&R.by[b.dataset.d]; b.classList.toggle("qhit", !!L); b.classList.toggle("qdim", !!R && !L); if(L) b.dataset.qn=L.length; else delete b.dataset.qn; }); }
+const calQMark2 = (t,W) => { let h=esc(t); W.forEach(w=>{ if(w.length<2) return; const re=new RegExp("("+w.replace(/[.*+?^${}()|[\]\\]/g,"\\$&").replace(/е/g,"[её]")+")","ig"); h=h.replace(re,"<mark>$1</mark>"); }); return h; };
+function calQDraw(){ const box=$("#cal-qr"); if(!box) return; const R=calQFind(), W=calQWords(CALQ.q), sc=CALQ.lq===CALQ.q?((box.querySelector(".calql2")||{}).scrollTop||0):0; CALQ.lq=CALQ.q;
+  try{ calQDraw0(box,R,W); }finally{ const l=box.querySelector(".calql2"); if(l&&sc) l.scrollTop=sc; } }
+function calQDraw0(box,R,W){
+  calQMark(); if(!R){ box.innerHTML=`<div class="calqh">Например: «Гематология», «223», «картофель», «Полбина»${CAL().cus?" · поиск только по выбранному заказчику":""}</div>`; return; }
+  if(!R.days.length){ box.innerHTML=`<div class="calqh">Ничего не нашлось${CAL().cus?` у заказчика «${esc(cusNm(CAL().cus))}» — <button type="button" class="calql" data-calq="allcus">искать у всех</button>`:""}</div>`; return; }
+  const adm=!!me().admin, wd=["вс","пн","вт","ср","чт","пт","сб"];
+  const sum=`<div class="calqs">Найдено: ${R.nd?R.nd+" "+plural(R.nd,["накладная","накладные","накладных"]):""}${R.nd&&R.nt?" и ":""}${R.nt?R.nt+" "+plural(R.nt,["задача","задачи","задач"]):""} · ${R.days.length} ${plural(R.days.length,["день","дня","дней"])}<span> · дни подсвечены в календаре</span></div>`;
+  const rows=R.days.slice(0,CALQ.n).map(d=>{ const dt=new Date(d+"T12:00:00"), L=R.by[d];
+    const lab=`${wd[dt.getDay()]}, ${dt.getDate()} ${MONG[dt.getMonth()]} ${dt.getFullYear()}${d===todayISO()?" · сегодня":""}`;
+    const it=L.map(r=>r.k==="d"
+      ? `<button type="button" class="calqi" data-calqd="${esc(d)}" data-calqj="${esc(r.j.id)}"><i class="calqk">№ ${esc(r.j.number)}</i><span><b>${calQMark2(cusNm(r.j.customerId),W)}</b>${r.pm?`<small>${calQMark2(r.pm,W)}</small>`:`<small>${calQMark2((r.j.snap.dr||{}).ship||"",W)}</small>`}</span>${adm?`<em>${fm(+r.j.sum||0)}</em>`:""}<u aria-hidden="true">›</u></button>`
+      : `<button type="button" class="calqi t" data-calqd="${esc(d)}" data-calqt="${esc(r.x.id)}"><i class="calqk">Задача</i><span><b>${calQMark2(cusNm(r.x.customerId)||"Без заказчика",W)}</b><small>${calQMark2(fmtPlain(r.x.text).slice(0,140),W)}</small></span><u aria-hidden="true">›</u></button>`).join("");
+    return `<div class="calqd${d===CALQ.sel?" on":""}"><button type="button" class="calqdh" data-calqd="${esc(d)}">${esc(lab)}<span>${L.length}</span></button>${it}</div>`; }).join("");
+  const more=R.days.length>CALQ.n?`<button type="button" class="btn ghost sm calqm" data-calq="more">Показать ещё (${R.days.length-CALQ.n} ${plural(R.days.length-CALQ.n,["день","дня","дней"])})</button>`:"";
+  box.innerHTML=sum+`<div class="calql2">${rows}</div>`+more; }
+function calQOpen(on){ CALQ.open=on; const w=$("#cal-qw"), b=$("#cal-qb"); w.hidden=!on; b.classList.toggle("on",on); b.setAttribute("aria-expanded",on);
+  if(on){ calQDraw(); setTimeout(()=>{ const i=$("#cal-qi"); i.focus(); i.select(); },0); } else { CALQ.sel=""; calQMark(); } }
+function calQGo(d, then){ const c=CAL(); c.sel=d; c.ym=d.slice(0,7); CALQ.sel=d; saveLocal(); renderCalendar(); calQDraw();
+  if(then) then(); else $("#cal-day").scrollIntoView({behavior:"smooth", block:"start"}); }
+let calQT=0;
+$("#cal-qb").onclick=()=>calQOpen(!CALQ.open);
+$("#cal-qx").onclick=()=>{ $("#cal-qi").value=""; CALQ.q=""; calQOpen(false); $("#cal-qb").focus(); };
+$("#cal-qi").addEventListener("input",e=>{ CALQ.q=e.target.value; CALQ.n=30; clearTimeout(calQT); calQT=setTimeout(calQDraw,120); });
+$("#cal-qi").addEventListener("keydown",e=>{
+  if(e.key==="Escape"){ e.preventDefault(); e.stopPropagation(); if(e.target.value){ e.target.value=""; CALQ.q=""; calQDraw(); } else $("#cal-qx").click(); }
+  else if(e.key==="Enter"){ e.preventDefault(); clearTimeout(calQT); CALQ.q=e.target.value; const R=calQFind(); if(R&&R.days.length){ const i=Math.max(0,R.days.indexOf(CALQ.sel)); calQGo(R.days[CALQ.sel&&R.days.includes(CALQ.sel)?(i+1)%R.days.length:0]); } } });
+$("#cal-qr").addEventListener("click",e=>{ const a=e.target.closest("[data-calq]");
+  if(a){ if(a.dataset.calq==="more"){ CALQ.n+=30; calQDraw(); } else if(a.dataset.calq==="allcus"){ CAL().cus=""; saveLocal(); renderCalendar(); calQDraw(); } return; }
+  const b=e.target.closest("[data-calqd]"); if(!b) return; const d=b.dataset.calqd;
+  if(b.dataset.calqj){ const j=D.journal.find(x=>x.id===b.dataset.calqj); calQGo(d, ()=>{ if(j) docCard(j); }); }
+  else if(b.dataset.calqt){ const id=b.dataset.calqt; calQGo(d, ()=>setTimeout(()=>{ let el=$("#dt-list").querySelector(`[data-dt="${CSS.escape(id)}"]`);
+      const g=el&&el.closest(".dtg"); if(g && !g.classList.contains("open")){ const t=g.querySelector("[data-dtgt]"); if(t) t.click(); }
+      setTimeout(()=>{ el=$("#dt-list").querySelector(`[data-dt="${CSS.escape(id)}"]`); const tg=el&&el.offsetHeight?el:$("#dt-box"); tg.scrollIntoView({behavior:"smooth", block:"center"}); if(el){ el.classList.remove("calqfl"); void el.offsetWidth; el.classList.add("calqfl"); } }, 260); }, 60)); }
+  else calQGo(d); });
 $("#cal-body").addEventListener("click", onJClick(false));
 $("#cal-route").onclick=()=>$("#dv-card").scrollIntoView({behavior:"smooth", block:"start"});
 $("#cal-order").onclick=()=>{ const o=O(); o.date=CAL().sel; saveLocal(); showTab("order"); };
