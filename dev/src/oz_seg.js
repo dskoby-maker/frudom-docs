@@ -323,12 +323,12 @@ function ozDraw(){ const box=$("#oz"); if(!box||!OZ.d) return; const foc=documen
   box.innerHTML=`<div class="ozhead"><div><h2>Озон <small>видно только вам</small></h2><small class="muted">Сколько вы зарабатываете с маркетплейса: что пришло от Озона минус налог и закупка товара.</small>
     ${hasKey?`<small class="ozautol"><i aria-hidden="true"></i>Сам обновляется из Озона каждые 5 минут, пока сайт открыт · <span id="oz-auto">${OZ.at?"обновлено в "+new Date(OZ.at).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"}):""}</span></small>`:OZ.keys==null&&ozSrvOk()?`<small class="ozautol off">${OZ.kerr?"Не удалось проверить ключ Озона ("+esc(OZ.kerr)+") — попробую ещё раз через минуту":"Проверяю ключ Озона…"}</small>`:`<small class="ozautol off">Подключите Озон API — тогда сайт сам будет забирать данные каждые 5 минут и отчёты загружать не нужно.${OZ.kerr?" Ошибка: "+esc(OZ.kerr):""}</small>`}</div>
     <div class="ozacts">${hasKey?`<button type="button" class="btn sm" data-oz="sync"${OZ.busy?" disabled":""}>Обновить из Озона</button>`:""}<label class="btn sm">Загрузить отчёт Excel<input type="file" id="oz-file" accept=".xlsx,.xls" hidden></label><button type="button" class="btn sm ghost" data-oz="keys">${hasKey?"Подключение":"Подключить Озон API"}</button></div></div>
-  <div class="pfchips ozv">${ozChips([["sum","Сводка за период"],["pay","Выплаты на р/с"]], OZU.v==="pay"?"pay":"sum", "ozv")}<button type="button" class="btn sm ghost ozownb" data-oz="own">Товар Тани${ozOwnN()?" · "+ozOwnN():""}</button></div>
+  <div class="pfchips ozv"><div class="pfchips ozseg ozvseg">${ozChips([["sum","Сводка за период"],["pay","Выплаты на р/с"]], OZU.v==="pay"?"pay":"sum", "ozv")}</div><button type="button" class="btn sm ghost ozownb" data-oz="own">Товар Тани${ozOwnN()?" · "+ozOwnN():""}</button></div>
   ${OZU.v==="pay"?`<div class="ozst-line" id="oz-st">${st}</div>${ozPayList()}`:`<div class="ozbar">
-    ${S.length>1?`<div class="pfchips ozst">${ozChips([["all","Все магазины"]].concat(S.map(s=>[s.id,s.n])), OZU.st, "ozst")}</div>`:""}
-    <div class="pfchips ozper">${ozChips(OZ_PER, OZU.per, "ozper")}</div>
+    ${S.length>1?`<div class="pfchips ozseg ozst">${ozChips([["all","Все магазины"]].concat(S.map(s=>[s.id,s.n])), OZU.st, "ozst")}</div>`:""}
+    <div class="pfchips ozseg ozper">${ozChips(OZ_PER, OZU.per, "ozper")}</div>
     ${OZU.per==="c"?`<div class="ozdates"><label>с <input type="date" id="oz-a" value="${esc(ozRange()[0])}"></label><label>по <input type="date" id="oz-b" value="${esc(ozRange()[1])}"></label></div>`:""}
-    <div class="pfchips ozsch">${ozChips(OZ_SCH, OZU.sch, "ozsch")}</div>
+    <div class="pfchips ozseg ozschs">${ozChips(OZ_SCH, OZU.sch, "ozsch")}</div>
   </div>
   <div class="ozst-line" id="oz-st">${st}</div>${covTxt?`<div class="ozcovs">${covTxt}</div>`:""}
   ${!any?ozHello(hasKey):`
@@ -363,8 +363,8 @@ const ozPS=(p,v)=>v==="all"||!!(p.sch&&p.sch[v]);
 const ozPW=(p,v)=>v==="all"||(v==="t"?!!p.tanya:!p.tanya);
 function ozPFilt(C){ const L=C.L, hasT=L.some(p=>p.tanya)||ozOwnN()>0, ps=OZU.ps||"all", pw=hasT?(OZU.pw||"all"):"all";
   const n=(s,w)=>L.filter(p=>ozPS(p,s)&&ozPW(p,w)).length, ch=(attr,v,t,k)=>`<button type="button" data-${attr}="${v}" class="${(attr==="ozps"?ps:pw)===v?"on":""}" aria-pressed="${(attr==="ozps"?ps:pw)===v}">${t} <small>${k}</small></button>`;
-  return `<div class="ozpf"><span class="ozpfl">Схема</span><div class="pfchips">${ch("ozps","all","Все",n("all",pw))}${ch("ozps","FBO","FBO",n("FBO",pw))}${ch("ozps","RFBS","realFBS",n("RFBS",pw))}</div>
-    ${hasT?`<span class="ozpfl">Чьи</span><div class="pfchips">${ch("ozpw","all","Все",n(ps,"all"))}${ch("ozpw","me","Мои",n(ps,"me"))}${ch("ozpw","t","Тани",n(ps,"t"))}</div>`:""}</div>`; }
+  return `<div class="ozpf"><span class="ozpfl">Схема</span><div class="pfchips ozseg">${ch("ozps","all","Все",n("all",pw))}${ch("ozps","FBO","FBO",n("FBO",pw))}${ch("ozps","RFBS","realFBS",n("RFBS",pw))}</div>
+    ${hasT?`<span class="ozpfl">Чьи</span><div class="pfchips ozseg">${ch("ozpw","all","Все",n(ps,"all"))}${ch("ozpw","me","Мои",n(ps,"me"))}${ch("ozpw","t","Тани",n(ps,"t"))}</div>`:""}</div>`; }
 function ozList(C){ const q=OZU.q.trim().toLowerCase(), ps=OZU.ps||"all", hasT=C.L.some(p=>p.tanya)||ozOwnN()>0, pw=hasT?(OZU.pw||"all"):"all";
   let L=C.L.filter(p=>(!q||(p.name+" "+p.art).toLowerCase().includes(q))&&ozPS(p,ps)&&ozPW(p,pw));
   const by={profit:(a,b)=>b.P-a.P, loss:(a,b)=>a.P-b.P, unit:(a,b)=>(b.q?b.P/b.q:-1e9)-(a.q?a.P/a.q:-1e9), sales:(a,b)=>b.sales-a.sales, qty:(a,b)=>b.q-a.q, name:(a,b)=>a.name.localeCompare(b.name,"ru")}[OZU.sort]||((a,b)=>b.P-a.P);

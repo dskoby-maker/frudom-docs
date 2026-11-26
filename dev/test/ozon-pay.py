@@ -26,7 +26,7 @@ async def main():
         # одна схема — всё равно видно, почему не сходится
         await pg.click('#oz [data-ozsch="FBO"]'); await pg.wait_for_timeout(300)
         ok('Вы смотрите одну схему' in await pg.inner_text('#oz .ozsplit'), 'при FBO видна строка «весь магазин» и пояснение')
-        await pg.click('#oz .ozsch [data-ozsch="all"]'); await pg.wait_for_timeout(300)
+        await pg.click('#oz [data-ozsch="all"]'); await pg.wait_for_timeout(300)
         # товар Тани
         await pg.click('#oz [data-oz="own"]'); await pg.wait_for_timeout(500)
         ok(await pg.locator('#fd-dcard [data-ozowna="смесь"]').count()==1, 'окно «Товар Тани»: смесь продавалась с FBO')

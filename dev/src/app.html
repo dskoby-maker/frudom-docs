@@ -3876,6 +3876,66 @@ html.fd-dark :is(#fd-app .card,dialog.dcard,#tkf-pan,#tkf-fab){box-shadow:0 0 0 
   #fd-app .ozbar .pfchips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}#fd-app .ozbar .pfchips button{flex:none}
   #fd-app .ozx{grid-template-columns:minmax(0,1fr) auto 12px}#fd-app .ozx>i:not(.ozgo){display:none}
 }
+
+/* ===== «Озон» — современный минимальный вид (26.11.2026, просьба Даниила) ===== */
+#fd-app #oz{--ozl:rgba(28,34,32,.08);--ozs:rgba(28,34,32,.045)}
+#fd-app #oz .ozhead{align-items:center;padding-bottom:14px;margin-bottom:14px;border-bottom:1px solid var(--ozl)}
+#fd-app #oz .ozhead h2{font-size:24px;letter-spacing:-.02em}
+#fd-app #oz .ozhead>div>small.muted{display:block;font-size:13px;margin-top:2px}
+#fd-app #oz .ozacts .btn{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;height:36px;min-height:36px;border-radius:10px;padding:0 14px;font-weight:550;box-shadow:none}
+#fd-app #oz .ozacts .btn:not(.ghost){background:#fff;border:1px solid var(--ozl)}#fd-app #oz .ozacts .btn:not(.ghost):hover{border-color:rgba(28,34,32,.18)}
+/* переключатели — сегментами */
+#fd-app .ozseg{display:inline-flex;flex-wrap:nowrap;gap:2px;padding:3px;margin:0;border-radius:12px;background:rgba(28,34,32,.055);max-width:100%;overflow-x:auto;scrollbar-width:none;vertical-align:middle}
+#fd-app .ozseg::-webkit-scrollbar{display:none}
+#fd-app .ozseg button{flex:none;border:0;background:transparent;color:var(--muted);padding:6px 12px;border-radius:9px;font:550 13px var(--ui);white-space:nowrap;box-shadow:none;transition:background .2s,color .2s,box-shadow .2s}
+#fd-app .ozseg button:hover{background:rgba(255,255,255,.55);color:var(--ink)}
+#fd-app .ozseg button.on{background:#fff;color:var(--ink);border:0;box-shadow:0 1px 2px rgba(28,34,32,.1),0 0 0 1px rgba(28,34,32,.04)}
+#fd-app .ozseg button small{font-size:11px;color:var(--muted);font-weight:600;margin-left:2px}
+#fd-app .ozv{gap:10px;margin:0 0 12px}#fd-app .ozv>.ozownb{background:transparent;border:0;color:var(--muted);font-weight:550}#fd-app .ozv>.ozownb:hover{color:var(--ink);background:var(--ozs)}
+#fd-app #oz .ozbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:0 0 14px}#fd-app #oz .ozbar .pfchips{margin:0}#fd-app #oz .ozbar .ozschs{margin-left:auto}
+#fd-app #oz .ozdates{margin:0}#fd-app #oz .ozdates input{border-radius:10px}
+/* плитки — белые, цвет только у чисел */
+#fd-app #oz .oztiles{gap:10px;margin:0 0 12px}
+#fd-app #oz .oztile{background:#fff;border:1px solid var(--ozl);border-radius:16px;padding:14px 16px 13px;gap:4px;transition:border-color .2s,box-shadow .2s,transform .15s}
+#fd-app #oz .oztile:not(.static):hover{background:#fff;border-color:rgba(28,34,32,.16);box-shadow:0 4px 14px rgba(28,34,32,.06)}
+#fd-app #oz .oztile small{font-size:12.5px;font-weight:550}
+#fd-app #oz .oztile b{font-size:24px;letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:var(--ink)}
+#fd-app #oz .oztile span{font-size:12px;line-height:1.35}
+#fd-app #oz .oztile .pkgo{opacity:0;transition:opacity .2s,transform .2s}#fd-app #oz .oztile:hover .pkgo{opacity:.6;transform:translateX(2px)}
+#fd-app #oz .oztile.ok b,#fd-app #oz .oztile.good b{color:var(--ok)}#fd-app #oz .oztile.bad b{color:var(--err)}
+#fd-app #oz .oztile.good{border-color:rgba(47,107,69,.28);background:linear-gradient(180deg,rgba(47,107,69,.05),#fff 70%)}
+#fd-app #oz .oztile.bad{border-color:rgba(179,38,30,.25);background:linear-gradient(180deg,rgba(179,38,30,.05),#fff 70%)}
+#fd-app #oz .oztile.warn span{color:var(--warn);display:inline-flex;align-items:center;gap:6px}#fd-app #oz .oztile.warn span::before{content:"";width:6px;height:6px;border-radius:50%;background:#D99A1E;flex:none}
+#fd-app #oz .oztile.ok,#fd-app #oz .oztile.warn,#fd-app #oz .oztile.neg{background:#fff}
+#fd-app #oz .ozformula{font-size:13px;padding:10px 14px;border-radius:12px;background:var(--ozs);margin:0 0 12px}
+/* баннеры — спокойные, с цветной точкой */
+#fd-app #oz .ozalarm,#fd-app #oz .ozmiss{background:#fff;border:1px solid var(--ozl);border-radius:14px;color:var(--ink);padding:11px 14px;margin:0 0 12px;transition:border-color .2s,box-shadow .2s}
+#fd-app #oz .ozalarm:hover,#fd-app #oz .ozmiss:hover{border-color:rgba(28,34,32,.16);box-shadow:0 4px 14px rgba(28,34,32,.05)}
+#fd-app #oz .ozalarm b,#fd-app #oz .ozmiss b{display:inline-flex;align-items:center;gap:8px;font-weight:650}
+#fd-app #oz .ozalarm b::before,#fd-app #oz .ozmiss b::before{content:"";width:8px;height:8px;border-radius:50%;flex:none;background:var(--err);box-shadow:0 0 0 4px rgba(179,38,30,.12)}
+#fd-app #oz .ozmiss b::before{background:#D99A1E;box-shadow:0 0 0 4px rgba(217,154,30,.15)}
+#fd-app #oz .ozalarm span,#fd-app #oz .ozmiss span{color:var(--muted)}#fd-app #oz .ozalarm i,#fd-app #oz .ozmiss i{color:var(--muted)}
+/* «из чего сложилась» — одна полоса с делителями */
+#fd-app #oz .ozsplit{border:1px solid var(--ozl);border-radius:16px;padding:12px 14px;background:#fff}
+#fd-app #oz .ozsp{gap:0}#fd-app #oz .ozspc{background:transparent;border-radius:10px;padding:6px 12px}#fd-app #oz .ozsp>.ozspc+.ozspc{box-shadow:inset 1px 0 0 var(--ozl)}
+#fd-app #oz .ozspc:hover{background:var(--ozs)}#fd-app #oz .ozspc.t{background:transparent}#fd-app #oz .ozspc.t small::after{content:"Таня";margin-left:6px;font-size:10px;font-weight:650;color:#7A3B8C;background:#F4ECF6;border-radius:5px;padding:1px 5px}
+#fd-app #oz .ozspc b{font-size:17px;font-variant-numeric:tabular-nums}
+/* карточки разделов */
+#fd-app #oz .ozprods,#fd-app #oz .ozexp,#fd-app #oz .ozguard,#fd-app #oz .ozag{background:#fff;border:1px solid var(--ozl);border-radius:18px;padding:16px 18px;box-shadow:none}
+#fd-app #oz .ozph h3,#fd-app #oz .ozguard h3,#fd-app #oz .ozag h3{font-size:16px;letter-spacing:-.01em}
+#fd-app #oz .ozpt input,#fd-app #oz .ozpt select{border-radius:10px;height:36px}
+#fd-app #oz .ozrh{text-transform:uppercase;letter-spacing:.04em;font-size:10.5px}
+#fd-app #oz .ozr{border-top-color:var(--ozl)}#fd-app #oz .ozr:not(.ozrh):hover{background:var(--ozs)}
+#fd-app #oz .ozpf{gap:8px 12px}
+/* выплаты */
+#fd-app #oz .ozpay{border-color:var(--ozl)}#fd-app #oz .ozpay:hover{border-color:rgba(28,34,32,.16);box-shadow:0 4px 14px rgba(28,34,32,.06)}
+@media (max-width:700px){
+  #fd-app #oz .ozhead{align-items:flex-start}#fd-app #oz .ozacts{width:100%}#fd-app #oz .ozacts .btn{flex:1 1 auto;font-size:13px;padding:0 10px}
+  #fd-app #oz .ozbar .ozschs{margin-left:0}#fd-app .ozseg{display:flex;width:100%}#fd-app .ozseg button{flex:1 0 auto}
+  #fd-app #oz .oztiles{grid-template-columns:1fr 1fr;gap:8px}#fd-app #oz .oztile{padding:12px 13px}#fd-app #oz .oztile b{font-size:19px}
+  #fd-app #oz .ozsp{grid-template-columns:1fr 1fr}#fd-app #oz .ozsp>.ozspc+.ozspc{box-shadow:none}
+  #fd-app #oz .ozprods,#fd-app #oz .ozexp,#fd-app #oz .ozguard,#fd-app #oz .ozag{padding:14px;border-radius:16px}
+}
 </style>
 <style id="fd-doc-css">
 /*__DOC_CSS__*/
