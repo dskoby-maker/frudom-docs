@@ -24,7 +24,20 @@ test('shipment date can be earlier than document date',()=>{const a=structuredCl
 test('fresh document identities for each export',()=>assert.notEqual(w.Eis.generate(config,k).idf,w.Eis.generate(config,k).idf));
 test('VAT changes title, row and total tax consistently',()=>{const a=structuredClone(k);a.rate=10;a.lines[0].vat=18.2;a.lines[0].net=182.05;a.t={net:182.05,vat:18.2,sum:200.25};const m=parse(w.Eis.generate(config,a).main);assert.equal(m.querySelector('Документ').getAttribute('Функция'),'СЧФДОП');assert.equal(m.querySelector('СведТов').getAttribute('НалСт'),'10%');assert.equal(m.querySelector('СумНалВсего').textContent,'18.20');});
 for(const [name,change,rx] of [
- ['wrong supplier',a=>a.s.inn='different',/ИНН/],['wrong contract',a=>a.dr.basis='Контракт № WRONG от 01.01.2026',/Основание/],['wrong address',a=>a.dr.ship='Other',/адрес/],['product price not in contract',a=>{a.lines[0].pid='missing';a.lines[0].price=1;},/не совпадает/],['wrong unit',a=>a.lines[0].okei='796',/Единица/],['missing country',a=>a.lines[0].country='',/страну/],['duplicate position',a=>a.lines.push({...a.lines[0]}),/Несколько/],['excess quantity precision',a=>a.lines[0].qty=1.23456,/трёх/]])test('blocks '+name,()=>{const a=structuredClone(k);change(a);assert.throws(()=>w.Eis.generate(config,a),rx)});
+ ['wrong supplier',a=>a.s.inn='different',/ИНН/],['wrong contract',a=>a.dr.basis='Контракт № WRONG от 01.01.2026',/Основание/],['wrong address',a=>a.dr.ship='Other',/адрес/],['product price not in contract',a=>{a.lines[0].pid='missing';a.lines[0].price=1;},/не совпадает/],['wrong unit',a=>a.lines[0].okei='796',/Единица/],['missing country',a=>a.lines[0].country='',/страну/],['same position with different price',a=>{a.lines.push({...a.lines[0],pid:'p9',name:'Фрукты 2'});a.lines[1].price=100.2;},/цены разные|не совпадает/],['excess quantity precision',a=>a.lines[0].qty=1.23456,/трёх/]])test('blocks '+name,()=>{const a=structuredClone(k);change(a);assert.throws(()=>w.Eis.generate(config,a),rx)});
+test('several site products of one contract position are merged into one XML line with a warning',()=>{
+ const pos=(id,tech,num,name,price)=>({id,tech,ext:'',num,name,okei:'166',price,code:'01.00.00.000-0000000'+num,country:'643'});
+ const c={...config,catalog:{kind:'contract',register:'2000000000000000001',version:'1',number:'TEST-1',date:'2026-01-01',sinn:'000000000001',cinn:'0000000002',ckpp:'000000003',stages:[{id:'STAGE',tech:'2'}],places:['4'],positions:[pos('POS1','3','1','Фрукты & ягоды','100.12345678901'),pos('POS2','5','2','Изделия макаронные','104.18')]},mapping:{p:'POS1'}};
+ const L=(pid,name,qty,sum)=>({pid,name,qty,price:104.18,net:sum,vat:0,sum,okei:'166',country:'643',unit:'кг'});
+ const a=structuredClone(k);a.lines.push(L('m1','Изделия макаронные (макароны фигурные)',25.4,2646.17),L('m2','Изделия макаронные (лапша)',18.9,1969),L('m3','Изделия макаронные (вермишель)',8,833.44));a.t={net:200.25+5448.61,vat:0,sum:200.25+5448.61};
+ const r=w.Eis.generate(c,a),m=parse(r.main),rows=m.querySelectorAll('ТаблСчФакт > СведТов');
+ assert.equal(rows.length,2);assert.equal(rows[1].getAttribute('КолТов'),'52.3');assert.equal(rows[1].getAttribute('СтТовУчНал'),'5448.61');assert.equal(rows[1].getAttribute('НаимТов'),'Изделия макаронные');assert.equal(rows[1].getAttribute('НомСтр'),'2');
+ assert.equal(m.querySelector('ВсегоОпл').getAttribute('СтТовУчНалВсего'),'5648.86');
+ assert.equal(parse(r.supplement).querySelectorAll('НедеталТРУ').length,2);
+ assert.equal(r.merged.length,1);assert.equal(r.merged[0].lines.length,3);assert(r.warnings.some(x=>/объединены/.test(x)&&/вермишель/.test(x)&&/52,3 кг/.test(x)),r.warnings.join('|'));
+ assert.equal(a.lines.length,4);assert.equal(a.lines[1].qty,25.4);
+ assert.deepEqual(w.Eis.generate(config,k).warnings,[]);
+});
 test('rejects external entities and mixed XML pairs',()=>{assert.throws(()=>w.Eis.inspect('<!DOCTYPE x>'+main,pril),/сущност/);assert.throws(()=>w.Eis.inspect(main,pril.replace(id,id+'bad')),/одному/)});
 test('contract without externalSid and with trailing-zero prices: new positions get exact ids, no ВнешТехИдТРУ',()=>{
  const pos=(id,tech,num,name,price)=>({id,tech,ext:'',num,name,okei:'166',price,code:'01.00.00.000-0000000'+num,country:'643'});

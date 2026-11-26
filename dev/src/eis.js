@@ -51,10 +51,11 @@ const Eis = (() => {
   // Места поставки, уже известные по реестровому номеру контракта (открытые сведения ЕИС; проверено загрузкой 29.10.2026).
   const KNOWN_ADDRS={'2771826150926000233':[{"place": "60520046", "gar": "652d864a-c881-4e2c-9173-84e99c0cfbd2", "addr": "г. Москва, вн.тер.г. муниципальный округ Ивановское, пр-д Напольный, д. 9"}, {"place": "60520047", "gar": "89a5487d-da0e-4a3a-906d-de363bc9d542", "addr": "г. Москва, вн.тер.г. муниципальный округ Донской, ул. Шаболовка, д. 39"}, {"place": "60520048", "gar": "74d697a0-dfe2-4926-b877-1cc527b14993", "addr": "г. Москва, вн.тер.г. муниципальный округ Донской, ул. Орджоникидзе, д. 15"}, {"place": "60520049", "gar": "6425bdd3-4f25-46d9-9713-18a949ea194a", "addr": "г. Москва, вн.тер.г. муниципальный округ Богородское, пр-д Погонный, д. 5"}, {"place": "60520068", "gar": "37a5b19b-2bf5-4673-8864-f1302fdf3be1", "addr": "г. Москва, вн.тер.г. муниципальный округ Богородское, пр-д Погонный, д. 5 стр. 1"}]};
   // Позиция контракта для строки накладной: по точной цене контракта и единице, при совпадении цен — по словам названия.
-  function autoPos(positions,l,taken){
+  function autoPos(positions,l,taken,merge){
     const price=x=>Number(x.price||attr(x.link&&x.link.querySelector('НеЛПСвед'),'ЦенаИзКонтСНДС')),words=n=>String(n||'').toLowerCase().replace(/ё/g,'е').split('.')[0].match(/[а-я]+/g)||[];
     const all=positions.filter(x=>Math.abs(price(x)-Number(l.price))<0.006),byPrice=all.filter(x=>!taken.has(x.id));let c=byPrice.filter(x=>x.okei===l.okei);
-    if(all.length&&!byPrice.length)throw Error('Несколько строк накладной связаны с одной позицией ЕИС («'+l.name+'»). Объедините их в одну строку.');
+    if(all.length&&!byPrice.length&&merge)c=all.filter(x=>x.okei===l.okei);
+    else if(all.length&&!byPrice.length)throw Error('Несколько строк накладной связаны с одной позицией ЕИС («'+l.name+'»). Объедините их в одну строку.');
     if(byPrice.length&&!c.length)throw Error('Единица измерения «'+l.name+'» отличается от контракта ЕИС ('+byPrice[0].unit+').');
     if(c.length>1){const nm=String(l.name).toLowerCase().replace(/ё/g,'е');const f=c.filter(x=>words(x.name).every(w=>nm.includes(w)));if(f.length)c=f;}
     if(c.length>1)throw Error('Товар «'+l.name+'» по цене подходит к нескольким позициям контракта ('+c.map(x=>'№ '+(x.num||'?')).join(', ')+'). Нужна ручная настройка.');
@@ -198,18 +199,29 @@ const Eis = (() => {
     const login=String((k.s&&k.s.eisLogin)||'').trim();
     if(!/^[^\s"<>&]{1,100}$/.test(login))throw Error('Укажите «Логин ЕИС подписанта» в карточке поставщика (Справочники → Поставщики). Его можно посмотреть в профиле личного кабинета ЕИС.');
     if(k.rate&&!['5','7','10','20','22'].includes(String(k.rate)))throw Error('Такая ставка НДС пока не поддерживается для ЕИС.');
-    const used=new Set(),pairs=k.lines.map(source=>{
+    const used=new Set(),pairs=[],warnings=[],merged=[];
+    k.lines.forEach(source=>{
       const l=Object.assign({},source),saved=t.positions.find(x=>x.id===(config.mapping||{})[l.pid]);
       // Сопоставление сайт → ЕИС делается автоматически по цене контракта; сохранённая вручную связь используется, если цена совпадает.
-      const pos=(saved&&!used.has(saved.id)&&autoPos([saved],l,used))||autoPos(t.positions,l,used),id=pos&&pos.id;
+      // Если позиция контракта уже занята другой строкой (одна позиция контракта — несколько товаров на сайте), строки объединяются в одну.
+      const pos=(saved&&autoPos([saved],l,new Set(),true))||autoPos(t.positions,l,used,true),id=pos&&pos.id;
       if(!pos)throw Error('Цена товара «'+l.name+'» ('+l.price+' ₽) не совпадает ни с одной позицией контракта в ЕИС. Проверьте цену в прайсе заказчика — она должна быть точно как в контракте.');
       l.country=l.country||(config.countries||{})[id]||pos.country||'';
-      if(used.has(id))throw Error('Несколько строк накладной связаны с одной позицией ЕИС. Объедините их или исправьте сопоставление.');used.add(id);
       if(l.okei!==pos.okei)throw Error('Единица измерения «'+l.name+'» отличается от контракта ЕИС ('+pos.unit+').');
       if(!Number.isFinite(l.qty)||l.qty<=0||!Number.isFinite(l.price)||l.price<0)throw Error('Некорректное количество или цена «'+l.name+'».');
       if(Math.abs(l.qty-Number(qtyS(l.qty)))>1e-9)throw Error('Количество для ЕИС должно содержать не больше трёх знаков после запятой.');
       if(!/^\d{3}$/.test(l.country||''))throw Error('Укажите страну происхождения товара «'+l.name+'» в карточке товара.');
-      return {l,pos};
+      const was=pairs.find(x=>x.pos.id===id);
+      if(!was){used.add(id);pairs.push({l,pos,src:[l]});return;}
+      if(Math.abs(Number(was.l.price)-Number(l.price))>0.006)throw Error('Строки «'+was.l.name+'» и «'+l.name+'» относятся к одной позиции контракта, но цены разные. Проверьте цены.');
+      if(was.l.country!==l.country)warnings.push('У «'+was.l.name+'» и «'+l.name+'» разные страны происхождения — в объединённой строке указана '+(COUNTRIES[was.l.country]||was.l.country)+'.');
+      const w=was.l;w.qty=Math.round((w.qty+l.qty)*1000)/1000;['net','vat','sum'].forEach(key=>{w[key]=Math.round((w[key]+l[key])*100)/100;});was.src.push(l);
+    });
+    pairs.filter(x=>x.src.length>1).forEach(({l,pos,src})=>{
+      const u=src[0].unit||'';merged.push({num:pos.num,name:pos.name,qty:l.qty,unit:u,sum:l.sum,lines:src.map(x=>({name:x.name,qty:x.qty}))});
+      warnings.push('Строки '+src.map(x=>'«'+x.name+'» '+qtyS(x.qty).replace('.',',')+(u?' '+u:'')).join(' + ')+' объединены в одну позицию контракта № '+(pos.num||'?')+' «'+pos.name+'»: '+qtyS(l.qty).replace('.',',')+(u?' '+u:'')+' на '+dec(l.sum,2).replace('.',',')+' ₽.');
+      if(Math.abs(Math.round(l.qty*Number(l.price)*100)/100-l.sum)>0.005)warnings.push('В строке «'+pos.name+'» сумма (сложена из строк накладной) отличается от «количество × цена» на 1 копейку — ЕИС обычно принимает; если не примет, поправьте сумму в ЕИС.');
+      if(Math.abs(l.qty-Number(qtyS(l.qty)))>1e-9)throw Error('Количество для ЕИС должно содержать не больше трёх знаков после запятой.');
     });
     for(const key of ['net','vat','sum']){
       if(!Number.isFinite(k.t[key])||k.t[key]<0||k.lines.some(l=>!Number.isFinite(l[key])||l[key]<0)||Math.abs(k.lines.reduce((s,l)=>s+l[key],0)-k.t[key])>0.011)throw Error('Итоги накладной не совпадают со строками. Пересчитайте документ перед выгрузкой.');
@@ -255,7 +267,7 @@ const Eis = (() => {
     const supplement=xml(p),pb=encode(supplement);
     const packet='<?xml version="1.0" encoding="windows-1251"?>\n<ФайлПакет ИдТрПакет="'+guid()+'" ИдФайл="'+xa(id)+'" ИдПрилож="PRIL_'+xa(id)+'" ДатаВрФормир="'+now.toISOString()+'" ТипПрилож="УПДПрод" ВерсФорм="1.00" ИдОтпр="'+xa(t.sender)+'" ИдПол="'+xa(t.recipient)+'"><Документ><Контент>'+b64(bytes)+'</Контент></Документ><Прилож><Контент>'+b64(pb)+'</Контент></Прилож></ФайлПакет>';
     unpack(packet);
-    return {xml:packet,main,supplement,idf:id,bytes:encode(packet),filename:'DP_PAKET_'+id+'.xml'};
+    return {xml:packet,main,supplement,idf:id,bytes:encode(packet),filename:'DP_PAKET_'+id+'.xml',warnings,merged};
   }
   return {inspect,inspectConfig,readContract,read,readInfo,readPlaces,mergePlaces,findAddr,unpack,generate,encode,decode,checkParty};
 })();
