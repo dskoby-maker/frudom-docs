@@ -35,7 +35,7 @@ async def main():
         slow['on']=False; bad['on']=True
         await pg.reload(); await pg.wait_for_timeout(5000)
         h=await pg.inner_text('#oz .ozhead')
-        ok('Не удалось проверить ключ' in h and 'Подключите Озон API' not in h, f'ошибка связи — «не удалось проверить», а не «подключите» ({h[-120:]!r})')
+        ok('Подключите Озон API' not in h and ('каждые 5 минут' in h or 'Не удалось проверить ключ' in h), f'ошибка связи — ключ остаётся подключённым (запомнен на устройстве), а не «подключите» ({h[-120:]!r})')
         bad['on']=False
         await pg.click('#oz [data-oz="keys"]'); await pg.wait_for_timeout(2000)
         t=await pg.inner_text('#fd-dcard .ozkeys'); ok('подключён · Client-Id 123456' in t, 'окно «Подключение» само проверило заново — «подключён»')

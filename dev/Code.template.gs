@@ -7,7 +7,7 @@
  * (слева «Файлы» → «Пароли.gs»). Поэтому этот файл можно целиком заменять новой версией —
  * пароли не потеряются. Шаблон файла паролей: dev/Passwords.template.gs в GitHub.
  */
-const CODE_VER = 55;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
+const CODE_VER = 56;      // версия скрипта: сайт сравнивает её со своей и просит обновить Code.gs, если скрипт старый
 const MAX_EVENTS = 3000;   // сколько последних событий хранить на листе «События»
 
 const S = {
@@ -560,8 +560,15 @@ function bankKeysView_() { const keys = tbKeys_(), sn = nameMap_('suppliers');
    разбирает и считает прибыль сайт: так разбор можно поправить без обновления скрипта. В таблицу ничего не пишется. */
 const OZ_URL = 'https://api-seller.ozon.ru';
 const OZ_PATHS = ['/v1/finance/accrual/by-day', '/v1/finance/accrual/types', '/v1/finance/accrual/postings', '/v3/product/info/list', '/v1/finance/cash-flow-statement/list', '/v3/finance/transaction/list', '/v3/finance/transaction/totals'];
-function ozKeys_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('OZON_KEYS') || '{}') || {}; } catch (e) { return {}; } }
-function ozKeysSet_(o) { PropertiesService.getScriptProperties().setProperty('OZON_KEYS', JSON.stringify(o)); }
+/* ключи хранятся в двух местах: свойство OZON_KEYS и запасная копия OZON_KEYS_BAK (Code.gs ≥ 56) —
+   если основное пропало или испортилось, ключ берётся из копии и сразу восстанавливается; удаляет ключ только кнопка «Отключить» */
+function ozKeysRd_(name) { try { const v = PropertiesService.getScriptProperties().getProperty(name); if (!v) return null; const o = JSON.parse(v); return o && typeof o === 'object' ? o : null; } catch (e) { return null; } }
+function ozKeys_() { const a = ozKeysRd_('OZON_KEYS'), b = ozKeysRd_('OZON_KEYS_BAK');
+  if (a && Object.keys(a).length) { if (!b || JSON.stringify(a) !== JSON.stringify(b)) { try { PropertiesService.getScriptProperties().setProperty('OZON_KEYS_BAK', JSON.stringify(a)); } catch (e) {} } return a; }
+  if (b && Object.keys(b).length) { try { PropertiesService.getScriptProperties().setProperty('OZON_KEYS', JSON.stringify(b)); } catch (e) {} return b; }
+  return a || {}; }
+function ozKeysSet_(o) { const pr = PropertiesService.getScriptProperties(), v = JSON.stringify(o || {});
+  pr.setProperty('OZON_KEYS', v); pr.setProperty('OZON_KEYS_BAK', v); }
 function ozView_() { const k = ozKeys_(); return Object.keys(k).map(id => ({ id: id, name: k[id].n || '', cid: k[id].c || '', tail: String(k[id].k || '').slice(-4) })); }
 function ozOpt_(K, body) { return { method: 'post', contentType: 'application/json', headers: { 'Client-Id': String(K.c), 'Api-Key': String(K.k) }, payload: JSON.stringify(body || {}), muteHttpExceptions: true }; }
 function ozRes_(r) { const c = r.getResponseCode(), t = r.getContentText(); let j = null; try { j = JSON.parse(t); } catch (e) { j = null; } return { code: c, body: j, text: j ? '' : String(t).slice(0, 300) }; }
