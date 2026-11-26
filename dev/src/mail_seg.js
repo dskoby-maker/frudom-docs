@@ -989,3 +989,28 @@ async function mlIdleTick(){ if(MLIDLE.run || !mlIdleOk()) return; MLIDLE.run=tr
   finally{ MLIDLE.run=false; } }
 setInterval(mlIdleTick, 15000);
 window.__mlCache={idle:()=>{ MLIDLE.last=0; return mlIdleTick(); }, has:mlBodyHas, st:MLIDLE};
+/* свои отметки письма (прочитано, обработано, неважные, папка…) держатся поверх данных с сервера, пока таблица их не подтвердит
+   (до 3 мин): проверка ящиков и свежий список, запрошенные ДО отметки, приходят позже и раньше затирали её — «всё слетало» (26.11.2026) */
+ML.own={};
+const mlOwnRd = v => v===undefined ? undefined : (v && v!=="0" && v!==0 ? "1" : "");
+function mlOwnOk(r, o){ if(o.read!==undefined && !!r.read!==!!o.read) return false;
+  if(o.patch){ let s={}; try{ s=JSON.parse(r.order||"{}")||{}; }catch(e){} return Object.keys(o.patch).every(k=>o.patch[k]==null ? s[k]==null : JSON.stringify(s[k])===JSON.stringify(o.patch[k])); }
+  if(o.order!==undefined) return String(r.order||"")===String(o.order||""); return true; }
+function mlOwnPut(r, o){ if(o.read!==undefined) r.read=o.read;
+  if(o.patch){ let s={}; try{ s=JSON.parse(r.order||"{}")||{}; }catch(e){} Object.keys(o.patch).forEach(k=>{ if(o.patch[k]==null) delete s[k]; else s[k]=o.patch[k]; }); r.order=Object.keys(s).length?JSON.stringify(s):""; }
+  else if(o.order!==undefined) r.order=o.order; }
+/* sn — время ответа таблицы (j.now, начало запроса): подтверждает отметку, только если запрос пришёл ПОСЛЕ неё
+   (старый ответ с теми же значениями ещё ничего не значит); без j.now — через минуту */
+function mlOwnApply(sn){ const now=Date.now(), st=sn?Date.parse(sn):NaN; let n=0;
+  Object.keys(ML.own).forEach(id=>{ const o=ML.own[id]; if(now-o.t>180000){ delete ML.own[id]; return; }
+    const r=ML.rows.find(x=>x.id===id); if(!r) return;
+    if(mlOwnOk(r, o)){ if(!ML.pend[id] && (st>o.t+2000 || (isNaN(st) && now-o.t>60000))) delete ML.own[id]; return; } mlOwnPut(r, o); n++; });
+  return n; }
+{ const s1=mlSet; mlSet=function(L){ const t=Date.now();
+    L.forEach(x=>{ if(!x||!x.id) return; const o=ML.own[x.id]||{}; o.t=t; const rd=mlOwnRd(x.read); if(rd!==undefined) o.read=rd;
+      if(x.patch){ o.patch=Object.assign({}, o.patch||{}, x.patch); delete o.order; } else if(x.order!==undefined){ o.order=String(x.order||""); delete o.patch; }
+      ML.own[x.id]=o; });
+    return s1(L); };
+  const t1=mlTake; mlTake=function(j){ t1(j); if(j && Array.isArray(j.rows)) mlOwnApply(j.now); };
+  const c1=mlChMerge; mlChMerge=function(j){ const n=c1(j); if(j) mlOwnApply(j.now); return n; }; }
+window.__mlOwn = { own:()=>ML.own, rows:()=>ML.rows, take:j=>{ mlTake(j); mlDraw(); }, merge:j=>mlChMerge(j) };

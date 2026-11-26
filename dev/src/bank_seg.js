@@ -31,6 +31,11 @@ function bnRefDocs(cids, nums, sid, withArch){ if(!nums || !nums.size) return []
     .map(j=>{ const p=payOf(j); return {j, left:p.tot, paid:p.s>0.004, other:!!sid && j.supplierId!==sid}; }).filter(x=>x.left>0.004)
     .sort((a,b)=>a.j.date<b.j.date?-1:a.j.date>b.j.date?1:jNumSort(a.j,b.j)); }
 const bnEq = (a,b) => Math.abs(a-b) < 0.005;
+/* расхождение в копейках: при отправке через ЕИС / Портал поставщиков цена бывает вида 156,34534634 ₽ — сумма платежа
+   отличается от накладных на копейки. До BN_TOL ₽ при совпавших номерах считаем, что накладные оплачены полностью (26.11.2026) */
+const BN_TOL = 10;
+const bnNear = (a,b) => Math.abs(a-b) <= BN_TOL+0.004;
+const bnDiffTxt = (due, sum) => { const d=r2(sum-due); return bnEq(d,0) ? "" : " Разница "+fm(Math.abs(d))+" ₽ ("+(d<0?"пришло меньше":"пришло больше")+") — это округление, накладные отмечены оплаченными полностью."; };
 const bnSum = L => r2(L.reduce((a,x)=>a+x.left,0));
 function bnSubset(L, target){   /* единственный набор накладных с суммой ровно как платёж (до 22 накладных) */
   const T=Math.round(target*100), V=L.map(x=>Math.round(x.left*100)); if(L.length>22) return null; let found=null, n=0;
@@ -44,6 +49,7 @@ function bnMatch(op){
   /* 1. номера накладных в назначении */
   const byNum=all.filter(x=>nums.has(String(+x.j.number||x.j.number)));
   if(byNum.length && bnEq(bnSum(byNum),sum)) return pack(byNum,"Номера накладных в назначении платежа и сумма совпали",true);
+  if(byNum.length && bnNear(bnSum(byNum),sum)) return pack(byNum,"Номера накладных в назначении платежа совпали."+bnDiffTxt(bnSum(byNum),sum),true);
   /* 1б. те же номера, но накладные уже отмечены оплаченными или у другого ИП — только предложение */
   const ref=bnRefDocs(cids, nums, op.supplierId);
   if(ref.length){ const L=bnEq(bnSum(ref),sum) ? ref : bnSubset(ref,sum);
@@ -57,7 +63,8 @@ function bnMatch(op){
   /* 2. номер счёта на оплату → его накладные */
   const inv=(D.invoices||[]).filter(r=>cids.includes(r.customerId) && (!op.supplierId||r.supplierId===op.supplierId) && nums.has(String(+r.number||r.number)));
   for(const r of inv){ let d={}; try{ d=JSON.parse(r.data||"{}")||{}; }catch(e){} const ids=new Set(d.docs||[]), L=all.filter(x=>ids.has(x.j.id));
-    if(L.length && bnEq(bnSum(L),sum)) return pack(L,"Оплата счёта № "+r.number+": сумма совпала с его накладными",true); }
+    if(L.length && bnEq(bnSum(L),sum)) return pack(L,"Оплата счёта № "+r.number+": сумма совпала с его накладными",true);
+    if(L.length && L.length===ids.size && bnNear(bnSum(L),sum)) return pack(L,"Оплата счёта № "+r.number+"."+bnDiffTxt(bnSum(L),sum),true); }
   /* 3. одна накладная ровно на эту сумму */
   const one=all.filter(x=>bnEq(x.left,sum));
   if(one.length===1 && (!nums.size || !byNum.length || byNum[0]===one[0])) return pack(one,"Одна неоплаченная накладная ровно на эту сумму",true);
@@ -203,7 +210,7 @@ function bnCard(o, i){
     <div class="bnm"><div class="bnt"><b title="${esc(o.payerName||"")}">${esc(bnName(o.payerName)||"Плательщик не указан")}</b><span class="bnsum">+${fm(+o.sum||0)} ₽</span></div>
       <div class="bns"><span>${fd(o.date)}</span><span>${esc(bnSup(o.supplierId))}</span>${man?`<span class="bnman">вручную</span>`:""}${o.payerInn&&!man?`<span>ИНН ${esc(o.payerInn)}</span>`:""}${cname&&!man?`<span class="bnc">→ ${esc(cname)}</span>`:""}<span class="bnst">${esc(BN_ST[st]||st)}</span></div>
       ${o.purpose?`<button type="button" class="bnp" data-bnpf title="${man?"Комментарий":"Назначение платежа — нажмите, чтобы прочитать целиком"}"><span>${esc(o.purpose)}</span></button>`:man?"":`<p class="bnp"><span>(без назначения)</span></p>`}
-      ${applied ? `<div class="bndocs">${used.map(u=>chip(u)).join("")}</div>${rest>0.004?`<div class="bnwhy">Не разнесено ${fm(rest)} ₽</div>`:""}` : ""}
+      ${applied ? `<div class="bndocs">${used.map(u=>chip(u)).join("")}</div>${Math.abs(rest)>0.004 && Math.abs(rest)<=BN_TOL+0.004?`<div class="bnwhy">Разница ${fm(Math.abs(rest))} ₽ (${rest>0?"пришло больше":"пришло меньше"}) — округление в ЕИС / на Портале, накладные оплачены полностью</div>`:rest>0.004?`<div class="bnwhy">Не разнесено ${fm(rest)} ₽</div>`:""}` : ""}
       ${wait && m ? `${mk.length&&!m.docs.length?"":`<div class="bnwhy">${esc(m.why)}</div>`}${m.docs.length?`<div class="bndocs">${m.docs.map(u=>chip(u,true)).join("")}</div>`:""}` : wait ? `<div class="bnwhy">Накладные не выбраны</div>` : ""}
       ${mk.length ? `<div class="bnmk"><b>На сайте нет ${mk.length>1?mk.length+" "+plural(mk.length,["накладной","накладных","накладных"]):"накладной"} из этого платежа</b><div class="bnmc">${mk.map(r=>`<span>№ ${esc(r.num)}${r.date?` <small>от ${fd(r.date)}</small>`:""}${r.sum?` <b>${fm(r.sum)} ₽</b>`:""}</span>`).join("")}</div><small>Если их просто не заводили — «Создать ${mk.length>1?"накладные":"накладную"}» заполнит всё из платежа само.</small></div>` : ""}
       ${skipWhy ? `<div class="bnwhy bnmem">${esc(skipWhy)}</div>` : ""}
@@ -276,7 +283,7 @@ function bnPick(op, man){
     else if(t.id==="bnp-all"){ BNKP.allSup=t.checked; bnPickDraw(); } else if(t.id==="bnp-paid"){ BNKP.paid=t.checked; bnPickDraw(); }
     else if(t.matches(".bnpc")){ const id=t.dataset.id, row=t.closest(".bnpr");
       if(t.checked){ const left=+row.dataset.left||0, cap=bnPickCap(), others=r2([...BNKP.sel.values()].reduce((a,v)=>a+(+num(v)||0),0)); let v=left;
-        if(cap>0){ const rem=r2(cap-others); if(rem>0.004 && rem<left-0.004) v=rem; }   /* платёж меньше накладной — сразу частичная оплата на остаток платежа */
+        if(cap>0){ const rem=r2(cap-others); if(rem>0.004 && rem<left-BN_TOL-0.004) v=rem; }   /* разница до BN_TOL ₽ — округление, ставим накладную целиком; платёж меньше накладной — сразу частичная оплата на остаток платежа */
         BNKP.sel.set(id, String(v)); row.querySelector(".bnps").value=String(v).replace(".",","); }
       else BNKP.sel.delete(id); bnPickDraw(true); } });
   d.addEventListener("input", e=>{ const t=e.target;
@@ -315,13 +322,13 @@ function bnPickTotal(){ const t=$("#bnp-t"); if(!t) return; const s=r2([...BNKP.
     e.textContent = p && v>0.004 && p.left>0.004 && v<p.left-0.004 ? "частичная оплата — останется долг "+fm(r2(p.left-v))+" ₽" : ""; });
   if(BNKP.man && !(+num(BNKP.sumTyped)>0)){ t.classList.toggle("ok", s>0); t.innerHTML=`<span>Сумма прихода <b>${fm(s)}</b> ₽ <small class="muted">— по отмеченным накладным</small></span>`; return; }
   const sum=bnPickCap(), rest=r2(sum-s);
-  t.innerHTML=`<span>Выбрано <b>${fm(s)}</b> из <b>${fm(sum)}</b> ₽</span>${bnEq(rest,0)?`<em class="ok">ровно</em>`:rest>0?`<em>не разнесено ${fm(rest)} ₽</em>`:`<em class="bad">больше платежа на ${fm(-rest)} ₽</em>`}`;
-  t.classList.toggle("ok", bnEq(rest,0)); }
+  t.innerHTML=`<span>Выбрано <b>${fm(s)}</b> из <b>${fm(sum)}</b> ₽</span>${bnEq(rest,0)?`<em class="ok">ровно</em>`:rest<0 && -rest<=BN_TOL+0.004?`<em class="ok">разница ${fm(-rest)} ₽ — округление, можно разносить</em>`:rest>0?`<em>не разнесено ${fm(rest)} ₽</em>`:`<em class="bad">больше платежа на ${fm(-rest)} ₽</em>`}`;
+  t.classList.toggle("ok", bnEq(rest,0) || (rest<0 && -rest<=BN_TOL+0.004)); }
 function bnPickSave(){
   const op=BNKP.op, docs=[...BNKP.sel.entries()].map(([id,s])=>({id, s:String(r2(+num(s)||0))})).filter(x=>+x.s>0), s=r2(docs.reduce((a,x)=>a+ +x.s,0));
   if(BNKP.man) return bnManSave(docs, s);
   if(!docs.length){ toast("err","Отметьте накладные",""); return; }
-  if(s>(+op.sum||0)+0.004){ toast("err","Больше суммы платежа","Выбрано "+fm(s)+" ₽, а пришло "+fm(+op.sum)+" ₽."); return; }
+  if(s>(+op.sum||0)+BN_TOL+0.004){ toast("err","Больше суммы платежа","Выбрано "+fm(s)+" ₽, а пришло "+fm(+op.sum)+" ₽."); return; }
   const rem=$("#bnp-rem"); if(rem && op.payerInn){ const p=getPrefs(); p.bnInn=p.bnInn||{}; const k=bnDigits(op.payerInn); if(rem.checked && BNKP.cid) p.bnInn[k]=BNKP.cid; else delete p.bnInn[k]; setPrefs(p,true); }
   if(op.status==="auto"||op.status==="done") bnUnapply(op);
   const n=bnApply(op, docs, "done"); saveLocal(); bnPush(); pvCloseCard(); drawProfit(); toast("ok","Оплата разнесена", n+" "+plural(n,["накладная","накладные","накладных"])+": "+op.docsText);
