@@ -115,7 +115,9 @@ function bnMatch(op){
 /* ---------- применение ---------- */
 function bnApply(op, docs, status, inv){
   const used=[];
-  docs.forEach(d=>{ const j=D.journal.find(x=>x.id===d.id); if(!j) return; const p=payOf(j), want=r2(+d.s||0), add=r2(Math.max(0,Math.min(want, p.left))),
+  /* платёж отличается от остатка накладных на копейки (ЕИС / Портал округляют иначе) — накладные закрываем полностью, без «долга 0,01» (26.11.2026) */
+  const lefts=docs.map(d=>{ const j=D.journal.find(x=>x.id===d.id); return j?payOf(j).left:0; }), full=+op.sum>0 && lefts.some(x=>x>0) && bnNear(r2(lefts.reduce((a,x)=>a+x,0)), +op.sum);
+  docs.forEach(d=>{ const j=D.journal.find(x=>x.id===d.id); if(!j) return; const p=payOf(j), want=full ? r2(Math.max(+d.s||0, p.left)) : r2(+d.s||0), add=r2(Math.max(0,Math.min(want, p.left))),
       pre=r2(Math.max(0,Math.min(want-add, p.s)));   /* pre — оплата уже стояла раньше, платёж только связывается с ней */
     if(add<=0 && pre<=0) return;
     if(add>0) setPay(j, r2(p.s+add), op.date, true);
@@ -139,8 +141,18 @@ async function bnManPush(){ const B=BNK(), rows=Object.values(B.man||{}), del=B.
   return false; }
 async function bnPush(){ await bnManPush(); const B=BNK(), rows=Object.values(B.pend).filter(r=>!(B.man||{})[r.id]); if(!rows.length || !online()) return;
   try{ const j=await api({action:"bank", op:"set", rows}); if(j && j.ok!==false){ rows.forEach(r=>{ if(B.pend[r.id]===r) delete B.pend[r.id]; }); saveLocal(); } }catch(e){} }
+/* уже разнесённые платежи, после которых у накладных остался «долг» в копейки (до BN_TOL ₽) — закрыть его (26.11.2026) */
+function bnFixKop(){
+  BNK().ops.filter(op=>(op.status==="auto"||op.status==="done") && +op.sum>0).forEach(op=>{ let L; try{ L=JSON.parse(op.docs||"[]"); }catch(e){ return; } if(!L.length) return;
+    const R=L.map(u=>{ const j=D.journal.find(x=>x.id===u.id); return j ? {u, j, p:payOf(j)} : null; }); if(R.some(x=>!x)) return;
+    if(!R.some(x=>x.p.left>0.004) || R.some(x=>x.p.left>BN_TOL+0.004)) return;
+    const got=r2(L.reduce((a,u)=>a + +u.s + +(u.pre||0), 0)), need=r2(got + R.reduce((a,x)=>a+x.p.left,0));
+    if(!bnNear(need, +op.sum)) return;
+    R.forEach(x=>{ if(x.p.left>0.004){ setPay(x.j, x.p.tot, x.p.d||op.date, true); x.u.s=String(r2(+x.u.s + x.p.left)); } });
+    op.docs=JSON.stringify(L); bnQueue(op); });
+}
 function bnAuto(){
-  if(!pfLoaded) return 0; let n=0;
+  if(!pfLoaded) return 0; let n=0; try{ bnFixKop(); }catch(e){}
   BNK().ops.filter(op=>(op.status==="wait" || op.status==="new" || !op.status) && !bnIsMan(op) && !(getPrefs().bnKeep||{})[op.id] && bnSkipWhy(op)).forEach(op=>{ op.status="skip"; op.statusName=BN_ST.skip; bnQueue(op); });
   BNK().ops.filter(op=>op.status==="new" || !op.status).forEach(op=>{ const m=bnMatch(op);
     if(m.exact && m.docs.length){ if(bnApply(op, m.docs, "auto", m.inv)) n++; else { op.status="wait"; op.statusName=BN_ST.wait; bnQueue(op); } }

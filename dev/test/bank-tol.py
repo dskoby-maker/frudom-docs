@@ -50,6 +50,12 @@ async def main():
     tot=await pg.text_content('#bnp-t'); ok('округление' in tot, f'перебор 2 ₽ — «округление, можно разносить» ({tot})')
     await pg.click('#fd-dcard [data-bnp="save"]'); await pg.wait_for_timeout(700)
     p4=await pg.evaluate(PAY+"('btd4')"); ok(p4['st']=='paid', f'разнесено, накладная оплачена ({p4})')
+    # старый платёж, после которого у накладной остался «долг 0,01» — при обновлении банка закрывается сам
+    await pg.evaluate("""()=>{const D=__fd.D(), j=D.journal.find(x=>x.id==='btd0'), op=D.bank.ops.find(o=>o.opId==='t1'), p=__fd.payOf(j);
+      __fd.setPay(j, p.tot-0.01, '2026-11-24', true); const L=JSON.parse(op.docs); L.forEach(u=>{ if(u.id==='btd0') u.s=String(Math.round((+u.s-0.01)*100)/100); }); op.docs=JSON.stringify(L); op.status='done'; }""")
+    p0=await pg.evaluate(PAY+"('btd0')"); ok(abs(p0['left']-0.01)<0.001, f'подготовлен «долг 0,01» ({p0})')
+    await pg.click('#pv-bank [data-bn="sync"]'); await pg.wait_for_timeout(2500)
+    p0=await pg.evaluate(PAY+"('btd0')"); ok(p0['st']=='paid', f'«долг 0,01» закрыт сам ({p0})')
     ok(not errs, 'нет ошибок JS '+str(errs[:2]))
     await b.close()
   print('ИТОГ:', 'всё прошло' if not fails else f'провалов {len(fails)}')
