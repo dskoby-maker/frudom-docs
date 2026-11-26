@@ -305,22 +305,23 @@ function bnManDel(op){ const B=BNK(), had=bnDocsOf(op).length;
 let BNKP=null;
 function bnManSupDefault(){ const B=BNK(), p=getPrefs(); if(p.bnManSup && D.suppliers.some(x=>x.id===p.bnManSup)) return p.bnManSup;
   const s=D.suppliers.find(x=>!B.keys.some(k=>k.supplierId===x.id) && /байдаров/i.test(x.name)) || D.suppliers.find(x=>!B.keys.some(k=>k.supplierId===x.id)) || D.suppliers[0]; return s?s.id:""; }
-function bnPick(op, man){
-  const isNew=man && !op;
-  if(isNew) op={id:"man-"+uid()+uid().slice(0,4), supplierId:bnManSupDefault(), date:todayISO(), sum:"", payerName:"", payerInn:"", purpose:"", status:"wait", statusName:BN_ST.wait, docs:"", docsText:""};
+function bnPick(op, man, st){
+  const isNew=st ? st.isNew : man && !op;
+  if(isNew && !op) op={id:"man-"+uid()+uid().slice(0,4), supplierId:bnManSupDefault(), date:todayISO(), sum:"", payerName:"", payerInn:"", purpose:"", status:"wait", statusName:BN_ST.wait, docs:"", docsText:""};
   const m=man?{cid:"", docs:[]}:bnMatch(op), was=bnDocsOf(op);
   const cid = m.cid || (was[0] && (D.journal.find(x=>x.id===was[0].id)||{}).customerId) || (man && op.payerInn ? (D.customers.find(c=>bnDigits(c.inn)===bnDigits(op.payerInn))||{}).id : "") || (man ? (D.customers.find(c=>c.name===op.payerName)||{}).id : "") || "";
-  BNKP={op, man:!!man, isNew, cid, sel:new Map((was.length?was:m.docs).map(u=>[u.id, String(r2((+u.s||0)+(+u.pre||0)))])), allSup:false, paid:false, sumTyped: man && !isNew ? String(op.sum||"").replace(".",",") : ""};
+  BNKP = st ? Object.assign(st, {sel:new Map(st.sel)}) : {op, man:!!man, isNew, cid, sel:new Map((was.length?was:m.docs).map(u=>[u.id, String(r2((+u.s||0)+(+u.pre||0)))])), allSup:false, paid:false, sumTyped: man && !isNew ? String(op.sum||"").replace(".",",") : ""};
+  CARD_RE = ()=>bnPickRe();
   const head = man
     ? `<div class="dc-head"><div><div class="dc-kicker">Приход вручную · для ИП без подключённого банка</div><h3>${isNew?"Новый приход":"Приход "+fd(op.date)+" — "+fm(+op.sum||0)+" ₽"}</h3><div class="dc-sub">Отметьте, за какие накладные пришли деньги. Сумма прихода посчитается сама, если её не вписать.</div></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>
        <div class="bnmf"><label class="f">ИП (на чей счёт пришли)<select id="bnp-s">${opts(D.suppliers, op.supplierId)}</select></label><label class="f">Дата прихода<input type="date" id="bnp-d" value="${esc(op.date)}"></label>
          <label class="f">Сумма прихода, ₽<input id="bnp-sum" inputmode="decimal" placeholder="= сумма отмеченных" value="${esc(BNKP.sumTyped)}"></label><label class="f bnmf-w">Комментарий (необязательно)<input id="bnp-n" value="${esc(op.purpose||"")}" placeholder="например: оплата за октябрь"></label></div>`
     : `<div class="dc-head"><div><div class="dc-kicker">Поступление ${fd(op.date)} · ${esc(bnSup(op.supplierId))}</div><h3>+${fm(+op.sum||0)} ₽ — ${esc(op.payerName||"")}</h3><div class="dc-sub">${esc(op.purpose||"")}</div></div><button class="dc-x" data-dc="close" aria-label="Закрыть">×</button></div>`;
   openCard(`${head}
-    <div class="bnpk"><label class="f">Заказчик<select id="bnp-c"><option value="">— выберите —</option>${opts(D.customers, cid)}</select></label>
+    <div class="bnpk"><label class="f">Заказчик<select id="bnp-c"><option value="">— выберите —</option>${opts(D.customers, BNKP.cid)}</select></label>
       ${!man && op.payerInn?`<label class="chk"><input type="checkbox" id="bnp-rem" ${bnInnMap()[bnDigits(op.payerInn)]?"checked":""}> запомнить: ИНН ${esc(op.payerInn)} — это этот заказчик</label>`:""}
-      <label class="chk"><input type="checkbox" id="bnp-all"> показать накладные всех ИП</label>
-      <label class="chk"><input type="checkbox" id="bnp-paid"> показать и уже оплаченные накладные</label>
+      <label class="chk"><input type="checkbox" id="bnp-all" ${BNKP.allSup?"checked":""}> показать накладные всех ИП</label>
+      <label class="chk"><input type="checkbox" id="bnp-paid" ${BNKP.paid?"checked":""}> показать и уже оплаченные накладные</label>
       <p class="muted bnpnote">Частичная оплата: отметьте накладную и впишите справа, сколько из неё оплачено — остаток долга останется на накладной.</p>
       <div id="bnp-mk"></div><div id="bnp-l"></div><div class="bnpt" id="bnp-t"></div>
       <div class="pvea"><button type="button" class="btn pri" data-bnp="save">${man?"Сохранить приход":"Разнести"}</button><button type="button" class="btn ghost" data-dc="close">Отмена</button></div></div>`, true, ()=>{});
@@ -337,11 +338,23 @@ function bnPick(op, man){
   d.addEventListener("input", e=>{ const t=e.target;
     if(t.matches(".bnps")){ const id=t.dataset.id; BNKP.sel.set(id, t.value); const c=t.closest(".bnpr").querySelector(".bnpc"); c.checked=true; t.closest(".bnpr").classList.add("on"); bnPickTotal(); }
     else if(t.id==="bnp-sum"){ BNKP.sumTyped=t.value; bnPickTotal(); } });
-  d.addEventListener("click", e=>{ const b=e.target.closest("[data-bnp]"); if(!b) return;
+  d.addEventListener("click", e=>{ const v=e.target.closest("[data-bnpv]"); if(v){ e.preventDefault(); e.stopPropagation(); bnPickView(v.dataset.bnpv); return; }
+    const b=e.target.closest("[data-bnp]"); if(!b) return;
     if(b.dataset.bnp==="mk"){ const rem=$("#bnp-rem"); if(rem && rem.checked && BNKP.cid && op.payerInn){ const p=getPrefs(); p.bnInn=Object.assign({}, p.bnInn||{}, {[bnDigits(op.payerInn)]:BNKP.cid}); setPrefs(p,true); } bnMake(op, BNKP.cid); return; }
     bnPickSave(); });
   bnPickDraw();
 }
+/* просмотр накладной из окна «Выбрать накладные…»: «‹ Назад» возвращает окно с теми же отметками */
+const BNP_EYE='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+function bnPickKeep(){ const k=BNKP; if(!k) return null; const sum=$("#bnp-sum"), n=$("#bnp-n"), sd=$("#bnp-s"), dd=$("#bnp-d");
+  if(k.man){ if(sum) k.sumTyped=sum.value; if(n) k.op.purpose=n.value; if(sd) k.op.supplierId=sd.value; if(dd) k.op.date=dd.value; }
+  return Object.assign({}, k, {sel:[...k.sel.entries()]}); }
+let BNKP_SAVED=null;
+function bnPickRe(){ const st=BNKP_SAVED||bnPickKeep(); if(!st) return; BNKP_SAVED=null; bnPick(st.op, st.man, st); }
+function bnPickView(id){ BNKP_SAVED=bnPickKeep();
+  const ids = id==="*" ? [...BNKP.sel.keys()] : [id], g=ids.map(x=>D.journal.find(j=>j.id===x)).filter(Boolean);
+  if(!g.length){ toast("info","Накладной нет на сайте",""); return; }
+  if(g.length===1) docCard(g[0], isArch(g[0])); else bundleCard(g.sort((a,b)=>(a.date||"").localeCompare(b.date||"")||(parseInt(a.number,10)||0)-(parseInt(b.number,10)||0))); }
 const bnPickCap = () => BNKP.man ? (+num(BNKP.sumTyped)||0) : (+BNKP.op.sum||0);
 function bnPickDraw(keepRows){
   const box=$("#bnp-l"); if(!box) return; const op=BNKP.op;
@@ -360,7 +373,7 @@ function bnPickDraw(keepRows){
     box.innerHTML = !cid ? `<p class="muted">Выберите заказчика — покажу его неоплаченные накладные.</p>` : L.length ? `${hasPaid?`<p class="muted bnpnote">Если отметить накладную, которая уже отмечена оплаченной, сайт просто свяжет с ней этот платёж — второй раз сумма не добавится.</p>`:""}<div class="bnpl">${L.map(x=>{ const on=BNKP.sel.has(x.j.id), p=x.p, def=p.left>0.004?p.left:p.tot;
         const tags=[x.tag, isArch(x.j)?"в архиве":"", op.supplierId && x.j.supplierId!==op.supplierId?"другой ИП":""].filter(Boolean);
         const due = p.left<=0.004 ? `<span class="bnpd paid">уже оплачена ${fm(p.tot)}</span>` : p.s>0.004 ? `<span class="bnpd">к оплате ${fm(p.left)} из ${fm(p.tot)}</span>` : `<span class="bnpd">к оплате ${fm(p.left)}</span>`;
-        return `<label class="bnpr ${on?"on":""}" data-left="${r2(def)}"><input type="checkbox" class="bnpc" data-id="${x.j.id}" ${on?"checked":""}><span class="bnpn"><b>№ ${esc(x.j.number)}</b> <small>${fd(x.j.date)} · ${esc(bnSup(x.j.supplierId))}${tags.length?" · "+esc(tags.join(", ")):""}</small><em class="bnpart"></em></span>${due}<input class="bnps" data-id="${x.j.id}" inputmode="decimal" aria-label="Сколько оплачено по накладной № ${esc(x.j.number)}" value="${esc(String(on?BNKP.sel.get(x.j.id):r2(def)).replace(".",","))}"></label>`; }).join("")}</div>` : `<p class="muted">У заказчика нет неоплаченных накладных${BNKP.allSup?"":" у этого ИП — отметьте «показать накладные всех ИП»"}. Уже оплаченные — отметьте «показать и уже оплаченные накладные».</p>`;
+        return `<label class="bnpr ${on?"on":""}" data-left="${r2(def)}"><input type="checkbox" class="bnpc" data-id="${x.j.id}" ${on?"checked":""}><span class="bnpn"><b>№ ${esc(x.j.number)}</b><button type="button" class="bnpv" data-bnpv="${x.j.id}" title="Посмотреть накладную № ${esc(x.j.number)}" aria-label="Посмотреть накладную № ${esc(x.j.number)}">${BNP_EYE}<span>Открыть</span></button> <small>${fd(x.j.date)} · ${esc(bnSup(x.j.supplierId))}${tags.length?" · "+esc(tags.join(", ")):""}</small><em class="bnpart"></em></span>${due}<input class="bnps" data-id="${x.j.id}" inputmode="decimal" aria-label="Сколько оплачено по накладной № ${esc(x.j.number)}" value="${esc(String(on?BNKP.sel.get(x.j.id):r2(def)).replace(".",","))}"></label>`; }).join("")}</div>` : `<p class="muted">У заказчика нет неоплаченных накладных${BNKP.allSup?"":" у этого ИП — отметьте «показать накладные всех ИП»"}. Уже оплаченные — отметьте «показать и уже оплаченные накладные».</p>`;
   } else box.querySelectorAll(".bnpr").forEach(r=>r.classList.toggle("on", r.querySelector(".bnpc").checked));
   bnPickTotal();
 }
@@ -368,9 +381,11 @@ function bnPickTotal(){ const t=$("#bnp-t"); if(!t) return; const s=r2([...BNKP.
   document.querySelectorAll("#bnp-l .bnpr").forEach(r=>{ const id=r.querySelector(".bnpc").dataset.id, e=r.querySelector(".bnpart"); if(!e) return;
     const j=D.journal.find(x=>x.id===id), p=j?payOf(j):null, v=BNKP.sel.has(id)?(+num(BNKP.sel.get(id))||0):0;
     e.textContent = p && v>0.004 && p.left>0.004 && v<p.left-0.004 ? "частичная оплата — останется долг "+fm(r2(p.left-v))+" ₽" : ""; });
-  if(BNKP.man && !(+num(BNKP.sumTyped)>0)){ t.classList.toggle("ok", s>0); t.innerHTML=`<span>Сумма прихода <b>${fm(s)}</b> ₽ <small class="muted">— по отмеченным накладным</small></span>`; return; }
+  const nSel=[...BNKP.sel.keys()].filter(id=>D.journal.some(x=>x.id===id)).length;
+  const vb = nSel ? `<button type="button" class="bnpv all" data-bnpv="*" title="Посмотреть отмеченные накладные">${BNP_EYE}<span>${nSel>1?"Посмотреть отмеченные · "+nSel:"Посмотреть"}</span></button>` : "";
+  if(BNKP.man && !(+num(BNKP.sumTyped)>0)){ t.classList.toggle("ok", s>0); t.innerHTML=`<span>Сумма прихода <b>${fm(s)}</b> ₽ <small class="muted">— по отмеченным накладным</small></span>${vb}`; return; }
   const sum=bnPickCap(), rest=r2(sum-s);
-  t.innerHTML=`<span>Выбрано <b>${fm(s)}</b> из <b>${fm(sum)}</b> ₽</span>${bnEq(rest,0)?`<em class="ok">ровно</em>`:rest<0 && -rest<=BN_TOL+0.004?`<em class="ok">разница ${fm(-rest)} ₽ — округление, можно разносить</em>`:rest>0?`<em>не разнесено ${fm(rest)} ₽</em>`:`<em class="bad">больше платежа на ${fm(-rest)} ₽</em>`}`;
+  t.innerHTML=`<span>Выбрано <b>${fm(s)}</b> из <b>${fm(sum)}</b> ₽</span>${bnEq(rest,0)?`<em class="ok">ровно</em>`:rest<0 && -rest<=BN_TOL+0.004?`<em class="ok">разница ${fm(-rest)} ₽ — округление, можно разносить</em>`:rest>0?`<em>не разнесено ${fm(rest)} ₽</em>`:`<em class="bad">больше платежа на ${fm(-rest)} ₽</em>`}${vb}`;
   t.classList.toggle("ok", bnEq(rest,0) || (rest<0 && -rest<=BN_TOL+0.004)); }
 function bnPickSave(){
   const op=BNKP.op, docs=[...BNKP.sel.entries()].map(([id,s])=>({id, s:String(r2(+num(s)||0))})).filter(x=>+x.s>0), s=r2(docs.reduce((a,x)=>a+ +x.s,0));
