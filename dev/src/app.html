@@ -3962,10 +3962,11 @@ html.fd-dark :is(#fd-app .card,dialog.dcard,#tkf-pan,#tkf-fab){box-shadow:0 0 0 
 #fd-app .oact-save #o-msg:empty{display:none}
 #fd-app .oact-dl{border-top:1px solid var(--line,rgba(0,0,0,.08));padding-top:16px}
 #fd-app .oact-dl h2{margin:0 0 10px}
-#fd-app .oact-row{display:flex;align-items:center;justify-content:space-between;gap:12px 20px;flex-wrap:wrap}
+#fd-app .oact-row{display:flex;flex-direction:column;align-items:flex-start;gap:12px}
+#fd-app .oact-save .btn,#fd-app .oact-row #o-go{min-width:260px;justify-content:center}
 #fd-app .oact-k{display:flex;align-items:center;gap:8px 22px;flex-wrap:wrap}
 #fd-app .oact-k .chk{margin:0;min-height:40px;display:inline-flex;align-items:center}
-#fd-app .oact-row #o-go{min-height:42px;padding:8px 20px;background:var(--surface);color:var(--accent);border:1px solid rgba(106,44,78,.45);box-shadow:none}
+#fd-app .oact-row #o-go{min-height:46px;padding:10px 26px;font-size:15px;background:var(--surface);color:var(--accent);border:1px solid rgba(106,44,78,.45);box-shadow:none}
 #fd-app .oact-row #o-go:hover{background:var(--accent-soft)}
 @media (max-width:560px){#fd-app .oact-save .btn,#fd-app .oact-row #o-go{width:100%;justify-content:center}#fd-app .oact-row{flex-direction:column;align-items:stretch}#fd-app .oact-k{justify-content:space-between;gap:8px}}
 </style>

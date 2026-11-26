@@ -12,7 +12,7 @@ with sync_playwright() as p:
   else: pg.evaluate(TAB+"('order')")
   pg.wait_for_timeout(1200)
   r=pg.evaluate("""()=>{const s=document.querySelector('#o-save').getBoundingClientRect(), h=document.querySelector('.oact-dl h2').getBoundingClientRect(), g=document.querySelector('#o-go').getBoundingClientRect(), k=document.querySelector('#o-k-upd').closest('label').getBoundingClientRect();
-   return {save:document.querySelector('#o-save').textContent, go:document.querySelector('#o-go').textContent, order:s.bottom<=h.top, row: PH? g.top>=k.bottom-2 : Math.abs((g.top+g.bottom)/2-(k.top+k.bottom)/2)<8, sw:document.documentElement.scrollWidth, iw:innerWidth}}""".replace("PH",str(PH).lower()))
+   return {save:document.querySelector('#o-save').textContent, go:document.querySelector('#o-go').textContent, order:s.bottom<=h.top, row: g.top>=k.bottom-2 && Math.abs(g.left-document.querySelector('#o-k-invoice').closest('label').getBoundingClientRect().left)<3 && Math.abs(g.left-s.left)<3, sw:document.documentElement.scrollWidth, iw:innerWidth}}""".replace("PH",str(PH).lower()))
   print(r)
   assert r["save"]=="Сохранить в журнал" and r["go"]=="Сохранить и скачать PDF", r
   assert r["order"] and r["row"] and r["sw"]==r["iw"], r
